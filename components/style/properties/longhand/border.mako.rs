@@ -190,81 +190,14 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-float-edge)",
                          animation_value_type="none")}
 
-<%helpers:longhand name="border-image-source" animation_value_type="none" boxed="True"
-                   spec="https://drafts.csswg.org/css-backgrounds/#border-image-source">
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::HasViewportPercentage;
-    use values::specified::Image;
-
-    no_viewport_percentage!(SpecifiedValue);
-
-    pub mod computed_value {
-        use values::computed;
-        #[derive(Debug, Clone, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Option<computed::Image>);
-    }
-
-    #[derive(Debug, Clone, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedValue(pub Option<Image>);
-
-    impl ToCss for computed_value::T {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match self.0 {
-                Some(ref image) => image.to_css(dest),
-                None => dest.write_str("none"),
-            }
-        }
-    }
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match self.0 {
-                Some(ref image) => image.to_css(dest),
-                None => dest.write_str("none"),
-            }
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(None)
-    }
-
-    #[inline]
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue(None)
-    }
-
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            match self.0 {
-                Some(ref image) => computed_value::T(Some(image.to_computed_value(context))),
-                None => computed_value::T(None),
-            }
-        }
-        #[inline]
-        fn from_computed_value(computed: &computed_value::T) -> Self {
-            match computed.0 {
-                Some(ref image) =>
-                    SpecifiedValue(Some(ToComputedValue::from_computed_value(image))),
-                None => SpecifiedValue(None),
-            }
-        }
-    }
-
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            return Ok(SpecifiedValue(None));
-        }
-
-        Ok(SpecifiedValue(Some(try!(Image::parse(context, input)))))
-    }
-</%helpers:longhand>
+${helpers.predefined_type("border-image-source", "LayerImage",
+    initial_value="computed_value::T(None)",
+    initial_specified_value="SpecifiedValue(None)",
+    spec="https://drafts.csswg.org/css-backgrounds/#the-background-image",
+    vector=False,
+    animation_value_type="none",
+    has_uncacheable_values=False,
+    boxed="True")}
 
 <%helpers:longhand name="border-image-outset" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-outset">

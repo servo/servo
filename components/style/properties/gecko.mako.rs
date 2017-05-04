@@ -921,13 +921,13 @@ fn static_assert() {
                                need_clone=True) %>
     % endfor
 
-    pub fn set_border_image_source(&mut self, v: longhands::border_image_source::computed_value::T) {
+    pub fn set_border_image_source(&mut self, image: longhands::border_image_source::computed_value::T) {
         unsafe {
             // Prevent leaking of the last elements we did set
             Gecko_SetNullImageValue(&mut self.gecko.mBorderImageSource);
         }
 
-        if let Some(image) = v.0 {
+        if let Some(image) = image.0 {
             self.gecko.mBorderImageSource.set(image, &mut false)
         }
     }
@@ -2791,18 +2791,9 @@ fn static_assert() {
 
         for (image, geckoimage) in images.0.into_iter().zip(self.gecko.${image_layers_field}
                                                                 .mLayers.iter_mut()) {
-            % if shorthand == "background":
-                if let Some(image) = image.0 {
-                    geckoimage.mImage.set(image, cacheable)
-                }
-            % else:
-                use properties::longhands::mask_image::single_value::computed_value::T;
-                match image {
-                    T::Image(image) => geckoimage.mImage.set(image, cacheable),
-                    _ => ()
-                }
-            % endif
-
+            if let Some(image) = image.0 {
+                geckoimage.mImage.set(image, cacheable)
+            }
         }
     }
 

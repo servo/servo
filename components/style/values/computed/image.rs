@@ -677,3 +677,17 @@ impl AngleOrCorner {
         }
     }
 }
+
+/// Computed values for none | <image> | <mask-source>.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct LayerImage(pub Option<Image>);
+
+impl ToCss for LayerImage {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match self.0 {
+            None => dest.write_str("none"),
+            Some(ref image) => image.to_css(dest),
+        }
+    }
+}

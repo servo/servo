@@ -666,3 +666,52 @@ impl SizeKeyword {
         }
     }
 }
+
+/// Specified values for none | <image> | <mask-source>.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct LayerImage(pub Option<Image>);
+use values::HasViewportPercentage;
+no_viewport_percentage!(LayerImage);
+
+impl ToCss for LayerImage {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            LayerImage(Some(ref image)) => image.to_css(dest),
+            LayerImage(None) => dest.write_str("none"),
+        }
+    }
+}
+
+use super::computed::{ToComputedValue, Context};
+impl ToComputedValue for LayerImage {
+    type ComputedValue = super::computed::LayerImage;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        match *self {
+            LayerImage(None) => super::computed::LayerImage(None),
+            LayerImage(Some(ref image)) =>
+                super::computed::LayerImage(Some(image.to_computed_value(context))),
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        match *computed {
+            super::computed::LayerImage(None) => LayerImage(None),
+            super::computed::LayerImage(Some(ref image)) =>
+                LayerImage(Some(ToComputedValue::from_computed_value(image))),
+        }
+    }
+}
+
+impl Parse for LayerImage {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+            Ok(LayerImage(None))
+        } else {
+            Ok(LayerImage(Some(try!(Image::parse(context, input)))))
+        }
+    }
+}
