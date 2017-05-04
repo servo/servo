@@ -22,7 +22,7 @@ use dom::{self, AnimationRules, DescendantsBit, LayoutIterator, NodeInfo, TEleme
 use dom::{OpaqueNode, PresentationalHintsSynthetizer};
 use element_state::ElementState;
 use error_reporting::RustLogReporter;
-use font_metrics::{FontMetricsProvider, FontMetricsQueryResult};
+use font_metrics::{FontMetrics, FontMetricsProvider, FontMetricsQueryResult};
 use gecko::global_style_data::GLOBAL_STYLE_DATA;
 use gecko::selector_parser::{SelectorImpl, NonTSPseudoClass, PseudoElement};
 use gecko::snapshot_helpers;
@@ -476,25 +476,22 @@ impl FontMetricsProvider for GeckoFontMetricsProvider {
         sizes.size_for_generic(font_family)
     }
 
-    fn query(&self, _font: &Font, _font_size: Au, _wm: WritingMode,
-             _in_media_query: bool, _device: &Device) -> FontMetricsQueryResult {
-        // Disabled until we can make font metrics thread safe (bug 1356105)
-        //
-        // use gecko_bindings::bindings::Gecko_GetFontMetrics;
-        // let gecko_metrics = unsafe {
-        //     Gecko_GetFontMetrics(&*device.pres_context,
-        //                          wm.is_vertical() && !wm.is_sideways(),
-        //                          font.gecko(),
-        //                          font_size.0,
-        //                          // we don't use the user font set in a media query
-        //                          !in_media_query)
-        // };
-        // let metrics = FontMetrics {
-        //     x_height: Au(gecko_metrics.mXSize),
-        //     zero_advance_measure: Au(gecko_metrics.mChSize),
-        // };
-        // FontMetricsQueryResult::Available(metrics)
-        FontMetricsQueryResult::NotAvailable
+    fn query(&self, font: &Font, font_size: Au, wm: WritingMode,
+             in_media_query: bool, device: &Device) -> FontMetricsQueryResult {
+        use gecko_bindings::bindings::Gecko_GetFontMetrics;
+        let gecko_metrics = unsafe {
+            Gecko_GetFontMetrics(&*device.pres_context,
+                                 wm.is_vertical() && !wm.is_sideways(),
+                                 font.gecko(),
+                                 font_size.0,
+                                 // we don't use the user font set in a media query
+                                 !in_media_query)
+        };
+        let metrics = FontMetrics {
+            x_height: Au(gecko_metrics.mXSize),
+            zero_advance_measure: Au(gecko_metrics.mChSize),
+        };
+        FontMetricsQueryResult::Available(metrics)
     }
 }
 
