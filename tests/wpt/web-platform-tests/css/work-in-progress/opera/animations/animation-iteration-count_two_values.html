@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - animation-iteration-count, two values</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-animations/#the-animation-iteration-count-property-">
+   <meta name="flags" content="dom">
+   <meta name="assert" content="1, 2 is a valid animation-iteration-count">
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      @keyframes move-right {
+         0% {
+            left: 0px;
+         }
+         100% {
+            left: 100px;
+         }
+      }
+      @keyframes move-down {
+         0% {
+            top: 0px;
+         }
+         100% {
+            top: 100px;
+         }
+      }
+      div {
+         width: 100px;
+         height: 100px;
+         background: blue;
+         position: relative;
+         animation-duration: 1s;
+         animation-iteration-count: 1, 2;
+      }
+      .test {
+         animation-name: move-right, move-down;
+      }
+   </style>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var div = document.querySelector('div');
+         var log = document.querySelectorAll('p')[1].firstChild;
+         var passed = false;
+         function aboutEqual(observed, actual) {
+            var maxDeviation = 0.1;
+            return (Math.abs(observed - actual) < maxDeviation);
+         }
+         var timeout = setTimeout(function() {
+            test(function(){assert_true(false);}, testName); done();
+            log.data = 'FAIL';
+         }, 2500);
+         div.addEventListener('animationend', function(evt) {
+            if (evt.animationName == 'move-right') {
+               passed = aboutEqual(evt.elapsedTime, 1);
+            } else if (evt.animationName == 'move-down') {
+               clearTimeout(timeout);
+               passed = (passed && aboutEqual(evt.elapsedTime, 2));
+               test(function(){assert_true(passed);}, testName); done();
+               log.data = (passed ? 'PASS if the animation occurred.' : 'FAIL');
+            }
+         });
+         div.className = 'test';
+      }
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>The blue square below should slide diagonally down+right, then return to
+   its initial position and slide downwards, then return to the initial
+   position again.</p>
+   <p>Testing...</p>
+   <div></div>
+</body>
+</html>

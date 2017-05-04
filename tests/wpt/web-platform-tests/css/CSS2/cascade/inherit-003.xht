@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Inherit on the root element</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#value-def-inherit" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="If the 'inherit' value is set on the root element, the property is assigned its initial value." />
+        <style type="text/css">
+            html
+            {
+                font-size: 1in;
+                font-size: inherit;
+                font-style: italic;
+                font-style: inherit;
+                font-variant: small-caps;
+                font-variant: inherit;
+                font-weight: bold;
+                font-weight: inherit;
+            }
+            span
+            {
+                font-size: medium;
+                font-style: normal;
+                font-variant: normal;
+                font-weight: normal;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the two lines of "Filler Text" below are identical.</p>
+        <div>
+            Filler Text
+            <br />
+            <span>Filler Text</span>
+        </div>
+    </body>
+</html>

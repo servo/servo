@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Masking: mask-image: mask with filter and opacity</title>
+    <link rel="author" title="CJ Ku" href="mailto:cku@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://www.w3.org/TR/css-masking-1/#the-mask-image">
+    <link rel="match" href="mask-opacity-1-ref.html">
+    <meta name="assert" content="Test checks whether apply opacity to masked element correctly or not.">
+    <style type="text/css">
+      div {
+        position: absolute;
+        left: 10px;
+        top: 10px;
+        background-color: rgb(255,255,0);
+        width: 100px;
+        height: 100px;
+        filter: invert(100%);
+        mask-image: url(support/blue-100x50-transparent-100x50.png);
+        opacity: 0.5;
+      }
+    </style>
+  </head>
+  <body>
+    <div></div>
+  </body>
+</html>

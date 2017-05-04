@@ -1,0 +1,56 @@
+
+<HTML>
+<HEAD>
+<TITLE>Seventh Test of Section 1.4 of CSS1 Spec</TITLE>
+
+
+<STYLE TYPE="text/css">
+P.foo {font-weight: bold;
+       font-size: 12pt;
+       line-height: 14pt;
+       font-family: helvetica;
+       font-style: normal;
+       }
+H3.foo1 {font-weight: bold;
+         font-size: 12pt;
+         line-height: 14pt;
+         font-family: helvetica;
+         font-style: normal;
+         }
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+
+<h1 > Testing seventh testable statement of Section 1.4 of CSS1 Spec</h1>
+
+
+
+<ul>
+<li >
+7. One element can emulate another because of the power of the CLASS attribute.
+</ul>
+
+
+
+
+<h2 >"PASS" CRITERIA:
+</h2>
+<p>
+If statement #7 above is passed, then the two paragraphs below should
+look identical although their element types are different:
+<p class=foo>
+P - should be bold font-weight, 12pt font size, 14pt line height, helvetica and
+normal font-style.  All other properties should be UA-default.  The rule appliedis "p.foo {font-weight: bold; font-size: 12pt; line-height: 14pt; font-family:
+helvetica; font-style: normal;}".
+<h3 class=foo1>
+H3 - should be bold font-weight, 12pt font size, 14pt line height, helvetica and
+normal font-style.  All other properties should be UA-default.  The rule appliedis "h3.foo1 {font-weight: bold; font-size: 12pt; line-height: 14pt; font-family: helvetica; font-style: normal;}".  
+<p>
+P above should be identical to H3 above.
+
+</BODY>
+</HTML>

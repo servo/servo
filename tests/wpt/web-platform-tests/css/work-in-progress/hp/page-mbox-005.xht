@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Margin Boxes - Top</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#margin-boxes"/>
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="If the top-center box has content, then the outer widths of the other two boxes are equal to each other."/>
+  <style type="text/css"><![CDATA[
+   @page {
+   		margin: 0.5in;
+   		@top-left {
+			content: "";
+			border-left: 2pt solid black;
+		}
+		@top-right {
+			content: "";
+			border-right: 2pt solid aqua;
+		}
+   		@top-center { 
+			content: "";
+			margin: 0;
+			border-left: 2pt solid black;
+			border-right: 2pt solid aqua;
+		}
+   }
+  ]]></style>
+ </head>
+ <body>
+  <div>The distance between the blue lines must be the same as the distance between the black lines. You can test this by folding the paper in half, length-wise.</div>
+ </body>
+</html>

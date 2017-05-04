@@ -1,0 +1,78 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: Unquoted and unescaped font-family name with white spaces</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-family-prop" />
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-family-prop" title="3.1 Font family: the font-family property" />
+  <link rel="match" href="font-family-rule-002a-ref.xht" />
+
+  <meta content="font" name="flags" />
+  <meta content="Any white space characters before or after an unquoted and unescaped font-family name are removed. Any sequence of white space characters between identifiers of an unquoted and unescaped font-family name should be converted to a single white space separating its identifiers." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div
+  {
+  font-size: 1.25em;
+  line-height: 1.5;
+  }
+
+  #quoted
+  {
+  font-family: "White Space";
+  }
+
+  #unquoted
+  {
+  font-family: White Space;
+  }
+
+  #unquoted-spaces-before
+  {
+  font-family:        White Space;
+  }
+
+  #unquoted-spaces-between
+  {
+  font-family: White       Space;
+  }
+
+  #unquoted-spaces-after
+  {
+  font-family: White Space       ;
+  }
+
+  #unquoted-spaces-all
+  {
+  font-family:        White        Space       ;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>PREREQUISITE: Operating system needs to have the '<a href="support/AHEM_whitespace.ttf" type="application/x-font-ttf">White Space</a>' font installed.</p>
+
+  <p>Post Test: Remove test font after running the test.</p>
+
+  <p>Test passes if there are 6 short black stripes.</p>
+
+  <div id="quoted">FAIL</div>
+
+  <div id="unquoted">FAIL</div>
+
+  <div id="unquoted-spaces-before">FAIL</div>
+
+  <div id="unquoted-spaces-between">FAIL</div>
+
+  <div id="unquoted-spaces-after">FAIL</div>
+
+  <div id="unquoted-spaces-all">FAIL</div>
+
+ </body>
+</html>

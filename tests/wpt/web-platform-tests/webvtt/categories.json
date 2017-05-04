@@ -1,0 +1,12 @@
+{
+    ":categories": [
+        ["api", "parsing", "rendering"],
+        ["cues"],
+        ["regions"],
+        ["stylesheets"]
+    ],
+    ":subcategories": ["api/categories.json", "parsing/categories.json"],
+    "api/*": "api",
+    "parsing/*": "parsing",
+    "rendering/*": "rendering"
+}

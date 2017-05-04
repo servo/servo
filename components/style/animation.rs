@@ -10,6 +10,7 @@ use bezier::Bezier;
 use context::SharedStyleContext;
 use dom::{OpaqueNode, UnsafeNode};
 use euclid::point::Point2D;
+use font_metrics::FontMetricsProvider;
 use keyframes::{KeyframesStep, KeyframesStepValue};
 use properties::{self, CascadeFlags, ComputedValues, Importance};
 use properties::animated_properties::{AnimatedProperty, TransitionProperty};
@@ -18,8 +19,8 @@ use properties::longhands::animation_iteration_count::single_value::computed_val
 use properties::longhands::animation_play_state::computed_value::single_value::T as AnimationPlayState;
 use properties::longhands::transition_timing_function::single_value::computed_value::StartEnd;
 use properties::longhands::transition_timing_function::single_value::computed_value::T as TransitionTimingFunction;
-use std::sync::Arc;
 use std::sync::mpsc::Sender;
+use stylearc::Arc;
 use timer::Timer;
 use values::computed::Time;
 
@@ -271,10 +272,23 @@ impl PropertyAnimation {
         let timing_function = box_style.transition_timing_function_mod(transition_index);
         let duration = box_style.transition_duration_mod(transition_index);
 
+        if let TransitionProperty::Unsupported(_) = transition_property {
+            return result
+        }
+
+        if transition_property.is_shorthand() {
+            return transition_property.longhands().iter().filter_map(|transition_property| {
+                PropertyAnimation::from_transition_property(transition_property,
+                                                            timing_function,
+                                                            duration,
+                                                            old_style,
+                                                            new_style)
+            }).collect();
+        }
 
         if transition_property != TransitionProperty::All {
             if let Some(property_animation) =
-                    PropertyAnimation::from_transition_property(transition_property,
+                    PropertyAnimation::from_transition_property(&transition_property,
                                                                 timing_function,
                                                                 duration,
                                                                 old_style,
@@ -286,7 +300,7 @@ impl PropertyAnimation {
 
         TransitionProperty::each(|transition_property| {
             if let Some(property_animation) =
-                    PropertyAnimation::from_transition_property(transition_property,
+                    PropertyAnimation::from_transition_property(&transition_property,
                                                                 timing_function,
                                                                 duration,
                                                                 old_style,
@@ -298,13 +312,15 @@ impl PropertyAnimation {
         result
     }
 
-    fn from_transition_property(transition_property: TransitionProperty,
+    fn from_transition_property(transition_property: &TransitionProperty,
                                 timing_function: TransitionTimingFunction,
                                 duration: Time,
                                 old_style: &ComputedValues,
                                 new_style: &ComputedValues)
                                 -> Option<PropertyAnimation> {
-        let animated_property = AnimatedProperty::from_transition_property(&transition_property,
+        debug_assert!(!transition_property.is_shorthand() &&
+                      transition_property != &TransitionProperty::All);
+        let animated_property = AnimatedProperty::from_transition_property(transition_property,
                                                                            old_style,
                                                                            new_style);
 
@@ -323,19 +339,43 @@ impl PropertyAnimation {
 
     /// Update the given animation at a given point of progress.
     pub fn update(&self, style: &mut ComputedValues, time: f64) {
-        let progress = match self.timing_function {
+        let timing_function = match self.timing_function {
+            TransitionTimingFunction::Keyword(keyword) =>
+                keyword.to_non_keyword_value(),
+            other => other,
+        };
+        let progress = match timing_function {
             TransitionTimingFunction::CubicBezier(p1, p2) => {
                 // See `WebCore::AnimationBase::solveEpsilon(double)` in WebKit.
                 let epsilon = 1.0 / (200.0 * (self.duration.seconds() as f64));
                 Bezier::new(Point2D::new(p1.x as f64, p1.y as f64),
                             Point2D::new(p2.x as f64, p2.y as f64)).solve(time, epsilon)
-            }
+            },
             TransitionTimingFunction::Steps(steps, StartEnd::Start) => {
                 (time * (steps as f64)).ceil() / (steps as f64)
-            }
+            },
             TransitionTimingFunction::Steps(steps, StartEnd::End) => {
                 (time * (steps as f64)).floor() / (steps as f64)
-            }
+            },
+            TransitionTimingFunction::Frames(frames) => {
+                // https://drafts.csswg.org/css-timing/#frames-timing-functions
+                let mut out = (time * (frames as f64)).floor() / ((frames - 1) as f64);
+                if out > 1.0 {
+                    // FIXME: Basically, during the animation sampling process, the input progress
+                    // should be in the range of [0, 1]. However, |time| is not accurate enough
+                    // here, which means |time| could be larger than 1.0 in the last animation
+                    // frame. (It should be equal to 1.0 exactly.) This makes the output of frames
+                    // timing function jumps to the next frame/level.
+                    // However, this solution is still not correct because |time| is possible
+                    // outside the range of [0, 1] after introducing Web Animations. We should fix
+                    // this problem when implementing web animations.
+                    out = 1.0;
+                }
+                out
+            },
+            TransitionTimingFunction::Keyword(_) => {
+                panic!("Keyword function should not appear")
+            },
         };
 
         self.property.update(style, progress);
@@ -380,7 +420,7 @@ pub fn start_transitions_if_applicable(new_animations_sender: &Sender<Animation>
             // [1]: https://drafts.csswg.org/css-transitions/#starting
             if possibly_expired_animations.iter().any(|animation| {
                     animation.has_the_same_end_value_as(&property_animation)
-               }) {
+                }) {
                 continue
             }
 
@@ -410,7 +450,8 @@ pub fn start_transitions_if_applicable(new_animations_sender: &Sender<Animation>
 fn compute_style_for_animation_step(context: &SharedStyleContext,
                                     step: &KeyframesStep,
                                     previous_style: &ComputedValues,
-                                    style_from_cascade: &ComputedValues)
+                                    style_from_cascade: &ComputedValues,
+                                    font_metrics_provider: &FontMetricsProvider)
                                     -> ComputedValues {
     match step.value {
         KeyframesStepValue::ComputedValues => style_from_cascade.clone(),
@@ -433,8 +474,9 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
                                                previous_style,
                                                /* cascade_info = */ None,
                                                &*context.error_reporter,
-                                               /* Metrics provider */ None,
-                                               CascadeFlags::empty());
+                                               font_metrics_provider,
+                                               CascadeFlags::empty(),
+                                               context.quirks_mode);
             computed
         }
     }
@@ -451,13 +493,19 @@ pub fn maybe_start_animations(context: &SharedStyleContext,
 
     let box_style = new_style.get_box();
     for (i, name) in box_style.animation_name_iter().enumerate() {
+        let name = if let Some(atom) = name.as_atom() {
+            atom
+        } else {
+            continue
+        };
+
         debug!("maybe_start_animations: name={}", name);
         let total_duration = box_style.animation_duration_mod(i).seconds();
         if total_duration == 0. {
             continue
         }
 
-        if let Some(ref anim) = context.stylist.animations().get(&name.0) {
+        if let Some(ref anim) = context.stylist.animations().get(name) {
             debug!("maybe_start_animations: animation {} found", name);
 
             // If this animation doesn't have any keyframe, we can just continue
@@ -493,7 +541,7 @@ pub fn maybe_start_animations(context: &SharedStyleContext,
 
 
             new_animations_sender
-                .send(Animation::Keyframes(node, name.0.clone(), KeyframesAnimationState {
+                .send(Animation::Keyframes(node, name.clone(), KeyframesAnimationState {
                     started_at: animation_start,
                     duration: duration as f64,
                     delay: delay as f64,
@@ -534,7 +582,8 @@ pub fn update_style_for_animation_frame(mut new_style: &mut Arc<ComputedValues>,
 /// If `damage` is provided, inserts the appropriate restyle damage.
 pub fn update_style_for_animation(context: &SharedStyleContext,
                                   animation: &Animation,
-                                  style: &mut Arc<ComputedValues>) {
+                                  style: &mut Arc<ComputedValues>,
+                                  font_metrics_provider: &FontMetricsProvider) {
     debug!("update_style_for_animation: entering");
     debug_assert!(!animation.is_expired());
 
@@ -570,9 +619,10 @@ pub fn update_style_for_animation(context: &SharedStyleContext,
 
             debug_assert!(!animation.steps.is_empty());
 
-            let maybe_index = style.get_box()
-                                   .animation_name_iter()
-                                   .position(|animation_name| *name == animation_name.0);
+            let maybe_index = style
+                .get_box()
+                .animation_name_iter()
+                .position(|animation_name| Some(name) == animation_name.as_atom());
 
             let index = match maybe_index {
                 Some(index) => index,
@@ -658,7 +708,8 @@ pub fn update_style_for_animation(context: &SharedStyleContext,
             let from_style = compute_style_for_animation_step(context,
                                                               last_keyframe,
                                                               &**style,
-                                                              &state.cascade_style);
+                                                              &state.cascade_style,
+                                                              font_metrics_provider);
 
             // NB: The spec says that the timing function can be overwritten
             // from the keyframe style.
@@ -672,14 +723,15 @@ pub fn update_style_for_animation(context: &SharedStyleContext,
             let target_style = compute_style_for_animation_step(context,
                                                                 target_keyframe,
                                                                 &from_style,
-                                                                &state.cascade_style);
+                                                                &state.cascade_style,
+                                                                font_metrics_provider);
 
             let mut new_style = (*style).clone();
 
             for transition_property in &animation.properties_changed {
                 debug!("update_style_for_animation: scanning prop {:?} for animation \"{}\"",
                        transition_property, name);
-                match PropertyAnimation::from_transition_property(*transition_property,
+                match PropertyAnimation::from_transition_property(transition_property,
                                                                   timing_function,
                                                                   Time::from_seconds(relative_duration as f32),
                                                                   &from_style,

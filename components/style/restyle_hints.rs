@@ -16,10 +16,11 @@ use heapsize::HeapSizeOf;
 use selector_parser::{AttrValue, NonTSPseudoClass, Snapshot, SelectorImpl};
 use selectors::{Element, MatchAttr};
 use selectors::matching::{ElementSelectorFlags, StyleRelations};
-use selectors::matching::matches_complex_selector;
-use selectors::parser::{AttrSelector, Combinator, ComplexSelector, SimpleSelector};
+use selectors::matching::matches_selector;
+use selectors::parser::{AttrSelector, Combinator, Component, Selector};
+use selectors::parser::{SelectorInner, SelectorMethods};
+use selectors::visitor::SelectorVisitor;
 use std::clone::Clone;
-use std::sync::Arc;
 
 bitflags! {
     /// When the ElementState of an element (like IN_HOVER_STATE) changes,
@@ -47,6 +48,11 @@ bitflags! {
         /// of their descendants.
         const RESTYLE_LATER_SIBLINGS = 0x08,
 
+        /// Replace the style data coming from CSS transitions without updating
+        /// any other style data. This hint is only processed in animation-only
+        /// traversal which is prior to normal traversal.
+        const RESTYLE_CSS_TRANSITIONS = 0x10,
+
         /// Replace the style data coming from CSS animations without updating
         /// any other style data. This hint is only processed in animation-only
         /// traversal which is prior to normal traversal.
@@ -56,6 +62,11 @@ bitflags! {
         /// attribute has changed, and this change didn't have any other
         /// dependencies.
         const RESTYLE_STYLE_ATTRIBUTE = 0x40,
+
+        /// Replace the style data coming from SMIL animations without updating
+        /// any other style data. This hint is only processed in animation-only
+        /// traversal which is prior to normal traversal.
+        const RESTYLE_SMIL = 0x80,
     }
 }
 
@@ -86,24 +97,32 @@ pub fn assert_restyle_hints_match() {
         // (RESTYLE_SELF | RESTYLE_DESCENDANTS).
         nsRestyleHint_eRestyle_Subtree => RESTYLE_DESCENDANTS,
         nsRestyleHint_eRestyle_LaterSiblings => RESTYLE_LATER_SIBLINGS,
+        nsRestyleHint_eRestyle_CSSTransitions => RESTYLE_CSS_TRANSITIONS,
         nsRestyleHint_eRestyle_CSSAnimations => RESTYLE_CSS_ANIMATIONS,
         nsRestyleHint_eRestyle_StyleAttribute => RESTYLE_STYLE_ATTRIBUTE,
+        nsRestyleHint_eRestyle_StyleAttribute_Animations => RESTYLE_SMIL,
     }
 }
 
 impl RestyleHint {
     /// The subset hints that affect the styling of a single element during the
     /// traversal.
+    #[inline]
     pub fn for_self() -> Self {
-        RESTYLE_SELF | RESTYLE_STYLE_ATTRIBUTE | RESTYLE_CSS_ANIMATIONS
+        RESTYLE_SELF | RESTYLE_STYLE_ATTRIBUTE | Self::for_animations()
+    }
+
+    /// The subset hints that are used for animation restyle.
+    #[inline]
+    pub fn for_animations() -> Self {
+        RESTYLE_SMIL | RESTYLE_CSS_ANIMATIONS | RESTYLE_CSS_TRANSITIONS
     }
 }
 
 #[cfg(feature = "gecko")]
 impl From<nsRestyleHint> for RestyleHint {
     fn from(raw: nsRestyleHint) -> Self {
-        use std::mem;
-        let raw_bits: u32 = unsafe { mem::transmute(raw) };
+        let raw_bits: u32 = raw.0;
         // FIXME(bholley): Finish aligning the binary representations here and
         // then .expect() the result of the checked version.
         if Self::from_bits(raw_bits).is_none() {
@@ -278,11 +297,23 @@ impl<'a, E> Element for ElementWrapper<'a, E>
     fn match_non_ts_pseudo_class<F>(&self,
                                     pseudo_class: &NonTSPseudoClass,
                                     relations: &mut StyleRelations,
-                                    _: &mut F)
+                                    _setter: &mut F)
                                     -> bool
         where F: FnMut(&Self, ElementSelectorFlags),
     {
-        let flag = SelectorImpl::pseudo_class_state_flag(pseudo_class);
+        // :moz-any is quite special, because we need to keep matching as a
+        // snapshot.
+        #[cfg(feature = "gecko")]
+        {
+            use selectors::matching::matches_complex_selector;
+            if let NonTSPseudoClass::MozAny(ref selectors) = *pseudo_class {
+                return selectors.iter().any(|s| {
+                    matches_complex_selector(s, self, relations, _setter)
+                })
+            }
+        }
+
+        let flag = pseudo_class.state_flag();
         if flag.is_empty() {
             return self.element.match_non_ts_pseudo_class(pseudo_class,
                                                           relations,
@@ -364,37 +395,24 @@ impl<'a, E> Element for ElementWrapper<'a, E>
     }
 }
 
-/// Returns the union of any `ElementState` flags for components of a
-/// `ComplexSelector`.
-pub fn complex_selector_to_state(sel: &ComplexSelector<SelectorImpl>) -> ElementState {
-    sel.compound_selector.iter().fold(ElementState::empty(), |state, s| {
-        state | selector_to_state(s)
-    })
-}
-
-fn selector_to_state(sel: &SimpleSelector<SelectorImpl>) -> ElementState {
+fn selector_to_state(sel: &Component<SelectorImpl>) -> ElementState {
     match *sel {
-        SimpleSelector::NonTSPseudoClass(ref pc) => SelectorImpl::pseudo_class_state_flag(pc),
-        SimpleSelector::Negation(ref negated) => {
-            negated.iter().fold(ElementState::empty(), |state, s| {
-                state | complex_selector_to_state(s)
-            })
-        }
+        Component::NonTSPseudoClass(ref pc) => pc.state_flag(),
         _ => ElementState::empty(),
     }
 }
 
-fn is_attr_selector(sel: &SimpleSelector<SelectorImpl>) -> bool {
+fn is_attr_selector(sel: &Component<SelectorImpl>) -> bool {
     match *sel {
-        SimpleSelector::ID(_) |
-        SimpleSelector::Class(_) |
-        SimpleSelector::AttrExists(_) |
-        SimpleSelector::AttrEqual(_, _, _) |
-        SimpleSelector::AttrIncludes(_, _) |
-        SimpleSelector::AttrDashMatch(_, _) |
-        SimpleSelector::AttrPrefixMatch(_, _) |
-        SimpleSelector::AttrSubstringMatch(_, _) |
-        SimpleSelector::AttrSuffixMatch(_, _) => true,
+        Component::ID(_) |
+        Component::Class(_) |
+        Component::AttrExists(_) |
+        Component::AttrEqual(_, _, _) |
+        Component::AttrIncludes(_, _) |
+        Component::AttrDashMatch(_, _) |
+        Component::AttrPrefixMatch(_, _) |
+        Component::AttrSubstringMatch(_, _) |
+        Component::AttrSuffixMatch(_, _) => true,
         _ => false,
     }
 }
@@ -413,8 +431,11 @@ fn combinator_to_restyle_hint(combinator: Option<Combinator>) -> RestyleHint {
 
 #[derive(Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-struct Sensitivities {
+/// The aspects of an selector which are sensitive.
+pub struct Sensitivities {
+    /// The states which are sensitive.
     pub states: ElementState,
+    /// Whether attributes are sensitive.
     pub attrs: bool,
 }
 
@@ -451,11 +472,30 @@ impl Sensitivities {
 /// change may have on the style of elements in the document.
 #[derive(Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-struct Dependency {
+pub struct Dependency {
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    selector: Arc<ComplexSelector<SelectorImpl>>,
-    hint: RestyleHint,
+    selector: SelectorInner<SelectorImpl>,
+    /// The hint associated with this dependency.
+    pub hint: RestyleHint,
+    /// The sensitivities associated with this dependency.
+    pub sensitivities: Sensitivities,
+}
+
+
+/// The following visitor visits all the simple selectors for a given complex
+/// selector, taking care of :not and :any combinators, collecting whether any
+/// of them is sensitive to attribute or state changes.
+struct SensitivitiesVisitor {
     sensitivities: Sensitivities,
+}
+
+impl SelectorVisitor for SensitivitiesVisitor {
+    type Impl = SelectorImpl;
+    fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) -> bool {
+        self.sensitivities.states.insert(selector_to_state(s));
+        self.sensitivities.attrs |= is_attr_selector(s);
+        true
+    }
 }
 
 /// A set of dependencies for a given stylist.
@@ -476,15 +516,77 @@ pub struct DependencySet {
 
 impl DependencySet {
     fn add_dependency(&mut self, dep: Dependency) {
-        let affects_attrs = dep.sensitivities.attrs;
+        let affected_by_attribute = dep.sensitivities.attrs;
         let affects_states = !dep.sensitivities.states.is_empty();
 
-        if affects_attrs && affects_states {
+        if affected_by_attribute && affects_states {
             self.common_deps.push(dep)
-        } else if affects_attrs {
+        } else if affected_by_attribute {
             self.attr_deps.push(dep)
         } else {
             self.state_deps.push(dep)
+        }
+    }
+
+    /// Adds a selector to this `DependencySet`.
+    pub fn note_selector(&mut self, selector: &Selector<SelectorImpl>) {
+        let mut combinator = None;
+        let mut iter = selector.inner.complex.iter();
+        let mut index = 0;
+
+        loop {
+            let sequence_start = index;
+            let mut visitor = SensitivitiesVisitor {
+                sensitivities: Sensitivities::new()
+            };
+
+            // Visit all the simple selectors in this sequence.
+            //
+            // Note that this works because we can't have combinators nested
+            // inside simple selectors (i.e. in :not() or :-moz-any()). If we
+            // ever support that we'll need to visit complex selectors as well.
+            for ss in &mut iter {
+                ss.visit(&mut visitor);
+                index += 1; // Account for the simple selector.
+            }
+
+            // If we found a sensitivity, add an entry in the dependency set.
+            if !visitor.sensitivities.is_empty() {
+                let mut hint = combinator_to_restyle_hint(combinator);
+                let dep_selector;
+                if sequence_start == 0 {
+                    if selector.pseudo_element.is_some() {
+                        // TODO(emilio): use more fancy restyle hints to avoid
+                        // restyling the whole subtree when pseudos change.
+                        //
+                        // We currently need is_pseudo_element to handle eager
+                        // pseudos (so the style the parent stores doesn't
+                        // become stale), and restyle_descendants to handle all
+                        // of them (::before and ::after, because we find them
+                        // in the subtree, and other lazy pseudos for the same
+                        // reason).
+                        hint |= RESTYLE_SELF | RESTYLE_DESCENDANTS;
+                    }
+
+                    // Reuse the bloom hashes if this is the base selector.
+                    dep_selector = selector.inner.clone();
+                } else {
+                    dep_selector = SelectorInner::new(selector.inner.complex.slice_from(sequence_start));
+                }
+
+                self.add_dependency(Dependency {
+                    sensitivities: visitor.sensitivities,
+                    hint: hint,
+                    selector: dep_selector,
+                });
+            }
+
+            combinator = iter.next_sequence();
+            if combinator.is_none() {
+                break;
+            }
+
+            index += 1; // Account for the combinator.
         }
     }
 
@@ -500,46 +602,6 @@ impl DependencySet {
     /// Return the total number of dependencies that this set contains.
     pub fn len(&self) -> usize {
         self.common_deps.len() + self.attr_deps.len() + self.state_deps.len()
-    }
-
-    /// Create the needed dependencies that a given selector creates, and add
-    /// them to the set.
-    pub fn note_selector(&mut self, selector: &Arc<ComplexSelector<SelectorImpl>>) {
-        let mut cur = selector;
-        let mut combinator: Option<Combinator> = None;
-        loop {
-            let mut sensitivities = Sensitivities::new();
-            for s in &cur.compound_selector {
-                sensitivities.states.insert(selector_to_state(s));
-                if !sensitivities.attrs {
-                    sensitivities.attrs = is_attr_selector(s);
-                }
-
-                // NOTE(emilio): I haven't thought this thoroughly, but we may
-                // not need to do anything for combinators inside negations.
-                //
-                // Or maybe we do, and need to call note_selector recursively
-                // here to account for them correctly, but keep the
-                // sensitivities of the parent?
-                //
-                // In any case, perhaps we should just drop it, see bug 1348802.
-            }
-            if !sensitivities.is_empty() {
-                self.add_dependency(Dependency {
-                    selector: cur.clone(),
-                    hint: combinator_to_restyle_hint(combinator),
-                    sensitivities: sensitivities,
-                });
-            }
-
-            cur = match cur.next {
-                Some((ref sel, comb)) => {
-                    combinator = Some(comb);
-                    sel
-                }
-                None => break,
-            }
-        }
     }
 
     /// Clear this dependency set.
@@ -604,17 +666,17 @@ impl DependencySet {
             debug_assert!((!state_changes.is_empty() && !dep.sensitivities.states.is_empty()) ||
                           (attrs_changed && dep.sensitivities.attrs),
                           "Testing a known ineffective dependency?");
-            if (attrs_changed || state_changes.intersects(dep.sensitivities.states)) && !hint.intersects(dep.hint) {
+            if (attrs_changed || state_changes.intersects(dep.sensitivities.states)) && !hint.contains(dep.hint) {
                 // We can ignore the selector flags, since they would have already been set during
                 // original matching for any element that might change its matching behavior here.
                 let matched_then =
-                    matches_complex_selector(&dep.selector, snapshot, None,
-                                             &mut StyleRelations::empty(),
-                                             &mut |_, _| {});
+                    matches_selector(&dep.selector, snapshot, None,
+                                     &mut StyleRelations::empty(),
+                                     &mut |_, _| {});
                 let matches_now =
-                    matches_complex_selector(&dep.selector, element, None,
-                                             &mut StyleRelations::empty(),
-                                             &mut |_, _| {});
+                    matches_selector(&dep.selector, element, None,
+                                     &mut StyleRelations::empty(),
+                                     &mut |_, _| {});
                 if matched_then != matches_now {
                     hint.insert(dep.hint);
                 }
@@ -623,5 +685,10 @@ impl DependencySet {
                 }
             }
         }
+    }
+
+    /// Get the dependencies affected by state.
+    pub fn get_state_deps(&self) -> &[Dependency] {
+        &self.state_deps
     }
 }

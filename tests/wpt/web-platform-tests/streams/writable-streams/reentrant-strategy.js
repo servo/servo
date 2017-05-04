@@ -78,8 +78,8 @@ promise_test(t => {
   const resolved = [];
   const writer = ws.getWriter();
   const readyPromise1 = writer.ready.then(() => resolved.push('ready1'));
-  const writePromise = promise_rejects(t, new TypeError(), writer.write(),
-                                       'write() should reject with a TypeError')
+  const writePromise = promise_rejects(t, error1, writer.write(),
+                                       'write() should reject with the error')
                                            .then(() => resolved.push('write'));
   const readyPromise2 = promise_rejects(t, error1, writer.ready, 'ready should reject with error1')
       .then(() => resolved.push('ready2'));

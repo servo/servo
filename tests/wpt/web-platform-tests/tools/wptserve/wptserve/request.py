@@ -3,7 +3,8 @@ import cgi
 import Cookie
 import StringIO
 import tempfile
-import urlparse
+
+from six.moves.urllib.parse import parse_qsl, urlsplit
 
 from . import stash
 from .utils import HTTPException
@@ -186,14 +187,6 @@ class Request(object):
 
     Absolute URL for the request.
 
-    .. attribute:: headers
-
-    List of request headers.
-
-    .. attribute:: raw_input
-
-    File-like object representing the body of the request.
-
     .. attribute:: url_parts
 
     Parts of the requested URL as obtained by urlparse.urlsplit(path)
@@ -207,9 +200,17 @@ class Request(object):
     RequestHeaders object providing a dictionary-like representation of
     the request headers.
 
+    .. attribute:: raw_headers.
+
+    Dictionary of non-normalized request headers.
+
     .. attribute:: body
 
     Request body as a string
+
+    .. attribute:: raw_input
+
+    File-like object representing the body of the request.
 
     .. attribute:: GET
 
@@ -265,9 +266,9 @@ class Request(object):
                                       host,
                                       port,
                                       self.request_path)
-        self.url_parts = urlparse.urlsplit(self.url)
+        self.url_parts = urlsplit(self.url)
 
-        self._raw_headers = request_handler.headers
+        self.raw_headers = request_handler.headers
 
         self.request_line = request_handler.raw_requestline
 
@@ -290,7 +291,7 @@ class Request(object):
     @property
     def GET(self):
         if self._GET is None:
-            params = urlparse.parse_qsl(self.url_parts.query, keep_blank_values=True)
+            params = parse_qsl(self.url_parts.query, keep_blank_values=True)
             self._GET = MultiDict()
             for key, value in params:
                 self._GET.add(key, value)
@@ -325,7 +326,7 @@ class Request(object):
     @property
     def headers(self):
         if self._headers is None:
-            self._headers = RequestHeaders(self._raw_headers)
+            self._headers = RequestHeaders(self.raw_headers)
         return self._headers
 
     @property

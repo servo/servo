@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: The bidi algorithm and inlines in CSS</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/inline/bidi/004.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#bidi-box-model"/>
+  <link rel="help" href="http://www.w3.org/TR/css-text-3/#white-space-rules"/>
+    <!-- Spaces are collapsed, then reordered, then trimmed. -->
+  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#bidi-control-codes"/>
+
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#bidi-box-model"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#direction"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-model"/>
+  <link rel="help" href="http://unicode.org/reports/tr9/"/>
+  <link rel="help" href="http://www.w3.org/TR/html5/rendering.html#phrasing-content-0"/> <!-- <br> is a bidi paragraph separator -->
+  <link rel="match" href="bidi-004-ref.xht" />
+
+  <meta name="flags" content="may21 ahem"/>
+  <style type="text/css">
+   div p { width: 28em; border: solid; margin: 1em; padding: 0.5em; background: #FFFFCC; color: black; font: 1em/1 Ahem; }
+   .test { border: solid; padding: 0.4em 1em; line-height: 3em; }
+   .control { line-height: 3em; }
+   .control.start { border-style: solid none solid solid; padding: 0.4em 0 0.4em 1em;  }
+   .control.middle { border-style: solid none solid none; padding: 0.4em 0 0.4em 0;  }
+   .control.end { border-style: solid solid solid none; padding: 0.4em 1em 0.4em 0;  }
+   .a { color: navy; }
+   .b { color: orange; }
+  </style>
+ </head>
+ <body>
+  <p> The following two blocks should be identical, including overflow. (Force bidi: &#x05D0;) </p>
+  <div>
+   <p>
+    <span class="control a start">pppp&nbsp;pppX&nbsp;ppXp&nbsp;ppXX&nbsp;pXpp</span><br
+   /><span class="control b start">pXpX</span>&nbsp;pXXp&nbsp;pXXX&nbsp;Xppp<span class="control a end">&nbsp;XppX</span><br
+   /><span class="control b end">XpXp&nbsp;XpXX&nbsp;XXpp&nbsp;XXpX&nbsp;XXXp</span>
+   </p>
+   <p>
+    <!-- (note that everything between the RLO to the PDF is backwards) -->
+                          <!-- line 1...................--> <!-- line 2........................................--> <!-- line 3...................-->
+    <span class="test a"> pppp pppX ppXp &#x202E; ppXp XXpp XppX </span> pppX XXXp pXXp <span class="test b"> XpXp ppXX XXpX pXpX &#x202C; XXpX XXXp </span>
+   </p>
+  </div>
+ </body>
+</html>

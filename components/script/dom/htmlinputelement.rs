@@ -37,7 +37,7 @@ use dom::validation::Validatable;
 use dom::validitystate::ValidationFlags;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
+use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc::{self, IpcSender};
 use mime_guess;
 use net_traits::{CoreResourceMsg, IpcSend};
@@ -135,7 +135,7 @@ static DEFAULT_MAX_LENGTH: i32 = -1;
 static DEFAULT_MIN_LENGTH: i32 = -1;
 
 impl HTMLInputElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLInputElement {
+    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLInputElement {
         let chan = document.window().upcast::<GlobalScope>().constellation_chan().clone();
         HTMLInputElement {
             htmlelement:
@@ -163,7 +163,7 @@ impl HTMLInputElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLInputElement> {
         Node::reflect_node(box HTMLInputElement::new_inherited(local_name, prefix, document),
                            document,
@@ -1117,7 +1117,7 @@ impl VirtualMethods for HTMLInputElement {
                                     translated_y
                                 );
                                 if let Some(i) = index {
-                                    self.textinput.borrow_mut().edit_point.index = i as usize;
+                                    self.textinput.borrow_mut().set_edit_point_index(i as usize);
                                     // trigger redraw
                                     self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                                     event.PreventDefault();

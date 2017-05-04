@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: text-align: center and direction:rtl - unordered list</title>
+    <link rel="author" title="Eira Monstad, Opera Software ASA" href="mailto:public-testsuites@opera.com"/>
+    <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#alignment-prop" />
+    <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#direction"/>
+    <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#list-style"/>
+    <meta name="flags" content=""/>
+    <meta name="assert" content="text-align: center should apply to unordered lists in rtl context without affecting their rtlness"/>
+    <style type="text/css"><![CDATA[
+      html {direction:rtl;}
+      div {width: 14em; border: 1px solid black;}
+      li {text-align: center;}
+      ul,li {padding-left:2em;padding-right:2em;}
+    ]]></style>
+  </head>
+
+  <body>
+
+    <p>The list should have a bullet to the right of each item, and the text in each item should be centered</p>
+
+      <ul>
+	<li>This is the first of three items that are centered</li>
+	<li>And this is the second of the three items that are centered</li>
+	<li>And this is the third and last of the three items</li>
+      </ul>
+  </body>
+</html>

@@ -191,8 +191,8 @@ promise_test(t => {
                       'writer.closed must reject with the error passed to the controller')
     ]);
   });
-}, 'writer.write(), ready and closed reject with the error passed to controller.error() made before sink.write'
-    + ' rejection');
+}, 'writer.write(), ready and closed reject with the error passed to controller.error() made before sink.write' +
+    ' rejection');
 
 promise_test(() => {
   const numberOfWrites = 1000;

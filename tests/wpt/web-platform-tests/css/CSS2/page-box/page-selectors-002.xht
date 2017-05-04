@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Page Selectors: first, right, and left pages</title>
+  <link rel="author" title="Melinda Grant" href="mailto:melinda.grant@hp.com" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-selectors" />
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#left-right-first" />
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="In CSS 2.1, page selectors may designate the first page, all left pages, or all right pages." />
+  <style type="text/css">
+
+    @page :first {
+        margin-top: 50%;
+    }
+    @page :right {
+        margin-left: 50%;
+    }
+    @page :left {
+        margin-right: 50%;
+    }
+    div {
+        page-break-after: always;
+    }
+
+  </style>
+ </head>
+ <body>
+   <div>
+     This test produces 5 pages on paged media. On this first page, all content is
+     within the bottom right quadrant of the page.
+   </div>
+   <div>
+     On this second page, all content is on the left side of the page.
+   </div>
+   <div>
+     On this third page, all content is on the right half of the page.
+   </div>
+   <div>
+     On this fourth page, all content is on the left side of the page.
+   </div>
+   <div>
+     On this fifth and last page, all content is on the right side of the page.
+   </div>
+ </body>
+</html>

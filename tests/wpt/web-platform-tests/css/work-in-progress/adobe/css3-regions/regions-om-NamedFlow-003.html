@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Regions OM Test: NamedFlow with no regions</title>
+        <link rel="author" title="Alan Stearns" href="mailto:stearns@adobe.com">
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-namedflow-interface">
+        <meta name="flags" content="dom">
+        <meta name="assert" content="The NamedFlow interface works with no region chain.">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+
+    <style type="text/css">
+        #flow1 {
+            flow-into: flow1;
+        }
+    </style>
+    <body>
+        <div id="log"></div>
+
+        <div id="flow1">foo</div>
+
+        <script type="text/javascript">
+            test(function() {
+                var flow_name = "flow1";
+                var namedFlow = document.namedFlows.get(flow_name);
+                assert_equals (namedFlow.name, flow_name,
+                    "The name attribute should match the flow name.");
+            }, "Test name attribute.");
+
+            test(function() {
+                var flow_name = "flow1";
+                var namedFlow = document.namedFlows.get(flow_name);
+                assert_equals (namedFlow.overset, true,
+                    "The overset attribute should be true for a flow with an empty region chain.");
+            }, "Test overset attribute.");
+
+            test(function() {
+                var flow_name = "flow1";
+                var namedFlow = document.namedFlows.get(flow_name);
+                assert_array_equals (namedFlow.getRegions(), [],
+                    "The getRegions method should return an empty sequence for a flow with an empty region chain.");
+            }, "Test getRegions method.");
+
+            test(function() {
+                var flow_name = "flow1";
+                var namedFlow = document.namedFlows.get(flow_name);
+                assert_equals (namedFlow.firstEmptyRegionIndex, -1,
+                    "The firstEmptyRegionIndex attribute should return -1 for a flow with an empty region chain.");
+            }, "Test firstEmptyRegionIndex attribute.");
+
+            test(function() {
+                var flow_name = "flow1";
+                var namedFlow = document.namedFlows.get(flow_name);
+                var flowContent = document.getElementById (flow_name);
+
+                assert_equals (namedFlow.getContent()[0], flowContent,
+                    "For a single-element named flow, getContent should return a NodeList containing the Element");
+            }, "Test getContent method.");
+
+            test(function() {
+                var flow_name = "flow1";
+                var namedFlow = document.namedFlows.get(flow_name);
+                var flowContent = document.getElementById (flow_name);
+                assert_array_equals (namedFlow.getRegionsByContent(flowContent), [],
+                    "The getRegionsByContent method should return an empty sequence for a flow with an empty region chain.");
+            }, "Test getRegionsByContent method.");
+        </script>
+    </body>
+</html>

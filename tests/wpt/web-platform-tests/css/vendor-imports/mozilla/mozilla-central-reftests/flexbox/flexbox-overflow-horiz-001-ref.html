@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+ <title>CSS Reftest Reference</title>
+ <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <style>
+    .flexContainer {
+      background: purple;
+      width: 70px;
+      height: 70px;
+      float: left;
+      margin-right: 5px;
+    }
+    .bigItem {
+      background: blue;
+      display: inline-block;
+      height: 200px;
+      width: 75%;
+      float: left;
+    }
+    .smallItem {
+      background: teal;
+      width: 25%;
+      /* In the testcase, we'll stretch to container's height,
+         minus our 10px margin-bottom. */
+      height: calc(100% - 10px);
+      float: left;
+    }
+    .scroll { overflow: scroll }
+    .auto   { overflow: auto   }
+    .hidden { overflow: hidden }
+  </style>
+</head>
+<body>
+  <div class="flexContainer"><!-- (overflow un-set) -->
+    <div class="bigItem"></div>
+    <div class="smallItem"></div>
+  </div>
+  <div class="flexContainer hidden">
+    <div class="bigItem"></div>
+    <div class="smallItem"></div>
+  </div>
+  <div class="flexContainer scroll">
+    <div class="bigItem"></div>
+    <div class="smallItem"></div>
+  </div>
+  <div class="flexContainer auto">
+    <div class="bigItem"></div>
+    <div class="smallItem"></div>
+  </div>
+</body>
+</html>

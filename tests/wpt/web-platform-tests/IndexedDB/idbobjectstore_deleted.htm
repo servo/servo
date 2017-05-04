@@ -28,16 +28,17 @@
         db.deleteObjectStore("store");
         assert_equals(db.objectStoreNames.length, 0, "objectStoreNames.length after delete");
 
-        assert_throws(null, function() { objStore.add(2); });
-        assert_throws(null, function() { objStore.put(3); });
-        assert_throws(null, function() { objStore.get(1); });
-        assert_throws(null, function() { objStore.clear(); });
-        assert_throws(null, function() { objStore.count(); });
-        assert_throws(null, function() { objStore.delete(1); });
-        assert_throws(null, function() { objStore.openCursor(); });
-        assert_throws(null, function() { objStore.index("idx"); });
-        assert_throws(null, function() { objStore.deleteIndex("idx"); });
-        assert_throws(null, function() { objStore.createIndex("idx2", "a"); });
+        const exc = "InvalidStateError"
+        assert_throws(exc, function() { objStore.add(2); });
+        assert_throws(exc, function() { objStore.put(3); });
+        assert_throws(exc, function() { objStore.get(1); });
+        assert_throws(exc, function() { objStore.clear(); });
+        assert_throws(exc, function() { objStore.count(); });
+        assert_throws(exc, function() { objStore.delete(1); });
+        assert_throws(exc, function() { objStore.openCursor(); });
+        assert_throws(exc, function() { objStore.index("idx"); });
+        assert_throws(exc, function() { objStore.deleteIndex("idx"); });
+        assert_throws(exc, function() { objStore.createIndex("idx2", "a"); });
     }
 
     open_rq.onsuccess = function() {

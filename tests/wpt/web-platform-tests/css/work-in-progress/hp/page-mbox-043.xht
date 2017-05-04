@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Margin Boxes - Right Middle</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#margin-boxes"/>
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="If the right-middle box is not empty or its computed height is not 'auto' then the outer heights of the right-top and right-bottom boxes are equal"/>
+  <style type="text/css"><![CDATA[
+   @page {
+   		@right-middle { 
+			content: "";
+			border: 1pt solid black; 
+			margin-right: 0.25in;
+			height: 2in;
+		}
+		@right-top { 
+			content: "";
+			border: 1pt solid black; 
+			margin-right: 0.25in;
+		}
+		@right-bottom { 
+			content: "";
+			border: 1pt solid black; 
+			margin-right: 0.25in;
+			height: 3in;
+		}
+   }
+  ]]></style>
+ </head>
+ <body>
+  <div>There should be three boxes to the right of this text. The boxes on the top and bottom must be of equal height.</div>
+ </body>
+</html>

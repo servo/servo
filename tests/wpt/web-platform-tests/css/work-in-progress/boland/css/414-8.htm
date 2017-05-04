@@ -1,0 +1,51 @@
+
+<HTML>
+<HEAD>
+<TITLE>Eighth Test of Section 4.1.4 of CSS1 Spec</TITLE>
+
+
+<STYLE TYPE="text/css">
+
+ IMG { float: left }
+ BODY, P, IMG {margin: 2em }
+</STYLE>
+</HEAD>
+
+
+
+
+
+<BODY>
+
+<h1 >Testing Statement #8 Below for Section 4.1.4 of CSS1 Spec</h1>
+
+
+
+
+
+
+<ul>
+<li>
+8. A floating element's top may not be higher than the top of any line-box
+with content that precedes the floating element in the HTML source.
+</ul>
+
+<h2>PASS CRITERIA:
+</h2>
+If statement #8 above is passed, then:
+<p>
+This is top-level paragraph text, which is enclosed in a line box.  This
+text should be above the image below.
+<p>
+<img src="ovalbbut.gif">
+This text should be below the text above and to the right of
+the oval button to the left, according to the margin, border, and padding
+properties.
+The rules applied are "img {float: left}" and "body,p,img {margin: 2em}".
+All other properties of this page should be UA-default.
+
+
+
+To move directly to the next test, click<a href="414-9.htm"> here</a>
+</BODY>
+</HTML>

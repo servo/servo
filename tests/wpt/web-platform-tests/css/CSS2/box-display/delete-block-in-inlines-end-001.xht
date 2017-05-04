@@ -1,0 +1,59 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" class="reftest-wait">
+
+ <head>
+
+  <title>CSS Test: Delete a block-level element inside a block whose children are otherwise all inline at its end</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level" title="9.2.1.1 Anonymous block boxes" />
+  <link rel="match" href="delete-block-in-inlines-beginning-001-ref.xht" />
+
+  <meta http-equiv="Content-Script-Type" content="text/javascript" />
+  <meta content="ahem dom" name="flags" />
+
+  <style type="text/css"><![CDATA[
+  div.container
+  {
+  background-color: fuchsia;
+  color: black;
+  font: 20px/1 Ahem;
+  margin: 1em;
+  }
+
+  div#target-node-to-delete
+  {
+  border-left: yellow solid 0.5em;
+  border-right: yellow solid 0.5em;
+  margin: 1em 0em;
+  }
+  ]]></style>
+
+  <script type="text/javascript"><![CDATA[
+  function deleteABlockAtEnd()
+  {
+  document.body.offsetHeight;
+
+  document.getElementsByClassName("container")[0].removeChild(document.getElementById("target-node-to-delete"));
+
+  document.documentElement.className = "";
+  }
+  ]]></script>
+
+ </head>
+
+ <body onload="deleteABlockAtEnd();">
+
+  <p>Test passes if the 2 colorized rectangles are <strong>identical</strong>.</p>
+
+  <div class="container">
+  <span>Several</span> <span>inline elements</span> are
+  <span>in this</span> sentence.
+    <div id="target-node-to-delete">Block to remove</div>
+  </div>
+
+  <div class="container">Several inline elements are in this sentence.</div>
+
+ </body>
+</html>

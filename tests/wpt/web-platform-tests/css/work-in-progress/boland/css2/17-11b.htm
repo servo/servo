@@ -1,0 +1,65 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Fifth Test of Section 17.4 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+body {margin-left: 5em}
+table {margin-left: auto;
+       margin-right: auto}
+caption {caption-side: left;
+         margin-side: -5em;
+         width: 5em;
+         text-align: right;
+         vertical-align: bottom}
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Fifth Testable Statement of Sec 17.4 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+5. In this example the caption is put in the left margin.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+If statement #5 above is passed, then
+the table below should be centered, and the whole box with table and caption
+should be shifted into the left margin by the same amount as the width of
+the caption.
+The rules applied are "caption {caption-side: left;
+margin-left: -5em;
+width: 5em;
+text-align: right;
+vertical-align: bottom}".
+Also "body {margin-left: 5em}", and "table {margin-left: auto; margin-right:
+auto}".
+<table >
+<caption>Great Table
+<tr><td>1</td><td>2</td></tr>
+<tr><td>3</td><td>4</td></tr>
+</table>
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

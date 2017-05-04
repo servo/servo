@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Word-spacing and white space with multiple preserved spaces</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#spacing-props" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="Any non-breaking space left after white-space processing model occurs, has word-spacing applied to it." />
+        <style type="text/css">
+            div
+            {
+                font: 16px/1em Ahem;
+            }
+            #div1
+            {
+                word-spacing: 2em;
+                white-space: pre;
+            }
+            #div2, #div3
+            {
+                background: black;
+                display: inline-block;
+                height: 1em;
+                width: 1em;
+            }
+            #div3
+            {
+                margin-left: 9em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are only two boxes below.</p>
+        <div id="div1">X&nbsp; &nbsp;X</div>
+        <div id="div2"></div><div id="div3"></div>
+    </body>
+</html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: width of CSS table in border-collapse separate model</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#separated-borders" title="17.6.1 The separated borders model" />
+  <link rel="match" href="separated-border-model-004e-ref.xht" />
+
+  <meta content="" name="flags" />
+  <meta content="The width of a CSS table is the distance from the left inner padding edge to the right inner padding edge (including the table border-spacing but excluding table padding and table borders)." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div#table
+  {
+  border-left: 100px solid white;
+  border-right: 100px solid white;
+  border-spacing: 52px 0;
+  display: table;
+  padding: 0 33px;
+  width: 200px;
+  /*
+  The width of a CSS table is the distance from the left inner padding
+  edge to the right inner padding edge (including the table border-spacing
+  but excluding table padding and table borders).
+
+  Therefore the 'padding: 0 33px;' is not involved in the used width
+  calculation and 'border-left: 100px solid white;' and
+  'border-right: 100px solid white;' are not involved in the used
+  width calculation.
+
+  The width of a CSS table is given by the greater of the value of
+  the 'width' property as set for the CSS table and the sum of the columns
+  width (plus border spacing):
+
+  max(set width, sum of columns width plus border spacing)
+
+  Here, the set width is 200px.
+
+  The sums of columns' width plus border spacing is given by:
+
+   52px   (left-most border-spacing)
+ +
+    0px   (div#td's width)
+ +
+   52px   (right-most border-spacing)
+  ======
+  104px : sum of columns plus border spacing
+
+  200px (set width of table)
+ -
+  104px (sum of columns plus border spacing)
+  =====
+   96px : such extra (exceeding) 96px width will be distributed over
+  the columns, therefore given to the unique cell of such div#table
+
+  So, the div#td should be 96px wide, 16px tall and painted black.
+  */
+  }
+
+  div#tr {display: table-row;}
+
+  div#td
+  {
+  background-color: black;
+  display: table-cell;
+  height: 1em;
+  }
+
+  div#reference
+  {
+  background-color: blue;
+  height: 1em;
+  left: 185px;
+  /*
+  100px : table's border-left
+   33px : table's padding-left
+   52px : left-most border-spacing
+  -----
+  185px
+  */
+  margin-top: 10px;
+  position: relative;
+  width: 96px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if the black and blue stripes have the <strong>same width</strong>.</p>
+
+  <div id="table">
+    <div id="tr">
+      <div id="td"></div>
+    </div>
+  </div>
+
+  <div id="reference"></div>
+
+ </body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+  <head>
+
+    <title>CSS Backgrounds and Borders Test: border-radius - inheritance</title>
+    <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-radius" title="5.1. Curve Radii: the 'border-radius' properties" />
+    <link rel="match" href="reference/ref-filled-green-100px-square.xht" />
+    <meta name="flags" content="" />
+    <meta name="assert" content="This test checks that 'border-radius' property is not inherited by default." />
+
+    <style type="text/css"><![CDATA[
+    div#overlapped-red
+    {
+    background-color: red;
+    height: 100px;
+    position: absolute;
+    width: 100px;       
+    z-index: -1; 
+    }
+
+    div#parent /* div#parent is overlapping div#overlapped-red */
+    {
+    border: transparent solid 25px; 
+    border-radius: 50px;
+    bottom: 25px;
+    height: 50px;
+    position: relative;
+    right: 25px;
+    width: 50px;
+    }
+
+    div#child
+    {
+    background-color: green;   
+    border: green solid 25px;
+    height: 50px;
+    width: 50px;
+    }
+    ]]></style>
+  </head>
+  <body>
+
+    <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+    <div id="overlapped-red"></div>
+
+    <div id="parent">
+      <div id="child"></div>
+    </div>
+
+  </body>
+</html>

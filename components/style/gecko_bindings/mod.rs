@@ -16,7 +16,7 @@ pub mod bindings {
 #[allow(dead_code, improper_ctypes, non_camel_case_types, non_snake_case, non_upper_case_globals, missing_docs)]
 pub mod structs {
     cfg_if! {
-        if #[cfg(debug_assertions)] {
+        if #[cfg(feature = "gecko_debug")] {
             include!(concat!(env!("OUT_DIR"), "/gecko/structs_debug.rs"));
         } else {
             include!(concat!(env!("OUT_DIR"), "/gecko/structs_release.rs"));

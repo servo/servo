@@ -202,8 +202,8 @@ impl FontHandleMethods for FontHandle {
         self.ctfont.family_name()
     }
 
-    fn face_name(&self) -> String {
-        self.ctfont.face_name()
+    fn face_name(&self) -> Option<String> {
+        Some(self.ctfont.face_name())
     }
 
     fn is_italic(&self) -> bool {

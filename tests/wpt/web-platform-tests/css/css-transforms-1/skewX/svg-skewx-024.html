@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: SVG presentation attribute and skewX and scientific numbers with negative exponents for arguments in radian</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-number">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+		<link rel="help" href="http://www.w3.org/TR/css-transforms-1/#funcdef-skewx">
+    <link rel="match" href="reference/svg-skewx-ref.html">
+    <meta name="flags" content="svg">
+    <meta name="assert" content="The skewX transform function must support scientific numbers with negative exponents for angle arguments in radian. The green rect in this test should be skewed horizontally 45 degrees to completely cover the red path.">
+    <style type="text/css">
+        svg {
+            height: 250px;
+            width: 250px;
+            background: green;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a green square and no red.</p>
+    <svg>
+        <path d="M 2,1 100,1 198,99 101,99 Z" fill="red"/>
+        <rect width="100" height="100" fill="green" transform="skewX(7.85398163e-1rad)"/>
+    </svg>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: font-size in pixels</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-06-27 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/fonts/size/006.xml" type="application/xhtml+xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-size-props" />
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-size-prop"/>
+  <style>
+   .prereq { display: inline; font: 1.25em/1 Ahem, sans-serif; background: red; color: white; }
+   .control { height: 0; }
+   .control div { width: 1000px; height: 100px; background: red; }
+   .test { font: 1000px/1 Ahem; color: green; }
+  </style>
+ </head>
+ <body>
+  <div class="prereq">Ahem_font_required_for_this_test.</div>
+  <p>There should be no red below (scroll all the way down if necessary).</p>
+  <div class="control">
+   <div></div>
+   <div></div>
+   <div></div>
+   <div></div>
+   <div></div>
+   <div></div>
+   <div></div>
+   <div></div>
+   <div></div>
+   <div></div>
+  </div>
+  <div class="test">X</div>
+ </body>
+</html>

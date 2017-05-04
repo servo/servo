@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-bottom set to border-color border-width border-style</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-border-bottom" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-shorthand-properties" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'border-bottom' shorthand property sets the 'border-color', 'border-width' and 'border-style' for the bottom border." />
+        <style type="text/css">
+            div
+            {
+                border-bottom: blue 5px dashed;
+                height: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a dashed blue line below.</p>
+        <div></div>
+    </body>
+</html>

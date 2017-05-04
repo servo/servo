@@ -52,7 +52,6 @@ use dom::testrunner::TestRunner;
 use dom_struct::dom_struct;
 use euclid::{Point2D, Rect, Size2D};
 use fetch;
-use gfx_traits::ScrollRootId;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::{HandleObject, HandleValue, JSAutoCompartment, JSContext};
@@ -86,13 +85,15 @@ use servo_atoms::Atom;
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_geometry::{f32_rect_to_au_rect, max_rect};
-use servo_url::{ImmutableOrigin, ServoUrl};
+use servo_url::{Host, MutableOrigin, ImmutableOrigin, ServoUrl};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::collections::{HashMap, HashSet};
 use std::collections::hash_map::Entry;
 use std::default::Default;
+use std::env;
+use std::fs;
 use std::io::{Write, stderr, stdout};
 use std::mem;
 use std::rc::Rc;
@@ -103,10 +104,12 @@ use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use style::context::ReflowGoal;
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries;
+use style::parser::{LengthParsingMode, ParserContext as CssParserContext};
 use style::properties::PropertyId;
 use style::properties::longhands::overflow_x;
 use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
+use style::stylesheets::CssRuleType;
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
@@ -118,6 +121,7 @@ use timers::{IsInterval, TimerCallback};
 use tinyfiledialogs::{self, MessageBoxIcon};
 use url::Position;
 use webdriver_handlers::jsval_to_webdriver;
+use webrender_traits::ClipId;
 use webvr_traits::WebVRMsg;
 
 /// Current state of the window object
@@ -265,6 +269,10 @@ pub struct Window {
     /// to ensure that the element can be marked dirty when the image data becomes
     /// available at some point in the future.
     pending_layout_images: DOMRefCell<HashMap<PendingImageId, Vec<JS<Node>>>>,
+
+    /// Directory to store unminified scripts for this window if unminify-js
+    /// opt is enabled.
+    unminified_js_dir: DOMRefCell<Option<String>>,
 }
 
 impl Window {
@@ -276,6 +284,10 @@ impl Window {
             self.current_state.set(WindowState::Zombie);
             self.ignore_further_async_events.borrow().store(true, Ordering::Relaxed);
         }
+    }
+
+    pub fn origin(&self) -> &MutableOrigin {
+        self.globalscope.origin()
     }
 
     pub fn get_cx(&self) -> *mut JSContext {
@@ -963,7 +975,12 @@ impl WindowMethods for Window {
     // https://drafts.csswg.org/cssom-view/#dom-window-matchmedia
     fn MatchMedia(&self, query: DOMString) -> Root<MediaQueryList> {
         let mut parser = Parser::new(&query);
-        let media_query_list = media_queries::parse_media_query_list(&mut parser);
+        let url = self.get_url();
+        let quirks_mode = self.Document().quirks_mode();
+        let context = CssParserContext::new_for_cssom(&url, self.css_error_reporter(), Some(CssRuleType::Media),
+                                                      LengthParsingMode::Default,
+                                                      quirks_mode);
+        let media_query_list = media_queries::parse_media_query_list(&context, &mut parser);
         let document = self.Document();
         let mql = MediaQueryList::new(&document, media_query_list);
         self.media_query_lists.push(&*mql);
@@ -1066,9 +1083,10 @@ impl Window {
         //TODO Step 11
         //let document = self.Document();
         // Step 12
+        let global_scope = self.upcast::<GlobalScope>();
         self.perform_a_scroll(x.to_f32().unwrap_or(0.0f32),
                               y.to_f32().unwrap_or(0.0f32),
-                              ScrollRootId::root(),
+                              global_scope.pipeline_id().root_scroll_node(),
                               behavior,
                               None);
     }
@@ -1077,7 +1095,7 @@ impl Window {
     pub fn perform_a_scroll(&self,
                             x: f32,
                             y: f32,
-                            scroll_root_id: ScrollRootId,
+                            scroll_root_id: ClipId,
                             behavior: ScrollBehavior,
                             element: Option<&Element>) {
         //TODO Step 1
@@ -1097,8 +1115,7 @@ impl Window {
         self.update_viewport_for_scroll(x, y);
 
         let global_scope = self.upcast::<GlobalScope>();
-        let message = ConstellationMsg::ScrollFragmentPoint(
-            global_scope.pipeline_id(), scroll_root_id, point, smooth);
+        let message = ConstellationMsg::ScrollFragmentPoint(scroll_root_id, point, smooth);
         global_scope.constellation_chan().send(message).unwrap();
     }
 
@@ -1484,6 +1501,23 @@ impl Window {
         assert!(self.document.get().is_none());
         assert!(document.window() == self);
         self.document.set(Some(&document));
+        if !opts::get().unminify_js {
+            return;
+        }
+        // Create a folder for the document host to store unminified scripts.
+        if let Some(&Host::Domain(ref host)) = document.url().origin().host() {
+            let mut path = env::current_dir().unwrap();
+            path.push("unminified-js");
+            path.push(host);
+            let _ = fs::remove_dir_all(&path);
+            match fs::create_dir_all(&path) {
+                Ok(_) => {
+                    *self.unminified_js_dir.borrow_mut() = Some(path.into_os_string().into_string().unwrap());
+                    debug!("Created folder for {:?} unminified scripts {:?}", host, self.unminified_js_dir.borrow());
+                },
+                Err(_) => warn!("Could not create unminified dir for {:?}", host),
+            }
+        }
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
@@ -1691,6 +1725,10 @@ impl Window {
             self.upcast::<GlobalScope>().slow_down_timers();
         }
     }
+
+    pub fn unminified_js_dir(&self) -> Option<String> {
+        self.unminified_js_dir.borrow().clone()
+    }
 }
 
 impl Window {
@@ -1717,6 +1755,7 @@ impl Window {
                id: PipelineId,
                parent_info: Option<(PipelineId, FrameType)>,
                window_size: Option<WindowSizeData>,
+               origin: MutableOrigin,
                webvr_thread: Option<IpcSender<WebVRMsg>>)
                -> Root<Window> {
         let layout_rpc: Box<LayoutRPC + Send> = {
@@ -1739,7 +1778,8 @@ impl Window {
                     constellation_chan,
                     scheduler_chan,
                     resource_threads,
-                    timer_event_chan),
+                    timer_event_chan,
+                    origin),
             script_chan: script_chan,
             dom_manipulation_task_source: dom_task_source,
             user_interaction_task_source: user_task_source,
@@ -1785,6 +1825,7 @@ impl Window {
             webvr_thread: webvr_thread,
             permission_state_invocation_results: DOMRefCell::new(HashMap::new()),
             pending_layout_images: DOMRefCell::new(HashMap::new()),
+            unminified_js_dir: DOMRefCell::new(None),
         };
 
         unsafe {

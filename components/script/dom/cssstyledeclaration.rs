@@ -16,12 +16,13 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
-use std::sync::Arc;
 use style::attr::AttrValue;
+use style::parser::LengthParsingMode;
 use style::properties::{Importance, PropertyDeclarationBlock, PropertyId, LonghandId, ShorthandId};
 use style::properties::{parse_one_declaration, parse_style_attribute};
 use style::selector_parser::PseudoElement;
 use style::shared_lock::Locked;
+use style::stylearc::Arc;
 use style_traits::ToCss;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
@@ -255,9 +256,12 @@ impl CSSStyleDeclaration {
 
             // Step 6
             let window = self.owner.window();
+            let quirks_mode = window.Document().quirks_mode();
             let result =
                 parse_one_declaration(id, &value, &self.owner.base_url(),
-                                      window.css_error_reporter());
+                                      window.css_error_reporter(),
+                                      LengthParsingMode::Default,
+                                      quirks_mode);
 
             // Step 7
             let parsed = match result {
@@ -433,11 +437,13 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             return Err(Error::NoModificationAllowed);
         }
 
+        let quirks_mode = window.Document().quirks_mode();
         self.owner.mutate_associated_block(|mut pdb, mut _changed| {
             // Step 3
             *pdb = parse_style_attribute(&value,
                                          &self.owner.base_url(),
-                                         window.css_error_reporter());
+                                         window.css_error_reporter(),
+                                         quirks_mode);
         });
 
         Ok(())

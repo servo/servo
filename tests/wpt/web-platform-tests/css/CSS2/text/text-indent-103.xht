@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Text-indent set to '50%'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#propdef-text-indent" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#indentation-prop" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="Ensure that text-indent 50% adds 50% of its containing block's width in front of the text." />
+        <style type="text/css">
+            #parent
+            {
+                font: 16px/1em Ahem;
+                position: relative;
+                width: 400px;
+            }
+            #reference
+            {
+                color: red;
+                left: 0;
+                position: absolute;
+                top: 0;
+                z-index: -1;
+            }
+            #test
+            {
+                text-indent: 50%;
+                margin-left: -50%;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div id="parent">
+            <div id="reference">X</div>
+            <div id="test">X</div>
+        </div>
+    </body>
+</html>

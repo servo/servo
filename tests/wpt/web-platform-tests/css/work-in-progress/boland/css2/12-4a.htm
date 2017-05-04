@@ -1,0 +1,77 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Second Test of Section 12.4 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+Q:lang(en) { quotes: '"' '"' "'" "'" }
+p {quotes: "*" "*"}
+blockquote {quotes: none}
+h3 {quotes: inherit}
+strong {quotes: '=' '='}
+h4 {quotes: "$" "$"}
+h5 {quotes: 200%}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Second Testable Statement of Sec 12.4 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+2. Quotes property has initial UA-dependent, it applies to all elements, it
+is inherited, percentages are N/A, and media is visual.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p lang="en">
+If statement #2 above is passed, then
+this paragraph should have quote marks of * around it.
+Rule applied is "p {quote:"*" "*"}".
+This <em>emphasized text</em> should also have quote marks of * around,
+since em is a child of p, and quotes property is inherited.
+</p>
+<Q>this quote</Q> should have English-style quotation marks.  The rule
+applied is "Q:lang(en) {quotes: '"' '"' "'" "'" }".
+<blockquote>
+This blockquote element should have no quotes around.  
+Rule applied is "blockquote {quote: none}".
+</blockquote>
+<h3>This h3 heading should have quote of inherit.
+Rule applied is "h3 {quote: inherit}".
+</h3>
+<strong>This strong text should have quote marks of = around it.
+Rule applied is "strong {quote: "=" "="}".
+</strong>
+<h4>
+This h4 heading should have quote marks of $ around it.
+Rule applied is "h4 {quote: "$" "$"}".
+</h4>
+<h5>
+This h5 heading should have UA-defined (initial) value. 
+Rule is "h5 {quote: 200%}", but percentages do not apply.
+</h5>
+From number of elements mentioned above, obvious that quotes property 
+should apply to all elements.
+
+
+</BODY>
+</HTML>
+

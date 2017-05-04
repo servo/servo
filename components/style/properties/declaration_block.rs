@@ -6,13 +6,14 @@
 
 #![deny(missing_docs)]
 
+use context::QuirksMode;
 use cssparser::{DeclarationListParser, parse_important};
 use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter};
 use error_reporting::ParseErrorReporter;
-use parser::{ParserContext, log_css_error};
+use parser::{LengthParsingMode, ParserContext, log_css_error};
 use std::fmt;
 use style_traits::ToCss;
-use stylesheets::{Origin, UrlExtraData};
+use stylesheets::{CssRuleType, Origin, UrlExtraData};
 use super::*;
 #[cfg(feature = "gecko")] use properties::animated_properties::AnimationValueMap;
 
@@ -60,6 +61,11 @@ impl fmt::Debug for PropertyDeclarationBlock {
 }
 
 impl PropertyDeclarationBlock {
+    /// Returns the number of declarations in the block.
+    pub fn len(&self) -> usize {
+        self.declarations.len()
+    }
+
     /// Create an empty block
     pub fn new() -> Self {
         PropertyDeclarationBlock {
@@ -354,6 +360,21 @@ impl PropertyDeclarationBlock {
             longhands: longhands,
         }
     }
+
+    /// Returns true if the declaration block has a CSSWideKeyword for the given
+    /// property.
+    #[cfg(feature = "gecko")]
+    pub fn has_css_wide_keyword(&self, property: &PropertyId) -> bool {
+        if let PropertyId::Longhand(id) = *property {
+            if !self.longhands.contains(id) {
+                return false
+            }
+        }
+        self.declarations.iter().any(|&(ref decl, _)|
+            decl.id().is_or_is_longhand_of(property) &&
+            decl.get_css_wide_keyword().is_some()
+        )
+    }
 }
 
 impl ToCss for PropertyDeclarationBlock {
@@ -459,12 +480,23 @@ impl ToCss for PropertyDeclarationBlock {
                     };
 
                     // Substeps 7 and 8
-                    append_serialization::<_, Cloned<slice::Iter< _>>, _>(
-                         dest,
-                         &shorthand,
-                         value,
-                         importance,
-                         &mut is_first_serialization)?;
+                    // We need to check the shorthand whether it's an alias property or not.
+                    // If it's an alias property, it should be serialized like its longhand.
+                    if shorthand.flags().contains(ALIAS_PROPERTY) {
+                        append_serialization::<_, Cloned<slice::Iter< _>>, _>(
+                             dest,
+                             &property,
+                             value,
+                             importance,
+                             &mut is_first_serialization)?;
+                    } else {
+                        append_serialization::<_, Cloned<slice::Iter< _>>, _>(
+                             dest,
+                             &shorthand,
+                             value,
+                             importance,
+                             &mut is_first_serialization)?;
+                    }
 
                     for current_longhand in &current_longhands {
                         // Substep 9
@@ -610,9 +642,15 @@ pub fn append_serialization<'a, W, I, N>(dest: &mut W,
 /// shared between Servo and Gecko.
 pub fn parse_style_attribute(input: &str,
                              url_data: &UrlExtraData,
-                             error_reporter: &ParseErrorReporter)
+                             error_reporter: &ParseErrorReporter,
+                             quirks_mode: QuirksMode)
                              -> PropertyDeclarationBlock {
-    let context = ParserContext::new(Origin::Author, url_data, error_reporter);
+    let context = ParserContext::new(Origin::Author,
+                                     url_data,
+                                     error_reporter,
+                                     Some(CssRuleType::Style),
+                                     LengthParsingMode::Default,
+                                     quirks_mode);
     parse_property_declaration_list(&context, &mut Parser::new(input))
 }
 
@@ -624,11 +662,18 @@ pub fn parse_style_attribute(input: &str,
 pub fn parse_one_declaration(id: PropertyId,
                              input: &str,
                              url_data: &UrlExtraData,
-                             error_reporter: &ParseErrorReporter)
+                             error_reporter: &ParseErrorReporter,
+                             length_parsing_mode: LengthParsingMode,
+                             quirks_mode: QuirksMode)
                              -> Result<ParsedDeclaration, ()> {
-    let context = ParserContext::new(Origin::Author, url_data, error_reporter);
+    let context = ParserContext::new(Origin::Author,
+                                     url_data,
+                                     error_reporter,
+                                     Some(CssRuleType::Style),
+                                     length_parsing_mode,
+                                     quirks_mode);
     Parser::new(input).parse_entirely(|parser| {
-        ParsedDeclaration::parse(id, &context, parser, false)
+        ParsedDeclaration::parse(id, &context, parser)
             .map_err(|_| ())
     })
 }
@@ -653,7 +698,7 @@ impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
                    -> Result<(ParsedDeclaration, Importance), ()> {
         let id = try!(PropertyId::parse(name.into()));
         let parsed = input.parse_until_before(Delimiter::Bang, |input| {
-            ParsedDeclaration::parse(id, self.context, input, false)
+            ParsedDeclaration::parse(id, self.context, input)
                 .map_err(|_| ())
         })?;
         let importance = match input.try(parse_important) {

@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: background-repeat</title>
+  <meta name="flags" content="ahem image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#background-repeat"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c534-bgre-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   .test { font: 15px/1 Ahem; width: 10em; background: red; color: green; border: solid green; }
+   .one {background-image: url(support/swatch-green.png); background-repeat: repeat-y;}
+   .two {background-image: url(support/swatch-green.png); background-repeat: repeat-x;}
+   .three {background-image: url(support/swatch-green.png); background-repeat: no-repeat;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties" title="14.2.1 Background properties: 'background-color', 'background-image', 'background-repeat', 'background-attachment', 'background-position', and 'background'"/>
+ </head>
+ <body>
+  <p>Test passes if there is a filled green rectangle.</p>
+  <div class="test">
+   <div class="one">
+    &#xA0;xxxxxxxxx
+    &#xA0;xxxxxxxxx
+    &#xA0;xxxxxxxxx
+    &#xA0;xxxxxxxxx
+    &#xA0;xxxxxxxxx
+   </div>
+   <div class="two">
+    &#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;
+     xxxxxxxxxx
+     xxxxxxxxxx
+     xxxxxxxxxx
+     xxxxxxxxxx
+   </div>
+   <div class="three">
+    &#xA0;xxxxxxxxx
+     xxxxxxxxxx
+     xxxxxxxxxx
+     xxxxxxxxxx
+     xxxxxxxxxx
+   </div>
+  </div>
+ </body>
+</html>

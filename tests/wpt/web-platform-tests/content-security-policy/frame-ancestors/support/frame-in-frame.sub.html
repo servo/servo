@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src='/content-security-policy/frame-ancestors/support/frame-ancestors-test.sub.js'></script>
+    <script>
+        test = async_test("Testing a {{GET[child]}}-origin child with a policy of {{GET[policy]}} nested in a {{GET[parent]}}-origin parent");
+        originFrameShouldBe("{{GET[child]}}", "{{GET[expectation]}}", "{{GET[policy]]}}");
+    </script>
+</body>
+</html>

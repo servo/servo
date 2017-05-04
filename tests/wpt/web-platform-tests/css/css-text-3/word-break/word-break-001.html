@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: word-break - break-all keyword value</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
+<link rel="help" href="http://www.w3.org/TR/css-text-3/#word-break">
+<meta name="flags" content="">
+<meta name="assert" content="Check that 'word-break' with 'break-all' keyword value implies to words break between any two letters without hyphenate.">
+<style>
+  div {
+    border: 2px black solid;
+    color: blue;
+    width: 100px;
+    word-break: break-all;
+  }
+</style>
+<body>
+  <p>Test passes if all the words below are inside the box and break between any two letters without hyphenate.</p>
+  <div>Words in these lines should break between any two letters and be inside the box.</div>
+</body>
+

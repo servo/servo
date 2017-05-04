@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Outline: one value with outline-width</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#propdef-outline" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#dynamic-outlines" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Outline value specified in the form of 'width' is correctly applied." />
+        <style type="text/css">
+            #test
+            {
+                margin-top: 15px;
+                outline: 15px;
+                outline-style: solid;
+                outline-color: green;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a solid outline surrounding the text below.</p>
+        <div id="test">Sample Text</div>
+    </body>
+</html>

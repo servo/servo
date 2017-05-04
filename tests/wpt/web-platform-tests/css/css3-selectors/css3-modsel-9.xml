@@ -1,0 +1,12 @@
+<csstest def="Substring matching attribute selector (beginning)" module="W3C Selectors" modulename="css3-modsel" number="9" rev="1.0" date="11-july-2001" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<cssrules>p { background-color : red }
+p[title^="foo"] { background-color : lime }</cssrules>
+
+<code>
+<p title="foobar" xmlns="http://www.w3.org/1999/xhtml">This paragraph should have a green background<br/>
+because its title attribute begins with "foo"</p>
+</code>
+
+</csstest>

@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: An @supports rule with balanced invalid syntax within parentheses must evaluate to false</title>
+  <link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au" />
+  <link rel="help" href="http://www.w3.org/TR/css3-conditional/#at-supports" />
+  <meta name="flags" content="" />
+  <meta name="assert" content="An @supports condition must successfully parse a parenthesized expression that has invalid syntax with balanced parentheses."/>
+  <link rel="match" href="support/pass.xht" />
+  <style type="text/css"><![CDATA[
+    html { background-color: red }
+    @supports (unknown) or (color: green) {
+      html { background-color: green }
+    }
+  ]]></style>
+ </head>
+ <body>
+ </body>
+</html>

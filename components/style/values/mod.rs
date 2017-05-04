@@ -8,9 +8,14 @@
 
 #![deny(missing_docs)]
 
-pub use cssparser::{RGBA, Parser};
+use Atom;
+pub use cssparser::{RGBA, Token, Parser, serialize_identifier, serialize_string};
 use parser::{Parse, ParserContext};
+use properties::animated_properties::{ComputeDistance, Interpolate};
+use std::ascii::AsciiExt;
+use std::borrow::Cow;
 use std::fmt::{self, Debug};
+use std::hash;
 use style_traits::ToCss;
 
 macro_rules! define_numbered_css_keyword_enum {
@@ -60,7 +65,29 @@ macro_rules! no_viewport_percentage {
     };
 }
 
+/// A macro for implementing `ComputedValueAsSpecified`, `Parse`
+/// and `HasViewportPercentage` traits for the enums defined
+/// using `define_css_keyword_enum` macro.
+///
+/// NOTE: We should either move `Parse` trait to `style_traits`
+/// or `define_css_keyword_enum` macro to this crate, but that
+/// may involve significant cleanup in both the crates.
+macro_rules! add_impls_for_keyword_enum {
+    ($name:ident) => {
+        impl Parse for $name {
+            #[inline]
+            fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
+                $name::parse(input)
+            }
+        }
+
+        impl ComputedValueAsSpecified for $name {}
+        no_viewport_percentage!($name);
+    };
+}
+
 pub mod computed;
+pub mod generics;
 pub mod specified;
 
 /// A CSS float value.
@@ -97,6 +124,20 @@ macro_rules! define_keyword_type {
         impl ::style_traits::ToCss for $name {
             fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result where W: ::std::fmt::Write {
                 write!(dest, $css)
+            }
+        }
+
+        impl Interpolate for $name {
+            #[inline]
+            fn interpolate(&self, _other: &Self, _progress: f64) -> Result<Self, ()> {
+                Ok($name)
+            }
+        }
+
+        impl ComputeDistance for $name {
+            #[inline]
+            fn compute_distance(&self, _other: &Self) -> Result<f64, ()> {
+                Err(())
             }
         }
 
@@ -189,10 +230,97 @@ impl<A: ToComputedValue, B: ToComputedValue> ToComputedValue for Either<A, B> {
     }
 }
 
+/// https://drafts.csswg.org/css-values-4/#custom-idents
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct CustomIdent(pub Atom);
+
+impl CustomIdent {
+    /// Parse an already-tokenizer identifier
+    pub fn from_ident(ident: Cow<str>, excluding: &[&str]) -> Result<Self, ()> {
+        match_ignore_ascii_case! { &ident,
+            "initial" | "inherit" | "unset" | "default" => return Err(()),
+            _ => {}
+        };
+        if excluding.iter().any(|s| ident.eq_ignore_ascii_case(s)) {
+            Err(())
+        } else {
+            Ok(CustomIdent(ident.into()))
+        }
+    }
+}
+
+impl ToCss for CustomIdent {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        serialize_identifier(&self.0.to_string(), dest)
+    }
+}
+
+/// https://drafts.csswg.org/css-animations/#typedef-keyframes-name
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum KeyframesName {
+    /// <custom-ident>
+    Ident(CustomIdent),
+    /// <string>
+    QuotedString(Atom),
+}
+
+impl KeyframesName {
+    /// https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name
+    pub fn from_ident(value: String) -> Self {
+        match CustomIdent::from_ident((&*value).into(), &["none"]) {
+            Ok(ident) => KeyframesName::Ident(ident),
+            Err(()) => KeyframesName::QuotedString(value.into()),
+        }
+    }
+
+    /// The name as an Atom
+    pub fn as_atom(&self) -> &Atom {
+        match *self {
+            KeyframesName::Ident(ref ident) => &ident.0,
+            KeyframesName::QuotedString(ref atom) => atom,
+        }
+    }
+}
+
+impl Eq for KeyframesName {}
+
+impl PartialEq for KeyframesName {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_atom() == other.as_atom()
+    }
+}
+
+impl hash::Hash for KeyframesName {
+    fn hash<H>(&self, state: &mut H) where H: hash::Hasher {
+        self.as_atom().hash(state)
+    }
+}
+
+impl Parse for KeyframesName {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        match input.next() {
+            Ok(Token::Ident(s)) => Ok(KeyframesName::Ident(CustomIdent::from_ident(s, &["none"])?)),
+            Ok(Token::QuotedString(s)) => Ok(KeyframesName::QuotedString(s.into())),
+            _ => Err(())
+        }
+    }
+}
+
+impl ToCss for KeyframesName {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            KeyframesName::Ident(ref ident) => ident.to_css(dest),
+            KeyframesName::QuotedString(ref atom) => serialize_string(&atom.to_string(), dest),
+        }
+    }
+}
+
 // A type for possible values for min- and max- flavors of width,
 // height, block-size, and inline-size.
 define_css_keyword_enum!(ExtremumLength:
-                         "max-content" => MaxContent,
-                         "min-content" => MinContent,
-                         "fit-content" => FitContent,
-                         "fill-available" => FillAvailable);
+                         "-moz-max-content" => MaxContent,
+                         "-moz-min-content" => MinContent,
+                         "-moz-fit-content" => FitContent,
+                         "-moz-available" => FillAvailable);

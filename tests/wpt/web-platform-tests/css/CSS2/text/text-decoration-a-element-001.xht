@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Text-decoration set to 'underline' on a elements (spec example)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#lining-striking-props" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Text-decoration set to 'underline' is applied to a elements." />
+        <style type="text/css">
+            a:visited, a:link
+            {
+                text-decoration: underline;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below has a line under it.</p>
+        <div>
+            <a href="#">Filler Text</a>
+        </div>
+    </body>
+</html>

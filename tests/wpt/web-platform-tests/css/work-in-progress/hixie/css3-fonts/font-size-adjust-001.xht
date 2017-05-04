@@ -1,0 +1,21 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS font-size-adjust: Basics</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/fonts/size/adjust/001.xml"/>
+    <style type="text/css">
+   div { font-family: Verdana; font-size: 1px; font-size-adjust: 100; }
+  </style>
+ </head>
+ <body>
+   <p>This test case should have a big word below.</p>
+   <div>
+      <!-- Verdana has an ex-height:em-height ratio of 0.55, and
+           therefore the ACTUAL font-size is 1px*(100/0.55) = 181px,
+           because the font-size-adjust is applied to the first font
+           even if the first font is available and font-size-adjust
+           was not inherited. -->
+      PASS
+   </div>
+ </body>
+</html>

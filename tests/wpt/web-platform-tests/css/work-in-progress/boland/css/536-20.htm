@@ -1,0 +1,54 @@
+
+<html>
+<head>
+<title>Twentieth Test of Section 5.3.6 of CSS1 Spec</title>
+
+<style type="text/css">
+p {background-image: url(flagbg.gif)}
+#id1 {background-position: bottom right}
+#id2 {background-position: right bottom}
+#id3 {background-position: 100%100%}
+</style>
+</head>
+
+<body>
+
+
+
+
+<h1>Testing Statement #20 Below of Section 5.3.6 of CSS1 Spec</h1>
+
+
+
+
+
+<ul>
+<li >
+20. "bottom right" and "right bottom" mean the same as "100%100%".
+</ul>
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p ID=id1>
+If statement #20 above is passed, this paragraph should have a flag image
+which is to the bottom right of this paragraph text.
+The rule applied is '#id1 {background-position: bottom right}".
+<p ID=id2>
+This paragraph should have a flag image which is to the right bottom of
+this paragraph text.
+The rule applied is "#id2 {background-position: right bottom}".
+This paragraph should look like the one above.
+<p ID=id3>
+This paragraph should have a flag image which is 100% across adn 100% down
+this paragraph text.
+The rule applied is "#id3 {background-position: 100%100%}".
+This paragraph should look like the one above.
+
+<p>
+The rule "p {background-image: url(flagbg.gif)}" is also applied above.
+All other properties of this page should be UA-default.
+
+
+</body>
+</html>

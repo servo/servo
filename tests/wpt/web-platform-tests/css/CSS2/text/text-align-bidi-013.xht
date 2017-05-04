@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: text-align and bidi</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/text/align/003.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#alignment-prop" />
+  <style type="text/css">
+   p { color: blue; }
+   .test { margin: 1em; border: solid; width: 15em; font: 2em/1 monospace; text-align: justify; direction: rtl; }
+  </style>
+ </head>
+ <body>
+  <p>The text below should be justified to fit in the box (straight edges on all sides).</p>
+  <div class="test">
+   &#x05D0;
+   &#x05D0;
+   X
+   &#x05D0;&#x05D0;
+   &#x05D0;&#x05D0;&#x05D0;&#x05D0;
+   XX
+   &#x05D0;
+   &#x05D0;
+   X
+
+   XX
+   &#x05D0;&#x05D0;
+   XXX
+   &#x05D0;&#x05D0;&#x05D0;
+   &#x05D0;&#x05D0;&#x05D0;
+   &#x05D0;&#x05D0;
+   XX
+
+   &#x05D0;&#x05D0;&#x05D0;
+   &#x05D0;&#x05D0;&#x05D0;
+   XXXX
+   &#x05D0;&#x05D0;&#x05D0;&#x05D0;
+   XXX
+   &#x05D0;&#x05D0;&#x05D0;
+
+   XXXX
+   &#x05D0;&#x05D0;&#x05D0;&#x05D0;
+   &#x05D0;&#x05D0;
+   XX
+   &#x05D0;&#x05D0;&#x05D0;&#x05D0;
+   &#x05D0;&#x05D1;&#x05D2;&#x05D3;
+  </div>
+ </body>
+</html>

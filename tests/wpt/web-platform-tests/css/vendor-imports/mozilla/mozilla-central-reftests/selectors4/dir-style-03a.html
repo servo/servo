@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>CSS Test: :dir() selector</title>
+    <link rel="author" title="Astley Chen" href="mailto:aschen@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://drafts.csswg.org/selectors-4/#the-dir-pseudo">
+    <meta name="assert" content="Test checks if :dir() can work with other selectors correctly.">
+    <link rel="match" href="dir-style-03-ref.html">
+    <style>
+      div { color: lime; text-align: left; }
+      :not(:dir(ltr)) + div { color: blue; }
+    </style>
+  </head>
+  <body>
+    <div dir="rtl">This element is rtl.</div>
+    <div>This element has default direction.</div>
+  </body>
+</html>

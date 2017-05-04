@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: background-image applicability to ::first-letter</title>
+    <link rel="author" title="Ethan Malasky" href="mailto:emalasky@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#placement">
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-image">
+    <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties">
+    <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-letter">
+    <link rel="match" href="reference/background-image-first-letter-ref.html">
+    <link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+    <meta name="flags" content="ahem image">
+    <meta name="assert" content="background-image applicability to ::first-letter">
+    <style type="text/css">
+        #content {
+            color: transparent;
+            font: 100px Ahem;
+        }
+        #content::first-letter {
+            background-image: url("support/cat.png");  /* 98 w. by 99px h. */
+            background-repeat: no-repeat;
+        }
+    </style>
+</head>
+<body>
+    <p>Test passes if cat image is visible.</p>
+    <div id="content">X</div>
+</body>
+</html>

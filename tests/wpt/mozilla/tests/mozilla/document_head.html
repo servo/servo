@@ -13,8 +13,8 @@
 
             test(function() {
                 var new_document = new Document();
-                new_document.appendChild(new_document.createElement("html"));
-                var new_head = new_document.createElement("head");
+                new_document.appendChild(new_document.createElementNS('http://www.w3.org/1999/xhtml', "html"));
+                var new_head = new_document.createElementNS('http://www.w3.org/1999/xhtml', 'head');
 
                 assert_not_equals(new_head, null, "test2-0, append head to a new document");
                 assert_true(new_head instanceof HTMLHeadElement, "test2-1, append head to a new document: should be HTMLHeadElement");
@@ -30,9 +30,9 @@
 
             test(function() {
                 var new_document = new Document();
-                var html = new_document.createElement("html");
-                var foo = new_document.createElement("foo");
-                var head = new_document.createElement("head");
+                var html = new_document.createElementNS('http://www.w3.org/1999/xhtml', "html");
+                var foo = new_document.createElementNS('http://www.w3.org/1999/xhtml', "foo");
+                var head = new_document.createElementNS('http://www.w3.org/1999/xhtml', "head");
                 new_document.appendChild(html);
                 html.appendChild(foo);
                 foo.appendChild(head);

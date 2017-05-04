@@ -1,0 +1,64 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" dir="ltr">
+ <head>
+  <title>CSS Test: Calculating Specificity for Page at-rules</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/"/>
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="The specificity of an @page rule is computed by concatenating the numbers f-g-h where f=1 if an @page rule has a named page; g=1 if an @page rule has a ':first' pseudo-class; and h=1 if an @page rule has a ':left' or ':right' pseudo-class."/>
+  <style type="text/css"><![CDATA[
+   html, body { direction: ltr; }
+   
+   @page last {
+		margin-top: 50%;
+		margin-right: 5%;
+		@top-center { 
+			content: "Fourth Page"; 
+			vertical-align: top;
+			margin-top: 5%;
+		}
+	}
+	
+   @page :first {
+		margin-left: 25%;
+		margin-right: 25%;
+		@top-center { 
+			content: "First Page";
+		}
+	}
+	@page :left {
+		background-color: #fff;
+		margin-right: 50%;
+		@top-center { 
+			content: "Second Page"; 
+		}
+	}
+	
+	@page :right {
+		background-color: #fff;
+		margin-left: 50%;
+		margin-top: 5%;
+		@top-center { 
+			content: "Third Page"; 
+		}
+	}
+	
+	@page {
+		background-color: #ccffcc;
+		margin: 5%;
+	}
+	
+	.final {page: last;}
+	.breaker {page-break-before: always;}
+  ]]></style>
+ </head>
+ <body>
+  <p>This paragraph must appear centered horizontally on the first page. A header of &quot;First Page&quot; must appear at the top of the page. The page background is white.</p>
+	
+	<p class="breaker">This paragraph must appear on the second page, which should have a title of &quot;Second Page&quot; on a white background. All content should be on the left half of the page.</p>
+
+	<p class="breaker">This paragraph must appear on the right side of the third page, which should have a title of &quot;Third Page&quot;. The background should be white.</p>
+	
+	<p class="final">This paragraph must start halfway down the fourth page, which should have a title of &quot;Fourth Page&quot; and a white background.</p>
+ </body>
+</html>

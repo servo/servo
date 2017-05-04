@@ -26,28 +26,28 @@ pub struct VRStageParameters {
 unsafe_no_jsmanaged_fields!(WebVRStageParameters);
 
 impl VRStageParameters {
-    #[allow(unsafe_code)]
-    #[allow(unrooted_must_root)]
-    fn new_inherited(parameters: WebVRStageParameters, global: &GlobalScope) -> VRStageParameters {
-        let stage = VRStageParameters {
+    fn new_inherited(parameters: WebVRStageParameters) -> VRStageParameters {
+        VRStageParameters {
             reflector_: Reflector::new(),
             parameters: DOMRefCell::new(parameters),
             transform: Heap::default()
-        };
-        // XXX unsound!
-        unsafe {
-            let _ = Float32Array::create(global.get_cx(),
-                                         CreateWith::Slice(&stage.parameters.borrow().sitting_to_standing_transform),
-                                         stage.transform.handle_mut());
         }
-
-        stage
     }
 
+    #[allow(unsafe_code)]
     pub fn new(parameters: WebVRStageParameters, global: &GlobalScope) -> Root<VRStageParameters> {
-        reflect_dom_object(box VRStageParameters::new_inherited(parameters, global),
-                           global,
-                           VRStageParametersBinding::Wrap)
+        let cx = global.get_cx();
+        let stage_parameters  = reflect_dom_object(box VRStageParameters::new_inherited(parameters),
+                                                   global,
+                                                   VRStageParametersBinding::Wrap);
+        unsafe {
+           let source = &stage_parameters.parameters.borrow().sitting_to_standing_transform;
+           let _ = Float32Array::create(cx,
+                                        CreateWith::Slice(source),
+                                        stage_parameters.transform.handle_mut());
+        }
+
+        stage_parameters
     }
 
     #[allow(unsafe_code)]

@@ -1,0 +1,38 @@
+# background-repeat round/space test cases
+== background-repeat-space-1a.html background-repeat-space-1-ref.html
+== background-repeat-space-1b.html background-repeat-space-1-ref.html
+== background-repeat-space-1c.html background-repeat-space-1-ref.html
+== background-repeat-space-2.html background-repeat-space-2-ref.html
+== background-repeat-space-3.html background-repeat-space-3-ref.html
+== background-repeat-space-4.html background-repeat-space-4-ref.html
+== background-repeat-space-5.html background-repeat-space-5-ref.html
+== background-repeat-space-6.html background-repeat-space-6-ref.html
+== background-repeat-space-7.html background-repeat-space-7-ref.html
+== background-repeat-space-8.html background-repeat-space-8-ref.html
+== background-repeat-space-9.html background-repeat-space-9-ref.html
+== background-repeat-space-10.html background-repeat-space-10-ref.html
+== background-repeat-round-1a.html background-repeat-round-1-ref.html
+== background-repeat-round-1b.html background-repeat-round-1-ref.html
+== background-repeat-round-1c.html background-repeat-round-1-ref.html
+== background-repeat-round-1d.html background-repeat-round-1-ref.html
+== background-repeat-round-1e.html background-repeat-round-1-ref.html
+== background-repeat-round-2.html background-repeat-round-2-ref.html
+== background-repeat-round-3.html background-repeat-round-3-ref.html
+== background-repeat-round-4.html background-repeat-round-4-ref.html
+
+#border-image test cases
+== border-image-repeat-round-1.html border-image-repeat-round-1-ref.html
+== border-image-repeat-round-2.html border-image-repeat-round-2-ref.html
+== border-image-repeat-space-1.html border-image-repeat-space-1-ref.html
+== border-image-repeat-space-2.html border-image-repeat-space-2-ref.html
+== border-image-repeat-space-3.html border-image-repeat-space-3-ref.html
+== border-image-repeat-space-4.html border-image-repeat-space-4-ref-1.html
+== border-image-repeat-space-4-ref-1.html border-image-repeat-space-4-ref-2.html
+== border-image-repeat-space-5.html border-image-repeat-space-5-ref-1.html
+== border-image-repeat-space-5-ref-1.html border-image-repeat-space-5-ref-2.html
+== border-image-repeat-space-6.html border-image-repeat-space-6-ref.html
+== border-image-repeat-space-7.html border-image-repeat-space-7-ref.html
+== border-image-repeat-1.html border-image-repeat-1-ref.html
+
+# background-attachment test cases
+== background-attachment-fixed-inside-transform-1.html background-attachment-fixed-inside-transform-1-ref.html

@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: size of the page box</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#size"/>
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="The size of the page box is specified using the 'size' property in the page context."/>
+  <style type="text/css"><![CDATA[
+   @page  { 
+		size: 3in 3in;
+		background: aqua;
+		margin: 0.5in;
+	}
+  ]]></style>
+ </head>
+ <body>
+  <p>On pages larger than 3 inch by 3 inch, the content on this page should appear in a 3-inch blue square box.</p>
+ </body>
+</html>

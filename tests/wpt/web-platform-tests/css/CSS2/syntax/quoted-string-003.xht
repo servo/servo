@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Parsing of escaped quotes (single within single)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#strings" />
+        <link rel="match" href="quoted-string-001-ref.xht"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="Single quotes cannot occur inside single quotes unless escaped." />
+        <style type="text/css">
+            div:before
+            {
+                content: '\'Filler Text\'';
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the words "Filler Text" below are single quoted (').</p>
+        <div></div>
+    </body>
+</html>

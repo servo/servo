@@ -1,0 +1,48 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Third Test of Section 6.3 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+@import "test.css";
+@import url("test1.css") projection, tv;
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Third Testable Statement of Sec 6.3 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+3. Authors may specify media-dependent "at-import" rules.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+If statement #3 above is passed, then
+this paragraph should have a color of red.
+The imported rule for print is "p {color: red}".
+The rule "@import url("test1.css") projection, tv;" is ignored for print.
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

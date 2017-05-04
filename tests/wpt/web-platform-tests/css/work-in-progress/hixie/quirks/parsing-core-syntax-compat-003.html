@@ -1,0 +1,12 @@
+<html lang="en">
+ <head>
+  <title>Nested blocks in unexpected places (with no whitespace)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/parsing/core-syntax/compat/003.html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#parsing-errors" />
+  <style type="text/css">p{color:green;/*no"}"*/span{color:yellow;background:red;}.test{color:maroon;background:yellow;}}</style>
+ </head>
+ <body>
+  <p>This line <span>should</span> be <span class="test">all green</span>.</p>
+ </body>
+</html>

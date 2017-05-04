@@ -1,0 +1,67 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: What overflow applies to</title>
+
+  <link rel="help" href="http://www.w3.org/TR/CSS22/visufx.html#overflow" />
+  <link rel="help" href="http://www.w3.org/TR/CSS22/changes.html#s.11.1.1a" />
+  <link rel="match" href="overflow-applies-to-001-ref.xht" />
+  <meta name="assert" content="Name: overflow [...] Applies to:
+block containers and boxes that establish a formatting context" />
+  <link rel="author" title="Bert Bos" href="mailto:bert@w3.org/" />
+
+  <style type="text/css">
+  #container {width: 20em; background: red; text-align: center}
+
+  /* The visible overflow of grandchild1 hides the red container background */
+  #child1 {width: 10em; overflow: visible}
+  #grandchild1 {width: 20em; background: green}
+
+  /* The red border on grandchild2 is clipped by child2 */
+  #child2 {width: 20em; background: green; overflow: hidden}
+  #grandchild2 {width: 20em; border-right: solid 1em red}
+
+  /* Overflow (and width) don't apply to child3 and so grandchild3 is visible */
+  #child3 {display: inline; width: 10em; overflow: hidden}
+  #grandchild3 {width: 20em; height: 1.2em; background: green;
+    vertical-align: bottom}
+
+  /* Child4 establishes a formatting context and so can clip grandchild4 */
+  #child4 {table-layout: fixed; width: 20em; border-collapse: collapse;
+    background: green; overflow: hidden}
+  #grandchild4 {width: 20em; background: green; border-right: solid 1em red;
+    margin-right: -1em}
+  </style>
+ </head>
+
+ <body>
+
+   <p>There should be no red.</p>
+
+   <div id="container">
+     <div id="child1">
+       <div id="grandchild1">
+	 Block 1
+       </div>
+     </div>
+
+     <div id="child2">
+       <div id="grandchild2">
+	 Block 2
+       </div>
+     </div>
+
+     <div id="child3">
+       <img id="grandchild3" src="../support/1x1-green.png" alt="green" />
+     </div>
+
+     <table id="child4">
+       <caption id="grandchild4">
+	 Block 4a
+       </caption>
+       <tr><td>Block 4b</td></tr>
+     </table>
+   </div>
+ </body>
+</html>

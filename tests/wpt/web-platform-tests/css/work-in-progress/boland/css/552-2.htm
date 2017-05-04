@@ -1,0 +1,84 @@
+
+<html>
+
+<title>Second Test of Section 5.5.2 of CSS1 Spec</title>
+
+<style type="text/css">
+p {margin-right: }
+h3 {margin-right: 2em}
+h4 {margin-right: 4em}
+strong {margin-right; 6em}
+blockquote {margin-right: 50%}
+</style>
+</head>
+
+
+
+<body>
+
+
+
+
+<h1 >Testing Statement #2 Below of Section 5.5.2 of CSS1 Spec</h1>
+
+
+
+
+
+
+<ul>
+<li>
+2. "margin-right" has initial 0, applies to all elements, is not inherited, and
+percentage values refer to parent element's width.
+</ul>
+
+
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p >
+
+If statement #2 above is passed, this paragraph should have a right margin
+of 0.
+The rule applied is "p {margin-right: }".
+So the margin-right property applies to the "p" element.
+<h3>
+This h3 element should have a right margin of 2em
+<em>
+This emphasized text should have a right margin of UA-default, since the 
+margin right property is not inherited, and "em" is a child of 'h3".
+No explicit rule is applied for "em".
+</em>
+THe rule applied is 'h3 {margin-right: 2em}".
+So the margin right property applies to em and h3.
+</h3>
+<h4>
+THis h4 element should have a right margin which is 4em.
+The rule applied is "margin-right: 4em".
+So the margin right property applies to h4.
+</h4>
+
+<strong>
+This strong text should have a right margin of 6em
+; so the margin right property applies
+to the strong element.
+The rule applied is "strong {margin-right: 6em}".
+</strong>
+<blockquote>
+This blockquote element should have a right margin of 50% of that
+of its parent (body element).
+The rule applied is "blockquote {margin-right: 50%}", which should be
+UA-default.
+</blockquote>
+All other properties of this page should be UA-default.
+
+
+
+
+
+
+
+</body>
+</html>

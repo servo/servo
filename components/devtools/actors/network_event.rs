@@ -365,7 +365,7 @@ impl NetworkEventActor {
             RawStatus(s, Cow::from(status_text))
         });
         self.response.body = response.body.clone();
-     }
+    }
 
     pub fn event_actor(&self) -> EventActor {
         // TODO: Send the correct values for startedDateTime, isXHR, private
@@ -413,7 +413,7 @@ impl NetworkEventActor {
             transferredSize: 0,
             discardResponseBody: true,
         }
-     }
+    }
 
     pub fn response_cookies(&self) -> ResponseCookiesMsg {
         let mut cookies_size = 0;

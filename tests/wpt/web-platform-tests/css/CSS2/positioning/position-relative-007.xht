@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Relative positioning with 'left' set and 'right' 'auto'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#relative-positioning" />
+		<link rel="match" href="position-relative-005-ref.xht" />
+
+        <meta name="flags" content="" />
+        <meta name="assert" content="Relatively positioned element with 'left' set to 'auto' and 'right' set to a value appears at expected offset." />
+        <style type="text/css">
+            div
+            {
+                height: 1in;
+                width: 1in;
+            }
+            #div1
+            {
+                margin-left: 1in;
+            }
+            #div2
+            {
+                background: blue;
+            }
+            #div3
+            {
+                background: orange;
+                position: relative;
+                left: auto;
+                right: 1in;
+                top: -1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if a blue square is on the right-hand side of an orange square.</p>
+        <div id="div1">
+            <div id="div2"></div>
+            <div id="div3"></div>
+        </div>
+    </body>
+</html>

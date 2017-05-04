@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CCSS Test: transform - rotate 180 deg</title>
+    <link rel="author" title="Larry McLister" href="mailto:lmcliste@adobe.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-property"/>
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions"/>
+   <style type="text/css">
+        #greenBottomDiv {
+            background: green;
+            border-bottom-color: black;
+            border-left-color: transparent;
+            border-right-color: transparent;
+            border-top-color: transparent;
+            border-width: 5px;
+            border-style: solid;
+            height: 100px;
+            position: absolute;
+            transform:
+                rotate(180deg);
+            width: 100px;
+         }
+
+        #redDiv {
+            position: absolute;
+            background: red;
+            height: 110px;
+            width: 110px;
+         }
+
+    </style>
+</head>
+<body>
+    <p>Test passes if there is a black line on the top of green box and no red.</p>
+    <div id="redDiv"></div>
+    <div id="greenBottomDiv"></div>
+</body>
+</html>

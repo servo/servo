@@ -1,0 +1,101 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Twelfth Test of Section 9.6 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+
+
+
+body {height: 40.5in }
+#header {
+  position: fixed;
+  width: 100%;
+  height: 15%;
+  top: 0;
+  right: 0;
+bottom: auto;
+left: 0;
+}
+#sidebar {
+  position: fixed;
+  width: 10em;
+  height: auto;
+  top: 15%;
+  right: auto;
+  bottom: 100px;
+  left: 0;
+}
+#main {
+  position: fixed;
+  width: auto;
+  height: auto;
+  top: 15%;
+  right: 0;
+  bottom: 100px;
+  left: 10em;
+}
+#footer {
+  position: fixed;
+  width: 100%;
+  height: 100px;
+  top: auto;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Twelfth Testable Statement of Sec 9.6 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+12. Authors may use fixed positioning to create frame-like presentations.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+<div id="header"> This header would be a frame.  Rules are:
+body {height: 40.5in}
+#header { position: fixed;
+width: 100%;
+height: 15%;
+top: 0;
+right: 0;
+bottom: auto;
+left: 0;
+}
+</div>
+<div id="sidebar"> This sidebar would be a frame.  Rules are:
+#sidebar {position: fixed; width: 10em; height: auto; top: 15%; right: auto;
+bottom: 100px; left: 0; }
+</div>
+<div id="main"> This main block would be a frame.  Rules are:
+#main {position: fixed; width: auto; height: auto; top: 15%; right: 0;
+bottom: 100px; left: 10em;}
+</div>
+<div id="footer"> This footer would be a frame.  Rules are:
+#footer {position: fixed; width: 100%; height: 100px; top: auto; right: 0;
+bottom: 0; left: 0;}
+</div>
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

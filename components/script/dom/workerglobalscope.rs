@@ -37,7 +37,7 @@ use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_thread::RunnableWrapper;
 use script_traits::{TimerEvent, TimerEventId};
 use script_traits::WorkerGlobalScopeInit;
-use servo_url::ServoUrl;
+use servo_url::{MutableOrigin, ServoUrl};
 use std::default::Default;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -59,6 +59,7 @@ pub fn prepare_workerscope_init(global: &GlobalScope,
             scheduler_chan: global.scheduler_chan().clone(),
             worker_id: global.get_next_worker_id(),
             pipeline_id: global.pipeline_id(),
+            origin: global.origin().immutable().clone(),
         };
 
     init
@@ -109,7 +110,8 @@ impl WorkerGlobalScope {
                     init.constellation_chan,
                     init.scheduler_chan,
                     init.resource_threads,
-                    timer_event_chan),
+                    timer_event_chan,
+                    MutableOrigin::new(init.origin)),
             worker_id: init.worker_id,
             worker_url: worker_url,
             closing: closing,

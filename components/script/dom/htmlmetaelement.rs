@@ -18,13 +18,14 @@ use dom::htmlheadelement::HTMLHeadElement;
 use dom::node::{Node, UnbindContext, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
+use html5ever::{LocalName, Prefix};
 use servo_config::prefs::PREFS;
 use std::ascii::AsciiExt;
-use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use style::attr::AttrValue;
+use style::media_queries::MediaList;
 use style::str::HTML_SPACE_CHARACTERS;
+use style::stylearc::Arc;
 use style::stylesheets::{Stylesheet, CssRule, CssRules, Origin};
 use style::viewport::ViewportRule;
 
@@ -38,7 +39,7 @@ pub struct HTMLMetaElement {
 
 impl HTMLMetaElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> HTMLMetaElement {
         HTMLMetaElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
@@ -49,7 +50,7 @@ impl HTMLMetaElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLMetaElement> {
         Node::reflect_node(box HTMLMetaElement::new_inherited(local_name, prefix, document),
                            document,
@@ -107,11 +108,12 @@ impl HTMLMetaElement {
                         shared_lock: shared_lock.clone(),
                         url_data: window_from_node(self).get_url(),
                         namespaces: Default::default(),
-                        media: Arc::new(shared_lock.wrap(Default::default())),
+                        media: Arc::new(shared_lock.wrap(MediaList::empty())),
                         // Viewport constraints are always recomputed on resize; they don't need to
                         // force all styles to be recomputed.
                         dirty_on_viewport_size_change: AtomicBool::new(false),
                         disabled: AtomicBool::new(false),
+                        quirks_mode: document.quirks_mode(),
                     }));
                     let doc = document_from_node(self);
                     doc.invalidate_stylesheets();

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - animation-fill-mode, two values</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-animations/#the-animation-fill-mode-property-">
+   <meta name="flags" content="dom">
+   <meta name="assert" content="'both, backwards' is a valid animation-fill-mode
+   value">
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      @keyframes move-right {
+         0% {
+            left: 110px;
+         }
+         100% {
+            left: 210px;
+         }
+      }
+      @keyframes move-up {
+         0% {
+            top: 100px;
+         }
+         100% {
+            top: 0px;
+         }
+      }
+      p + div {
+         width: 100px;
+         height: 100px;
+         background: blue;
+         position: relative;
+         animation-duration: 0.5s;
+         animation-delay: 0.5s;
+         animation-iteration-count: 2;
+         animation-direction: alternate;
+         animation-fill-mode: both, backwards;
+      }
+      div + div {
+         margin-top: -105px;
+         margin-left: 105px;
+         border: 5px solid black;
+         width: 200px;
+         height: 200px;
+      }
+      .test {
+         animation-name: move-right, move-up;
+      }
+   </style>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var div = document.querySelector('div');
+         var log = document.querySelectorAll('p')[1].firstChild;
+         var style = getComputedStyle(div, null);
+         var passed = false;
+         setTimeout(function() {
+            passed = (style.left == '110px' && style.top == '100px');
+         }, 250);
+         setTimeout(function() {
+            passed = (passed && style.left == '110px' && style.top == 'auto');
+            test(function(){assert_true(passed);}, testName); done();
+            log.data = (passed ? 'PASS if the animation occurred.' : 'FAIL');
+         }, 1750);
+         div.className = 'test';
+      }
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>The blue square below should pause for a while in the bottom left corner
+   of the black-bordered box, then slide to the top right corner and back, then
+   jump up to the top left corner and stay there.</p>
+   <p>Testing...</p>
+   <div></div>
+   <div></div>
+</body>
+</html>

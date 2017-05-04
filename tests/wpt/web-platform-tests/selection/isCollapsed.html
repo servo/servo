@@ -13,9 +13,11 @@ test(function() {
 }, "Empty selection");
 
 for (var i = 0; i < testRanges.length; i++) {
+    var endpoints = eval(testRanges[i]);
+    if (!isSelectableNode(endpoints[0]) || !isSelectableNode(endpoints[2]))
+        continue;
     test(function() {
         selection.removeAllRanges();
-        var endpoints = eval(testRanges[i]);
         var range = ownerDocument(endpoints[0]).createRange();
         range.setStart(endpoints[0], endpoints[1]);
         range.setEnd(endpoints[2], endpoints[3]);

@@ -1,0 +1,28 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: URLs in style attributes (with xml:base and &lt;base&gt;)</title>
+  <base href="support/support/"/>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="reviewer" title="Arron Eicholz" href="mailto:Arron.Eicholz@microsoft.com"/>
+  <link rel="match" href="reference/ref-green-on-green2.xht" xml:base="../../"/>
+  <link rel="help" href="http://www.w3.org/TR/css-style-attr/#interpret"/>
+  <link rel="help" href="http://www.w3.org/TR/xmlbase"/>
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="flags" content="image nonHTML" />
+  <meta name="assert" content="In the presence of xml:base URL manipulation, URLs in style attributes are relative to the base of the element."/>
+  <style type="text/css"><![CDATA[
+    p { background: red; color: green; }
+    img { background: red; color: white; vertical-align: middle; }
+  ]]></style>
+ </head>
+ <body>
+  <p style="background-image: url(swatch-lime.png)" xml:base="../">
+    This sentence must be green on a green background.
+    <img src="support/swatch-lime.png" alt="[Your UA does not support xml:base. This test is therefore Not Applicable.]"/>
+  </p>
+  <p xml:base="../" style="background-image: url(swatch-lime.png)">
+    This sentence must be green on a green background.
+    <img src="support/swatch-lime.png" alt="[Your UA does not support xml:base. This test is therefore Not Applicable.]"/>
+  </p>
+ </body>
+</html>

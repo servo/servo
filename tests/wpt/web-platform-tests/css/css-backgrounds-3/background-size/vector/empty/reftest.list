@@ -1,0 +1,30 @@
+== tall--contain--height.html ref-tall-empty.html
+== tall--contain--width.html ref-tall-empty.html
+== wide--contain--height.html ref-wide-empty.html
+== wide--contain--width.html ref-wide-empty.html
+
+# Either OS X 32-bit or 10.5, judging from imprecise Tinderbox results, renders
+# these tests as empty boxes, not filled boxes.  We don't really care about this
+# extreme edge case (the test exists more to test for safety against division by
+# zero), so there is no bug has been filed to fix it, although a patch would
+# probably be accepted.
+random-if(cocoaWidget) == tall--cover--height.html ref-tall-lime.html
+random-if(cocoaWidget) == tall--cover--width.html ref-tall-lime.html
+random-if(cocoaWidget) == wide--cover--height.html ref-wide-lime.html
+random-if(cocoaWidget) == wide--cover--width.html ref-wide-lime.html
+
+== zero-height-ratio-contain.html ref-tall-empty.html
+== zero-height-ratio-cover.html ref-tall-empty.html
+== zero-height-ratio-auto-auto.html ref-tall-empty.html
+== zero-height-ratio-auto-5px.html ref-tall-empty.html
+== zero-height-ratio-5px-auto.html ref-tall-empty.html
+== zero-width-ratio-contain.html ref-tall-empty.html
+== zero-width-ratio-cover.html ref-tall-empty.html
+== zero-width-ratio-auto-auto.html ref-tall-empty.html
+== zero-width-ratio-auto-5px.html ref-tall-empty.html
+== zero-width-ratio-5px-auto.html ref-tall-empty.html
+== zero-ratio-no-dimensions-contain.html ref-tall-empty.html
+== zero-ratio-no-dimensions-cover.html ref-tall-empty.html
+== zero-ratio-no-dimensions-auto-5px.html ref-tall-empty.html
+== zero-ratio-no-dimensions-5px-auto.html ref-tall-empty.html
+== zero-ratio-no-dimensions-auto-auto.html ref-tall-empty.html

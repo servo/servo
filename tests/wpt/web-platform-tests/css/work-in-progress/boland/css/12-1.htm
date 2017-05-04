@@ -1,0 +1,50 @@
+
+<HTML>
+<HEAD>
+
+<TITLE>First Test of Section 1.2 of CSS1 Spec</TITLE>
+
+
+<STYLE TYPE="text/css">
+   P, H2, H3 {font-family: Helvetica, sans-serif;
+               color: lime;
+              }
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing the first testable statement for section 1.2 of CSS1 specification
+</h1>
+
+<ul>
+<li>
+1. To reduce the size of style sheets, one can group selectors in comma-separated 
+lists.
+</ul>
+
+
+<h1>
+"PASS" CRITERIA:
+</h1>
+<p >
+If statement #1 above is passed, this paragraph
+should be lime Helvetica (if Helvetica is available).
+Otherwise it should be sans-serif.
+All other properties should be UA-default.
+
+The rule applied here is "P, H2, H3 {color: lime; font-family: Helvetica,
+sans-serif}".
+<h2>
+This heading (h2) should also be lime helvetica.
+</h2>
+<h3>
+This heading (h3) should also be lime helvetica.
+</h3>
+To move directly to the next test, click<a href="12-2.htm"> here</a>.
+</BODY>
+</HTML>

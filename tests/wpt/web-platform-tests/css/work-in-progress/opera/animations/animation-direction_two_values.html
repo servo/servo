@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - animation-direction, two values</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-animations/#the-animation-direction-property-">
+   <meta name="flags" content="dom">
+   <meta name="assert" content="alternate, normal is a valid
+   animation-direction">
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      @keyframes move-right {
+         0% {
+            left: 0px;
+         }
+         50%, 100% {
+            left: 100px;
+         }
+      }
+      @keyframes move-down {
+         0% {
+            top: 0px;
+         }
+         50%, 100% {
+            top: 100px;
+         }
+      }
+      div {
+         width: 100px;
+         height: 100px;
+         background: blue;
+         position: relative;
+         animation-duration: 0.8s;
+         animation-iteration-count: 2;
+         animation-timing-function: step-end;
+         animation-direction: alternate, normal;
+      }
+      .test {
+         animation-name: move-down, move-right;
+      }
+   </style>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var div = document.querySelector('div');
+         var log = document.querySelectorAll('p')[1].firstChild;
+         var style = getComputedStyle(div, null);
+         var passed = false;
+         setTimeout(function() {
+            passed = (style.left == '100px' && style.top == '100px');
+         }, 600);
+         setTimeout(function() {
+            passed = (passed && style.left == '0px' && style.top == '100px');
+         }, 1000);
+         setTimeout(function() {
+            passed = (passed && style.left == '100px' && style.top == '0px');
+            test(function(){assert_true(passed);}, testName); done();
+            log.data = (passed ? 'PASS if the animation occurred.' : 'FAIL');
+         }, 1400);
+         div.className = 'test';
+      }
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>The blue square below should jump diagonally down+right, then left, then
+   up+right and finally left, returning to its initial position.</p>
+   <p>Testing...</p>
+   <div></div>
+</body>
+</html>

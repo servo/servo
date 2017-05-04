@@ -10,6 +10,7 @@
             0% { top: 0px; }
             100% { top: 200px; }
         }
+        @keyframes empty {}
     </style>
 
     <script>
@@ -54,16 +55,18 @@
         assert_equals(keyframe.cssRules[2].cssText, "0% { top: 50px; }", "CSSKeyframesRule cssRule cssText attribute after deleteRule function");
         assert_equals(keyframe.cssRules[3], undefined, "CSSKeyframesRule cssRule cssText attribute after deleteRule function");
 
-        keyframe.name = "bar";
-        assert_equals(keyframe.name, "bar", "CSSKeyframesRule name setter");
+        var empty = document.styleSheets[0].cssRules[1];
+        empty.name = "bar";
+        assert_equals(empty.name, "bar", "CSSKeyframesRule name setter");
+        assert_equals(empty.cssText.replace(/\s/g, ""), "@keyframesbar{}", "CSSKeyframesRule cssText attribute");
 
-        assert_throws("SyntaxError",
-                      function () { keyframe.name = "initial"; },
-                      "CSSKeyframesRule name setter on invalid keyword.");
+        empty.name = "initial";
+        assert_equals(empty.name, "initial", "CSSKeyframesRule name setter, CSS-wide keyword");
+        assert_equals(empty.cssText.replace(/\s/g, ""), "@keyframes\"initial\"{}", "CSSKeyframesRule cssText attribute with CSS-wide keyword name");
 
-        assert_throws("SyntaxError",
-                      function () { keyframe.name = "none"; },
-                      "CSSKeyframesRule name setter on invalid keyword.");
+        empty.name = "none";
+        assert_equals(empty.name, "none", "CSSKeyframesRule name setter, 'none'");
+        assert_equals(empty.cssText.replace(/\s/g, ""), "@keyframes\"none\"{}", "CSSKeyframesRule cssText attribute with 'none' name");
     });
     </script>
 </head>

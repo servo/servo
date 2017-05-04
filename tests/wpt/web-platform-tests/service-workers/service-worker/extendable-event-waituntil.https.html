@@ -16,14 +16,17 @@ function runTest(test, scope, onRegister) {
 // |obj.synced| to true once ack'd.
 function syncWorker(test, worker, obj) {
   var channel = new MessageChannel();
-  channel.port1.onmessage = test.step_func(function(e) {
-      var message = e.data;
-      assert_equals(message, 'SYNC',
-                    'Should receive sync message from worker.');
-      obj.synced = true;
-      channel.port1.postMessage('ACK');
-    });
   worker.postMessage({port: channel.port2}, [channel.port2]);
+  return new Promise(function(resolve) {
+      channel.port1.onmessage = test.step_func(function(e) {
+          var message = e.data;
+          assert_equals(message, 'SYNC',
+                        'Should receive sync message from worker.');
+          obj.synced = true;
+          channel.port1.postMessage('ACK');
+          resolve();
+        });
+    });
 }
 
 async_test(function(t) {
@@ -68,13 +71,28 @@ async_test(function(t) {
 async_test(function(t) {
     var scope = 'resources/install-reject-precedence';
     var onRegister = function(worker) {
-        var obj = {};
+        var obj1 = {};
+        var obj2 = {};
         wait_for_state(t, worker, 'redundant')
           .then(function() {
+              assert_true(
+                obj1.synced,
+                'The "redundant" state was entered after the first "extend ' +
+                  'lifetime promise" resolved.'
+              );
+              assert_true(
+                obj2.synced,
+                'The "redundant" state was entered after the third "extend ' +
+                  'lifetime promise" resolved.'
+              );
               service_worker_unregister_and_done(t, scope);
             })
           .catch(unreached_rejection(t));
-        syncWorker(t, worker, obj);
+
+        syncWorker(t, worker, obj1)
+          .then(function() {
+              syncWorker(t, worker, obj2);
+            });
       };
     runTest(t, scope, onRegister);
   }, 'Test ExtendableEvent waitUntil reject precedence.');

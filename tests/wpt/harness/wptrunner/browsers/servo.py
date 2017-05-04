@@ -32,7 +32,8 @@ def browser_kwargs(**kwargs):
             "debug_info": kwargs["debug_info"],
             "binary_args": kwargs["binary_args"],
             "user_stylesheets": kwargs.get("user_stylesheets"),
-            "render_backend": kwargs.get("servo_backend")}
+            "render_backend": kwargs.get("servo_backend"),
+            "ca_certificate_path": kwargs["ssl_env"].ca_cert_path()}
 
 
 def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
@@ -65,17 +66,19 @@ def render_arg(render_backend):
 
 class ServoBrowser(NullBrowser):
     def __init__(self, logger, binary, debug_info=None, binary_args=None,
-                 user_stylesheets=None, render_backend="webrender"):
+                 user_stylesheets=None, render_backend="webrender", ca_certificate_path=None):
         NullBrowser.__init__(self, logger)
         self.binary = binary
         self.debug_info = debug_info
         self.binary_args = binary_args or []
         self.user_stylesheets = user_stylesheets or []
         self.render_backend = render_backend
+        self.ca_certificate_path = ca_certificate_path
 
     def executor_browser(self):
         return ExecutorBrowser, {"binary": self.binary,
                                  "debug_info": self.debug_info,
                                  "binary_args": self.binary_args,
                                  "user_stylesheets": self.user_stylesheets,
-                                 "render_backend": self.render_backend}
+                                 "render_backend": self.render_backend,
+                                 "ca_certificate_path": self.ca_certificate_path}

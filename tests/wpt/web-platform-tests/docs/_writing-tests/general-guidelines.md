@@ -166,7 +166,7 @@ see the [lint-tool documentation][lint-tool].
 ## CSS-Specific Requirements
 
 In order to be included in an official specification testsuite, tests
-for csswg-test have some additional requirements for:
+for CSS have some additional requirements for:
 
 * [Metadata][css-metadata], and
 * [User style sheets][css-user-styles].

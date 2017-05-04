@@ -7,14 +7,13 @@
 #![crate_name = "servo_url"]
 #![crate_type = "rlib"]
 
-#[cfg(feature = "servo")] #[macro_use] extern crate heapsize;
-#[cfg(feature = "servo")] #[macro_use] extern crate heapsize_derive;
-#[cfg(feature = "servo")] extern crate serde;
-#[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;
-#[cfg(feature = "servo")] extern crate url_serde;
-
+#[macro_use] extern crate heapsize;
+#[macro_use] extern crate heapsize_derive;
+extern crate serde;
+#[macro_use] extern crate serde_derive;
 extern crate servo_rand;
 extern crate url;
+extern crate url_serde;
 extern crate uuid;
 
 pub mod origin;
@@ -30,8 +29,7 @@ use url::{Url, Position};
 
 pub use url::Host;
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, HeapSizeOf)]
 pub struct ServoUrl(Arc<Url>);
 
 impl ServoUrl {
@@ -203,7 +201,6 @@ impl From<Url> for ServoUrl {
     }
 }
 
-#[cfg(feature = "servo")]
 impl serde::Serialize for ServoUrl {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: serde::Serializer,
@@ -212,7 +209,6 @@ impl serde::Serialize for ServoUrl {
     }
 }
 
-#[cfg(feature = "servo")]
 impl serde::Deserialize for ServoUrl {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
         where D: serde::Deserializer,

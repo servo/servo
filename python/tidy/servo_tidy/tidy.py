@@ -450,6 +450,8 @@ def check_rust(file_name, lines):
     prev_crate = {}
     prev_mod = {}
     prev_feature_name = ""
+    indent = 0
+    prev_indent = 0
 
     decl_message = "{} is not in alphabetical order"
     decl_expected = "\n\t\033[93mexpected: {}\033[0m"
@@ -458,6 +460,9 @@ def check_rust(file_name, lines):
     for idx, original_line in enumerate(lines):
         # simplify the analysis
         line = original_line.strip()
+        prev_indent = indent
+        indent = len(original_line) - len(line)
+
         is_attribute = re.search(r"#\[.*\]", line)
         is_comment = re.search(r"^//|^/\*|^\*", line)
 
@@ -577,11 +582,17 @@ def check_rust(file_name, lines):
             yield (idx + 1, "found an empty line following a {")
         prev_open_brace = line.endswith("{")
 
+        # ensure a line starting with { or } has a number of leading spaces that is a multiple of 4
+        if line.startswith(("{", "}")):
+            match = re.match(r"(?: {4})* {1,3}([{}])", original_line)
+            if match:
+                if indent != prev_indent - 4:
+                    yield (idx + 1, "space before {} is not a multiple of 4".format(match.group(1)))
+
         # check alphabetical order of extern crates
         if line.startswith("extern crate "):
             # strip "extern crate " from the begin and ";" from the end
             crate_name = line[13:-1]
-            indent = len(original_line) - len(line)
             if indent not in prev_crate:
                 prev_crate[indent] = ""
             if prev_crate[indent] > crate_name:
@@ -616,7 +627,6 @@ def check_rust(file_name, lines):
         # into a single import block
         if line.startswith("use "):
             import_block = True
-            indent = len(original_line) - len(line)
             if not line.endswith(";") and '{' in line:
                 yield (idx + 1, "use statement spans multiple lines")
             if '{ ' in line:
@@ -645,7 +655,6 @@ def check_rust(file_name, lines):
 
         # modules must be in the same line and alphabetically sorted
         if line.startswith("mod ") or line.startswith("pub mod "):
-            indent = len(original_line) - len(line)
             # strip /(pub )?mod/ from the left and ";" from the right
             mod = line[4:-1] if line.startswith("mod ") else line[8:-1]
 
@@ -1052,16 +1061,29 @@ def run_lint_scripts(only_changed_files=False, progress=True, stylo=False):
 
 
 def check_commits(path='.'):
+    """ Checks if the test is being run under Travis CI environment
+        This is necessary since, after travis clones the branch for a PR, it merges
+        the branch against master, creating a merge commit. Hence, as a workaround,
+        we have to check if the second last merge commit is done by the author of
+        the pull request.
+        """
+    is_travis = os.environ.get('TRAVIS') == 'true'
+    number_commits = '-n2' if is_travis else '-n1'
+
     """Gets all commits since the last merge."""
-    args = ['git', 'log', '-n1', '--merges', '--format=%H']
-    last_merge = subprocess.check_output(args, cwd=path).strip()
-    args = ['git', 'log', '{}..HEAD'.format(last_merge), '--format=%s']
+    args = ['git', 'log', number_commits, '--merges', '--format=%H:%an']
+    # last_merge stores both the commit hash and the author name of the last merge in the output
+    last_merge_hash, last_merge_author = subprocess.check_output(args, cwd=path).strip().splitlines()[-1].split(':')
+    args = ['git', 'log', '{}..HEAD'.format(last_merge_hash), '--format=%s']
     commits = subprocess.check_output(args, cwd=path).lower().splitlines()
 
     for commit in commits:
         # .split() to only match entire words
         if 'wip' in commit.split():
-            yield ('.', 0, 'no commits should contain WIP')
+            yield (':', ':', 'no commits should contain WIP')
+
+    if last_merge_author != 'bors-servo':
+        yield (':', ':', 'no merge commits allowed, please rebase your commits over the upstream master branch')
 
     raise StopIteration
 

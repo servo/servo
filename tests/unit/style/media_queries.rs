@@ -7,10 +7,12 @@ use euclid::size::TypedSize2D;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use style::Atom;
+use style::context::QuirksMode;
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries::*;
 use style::servo::media_queries::*;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard};
+use style::stylearc::Arc;
 use style::stylesheets::{Stylesheet, Origin, CssRule};
 use style::values::specified;
 use style_traits::ToCss;
@@ -18,8 +20,12 @@ use style_traits::ToCss;
 pub struct CSSErrorReporterTest;
 
 impl ParseErrorReporter for CSSErrorReporterTest {
-    fn report_error(&self, _input: &mut Parser, _position: SourcePosition, _message: &str,
-        _url: &ServoUrl) {
+    fn report_error(&self,
+                    _input: &mut Parser,
+                    _position: SourcePosition,
+                    _message: &str,
+                    _url: &ServoUrl,
+                    _line_number_offset: u64) {
     }
 }
 
@@ -28,9 +34,11 @@ fn test_media_rule<F>(css: &str, callback: F)
 {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let css_str = css.to_owned();
+    let lock = SharedRwLock::new();
+    let media_list = Arc::new(lock.wrap(MediaList::empty()));
     let stylesheet = Stylesheet::from_str(
-        css, url, Origin::Author, Default::default(), SharedRwLock::new(),
-        None, &CSSErrorReporterTest);
+        css, url, Origin::Author, media_list, lock,
+        None, &CSSErrorReporterTest, QuirksMode::NoQuirks, 0u64);
     let mut rule_count = 0;
     let guard = stylesheet.shared_lock.read();
     media_queries(&guard, &stylesheet.rules.read_with(&guard).0, &mut |mq| {
@@ -55,9 +63,11 @@ fn media_queries<F>(guard: &SharedRwLockReadGuard, rules: &[CssRule], f: &mut F)
 
 fn media_query_test(device: &Device, css: &str, expected_rule_count: usize) {
     let url = ServoUrl::parse("http://localhost").unwrap();
+    let lock = SharedRwLock::new();
+    let media_list = Arc::new(lock.wrap(MediaList::empty()));
     let ss = Stylesheet::from_str(
-        css, url, Origin::Author, Default::default(), SharedRwLock::new(),
-        None, &CSSErrorReporterTest);
+        css, url, Origin::Author, media_list, lock,
+        None, &CSSErrorReporterTest, QuirksMode::NoQuirks, 0u64);
     let mut rule_count = 0;
     ss.effective_style_rules(device, &ss.shared_lock.read(), |_| rule_count += 1);
     assert!(rule_count == expected_rule_count, css.to_owned());
@@ -274,12 +284,12 @@ fn test_mq_expressions() {
 
 #[test]
 fn test_to_css() {
-  test_media_rule("@media print and (width: 43px) { }", |list, _| {
-      let q = &list.media_queries[0];
-      let mut dest = String::new();
-      assert_eq!(Ok(()), q.to_css(&mut dest));
-      assert_eq!(dest, "print and (width: 43px)");
-  });
+    test_media_rule("@media print and (width: 43px) { }", |list, _| {
+        let q = &list.media_queries[0];
+        let mut dest = String::new();
+        assert_eq!(Ok(()), q.to_css(&mut dest));
+        assert_eq!(dest, "print and (width: 43px)");
+    });
 }
 
 #[test]

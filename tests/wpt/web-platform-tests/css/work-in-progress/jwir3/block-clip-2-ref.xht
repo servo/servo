@@ -1,0 +1,82 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>multicolumn | clipping</title>
+<link rel="author" title="Opera Software ASA" href="http://www.opera.com/"/>
+<style type="text/css"><![CDATA[
+body {
+	margin: 0;
+}
+body>div {
+	font-family: ahem;
+	font-size: 1em;
+	line-height: 1em;
+	color: navy;
+	margin: 1em;
+	border: 1em solid gray;
+	width: 11em;
+	height: 6em;
+	position: relative;
+	orphans: 1;
+	widows: 1;
+}
+div div {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 2em;
+	height: 4em;
+	background: blue;
+}
+#s2 {
+	top: 5em;
+	height: 1em;
+	background: orange;
+}
+#s3 {
+	left: 4em;
+	height: 3em;
+	background: orange;
+}
+#s4 {
+	left: 4em;
+	top: 3em;
+	height: 3em;
+	background: pink;
+}
+#s5 {
+	left: 8em;
+	height: 1em;
+	background: pink;
+}
+#s6 {
+	left: 8em;
+	top: 1em;
+	height: 4em;
+	background: yellow;
+}
+#bar {
+	left: 0;
+	top: 4em;
+	height: 1em;
+	width: 3.5em;
+	background: black;
+}
+]]></style>
+</head>
+
+<body>
+
+<div>
+	<div></div>
+	<div id="s2"></div>
+	<div id="s3"></div>
+	<div id="s4"></div>
+	<div id="s5"></div>
+	<div id="s6"></div>
+	<div id="bar"></div>
+</div>
+
+</body>
+</html>

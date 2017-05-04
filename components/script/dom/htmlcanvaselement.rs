@@ -27,7 +27,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom::webglrenderingcontext::{LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext};
 use dom_struct::dom_struct;
 use euclid::size::Size2D;
-use html5ever_atoms::LocalName;
+use html5ever::{LocalName, Prefix};
 use image::ColorType;
 use image::png::PNGEncoder;
 use ipc_channel::ipc::{self, IpcSender};
@@ -36,7 +36,7 @@ use js::jsapi::{HandleValue, JSContext};
 use offscreen_gl_context::GLContextAttributes;
 use script_layout_interface::HTMLCanvasData;
 use std::iter::repeat;
-use style::attr::AttrValue;
+use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
@@ -56,7 +56,7 @@ pub struct HTMLCanvasElement {
 
 impl HTMLCanvasElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> HTMLCanvasElement {
         HTMLCanvasElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
@@ -66,7 +66,7 @@ impl HTMLCanvasElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLCanvasElement> {
         Node::reflect_node(box HTMLCanvasElement::new_inherited(local_name, prefix, document),
                            document,
@@ -97,6 +97,8 @@ impl HTMLCanvasElement {
 
 pub trait LayoutHTMLCanvasElementHelpers {
     fn data(&self) -> HTMLCanvasData;
+    fn get_width(&self) -> LengthOrPercentageOrAuto;
+    fn get_height(&self) -> LengthOrPercentageOrAuto;
 }
 
 impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
@@ -122,6 +124,26 @@ impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
                 width: width_attr.map_or(DEFAULT_WIDTH, |val| val.as_uint()),
                 height: height_attr.map_or(DEFAULT_HEIGHT, |val| val.as_uint()),
             }
+        }
+    }
+
+    #[allow(unsafe_code)]
+    fn get_width(&self) -> LengthOrPercentageOrAuto {
+        unsafe {
+            (&*self.upcast::<Element>().unsafe_get())
+                .get_attr_for_layout(&ns!(), &local_name!("width"))
+                .map(AttrValue::as_uint_px_dimension)
+                .unwrap_or(LengthOrPercentageOrAuto::Auto)
+        }
+    }
+
+    #[allow(unsafe_code)]
+    fn get_height(&self) -> LengthOrPercentageOrAuto {
+        unsafe {
+            (&*self.upcast::<Element>().unsafe_get())
+                .get_attr_for_layout(&ns!(), &local_name!("height"))
+                .map(AttrValue::as_uint_px_dimension)
+                .unwrap_or(LengthOrPercentageOrAuto::Auto)
         }
     }
 }

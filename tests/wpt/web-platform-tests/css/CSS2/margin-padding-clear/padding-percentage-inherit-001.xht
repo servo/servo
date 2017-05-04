@@ -1,0 +1,94 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: padding - inherit applied on padding percentage</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" title="8.4 Padding properties" href="http://www.w3.org/TR/CSS21/box.html#padding-properties" />
+  <link rel="help" title="6.2.1 The 'inherit' value" href="http://www.w3.org/TR/CSS21/cascade.html#value-def-inherit" />
+  <link rel="match" href="padding-percentage-inherit-001-ref.xht" />
+
+  <meta content="A padding percentage is calculated with respect to the width of the generated box's containing block. When inherit keyword is used, the property takes the same computed value - a percentage value in this testcase - as the property for the element's parent." name="assert" />
+  <meta content="image" name="flags" />
+
+  <style type="text/css"><![CDATA[
+  body {margin: 8px;}
+
+  p
+  {
+  font: 1em/1.25 serif;
+  margin: 1em 0em;
+  }
+
+  div#grand-parent {width: 300px;}
+
+  div#parent
+  {
+  background-color: green;
+  height: 150px;
+  padding: 20%; /* 20% of 300px == 60px; */
+  width: 150px;
+  }
+
+  div#child
+  {
+  padding: inherit;
+  /*
+  computes to 20% which is then applied
+  on #child's containing block width: 20% of 150px == 30px
+  */
+  }
+
+  div#abs-pos-overlapping-green
+  {
+  left: 98px;
+  /*
+       8px (body's margin-left)
+    +
+      60px (#parent's padding-left)
+   +
+      30px (#child's padding-left)
+  ==================
+      98px
+  */
+  position: absolute;
+  top: 162px;
+  }
+
+  /*
+      max(8px, 16px) (margin collapsing between body's margin-top and p's margin-top)
+   +
+      20px (first line)
+   +
+      20px (second line)
+   +
+      16px (p's margin-bottom)
+   +
+      60px (#parent's padding-top)
+   +
+      30px (#child's padding-top)
+  ==================
+     162px
+  */
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled<br />
+  green square and no red.</p>
+
+  <div id="grand-parent">
+    <div id="parent">
+      <div id="child"><img src="support/100x100-red.png" alt="Image download support must be enabled" /></div>
+    </div>
+  </div>
+
+  <div id="abs-pos-overlapping-green"><img src="support/swatch-green.png" width="100" height="100" alt="Image download support must be enabled" /></div>
+
+ </body>
+</html>

@@ -17,7 +17,7 @@
  *
  * ```
  * fn have_to_use_pseudo_elements() {
- *     macro_rules pseudo_element! {
+ *     macro_rules! pseudo_element {
  *         ($pseudo_str_with_colon:expr, $pseudo_atom:expr, $is_anon_box:true) => {{
  *             // Stuff stuff stuff.
  *         }}
@@ -36,6 +36,9 @@
                     false);
     pseudo_element!(":backdrop",
                     atom!(":backdrop"),
+                    false);
+    pseudo_element!(":cue",
+                    atom!(":cue"),
                     false);
     pseudo_element!(":first-letter",
                     atom!(":first-letter"),

@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Caption-side and 'display: table-row' elements</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#propdef-caption-side" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#caption-position" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Caption-side does not apply to 'display: table-row' elements." />
+        <style type="text/css">
+            #table
+            {
+                background: blue;
+                display: table;
+            }
+            #caption
+            {
+                display: table-caption;
+            }
+            #row
+            {
+                caption-side: bottom;
+                display: table-row;
+            }
+            #cell
+            {
+                background: blue;
+                display: table-cell;
+                height: 1in;
+                width: 2in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below is above the box.</p>
+        <div id="table">
+            <div id="caption">Filler Text</div>
+            <div id="row">
+                <div id="cell"></div>
+            </div>
+        </div>
+    </body>
+</html>

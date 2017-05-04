@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html><head>
+  <link rel="match" href="insert-into-split-inline-4-ref.xht"/>
+  <style>
+   body &gt; span { border: 3px solid blue }
+   .notstart { border-left: none; }
+   .notend { border-right: none; }
+  </style>
+ </head>
+ <body>
+  <span class="notend">
+    <span>One</span><span>Two</span><span>Three</span>
+  </span>
+  <div>Four</div>
+  <span class="notstart notend"></span>
+  <div>Five</div>
+  <span class="notstart notend">
+    <span>Six</span>
+  </span>
+  <div>Seven</div>
+  <span class="notstart notend"></span>
+  <div>Eight</div>
+  <span class="notstart">
+    <span>Nine</span><span>Ten</span>
+  </span>
+ 
+
+</body></html>

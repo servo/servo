@@ -34,13 +34,13 @@ use dom::create::create_element;
 use dom::document::{Document, LayoutDocumentHelpers};
 use dom::documentfragment::DocumentFragment;
 use dom::domrect::DOMRect;
-use dom::domrectlist::DOMRectList;
 use dom::domtokenlist::DOMTokenList;
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementLayoutHelpers};
 use dom::htmlbuttonelement::HTMLButtonElement;
+use dom::htmlcanvaselement::{HTMLCanvasElement, LayoutHTMLCanvasElementHelpers};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
@@ -75,17 +75,17 @@ use dom::validation::Validatable;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::ReflowReason;
 use dom_struct::dom_struct;
+use html5ever::{Prefix, LocalName, Namespace, QualName};
 use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
-use html5ever_atoms::{Prefix, LocalName, Namespace, QualName};
 use js::jsapi::{HandleValue, JSAutoCompartment};
 use net_traits::request::CorsSettings;
 use ref_filter_map::ref_filter_map;
 use script_layout_interface::message::ReflowQueryType;
 use script_thread::Runnable;
-use selectors::matching::{ElementSelectorFlags, StyleRelations, matches};
+use selectors::matching::{ElementSelectorFlags, StyleRelations, matches_selector_list};
 use selectors::matching::{HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use servo_atoms::Atom;
@@ -96,11 +96,9 @@ use std::convert::TryFrom;
 use std::default::Default;
 use std::fmt;
 use std::rc::Rc;
-use std::sync::Arc;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::{QuirksMode, ReflowGoal};
 use style::element_state::*;
-use style::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
 use style::properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
 use style::properties::longhands::{self, background_image, border_spacing, font_family, font_size, overflow_x};
 use style::restyle_hints::RESTYLE_SELF;
@@ -108,6 +106,7 @@ use style::rule_tree::CascadeLevel;
 use style::selector_parser::{NonTSPseudoClass, RestyleDamage, SelectorImpl, SelectorParser};
 use style::shared_lock::{SharedRwLock, Locked};
 use style::sink::Push;
+use style::stylearc::Arc;
 use style::stylist::ApplicableDeclarationBlock;
 use style::thread_state;
 use style::values::CSSFloat;
@@ -124,7 +123,7 @@ pub struct Element {
     local_name: LocalName,
     tag_name: TagName,
     namespace: Namespace,
-    prefix: Option<DOMString>,
+    prefix: Option<Prefix>,
     attrs: DOMRefCell<Vec<JS<Attr>>>,
     id_attribute: DOMRefCell<Option<Atom>>,
     #[ignore_heap_size_of = "Arc"]
@@ -196,21 +195,21 @@ impl<'a> TryFrom<&'a str> for AdjacentPosition {
 // Element methods
 //
 impl Element {
-    pub fn create(name: QualName, prefix: Option<Prefix>,
+    pub fn create(name: QualName,
                   document: &Document, creator: ElementCreator)
                   -> Root<Element> {
-        create_element(name, prefix, document, creator)
+        create_element(name, document, creator)
     }
 
     pub fn new_inherited(local_name: LocalName,
-                         namespace: Namespace, prefix: Option<DOMString>,
+                         namespace: Namespace, prefix: Option<Prefix>,
                          document: &Document) -> Element {
         Element::new_inherited_with_state(ElementState::empty(), local_name,
                                           namespace, prefix, document)
     }
 
     pub fn new_inherited_with_state(state: ElementState, local_name: LocalName,
-                                    namespace: Namespace, prefix: Option<DOMString>,
+                                    namespace: Namespace, prefix: Option<Prefix>,
                                     document: &Document)
                                     -> Element {
         Element {
@@ -231,7 +230,7 @@ impl Element {
 
     pub fn new(local_name: LocalName,
                namespace: Namespace,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<Element> {
         Node::reflect_node(
             box Element::new_inherited(local_name, namespace, prefix, document),
@@ -382,6 +381,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
         where V: Push<ApplicableDeclarationBlock>
     {
+        // FIXME(emilio): Just a single PDB should be enough.
         #[inline]
         fn from_declaration(shared_lock: &SharedRwLock, declaration: PropertyDeclaration)
                             -> ApplicableDeclarationBlock {
@@ -467,7 +467,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             hints.push(from_declaration(
                 shared_lock,
                 PropertyDeclaration::FontFamily(
-                        font_family::computed_value::T(vec![
+                        font_family::SpecifiedValue::Values(vec![
                             font_family::computed_value::FontFamily::from_atom(
                                 font_family)]))));
         }
@@ -542,10 +542,13 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         } else if let Some(this) = self.downcast::<HTMLHRElement>() {
             // https://html.spec.whatwg.org/multipage/#the-hr-element-2:attr-hr-width
             this.get_width()
+        } else if let Some(this) = self.downcast::<HTMLCanvasElement>() {
+            this.get_width()
         } else {
             LengthOrPercentageOrAuto::Auto
         };
 
+        // FIXME(emilio): Use from_computed value here and below.
         match width {
             LengthOrPercentageOrAuto::Auto => {}
             LengthOrPercentageOrAuto::Percentage(percentage) => {
@@ -557,7 +560,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             }
             LengthOrPercentageOrAuto::Length(length) => {
                 let width_value = specified::LengthOrPercentageOrAuto::Length(
-                    specified::NoCalcLength::Absolute(length));
+                    specified::NoCalcLength::Absolute(specified::AbsoluteLength::Px(length.to_f32_px())));
                 hints.push(from_declaration(
                     shared_lock,
                     PropertyDeclaration::Width(width_value)));
@@ -568,6 +571,8 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         let height = if let Some(this) = self.downcast::<HTMLIFrameElement>() {
             this.get_height()
         } else if let Some(this) = self.downcast::<HTMLImageElement>() {
+            this.get_height()
+        } else if let Some(this) = self.downcast::<HTMLCanvasElement>() {
             this.get_height()
         } else {
             LengthOrPercentageOrAuto::Auto
@@ -584,7 +589,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             }
             LengthOrPercentageOrAuto::Length(length) => {
                 let height_value = specified::LengthOrPercentageOrAuto::Length(
-                    specified::NoCalcLength::Absolute(length));
+                    specified::NoCalcLength::Absolute(specified::AbsoluteLength::Px(length.to_f32_px())));
                 hints.push(from_declaration(
                     shared_lock,
                     PropertyDeclaration::Height(height_value)));
@@ -643,16 +648,16 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             let width_value = specified::BorderWidth::from_length(specified::Length::from_px(border as f32));
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::BorderTopWidth(Box::new(width_value.clone()))));
+                PropertyDeclaration::BorderTopWidth(width_value.clone())));
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::BorderLeftWidth(Box::new(width_value.clone()))));
+                PropertyDeclaration::BorderLeftWidth(width_value.clone())));
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::BorderBottomWidth(Box::new(width_value.clone()))));
+                PropertyDeclaration::BorderBottomWidth(width_value.clone())));
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::BorderRightWidth(Box::new(width_value))));
+                PropertyDeclaration::BorderRightWidth(width_value)));
         }
     }
 
@@ -774,7 +779,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     #[inline]
     #[allow(unsafe_code)]
     fn insert_selector_flags(&self, flags: ElementSelectorFlags) {
-        debug_assert!(thread_state::get() == thread_state::LAYOUT);
+        debug_assert!(thread_state::get().is_layout());
         unsafe {
             let f = &(*self.unsafe_get()).selector_flags;
             f.set(f.get() | flags);
@@ -810,7 +815,7 @@ impl Element {
         &self.namespace
     }
 
-    pub fn prefix(&self) -> Option<&DOMString> {
+    pub fn prefix(&self) -> Option<&Prefix> {
         self.prefix.as_ref()
     }
 
@@ -1403,7 +1408,7 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-prefix
     fn GetPrefix(&self) -> Option<DOMString> {
-        self.prefix.clone()
+        self.prefix.as_ref().map(|p| DOMString::from(&**p))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-tagname
@@ -1626,17 +1631,16 @@ impl ElementMethods for Element {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-getclientrects
-    fn GetClientRects(&self) -> Root<DOMRectList> {
+    fn GetClientRects(&self) -> Vec<Root<DOMRect>> {
         let win = window_from_node(self);
         let raw_rects = self.upcast::<Node>().content_boxes();
-        let rects = raw_rects.iter().map(|rect| {
+        raw_rects.iter().map(|rect| {
             DOMRect::new(win.upcast(),
                          rect.origin.x.to_f64_px(),
                          rect.origin.y.to_f64_px(),
                          rect.size.width.to_f64_px(),
                          rect.size.height.to_f64_px())
-        });
-        DOMRectList::new(&win, rects)
+        }).collect()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect
@@ -1951,8 +1955,8 @@ impl ElementMethods for Element {
 
             // Step 4.
             NodeTypeId::DocumentFragment => {
-                let body_elem = Element::create(QualName::new(ns!(html), local_name!("body")),
-                                                None, &context_document,
+                let body_elem = Element::create(QualName::new(None, ns!(html), local_name!("body")),
+                                                &context_document,
                                                 ElementCreator::ScriptCreated);
                 Root::upcast(body_elem)
             },
@@ -2044,7 +2048,7 @@ impl ElementMethods for Element {
         match SelectorParser::parse_author_origin_no_namespace(&selectors) {
             Err(()) => Err(Error::Syntax),
             Ok(selectors) => {
-                Ok(matches(&selectors.0, &Root::from_ref(self), None))
+                Ok(matches_selector_list(&selectors.0, &Root::from_ref(self), None))
             }
         }
     }
@@ -2062,7 +2066,7 @@ impl ElementMethods for Element {
                 let root = self.upcast::<Node>();
                 for element in root.inclusive_ancestors() {
                     if let Some(element) = Root::downcast::<Element>(element) {
-                        if matches(&selectors.0, &element, None)
+                        if matches_selector_list(&selectors.0, &element, None)
                         {
                             return Ok(Some(element));
                         }
@@ -2153,10 +2157,6 @@ impl ElementMethods for Element {
     }
 }
 
-pub fn fragment_affecting_attributes() -> [LocalName; 3] {
-    [local_name!("width"), local_name!("height"), local_name!("src")]
-}
-
 impl VirtualMethods for Element {
     fn super_type(&self) -> Option<&VirtualMethods> {
         Some(self.upcast::<Node>() as &VirtualMethods)
@@ -2196,7 +2196,8 @@ impl VirtualMethods for Element {
                             Arc::new(doc.style_shared_lock().wrap(parse_style_attribute(
                                 &attr.value(),
                                 &doc.base_url(),
-                                win.css_error_reporter())))
+                                win.css_error_reporter(),
+                                doc.quirks_mode())))
                         };
 
                         Some(block)
@@ -2236,15 +2237,14 @@ impl VirtualMethods for Element {
                     }
                 }
             },
-            _ if attr.namespace() == &ns!() => {
-                if fragment_affecting_attributes().iter().any(|a| a == attr.local_name()) ||
-                   common_style_affecting_attributes().iter().any(|a| &a.attr_name == attr.local_name()) ||
-                   rare_style_affecting_attributes().iter().any(|a| a == attr.local_name())
-                {
+            _ => {
+                // FIXME(emilio): This is pretty dubious, and should be done in
+                // the relevant super-classes.
+                if attr.namespace() == &ns!() &&
+                   attr.local_name() == &local_name!("src") {
                     node.dirty(NodeDamage::OtherNodeDamage);
                 }
             },
-            _ => {},
         };
 
         // Make sure we rev the version even if we didn't dirty the node. If we
@@ -2598,7 +2598,7 @@ impl Element {
                 self.has_attribute(&local_name!("href"))
             },
             _ => false,
-         }
+        }
     }
 
     /// Please call this method *only* for real click events

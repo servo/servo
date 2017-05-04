@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Part of a row border can be specified</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#collapsing-borders" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The border for a specific table row can be specified under the collapsing border model." />
+        <style type="text/css">
+            table
+            {
+                border-collapse: collapse;
+            }
+            td
+            {
+                border: 1px solid black;
+                height: 50px;
+                width: 50px;
+            }
+            #row
+            {
+                border-top: 10px solid blue;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a blue border across the top of the middle row in the three-by-three table below.</p>
+        <table>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr id="row">
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+        </table>
+    </body>
+</html>

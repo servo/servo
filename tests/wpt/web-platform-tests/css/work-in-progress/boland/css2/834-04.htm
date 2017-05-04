@@ -1,0 +1,63 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Fourth Test of Section 9.8 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+body {display: block; line-height: 200%;
+      width: 400px; height: 400px }
+p {display: block}
+span {display: inline}
+#outer {color: red}
+#inner {float: right; width: 130px; color: blue}
+#sibling {color: red}
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Fourth Testable Statement of Sec 9.8 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+4. The effect of the "clear" property is added to the example.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+Here is some text
+ <span id="outer"> start of outer contents
+ <span id="inner"> inner contents</span>
+ <span id=sibling> sibling contents</span>
+ end of outer contents.</span>
+</p>
+<p>
+If statement #4 is passed then
+the inner box should float to the right and the "outer-sibling" text should flow
+into the vacated space.
+Inner contents should be blue, and outer contents red.
+Rules are "body {display: block; line-height: 200%;
+width: 400px; height: 400px}, p{display: block}", "span {display: inline}".
+Also "#outer {color: red}", "#sibling {color: red}", and
+"#inner {float: right; width: 130px; color: blue}".
+<p>
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

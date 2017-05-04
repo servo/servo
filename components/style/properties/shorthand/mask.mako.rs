@@ -148,9 +148,12 @@
                 dest.write_str(" ")?;
                 mode.to_css(dest)?;
                 dest.write_str(" ")?;
-                position_x.to_css(dest)?;
-                dest.write_str(" ")?;
-                position_y.to_css(dest)?;
+
+                Position {
+                    horizontal: position_x.clone(),
+                    vertical: position_y.clone()
+                }.to_css(dest)?;
+
                 if *size != mask_size::single_value::get_initial_specified_value() {
                     dest.write_str(" / ")?;
                     size.to_css(dest)?;
@@ -218,9 +221,11 @@
             }
 
             for i in 0..len {
-                self.mask_position_x.0[i].to_css(dest)?;
-                dest.write_str(" ")?;
-                self.mask_position_y.0[i].to_css(dest)?;
+                Position {
+                    horizontal: self.mask_position_x.0[i].clone(),
+                    vertical: self.mask_position_y.0[i].clone()
+                }.to_css(dest)?;
+
                 if i < len - 1 {
                     dest.write_str(", ")?;
                 }

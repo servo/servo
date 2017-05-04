@@ -1,0 +1,116 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page properties: page background paint order</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#page-properties"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content="A margin-box background is painted over (on top of) the page background."/>
+<style type="text/css">
+	@page {
+		background: red;
+		margin: 1in;
+		@top-left-corner {
+			content: "";
+			margin: 0;
+			padding: 0;
+			background: lime;
+		}	
+		@top-left {
+			content: "";
+			margin: 0;
+			padding: 0;
+			background: lime;
+		}	
+		@top-center {
+			content: "";
+			margin: 0;
+			padding: 0;
+			background: lime;
+		}	
+		@top-right {
+			content: "";
+			margin: 0;
+			padding: 0;
+			background: lime;
+		}	
+		@top-right-corner {
+			content: "";
+			margin: 0;
+			padding: 0;
+			background: lime;
+		}
+		@left-top {
+			content: "";
+			margin: 0;
+			padding: 0;
+			background: lime;
+		}
+		@left-middle {
+			content: "";
+			margin: 0;
+			padding: 0;
+			background: lime;
+		}
+		@left-bottom {
+			content: "";
+			margin: 0;
+			padding: 0;
+			background: lime;
+		}
+		@right-top {
+			content: "";
+			margin: 0;
+			padding: 0;
+			background: lime;
+		}
+		@right-middle {
+			content: "";
+			margin: 0;
+			padding: 0;
+			background: lime;
+		}
+		@right-bottom {
+			content: "";
+			margin: 0;
+			padding: 0;
+			background: lime;
+		}
+		@bottom-left-corner {
+			content: "";
+			margin: 0;
+			padding: 0;
+			background: lime;
+		}	
+		@bottom-left {
+			content: "";
+			margin: 0;
+			padding: 0;
+			background: lime;
+		}	
+		@bottom-center {
+			content: "";
+			margin: 0;
+			padding: 0;
+			background: lime;
+		}	
+		@bottom-right {
+			content: "";
+			margin: 0;
+			padding: 0;
+			background: lime;
+		}	
+		@bottom-right-corner {
+			content: "";
+			margin: 0;
+			padding: 0;
+			background: lime;
+		}
+	}
+	body, html {background: white;}
+</style>
+</head>
+<body>
+	<p>This page should be surrounded by a 1 inch lime border. No red should appear on the page.</p>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: 'shrink-to-fit' width of absolutely positioned, non-replaced elements - direction (right-to-left), inline-block and max-width</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="author" title="Daniel Schattenkirchner" href="mailto:crazy-daniel@gmx.de" />
+  <link rel="help" title="Section 10.3.7 Absolutely positioned, non-replaced elements" href="http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-width" />
+  <link rel="help" title="Section 10.3.9 Width of 'inline-block', non-replaced elements in normal flow" href="http://www.w3.org/TR/CSS21/visudet.html#inlineblock-width" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#min-max-widths" />
+  <link rel="match" href="absolute-non-replaced-width-021-ref.xht" />
+  <meta content="When direction is right-to-left and 'right' is set to static position and 'width' and 'left' are 'auto', then the used value of 'width' is given by 'shrink-to-fit' width calculation. If 'width' of an inline-block, non-replaced element in normal flow computes to 'auto', then the used value of 'width' is also given by 'shrink-to-fit' width calculation. If 'width' of an inline-block, non-replaced element in normal flow is given by 'shrink-to-fit' width calculation, then such calculated width can be furthermore constrained, reduced by a max-width declaration. If width of an absolutely positioned, non-replaced element resorts to 'shrink-to-fit' width calculation but its own child uses a constrained length resulting from a max-width declaration, then such constrained length will define the preferred width in 'shrink-to-fit' width calculation." name="assert" />
+  <meta content="ahem" name="flags" />
+
+  <style type="text/css"><![CDATA[
+  body
+  {
+  direction: rtl;
+  margin: 8px;
+  }
+
+  p {direction: ltr;}
+
+  div
+  {
+  background-color: red;
+  font: 30px/4 Ahem;
+  left: auto;
+  position: absolute;
+  right: auto;
+  /*
+  right is set to static position: it should be 8px from
+  the right-hand side of document box (at body's margin-right)
+  */
+  width: auto;
+  }
+
+  span
+  {
+  background-color: green;
+  display: inline-block;
+  max-width: 4em;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Below, on the right edge of the page, there should be a green square. In the middle of such green square, a black horizontal stripe should be traversing it and protruding out of it toward the left. There should be no red in this page.</p>
+
+  <div><span>12345678</span></div>
+
+ </body>
+</html>

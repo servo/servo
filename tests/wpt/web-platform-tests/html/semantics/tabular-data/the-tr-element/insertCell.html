@@ -52,4 +52,13 @@ test(function () {
   });
 }, "HTMLTableRowElement insertCell(cells.length + 1)");
 
+test(function () {
+  var table = document.createElementNS("http://www.w3.org/1999/xhtml", "foo:table")
+  var row = table.insertRow(0);
+  var cell = row.insertCell(0);
+
+  assert_equals(row.cells[0], cell);
+  assert_equals(cell.prefix, null);
+}, "HTMLTableRowElement insertCell will not copy table's prefix");
+
 </script>

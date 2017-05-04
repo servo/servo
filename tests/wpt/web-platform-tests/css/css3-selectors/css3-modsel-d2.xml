@@ -1,0 +1,53 @@
+<csstest def="Dynamic handling of combinators" module="W3C Selectors" modulename="css3-modsel" number="d2" rev="1.1" date="3-march-2004" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<dynamic/>
+
+<cssrules>
+   #test { background: red; display: block; padding: 1em; }
+   #stub ~ div div + div > div { background: lime; }
+</cssrules>
+
+<code>
+
+ <div xmlns="http://www.w3.org/1999/xhtml">
+
+  <test:restrict xmlns:test="http://www.example.org/css3tests" for="xml xhtml">
+  <script type="text/javascript">
+   <![CDATA[
+
+    function test() {
+      el = document.getElementById('test');
+      el.parentNode.parentNode.insertBefore(document.createElementNS('http://www.w3.org/1999/xhtml', 'div'), el.parentNode);
+    }
+
+    window.setTimeout("test()", 100);
+   ]]>
+  </script>
+  </test:restrict>
+
+  <test:restrict xmlns:test="http://www.example.org/css3tests" for="html">
+  <script type="text/javascript">
+   <![CDATA[
+
+    function test() {
+      el = document.getElementById('test');
+      el.parentNode.parentNode.insertBefore(document.createElement('div'), el.parentNode);
+    }
+
+    window.setTimeout("test()", 100);
+   ]]>
+  </script>
+  </test:restrict>
+
+  <p> The following bar should be green. </p>
+
+  <div id="stub"/>
+  <div/>
+  <div><div><!-- <div/> --><div><div id="test"/></div></div></div>
+
+ </div>
+
+</code>
+</csstest>

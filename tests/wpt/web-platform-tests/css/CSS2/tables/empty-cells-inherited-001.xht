@@ -1,0 +1,52 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Empty-cells is inherited by default</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#propdef-empty-cells" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#empty-cells" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Empty-cells is inherited by default." />
+        <style type="text/css">
+            #div1
+            {
+                empty-cells: hide;
+            }
+            table
+            {
+                border-style: solid;
+            }
+            td
+            {
+                color: white;
+            }
+            .empty
+            {
+                background: red;
+                border: 1px solid red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div id="div1">
+            <table>
+                <tr>
+                    <td class="empty"></td>
+                    <td>XXXXX</td>
+                    <td>XXXXX</td>
+                </tr>
+                <tr>
+                    <td>XXXXX</td>
+                    <td class="empty"></td>
+                    <td>XXXXX</td>
+                </tr>
+                <tr>
+                    <td>XXXXX</td>
+                    <td>XXXXX</td>
+                    <td class="empty"></td>
+                </tr>
+            </table>
+        </div>
+    </body>
+</html>

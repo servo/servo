@@ -23,7 +23,7 @@ var success = base_path() + 'resources/success.py';
 
 function redirect_fetch_test(t, test) {
   var scope = baseScope + test.name;
-  service_worker_unregister_and_register(t, worker, scope).then(function(reg) {
+  return service_worker_unregister_and_register(t, worker, scope).then(function(reg) {
     return wait_for_state(t, reg.installing, 'activated');
   }).then(function() {
     return with_iframe(scope + '?url=' + encodeURIComponent(frameURL));
@@ -102,8 +102,8 @@ function redirect_fetch_test(t, test) {
 // TODO: verify CORS redirect results in all further redirects being
 //       considered cross origin
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-manual-cors-redirects-to-sameorigin-nocreds',
     redirect_dest: 'same-origin',
     url_credentials: false,
@@ -121,8 +121,8 @@ async_test(function(t) {
    'same-origin without credentials should fail opaqueredirect interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-manual-cors-redirects-to-nocors-nocreds',
     redirect_dest: 'no-cors',
     url_credentials: false,
@@ -140,8 +140,8 @@ async_test(function(t) {
    'no-cors without credentials should fail opaqueredirect interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-manual-cors-redirects-to-cors-nocreds',
     redirect_dest: 'cors',
     url_credentials: false,
@@ -159,8 +159,8 @@ async_test(function(t) {
    'cors without credentials should fail opaqueredirect interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-manual-sameorigin-redirects-to-sameorigin-nocreds',
     redirect_dest: 'same-origin',
     url_credentials: false,
@@ -178,8 +178,8 @@ async_test(function(t) {
    'same-origin without credentials should fail opaqueredirect interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-manual-sameorigin-redirects-to-nocors-nocreds',
     redirect_dest: 'no-cors',
     url_credentials: false,
@@ -197,8 +197,8 @@ async_test(function(t) {
    'no-cors without credentials should fail opaqueredirect interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-manual-sameorigin-redirects-to-cors-nocreds',
     redirect_dest: 'cors',
     url_credentials: false,
@@ -216,8 +216,8 @@ async_test(function(t) {
    'cors without credentials should fail opaqueredirect interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-manual-nocors-redirects-to-sameorigin-nocreds',
     redirect_dest: 'same-origin',
     url_credentials: false,
@@ -235,8 +235,8 @@ async_test(function(t) {
    'same-origin without credentials should fail opaqueredirect interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-manual-nocors-redirects-to-nocors-nocreds',
     redirect_dest: 'no-cors',
     url_credentials: false,
@@ -252,8 +252,8 @@ async_test(function(t) {
    'no-cors without credentials should succeed interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-manual-nocors-redirects-to-cors-nocreds',
     redirect_dest: 'cors',
     url_credentials: false,
@@ -269,8 +269,8 @@ async_test(function(t) {
    'cors without credentials should succeed interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-manual-cors-redirects-to-sameorigin-creds',
     redirect_dest: 'same-origin',
     url_credentials: true,
@@ -288,8 +288,8 @@ async_test(function(t) {
    'same-origin with credentials should fail opaqueredirect interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-manual-cors-redirects-to-nocors-creds',
     redirect_dest: 'no-cors',
     url_credentials: true,
@@ -307,8 +307,8 @@ async_test(function(t) {
    'no-cors with credentials should fail opaqueredirect interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-manual-cors-redirects-to-cors-creds',
     redirect_dest: 'cors',
     url_credentials: true,
@@ -326,8 +326,8 @@ async_test(function(t) {
    'cors with credentials should fail opaqueredirect interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-manual-sameorigin-redirects-to-sameorigin-creds',
     redirect_dest: 'same-origin',
     url_credentials: true,
@@ -345,8 +345,8 @@ async_test(function(t) {
    'same-origin with credentials should fail opaqueredirect interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-manual-sameorigin-redirects-to-nocors-creds',
     redirect_dest: 'no-cors',
     url_credentials: true,
@@ -364,8 +364,8 @@ async_test(function(t) {
    'no-cors with credentials should fail opaqueredirect interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-manual-sameorigin-redirects-to-cors-creds',
     redirect_dest: 'cors',
     url_credentials: true,
@@ -383,8 +383,8 @@ async_test(function(t) {
    'cors with credentials should fail opaqueredirect interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-manual-nocors-redirects-to-sameorigin-creds',
     redirect_dest: 'same-origin',
     url_credentials: true,
@@ -402,8 +402,8 @@ async_test(function(t) {
    'same-origin with credentials should fail opaqueredirect interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-manual-nocors-redirects-to-nocors-creds',
     redirect_dest: 'no-cors',
     url_credentials: true,
@@ -419,8 +419,8 @@ async_test(function(t) {
    'no-cors with credentials should succeed interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-manual-nocors-redirects-to-cors-creds',
     redirect_dest: 'cors',
     url_credentials: true,
@@ -436,8 +436,8 @@ async_test(function(t) {
    'cors with credentials should succeed interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-follow-cors-redirects-to-sameorigin-nocreds',
     redirect_dest: 'same-origin',
     url_credentials: false,
@@ -453,8 +453,8 @@ async_test(function(t) {
    'same-origin without credentials should succeed interception ' +
    'and response should be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-follow-cors-redirects-to-nocors-nocreds',
     redirect_dest: 'no-cors',
     url_credentials: false,
@@ -472,8 +472,8 @@ async_test(function(t) {
    'no-cors without credentials should fail interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-follow-cors-redirects-to-cors-nocreds',
     redirect_dest: 'cors',
     url_credentials: false,
@@ -489,8 +489,8 @@ async_test(function(t) {
    'cors without credentials should succeed interception ' +
    'and response should be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-follow-sameorigin-redirects-to-sameorigin-nocreds',
     redirect_dest: 'same-origin',
     url_credentials: false,
@@ -506,8 +506,8 @@ async_test(function(t) {
    'same-origin without credentials should succeed interception ' +
    'and response should be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-follow-sameorigin-redirects-to-nocors-nocreds',
     redirect_dest: 'no-cors',
     url_credentials: false,
@@ -525,8 +525,8 @@ async_test(function(t) {
    'no-cors without credentials should fail interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-follow-sameorigin-redirects-to-cors-nocreds',
     redirect_dest: 'cors',
     url_credentials: false,
@@ -544,8 +544,8 @@ async_test(function(t) {
    'cors without credentials should fail interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-follow-nocors-redirects-to-sameorigin-nocreds',
     redirect_dest: 'same-origin',
     url_credentials: false,
@@ -561,8 +561,8 @@ async_test(function(t) {
    'same-origin without credentials should succeed interception ' +
    'and response should be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-follow-nocors-redirects-to-nocors-nocreds',
     redirect_dest: 'no-cors',
     url_credentials: false,
@@ -578,8 +578,8 @@ async_test(function(t) {
    'no-cors without credentials should succeed interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-follow-nocors-redirects-to-cors-nocreds',
     redirect_dest: 'cors',
     url_credentials: false,
@@ -595,8 +595,8 @@ async_test(function(t) {
    'cors without credentials should succeed interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-follow-cors-redirects-to-sameorigin-creds',
     redirect_dest: 'same-origin',
     url_credentials: true,
@@ -612,8 +612,8 @@ async_test(function(t) {
    'same-origin with credentials should succeed interception ' +
    'and response should be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-follow-cors-redirects-to-nocors-creds',
     redirect_dest: 'no-cors',
     url_credentials: true,
@@ -631,8 +631,8 @@ async_test(function(t) {
    'no-cors with credentials should fail interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-follow-cors-redirects-to-cors-creds',
     redirect_dest: 'cors',
     url_credentials: true,
@@ -651,8 +651,8 @@ async_test(function(t) {
    'cors with credentials should fail interception ' +
    'and response should be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-follow-sameorigin-redirects-to-sameorigin-creds',
     redirect_dest: 'same-origin',
     url_credentials: true,
@@ -668,8 +668,8 @@ async_test(function(t) {
    'same-origin with credentials should succeed interception ' +
    'and response should be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-follow-sameorigin-redirects-to-nocors-creds',
     redirect_dest: 'no-cors',
     url_credentials: true,
@@ -687,8 +687,8 @@ async_test(function(t) {
    'no-cors with credentials should fail interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-follow-sameorigin-redirects-to-cors-creds',
     redirect_dest: 'cors',
     url_credentials: true,
@@ -706,8 +706,8 @@ async_test(function(t) {
    'cors with credentials should fail interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-follow-nocors-redirects-to-sameorigin-creds',
     redirect_dest: 'same-origin',
     url_credentials: true,
@@ -723,8 +723,8 @@ async_test(function(t) {
    'same-origin with credentials should succeed interception ' +
    'and response should be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-follow-nocors-redirects-to-nocors-creds',
     redirect_dest: 'no-cors',
     url_credentials: true,
@@ -740,8 +740,8 @@ async_test(function(t) {
    'no-cors with credentials should succeed interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-follow-nocors-redirects-to-cors-creds',
     redirect_dest: 'cors',
     url_credentials: true,
@@ -757,8 +757,8 @@ async_test(function(t) {
    'cors with credentials should succeed interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-error-cors-redirects-to-sameorigin-nocreds',
     redirect_dest: 'same-origin',
     url_credentials: false,
@@ -776,8 +776,8 @@ async_test(function(t) {
    'same-origin without credentials should fail interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-error-cors-redirects-to-nocors-nocreds',
     redirect_dest: 'no-cors',
     url_credentials: false,
@@ -795,8 +795,8 @@ async_test(function(t) {
    'no-cors without credentials should fail interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-error-cors-redirects-to-cors-nocreds',
     redirect_dest: 'cors',
     url_credentials: false,
@@ -814,8 +814,8 @@ async_test(function(t) {
    'cors without credentials should fail interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-error-sameorigin-redirects-to-sameorigin-nocreds',
     redirect_dest: 'same-origin',
     url_credentials: false,
@@ -833,8 +833,8 @@ async_test(function(t) {
    'same-origin without credentials should fail interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-error-sameorigin-redirects-to-nocors-nocreds',
     redirect_dest: 'no-cors',
     url_credentials: false,
@@ -852,8 +852,8 @@ async_test(function(t) {
    'no-cors without credentials should fail interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-error-sameorigin-redirects-to-cors-nocreds',
     redirect_dest: 'cors',
     url_credentials: false,
@@ -871,8 +871,8 @@ async_test(function(t) {
    'cors without credentials should fail interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-error-nocors-redirects-to-sameorigin-nocreds',
     redirect_dest: 'same-origin',
     url_credentials: false,
@@ -890,8 +890,8 @@ async_test(function(t) {
    'same-origin without credentials should fail interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-error-nocors-redirects-to-nocors-nocreds',
     redirect_dest: 'no-cors',
     url_credentials: false,
@@ -909,8 +909,8 @@ async_test(function(t) {
    'no-cors without credentials should fail interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-error-nocors-redirects-to-cors-nocreds',
     redirect_dest: 'cors',
     url_credentials: false,
@@ -928,8 +928,8 @@ async_test(function(t) {
    'cors without credentials should fail interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-error-cors-redirects-to-sameorigin-creds',
     redirect_dest: 'same-origin',
     url_credentials: true,
@@ -947,8 +947,8 @@ async_test(function(t) {
    'same-origin with credentials should fail interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-error-cors-redirects-to-nocors-creds',
     redirect_dest: 'no-cors',
     url_credentials: true,
@@ -966,8 +966,8 @@ async_test(function(t) {
    'no-cors with credentials should fail interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-error-cors-redirects-to-cors-creds',
     redirect_dest: 'cors',
     url_credentials: true,
@@ -985,8 +985,8 @@ async_test(function(t) {
    'cors with credentials should fail interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-error-sameorigin-redirects-to-sameorigin-creds',
     redirect_dest: 'same-origin',
     url_credentials: true,
@@ -1004,8 +1004,8 @@ async_test(function(t) {
    'same-origin with credentials should fail interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-error-sameorigin-redirects-to-nocors-creds',
     redirect_dest: 'no-cors',
     url_credentials: true,
@@ -1023,8 +1023,8 @@ async_test(function(t) {
    'no-cors with credentials should fail interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-error-sameorigin-redirects-to-cors-creds',
     redirect_dest: 'cors',
     url_credentials: true,
@@ -1042,8 +1042,8 @@ async_test(function(t) {
    'cors with credentials should fail interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-error-nocors-redirects-to-sameorigin-creds',
     redirect_dest: 'same-origin',
     url_credentials: true,
@@ -1061,8 +1061,8 @@ async_test(function(t) {
    'same-origin with credentials should fail interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-error-nocors-redirects-to-nocors-creds',
     redirect_dest: 'no-cors',
     url_credentials: true,
@@ -1080,8 +1080,8 @@ async_test(function(t) {
    'no-cors with credentials should fail interception ' +
    'and response should not be redirected');
 
-async_test(function(t) {
-  redirect_fetch_test(t, {
+promise_test(function(t) {
+  return redirect_fetch_test(t, {
     name: 'nonav-error-nocors-redirects-to-cors-creds',
     redirect_dest: 'cors',
     url_credentials: true,

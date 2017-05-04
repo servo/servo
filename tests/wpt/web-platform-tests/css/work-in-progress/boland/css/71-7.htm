@@ -1,0 +1,50 @@
+
+<HTML>
+<HEAD>
+<TITLE>Seventh Test for Section 7.1 of CSS1 Spec</TITLE>
+
+
+<STYLE TYPE="text/css">
+@import url (testa.css);
+p {color: olive}
+@import url (test9.css);
+
+
+</STYLE>
+</head>
+
+
+
+
+<BODY>
+
+<h1 >Testing Statement #7 Below of Section 7.1 of CSS1 Spec</h1>
+
+
+
+<ul>
+<li>
+7. An at-rule consists of everything up to and including the next semicolon
+or the next block, whichever comes first.  A CSS1 UA that encounters an at-rule
+that starts with an at-keyword other than "@import" ignores the whole of the
+at-rule and continues parsing after it.  It also ignores any at-rule that
+starts with "@import" if it doesn't occur at the top of the style sheet, i.e.,
+if it occurs after any rules (even ignored rules).
+</ul>
+
+
+
+
+<h2>PASS CRITERIA:
+</h2>
+If statement #7 above is passed, this paragraph should be UA-default.
+The rules specified are "@import url (testa.css); P {color: olive}", and
+@import url (test9.css);".  The file testa.css contains "P {font-weight:
+bold; font-style: italic;}".  The second import statement is illegal, so
+should be ignored.
+
+
+
+All other properties of this page should be UA-default.
+</BODY>
+</HTML>

@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Object Fit - initial value</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-images/#object-fit"/>
+  <meta name="assert" content="The initial value of the 'object-fit' property is 'fill'."/>
+  <style type="text/css"><![CDATA[
+   img {
+   		background: red;
+		height: 100px;
+		width: 50px;
+	}
+  ]]></style>
+ </head>
+ <body>
+ 	<div>A green block appears below. There must be no red on the page.</div>
+	<div><img src="support/swatch-green.png" alt="Failed: image missing"/></div>
+ </body>
+</html>

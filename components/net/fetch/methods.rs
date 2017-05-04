@@ -3,17 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use blob_loader::load_blob_sync;
-use connector::Connector;
 use data_loader::decode;
 use devtools_traits::DevtoolsControlMsg;
 use fetch::cors_cache::CorsCache;
 use filemanager_thread::FileManager;
-use http_loader::{HttpState, determine_request_referrer, http_fetch, set_default_accept_language};
+use http_loader::{HttpState, determine_request_referrer, http_fetch};
+use http_loader::{set_default_accept, set_default_accept_language};
 use hyper::{Error, Result as HyperResult};
-use hyper::client::Pool;
 use hyper::header::{Accept, AcceptLanguage, ContentLanguage, ContentType};
-use hyper::header::{Header, HeaderFormat, HeaderView, Headers, QualityItem};
-use hyper::header::{Referer as RefererHeader, q, qitem};
+use hyper::header::{Header, HeaderFormat, HeaderView, Headers, Referer as RefererHeader};
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
@@ -45,7 +43,6 @@ pub struct FetchContext {
     pub user_agent: Cow<'static, str>,
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     pub filemanager: FileManager,
-    pub connector: Arc<Pool<Connector>>,
 }
 
 pub type DoneChannel = Option<(Sender<Data>, Receiver<Data>)>;
@@ -61,64 +58,37 @@ pub fn fetch_with_cors_cache(request: &mut Request,
                              cache: &mut CorsCache,
                              target: Target,
                              context: &FetchContext) {
-    // Step 1
+    // Step 1.
     if request.window == Window::Client {
         // TODO: Set window to request's client object if client is a Window object
     } else {
         request.window = Window::NoWindow;
     }
 
-    // Step 2
+    // Step 2.
     if request.origin == Origin::Client {
         // TODO: set request's origin to request's client's origin
         unimplemented!()
     }
 
-    // Step 3
-    if !request.headers.has::<Accept>() {
-        let value = match request.type_ {
-            // Substep 2
-            _ if request.is_navigation_request() =>
-                vec![qitem(mime!(Text / Html)),
-                     // FIXME: This should properly generate a MimeType that has a
-                     // SubLevel of xhtml+xml (https://github.com/hyperium/mime.rs/issues/22)
-                     qitem(mime!(Application / ("xhtml+xml") )),
-                     QualityItem::new(mime!(Application / Xml), q(0.9)),
-                     QualityItem::new(mime!(_ / _), q(0.8))],
+    // Step 3.
+    set_default_accept(request.type_, request.destination, &mut request.headers);
 
-            // Substep 3
-            Type::Image =>
-                vec![qitem(mime!(Image / Png)),
-                     // FIXME: This should properly generate a MimeType that has a
-                     // SubLevel of svg+xml (https://github.com/hyperium/mime.rs/issues/22)
-                     qitem(mime!(Image / ("svg+xml") )),
-                     QualityItem::new(mime!(Image / _), q(0.8)),
-                     QualityItem::new(mime!(_ / _), q(0.5))],
-
-            // Substep 3
-            Type::Style =>
-                vec![qitem(mime!(Text / Css)),
-                     QualityItem::new(mime!(_ / _), q(0.1))],
-            // Substep 1
-            _ => vec![qitem(mime!(_ / _))]
-        };
-
-        // Substep 4
-        request.headers.set(Accept(value));
-    }
-
-    // Step 4
+    // Step 4.
     set_default_accept_language(&mut request.headers);
 
-    // Step 5
-    // TODO: Figure out what a Priority object is
+    // Step 5.
+    // TODO: figure out what a Priority object is.
 
-    // Step 6
+    // Step 6.
+    // TODO: handle client hints headers.
+
+    // Step 7.
     if request.is_subresource_request() {
-        // TODO: create a fetch record and append it to request's client's fetch group list
+        // TODO: handle client hints headers.
     }
 
-    // Step 7
+    // Step 8.
     main_fetch(request, cache, false, false, target, &mut None, &context);
 }
 
@@ -190,15 +160,8 @@ pub fn main_fetch(request: &mut Request,
     // TODO: handle FTP URLs.
 
     // Step 10.
-    if !request.current_url().is_secure_scheme() && request.current_url().domain().is_some() {
-        if context.state
-            .hsts_list
-            .read()
-            .unwrap()
-            .is_host_secure(request.current_url().domain().unwrap()) {
-           request.url_list.last_mut().unwrap().as_mut_url().set_scheme("https").unwrap();
-        }
-    }
+    context.state.hsts_list.read().unwrap().switch_known_hsts_host_domain_url_to_https(
+        request.current_url_mut());
 
     // Step 11.
     // Not applicable: see fetch_async.
@@ -271,6 +234,8 @@ pub fn main_fetch(request: &mut Request,
         let response_is_network_error = response.is_network_error();
         let should_replace_with_nosniff_error =
             !response_is_network_error && should_be_blocked_due_to_nosniff(request.type_, &response.headers);
+        let should_replace_with_mime_type_error =
+            !response_is_network_error && should_be_blocked_due_to_mime_type(request.type_, &response.headers);
 
         // Step 15.
         let mut network_error_response = response.get_network_error().cloned().map(Response::network_error);
@@ -288,12 +253,15 @@ pub fn main_fetch(request: &mut Request,
         // Step 17.
         // TODO: handle blocking as mixed content.
         // TODO: handle blocking by content security policy.
-        // TODO: handle blocking due to MIME type.
         let blocked_error_response;
         let internal_response =
             if should_replace_with_nosniff_error {
                 // Defer rebinding result
                 blocked_error_response = Response::network_error(NetworkError::Internal("Blocked by nosniff".into()));
+                &blocked_error_response
+            } else if should_replace_with_mime_type_error {
+                // Defer rebinding result
+                blocked_error_response = Response::network_error(NetworkError::Internal("Blocked by mime type".into()));
                 &blocked_error_response
             } else {
                 internal_response
@@ -427,18 +395,14 @@ fn basic_fetch(request: &mut Request,
         },
 
         "data" => {
-            if request.method == Method::Get {
-                match decode(&url) {
-                    Ok((mime, bytes)) => {
-                        let mut response = Response::new(url);
-                        *response.body.lock().unwrap() = ResponseBody::Done(bytes);
-                        response.headers.set(ContentType(mime));
-                        response
-                    },
-                    Err(_) => Response::network_error(NetworkError::Internal("Decoding data URL failed".into()))
-                }
-            } else {
-                Response::network_error(NetworkError::Internal("Unexpected method for data".into()))
+            match decode(&url) {
+                Ok((mime, bytes)) => {
+                    let mut response = Response::new(url);
+                    *response.body.lock().unwrap() = ResponseBody::Done(bytes);
+                    response.headers.set(ContentType(mime));
+                    response
+                },
+                Err(_) => Response::network_error(NetworkError::Internal("Decoding data URL failed".into()))
             }
         },
 
@@ -518,11 +482,6 @@ pub fn is_simple_method(m: &Method) -> bool {
         _ => false
     }
 }
-
-// fn modify_request_headers(headers: &mut Headers) -> {
-//     // TODO this function
-
-// }
 
 fn is_null_body_status(status: &Option<StatusCode>) -> bool {
     match *status {
@@ -623,6 +582,21 @@ pub fn should_be_blocked_due_to_nosniff(request_type: Type, response_headers: &H
         // Step 8
         _ => false
     };
+}
+
+/// https://fetch.spec.whatwg.org/#should-response-to-request-be-blocked-due-to-mime-type?
+fn should_be_blocked_due_to_mime_type(request_type: Type, response_headers: &Headers) -> bool {
+    let mime_type = match response_headers.get::<ContentType>() {
+        Some(header) => header,
+        None => return false,
+    };
+    request_type == Type::Script && match *mime_type {
+        ContentType(Mime(TopLevel::Audio, _, _)) |
+        ContentType(Mime(TopLevel::Video, _, _)) |
+        ContentType(Mime(TopLevel::Image, _, _)) => true,
+        ContentType(Mime(TopLevel::Text, SubLevel::Ext(ref ext), _)) => ext == "csv",
+        _ => false,
+    }
 }
 
 /// https://fetch.spec.whatwg.org/#block-bad-port

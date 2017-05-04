@@ -1,0 +1,53 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: counter-reset - negative value with positive counter-increment</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <!--
+  Inspired by http://www.hixie.ch/tests/adhoc/css/box/list/list-style-type/002.html
+  and by
+  http://test.csswg.org/suites/css2.1/20100917/html4/list-style-type-017.htm
+  -->
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#counters" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#list-style" />
+  <link rel="match" href="counter-reset-increment-002-ref.xht" />
+
+  <meta content="" name="flags" />
+  <meta content="A positive counter-increment can apply to a counter-reset that is negative." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  ol
+  {
+  counter-reset: list-item -4;
+  list-style-type: none;
+  }
+
+  li:before
+  {
+  content: counter(list-item) ". ";
+  counter-increment: list-item;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>The two columns of numbers should be <strong>identical</strong>.</p>
+
+  <ol>
+    <li> -3. </li>
+    <li> -2. </li>
+    <li> -1. </li>
+    <li> 0. </li>
+    <li> 1. </li>
+    <li> 2. </li>
+    <li> 3. </li>
+  </ol>
+
+ </body>
+</html>

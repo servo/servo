@@ -1,0 +1,56 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Tables with and without the optional caption</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-display" />
+        <meta name="flags" content="may" />
+        <meta name="assert" content="The table caption is optional - a table can be rendered with or without it." />
+        <style type="text/css">
+            .table
+            {
+                display: table;
+            }
+            .caption
+            {
+                display: table-caption;
+            }
+            .tr
+            {
+                display: table-row;
+            }
+            .td
+            {
+                background: black;
+                display: table-cell;
+                height: 50px;
+                width: 50px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the top square below has "Filler Text" directly above it and the bottom square does not.</p>
+        <div class="table">
+            <div class="caption">Filler Text</div>
+            <div class="tr">
+                <div class="td"></div>
+                <div class="td"></div>
+            </div>
+            <div class="tr">
+                <div class="td"></div>
+                <div class="td"></div>
+            </div>
+        </div>
+        <div>&nbsp;</div>
+        <div class="table">
+            <div class="tr">
+                <div class="td"></div>
+                <div class="td"></div>
+            </div>
+            <div class="tr">
+                <div class="td"></div>
+                <div class="td"></div>
+            </div>
+        </div>
+    </body>
+ </html>

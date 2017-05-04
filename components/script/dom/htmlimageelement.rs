@@ -35,7 +35,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use euclid::point::Point2D;
-use html5ever_atoms::LocalName;
+use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::{FetchResponseListener, FetchMetadata, NetworkError, FetchResponseMsg};
@@ -368,7 +368,7 @@ impl HTMLImageElement {
         }
     }
 
-    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLImageElement {
+    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             current_request: DOMRefCell::new(ImageRequest {
@@ -394,7 +394,7 @@ impl HTMLImageElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLImageElement> {
         Node::reflect_node(box HTMLImageElement::new_inherited(local_name, prefix, document),
                            document,
@@ -423,22 +423,23 @@ impl HTMLImageElement {
         };
 
         let value = usemap_attr.value();
+
+        if value.len() == 0 || !value.is_char_boundary(1) {
+            return None
+        }
+
         let (first, last) = value.split_at(1);
 
         if first != "#" || last.len() == 0 {
             return None
         }
 
-        let map = self.upcast::<Node>()
-                      .following_siblings()
-                      .filter_map(Root::downcast::<HTMLMapElement>)
-                      .find(|n| n.upcast::<Element>().get_string_attribute(&LocalName::from("name")) == last);
+        let useMapElements = document_from_node(self).upcast::<Node>()
+                                .traverse_preorder()
+                                .filter_map(Root::downcast::<HTMLMapElement>)
+                                .find(|n| n.upcast::<Element>().get_string_attribute(&LocalName::from("name")) == last);
 
-        let elements: Vec<Root<HTMLAreaElement>> = map.unwrap().upcast::<Node>()
-                      .children()
-                      .filter_map(Root::downcast::<HTMLAreaElement>)
-                      .collect();
-        Some(elements)
+        useMapElements.map(|mapElem| mapElem.get_area_elements())
     }
 }
 

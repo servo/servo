@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS Inline Box Model: Empty inlines near the top of the document</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-10-26 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/inline/020.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#inline-boxes" />
+  <link rel="match" href="inlines-020-ref.xht" />
+
+  <style type="text/css">
+   p, body, html { margin: 0; padding: 0; font: 20px/1 serif; }
+   div { display: inline; border-left: green solid 20px; }
+   .fail { background: red; color: yellow; width: 4em; }
+   .pass { background: white; color: green; position: absolute; top: 1em; }
+  </style>
+ </head>
+ <body>
+  <div></div>
+  <p class="fail">FAIL</p>
+  <p class="pass">Test passes if this sentence is green and has a small green square above it.</p>
+ </body>
+</html>

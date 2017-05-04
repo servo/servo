@@ -1,0 +1,35 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Outline color set to 'invert'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#propdef-outline-color" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#dynamic-outlines" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Outline color 'invert' makes outline visible on any background color." />
+        <style type="text/css">
+            #div1
+            {
+                background: blue;
+                border: blue solid;
+                height: 2in;
+                width: 2in;
+            }
+            div div
+            {
+                outline-color: invert;
+                outline-style: solid;
+                outline-width: 0.25in;
+                margin: 0.5in;
+                height: 1in;
+                width: 1in;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a yellow or black box inside a blue box.</p>
+        <div id="div1">
+            <div></div>
+        </div>
+    </body>
+</html>

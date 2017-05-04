@@ -1,0 +1,86 @@
+<!DOCTYPE HTML>
+<html>
+<!--
+https://bugzilla.mozilla.org/show_bug.cgi?id=375363
+-->
+<head>
+  <title>Test for parsing, storage, and serialization of CSS 'inherit'</title>
+  <script type="text/javascript" src="../mochitest-simplified/packed.js"></script>
+  <script type="text/javascript" src="../mochitest-simplified/SimpleTest.js"></script>
+  <script type="text/javascript" src="property_database.js"></script>
+  <link rel="stylesheet" type="text/css" href="../mochitest-simplified/test.css" />
+</head>
+<body>
+<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=375363">Mozilla Bug 375363</a>
+<p id="display"></p>
+<div id="content" style="display: none">
+
+<div id="testnode"></div>
+  
+</div>
+<pre id="test">
+<script class="testbody" type="text/javascript">
+
+/** Test for parsing, storage, and serialization of CSS 'inherit' **/
+
+var gDeclaration = document.getElementById("testnode").style;
+
+function test_property(property)
+{
+  var info = gCSSProperties[property];
+
+  function check_initial(sproperty) {
+    var sinfo = gCSSProperties[sproperty];
+    var val = gDeclaration.getPropertyValue(sproperty);
+    is(val, "", "value of '" + sproperty + "' before we do anything");
+    is(val, gDeclaration[sinfo.domProp],
+       "consistency between decl.getPropertyValue('" + sproperty + "') and decl." + sinfo.domProp);
+  }
+  check_initial(property);
+  if ("subproperties" in info)
+    for (var idx in info.subproperties)
+      check_initial(info.subproperties[idx]);
+
+  gDeclaration.setProperty(property, "inherit", "");
+
+  function check_set(sproperty) {
+    var sinfo = gCSSProperties[sproperty];
+    val = gDeclaration.getPropertyValue(sproperty);
+    is(val, "inherit",
+       "inherit reported back for property '" + sproperty + "'");
+    is(val, gDeclaration[sinfo.domProp],
+       "consistency between decl.getPropertyValue('" + sproperty +
+       "') and decl." + sinfo.domProp);
+  }
+  check_set(property);
+  if ("subproperties" in info)
+    for (var idx in info.subproperties)
+      check_set(info.subproperties[idx]);
+
+  // We don't care particularly about the whitespace or the placement of
+  // semicolons, but for simplicity we'll test the current behavior.
+  is(gDeclaration.cssText, property + ": inherit;",
+    "declaration should serialize to exactly what went in (for inherit)");
+
+  gDeclaration.removeProperty(property);
+
+  function check_final(sproperty) {
+    var sinfo = gCSSProperties[sproperty];
+    var val = gDeclaration.getPropertyValue(sproperty);
+    is(val, "", "value of '" + sproperty + "' after removal of value");
+    is(val, gDeclaration[sinfo.domProp],
+       "consistency between decl.getPropertyValue('" + sproperty + "') and decl." + sinfo.domProp);
+  }
+  check_final(property);
+  if ("subproperties" in info)
+    for (var idx in info.subproperties)
+      check_final(info.subproperties[idx]);
+}
+
+for (var prop in gCSSProperties)
+  test_property(prop);
+
+</script>
+</pre>
+</body>
+</html>

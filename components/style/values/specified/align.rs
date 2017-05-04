@@ -36,11 +36,11 @@ bitflags! {
         const ALIGN_CENTER =          structs::NS_STYLE_ALIGN_CENTER as u8,
         /// 'left'
         const ALIGN_LEFT =            structs::NS_STYLE_ALIGN_LEFT as u8,
-        /// 'left'
-        const ALIGN_RIGHT =           structs::NS_STYLE_ALIGN_RIGHT as u8,
         /// 'right'
-        const ALIGN_BASELINE =        structs::NS_STYLE_ALIGN_BASELINE as u8,
+        const ALIGN_RIGHT =           structs::NS_STYLE_ALIGN_RIGHT as u8,
         /// 'baseline'
+        const ALIGN_BASELINE =        structs::NS_STYLE_ALIGN_BASELINE as u8,
+        /// 'last-baseline'
         const ALIGN_LAST_BASELINE =   structs::NS_STYLE_ALIGN_LAST_BASELINE as u8,
         /// 'stretch'
         const ALIGN_STRETCH =         structs::NS_STYLE_ALIGN_STRETCH as u8,
@@ -79,9 +79,9 @@ impl ToCss for AlignFlags {
             ALIGN_FLEX_END => "flex-end",
             ALIGN_CENTER => "center",
             ALIGN_LEFT => "left",
-            ALIGN_RIGHT => "left",
-            ALIGN_BASELINE => "right",
-            ALIGN_LAST_BASELINE => "baseline",
+            ALIGN_RIGHT => "right",
+            ALIGN_BASELINE => "baseline",
+            ALIGN_LAST_BASELINE => "last baseline",
             ALIGN_STRETCH => "stretch",
             ALIGN_SELF_START => "self-start",
             ALIGN_SELF_END => "self-end",
@@ -155,6 +155,12 @@ impl AlignJustifyContent {
         AlignFlags::from_bits((self.0 >> ALIGN_ALL_SHIFT) as u8)
             .expect("AlignJustifyContent must contain valid flags")
     }
+
+    /// Whether this value has extra flags.
+    #[inline]
+    pub fn has_extra_flags(self) -> bool {
+        self.primary().intersects(ALIGN_FLAG_BITS) || self.fallback().intersects(ALIGN_FLAG_BITS)
+    }
 }
 
 impl ToCss for AlignJustifyContent {
@@ -213,6 +219,12 @@ impl AlignJustifySelf {
     pub fn auto() -> Self {
         AlignJustifySelf(ALIGN_AUTO)
     }
+
+    /// Whether this value has extra flags.
+    #[inline]
+    pub fn has_extra_flags(self) -> bool {
+        self.0.intersects(ALIGN_FLAG_BITS)
+    }
 }
 
 no_viewport_percentage!(AlignJustifySelf);
@@ -250,6 +262,12 @@ impl AlignItems {
     #[inline]
     pub fn normal() -> Self {
         AlignItems(ALIGN_NORMAL)
+    }
+
+    /// Whether this value has extra flags.
+    #[inline]
+    pub fn has_extra_flags(self) -> bool {
+        self.0.intersects(ALIGN_FLAG_BITS)
     }
 }
 
@@ -289,6 +307,12 @@ impl JustifyItems {
     pub fn auto() -> Self {
         JustifyItems(ALIGN_AUTO)
     }
+
+    /// Whether this value has extra flags.
+    #[inline]
+    pub fn has_extra_flags(self) -> bool {
+        self.0.intersects(ALIGN_FLAG_BITS)
+    }
 }
 
 no_viewport_percentage!(JustifyItems);
@@ -308,12 +332,12 @@ impl Parse for JustifyItems {
         if let Ok(value) = input.try(parse_auto_normal_stretch_baseline) {
             return Ok(JustifyItems(value))
         }
-        // [ <overflow-position>? && <self-position> ]
-        if let Ok(value) = input.try(parse_overflow_self_position) {
-            return Ok(JustifyItems(value))
-        }
         // [ legacy && [ left | right | center ] ]
         if let Ok(value) = input.try(parse_legacy) {
+            return Ok(JustifyItems(value))
+        }
+        // [ <overflow-position>? && <self-position> ]
+        if let Ok(value) = parse_overflow_self_position(input) {
             return Ok(JustifyItems(value))
         }
         Err(())
@@ -322,33 +346,53 @@ impl Parse for JustifyItems {
 
 // auto | normal | stretch | <baseline-position>
 fn parse_auto_normal_stretch_baseline(input: &mut Parser) -> Result<AlignFlags, ()> {
+    if let Ok(baseline) = input.try(parse_baseline) {
+        return Ok(baseline);
+    }
+
     let ident = input.expect_ident()?;
     match_ignore_ascii_case! { &ident,
         "auto" => Ok(ALIGN_AUTO),
         "normal" => Ok(ALIGN_NORMAL),
         "stretch" => Ok(ALIGN_STRETCH),
-        "baseline" => Ok(ALIGN_BASELINE),
         _ => Err(())
     }
 }
 
 // normal | stretch | <baseline-position>
 fn parse_normal_stretch_baseline(input: &mut Parser) -> Result<AlignFlags, ()> {
+    if let Ok(baseline) = input.try(parse_baseline) {
+        return Ok(baseline);
+    }
+
     let ident = input.expect_ident()?;
     match_ignore_ascii_case! { &ident,
         "normal" => Ok(ALIGN_NORMAL),
         "stretch" => Ok(ALIGN_STRETCH),
-        "baseline" => Ok(ALIGN_BASELINE),
         _ => Err(())
     }
 }
 
 // normal | <baseline-position>
 fn parse_normal_or_baseline(input: &mut Parser) -> Result<AlignFlags, ()> {
+    if let Ok(baseline) = input.try(parse_baseline) {
+        return Ok(baseline);
+    }
+
     let ident = input.expect_ident()?;
     match_ignore_ascii_case! { &ident,
         "normal" => Ok(ALIGN_NORMAL),
+        _ => Err(())
+    }
+}
+
+// <baseline-position>
+fn parse_baseline(input: &mut Parser) -> Result<AlignFlags, ()> {
+    let ident = input.expect_ident()?;
+    match_ignore_ascii_case! { &ident,
         "baseline" => Ok(ALIGN_BASELINE),
+        "first" => input.expect_ident_matching("baseline").map(|_| ALIGN_BASELINE),
+        "last" => input.expect_ident_matching("baseline").map(|_| ALIGN_LAST_BASELINE),
         _ => Err(())
     }
 }
@@ -357,26 +401,26 @@ fn parse_normal_or_baseline(input: &mut Parser) -> Result<AlignFlags, ()> {
 fn parse_content_distribution(input: &mut Parser) -> Result<AlignFlags, ()> {
     let ident = input.expect_ident()?;
     match_ignore_ascii_case! { &ident,
-      "stretch" => Ok(ALIGN_STRETCH),
-      "space-between" => Ok(ALIGN_SPACE_BETWEEN),
-      "space-around" => Ok(ALIGN_SPACE_AROUND),
-      "space-evenly" => Ok(ALIGN_SPACE_EVENLY),
-      _ => Err(())
+        "stretch" => Ok(ALIGN_STRETCH),
+        "space-between" => Ok(ALIGN_SPACE_BETWEEN),
+        "space-around" => Ok(ALIGN_SPACE_AROUND),
+        "space-evenly" => Ok(ALIGN_SPACE_EVENLY),
+        _ => Err(())
     }
 }
 
 // [ <overflow-position>? && <content-position> ]
 fn parse_overflow_content_position(input: &mut Parser) -> Result<AlignFlags, ()> {
     // <content-position> followed by optional <overflow-position>
-    if let Ok(mut content) = input.try(|input| parse_content_position(input)) {
-        if let Ok(overflow) = input.try(|input| parse_overflow_position(input)) {
+    if let Ok(mut content) = input.try(parse_content_position) {
+        if let Ok(overflow) = input.try(parse_overflow_position) {
             content |= overflow;
         }
         return Ok(content)
     }
     // <overflow-position> followed by required <content-position>
-    if let Ok(overflow) = input.try(|input| parse_overflow_position(input)) {
-        if let Ok(content) = input.try(|input| parse_content_position(input)) {
+    if let Ok(overflow) = parse_overflow_position(input) {
+        if let Ok(content) = parse_content_position(input) {
             return Ok(overflow | content)
         }
     }
@@ -411,15 +455,15 @@ fn parse_overflow_position(input: &mut Parser) -> Result<AlignFlags, ()> {
 // [ <overflow-position>? && <self-position> ]
 fn parse_overflow_self_position(input: &mut Parser) -> Result<AlignFlags, ()> {
     // <self-position> followed by optional <overflow-position>
-    if let Ok(mut self_position) = input.try(|input| parse_self_position(input)) {
-        if let Ok(overflow) = input.try(|input| parse_overflow_position(input)) {
+    if let Ok(mut self_position) = input.try(parse_self_position) {
+        if let Ok(overflow) = input.try(parse_overflow_position) {
             self_position |= overflow;
         }
         return Ok(self_position)
     }
     // <overflow-position> followed by required <self-position>
-    if let Ok(overflow) = input.try(|input| parse_overflow_position(input)) {
-        if let Ok(self_position) = input.try(|input| parse_self_position(input)) {
+    if let Ok(overflow) = parse_overflow_position(input) {
+        if let Ok(self_position) = parse_self_position(input) {
             return Ok(overflow | self_position)
         }
     }

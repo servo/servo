@@ -964,16 +964,39 @@ function setSelectionBackwards(endpoints) {
  * This function should be used in testharness tests.
  */
 function assertSelectionNoChange(func) {
-    var originalCount = getSelection().rangeCount;
+    var originalCount = selection.rangeCount;
     var originalRange = originalCount == 0 ? null : selection.getRangeAt(0);
+    var originalAnchorNode = selection.anchorNode;
+    var originalAnchorOffset = selection.anchorOffset;
+    var originalFocusNode = selection.focusNode;
+    var originalFocusOffset = selection.focusOffset;
 
     func();
 
     assert_equals(selection.rangeCount, originalCount,
         "The operation should not add Range");
+    assert_equals(selection.anchorNode, originalAnchorNode,
+        "The operation should not update anchorNode");
+    assert_equals(selection.anchorOffset, originalAnchorOffset,
+        "The operation should not update anchorOffset");
+    assert_equals(selection.focusNode, originalFocusNode,
+        "The operation should not update focusNode");
+    assert_equals(selection.focusOffset, originalFocusOffset,
+        "The operation should not update focusOffset");
     if (originalCount < 1)
         return;
     assert_equals(selection.getRangeAt(0), originalRange,
          "The operation should not replace a registered Range");
 }
 
+/**
+ * Check if the specified node can be selectable with window.getSelection()
+ * methods.
+ */
+function isSelectableNode(node) {
+    if (!node)
+        return false;
+    if (node.nodeType == Node.DOCUMENT_TYPE_NODE)
+        return false;
+    return document.contains(node);
+}

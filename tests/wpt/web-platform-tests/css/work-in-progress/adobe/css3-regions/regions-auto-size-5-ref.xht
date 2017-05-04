@@ -1,0 +1,84 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>CSS Test: height:auto on region box when used width changes between Step 1 and Step 2</title>
+    <style>
+    /*<![CDATA[*/
+body {
+    width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+    
+.line {
+    display: inline-block;
+    background: #a0a0a0;
+    width: 250px;
+    height: 25px;
+}
+
+.fake-extra.line {
+    width: 100%;
+    background: rgba(0, 0, 0, 0);
+    height: 20px;
+}
+
+#rA, #rB, #rC {
+    box-sizing: border-box;
+    border: 3px solid #46A4E9;
+    border-radius: 0.5em;
+}
+
+#rA {
+    float: left;
+    width: 50%;
+    max-height: 100px;
+    min-height: 50px;
+}
+
+#rB {
+    float: right;
+    width: 50%;
+    max-height: 100px;
+}
+
+#rC {
+     display: table-cell;
+     height: auto;
+     width: auto;
+}
+/*]]>*/
+</style>
+</head>
+<body>
+    <p>You should see three blue boxes. The top two ones are of equal width and contain
+        three dark gray line boxes. The bottom blue box should contain three columns of 
+        line boxes, each with 2 line boxes. The bottom blue box should be three times as 
+        high as its line box content height. The bottom blue box should be as wide as 
+        the top two blue boxes combined.</p>
+        
+	<div id="rA">
+        <div class="line"></div>
+        <div class="line"></div>
+        <div class="line"></div>
+	</div>
+	<div id="rB">
+        <div class="line"></div>
+        <div class="line"></div>
+        <div class="line"></div>
+    </div>
+	<div id="rC">
+	    <div class="line"></div>
+        <div class="line"></div>
+        <div class="line"></div>
+        <div class="line"></div>
+        <div class="line"></div>
+        <div class="line"></div>
+        <div class="fake-extra line"></div>
+        <div class="fake-extra line"></div>
+        <div class="fake-extra line"></div>
+        <div class="fake-extra line"></div>
+        
+    </div>
+</body>
+</html>

@@ -22,7 +22,6 @@ use serde::{Serialize, Serializer};
 use std::cmp::max;
 use std::fmt;
 use std::iter::{Enumerate, IntoIterator, Peekable};
-use std::sync::Arc;
 use style::computed_values::{border_collapse, border_spacing, border_top_style};
 use style::logical_geometry::{LogicalSize, PhysicalSide, WritingMode};
 use style::properties::ServoComputedValues;
@@ -483,7 +482,7 @@ impl Flow for TableRowFlow {
         self.block_flow.collect_stacking_contexts(state);
     }
 
-    fn repair_style(&mut self, new_style: &Arc<ServoComputedValues>) {
+    fn repair_style(&mut self, new_style: &::StyleArc<ServoComputedValues>) {
         self.block_flow.repair_style(new_style)
     }
 

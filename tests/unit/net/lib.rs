@@ -42,6 +42,7 @@ use net::test::HttpState;
 use net_traits::FetchTaskTarget;
 use net_traits::request::Request;
 use net_traits::response::Response;
+use servo_config::resource_files::resources_dir_path;
 use servo_url::ServoUrl;
 use std::sync::Arc;
 use std::sync::mpsc::{Sender, channel};
@@ -53,14 +54,13 @@ struct FetchResponseCollector {
 }
 
 fn new_fetch_context(dc: Option<Sender<DevtoolsControlMsg>>) -> FetchContext {
-    let ssl_client = create_ssl_client("certs");
-    let connector = create_http_connector(ssl_client);
+    let ca_file = resources_dir_path().unwrap().join("certs");
+    let ssl_client = create_ssl_client(&ca_file);
     FetchContext {
-        state: Arc::new(HttpState::new()),
+        state: Arc::new(HttpState::new(ssl_client)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: dc,
         filemanager: FileManager::new(),
-        connector: connector,
     }
 }
 impl FetchTaskTarget for FetchResponseCollector {

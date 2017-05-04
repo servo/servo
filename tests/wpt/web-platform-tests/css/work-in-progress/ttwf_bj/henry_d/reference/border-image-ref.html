@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>css3 Backgrounds & Borders</title>
+    <link rel="author" title="¶ÎÎÄÁú" href="mailto:jornakbobo@163.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#border-images"/>
+    <!--link rel="help" href="additional spec link"-->
+    <link rel="match" href="reference/ttwf-reftest-tutorial-starter-ref.html"/>
+    <meta name="assert" content="Statement describing what the test case is asserting"/>
+    <style type="text/css">
+		.border{
+			padding-left: 11px;
+			text-align: center;
+			font-size: 16px;
+			color:white;
+			background:url(../support/bt_blue.png) 0 0 no-repeat
+		}
+		.border div{
+			padding-right:11px;
+			background:url(../support/bt_blue.png) 100% 0 no-repeat
+		}
+		.border div div{
+			padding:12px 0;
+			background:url(../support/repeat-x.png) repeat-x
+		}
+    </style>
+</head>
+<body>
+	<p>The test passes if there is a bule background-image border and no border-image.</p>
+	<div class="border">
+		<div>
+			<div>css3 border</div>
+		</div>
+	</div>
+</body>
+</html>

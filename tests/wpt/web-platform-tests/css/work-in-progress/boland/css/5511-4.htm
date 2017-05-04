@@ -1,0 +1,69 @@
+
+<html>
+
+<title>Fourth Test of Section 5.5.11 of CSS1 Spec</title>
+
+<style type="text/css">
+p {border-top-width: thin;
+    border-style: dotted;}
+h3 {border-top-width: thin;
+    border-style: dotted;}
+h4 {border-top-width: thin;
+    border-style: dotted;}
+blockquote {border-top-width: -5px;
+            border-style: dotted;}
+</style>
+</head>
+
+
+
+<body>
+
+
+
+
+<h1 >Testing Statement #4 Below of Section 5.5.11 of CSS1 Spec</h1>
+
+
+
+
+
+
+<ul>
+<li>
+4. The keyword widths are constant throughout a documemt.
+Border widths cannot be negative.
+</ul>
+
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+NOTE: border-style of dotted applies to all cases below.
+<p >
+If statement #4 above is passed, this paragraph should have a border top
+width of thin.
+THe rule applied is "p {border-top-width: thin}".
+<h3>
+This h3 heading should also have a border-top-width of thin; the size should
+be the same as in the paragraph above.
+THe rule applied is "h3 {border-top-width: thin}".
+</h3>
+This h4 heading should also have a border-top-width of thin; the size should
+be the same as in the h3 heading above.
+THe rule applied is 'h4 {border-top-width: thin}".
+</h4>
+<blockquote>
+This blockquote element should have a border top width of UA-default.
+The rule stated is "blockquote {border-top-width: -5px}" which should be
+ignored since the value is negative.
+</blockquote>
+
+
+
+All other properties of this page should be UA-default.
+
+
+</body>
+</html>

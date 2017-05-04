@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: overflow: hidden and border-collapse: collapse</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/table/border-collapse/collapse/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#collapsing-borders" />
+  <style type="text/css">
+   table { border-collapse: collapse; }
+   div { margin-top: 0.25em; }
+   td, div {
+     border-left: 2em solid;
+     overflow: hidden;
+     padding-left: 0.25em;
+     font: 4em sans-serif;
+     color: navy;
+   }
+  </style>
+ </head>
+ <body>
+  <p>There should be two identical blocks below, each with the word "Test" to the right.</p>
+  <table><tr><td>Test</td></tr></table>
+  <div>Test</div>
+ </body>
+</html>

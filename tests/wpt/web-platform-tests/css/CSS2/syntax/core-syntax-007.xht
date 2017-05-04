@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: Parsing invalid '!' declarations</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/parsing/core-syntax/007.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#parsing-errors" />
+  <link rel="match" href="core-syntax-007-ref.xht"/>
+  <style type="text/css">
+   body { font-size: 200px; }
+   p { font-size: 16px; font-size: 200!invalid; }
+   div { font-size: 16px; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if this text is not dramatically taller than the text below.</p>
+  <div>Filler Text</div>
+ </body>
+</html>

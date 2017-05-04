@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Scrollbar placement in overflow scenario</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#overflow" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The placement of the scrollbar is between the inner border edge and the outer padding edge." />
+        <style type="text/css">
+            #div1
+            {
+                border: solid blue;
+                overflow: scroll;
+                padding: 10px;
+            }
+            div div
+            {
+                background-color: black;
+                border: solid;
+                height: 10px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>PREREQUISITE: User agent needs to support scrollbars as the scrolling mechanism. If it does not then this test case does not apply to this user agent.</p>
+        <p>Test passes if the scrollbars are contained inside the blue box and each scrollbar has white space between it and the black box within.</p>
+        <div id="div1">
+            <div></div>
+        </div>
+    </body>
+</html>

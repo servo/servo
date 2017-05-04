@@ -1,0 +1,314 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Min/Max Height and Width Constraints on Replaced Elements</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="reviewer" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/replaced/intrinsic/001.html" type="text/html"/>
+  <meta name="flags" content="image"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#min-max-widths" />
+  <style type="text/css"><![CDATA[
+
+    /* Make test easier to check */
+    p { display: inline; }
+
+    /* Diagrams are scaled so that w and h line up.
+       Image is 75px x 75px; target dimensions will thus be 75px. */
+
+    /* none
+     *
+     *                  wmin     w       wmax
+     * |------------------+------+---------+------> width
+     *             hmin          h   hmax
+     * |-------------+-----------+-----+----------> height
+     *
+     * target: [w, h]
+     */
+
+    #img1 {min-width:   60px;
+           max-width:  105px;
+           min-height:  45px;
+           max-height: 120px;}
+
+    /* w > max-width
+     * wmax/w > hmin/h
+     *                  wmax     w
+     * |------------------+------+----------------> width
+     *            hmin           h
+     * |------------+------------+----------------> height
+     *
+     * target: [wmax, wmax * h/w]
+     */
+
+    #img2 {max-width:  75px; /* 50% */
+           min-height: 60px; /* 40% */}
+
+    /* w > max-width
+     * wmax/w < hmin/h
+     *
+     *             wmax          w
+     * |-------------+-----------+----------------> width
+     *                  hmin     h
+     * |------------------+------+----------------> height
+     *
+     * target: [wmax, hmin]
+     */
+
+    #img3 {max-width:  75px; /* 25% */
+           min-height: 75px; /* 50% */}
+
+    /* w < min-width
+     * wmin/w < hmax/h
+     *
+     *               w       wmin
+     * |-------------+---------+------------------> width
+     *               h              hmax
+     * |-------------+----------------+-----------> height
+     *
+     * target: [wmin, wmin * h/w]
+     */
+
+    #img4 {min-width:   75px; /* 300% */
+           max-height: 100px; /* 400% */}
+
+    /* w < min-width
+     * wmin/w > hmax/h
+     *
+     *               w              wmin
+     * |-------------+----------------+-----------> width
+     *               h       hmax
+     * |-------------+---------+------------------> height
+     *
+     * target: [wmin, hmax]
+     */
+
+    #img5 {min-width:   75px; /* 300% */
+           max-height:  75px; /* 150% */}
+
+    /* h > max-height
+     * wmin/w < hmax/h
+     *
+     *            wmin           w
+     * |------------+------------+----------------> width
+     *                  hmax     h
+     * |------------------+------+----------------> height
+     *
+     * target: [hmax * w/h, hmax]
+     */
+
+    #img6 {min-width:  60px; /* 40% */
+           max-height: 75px; /* 50% */}
+
+    /* h > max-height
+     * wmin/w > hmax/h
+     *
+     *                  wmin     w
+     * |------------------+------+----------------> width
+     *             hmax          h
+     * |-------------+-----------+----------------> height
+     *
+     * target: [wmin, hmax]
+     */
+
+    #img7 {min-width:  75px; /* 50% */
+           max-height: 75px; /* 25% */}
+
+    /* h < min-height
+     * wmax/w > hmin/h
+     *
+     *               w              wmax
+     * |-------------+----------------+-----------> height
+     *               h       hmin
+     * |-------------+---------+------------------> width
+     *
+     * target: [hmin * w/h, hmin]
+     */
+
+    #img8 {max-width: 100px; /* 400% */
+           min-height: 75px; /* 300% */}
+
+    /* w < min-width
+     * wmax/w < hmin/h
+     *
+     *               w       wmax
+     * |-------------+---------+------------------> width
+     *               h              hmin
+     * |-------------+----------------+-----------> height
+     *
+     * target: [wmax, hmin]
+     */
+
+    #img9 {max-width:  75px; /* 150% */
+           min-height: 75px; /* 300% */}
+
+    /* (w > max-width) and (h > max-height)
+     * (wmin/w > hmax/h) and (wmin/w > hmax/h)
+     *
+     *                  wmin   wmax      w
+     * |------------------+------+-------+--------> width
+     *             hmax                  h
+     * |-------------+-------------------+--------> height
+     *
+     * target: [wmin, hmax]
+     */
+
+    #img10 { min-width:  75px; /* 25% */
+             max-width: 150px; /* 50% */
+             max-height: 75px; /* 20% */}
+
+    /* (w > max-width) and (h > max-height)
+     * (wmax/w > hmax/h) and (wmin/w < hmax/h)
+     *
+     *         wmin            wmax      w
+     * |---------+---------------+-------+--------> width
+     *             hmax                  h
+     * |-------------+-------------------+--------> height
+     *
+     * target: [hmax * w/h, hmax]
+     */
+
+    #img11 { min-width:  25px; /* 10% */
+             max-width: 225px; /* 90% */
+             max-height: 75px; /* 30% */}
+
+    /* (w > max-width) and (h > max-height)
+     * (wmax/w < hmax/h) and (wmax/w < hmin/h)
+     *
+     *             wmax                  w
+     * |-------------+-------------------+--------> width
+     *                  hmin   hmax      h
+     * |------------------+------+-------+--------> height
+     *
+     * target: [wmax, hmin]
+     */
+
+    #img12 { max-width:   75px; /* 20% */
+             min-height:  75px; /* 25% */
+             max-height: 150px; /* 50% */}
+
+    /* (w > max-width) and (h > max-width)
+     * (wmax/w < hmax/h) and (wmax/w > hmin/h)
+     *
+     *             wmax                  w
+     * |-------------+-------------------+--------> width
+     *         hmin            hmax      h
+     * |---------+---------------+-------+--------> height
+     *
+     * target: [wmax, wmax * h/w]
+     */
+
+    #img13 { max-width:   75px; /* 30% */
+             min-height:  25px; /* 10% */
+             max-height: 225px; /* 90% */}
+
+    /* (w < min-width) and (h < min-height)
+     * (wmin/w < hmin/h) and (wmax/w > hmin/h)
+     *
+     *            w       wmin       wmax
+     * |----------+---------+----------+----------> width
+     *            h           hmin
+     * |----------+-------------+-----------------> height
+     *
+     * target: [hmin * w/h, hmin]
+     */
+
+    #img14 { min-width:   50px; /* 200% */
+             max-width:  100px; /* 400% */
+             min-height:  75px; /* 300% */}
+
+    /* (w < min-width) and (h < min-height)
+     * (wmin/w < hmin/h) and (wmax/w < hmin/h)
+     *
+     *            w       wmin       wmax
+     * |----------+---------+----------+----------> width
+     *            h                      hmin
+     * |----------+------------------------+------> height
+     *
+     * target: [wmax, hmin]
+     */
+
+    #img15 { min-width:   55px; /* 110% */
+             max-width:   75px; /* 150% */
+             min-height:  75px; /* 300% */}
+
+    /* (w < min-width) and (h < min-height)
+     * (wmin/w > hmin/h) and (wmin/w < hmax/h)
+     *
+     *            w           wmin
+     * |----------+-------------+-----------------> width
+     *            h       hmin       hmax
+     * |----------+---------+----------+----------> height
+     *
+     * target: [wmin, wmin * h/w]
+     */
+
+    #img16 { min-width:   75px; /* 300% */
+             min-height:  50px; /* 200% */
+             max-height: 100px; /* 400% */}
+
+    /* (w < min-width) and (h < min-height)
+     * (wmin/w > hmin/h) and (wmin/w > hmax/h)
+     *            w                      wmin
+     * |----------+------------------------+------> width
+     *            h       hmin       hmax
+     * |----------+---------+----------+----------> height
+     *
+     * target: [wmin, hmax]
+     */
+
+    #img17 { min-width:  75px; /* 300% */
+             min-height: 55px; /* 110% */
+             max-height: 75px; /* 150% */}
+
+    /* (w < min-width) and (h > max-height)
+     *
+     *                           w   wmin
+     * |-------------------------+-----+----------> width
+     *                  hmax     h
+     * |------------------+------+----------------> height
+     *
+     * target: [wmin, hmax]
+     */
+
+    #img18 { min-width:  75px; /* 150% */
+             max-height: 75px; /*  75% */}
+
+    /* (w > max-width) and (h < min-height)
+     *
+     *                  wmax     w
+     * |------------------+------+----------------> width
+     *                           h   hmin
+     * |-------------------------+-----+----------> height
+     *
+     * target: [wmax, hmin]
+     */
+
+    #img19 { max-width:  75px; /*  75% */
+             min-height: 75px; /* 150% */}
+
+  ]]></style>
+ </head>
+ <body>
+   <div>All twenty images should be identically square.</div>
+   <p><img src="support/replaced-min-max.png" alt="FAIL" title="Test 0"/></p> <!-- Control -->
+   <p><img src="support/replaced-min-max-1.png" alt="FAIL" title="Test 1" id="img1"/></p> <!-- Wi=75, Hi=75 -->
+   <p><img src="support/replaced-min-max-2.png" alt="FAIL" title="Test 2" id="img2"/></p> <!-- Wi=150, Hi=150 -->
+   <p><img src="support/replaced-min-max-3.png" alt="FAIL" title="Test 3" id="img3"/></p> <!-- Wi=300, Hi=150 -->
+   <p><img src="support/replaced-min-max-4.png" alt="FAIL" title="Test 4" id="img4"/></p> <!-- Wi=25, Hi=25 -->
+   <p><img src="support/replaced-min-max-5.png" alt="FAIL" title="Test 5" id="img5"/></p> <!-- Wi=25, Hi=50 -->
+   <p><img src="support/replaced-min-max-6.png" alt="FAIL" title="Test 6" id="img6"/></p> <!-- Wi=150, Hi=150 -->
+   <p><img src="support/replaced-min-max-7.png" alt="FAIL" title="Test 7" id="img7"/></p> <!-- Wi=150, Hi=300 -->
+   <p><img src="support/replaced-min-max-8.png" alt="FAIL" title="Test 8" id="img8"/></p> <!-- Wi=25, Hi=25 -->
+   <p><img src="support/replaced-min-max-9.png" alt="FAIL" title="Test 9" id="img9"/></p> <!-- Wi=50, Hi=25 -->
+   <p><img src="support/replaced-min-max-10.png" alt="FAIL" title="Test 10" id="img10"/></p> <!-- Wi=300, Hi=375 -->
+   <p><img src="support/replaced-min-max-11.png" alt="FAIL" title="Test 11" id="img11"/></p> <!-- Wi=250, Hi=250 -->
+   <p><img src="support/replaced-min-max-12.png" alt="FAIL" title="Test 12" id="img12"/></p> <!-- Wi=375, Hi=300 -->
+   <p><img src="support/replaced-min-max-13.png" alt="FAIL" title="Test 13" id="img13"/></p> <!-- Wi=250, Hi=250 -->
+   <p><img src="support/replaced-min-max-14.png" alt="FAIL" title="Test 14" id="img14"/></p> <!-- Wi=25, Hi=25 -->
+   <p><img src="support/replaced-min-max-15.png" alt="FAIL" title="Test 15" id="img15"/></p> <!-- Wi=50, Hi=25 -->
+   <p><img src="support/replaced-min-max-16.png" alt="FAIL" title="Test 16" id="img16"/></p> <!-- Wi=25, Hi=25 -->
+   <p><img src="support/replaced-min-max-17.png" alt="FAIL" title="Test 17" id="img17"/></p> <!-- Wi=25, Hi=50 -->
+   <p><img src="support/replaced-min-max-18.png" alt="FAIL" title="Test 18" id="img18"/></p> <!-- Wi=50, Hi=100 -->
+   <p><img src="support/replaced-min-max-19.png" alt="FAIL" title="Test 19" id="img19"/></p> <!-- Wi=100, Hi=50 -->
+ </body>
+</html>

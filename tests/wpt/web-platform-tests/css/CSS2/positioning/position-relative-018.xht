@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Relative positioning and computed values when 'bottom' is set to 'auto'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#relative-positioning" />
+		<link rel="match" href="position-relative-018-ref.xht" />
+
+        <meta name="flags" content="" />
+        <meta name="assert" content="Computed value of 'bottom' set to 'auto' is equal to negative 'top'." />
+        <style type="text/css">
+            .parent
+            {
+                width: 0.5in;
+                float: left;
+            }
+            div div
+            {
+                background: black;
+                height: 1in;
+                position: relative;
+                width: 0.5in;
+            }
+            #div1
+            {
+                bottom: auto;
+                top: 1in;
+            }
+            #div2
+            {
+                bottom: -1in;
+                top: auto;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is only one filled black square.</p>
+        <div class="parent">
+            <div id="div1"></div>
+        </div>
+        <div class="parent">
+            <div id="div2"></div>
+        </div>
+    </body>
+</html>

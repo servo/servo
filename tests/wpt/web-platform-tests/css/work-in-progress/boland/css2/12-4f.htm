@@ -1,0 +1,50 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Seventh Test of Section 12.4 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+[LANG|=fr] > * { quotes: "<<" ">>" "\2039" "\203A" }
+[LANG|=en] > * { quotes: "\201C" "\201D" "\2018" "\2019" }
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Seventh Testable Statement of Sec 12.4 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+7. If a quotation is in a different language than the surrounding text, it
+is customary to quote the text with the quote marks of the language of the
+surrounding text, not the language of the quotation itself.
+
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p>
+If statement #7 above is passed, then
+<Q>this quote</Q> should have English-style quotation marks.  The rule
+applied is "[LANG|=fr] > * { quotes: "<<" ">>" "\2039" "\203A" }".
+Also "[LANG|en] > * { quotes: "\201C" "\201D" "\2018" "\2019" }".
+
+
+</BODY>
+</HTML>
+

@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: allowed page break - dropping page-break-* restrictions</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props"/>
+<meta name="assert" content="If the standard restrictions do not provide enough break points to keep content from overflowing the page boxes, then the restrictions imposed by 'avoid' on the 'page-break-*' properties are dropped."/>
+<meta name="flags" content="paged" />
+<style type="text/css">
+	html, body { height: 100%; line-height: 1; font-size: 20px; margin: 0; padding: 0; }
+	div.spacer {
+		height: 25%;
+	}
+	div.backup {
+		margin-top: -3em;
+	}
+
+	div#wrapper {
+		height: 200%;
+		page-break-inside: avoid;
+		widows: 3;
+		orphans: 3;
+	}
+
+	p {
+		margin: 0;
+		color: blue;
+	}
+	p, #wrapper div {
+		page-break-before: avoid;
+		page-break-after: avoid;
+	}
+</style>
+</head>
+<body>
+	<div id="wrapper">
+		<div class="spacer">This test requires two pages. Lines D-F must be on the second.</div>
+		<div class="spacer backup"></div>
+		<p>Page&nbsp;1&nbsp;Line&nbsp;A</p>
+		<p>Page&nbsp;1&nbsp;Line&nbsp;B</p>
+		<p>Page&nbsp;1&nbsp;Line&nbsp;C</p>
+		<p>Page&nbsp;2&nbsp;Line&nbsp;D</p>
+		<p>Page&nbsp;2&nbsp;Line&nbsp;E</p>
+		<p>Page&nbsp;2&nbsp;Line&nbsp;F</p>
+	</div>
+</body>
+</html>

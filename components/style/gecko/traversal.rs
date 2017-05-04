@@ -32,7 +32,7 @@ impl<'recalc, 'le> DomTraversal<GeckoElement<'le>> for RecalcStyleOnly<'recalc> 
     type ThreadLocalContext = ThreadLocalStyleContext<GeckoElement<'le>>;
 
     fn process_preorder(&self,
-                        traversal_data: &mut PerLevelTraversalData,
+                        traversal_data: &PerLevelTraversalData,
                         thread_local: &mut Self::ThreadLocalContext,
                         node: GeckoNode<'le>)
     {

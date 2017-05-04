@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Cascade: the "unset" value</title>
+  <link rel="author" title="Chris Rebert" href="http://chrisrebert.com">
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-3/#inherit-initial">
+  <link rel="help" href="http://www.w3.org/TR/css-cascade-4/#inherit-initial">
+  <link rel="match" href="reference/ref-filled-green-100px-square.xht">
+  <meta name="flags" content="">
+  <meta name="assert" content="display:unset should be the same as display:initial since 'display' is not an inherited property. display:unset should be the same as display:inline since 'inline' is the initial value of 'display'.">
+  <style>
+.square {
+  width: 100px;
+  height: 100px;
+}
+.green {
+  background-color: green;
+}
+.top {
+  position: absolute;
+}
+.fail {
+  background-color: red;
+  display: inline-block;
+  display: unset;/* initial, inline */
+}
+  </style>
+</head>
+<body>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div class="top"><span class="square fail"></span></div>
+  <div class="green square"></div>
+</body>
+</html>

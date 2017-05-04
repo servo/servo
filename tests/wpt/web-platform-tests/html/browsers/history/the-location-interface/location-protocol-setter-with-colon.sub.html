@@ -6,7 +6,7 @@
 <div id=log></div>
 <iframe id="existing" src="resources/post-your-protocol.html?existing"></iframe>
 <iframe id="http-and-gunk" src="resources/post-your-protocol.html?http-and-gunk"></iframe>
-<iframe id="https-and-gunk" src="resources/post-your-protocol.html?https-and-gunk"></iframe>
+<!-- iframe id="https-and-gunk" src="resources/post-your-protocol.html?https-and-gunk"></iframe -->
 <script>
 // NOTE: we do not listen to message events until our load event fires, so we
 // only get them for the things we actually care about.
@@ -21,15 +21,13 @@ var tests = {
 };
 
 function messageListener(e) {
-  test(function() {
-    var data = e.data;
-    var id = data.id;
-    var t = tests[id].test;
-    t.step(function() {
-      assert_equals(data.protocol, tests[id].result, "Protocol should match");
-    })
-    t.done();
-  }, "Message listener");
+  var data = e.data;
+  var id = data.id;
+  var t = tests[id].test;
+  t.step(function() {
+    assert_equals(data.protocol, tests[id].result, "Protocol should match");
+  })
+  t.done();
 }
 
 addEventListener("load", wrapper_test.step_func_done(function() {

@@ -29,8 +29,12 @@ bitflags!(
         const FLAG_RTL = 1 << 0,
         const FLAG_VERTICAL = 1 << 1,
         const FLAG_VERTICAL_LR = 1 << 2,
-        const FLAG_SIDEWAYS = 1 << 3,
-        const FLAG_UPRIGHT = 1 << 4,
+        /// For vertical writing modes only.  When set, line-over/line-under
+        /// sides are inverted from block-start/block-end.  This flag is
+        /// set when sideways-lr is used.
+        const FLAG_LINE_INVERTED = 1 << 3,
+        const FLAG_SIDEWAYS = 1 << 4,
+        const FLAG_UPRIGHT = 1 << 5,
     }
 );
 
@@ -50,7 +54,7 @@ impl WritingMode {
     #[inline]
     pub fn is_inline_tb(&self) -> bool {
         // https://drafts.csswg.org/css-writing-modes-3/#logical-to-physical
-        !self.intersects(FLAG_RTL)
+        self.intersects(FLAG_RTL) == self.intersects(FLAG_LINE_INVERTED)
     }
 
     #[inline]
@@ -144,6 +148,9 @@ impl fmt::Display for WritingMode {
             }
             if self.intersects(FLAG_SIDEWAYS) {
                 try!(write!(formatter, " Sideways"));
+            }
+            if self.intersects(FLAG_LINE_INVERTED) {
+                try!(write!(formatter, " Inverted"));
             }
         } else {
             try!(write!(formatter, "H"));

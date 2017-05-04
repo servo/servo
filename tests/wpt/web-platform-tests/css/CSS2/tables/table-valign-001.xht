@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Table Cell Vertical Alignment Affect on Specified Height</title>
+  <link rel="author" title="Bruno Fassino" href="fassino[at]gmail.com"/>
+  <link rel="alternate" href="http://www.brunildo.org/test/td_height1.html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#height-layout"/>
+  <meta name="flags" content="" />
+  <meta name="assert" content="Vertical alignment of cell contents does not
+    increase the height of cells in the row if there is already enough room."/>
+  <style type="text/css"><![CDATA[
+    .container {
+      background: red;
+      float: left; /* shrinkwrap width and height */
+    }
+    .control {
+       width: 10px;
+       height: 100px;
+       background: blue;
+    }
+    table, .control {
+      font-size: 20px;
+      float: left;
+      border-spacing: 0;
+    }
+    td {
+      background: blue;
+      color: blue;
+      padding: 0;
+    }
+
+    .middle td { vertical-align: middle; }
+    .baseline td { vertical-align: baseline; }
+    .one { height: 100px; }
+    .two { font-size: 2em; }
+  ]]></style>
+ </head>
+ <body>
+  <p>There must be a blue box below and no red.</p>
+  <div class="container">
+    <div class="control"></div>
+    <table class="middle"><tr>
+       <td class="one">A</td>
+       <td>B</td>
+    </tr></table>
+
+    <table class="middle"><tr>
+       <td class="one">A</td>
+       <td class="two">B</td>
+    </tr></table>
+
+    <table class="baseline"><tr>
+       <td class="one">A</td>
+       <td>B</td>
+    </tr></table>
+
+    <table class="baseline"><tr>
+       <td class="one">A</td>
+       <td class="two">B</td>
+    </tr></table>
+  </div>
+ </body>
+</html>

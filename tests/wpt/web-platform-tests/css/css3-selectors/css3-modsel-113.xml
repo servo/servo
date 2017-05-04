@@ -1,0 +1,19 @@
+<csstest def="Attribute space-separated value selector without declared namespace" module="W3C Selectors" modulename="css3-modsel" number="113" rev="1.1" date="13-november-2001" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<author>Ian Hickson</author>
+
+<cssrules>@namespace a url(http://www.example.org/a);
+@namespace b url(http://www.example.org/b);
+@namespace html url(http://www.w3.org/1999/xhtml);
+*|p, *|address, *|q, *|r { display : block ; margin-bottom : 1em }
+*|p, *|q { background-color : red }
+*|*[|class~="foo"] { background-color : lime }</cssrules>
+
+<code>
+<p class="bar foo toto" xmlns="http://www.w3.org/1999/xhtml">This paragraph should have a green background.</p>
+<address class="bar foofoo toto" xmlns="http://www.w3.org/1999/xhtml">This address should be unstyled.</address>
+<q class="bar foo toto" xmlns="http://www.example.org/a">This paragraph should have a green background.</q>
+<r b:class="bar foo toto" xmlns="http://www.example.org/b">This paragraph should be unstyled.</r>
+</code>
+</csstest>

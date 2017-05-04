@@ -1,0 +1,80 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD//XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSSOM - CSSStyleSheet - Instance</title>
+    <link rel="author" title="Glenn Adams" href="mailto:glenn@skynav.com"/>
+    <link rel="help" href="http://www.w3.org/TR/cssom-1/#the-cssstylesheet-interface"/>
+    <meta name="flags" content="dom"/>
+    <script src="/resources/testharness.js"/>
+    <script src="/resources/testharnessreport.js"/>
+    <style id="sheet"/>
+  </head>
+  <body>
+    <div id="log"></div>
+    <div id="box"></div>
+    <script><![CDATA[
+
+      var doc = window.document;
+
+      test(function(){
+
+        assert_true('styleSheets' in doc);
+
+      }, '\'styleSheets\' in doc');
+
+      var sheets = doc.styleSheets;
+
+      test(function(){
+
+        assert_true(sheets.length > 0);
+
+      }, 'doc.styleSheets.length > 0');
+
+      var sheet = doc.styleSheets[0];
+
+      test(function(){
+
+        assert_true(sheet instanceof StyleSheet);
+
+      }, 'doc.styleSheets[0] instanceof StyleSheet');
+
+      test(function(){
+
+        assert_true(sheet instanceof CSSStyleSheet);
+
+      }, 'doc.styleSheets[0] instanceof CSSStyleSheet');
+
+      test(function(){
+
+        assert_equals(sheet.toString(), '[object CSSStyleSheet]');
+
+      }, 'doc.styleSheets[0].toString() == \'[object CSSStyleSheet]\'');
+
+      test(function(){
+
+        assert_true('ownerRule' in sheet);
+
+      }, '\'ownerRule\' in doc.styleSheets[0]');
+
+      test(function(){
+
+        assert_true(sheet.ownerRule === null || sheet.ownerRule instanceof CSSRule);
+
+      }, 'doc.styleSheets[0].ownerRule is null or instanceof CSSRule');
+
+      test(function(){
+
+        assert_true('cssRules' in sheet);
+
+      }, '\'cssRules\' in doc.styleSheets[0]');
+
+      test(function(){
+
+        assert_true(sheet.cssRules instanceof CSSRuleList);
+
+      }, 'doc.styleSheets[0].cssRules instanceof CSSRuleList');
+
+    ]]>
+    </script>
+  </body>
+</html>

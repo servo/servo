@@ -106,15 +106,24 @@
     }, element.id + " setRangeText without argument throws a type error");
 
     async_test(function() {
-      var q = false;
-      element.onselect = this.step_func_done(function(e) {
-        assert_true(q, "event should be queued");
-        assert_true(e.isTrusted, "event is trusted");
-        assert_true(e.bubbles, "event bubbles");
-        assert_false(e.cancelable, "event is not cancelable");
-      });
-      element.setRangeText("foobar2", 0, 6);
-      q = true;
+      // At this point there are already "select" events queued up on
+      // "element".  Give them time to fire; otherwise we can get spurious
+      // passes.
+      //
+      // This is unfortunately racy in that we might _still_ get spurious
+      // passes.  I'm not sure how best to handle that.
+      setTimeout(this.step_func(function() {
+        var q = false;
+        element.onselect = this.step_func_done(function(e) {
+          assert_true(q, "event should be queued");
+          assert_true(e.isTrusted, "event is trusted");
+          assert_true(e.bubbles, "event bubbles");
+          assert_false(e.cancelable, "event is not cancelable");
+        });
+        element.setRangeText("foobar2", 0, 6);
+        q = true;
+      }), 10);
     }, element.id + " setRangeText fires a select event");
+
   })
 </script>

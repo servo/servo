@@ -93,8 +93,7 @@ use dom_struct::dom_struct;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use euclid::point::Point2D;
-use gfx_traits::ScrollRootId;
-use html5ever_atoms::{LocalName, QualName};
+use html5ever::{LocalName, QualName};
 use hyper::header::{Header, SetCookie};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
@@ -129,20 +128,21 @@ use std::default::Default;
 use std::iter::once;
 use std::mem;
 use std::rc::Rc;
-use std::sync::Arc;
 use std::time::{Duration, Instant};
 use style::attr::AttrValue;
 use style::context::{QuirksMode, ReflowGoal};
-use style::restyle_hints::{RestyleHint, RESTYLE_STYLE_ATTRIBUTE};
+use style::restyle_hints::{RestyleHint, RESTYLE_SELF, RESTYLE_STYLE_ATTRIBUTE};
 use style::selector_parser::{RestyleDamage, Snapshot};
 use style::shared_lock::SharedRwLock as StyleSharedRwLock;
 use style::str::{HTML_SPACE_CHARACTERS, split_html_space_chars, str_join};
+use style::stylearc::Arc;
 use style::stylesheets::Stylesheet;
 use task_source::TaskSource;
 use time;
 use timers::OneshotTimerCallback;
 use url::Host;
 use url::percent_encoding::percent_decode;
+use webrender_traits::ClipId;
 
 /// The number of times we are allowed to see spurious `requestAnimationFrame()` calls before
 /// falling back to fake ones.
@@ -492,6 +492,7 @@ impl Document {
         // FIXME: This should check the dirty bit on the document,
         // not the document element. Needs some layout changes to make
         // that workable.
+        self.stylesheets_changed_since_reflow.get() ||
         match self.GetDocumentElement() {
             Some(root) => {
                 root.upcast::<Node>().has_dirty_descendants() ||
@@ -541,7 +542,7 @@ impl Document {
         self.quirks_mode.set(mode);
 
         if mode == QuirksMode::Quirks {
-            self.window.layout_chan().send(Msg::SetQuirksMode).unwrap();
+            self.window.layout_chan().send(Msg::SetQuirksMode(mode)).unwrap();
         }
     }
 
@@ -699,9 +700,11 @@ impl Document {
 
         if let Some((x, y)) = point {
             // Step 3
+            let global_scope = self.window.upcast::<GlobalScope>();
+            let webrender_pipeline_id = global_scope.pipeline_id().to_webrender();
             self.window.perform_a_scroll(x,
                                          y,
-                                         ScrollRootId::root(),
+                                         ClipId::root_scroll_node(webrender_pipeline_id),
                                          ScrollBehavior::Instant,
                                          target.r());
         }
@@ -2355,6 +2358,13 @@ impl Document {
             entry.hint |= RESTYLE_STYLE_ATTRIBUTE;
         }
 
+        // FIXME(emilio): This should become something like
+        // element.is_attribute_mapped(attr.local_name()).
+        if attr.local_name() == &local_name!("width") ||
+           attr.local_name() == &local_name!("height") {
+            entry.hint |= RESTYLE_SELF;
+        }
+
         let mut snapshot = entry.snapshot.as_mut().unwrap();
         if snapshot.attrs.is_none() {
             let attrs = el.attrs()
@@ -2723,7 +2733,7 @@ impl DocumentMethods for Document {
                               -> Root<HTMLCollection> {
         let ns = namespace_from_domstring(maybe_ns);
         let local = LocalName::from(tag_name);
-        let qname = QualName::new(ns, local);
+        let qname = QualName::new(None, ns, local);
         match self.tagns_map.borrow_mut().entry(qname.clone()) {
             Occupied(entry) => Root::from_ref(entry.get()),
             Vacant(entry) => {
@@ -2765,8 +2775,15 @@ impl DocumentMethods for Document {
         if self.is_html_document {
             local_name.make_ascii_lowercase();
         }
-        let name = QualName::new(ns!(html), LocalName::from(local_name));
-        Ok(Element::create(name, None, self, ElementCreator::ScriptCreated))
+
+        let ns = if self.is_html_document || self.content_type == "application/xhtml+xml" {
+            ns!(html)
+        } else {
+            ns!()
+        };
+
+        let name = QualName::new(None, ns, LocalName::from(local_name));
+        Ok(Element::create(name, self, ElementCreator::ScriptCreated))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createelementns
@@ -2776,8 +2793,8 @@ impl DocumentMethods for Document {
                        -> Fallible<Root<Element>> {
         let (namespace, prefix, local_name) = try!(validate_and_extract(namespace,
                                                                         &qualified_name));
-        let name = QualName::new(namespace, local_name);
-        Ok(Element::create(name, prefix, self, ElementCreator::ScriptCreated))
+        let name = QualName::new(prefix, namespace, local_name);
+        Ok(Element::create(name, self, ElementCreator::ScriptCreated))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createattribute
@@ -3030,8 +3047,8 @@ impl DocumentMethods for Document {
             match elem {
                 Some(elem) => Root::upcast::<Node>(elem),
                 None => {
-                    let name = QualName::new(ns!(svg), local_name!("title"));
-                    let elem = Element::create(name, None, self, ElementCreator::ScriptCreated);
+                    let name = QualName::new(None, ns!(svg), local_name!("title"));
+                    let elem = Element::create(name, self, ElementCreator::ScriptCreated);
                     let parent = root.upcast::<Node>();
                     let child = elem.upcast::<Node>();
                     parent.InsertBefore(child, parent.GetFirstChild().r())
@@ -3047,9 +3064,8 @@ impl DocumentMethods for Document {
                 None => {
                     match self.GetHead() {
                         Some(head) => {
-                            let name = QualName::new(ns!(html), local_name!("title"));
+                            let name = QualName::new(None, ns!(html), local_name!("title"));
                             let elem = Element::create(name,
-                                                       None,
                                                        self,
                                                        ElementCreator::ScriptCreated);
                             head.upcast::<Node>()

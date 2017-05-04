@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html lang="en-US"><head>
+	<title>Table background tests</title>
+	<meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+	<meta content="text/css" http-equiv="Content-Style-Type" />
+	<style type="text/css">
+
+	html, body { margin: 0; padding: 0; border: 0; font-size: 16px; }
+	body { padding: 15px; }
+
+	/*
+	table { 
+		margin: 0px 3px 2px 4px;
+		border-width: 4px 2px 7px 3px;
+
+		border-box height is 145px:
+		  border-top: 4px;
+		  padding-top: 3px
+		  border-spacing: 3px * 6 == 18px
+		  cell * 5: == 21px * 5 == 105px
+		    border-top: 2px;
+		    padding-top: 1px;
+		    height: 10px;
+		    padding-bottom: 4px;
+		    border-bottom: 4px;
+		  padding-bottom: 8px;
+		  border-bottom: 7px;
+
+		border-box width is 325px:
+		  border-left: 3px;
+		  padding-left: 6px
+		  border-spacing: 2px * 6 == 12px
+		  cell * 5: == 59px * 5 == 295px
+		    border-left: 3px;
+		    padding-left: 3px;
+		    width: 50px;
+		    padding-right: 2px;
+		    border-right: 1px;
+		  padding-right: 7px;
+		  border-right: 2px;
+    */
+
+	div { width: 325px; height: 145px; margin: 0px 3px 2px 4px; }
+	div.color { background-color: aqua; }
+
+	div.imagetl, div.imagebr {
+		background-image: url(repeatable-diagonal-gradient-with-ticks.png);
+	}
+
+	div.imagetl { background-position: 3px 4px; }
+	div.imagebr { background-position: 323px 138px; }
+
+	</style>
+</head>
+<body>
+
+<div class="color"></div>
+<div class="imagetl"></div>
+<div class="imagebr"></div>
+
+
+
+</body></html>

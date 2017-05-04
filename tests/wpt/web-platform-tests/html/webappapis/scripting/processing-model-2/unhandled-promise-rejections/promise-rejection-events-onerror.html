@@ -27,9 +27,11 @@ async_test(function(t) {
   };
 
   var p = Promise.reject(e);
-  setTimeout(t.step_func(function() {
-    // This will cause onrejectionhandled
-    p.catch(function() {});
-  }), 1);
+  setTimeout(function() {
+    setTimeout(t.step_func(function() {
+      // This will cause onrejectionhandled
+      p.catch(function() {});
+    }), 0);
+  }, 0);
 }, 'Throwing inside an unhandledrejection handler invokes the error handler.');
 </script>

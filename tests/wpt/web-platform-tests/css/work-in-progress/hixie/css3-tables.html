@@ -1,0 +1,39 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html>
+ <head>
+  <title>Collapsed borders in tables: Relative positioning, opacity, etc.</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/table/border-collapse/collapse/evil/001-demo.html"/>
+    <style type="text/css">
+   .block { margin: 2em; border: 0.2em solid silver; width: 20em; height: 20em; font-size: 20px; }
+   .table { display: table; border-collapse: collapse; border: 0.5em inset blue; height: 100%; width: 100%; text-align: center; }
+   .row { display: table-row; }
+   .cell { display: table-cell; }
+   .a { border: none; background: fuchsia; color: black; -moz-opacity: 0.5; opacity: 0.5; }
+   .b { border: 1em dotted yellow; background: navy; color: white; }
+   .c { border: 3em double orange; background: transparent; color: black; }
+   .d { border: 1em dashed aqua; background: teal; color: white; position: relative; top: 5em; left: 5em; }
+  </style>
+ </head>
+ <body>
+  <div class="block">
+   <div class="table">
+    <div class="row">
+     <div class="cell a"> opacity: 0.5 </div>
+     <div class="cell b"> B </div>
+    </div>
+    <div class="row">
+     <div class="cell c"> C </div>
+     <div class="cell d"> positioned 5em below and to the right of its original position </div>
+    </div>
+   </div>
+  </div>
+
+  <p>The backgrounds shouldn't go over the borders, but should fill
+  their entire cell. Selecting the text shouldn't make it change font.
+  Double borders should be pretty all the way round. The inner edge of
+  the gray line should go through the middle of all the outer
+  borders.</p>
+
+ </body>
+</html>

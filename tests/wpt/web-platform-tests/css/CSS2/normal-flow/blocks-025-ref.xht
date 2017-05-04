@@ -1,0 +1,62 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  body {margin-left: 2em;}
+
+  p
+  {
+  height: 2em;
+  margin: 1em 0;
+  }
+
+  table
+  {
+  background-color: green;
+  border: black solid 4px;
+  border-collapse: collapse;
+  }
+
+  td
+  {
+  height: 80px;
+  padding: 0px;
+  width: 80px;
+  }
+
+  td#top-left
+  {
+  border-bottom: black solid 8px;
+  border-right: black solid 8px;
+  }
+
+  td#bottom-right
+  {
+  border-left: black solid 8px;
+  border-top: black solid 8px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there are 4 green squares making a green square pattern and <strong>no red</strong>.</p>
+
+  <table>
+
+    <tr><td id="top-left"></td><td></td></tr>
+
+    <tr><td></td><td id="bottom-right"></td></tr>
+
+  </table>
+
+ </body>
+</html>

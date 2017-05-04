@@ -2,9 +2,7 @@ The web-platform-tests Project [![IRC chat](https://goo.gl/6nCIks)](http://irc.w
 ==============================
 
 The web-platform-tests Project is a W3C-coordinated attempt to build a
-cross-browser testsuite for the Web-platform stack.  However, for mainly
-historic reasons, the CSS WG testsuite is in a separate repository,
-[csswg-test](https://github.com/w3c/csswg-test). Writing tests in a way
+cross-browser testsuite for the Web-platform stack. Writing tests in a way
 that allows them to be run in all browsers gives browser projects
 confidence that they are shipping software that is compatible with other
 implementations, and that later implementations will be compatible with
@@ -110,41 +108,23 @@ Alternatively, you may also use
 in the Windows 10 Anniversary Update build, then access your windows
 partition from there to launch wptserve.
 
-Test Runner
-===========
-
-There is a test runner that is designed to provide a
-convenient way to run the web-platform-tests in-browser. It will run
-testharness.js tests automatically but requires manual work for
-reftests and manual tests.
-
-The runner can be found at `/tools/runner/index.html` on the local
-server i.e.
-
-```
-http://web-platform.test:8000/tools/runner/index.html
-```
-
-in the default configuration. The first time you use this it has to
-generate a manifest of all tests. This may take some time, so please
-be patient.
-
 Publication
 ===========
 
 The master branch is automatically synced to http://w3c-test.org/.
 
-Pull requests are automatically mirrored to
-http://w3c-test.org/submissions/ a few minutes after someone with merge
-access has added a comment with "LGTM" (or "w3c-test:mirror") to indicate
-the PR has been checked.
+Pull requests are
+[automatically mirrored](http://w3c-test.org/submissions/) except those
+that modify sensitive resources (such as `.py`). The latter require
+someone with merge access to comment with "LGTM" or "w3c-test:mirror" to
+indicate the pull request has been checked.
 
 Finding Things
 ==============
 
-Each top-level directory represents a W3C specification: the name
-matches the shortname used after the canonical address of the said
-specification under http://www.w3.org/TR/ .
+Each top-level directory matches the shortname used by a standard, with
+some exceptions. (Typically the shortname is from the standard's
+corresponding GitHub repository.)
 
 For some of the specifications, the tree under the top-level directory
 represents the sections of the respective documents, using the section
@@ -184,6 +164,14 @@ The way to contribute is just as usual:
 * Run the lint script described below.
 * Commit locally and push that to your repo.
 * Send in a pull request based on the above.
+
+Issues with web-platform-tests
+------------------------------
+
+If you spot an issue with a test and are not comfortable providing a
+pull request per above to fix it, please
+[file a new issue](https://github.com/w3c/web-platform-tests/issues/new).
+Thank you!
 
 Lint tool
 ---------

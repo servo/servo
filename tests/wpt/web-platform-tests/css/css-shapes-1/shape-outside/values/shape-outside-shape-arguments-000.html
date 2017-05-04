@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Shape Outside Basic Shape Arguments</title>
+        <link rel="author" title="Adobe" href="http://html.adobe.com/">
+        <link rel="author" title="Bear Travis" href="mailto:betravis@adobe.com">
+        <link rel="reviewer" title="Alan Stearns" href="mailto:stearns@adobe.com"> <!-- 2014-03-04 -->
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#typedef-basic-shape">
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property">
+        <link rel="help" href="http://www.w3.org/TR/cssom-1/#serializing-css-values">
+        <meta name="assert" content="A basic basic shape can contain any length unit type, or percentage">
+        <meta name="flags" content="dom">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="support/parsing-utils.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script type="text/javascript">
+            // relative units: em, ex, ch, rem, vw, vh, vmin, vmax
+            // fixed units: cm, mm, in, px, pt, pc
+            // percentage unit: %
+            // zero length: 0
+            var basic_shape_args_tests = [
+                {
+                  "name": "0-valued",
+                  "actual": "polygon(nonzero, 0 0)",
+                  "expected_inline": "polygon(0px 0px)",
+                  "expected_computed": "polygon(0px 0px)"
+                },
+                {
+                  "name": "Font relative units",
+                  "actual": "polygon(nonzero, 1em 1ex, 1ch 1rem)",
+                  "expected_inline": "polygon(1em 1ex, 1ch 1rem)",
+                  "expected_computed": "polygon(1em 1ex, 1ch 1rem)" // converted to px by the framework
+                },
+                {
+                  "name": "View relative units",
+                  "actual": "polygon(nonzero, 1vw 1vh, 1vmin 1vmax)",
+                  "expected_inline": "polygon(1vw 1vh, 1vmin 1vmax)",
+                  "expected_computed": "polygon(1vw 1vh, 1vmin 1vmax)" // converted to px by the framework
+                },
+                {
+                  "name": "Fixed units",
+                  "actual": "polygon(nonzero, 1cm 1mm, 1in 1px, 1pt 1pc)",
+                  "expected_inline": "polygon(1cm 1mm, 1in 1px, 1pt 1pc)",
+                  "expected_computed": "polygon(1cm 1mm, 1in 1px, 1pt 1pc)" // converted to px by the framework
+                },
+                {
+                  "name": "Percentage units",
+                  "actual": "polygon(nonzero, 1% 2%)",
+                  "expected_inline": "polygon(1% 2%)",
+                  "expected_computed": "polygon(1% 2%)"
+                }
+            ];
+            generate_tests( ParsingUtils.testInlineStyle,
+                            ParsingUtils.buildTestCases(basic_shape_args_tests, "inline") );
+            generate_tests( ParsingUtils.testComputedStyle,
+                            ParsingUtils.buildTestCases(basic_shape_args_tests, "computed") );
+        </script>
+    </body>
+</html>

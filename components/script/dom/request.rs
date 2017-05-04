@@ -161,7 +161,6 @@ impl Request {
         request.window = window;
         // TODO: `entry settings object` is not implemented in Servo yet.
         request.origin = Origin::Client;
-        request.omit_origin_header = temporary_request.omit_origin_header;
         request.referrer = temporary_request.referrer;
         request.referrer_policy = temporary_request.referrer_policy;
         request.mode = temporary_request.mode;
@@ -187,10 +186,8 @@ impl Request {
                     request.mode = NetTraitsRequestMode::SameOrigin;
                 }
                 // Step 13.2
-                request.omit_origin_header = false;
-                // Step 13.3
                 request.referrer = NetTraitsRequestReferrer::Client;
-                // Step 13.4
+                // Step 13.3
                 request.referrer_policy = None;
             }
 

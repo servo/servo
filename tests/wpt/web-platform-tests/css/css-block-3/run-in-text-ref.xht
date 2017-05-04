@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
+    <link rel="reviewer" title="Microsoft" href="http://www.microsoft.com/" />
+    <style type="text/css">
+      .run-in { font-weight: bold }
+      #target { border: 2px solid black; }
+    </style>
+  </head>
+  <body>
+    <div class="run-in">Run-in header</div>
+    <div>Some text.</div>
+    <div id="target">Start of block.  The run-in header should NOT be inside
+    the border around this block; it should be on a line by itself before the
+    line containing "Some text".</div>
+  </body>
+</html>

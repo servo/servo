@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Reference case for behavior of the 'baseline' value for align-items and
+     align-self when tested against content with an orthogonal writing-mode.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Brad Werth" href="mailto:bwerth@mozilla.com"/>
+    <style>
+      .container {
+        display: flex;
+        border: 1px dashed blue;
+        font: 14px sans-serif;
+        height: 50px;
+      }
+
+      .ortho  { writing-mode: vertical-rl;
+                width: 17px;
+                height: 40px;
+                float: left; }
+      .offset { margin-top: 10px;
+                margin-bottom: 3px; }
+
+      .start  { align-self: flex-start; }
+      .end    { align-self: flex-end; }
+
+      .lime   { background: lime;   }
+      .yellow { background: yellow; }
+      .orange { background: orange; }
+      .pink   { background: pink;   }
+   </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="lime ortho start">ortho</div
+      ><div class="yellow offset start">one line</div
+      ><div class="orange offset start">two<br/>lines</div
+      ><div class="pink offset start">offset</div>
+    </div>
+    <div class="container">
+      <div class="lime ortho end">ortho</div
+      ><div class="yellow offset end">one line</div
+      ><div class="orange offset end">two<br/>lines</div
+      ><div class="pink offset end">offset</div>
+    </div>
+  </body>
+</html>

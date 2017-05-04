@@ -1,0 +1,60 @@
+
+<html>
+
+<title>Third Test of Section 5.5.25 of CSS1 Spec</title>
+
+<style type="text/css">
+img.oval {float: left}
+p {float: right}
+img.flag {float: right}
+#id1 {float: left}
+</style>
+</head>
+
+
+
+<body>
+
+
+
+
+<h1 >Testing Statement #3 Below of Section 5.5.25 of CSS1 Spec</h1>
+
+
+
+
+
+
+<ul>
+<li>
+3. With the value "none", the element will be displayed where it appears in the
+text.  With a value of "left(right)" the element will be moved to the left(right)
+and the text will wrap on the right(left) side of the element.  With a value of
+left or right, the element is treated as block-level.
+</ul>
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+If statement #3 above is passed, then:
+<p>
+<img class=oval src="ovalbbut.gif">
+This inline image should be to the left of this canvas, with the text of
+this paragraph to the right.  The rules applied are: "img.oval {float: left}"
+and "p {float:right}".
+This image is an oval button.
+
+<p ID=id1>
+<img class=flag src="flagbg.gif">
+This flag image above should be to the right of this canvas, and this text
+should be to the left around it.  The rules applied are: "img.flag
+{float: right}" and "#id1 {float: left}".
+
+
+<p>
+All other properties of this page should be UA-default.
+
+
+</body>
+</html>

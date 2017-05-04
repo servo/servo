@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Test: :focus-within selector</title>
+    <link rel="author" title="Ethan Lin" href="mailto:ethlin@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://drafts.csswg.org/selectors-4/#focus-within-pseudo">
+    <meta name="assert" content="Test checks :focus-within should not apply after element removed.">
+    <link rel="match" href="focus-within-2-ref.html">
+    <style type="text/css">
+      div {
+        border: solid 15px green;
+        outline: none;
+      }
+      div:focus-within {
+        border-color: red;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Test passes if, when the element is focused and then removed, the outer element should change to green.</p>
+    <div id="parent">
+      <div id="child" tabindex="1"></div>
+    </div>
+    <script>
+      var child = document.getElementById('child');
+      child.focus();
+      document.body.offsetWidth;
+      var parent = document.getElementById("parent");
+      parent.removeChild(child);
+      document.body.offsetWidth;
+      document.documentElement.classList.remove('reftest-wait');
+    </script>
+  </body>
+</html>

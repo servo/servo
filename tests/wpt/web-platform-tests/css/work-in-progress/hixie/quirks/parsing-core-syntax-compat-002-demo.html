@@ -1,0 +1,16 @@
+<html lang="en">
+ <head>
+  <title>Nested blocks in unexpected places (with no whitespace)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/parsing/core-syntax/compat/002-demo.html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#parsing-errors" />
+  <style type="text/css">
+ p { color : green ; q{color : blue ; }
+ samp { color : red ; }
+  </style>
+ </head>
+ <body>
+  <p>This sentence should be green. Is this quote <q>blue</q>? <samp>Should this should
+  be red?</samp></p>
+ </body>
+</html>

@@ -53,10 +53,11 @@ impl<'a> RecalcStyleAndConstructFlows<'a> {
 impl<'a, E> DomTraversal<E> for RecalcStyleAndConstructFlows<'a>
     where E: TElement,
           E::ConcreteNode: LayoutNode,
+          E::FontMetricsProvider: Send,
 {
     type ThreadLocalContext = ScopedThreadLocalLayoutContext<E>;
 
-    fn process_preorder(&self, traversal_data: &mut PerLevelTraversalData,
+    fn process_preorder(&self, traversal_data: &PerLevelTraversalData,
                         thread_local: &mut Self::ThreadLocalContext, node: E::ConcreteNode) {
         // FIXME(pcwalton): Stop allocating here. Ideally this should just be
         // done by the HTML parser.
@@ -241,7 +242,7 @@ impl<'a> BuildDisplayList<'a> {
         self.state.current_stacking_context_id = flow::base(flow).stacking_context_id;
 
         let parent_scroll_root_id = self.state.current_scroll_root_id;
-        self.state.current_scroll_root_id = flow::base(flow).scroll_root_id;
+        self.state.current_scroll_root_id = flow.scroll_root_id(self.state.layout_context.id);
 
         if self.should_process() {
             flow.build_display_list(&mut self.state);

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Objects 4</title>
+<meta http-equiv="Content-Type" content="text/xml; charset=utf-8" />
+<style type="text/css" media="screen">
+
+ul {
+	display: block;
+	margin: 0;
+	padding-left: 2.5em;
+	width: 40%;
+}
+
+li, h2, p, div{
+	display: block;
+}
+
+h2 {
+	font-size: 1.3em;
+	margin-bottom: 4px;
+	border-bottom: 1px dashed;
+}
+
+div {
+	color: blue;
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+</style>
+
+<script type="text/javascript">
+<![CDATA[
+
+function Site (title, url, description) {
+	this.title = title;
+	this.url = url;
+	this.description = description;
+}
+
+Site.prototype = {
+	getTitle: function () {return this.title;},
+	getUrl: function () {return this.url;},
+	getDescription: function () {return this.description;}
+};
+
+var site = new Site ("CSS Test", "http://www.css-zibaldone.com/test/", "Tests on CSS.");
+
+
+window.onload = function () {
+
+	var body = document.getElementsByTagName("body")[0];
+	var ul = document.createElement("ul");
+	body.appendChild(ul);
+	var li = document.createElement("li");
+	ul.appendChild(li);
+	var h2 = document.createElement("h2");
+	var title = document.createTextNode(site.getTitle());
+	h2.appendChild(title);
+	li.appendChild(h2);
+	var p = document.createElement("p");
+	var description = document.createTextNode(site.getDescription());
+	p.appendChild(description);
+	li.appendChild(p);
+	var div = document.createElement("div");
+	var url = document.createTextNode(site.getUrl());
+	div.appendChild(url);
+	li.appendChild(div);
+};
+
+
+]]>
+
+</script>
+
+</head>
+
+<body>
+
+<p>You should see an heading, a paragraph, and an URL below.</p>
+
+</body>
+</html>

@@ -57,8 +57,20 @@ oninstall = function(e) {
       e.waitUntil(fulfillPromise());
       break;
     case 'install-reject-precedence':
+      // Three "extend lifetime promises" are needed to verify that the user
+      // agent waits for all promises to settle even in the event of rejection.
+      // The first promise is fulfilled on demand by the client, the second is
+      // immediately scheduled for rejection, and the third is fulfilled on
+      // demand by the client (but only after the first promise has been
+      // fulfilled).
+      //
+      // User agents which simply expose `Promise.all` semantics in this case
+      // (by entering the "redundant state" following the rejection of the
+      // second promise but prior to the fulfillment of the third) can be
+      // identified from the client context.
       e.waitUntil(fulfillPromise());
       e.waitUntil(rejectPromise());
+      e.waitUntil(fulfillPromise());
       break;
   }
 };

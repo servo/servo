@@ -81,7 +81,8 @@ interface Element : Node {
 
 // http://dev.w3.org/csswg/cssom-view/#extensions-to-the-element-interface
 partial interface Element {
-  DOMRectList getClientRects();
+  sequence<DOMRect> getClientRects();
+  [NewObject]
   DOMRect getBoundingClientRect();
 
   void scroll(optional ScrollToOptions options);

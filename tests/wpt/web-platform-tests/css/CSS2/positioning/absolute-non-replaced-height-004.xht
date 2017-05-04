@@ -1,0 +1,66 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Absolutely positioned, non-replaced elements, 'margin-top' set to 'auto'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-08-31 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-height" />
+		<link rel="match" href="absolute-non-replaced-height-003-ref.xht" />
+
+        <meta name="flags" content="" />
+        <meta name="assert" content="When 'top', 'bottom', 'height' and 'margin-bottom' of an absolutely positioned, non-replaced element are all not 'auto' while its 'margin-top' is 'auto', then 'margin-top' becomes the remainder of the height of its containing block." />
+        <style type="text/css">
+            #div1
+            {
+                border: solid black;
+                height: 3in;
+                position: relative;
+                width: 3in;
+            }
+            div div
+            {
+                background: blue;
+                bottom: 0.5in;
+                height: 1in;
+                margin-top: auto;
+                margin-bottom: 0.5in;
+                position: absolute;
+                top: 0.5in;
+                width: 100%;
+            }
+
+		/*
+
+		0.5in : top
+	+
+		auto (solve): margin-top
+	+
+		0 : border-top-width
+	+
+		0 : padding-top
+	+
+		1in: height
+	+
+		0 : padding-bottom
+	+
+		0 : border-bottom-width
+	+
+		0.5in : margin-bottom
+	+
+		0.5in : bottom
+	=============
+		3.0in : height of containing block
+
+	So, margin-top must use 0.5in so that the equation gets balanced.
+
+		*/
+
+        </style>
+    </head>
+    <body>
+        <p>Test passes if a blue rectangle is <strong>vertically centered</strong> in an hollow black square.</p>
+        <div id="div1">
+            <div></div>
+        </div>
+    </body>
+</html>

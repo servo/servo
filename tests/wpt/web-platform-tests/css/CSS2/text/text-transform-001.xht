@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Text-transform set to 'capitalize'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#propdef-text-transform" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#caps-prop" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'text-transform' property set to 'capitalize' on an element makes the first character of every word uppercase." />
+        <style type="text/css">
+            #test
+            {
+                text-transform: capitalize;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the two lines of "Filler Text" below have the same (upper/lower) case for each letter.</p>
+        <div>Filler Text Filler Text FILLER TEXT FILLER TEXT FiLlEr TExT</div>
+        <div id="test">filler text Filler Text FILLER TEXT fILLER tEXT FiLlEr tExT</div>
+    </body>
+</html>

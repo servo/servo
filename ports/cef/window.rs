@@ -26,7 +26,7 @@ use euclid::size::{Size2D, TypedSize2D};
 use gleam::gl;
 use msg::constellation_msg::{Key, KeyModifiers};
 use net_traits::net_error_list::NetError;
-use script_traits::DevicePixel;
+use script_traits::{DevicePixel, LoadData};
 use servo_geometry::DeviceIndependentPixel;
 use std::cell::RefCell;
 use std::ffi::CString;
@@ -350,15 +350,15 @@ impl WindowMethods for Window {
         }
     }
 
-    fn load_start(&self, back: bool, forward: bool) {
+    fn load_start(&self) {
         let browser = self.cef_browser.borrow();
         let browser = match *browser {
             None => return,
             Some(ref browser) => browser,
         };
+        let back = browser.downcast().back.get();
+        let forward = browser.downcast().forward.get();
         browser.downcast().loading.set(true);
-        browser.downcast().back.set(back);
-        browser.downcast().forward.set(forward);
         browser.downcast().favicons.borrow_mut().clear();
         if check_ptr_exist!(browser.get_host().get_client(), get_load_handler) &&
            check_ptr_exist!(browser.get_host().get_client().get_load_handler(), on_loading_state_change) {
@@ -369,16 +369,16 @@ impl WindowMethods for Window {
         }
     }
 
-    fn load_end(&self, back: bool, forward: bool, _: bool) {
+    fn load_end(&self) {
         // FIXME(pcwalton): The status code 200 is a lie.
         let browser = self.cef_browser.borrow();
         let browser = match *browser {
             None => return,
             Some(ref browser) => browser,
         };
+        let back = browser.downcast().back.get();
+        let forward = browser.downcast().forward.get();
         browser.downcast().loading.set(false);
-        browser.downcast().back.set(back);
-        browser.downcast().forward.set(forward);
         if check_ptr_exist!(browser.get_host().get_client(), get_load_handler) &&
            check_ptr_exist!(browser.get_host().get_client().get_load_handler(), on_loading_state_change) {
             browser.get_host()
@@ -448,20 +448,21 @@ impl WindowMethods for Window {
         }
     }
 
-    fn set_page_url(&self, url: ServoUrl) {
-        // it seems to be the case that load start is always called
-        // IMMEDIATELY before address change, so just stick it here
-        on_load_start(self);
+    fn history_changed(&self, history: Vec<LoadData>, current: usize) {
         let browser = self.cef_browser.borrow();
         let browser = match *browser {
             None => return,
             Some(ref browser) => browser,
         };
+
+        let can_go_back = current > 0;
+        let can_go_forward = current < history.len() - 1;
+
+        browser.downcast().back.set(can_go_back);
+        browser.downcast().forward.set(can_go_forward);
         let frame = browser.get_main_frame();
-        let servoframe = frame.downcast();
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let mut frame_url = servoframe.url.borrow_mut();
-        *frame_url = url.into_string();
+        let mut frame_url = frame.downcast().url.borrow_mut();
+        *frame_url = history[current].url.to_string();
         let utf16_chars: Vec<u16> = frame_url.encode_utf16().collect();
         if check_ptr_exist!(browser.get_host().get_client(), get_display_handler) &&
            check_ptr_exist!(browser.get_host().get_client().get_display_handler(), on_address_change) {
@@ -513,21 +514,6 @@ impl CompositorProxy for CefCompositorProxy {
         box CefCompositorProxy {
             sender: self.sender.clone(),
         } as Box<CompositorProxy+Send>
-    }
-}
-
-fn on_load_start(window: &Window) {
-    let browser = window.cef_browser.borrow();
-    let browser = match *browser {
-        None => return,
-        Some(ref browser) => browser,
-    };
-    if check_ptr_exist!(browser.get_host().get_client(), get_load_handler) &&
-       check_ptr_exist!(browser.get_host().get_client().get_load_handler(), on_load_start) {
-        browser.get_host()
-               .get_client()
-               .get_load_handler()
-               .on_load_start((*browser).clone(), browser.get_main_frame());
     }
 }
 

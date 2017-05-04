@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Absolute Positioning: width: 2em with block width:100%</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-14 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/absolute/width/004.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-width" />
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+  <style type="text/css">
+   .test { width: 2em; height: 2em; padding: 2em; border: green solid 2px; background: red; position: relative; }
+   .test div { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: green; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <div class="test">
+   <div> </div>
+  </div>
+ </body>
+</html>

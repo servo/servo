@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Grid Layout Test: 'z-index' property controls the grid items stacking order</title>
+        <link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com" />
+        <link rel="help" href="http://www.w3.org/TR/css-grid-1/#z-order" title="4.4. Z-axis Ordering: the z-index property" />
+        <link rel="match" href="../reference/grid-filled-blue-yellow-green-overlapped-100px-squares.xht" />
+        <meta name="flags" content="ahem" />
+        <style type="text/css"><![CDATA[
+            #grid {
+                display: grid;
+                font: 100px/1 Ahem;
+                grid-template-columns: 25px 25px 25px 25px;
+                grid-template-rows: 25px 25px 25px 25px;
+            }
+
+            #blue {
+                color: blue;
+                z-index: -1;
+                grid-column: 1;
+                grid-row: 1;
+            }
+
+            #yellow {
+                color: yellow;
+                grid-column: 2;
+                grid-row: 2;
+            }
+
+            #green {
+                color: green;
+                z-index: 1;
+                grid-column: 3;
+                grid-row: 3;
+            }
+        ]]></style>
+    </head>
+    <body>
+        <p>Test passes if there are 3 filled squares with the same size, and <strong>green</strong> is overlapping <strong>yellow</strong> which is overlapping <strong>blue</strong>.</p>
+
+        <div id="grid">
+            <div id="green">G</div>
+            <div id="yellow">Y</div>
+            <div id="blue">B</div>
+        </div>
+    </body>
+</html>

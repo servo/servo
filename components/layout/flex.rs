@@ -21,7 +21,6 @@ use model::{IntrinsicISizes, MaybeAuto, SizeConstraint};
 use model::{specified, specified_or_none};
 use std::cmp::{max, min};
 use std::ops::Range;
-use std::sync::Arc;
 use style::computed_values::{align_content, align_self, flex_direction, flex_wrap, justify_content};
 use style::computed_values::border_collapse;
 use style::logical_geometry::{Direction, LogicalSize};
@@ -53,9 +52,9 @@ impl AxisSize {
                 }
             }
             LengthOrPercentageOrAuto::Calc(calc) => {
-                match content_size {
-                    Some(size) => AxisSize::Definite(size.scale_by(calc.percentage())),
-                    None => AxisSize::Infinite
+                match calc.to_computed(content_size) {
+                    Some(length) => AxisSize::Definite(length),
+                    None => AxisSize::Infinite,
                 }
             }
             LengthOrPercentageOrAuto::Auto => {
@@ -79,10 +78,8 @@ fn from_flex_basis(flex_basis: LengthOrPercentageOrAutoOrContent,
             MaybeAuto::Specified(size.scale_by(percent)),
         (LengthOrPercentageOrAutoOrContent::Percentage(_), None) =>
             MaybeAuto::Auto,
-        (LengthOrPercentageOrAutoOrContent::Calc(calc), Some(size)) =>
-            MaybeAuto::Specified(calc.length() + size.scale_by(calc.percentage())),
-        (LengthOrPercentageOrAutoOrContent::Calc(_), None) =>
-            MaybeAuto::Auto,
+        (LengthOrPercentageOrAutoOrContent::Calc(calc), _) =>
+            MaybeAuto::from_option(calc.to_computed(containing_length)),
         (LengthOrPercentageOrAutoOrContent::Content, _) =>
             MaybeAuto::Auto,
         (LengthOrPercentageOrAutoOrContent::Auto, Some(size)) =>
@@ -972,7 +969,7 @@ impl Flow for FlexFlow {
         self.block_flow.collect_stacking_contexts(state);
     }
 
-    fn repair_style(&mut self, new_style: &Arc<ServoComputedValues>) {
+    fn repair_style(&mut self, new_style: &::StyleArc<ServoComputedValues>) {
         self.block_flow.repair_style(new_style)
     }
 

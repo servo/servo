@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head>
+    <title>CSS Test: generated content</title>
+    <link rel="author" title="Robert O'Callahan" href="mailto:robert@ocallahan.org" />
+    <link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+    <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#before-after-content" />
+    <link rel="match" href="before-after-floated-001-ref.xht"/>
+    <meta name="flags" content="" />
+<style type="text/css">
+div { counter-reset:ctr; quotes:"\0022" "\0022" "\0022" "\0022"; }
+
+div:before {
+  content:counter(ctr) url(support/square-outline-32x32.png) open-quote "Before " attr(class);
+  counter-increment:ctr;
+}
+div:after {
+  content:counter(ctr) url(support/square-outline-32x32.png) "After " attr(class) close-quote;
+  counter-increment:ctr;
+}
+
+.beforeleft:before {
+  float:left;
+}
+.beforeright:before {
+  float:right;
+}
+.afterleft:after {
+  float:left;
+}
+.afterright:after {
+  float:right;
+}
+
+div { border:1px solid green; margin:5px; }
+div { overflow:auto; }
+</style>
+</head>
+<body>
+<div class="beforeleft afterleft">Inner</div>
+<div class="beforeleft afterright">Inner</div>
+<div class="beforeright afterleft">Inner</div>
+<div class="beforeright afterright">Inner</div>
+
+
+</body></html>

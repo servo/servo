@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+
+<meta charset="utf-8">
+<title>Creating a receiving browsing context</title>
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs/">
+<link rel="help" href="https://w3c.github.io/presentation-api/#creating-a-receiving-browsing-context">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<p id="notice">Checking <code id="modal"></code>: if you see this message, please wait for test to time out.</p>
+
+<script>
+add_completion_callback((tests, status) => {
+    // remove unserializable attributes, then send the result to the parent window
+    // note: a single test result is supposed to appear here.
+    window.parent.postMessage(JSON.parse(JSON.stringify({
+        type: 'presentation-api', test: tests[0], status: status
+    })), location.origin);
+});
+
+window.addEventListener('message', event => {
+    if(event.data !== 'start')
+        return;
+
+    promise_test(t => {
+        const notice = document.getElementById('notice');
+        const modal = document.getElementById('modal');
+
+        // Presentation and PresentationReceiver
+        assert_true(navigator.presentation instanceof Presentation, 'navigator.presentation in a nested browsing context is an instanceof Presentation.');
+        assert_equals(navigator.presentation.receiver, null, 'navigator.presentation.receiver in a nested browsing context is set to null.');
+
+        // Session history
+        assert_equals(window.history.length, 1, 'Session history consists of the current page only.');
+
+        // The Sandboxed auxiliary navigation browsing context flag (codes below are expected to be ignored)
+        assert_equals(window.open('./idlharness_receiving-ua.html'), null, 'Sandboxed auxiliary navigation browsing context flag is set.');
+
+        // The sandboxed modals flag (codes below are expected to be ignored):
+        // If user agent prompts user, a timeout will occur and the test will eventually fail
+        let message = 'If you see this prompt, do not dismiss it and wait for test to time out.';
+        notice.style.display = 'block';
+        modal.textContent = 'alert()';
+        alert(message);
+        modal.textContent = 'confirm()';
+        confirm(message);
+        modal.textContent = 'print()';
+        //print();
+        modal.textContent = 'prompt()';
+        prompt(message);
+        notice.style.display = 'none';
+
+        // Permissions
+        const checkPermission = query => {
+            return navigator.permissions ? navigator.permissions.query(query).then(status => {
+                assert_equals(status.state, 'denied', 'The state of the "' + query.name + '" permission in a nested browsing context is set to "denied".');
+            }, () => { /* skip this assertion if the specified permission is not implemented */ }) : Promise.resolve();
+        };
+
+        // Cookie
+        assert_equals(document.cookie, 'PresentationApiTest=Receiving-UA', 'A cookie store is shared by top-level and nested browsing contexts.');
+
+        // Indexed Database
+        let db;
+        const checkIndexedDB = () => {
+            if ('indexedDB' in window) {
+                message = 'Indexed Database is shared by top-level and nested browsing contexts.';
+                let req = indexedDB.open('db-presentation-api', 1), store;
+                let eventWatcher = new EventWatcher(t, req, 'success');
+                return eventWatcher.wait_for('success').then(() => {
+                    db = req.result;
+                    const transaction = db.transaction('store-controlling-ua', 'readwrite');
+                    store = transaction.objectStore('store-controlling-ua');
+                    req = store.openCursor();
+                    eventWatcher = new EventWatcher(t, req, 'success');
+                    return eventWatcher.wait_for('success');
+                }).then(() => {
+                    assert_true(req.result instanceof IDBCursorWithValue, message);
+                    const cursor = req.result;
+                    const item = cursor.value;
+                    assert_equals(item.id, 'parent', message);
+                    assert_equals(item.data, 'receiving user agent', message);
+                    cursor.continue();
+                    return eventWatcher.wait_for('success');
+                }).then(() => {
+                    assert_equals(req.result, null, message);
+                    req = store.put({ id: 'child', data: 'nested browsing context' });
+                    eventWatcher = new EventWatcher(t, req, 'success');
+                    return eventWatcher.wait_for('success');
+                }).then(() => {
+                    db.close();
+                    db = null;
+                });
+            }
+            else
+                return Promise.resolve();
+        };
+
+        // Web Storage
+        assert_equals(sessionStorage.length, 1, 'Session storage is shared by top-level and nested browsing contexts.');
+        assert_equals(sessionStorage.getItem('presentation_api_test'), 'receiving-ua', 'Session storage is shared by top-level and nested browsing contexts.');
+        assert_equals(localStorage.length, 1, 'Local storage is shared by top-level and nested browsing contexts.');
+        assert_equals(localStorage.getItem('presentation_api_test'), 'receiving-ua', 'Local storage is shared by top-level and nested browsing contexts.');
+
+        // Service Workers
+        const checkServiceWorkers = () => {
+            return 'serviceWorker' in navigator ? navigator.serviceWorker.getRegistrations().then(registrations => {
+                message = 'List of registered service worker registrations is shared by top-level and nested browsing contexts.';
+                assert_equals(registrations.length, 1, message);
+                assert_equals(registrations[0].active.scriptURL, new Request('../serviceworker.js').url, message);
+            }) : Promise.resolve();
+        };
+        const checkCaches = () => {
+            message = 'Cache storage is shared by top-level and nested browsing contexts.';
+            return 'caches' in window ? caches.keys().then(keys => {
+                assert_equals(keys.length, 1, message);
+                assert_equals(keys[0], 'receiving-ua', message);
+                return caches.open(keys[0]);
+            }).then(cache => cache.matchAll())
+            .then(responses => {
+                assert_equals(responses.length, 1, message);
+                assert_equals(responses[0].url, new Request('../cache.txt').url, message);
+            }) : Promise.resolve();
+        };
+
+        // Update storages and service workers shared with the top-level brosing context
+        document.cookie = 'NestedBrowsingContext=True';
+        sessionStorage.setItem('nested_browsing_context', 'yes');
+        localStorage.setItem('nested_browsing_context', 'yes');
+
+        // register a service worker with different scope from that of the top-level browsing context
+        const registerServiceWorker = () => {
+            return 'serviceWorker' in navigator ?
+                navigator.serviceWorker.register('serviceworker.js').then(registration => {
+                    return new Promise((resolve, reject) => {
+                        if (registration.installing) {
+                            registration.installing.addEventListener('statechange', event => {
+                                if(event.target.state === 'installed')
+                                    resolve();
+                            });
+                        }
+                        else
+                            resolve();
+                    });
+                }) : Promise.resolve();
+        };
+
+        const openCaches = () => {
+            return 'caches' in window
+                ? caches.open('nested-browsing-context').then(cache => cache.add('../cache.txt')) : Promise.resolve();
+        };
+
+        // Asynchronous tests
+        const permissionList = [
+            { name: 'geolocation' },
+            { name: 'notifications' },
+            { name: 'push', userVisibleOnly: true },
+            { name: 'midi' },
+            { name: 'camera' },
+            { name: 'microphone' },
+            { name: 'speaker' },
+            { name: 'background-sync' }
+        ];
+        return Promise.all(permissionList.map(perm => { return checkPermission(perm); }))
+            .then(checkIndexedDB)
+            .then(checkServiceWorkers)
+            .then(checkCaches)
+            .then(registerServiceWorker)
+            .then(openCaches);
+    });
+});
+</script>

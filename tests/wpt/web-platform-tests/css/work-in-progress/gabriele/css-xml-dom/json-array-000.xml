@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>JSON array 1</title>
+<meta http-equiv="Content-Type" content="text/xml; charset=utf-8" />
+<style type="text/css" media="screen">
+table {
+	display: table;
+	border: 1px solid;
+	border-collapse: collapse;
+	width: 400px;
+}
+
+tr {
+	display: table-row;
+}
+
+td {
+	display: table-cell;
+	border: 1px solid;
+	padding: 0.3em;
+	width: 200px;
+}
+
+</style>
+
+<script type="text/javascript">
+<![CDATA[
+
+var jsArray = new Array();
+jsArray[0] = {title: "Foo ", content: "Bar ", description: "Baz "};
+jsArray[1] = {title: "Boo ", content: "Bah ", description: "Dah "};
+
+window.onload = function() {
+	var table = document.createElement("table");
+	var body = document.getElementsByTagName("body")[0];
+	var tr = document.createElement("tr");
+	table.appendChild(tr);
+	for (var i=0; i<jsArray.length; i++) {
+		var td = document.createElement("td");
+		var data = document.createTextNode(jsArray[i].title + jsArray[i].content + jsArray[i].description);
+		td.appendChild(data);
+		tr.appendChild(td);
+	}
+	body.appendChild(table);
+};
+
+
+]]>
+
+</script>
+
+</head>
+
+<body>
+
+<p>You should a table with one row and two cells and some text inside.
+Both table and cells should have a one-pixel black border.</p>
+
+</body>
+</html>

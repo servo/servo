@@ -1,0 +1,156 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: Min/Max Height and Width Constraints on Replaced Elements with Box-Sizing</title>
+    <link href="http://fantasai.inkedblade.net/contact" title="Elika J. Etemad" rel="author"></link>
+    <link href="mailto:sjohnson@mozilla.com" title="Scott Johnson" rel="author"></link>
+    <link rel="help" href="http://www.w3.org/TR/css3-ui/#box-sizing" />
+    <link rel="match" href="box-sizing-replaced-003-ref.xht" />
+    <meta content="image" name="flags"></meta>
+    <meta name="assert" content="All images should be sized at 75px x 75px." />
+    <!--
+      This test is derived from replaced-min-max-001, part of the W3C CSS 2.1
+      test suite.
+    -->
+    <style type="text/css">
+      p {
+        display: inline-block;
+        background-color: white;
+        padding: 0px 0px;
+        margin: 0px 0px;
+      }
+
+      .content-box {
+        box-sizing: content-box;
+      }
+
+      #img1 {
+        min-width:   60px;
+        max-width:  125px;
+        min-height:  45px;
+        max-height: 120px;
+      }
+
+      #img2 {
+        max-width:  75px;
+        min-height: 60px;
+      }
+
+      #img3 {
+        max-width:  75px;
+        min-height: 75px;
+      }
+
+      #img4 {
+        min-width:   75px;
+        max-height: 100px;
+      }
+
+      #img5 {
+        min-width:   75px;
+        max-height:  75px;
+      }
+
+      #img6 {
+        min-width:  60px;
+        max-height: 75px;
+      }
+
+      #img7 {
+        min-width:  75px;
+        max-height: 75px;
+      }
+
+      #img8 {
+        max-width: 100px;
+        min-height: 75px;
+      }
+
+      #img9 {
+        max-width:  75px;
+        min-height: 75px;
+      }
+
+      #img10 {
+        min-width:  75px;
+        max-width: 150px;
+        max-height: 75px;
+      }
+
+      #img11 {
+        min-width:  25px;
+        max-width: 225px;
+        max-height: 75px;
+      }
+
+      #img12 {
+        max-width:   75px;
+        min-height:  75px;
+        max-height: 150px;
+      }
+
+      #img13 {
+        max-width:   75px;
+        min-height:  25px;
+        max-height: 225px;
+      }
+
+      #img14 {
+        min-width:   50px;
+        max-width:  100px;
+        min-height:  75px;
+      }
+
+      #img15 {
+        min-width:   55px;
+        max-width:   75px;
+        min-height:  75px;
+      }
+
+      #img16 {
+        min-width:   75px;
+        min-height:  50px;
+        max-height: 100px;
+      }
+
+      #img17 {
+        min-width:  75px;
+        min-height: 55px;
+        max-height: 75px;
+      }
+
+      #img18 {
+        min-width:  75px;
+        max-height: 75px;
+      }
+
+      #img19 {
+        max-width:  75px;
+        min-height: 75px;
+      }
+    </style>
+  </head>
+  <body>
+    <div>All rectangles should be the same size.</div>
+    <p><img id="img0" class="content-box" src="support/replaced-min-max.png" alt="FAIL" title="Test 0"></img></p>
+    <p><img id="img1" class="content-box" title="Test 1" alt="FAIL" src="support/replaced-min-max-1.png"></img></p>
+    <p><img id="img2" class="content-box" title="Test 2" alt="FAIL" src="support/replaced-min-max-2.png"></img></p>
+    <p><img id="img3" class="content-box" title="Test 3" alt="FAIL" src="support/replaced-min-max-3.png"></img></p>
+    <p><img id="img4" class="content-box" title="Test 4" alt="FAIL" src="support/replaced-min-max-4.png"></img></p>
+    <p><img id="img5" class="content-box" title="Test 5" alt="FAIL" src="support/replaced-min-max-5.png"></img></p>
+    <p><img id="img6" class="content-box" title="Test 6" alt="FAIL" src="support/replaced-min-max-6.png"></img></p>
+    <p><img id="img7" class="content-box" title="Test 7" alt="FAIL" src="support/replaced-min-max-7.png"></img></p>
+    <p><img id="img8" class="content-box" title="Test 8" alt="FAIL" src="support/replaced-min-max-8.png"></img></p>
+    <p><img id="img9" class="content-box" title="Test 9" alt="FAIL" src="support/replaced-min-max-9.png"></img></p>
+    <p><img id="img10" class="content-box" title="Test 10" alt="FAIL" src="support/replaced-min-max-10.png"></img></p>
+    <p><img id="img11" class="content-box" title="Test 11" alt="FAIL" src="support/replaced-min-max-11.png"></img></p>
+    <p><img id="img12" class="content-box" title="Test 12" alt="FAIL" src="support/replaced-min-max-12.png"></img></p>
+    <p><img id="img13" class="content-box" title="Test 13" alt="FAIL" src="support/replaced-min-max-13.png"></img></p>
+    <p><img id="img14" class="content-box" title="Test 14" alt="FAIL" src="support/replaced-min-max-14.png"></img></p>
+    <p><img id="img15" class="content-box" title="Test 15" alt="FAIL" src="support/replaced-min-max-15.png"></img></p>
+    <p><img id="img16" class="content-box" title="Test 16" alt="FAIL" src="support/replaced-min-max-16.png"></img></p>
+    <p><img id="img17" class="content-box" title="Test 17" alt="FAIL" src="support/replaced-min-max-17.png"></img></p>
+    <p><img id="img18" class="content-box" title="Test 18" alt="FAIL" src="support/replaced-min-max-18.png"></img></p>
+    <p><img id="img19" class="content-box" title="Test 19" alt="FAIL" src="support/replaced-min-max-19.png"></img></p>
+  </body>
+</html>

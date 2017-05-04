@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page properties: width/ height do not affect the page box</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#page-properties"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content="The 'width' and 'height' properties do not apply to the page box."/>
+<style type="text/css">
+	@page { 
+		margin: 1in;
+   		width: 1in;
+		height: 1in;
+		border: 2pt solid black;
+	}
+
+</style>
+</head>
+<body>
+	<div>This contents of this page should appear in a black box. On paper larger than 2&quot; x 2&quot;, the box should be 1in away from the edge of the paper on all sides.</div>
+</body>
+</html>

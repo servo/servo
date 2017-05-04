@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Regions: fixed sized region inside an auto height flexbox</title>
+		<link rel="author" title="Catalin Badea" href="mailto:badea@adobe.com">
+		<style>
+			.content {
+				font-family: Ahem;
+				font-size: 20px;
+				line-height: 1em;
+				color: green;
+			}
+			.region {
+				width: 100px;
+				height: 100px;
+				background-color: red;
+			}
+			.flex {
+				display: flex;
+				width: 150px;
+				background-color: gray;
+			}
+		</style>
+	</head>
+	<body>
+		<ul>
+			<li>Test passes if you see a green square inside a gray rectangle.</li>
+			<li>You shouldn't see any red.</li>
+		</ul>
+		<div class="flex">
+			<div class="region">
+				<div class="content">
+					XXXXX<br>
+					XXXXX<br>
+					XXXXX<br>
+					XXXXX<br>
+					XXXXX
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

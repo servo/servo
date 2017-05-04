@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: First-line and allowed properties</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-line-pseudo" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="First-line allows letter-spacing, text-decoration, text-transform and line-height properties." />
+        <style type="text/css">
+            #div1:first-line, #div2
+            {
+                font: 24px sans-serif;
+                color: gray;
+                letter-spacing: 5px;
+                text-decoration: underline;
+                text-transform: capitalize;
+                line-height: 48px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the two lines of text below look identical.</p>
+        <div id="div1">filler text filler text filler text</div>
+        <div id="div2">Filler Text Filler Text Filler Text</div>
+    </body>
+</html>

@@ -6,15 +6,14 @@
 
 //! The rule tree.
 
-use arc_ptr_eq;
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
 use properties::{Importance, PropertyDeclarationBlock};
 use shared_lock::{Locked, StylesheetGuards, SharedRwLockReadGuard};
 use std::io::{self, Write};
 use std::ptr;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
+use stylearc::Arc;
 use stylesheets::StyleRule;
 use thread_state;
 
@@ -65,8 +64,8 @@ impl StyleSource {
     fn ptr_equals(&self, other: &Self) -> bool {
         use self::StyleSource::*;
         match (self, other) {
-            (&Style(ref one), &Style(ref other)) => arc_ptr_eq(one, other),
-            (&Declarations(ref one), &Declarations(ref other)) => arc_ptr_eq(one, other),
+            (&Style(ref one), &Style(ref other)) => Arc::ptr_eq(one, other),
+            (&Declarations(ref one), &Declarations(ref other)) => Arc::ptr_eq(one, other),
             _ => false,
         }
     }
@@ -203,7 +202,7 @@ impl RuleTree {
                 // so let's skip it for now.
                 let is_here_already = match current.get().source.as_ref() {
                     Some(&StyleSource::Declarations(ref already_here)) => {
-                        arc_ptr_eq(pdb, already_here)
+                        Arc::ptr_eq(pdb, already_here)
                     },
                     _ => unreachable!("Replacing non-declarations style?"),
                 };
@@ -254,19 +253,19 @@ impl RuleTree {
         path.parent().unwrap().clone()
     }
 
-    /// Returns new rule node without Animations and Transitions level rules.
-    pub fn remove_animation_and_transition_rules(&self, path: &StrongRuleNode) -> StrongRuleNode {
-        // Return a clone if there is neither animation nor transition level.
+    /// Returns new rule node without rules from declarative animations.
+    pub fn remove_animation_rules(&self, path: &StrongRuleNode) -> StrongRuleNode {
+        // Return a clone if there are no animation rules.
         if !path.has_animation_or_transition_rules() {
             return path.clone();
         }
 
-        let iter = path.self_and_ancestors().take_while(|node| node.cascade_level() >= CascadeLevel::Animations);
+        let iter = path.self_and_ancestors().take_while(
+            |node| node.cascade_level() >= CascadeLevel::SMILOverride);
         let mut last = path;
         let mut children = vec![];
         for node in iter {
-            if node.cascade_level() != CascadeLevel::Animations &&
-               node.cascade_level() != CascadeLevel::Transitions {
+            if node.cascade_level().is_animation() {
                 children.push((node.get().source.clone().unwrap(), node.cascade_level()));
             }
             last = node;
@@ -301,6 +300,8 @@ pub enum CascadeLevel {
     AuthorNormal,
     /// Style attribute normal rules.
     StyleAttributeNormal,
+    /// SVG SMIL animations.
+    SMILOverride,
     /// CSS animations and script-generated animations.
     Animations,
     /// Author-supplied important rules.
@@ -333,6 +334,7 @@ impl CascadeLevel {
         match *self {
             CascadeLevel::Transitions |
             CascadeLevel::Animations |
+            CascadeLevel::SMILOverride |
             CascadeLevel::StyleAttributeNormal |
             CascadeLevel::StyleAttributeImportant => true,
             _ => false,
@@ -360,6 +362,17 @@ impl CascadeLevel {
             Importance::Important
         } else {
             Importance::Normal
+        }
+    }
+
+    /// Returns whether this cascade level represents an animation rules.
+    #[inline]
+    pub fn is_animation(&self) -> bool {
+        match *self {
+            CascadeLevel::SMILOverride |
+            CascadeLevel::Animations |
+            CascadeLevel::Transitions => true,
+            _ => false,
         }
     }
 }
@@ -780,8 +793,8 @@ impl StrongRuleNode {
     /// Returns true if there is either animation or transition level rule.
     pub fn has_animation_or_transition_rules(&self) -> bool {
         self.self_and_ancestors()
-            .take_while(|node| node.cascade_level() >= CascadeLevel::Animations)
-            .any(|node| matches!(node.cascade_level(), CascadeLevel::Animations | CascadeLevel::Transitions))
+            .take_while(|node| node.cascade_level() >= CascadeLevel::SMILOverride)
+            .any(|node| node.cascade_level().is_animation())
     }
 }
 

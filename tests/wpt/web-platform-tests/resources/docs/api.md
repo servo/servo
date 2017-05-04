@@ -522,6 +522,63 @@ object. These objects are structured as follows:
  * result - `{ type: "result", test: Test }`
  * complete - `{ type: "complete", tests: [Test, ...], status: TestsStatus }`
 
+## Consolidating tests from other documents ##
+
+`fetch_tests_from_window` will aggregate tests from separate windows or iframes
+into the current document as if they were all part of the same test suite. The
+document of the second window (or iframe) should include `testharness.js`, but
+not `testharnessreport.js`, and use `test`, `async_test`, and `promise_test` in
+the usual manner.
+
+The current test suite will not report completion until
+all fetched tests are complete, and errors in the child contexts will result in
+failures for the suite in the current context.
+
+Here's an example that uses `window.open`.
+
+`child.html`:
+
+```html
+<!DOCTYPE html>
+<html>
+<title>Child context test(s)</title>
+<head>
+  <script src="/resources/testharness.js"></script>
+</head>
+<body>
+  <div id="log"></div>
+  <script>
+    test(function(t) {
+      assert_true(true, "true is true");
+    }, "Simple test");
+  </script>
+</body>
+</html>
+```
+
+`test.html`:
+
+```html
+<!DOCTYPE html>
+<html>
+<title>Primary test context</title>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div id="log"></div>
+  <script>
+    var child_window = window.open("child.html");
+    fetch_tests_from_window(child_window);
+  </script>
+</body>
+</html>
+```
+
+The argument to `fetch_tests_from_window` is any [`Window`](https://html.spec.whatwg.org/multipage/browsers.html#the-window-object)
+capable of accessing the browsing context as either an ancestor or opener.
+
 ## Web Workers ##
 
 The `testharness.js` script can be used from within [dedicated workers, shared

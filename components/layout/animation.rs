@@ -13,6 +13,7 @@ use script_traits::{AnimationState, ConstellationControlMsg, LayoutMsg as Conste
 use std::collections::HashMap;
 use std::sync::mpsc::Receiver;
 use style::animation::{Animation, update_style_for_animation};
+use style::font_metrics::ServoMetricsProvider;
 use style::selector_parser::RestyleDamage;
 use style::timer::Timer;
 
@@ -143,7 +144,8 @@ pub fn recalc_style_for_animations(context: &LayoutContext,
                 let old_style = fragment.style.clone();
                 update_style_for_animation(&context.style_context,
                                            animation,
-                                           &mut fragment.style);
+                                           &mut fragment.style,
+                                           &ServoMetricsProvider);
                 damage |= RestyleDamage::compute(&old_style, &fragment.style);
             }
         }

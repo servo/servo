@@ -45,7 +45,8 @@ async_test(function(t) {
     .then(function(f) {
         frame = f;
         return frame.contentWindow.navigator.serviceWorker.register(
-            worker_url, { scope: scope });
+            'empty-worker.js',
+            { scope: 'scope/subsequent-register-from-different-iframe' });
       })
     .then(function(new_registration) {
         assert_not_equals(

@@ -22,12 +22,12 @@ use ipc_channel::router::ROUTER;
 use net_traits::{FetchResponseListener, FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
 use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
-use script_layout_interface::message::Msg;
 use servo_url::ServoUrl;
 use std::mem;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 use style::media_queries::MediaList;
 use style::shared_lock::Locked as StyleLocked;
+use style::stylearc::Arc;
 use style::stylesheets::{ImportRule, Stylesheet, Origin};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 
@@ -145,15 +145,14 @@ impl FetchResponseListener for StylesheetContext {
                                                             media.take().unwrap(),
                                                             shared_lock,
                                                             Some(&loader),
-                                                            win.css_error_reporter()));
+                                                            win.css_error_reporter(),
+                                                            document.quirks_mode()));
 
                         if link.is_alternate() {
                             sheet.set_disabled(true);
                         }
 
-                        link.set_stylesheet(sheet.clone());
-
-                        win.layout_chan().send(Msg::AddStylesheet(sheet)).unwrap();
+                        link.set_stylesheet(sheet);
                     }
                 }
                 StylesheetContextSource::Import(ref stylesheet) => {
@@ -209,7 +208,7 @@ impl<'a> StylesheetLoader<'a> {
         let document = document_from_node(self.elem);
         let gen = self.elem.downcast::<HTMLLinkElement>()
                            .map(HTMLLinkElement::get_request_generation_id);
-        let context = Arc::new(Mutex::new(StylesheetContext {
+        let context = ::std::sync::Arc::new(Mutex::new(StylesheetContext {
             elem: Trusted::new(&*self.elem),
             source: source,
             url: url.clone(),
@@ -271,15 +270,15 @@ impl<'a> StylesheetLoader<'a> {
 impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
     fn request_stylesheet(
         &self,
-        media: MediaList,
-        make_import: &mut FnMut(MediaList) -> ImportRule,
+        media: Arc<StyleLocked<MediaList>>,
+        make_import: &mut FnMut(Arc<StyleLocked<MediaList>>) -> ImportRule,
         make_arc: &mut FnMut(ImportRule) -> Arc<StyleLocked<ImportRule>>,
     ) -> Arc<StyleLocked<ImportRule>> {
         let import = make_import(media);
         let url = import.url.url().expect("Invalid urls shouldn't enter the loader").clone();
 
-        //TODO (mrnayak) : Whether we should use the original loader's CORS setting?
-        //Fix this when spec has more details.
+        // TODO (mrnayak) : Whether we should use the original loader's CORS
+        // setting? Fix this when spec has more details.
         let source = StylesheetContextSource::Import(import.stylesheet.clone());
         self.load(source, url, None, "".to_owned());
 

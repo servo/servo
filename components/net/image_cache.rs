@@ -91,6 +91,7 @@ fn is_image_opaque(format: webrender_traits::ImageFormat, bytes: &[u8]) -> bool 
             is_opaque
         }
         webrender_traits::ImageFormat::RGB8 => true,
+        webrender_traits::ImageFormat::RG8 => true,
         webrender_traits::ImageFormat::A8 => false,
         webrender_traits::ImageFormat::Invalid | webrender_traits::ImageFormat::RGBAF32 => unreachable!(),
     }

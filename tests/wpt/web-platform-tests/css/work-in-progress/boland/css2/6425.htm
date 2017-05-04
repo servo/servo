@@ -1,0 +1,43 @@
+
+<HTML>
+<HEAD>
+<TITLE>25th Test of Section 6.4 of CSS2 Spec</TITLE>
+
+
+<STYLE TYPE="text/css">
+
+* {color: red}
+ul li {color: green}
+ul ol li {color: yellow}
+</style>
+</head>
+
+
+
+<BODY>
+
+<h1 >Testing Statement #25 Below of Section 6.4 of CSS1 Spec</h1>
+
+
+
+<ul>
+<li >
+25. Concatenating the three numbers a-b-c gives the specificity.
+
+<h2 >PASS CRITERIA:
+</h2>
+<p>
+If statement #25 above is passed, 
+then everything on this page should be red (except for more specific
+selectors), because of rule
+"* {color: red}".
+<ol><li style="color: blue">This item should be blue because of inline rule
+"li {color: blue}"</li></ol>
+<ul><li>This item should be green because of rule
+"ul li {color: green}"</li></ul>
+<ul><ol><li>This item should be yellow because of rule
+"ul ol li {color: yellow}"</ol></ul>
+<p>
+All other properties of this page should be UA-default.
+</BODY>
+</HTML>

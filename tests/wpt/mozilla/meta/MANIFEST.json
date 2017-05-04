@@ -1211,6 +1211,18 @@
      {}
     ]
    ],
+   "css/bug-1361013-cousin-sharing.html": [
+    [
+     "/_mozilla/css/bug-1361013-cousin-sharing.html",
+     [
+      [
+       "/_mozilla/css/bug-1361013-cousin-sharing-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/button_css_width.html": [
     [
      "/_mozilla/css/button_css_width.html",
@@ -1445,6 +1457,18 @@
      [
       [
        "/_mozilla/css/display_table_cell_intrinsic_width_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/ellipsis_font_panic.html": [
+    [
+     "/_mozilla/css/ellipsis_font_panic.html",
+     [
+      [
+       "/_mozilla/css/ellipsis_font_panic-ref.html",
        "=="
       ]
      ],
@@ -2687,6 +2711,18 @@
      {}
     ]
    ],
+   "css/inline_block_nested_margin.html": [
+    [
+     "/_mozilla/css/inline_block_nested_margin.html",
+     [
+      [
+       "/_mozilla/css/inline_block_nested_margin_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/inline_block_opacity_change.html": [
     [
      "/_mozilla/css/inline_block_opacity_change.html",
@@ -2753,6 +2789,18 @@
      [
       [
        "/_mozilla/css/inline_block_percentage_height_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/inline_block_percentage_margin.html": [
+    [
+     "/_mozilla/css/inline_block_percentage_margin.html",
+     [
+      [
+       "/_mozilla/css/inline_block_percentage_margin_ref.html",
        "=="
       ]
      ],
@@ -3102,6 +3150,18 @@
       [
        "/_mozilla/css/blackborder_ref.html",
        "!="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/intrinsic_border_box.html": [
+    [
+     "/_mozilla/css/intrinsic_border_box.html",
+     [
+      [
+       "/_mozilla/css/intrinsic_border_box_ref.html",
+       "=="
       ]
      ],
      {}
@@ -3731,6 +3791,18 @@
      {}
     ]
    ],
+   "css/negation-attr-dependence.html": [
+    [
+     "/_mozilla/css/negation-attr-dependence.html",
+     [
+      [
+       "/_mozilla/css/negation-attr-dependence-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/negative-calc-cv.html": [
     [
      "/_mozilla/css/negative-calc-cv.html",
@@ -4073,6 +4145,30 @@
      [
       [
        "/_mozilla/css/overflow_auto_stacking_order_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/overflow_border_radius.html": [
+    [
+     "/_mozilla/css/overflow_border_radius.html",
+     [
+      [
+       "/_mozilla/css/overflow_border_radius_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/overflow_clipping.html": [
+    [
+     "/_mozilla/css/overflow_clipping.html",
+     [
+      [
+       "/_mozilla/css/overflow_clipping_ref.html",
        "=="
       ]
      ],
@@ -6413,6 +6509,18 @@
      {}
     ]
    ],
+   "mozilla/scroll_root.html": [
+    [
+     "/_mozilla/mozilla/scroll_root.html",
+     [
+      [
+       "/_mozilla/mozilla/scroll_root_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "mozilla/scrolling_div_background_borders.html": [
     [
      "/_mozilla/mozilla/scrolling_div_background_borders.html",
@@ -6614,30 +6722,6 @@
       [
        "/_mozilla/css/border_black_solid.html",
        "!="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "css/deferred-paint-ref.html": [
-    [
-     "/_mozilla/css/deferred-paint-ref.html",
-     [
-      [
-       "/_mozilla/css/deferred-paint-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "css/table_valign_presentational_hint_ref.html": [
-    [
-     "/_mozilla/css/table_valign_presentational_hint_ref.html",
-     [
-      [
-       "/_mozilla/css/table_valign_presentational_hint_ref.html",
-       "=="
       ]
      ],
      {}
@@ -7190,6 +7274,11 @@
      {}
     ]
    ],
+   "css/bug-1361013-cousin-sharing-ref.html": [
+    [
+     {}
+    ]
+   ],
    "css/button_css_width_ref.html": [
     [
      {}
@@ -7285,6 +7374,11 @@
      {}
     ]
    ],
+   "css/deferred-paint-ref.html": [
+    [
+     {}
+    ]
+   ],
    "css/direction_style_caching_ref.html": [
     [
      {}
@@ -7301,6 +7395,11 @@
     ]
    ],
    "css/display_table_cell_intrinsic_width_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/ellipsis_font_panic-ref.html": [
     [
      {}
     ]
@@ -7850,6 +7949,11 @@
      {}
     ]
    ],
+   "css/inline_block_nested_margin_ref.html": [
+    [
+     {}
+    ]
+   ],
    "css/inline_block_opacity_change_ref.html": [
     [
      {}
@@ -7871,6 +7975,11 @@
     ]
    ],
    "css/inline_block_percentage_height_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/inline_block_percentage_margin_ref.html": [
     [
      {}
     ]
@@ -8011,6 +8120,11 @@
     ]
    ],
    "css/inset_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/intrinsic_border_box_ref.html": [
     [
      {}
     ]
@@ -8270,6 +8384,11 @@
      {}
     ]
    ],
+   "css/negation-attr-dependence-ref.html": [
+    [
+     {}
+    ]
+   ],
    "css/negative-calc-cv-ref.html": [
     [
      {}
@@ -8411,6 +8530,16 @@
     ]
    ],
    "css/overflow_auto_stacking_order_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/overflow_border_radius_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/overflow_clipping_ref.html": [
     [
      {}
     ]
@@ -8981,6 +9110,11 @@
     ]
    ],
    "css/table_specified_width_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/table_valign_presentational_hint_ref.html": [
     [
      {}
     ]
@@ -10905,6 +11039,11 @@
      {}
     ]
    ],
+   "mozilla/scroll_root_ref.html": [
+    [
+     {}
+    ]
+   ],
    "mozilla/scrolling_div_background_borders_background.png": [
     [
      {}
@@ -11230,9 +11369,9 @@
      {}
     ]
    ],
-   "mozilla/bad_cert_detected.html": [
+   "mozilla/adopted_node_is_same_origin_domain.html": [
     [
-     "/_mozilla/mozilla/bad_cert_detected.html",
+     "/_mozilla/mozilla/adopted_node_is_same_origin_domain.html",
      {}
     ]
    ],
@@ -12924,6 +13063,12 @@
      {}
     ]
    ],
+   "mozilla/htmlimageelement.html": [
+    [
+     "/_mozilla/mozilla/htmlimageelement.html",
+     {}
+    ]
+   ],
    "mozilla/htmllabel-activation.html": [
     [
      "/_mozilla/mozilla/htmllabel-activation.html",
@@ -12960,9 +13105,21 @@
      {}
     ]
    ],
+   "mozilla/img_find_non_sibling_map.html": [
+    [
+     "/_mozilla/mozilla/img_find_non_sibling_map.html",
+     {}
+    ]
+   ],
    "mozilla/img_multiple_request.html": [
     [
      "/_mozilla/mozilla/img_multiple_request.html",
+     {}
+    ]
+   ],
+   "mozilla/img_no_panic_on_no_map.html": [
+    [
+     "/_mozilla/mozilla/img_no_panic_on_no_map.html",
      {}
     ]
    ],
@@ -19638,6 +19795,12 @@
      {}
     ]
    ],
+   "mozilla/secure.https.html": [
+    [
+     "/_mozilla/mozilla/secure.https.html",
+     {}
+    ]
+   ],
    "mozilla/send-arraybuffer.htm": [
     [
      "/_mozilla/mozilla/send-arraybuffer.htm",
@@ -19731,6 +19894,12 @@
    "mozilla/union.html": [
     [
      "/_mozilla/mozilla/union.html",
+     {}
+    ]
+   ],
+   "mozilla/unitless-length.html": [
+    [
+     "/_mozilla/mozilla/unitless-length.html",
      {}
     ]
    ],
@@ -19834,7 +20003,7 @@
  },
  "paths": {
   "./lint.whitelist": [
-   "dda02f5662390c7b09417454f97ba06876e7ce31",
+   "05d60cf6c75b15a18cbd0b0526ea9edea7d933f9",
    "support"
   ],
   "css/100x100_green.png": [
@@ -20498,7 +20667,7 @@
    "support"
   ],
   "css/border_radius_in_border_radius_a.html": [
-   "ee5099078e3403236fafbe82879c203f4c13cf50",
+   "64ad2121d35db22286fbea2d0835f2a36aa90570",
    "reftest"
   ],
   "css/border_radius_in_border_radius_ref.html": [
@@ -20689,6 +20858,14 @@
    "2ebf9c8f963a2f3971a3c1b64b6b01825eacdedc",
    "support"
   ],
+  "css/bug-1361013-cousin-sharing-ref.html": [
+   "3451cb4533d650f6f624b89548ce7117bcc8bef3",
+   "support"
+  ],
+  "css/bug-1361013-cousin-sharing.html": [
+   "95c8c8d33cca3d6e969338a98c60ec9804256ef5",
+   "reftest"
+  ],
   "css/bug_1345483.html": [
    "41b55af9d5c95910b1af74c0fbffb24e20bbe869",
    "testharness"
@@ -20838,8 +21015,8 @@
    "support"
   ],
   "css/deferred-paint-ref.html": [
-   "93956251a11323321fe8b64d5a5de8d218994670",
-   "reftest_node"
+   "f1e7c5f4d65637df18ba3d9a363f5de2205364bb",
+   "support"
   ],
   "css/deferred-paint.html": [
    "f13aa73f06873575763ea926fbfac3d3f79dacff",
@@ -20872,6 +21049,14 @@
   "css/display_table_cell_intrinsic_width_ref.html": [
    "24dfcfa8ac401233d287631e57ea64edb94883cc",
    "support"
+  ],
+  "css/ellipsis_font_panic-ref.html": [
+   "21988e7f477117e23eb0d6770eec3896bac3b4a2",
+   "support"
+  ],
+  "css/ellipsis_font_panic.html": [
+   "037c81c6f2f550b6d7e415b0fc7f3d0476202b76",
+   "reftest"
   ],
   "css/empty-keyframes.html": [
    "366edc7d29168809b6385ce7139786a0446ba560",
@@ -21741,6 +21926,14 @@
    "ed6e0f503cb26c1091270ed0992a0a41553846d9",
    "support"
   ],
+  "css/inline_block_nested_margin.html": [
+   "b4114aa6421b4c9117e60e66ccc09868e05f3239",
+   "reftest"
+  ],
+  "css/inline_block_nested_margin_ref.html": [
+   "5e00c77f55a3d12e841e9c99395f4d3783664fd8",
+   "support"
+  ],
   "css/inline_block_opacity_change.html": [
    "df6b37b744fdf79da9d33c54b8ce77abd462c53b",
    "reftest"
@@ -21783,6 +21976,14 @@
   ],
   "css/inline_block_percentage_height_ref.html": [
    "bad4704435c74a3204925206802eb004f380500e",
+   "support"
+  ],
+  "css/inline_block_percentage_margin.html": [
+   "0b750acad3bcc6b5fabf9e625b6adf22e1e97640",
+   "reftest"
+  ],
+  "css/inline_block_percentage_margin_ref.html": [
+   "3726b3b2149b9e6584277fd33b77940d5f9d6800",
    "support"
   ],
   "css/inline_block_stacking_context_a.html": [
@@ -22011,6 +22212,14 @@
   ],
   "css/inset_ref.html": [
    "c78c6c992e47adb47ba00b621210ae8564d46389",
+   "support"
+  ],
+  "css/intrinsic_border_box.html": [
+   "261487f82f350ab020f49f362993b26711a89b5b",
+   "reftest"
+  ],
+  "css/intrinsic_border_box_ref.html": [
+   "9a8f19331c748658b71c85b823b5b3db68e4b7a4",
    "support"
   ],
   "css/issue-1324-ref.html": [
@@ -22441,6 +22650,14 @@
    "a82c94a9a4a18cda6009e467993cace8babe7591",
    "support"
   ],
+  "css/negation-attr-dependence-ref.html": [
+   "560c5d8b523f6d4cad6e15e5604f51646647d487",
+   "support"
+  ],
+  "css/negation-attr-dependence.html": [
+   "27bec4af590a2e6d5e88b54ed37fd254ef0f0a99",
+   "reftest"
+  ],
   "css/negative-calc-cv-ref.html": [
    "a42f34470ead45d5865562618f6538fde263a359",
    "support"
@@ -22675,6 +22892,22 @@
   ],
   "css/overflow_auto_stacking_order_ref.html": [
    "195201950fd56bd139e71971d66f92ee4fef815d",
+   "support"
+  ],
+  "css/overflow_border_radius.html": [
+   "2c8a650f518ccff78517556540416f7e0e798033",
+   "reftest"
+  ],
+  "css/overflow_border_radius_ref.html": [
+   "3798d0efb1b9858ad47ecf6f09357c3c0dae1b80",
+   "support"
+  ],
+  "css/overflow_clipping.html": [
+   "3e8eb236afa8013c19adbfa807b674a393fc1eed",
+   "reftest"
+  ],
+  "css/overflow_clipping_ref.html": [
+   "f645ece68f6c7afe273daee4d1ec172c7d245632",
    "support"
   ],
   "css/overflow_position_abs_inline_block.html": [
@@ -23582,8 +23815,8 @@
    "reftest"
   ],
   "css/table_valign_presentational_hint_ref.html": [
-   "c635e02c974e9d678aa79a0760e993ae8c92abf1",
-   "reftest_node"
+   "47a0c88951354f44853418e101d1f6e56a3843ec",
+   "support"
   ],
   "css/table_vertical_align_absolute_a.html": [
    "f749a3381382d06cd94a095a97feb6a971c6ce46",
@@ -23614,7 +23847,7 @@
    "support"
   ],
   "css/test_font_family_parsing.html": [
-   "e0df1ad62a5c72e841806c0debd64a36d2898abe",
+   "fb9155875cb9cee7eba6e7a9be311ef02c82a869",
    "testharness"
   ],
   "css/test_variable_legal_values.html": [
@@ -23626,7 +23859,7 @@
    "testharness"
   ],
   "css/test_variable_serialization_specified.html": [
-   "70137258ef07c0983e0927aacbab5ed87b037b54",
+   "b403085f651089d08d6a22731b1a255c357b20c7",
    "testharness"
   ],
   "css/text_align_complex_a.html": [
@@ -24265,8 +24498,8 @@
    "170d51460da58c16f5cf94ecda18f18a1c18c116",
    "support"
   ],
-  "mozilla/bad_cert_detected.html": [
-   "5d49332d2a6c823bfaf378f84641ce8bba5c8210",
+  "mozilla/adopted_node_is_same_origin_domain.html": [
+   "3f2e6af92f9391aa1892e485c61c9e92c7661194",
    "testharness"
   ],
   "mozilla/binding_keyword.html": [
@@ -25138,7 +25371,7 @@
    "testharness"
   ],
   "mozilla/calc.html": [
-   "c239c441c90e4d4ed94458eae5b2defabb47e984",
+   "028fc71bdc9a99d552ba552036d38fb4eef11bc1",
    "testharness"
   ],
   "mozilla/canvas.initial.reset.2dstate.html": [
@@ -25270,7 +25503,7 @@
    "testharness"
   ],
   "mozilla/document_head.html": [
-   "31892b141aba3b317502e38a4a38fcd8531cb8aa",
+   "b861fe5a1159ba5fba44d3aee048cdb27d378be9",
    "testharness"
   ],
   "mozilla/document_images_cache.html": [
@@ -25441,6 +25674,10 @@
    "54fe6bbc1a7a35ceb14a3bf33f81ebed55beaf72",
    "testharness"
   ],
+  "mozilla/htmlimageelement.html": [
+   "f1857a8f413f444b34464f0a3bc6b46af13c1a5a",
+   "testharness"
+  ],
   "mozilla/htmllabel-activation.html": [
    "2013b49684d0b861415a2e766d5d260906b1f3fb",
    "testharness"
@@ -25489,8 +25726,16 @@
    "3c4f36abed83367c851d943b1f25b8394de6fe75",
    "testharness"
   ],
+  "mozilla/img_find_non_sibling_map.html": [
+   "d34100c4cc22adcaa1014095ba4b7b929b8e079d",
+   "testharness"
+  ],
   "mozilla/img_multiple_request.html": [
    "0a6263ad87c9b3307f2dc694747b094a0517b79b",
+   "testharness"
+  ],
+  "mozilla/img_no_panic_on_no_map.html": [
+   "be2ae22f4664b4577224ba6c7f3c4df8589c160a",
    "testharness"
   ],
   "mozilla/img_width_height.html": [
@@ -25518,7 +25763,7 @@
    "testharness"
   ],
   "mozilla/interfaces.js": [
-   "f218b241a43dbc8d8d9e2422b5b7999c0a0d95a8",
+   "de8259360671809646a21a5af3d7d87fd1da91a7",
    "support"
   ],
   "mozilla/interfaces.worker.js": [
@@ -31113,6 +31358,14 @@
    "b9917be5fed364dbc46264f641f54f275b5c054a",
    "testharness"
   ],
+  "mozilla/scroll_root.html": [
+   "21c447dd041a77fb54e2b28c8b76de684afb9560",
+   "reftest"
+  ],
+  "mozilla/scroll_root_ref.html": [
+   "ce75eb73232617c77309aca879ba8d34461538a6",
+   "support"
+  ],
   "mozilla/scroll_top_null_target.html": [
    "8e419c3f33fba1bc1444cf4c6dd3e5977f6fd841",
    "testharness"
@@ -31128,6 +31381,10 @@
   "mozilla/scrolling_div_background_borders_ref.html": [
    "6cb4fd833674380c660c0f5ff0f5dd5cb18ed1dd",
    "support"
+  ],
+  "mozilla/secure.https.html": [
+   "fc757effccd93c56ab79b0510a01ae815b7a8714",
+   "testharness"
   ],
   "mozilla/send-arraybuffer.htm": [
    "dc04c6f888458b28bd29a3a43f4dab7f12e72a33",
@@ -31279,6 +31536,10 @@
   ],
   "mozilla/union.html": [
    "47ee847e660eb907a7bd916cf37cf3ceba68ea7d",
+   "testharness"
+  ],
+  "mozilla/unitless-length.html": [
+   "dfb31d3f9c4f24913055924c375f08b990b63e49",
    "testharness"
   ],
   "mozilla/variadic-interface.html": [

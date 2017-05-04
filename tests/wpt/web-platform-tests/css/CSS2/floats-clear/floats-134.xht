@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS Floats: Wrapping text and position:relative</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/float/034.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+  <link rel="match" href="floats-133-ref.xht" />
+
+  <meta name="flags" content="ahem" />
+  <style type="text/css">
+   .container { font: 20px/1 Ahem; width: 2em; height: 1em; background: red; }
+   .box { height: 1em; color: white; position: relative; }
+   .float { width: 1em; height: 1em; float: left; background: green; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is a small filled green square and <strong>no red</strong>.</p>
+  <div class="container">
+   <div class="box">
+    <div class="float"></div>
+    x
+   </div>
+  </div>
+ </body>
+</html>
+
+

@@ -1,0 +1,61 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD//XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Column-width applied to 'display: table-column'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-multicol/#cw"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'column-width' property does not apply to elements of 'display: table-column'."/>
+        <style type="text/css">
+            #parent
+            {
+                color: red;
+                font: 20px/1 monospace;
+                position: relative;
+            }
+            #multicolumn
+            {
+                display: table-column;
+                column-width: 5em;
+            }
+            #reference
+            {
+                color: green;
+                position: absolute;
+                top: 0;
+                width: 5em;
+            }
+            #table
+            {
+                display: table;
+                table-layout: fixed;
+            }
+            #row
+            {
+                display: table-row;
+            }
+            #cell
+            {
+                display: table-cell;
+                height: 6em;
+                width: 10em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div id="parent">
+            <div id="table">
+                <div id="multicolumn"></div>
+                <div id="row">
+                    <div id="cell">
+                        AAAAAAAAA BBBBBBBBB CCCCCCCCC DDDDDDDDD EEEEEEEEE FFFFFFFFF GGGGGGGGG HHHHHHHHH IIIIIIIII JJJJJJJJJ KKKKKKKKK LLLLLLLLL
+                    </div>
+                </div>
+            </div>
+            <div id="reference">
+                AAAAAAAAA BBBBBBBBB CCCCCCCCC DDDDDDDDD EEEEEEEEE FFFFFFFFF GGGGGGGGG HHHHHHHHH IIIIIIIII JJJJJJJJJ KKKKKKKKK LLLLLLLLL
+            </div>
+        </div>
+    </body>
+</html>

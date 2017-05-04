@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Reference case for ensuring table-fixup does not happen to adjacent
+     table parts directly inside of a flex container. -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <style>
+      div.flexbox {
+        border: 1px dashed blue;
+        width: 200px;
+        display: flex;
+        justify-content: space-around;
+      }
+
+      .a {
+        background: lightgreen;
+        width: 48px;
+      }
+
+      .b {
+        background: yellow;
+        width: 48px;
+      }
+
+      .c {
+        background: pink;
+        width: 48px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- In each example here, we simply use blocks instead of table parts -->
+    <div class="flexbox"
+         ><div class="a">cell1</div><div class="b">cell2</div
+    ></div>
+
+    <div class="flexbox"
+         ><div class="a">cell1</div><div class="b">t</div
+    ></div>
+
+    <div class="flexbox"
+         ><div></div
+         ><div class="b">cell1</div
+    ></div>
+  </body>
+</html>

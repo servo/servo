@@ -1,0 +1,70 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Video element src attribute must match src list - 'none' negative test</title>
+    <meta name=timeout content=long>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+    <h1>Video element src attribute must match src list - 'none' negative test</h1>
+    <div id='log'></div>
+
+  <script>
+      var v_src_test = async_test("Disallowed async video src");
+      var v_source_test = async_test("Disallowed async video source element");
+      var a_src_test = async_test("Disallaowed audio src");
+      var a_source_test = async_test("Disallowed audio source element");
+
+      // we assume tests are run from 'hostname' and 'www.hostname' or 'www2.hostname' is a valid alias
+      var a_mediaURL = location.protocol + "//{{domains[www2]}}:{{ports[http][0]}}/media/sound_5.oga";
+
+      var v_mediaURL = location.protocol + "//{{domains[www2]}}:{{ports[http][0]}}/media/A4.ogv";
+
+      function media_loaded(t) {
+        t.step( function () {
+          assert_unreached("Media error handler should be triggered for non-allowed domain.");
+        });
+        t.done();
+      }
+
+      function media_error_handler(t) {
+        t.done();
+      }
+  </script>
+
+    <video id="videoObject" width="320" height="240" controls
+           onloadeddata="media_loaded(v_source_test)">
+        <source id="videoSourceObject"
+                type="video/ogg"
+                onerror="media_error_handler(v_source_test)">
+    </video>
+    <video id="videoObject2" width="320" height="240" controls
+           onerror="media_error_handler(v_src_test)"
+           onloadeddata="media_loaded(v_src_test)">
+
+    <script>
+        document.getElementById("videoSourceObject").src = v_mediaURL;
+        document.getElementById("videoObject2").src = v_mediaURL;
+    </script>
+
+    <audio id="audioObject" width="320" height="240" controls
+           onloadeddata="media_loaded(a_source_test)">
+        <source id="audioSourceObject"
+                type="audio/ogg"
+                onerror="media_error_handler(a_source_test)">
+    </audio>
+    <audio id="audioObject2" width="320" height="240" controls
+           onerror="media_error_handler(a_src_test)"
+           onloadeddata="media_loaded(a_src_test)">
+
+    <script>
+        document.getElementById("audioSourceObject").src = a_mediaURL;
+        document.getElementById("audioObject2").src = a_mediaURL;
+    </script>
+
+
+    <script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=media-src%20%27self%27'></script>
+
+</body>
+</html>

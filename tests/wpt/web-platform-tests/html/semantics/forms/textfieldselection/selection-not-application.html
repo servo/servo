@@ -14,14 +14,17 @@
     test(function(){
       var el = document.createElement("input");
       el.type = type;
+      assert_equals(el.selectionStart, null);
+      assert_equals(el.selectionEnd, null);
+      assert_equals(el.selectionDirection, null);
       assert_throws("InvalidStateError", function(){
-        el.selectionStart;
+        el.selectionStart = 0;
       });
       assert_throws("InvalidStateError", function(){
-        el.selectionEnd;
+        el.selectionEnd = 0;
       });
       assert_throws("InvalidStateError", function(){
-        el.selectionDirection;
+        el.selectionDirection = 'none';
       });
       assert_throws("InvalidStateError", function(){
         el.setRangeText("foobar");

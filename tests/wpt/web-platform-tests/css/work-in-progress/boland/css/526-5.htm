@@ -1,0 +1,82 @@
+
+<HTML>
+
+<HEAD>
+<TITLE>Fifth Test of Section 5.2.6 of CSS1 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+#id1 { font-size: 20px }
+#id2 { font-size: +10px }
+#id3 { font-size: 5px }
+#id4 { font-size: 0px }
+#id5 { font-size: 2pc }
+#id6 { font-size: 24pt }
+#id7 { font-size: 1pc }
+#id8 { font-size: 12pt }
+#id9 { font-size: 0.5pc }
+#ida { font-size: 6.0pt }
+#idb { font-size: 4cm }
+#idc { font-size: 40mm }
+#idd { font-size: 1.25in }
+#ide { font-size: 0.75in }
+#idf { font-size: 300% }
+#idg { font-size: 50% }
+#id1 {font-size: 10pt}
+#id2 {font-size: larger}
+#id3 {font-size: smaller}
+
+</STYLE>
+</HEAD>
+
+
+
+
+
+
+<BODY>
+
+
+
+<h1 >Testing Statement #5 Below of Section 5.2.6 of CSS1 Spec</h1>
+
+
+
+
+
+
+
+
+<ul>
+<li>
+5. For "font-size", possible values of "relative-size" keyword are "larger |
+smaller".
+</ul>
+
+
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+If statement #5 above is passed, then:
+
+<p ID=id1>
+This paragraph should have a baseline font size of 10pt.
+The rule applied is "#id1 {font-size: 10pt}".
+
+<p ID=id2>
+This paragraph should have a larger font size than the paragraph above.
+The rule applied is "#id2 {font-size: larger}"
+<p ID=id3>
+This paragraph should have a smaller font size than the paragraph above.
+The rule applied is "#id3 {font-size: smaller}
+
+
+<p>
+All other properties of this page should be UA-default.
+UAs may differ in their interpretations here.
+
+</BODY>
+</HTML>
+

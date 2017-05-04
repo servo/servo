@@ -8,14 +8,14 @@ use gecko_bindings::structs::nsCOMPtr;
 
 impl<T> nsCOMPtr<T> {
     /// Get this pointer as a raw pointer.
-    #[cfg(debug_assertions)]
+    #[cfg(feature = "gecko_debug")]
     #[inline]
     pub fn raw(&self) -> *mut T {
         self.mRawPtr
     }
 
     /// Get this pointer as a raw pointer.
-    #[cfg(not(debug_assertions))]
+    #[cfg(not(feature = "gecko_debug"))]
     #[inline]
     pub fn raw(&self) -> *mut T {
         self._base.mRawPtr as *mut _

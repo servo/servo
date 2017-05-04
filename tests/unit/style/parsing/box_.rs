@@ -2,11 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::Parser;
-use media_queries::CSSErrorReporterTest;
 use parsing::parse;
-use style::parser::ParserContext;
-use style::stylesheets::Origin;
 use style_traits::ToCss;
 
 #[test]
@@ -25,4 +21,13 @@ fn test_will_change() {
     assert!(parse(will_change::parse, "contents, auto").is_err());
     assert!(parse(will_change::parse, "contents, inherit, initial").is_err());
     assert!(parse(will_change::parse, "transform scroll-position").is_err());
+}
+
+#[test]
+fn test_transform_translate() {
+    use style::properties::longhands::transform;
+    assert_roundtrip_with_context!(transform::parse, "translate(2px)");
+    assert_roundtrip_with_context!(transform::parse, "translate(2px, 5px)");
+    assert!(parse(transform::parse, "translate(2px foo)").is_err());
+    assert!(parse(transform::parse, "perspective(-10px)").is_err());
 }

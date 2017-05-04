@@ -29,14 +29,27 @@
     <div id="test" style="display:none">STYLING TEST</div>
 
     <script>
-      test(function() {
-        var style = null,
-            i;
-        for (i = 1; i < 5; i++) {
-          style = document.getElementById("style" + i);
-          assert_equals(style.sheet, null, "The sheet attribute of style" + i + " should be null.");
-          assert_false(style.disabled, "The disabled attribute of style" + i + " should be false.");
-        }
+      /**
+       * Browsers may incorrectly issue requests for these resources and defer
+       * definition of the `sheet` attribute until after loading is complete.
+       * In such cases, synchronous assertions regarding the absence of
+       * attributes will spuriously pass.
+       *
+       * In order to account for this incorrect behavior (exhibited at the time
+       * of this writing most notably by the Chromium browser), defer the
+       * assertions until the "load" event has been triggered.
+       */
+      async_test(function(t) {
+        window.addEventListener("load", t.step_func(function() {
+          var style = null,
+              i;
+          for (i = 1; i < 5; i++) {
+            style = document.getElementById("style" + i);
+            assert_equals(style.sheet, null, "The sheet attribute of style" + i + " should be null.");
+            assert_false(style.disabled, "The disabled attribute of style" + i + " should be false.");
+          }
+          t.done();
+        }));
       }, "The LinkStyle interface's sheet attribute must return null; the disabled attribute must be false");
 
       test(function() {
@@ -46,14 +59,17 @@
         assert_equals(link.sheet, null, "The sheet attribute of the link element not in a document should be null.");
       }, "The LinkStyle interface's sheet attribute must return null if the corresponding element is not in a Document");
 
-      test(function() {
-        var style = null,
-            i;
-        for (i = 5; i < 8; i++) {
-          style = document.getElementById("style" + i);
-          assert_true(style.sheet instanceof StyleSheet, "The sheet attribute of style" + i + " should be a StyleSheet object.");
-          assert_equals(style.disabled, style.sheet.disabled, "The disabled attribute of style" + i + " should equal to the same attribute of StyleSheet.");
-        }
+      async_test(function(t) {
+        window.addEventListener("load", t.step_func(function() {
+          var style = null,
+              i;
+          for (i = 5; i < 8; i++) {
+            style = document.getElementById("style" + i);
+            assert_true(style.sheet instanceof StyleSheet, "The sheet attribute of style" + i + " should be a StyleSheet object.");
+            assert_equals(style.disabled, style.sheet.disabled, "The disabled attribute of style" + i + " should equal to the same attribute of StyleSheet.");
+          }
+          t.done();
+        }));
       }, "The LinkStyle interface's sheet attribute must return StyleSheet object; the disabled attribute must be same as the StyleSheet's disabled attribute");
 
       test(function() {

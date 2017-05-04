@@ -4,19 +4,26 @@
 
 //! Computed values.
 
-use app_units::Au;
+use context::QuirksMode;
 use euclid::size::Size2D;
 use font_metrics::FontMetricsProvider;
 use media_queries::Device;
-use properties::ComputedValues;
+#[cfg(feature = "gecko")]
+use properties;
+use properties::{ComputedValues, StyleBuilder};
+use std::f32;
+use std::f32::consts::PI;
 use std::fmt;
 use style_traits::ToCss;
-use super::{CSSFloat, CSSInteger, RGBA, specified};
+use super::{CSSFloat, CSSInteger, RGBA};
+use super::generics::BorderRadiusSize as GenericBorderRadiusSize;
+use super::specified;
 use super::specified::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
 
+pub use app_units::Au;
 pub use cssparser::Color as CSSColor;
-pub use self::image::{AngleOrCorner, EndingShape as GradientShape, Gradient, GradientKind, Image, ImageRect};
-pub use self::image::{LengthOrKeyword, LengthOrPercentageOrKeyword};
+pub use self::image::{AngleOrCorner, EndingShape as GradientShape, Gradient, GradientItem, LayerImage};
+pub use self::image::{GradientKind, Image, ImageRect, LengthOrKeyword, LengthOrPercentageOrKeyword};
 pub use super::{Auto, Either, None_};
 #[cfg(feature = "gecko")]
 pub use super::specified::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
@@ -50,16 +57,33 @@ pub struct Context<'a> {
     /// isn't `contents`.
     pub layout_parent_style: &'a ComputedValues,
 
-    /// Values access through this need to be in the properties "computed
+    /// Values accessed through this need to be in the properties "computed
     /// early": color, text-decoration, font-size, display, position, float,
     /// border-*-style, outline-style, font-family, writing-mode...
-    pub style: ComputedValues,
+    pub style: StyleBuilder<'a>,
+
+    /// A cached computed system font value, for use by gecko.
+    ///
+    /// See properties/longhands/font.mako.rs
+    #[cfg(feature = "gecko")]
+    pub cached_system_font: Option<properties::longhands::system_font::ComputedSystemFont>,
+
+    /// A dummy option for servo so initializing a computed::Context isn't
+    /// painful.
+    ///
+    /// TODO(emilio): Make constructors for Context, and drop this.
+    #[cfg(feature = "servo")]
+    pub cached_system_font: Option<()>,
 
     /// A font metrics provider, used to access font metrics to implement
     /// font-relative units.
-    ///
-    /// TODO(emilio): This should be required, see #14079.
-    pub font_metrics_provider: Option<&'a FontMetricsProvider>,
+    pub font_metrics_provider: &'a FontMetricsProvider,
+
+    /// Whether or not we are computing the media list in a media query
+    pub in_media_query: bool,
+
+    /// The quirks mode of this context.
+    pub quirks_mode: QuirksMode,
 }
 
 impl<'a> Context<'a> {
@@ -71,9 +95,9 @@ impl<'a> Context<'a> {
     pub fn inherited_style(&self) -> &ComputedValues { &self.inherited_style }
     /// The current style. Note that only "eager" properties should be accessed
     /// from here, see the comment in the member.
-    pub fn style(&self) -> &ComputedValues { &self.style }
+    pub fn style(&self) -> &StyleBuilder { &self.style }
     /// A mutable reference to the current style.
-    pub fn mutate_style(&mut self) -> &mut ComputedValues { &mut self.style }
+    pub fn mutate_style(&mut self) -> &mut StyleBuilder<'a> { &mut self.style }
 }
 
 /// A trait to represent the conversion between computed and specified values.
@@ -117,27 +141,42 @@ impl<T> ToComputedValue for T
 /// A computed `<angle>` value.
 #[derive(Clone, PartialEq, PartialOrd, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
-pub struct Angle {
-    radians: CSSFloat,
+pub enum Angle {
+    /// An angle with degree unit
+    Degree(CSSFloat),
+    /// An angle with gradian unit
+    Gradian(CSSFloat),
+    /// An angle with radian unit
+    Radian(CSSFloat),
+    /// An angle with turn unit
+    Turn(CSSFloat),
 }
 
 impl Angle {
     /// Construct a computed `Angle` value from a radian amount.
     pub fn from_radians(radians: CSSFloat) -> Self {
-        Angle {
-            radians: radians,
-        }
+        Angle::Radian(radians)
     }
 
     /// Return the amount of radians this angle represents.
     #[inline]
     pub fn radians(&self) -> CSSFloat {
-        self.radians
+        const RAD_PER_DEG: CSSFloat = PI / 180.0;
+        const RAD_PER_GRAD: CSSFloat = PI / 200.0;
+        const RAD_PER_TURN: CSSFloat = PI * 2.0;
+
+        let radians = match *self {
+            Angle::Degree(val) => val * RAD_PER_DEG,
+            Angle::Gradian(val) => val * RAD_PER_GRAD,
+            Angle::Turn(val) => val * RAD_PER_TURN,
+            Angle::Radian(val) => val,
+        };
+        radians.min(f32::MAX).max(f32::MIN)
     }
 
     /// Returns an angle that represents a rotation of zero radians.
     pub fn zero() -> Self {
-        Self::from_radians(0.0)
+        Angle::Radian(0.0)
     }
 }
 
@@ -145,7 +184,12 @@ impl ToCss for Angle {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
         where W: fmt::Write,
     {
-        write!(dest, "{}rad", self.radians())
+        match *self {
+            Angle::Degree(val) => write!(dest, "{}deg", val),
+            Angle::Gradian(val) => write!(dest, "{}grad", val),
+            Angle::Radian(val) => write!(dest, "{}rad", val),
+            Angle::Turn(val) => write!(dest, "{}turn", val),
+        }
     }
 }
 
@@ -209,6 +253,24 @@ impl ToComputedValue for specified::Color {
             specified::Color::MozHyperlinktext => to_rgba(pres_context.mLinkColor),
             specified::Color::MozActiveHyperlinktext => to_rgba(pres_context.mActiveLinkColor),
             specified::Color::MozVisitedHyperlinktext => to_rgba(pres_context.mVisitedLinkColor),
+            specified::Color::InheritFromBodyQuirk => {
+                use dom::TElement;
+                use gecko::wrapper::GeckoElement;
+                use gecko_bindings::bindings::Gecko_GetBody;
+                let body = unsafe {
+                    Gecko_GetBody(pres_context)
+                };
+                if let Some(body) = body {
+                    let wrap = GeckoElement(body);
+                    let borrow = wrap.borrow_data();
+                    borrow.as_ref().unwrap()
+                          .styles().primary.values()
+                          .get_color()
+                          .clone_color()
+                } else {
+                    to_rgba(pres_context.mDefaultColor)
+                }
+            },
         }
     }
 
@@ -239,13 +301,10 @@ impl ToComputedValue for specified::CSSColor {
 
     #[inline]
     fn from_computed_value(computed: &CSSColor) -> Self {
-        specified::CSSColor {
-            parsed: match *computed {
-                CSSColor::RGBA(rgba) => specified::Color::RGBA(rgba),
-                CSSColor::CurrentColor => specified::Color::CurrentColor,
-            },
-            authored: None,
-        }
+        (match *computed {
+            CSSColor::RGBA(rgba) => specified::Color::RGBA(rgba),
+            CSSColor::CurrentColor => specified::Color::CurrentColor,
+        }).into()
     }
 }
 
@@ -281,43 +340,19 @@ impl ComputedValueAsSpecified for specified::AlignJustifyContent {}
 impl ComputedValueAsSpecified for specified::AlignJustifySelf {}
 impl ComputedValueAsSpecified for specified::BorderStyle {}
 
-#[derive(Debug, PartialEq, Clone, Copy)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct BorderRadiusSize(pub Size2D<LengthOrPercentage>);
+/// The computed value of `BorderRadiusSize`
+pub type BorderRadiusSize = GenericBorderRadiusSize<LengthOrPercentage>;
 
 impl BorderRadiusSize {
-    #[allow(missing_docs)]
+    /// Create a null value.
+    #[inline]
     pub fn zero() -> BorderRadiusSize {
-        BorderRadiusSize(Size2D::new(LengthOrPercentage::Length(Au(0)), LengthOrPercentage::Length(Au(0))))
+        let zero = LengthOrPercentage::zero();
+        GenericBorderRadiusSize(Size2D::new(zero.clone(), zero))
     }
 }
 
-impl ToComputedValue for specified::BorderRadiusSize {
-    type ComputedValue = BorderRadiusSize;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> BorderRadiusSize {
-        let w = self.0.width.to_computed_value(context);
-        let h = self.0.height.to_computed_value(context);
-        BorderRadiusSize(Size2D::new(w, h))
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &BorderRadiusSize) -> Self {
-        let w = ToComputedValue::from_computed_value(&computed.0.width);
-        let h = ToComputedValue::from_computed_value(&computed.0.height);
-        specified::BorderRadiusSize(Size2D::new(w, h))
-    }
-}
-
-impl ToCss for BorderRadiusSize {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(self.0.width.to_css(dest));
-        try!(dest.write_str("/"));
-        self.0.height.to_css(dest)
-    }
-}
+impl Copy for BorderRadiusSize {}
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -334,7 +369,7 @@ pub struct Shadow {
 /// A `<number>` value.
 pub type Number = CSSFloat;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub enum NumberOrPercentage {
@@ -470,7 +505,7 @@ impl ToCss for SVGPaint {
 }
 
 /// <length> | <percentage> | <number>
-pub type LengthOrPercentageOrNumber = Either<LengthOrPercentage, Number>;
+pub type LengthOrPercentageOrNumber = Either<Number, LengthOrPercentage>;
 
 #[derive(Clone, PartialEq, Eq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

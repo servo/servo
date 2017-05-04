@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: text-transform - Unicode Latin, uppercase</title>
+<link rel='author' title='Richard Ishida' href='http://rishida.net' />
+<link rel='reviewer' title='Elika J. Etemad' href='http://fantasai.inkedblade.net/contact' />
+<link rel='help' href='http://www.w3.org/TR/CSS21/text.html#caps-prop' />
+<link rel='alternate' href='http://www.w3.org/International/tests/tests-html-css/tests-text-transform/generate?test=3' />
+<meta name='flags' content='' />
+<meta name="assert" content="The UA will uppercase all Latin Unicode letters beyond Latin1 when text-transform is set to uppercase." />
+<style type='text/css'>
+.test span { text-transform: uppercase; }
+
+/* the CSS below is not part of the test */
+.test { font-size: 130%; line-height: 2.5; color: blue; }
+.test div { white-space: nowrap; text-align: center;
+             width: 5em; display: inline-block; }</style>
+<script type='text/javascript'>
+//<![CDATA[
+function setFontFamily () {var fontName = document.getElementById( 'fontName' ).value;	var divs = document.getElementsByTagName('div');	var i = 0; var div;	while (i < divs.length) {	 	div = divs.item(i);		if (div.className == 'test') { 			div.style.fontFamily = fontName; 			}		i++;		}	}
+//]]>
+</script>
+</head>
+<body>
+<p class="instructions">Test passes if the right-hand character in each pair matches the left-hand one.</p>
+
+
+<div class="test">
+<div>Ÿ <span>ÿ</span></div>
+<div>Ā <span>ā</span></div>
+<div>Ă <span>ă</span></div>
+<div>Ą <span>ą</span></div>
+<div>Ć <span>ć</span></div>
+<div>Ĉ <span>ĉ</span></div>
+<div>Ċ <span>ċ</span></div>
+<div>Č <span>č</span></div>
+<div>Ď <span>ď</span></div>
+<div>Đ <span>đ</span></div>
+<div>Ē <span>ē</span></div>
+<div>Ĕ <span>ĕ</span></div>
+<div>Ė <span>ė</span></div>
+<div>Ę <span>ę</span></div>
+<div>Ě <span>ě</span></div>
+<div>Ĝ <span>ĝ</span></div>
+<div>Ğ <span>ğ</span></div>
+<div>Ġ <span>ġ</span></div>
+<div>Ģ <span>ģ</span></div>
+<div>Ĥ <span>ĥ</span></div>
+<div>Ħ <span>ħ</span></div>
+<div>Ĩ <span>ĩ</span></div>
+<div>Ī <span>ī</span></div>
+<div>Ĭ <span>ĭ</span></div>
+<div>Į <span>į</span></div>
+<div>I <span>ı</span></div>
+<div>Ĳ <span>ĳ</span></div>
+<div>Ĵ <span>ĵ</span></div>
+<div>Ķ <span>ķ</span></div>
+<div>Ĺ <span>ĺ</span></div>
+<div>Ļ <span>ļ</span></div>
+<div>Ľ <span>ľ</span></div>
+<div>Ŀ <span>ŀ</span></div>
+<div>Ł <span>ł</span></div>
+<div>Ń <span>ń</span></div>
+<div>Ņ <span>ņ</span></div>
+<div>Ň <span>ň</span></div>
+<div>Ŋ <span>ŋ</span></div>
+<div>Ō <span>ō</span></div>
+<div>Ŏ <span>ŏ</span></div>
+<div>Ő <span>ő</span></div>
+<div>Œ <span>œ</span></div>
+<div>Ŕ <span>ŕ</span></div>
+<div>Ŗ <span>ŗ</span></div>
+<div>Ř <span>ř</span></div>
+<div>Ś <span>ś</span></div>
+<div>Ŝ <span>ŝ</span></div>
+<div>Ş <span>ş</span></div>
+<div>Š <span>š</span></div>
+<div>Ţ <span>ţ</span></div>
+<div>Ť <span>ť</span></div>
+<div>Ŧ <span>ŧ</span></div>
+<div>Ũ <span>ũ</span></div>
+<div>Ū <span>ū</span></div>
+<div>Ŭ <span>ŭ</span></div>
+<div>Ů <span>ů</span></div>
+<div>Ű <span>ű</span></div>
+<div>Ų <span>ų</span></div>
+<div>Ŵ <span>ŵ</span></div>
+<div>Ŷ <span>ŷ</span></div>
+<div>Ź <span>ź</span></div>
+<div>Ż <span>ż</span></div>
+<div>Ž <span>ž</span></div>
+<div>S <span>ſ</span></div>
+<div>Ƃ <span>ƃ</span></div>
+<div>Ƅ <span>ƅ</span></div>
+<div>Ƈ <span>ƈ</span></div>
+<div>Ƌ <span>ƌ</span></div>
+<div>Ƒ <span>ƒ</span></div>
+<div>Ƕ <span>ƕ</span></div>
+<div>Ƙ <span>ƙ</span></div>
+<div>Ƞ <span>ƞ</span></div>
+<div>Ơ <span>ơ</span></div>
+<div>Ƣ <span>ƣ</span></div>
+<div>Ƥ <span>ƥ</span></div>
+<div>Ƨ <span>ƨ</span></div>
+<div>Ƭ <span>ƭ</span></div>
+<div>Ư <span>ư</span></div>
+<div>Ƴ <span>ƴ</span></div>
+<div>Ƶ <span>ƶ</span></div>
+<div>Ƹ <span>ƹ</span></div>
+<div>Ƽ <span>ƽ</span></div>
+<div>Ƿ <span>ƿ</span></div>
+<div>Ǆ <span>ǅ</span></div>
+<div>Ǆ <span>ǆ</span></div>
+<div>Ǉ <span>ǈ</span></div>
+<div>Ǉ <span>ǉ</span></div>
+<div>Ǌ <span>ǋ</span></div>
+<div>Ǌ <span>ǌ</span></div>
+<div>Ǎ <span>ǎ</span></div>
+<div>Ǐ <span>ǐ</span></div>
+<div>Ǒ <span>ǒ</span></div>
+<div>Ǔ <span>ǔ</span></div>
+<div>Ǖ <span>ǖ</span></div>
+<div>Ǘ <span>ǘ</span></div>
+<div>Ǚ <span>ǚ</span></div>
+<div>Ǜ <span>ǜ</span></div>
+<div>Ǝ <span>ǝ</span></div>
+<div>Ǟ <span>ǟ</span></div>
+<div>Ǡ <span>ǡ</span></div>
+<div>Ǣ <span>ǣ</span></div>
+<div>Ǥ <span>ǥ</span></div>
+<div>Ǧ <span>ǧ</span></div>
+<div>Ǩ <span>ǩ</span></div>
+<div>Ǫ <span>ǫ</span></div>
+<div>Ǭ <span>ǭ</span></div>
+<div>Ǯ <span>ǯ</span></div>
+<div>Ǳ <span>ǲ</span></div>
+<div>Ǳ <span>ǳ</span></div>
+<div>Ǵ <span>ǵ</span></div>
+<div>Ǹ <span>ǹ</span></div>
+<div>Ǻ <span>ǻ</span></div>
+<div>Ǽ <span>ǽ</span></div>
+<div>Ǿ <span>ǿ</span></div>
+<div>Ȁ <span>ȁ</span></div>
+<div>Ȃ <span>ȃ</span></div>
+<div>Ȅ <span>ȅ</span></div>
+<div>Ȇ <span>ȇ</span></div>
+<div>Ȉ <span>ȉ</span></div>
+<div>Ȋ <span>ȋ</span></div>
+<div>Ȍ <span>ȍ</span></div>
+<div>Ȏ <span>ȏ</span></div>
+<div>Ȑ <span>ȑ</span></div>
+<div>Ȓ <span>ȓ</span></div>
+<div>Ȕ <span>ȕ</span></div>
+<div>Ȗ <span>ȗ</span></div>
+<div>Ș <span>ș</span></div>
+<div>Ț <span>ț</span></div>
+<div>Ȝ <span>ȝ</span></div>
+<div>Ȟ <span>ȟ</span></div>
+<div>Ȣ <span>ȣ</span></div>
+<div>Ȥ <span>ȥ</span></div>
+<div>Ȧ <span>ȧ</span></div>
+<div>Ȩ <span>ȩ</span></div>
+<div>Ȫ <span>ȫ</span></div>
+<div>Ȭ <span>ȭ</span></div>
+<div>Ȯ <span>ȯ</span></div>
+<div>Ȱ <span>ȱ</span></div>
+<div>Ȳ <span>ȳ</span></div>
+<div>Ɓ <span>ɓ</span></div>
+<div>Ɔ <span>ɔ</span></div>
+<div>Ɖ <span>ɖ</span></div>
+<div>Ɗ <span>ɗ</span></div>
+<div>Ə <span>ə</span></div>
+<div>Ɛ <span>ɛ</span></div>
+<div>Ɠ <span>ɠ</span></div>
+<div>Ɣ <span>ɣ</span></div>
+<div>Ɨ <span>ɨ</span></div>
+<div>Ɩ <span>ɩ</span></div>
+<div>Ɯ <span>ɯ</span></div>
+<div>Ɲ <span>ɲ</span></div>
+<div>Ɵ <span>ɵ</span></div>
+<div>Ʀ <span>ʀ</span></div>
+<div>Ʃ <span>ʃ</span></div>
+<div>Ʈ <span>ʈ</span></div>
+<div>Ʊ <span>ʊ</span></div>
+<div>Ʋ <span>ʋ</span></div>
+<div>Ʒ <span>ʒ</span></div>
+<div>Ḁ <span>ḁ</span></div>
+<div>Ḃ <span>ḃ</span></div>
+<div>Ḅ <span>ḅ</span></div>
+<div>Ḇ <span>ḇ</span></div>
+<div>Ḉ <span>ḉ</span></div>
+<div>Ḋ <span>ḋ</span></div>
+<div>Ḍ <span>ḍ</span></div>
+<div>Ḏ <span>ḏ</span></div>
+<div>Ḑ <span>ḑ</span></div>
+<div>Ḓ <span>ḓ</span></div>
+<div>Ḕ <span>ḕ</span></div>
+<div>Ḗ <span>ḗ</span></div>
+<div>Ḙ <span>ḙ</span></div>
+<div>Ḛ <span>ḛ</span></div>
+<div>Ḝ <span>ḝ</span></div>
+<div>Ḟ <span>ḟ</span></div>
+<div>Ḡ <span>ḡ</span></div>
+<div>Ḣ <span>ḣ</span></div>
+<div>Ḥ <span>ḥ</span></div>
+<div>Ḧ <span>ḧ</span></div>
+<div>Ḩ <span>ḩ</span></div>
+<div>Ḫ <span>ḫ</span></div>
+<div>Ḭ <span>ḭ</span></div>
+<div>Ḯ <span>ḯ</span></div>
+<div>Ḱ <span>ḱ</span></div>
+<div>Ḳ <span>ḳ</span></div>
+<div>Ḵ <span>ḵ</span></div>
+<div>Ḷ <span>ḷ</span></div>
+<div>Ḹ <span>ḹ</span></div>
+<div>Ḻ <span>ḻ</span></div>
+<div>Ḽ <span>ḽ</span></div>
+<div>Ḿ <span>ḿ</span></div>
+<div>Ṁ <span>ṁ</span></div>
+<div>Ṃ <span>ṃ</span></div>
+<div>Ṅ <span>ṅ</span></div>
+<div>Ṇ <span>ṇ</span></div>
+<div>Ṉ <span>ṉ</span></div>
+<div>Ṋ <span>ṋ</span></div>
+<div>Ṍ <span>ṍ</span></div>
+<div>Ṏ <span>ṏ</span></div>
+<div>Ṑ <span>ṑ</span></div>
+<div>Ṓ <span>ṓ</span></div>
+<div>Ṕ <span>ṕ</span></div>
+<div>Ṗ <span>ṗ</span></div>
+<div>Ṙ <span>ṙ</span></div>
+<div>Ṛ <span>ṛ</span></div>
+<div>Ṝ <span>ṝ</span></div>
+<div>Ṟ <span>ṟ</span></div>
+<div>Ṡ <span>ṡ</span></div>
+<div>Ṣ <span>ṣ</span></div>
+<div>Ṥ <span>ṥ</span></div>
+<div>Ṧ <span>ṧ</span></div>
+<div>Ṩ <span>ṩ</span></div>
+<div>Ṫ <span>ṫ</span></div>
+<div>Ṭ <span>ṭ</span></div>
+<div>Ṯ <span>ṯ</span></div>
+<div>Ṱ <span>ṱ</span></div>
+<div>Ṳ <span>ṳ</span></div>
+<div>Ṵ <span>ṵ</span></div>
+<div>Ṷ <span>ṷ</span></div>
+<div>Ṹ <span>ṹ</span></div>
+<div>Ṻ <span>ṻ</span></div>
+<div>Ṽ <span>ṽ</span></div>
+<div>Ṿ <span>ṿ</span></div>
+<div>Ẁ <span>ẁ</span></div>
+<div>Ẃ <span>ẃ</span></div>
+<div>Ẅ <span>ẅ</span></div>
+<div>Ẇ <span>ẇ</span></div>
+<div>Ẉ <span>ẉ</span></div>
+<div>Ẋ <span>ẋ</span></div>
+<div>Ẍ <span>ẍ</span></div>
+<div>Ẏ <span>ẏ</span></div>
+<div>Ẑ <span>ẑ</span></div>
+<div>Ẓ <span>ẓ</span></div>
+<div>Ẕ <span>ẕ</span></div>
+<div>Ṡ <span>ẛ</span></div>
+<div>Ạ <span>ạ</span></div>
+<div>Ả <span>ả</span></div>
+<div>Ấ <span>ấ</span></div>
+<div>Ầ <span>ầ</span></div>
+<div>Ẩ <span>ẩ</span></div>
+<div>Ẫ <span>ẫ</span></div>
+<div>Ậ <span>ậ</span></div>
+<div>Ắ <span>ắ</span></div>
+<div>Ằ <span>ằ</span></div>
+<div>Ẳ <span>ẳ</span></div>
+<div>Ẵ <span>ẵ</span></div>
+<div>Ặ <span>ặ</span></div>
+<div>Ẹ <span>ẹ</span></div>
+<div>Ẻ <span>ẻ</span></div>
+<div>Ẽ <span>ẽ</span></div>
+<div>Ế <span>ế</span></div>
+<div>Ề <span>ề</span></div>
+<div>Ể <span>ể</span></div>
+<div>Ễ <span>ễ</span></div>
+<div>Ệ <span>ệ</span></div>
+<div>Ỉ <span>ỉ</span></div>
+<div>Ị <span>ị</span></div>
+<div>Ọ <span>ọ</span></div>
+<div>Ỏ <span>ỏ</span></div>
+<div>Ố <span>ố</span></div>
+<div>Ồ <span>ồ</span></div>
+<div>Ổ <span>ổ</span></div>
+<div>Ỗ <span>ỗ</span></div>
+<div>Ộ <span>ộ</span></div>
+<div>Ớ <span>ớ</span></div>
+<div>Ờ <span>ờ</span></div>
+<div>Ở <span>ở</span></div>
+<div>Ỡ <span>ỡ</span></div>
+<div>Ợ <span>ợ</span></div>
+<div>Ụ <span>ụ</span></div>
+<div>Ủ <span>ủ</span></div>
+<div>Ứ <span>ứ</span></div>
+<div>Ừ <span>ừ</span></div>
+<div>Ử <span>ử</span></div>
+<div>Ữ <span>ữ</span></div>
+<div>Ự <span>ự</span></div>
+<div>Ỳ <span>ỳ</span></div>
+<div>Ỵ <span>ỵ</span></div>
+<div>Ỷ <span>ỷ</span></div>
+<div>Ỹ <span>ỹ</span></div>
+</div>
+
+
+<!--p class="notes">Notes: <br />The <a href='http://www.w3.org/TR/REC-CSS2/text.html#propdef-text-transform'>CSS2 specification</a> only requires that text-transform work for 'the Latin1 repertoire'. It is not clear what characters the term 'Latin1' covers. This test assumes that it means the Basic Latin and Latin-1 Supplement blocks of the Unicode Standard (equivalent to ISO-8859-1).</p-->
+<p id='fontChange' style='display: none;' class='notes'>If you are unable to see font glyphs for certain characters using the browsers default font you can apply a specific font by typing its name in the following box: <input class='css' name='fontName' id='fontName' value='' type='text' /> <button class='notes' type='button' onclick='setFontFamily()'>Apply</button></p><script type='text/javascript'>if (document.getElementById) {document.getElementById('fontChange').style.display = 'block'}</script></body>
+</html>

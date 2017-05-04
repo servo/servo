@@ -9,20 +9,22 @@ use LayoutNodeType;
 use OpaqueStyleAndLayoutData;
 use SVGSVGData;
 use atomic_refcell::AtomicRefCell;
-use gfx_traits::{ByteIndex, FragmentType, ScrollRootId};
-use html5ever_atoms::{Namespace, LocalName};
+use gfx_traits::{ByteIndex, FragmentType, combine_id_with_fragment_type};
+use html5ever::{Namespace, LocalName};
 use msg::constellation_msg::PipelineId;
 use range::Range;
 use servo_url::ServoUrl;
 use std::fmt::Debug;
-use std::sync::Arc;
 use style::computed_values::display;
 use style::context::SharedStyleContext;
 use style::data::ElementData;
 use style::dom::{LayoutIterator, NodeInfo, PresentationalHintsSynthetizer, TNode};
 use style::dom::OpaqueNode;
+use style::font_metrics::ServoMetricsProvider;
 use style::properties::{CascadeFlags, ServoComputedValues};
 use style::selector_parser::{PseudoElement, PseudoElementCascadeType, SelectorImpl};
+use style::stylearc::Arc;
+use webrender_traits::ClipId;
 
 #[derive(Copy, PartialEq, Clone, Debug)]
 pub enum PseudoElementType<T> {
@@ -287,8 +289,9 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
         }
     }
 
-    fn scroll_root_id(&self) -> ScrollRootId {
-        ScrollRootId::new_of_type(self.opaque().id() as usize, self.fragment_type())
+    fn generate_scroll_root_id(&self, pipeline_id: PipelineId) -> ClipId {
+        let id = combine_id_with_fragment_type(self.opaque().id(), self.fragment_type());
+        ClipId::new(id as u64, pipeline_id.to_webrender())
     }
 }
 
@@ -411,7 +414,12 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
                                     &context.guards,
                                     &style_pseudo,
                                     Some(data.styles().primary.values()),
+<<<<<<< HEAD
                                     CascadeFlags::empty());
+=======
+                                    CascadeFlags::empty(),
+                                    &ServoMetricsProvider);
+>>>>>>> 896a920ff53f683cdaac8bc6b2f796633a436a7f
                             data.styles_mut().cached_pseudos
                                 .insert(style_pseudo.clone(), new_style);
                         }
@@ -426,7 +434,12 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
                                            &context.guards,
                                            unsafe { &self.unsafe_get() },
                                            &style_pseudo,
+<<<<<<< HEAD
                                            data.styles().primary.values());
+=======
+                                           data.styles().primary.values(),
+                                           &ServoMetricsProvider);
+>>>>>>> 896a920ff53f683cdaac8bc6b2f796633a436a7f
                             data.styles_mut().cached_pseudos
                                 .insert(style_pseudo.clone(), new_style.unwrap());
                         }

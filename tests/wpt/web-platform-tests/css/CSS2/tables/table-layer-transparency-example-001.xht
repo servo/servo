@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Empty cells set to 'hide' are transparent down to the table background</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-layers" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="If 'empty-cells' is set to 'hide', empty cells are transparent all the way down to the table background, (example from spec section 17.5.1)." />
+        <style type="text/css">
+            table
+            {
+                background: #ff0;
+                border: solid black;
+                empty-cells: hide;
+            }
+            tr.top
+            {
+                background: orange;
+            }
+            td
+            {
+                border: 2px solid black;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the table below has two rows of cells with black borders, cell '2' spans both rows, and cells '1', '2', '3', '4' have a orange background. There cannot be any visible cells below cells '3' or '4'.</p>
+        <table>
+            <tr class="top">
+                <td> 1</td>
+                <td rowspan="2"> 2</td>
+                <td> 3</td>
+                <td> 4</td>
+            </tr>
+            <tr>
+                <td> 5</td>
+                <td></td>
+            </tr>
+        </table>
+  </body>
+</html>

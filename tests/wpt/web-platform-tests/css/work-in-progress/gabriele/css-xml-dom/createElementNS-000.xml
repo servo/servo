@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>createElementNS 1</title>
+<meta http-equiv="Content-Type" content="text/xml; charset=utf-8" />
+<style type="text/css" media="screen">
+
+@namespace "http://www.ns.com/NS/p";
+
+p {
+	background-color: lime;
+	display: block;
+}
+
+</style>
+
+<script type="text/javascript">
+<![CDATA[
+
+window.onload = function () {
+	var body = document.getElementsByTagName("body")[0];
+	var p = document.createElementNS("http://www.ns.com/NS/p", "p");
+	var text = document.createTextNode("Test");
+	p.appendChild(text);
+	body.appendChild(p);
+	
+	
+};
+]]>
+
+</script>
+
+</head>
+
+<body>
+
+<p>The following paragraph should have a bright green background.</p>
+
+
+
+
+</body>
+</html>

@@ -8,7 +8,8 @@
 
 <% from data import to_rust_ident %>
 
-<%helpers:longhand name="color" need_clone="True" animatable="True"
+<%helpers:longhand name="color" need_clone="True"
+                   animation_value_type="IntermediateRGBA"
                    spec="https://drafts.csswg.org/css-color/#color">
     use cssparser::RGBA;
     use std::fmt;
@@ -26,10 +27,7 @@
 
         #[inline]
         fn from_computed_value(computed: &computed_value::T) -> Self {
-            SpecifiedValue(CSSColor {
-                parsed: Color::RGBA(*computed),
-                authored: None,
-            })
+            SpecifiedValue(Color::RGBA(*computed).into())
         }
     }
 

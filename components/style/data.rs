@@ -9,16 +9,21 @@
 use dom::TElement;
 use properties::ComputedValues;
 use properties::longhands::display::computed_value as display;
-use restyle_hints::{RESTYLE_CSS_ANIMATIONS, RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
+use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
 use rule_tree::StrongRuleNode;
 use selector_parser::{EAGER_PSEUDO_COUNT, PseudoElement, RestyleDamage, Snapshot};
 #[cfg(feature = "servo")] use std::collections::HashMap;
 use std::fmt;
 #[cfg(feature = "servo")] use std::hash::BuildHasherDefault;
 use std::ops::Deref;
+<<<<<<< HEAD
 use std::sync::Arc;
+=======
+use stylearc::Arc;
+>>>>>>> 896a920ff53f683cdaac8bc6b2f796633a436a7f
 use stylist::Stylist;
 use thread_state;
+use traversal::TraversalFlags;
 
 /// The structure that represents the result of style computation. This is
 /// effectively a tuple of rules and computed values, that is, the rule node,
@@ -80,7 +85,11 @@ pub struct EagerPseudoStyles(Option<Box<[Option<ComputedStyle>]>>);
 impl EagerPseudoStyles {
     /// Returns whether there are any pseudo styles.
     pub fn is_empty(&self) -> bool {
+<<<<<<< HEAD
         self.0.is_some()
+=======
+        self.0.is_none()
+>>>>>>> 896a920ff53f683cdaac8bc6b2f796633a436a7f
     }
 
     /// Returns a reference to the style for a given eager pseudo, if it exists.
@@ -94,6 +103,7 @@ impl EagerPseudoStyles {
         debug_assert!(pseudo.is_eager());
         self.0.as_mut().and_then(|p| p[pseudo.eager_index()].as_mut())
     }
+<<<<<<< HEAD
 
     /// Returns true if the EagerPseudoStyles has a ComputedStyle for |pseudo|.
     pub fn has(&self, pseudo: &PseudoElement) -> bool {
@@ -135,6 +145,49 @@ impl EagerPseudoStyles {
         v
     }
 
+=======
+
+    /// Returns true if the EagerPseudoStyles has a ComputedStyle for |pseudo|.
+    pub fn has(&self, pseudo: &PseudoElement) -> bool {
+        self.get(pseudo).is_some()
+    }
+
+    /// Inserts a pseudo-element. The pseudo-element must not already exist.
+    pub fn insert(&mut self, pseudo: &PseudoElement, style: ComputedStyle) {
+        debug_assert!(!self.has(pseudo));
+        if self.0.is_none() {
+            self.0 = Some(vec![None; EAGER_PSEUDO_COUNT].into_boxed_slice());
+        }
+        self.0.as_mut().unwrap()[pseudo.eager_index()] = Some(style);
+    }
+
+    /// Removes a pseudo-element style if it exists, and returns it.
+    pub fn take(&mut self, pseudo: &PseudoElement) -> Option<ComputedStyle> {
+        let result = match self.0.as_mut() {
+            None => return None,
+            Some(arr) => arr[pseudo.eager_index()].take(),
+        };
+        let empty = self.0.as_ref().unwrap().iter().all(|x| x.is_none());
+        if empty {
+            self.0 = None;
+        }
+        result
+    }
+
+    /// Returns a list of the pseudo-elements.
+    pub fn keys(&self) -> Vec<PseudoElement> {
+        let mut v = Vec::new();
+        if let Some(ref arr) = self.0 {
+            for i in 0..EAGER_PSEUDO_COUNT {
+                if arr[i].is_some() {
+                    v.push(PseudoElement::from_eager_index(i));
+                }
+            }
+        }
+        v
+    }
+
+>>>>>>> 896a920ff53f683cdaac8bc6b2f796633a436a7f
     /// Sets the rule node for a given pseudo-element, which must already have an entry.
     ///
     /// Returns true if the rule node changed.
@@ -192,16 +245,21 @@ pub struct StoredRestyleHint(RestyleHint);
 
 impl StoredRestyleHint {
     /// Propagates this restyle hint to a child element.
-    pub fn propagate(&mut self) -> Self {
+    pub fn propagate(&mut self, traversal_flags: &TraversalFlags) -> Self {
         use std::mem;
 
-        // If we have RESTYLE_CSS_ANIMATIONS restyle hint, it means we are in
-        // the middle of an animation only restyle. In that case, we don't need
-        // to propagate any restyle hints, and we need to remove ourselves.
-        if self.0.contains(RESTYLE_CSS_ANIMATIONS) {
-            self.0.remove(RESTYLE_CSS_ANIMATIONS);
+        // In the middle of an animation only restyle, we don't need to
+        // propagate any restyle hints, and we need to remove ourselves.
+        if traversal_flags.for_animation_only() {
+            if self.0.intersects(RestyleHint::for_animations()) {
+                self.0.remove(RestyleHint::for_animations());
+            }
             return Self::empty();
         }
+
+        debug_assert!(!self.0.intersects(RestyleHint::for_animations()),
+                      "There should not be any animation restyle hints \
+                       during normal traversal");
 
         // Else we should clear ourselves, and return the propagated hint.
         let hint = mem::replace(&mut self.0, RestyleHint::empty());
@@ -221,6 +279,13 @@ impl StoredRestyleHint {
     /// including the element.
     pub fn subtree() -> Self {
         StoredRestyleHint(RESTYLE_SELF | RESTYLE_DESCENDANTS)
+    }
+
+    /// Creates a restyle hint that forces the element and all its later
+    /// siblings to have their whole subtrees restyled, including the elements
+    /// themselves.
+    pub fn subtree_and_later_siblings() -> Self {
+        StoredRestyleHint(RESTYLE_SELF | RESTYLE_DESCENDANTS | RESTYLE_LATER_SIBLINGS)
     }
 
     /// Returns true if the hint indicates that our style may be invalidated.
@@ -246,7 +311,7 @@ impl StoredRestyleHint {
 
     /// Returns true if the hint has animation-only restyle.
     pub fn has_animation_hint(&self) -> bool {
-        self.0.contains(RESTYLE_CSS_ANIMATIONS)
+        self.0.intersects(RestyleHint::for_animations())
     }
 }
 
@@ -517,6 +582,21 @@ impl ElementData {
         debug_assert!(self.get_restyle().map_or(true, |r| r.snapshot.is_none()),
                       "Traversal should have expanded snapshots");
         self.styles = Some(styles);
+    }
+
+    /// Sets the computed element rules, and returns whether the rules changed.
+    pub fn set_primary_rules(&mut self, rules: StrongRuleNode) -> bool {
+        if !self.has_styles() {
+            self.set_styles(ElementStyles::new(ComputedStyle::new_partial(rules)));
+            return true;
+        }
+
+        if self.styles().primary.rules == rules {
+            return false;
+        }
+
+        self.styles_mut().primary.rules = rules;
+        true
     }
 
     /// Returns true if the Element has a RestyleData.

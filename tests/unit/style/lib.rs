@@ -6,14 +6,15 @@
 #![feature(plugin, test)]
 
 extern crate app_units;
+extern crate byteorder;
 extern crate cssparser;
 extern crate euclid;
-#[macro_use] extern crate html5ever_atoms;
+#[macro_use] extern crate html5ever;
 extern crate parking_lot;
 extern crate rayon;
 extern crate rustc_serialize;
 extern crate selectors;
-#[macro_use] extern crate servo_atoms;
+extern crate servo_atoms;
 extern crate servo_config;
 extern crate servo_url;
 extern crate style;
@@ -27,12 +28,12 @@ mod logical_geometry;
 mod media_queries;
 mod parsing;
 mod properties;
+mod restyle_hints;
 mod rule_tree;
 mod size_of;
 mod str;
 mod stylesheets;
 mod stylist;
-mod value;
 mod viewport;
 
 mod writing_modes {

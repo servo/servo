@@ -18,10 +18,10 @@ use dom::validation::Validatable;
 use dom::validitystate::{ValidityState, ValidationFlags};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
+use html5ever::{LocalName, Prefix};
 use net_traits::image::base::Image;
 use std::default::Default;
-use std::sync::Arc;
+use style::stylearc::Arc;
 
 #[dom_struct]
 pub struct HTMLObjectElement {
@@ -33,7 +33,7 @@ pub struct HTMLObjectElement {
 
 impl HTMLObjectElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> HTMLObjectElement {
         HTMLObjectElement {
             htmlelement:
@@ -45,7 +45,7 @@ impl HTMLObjectElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLObjectElement> {
         Node::reflect_node(box HTMLObjectElement::new_inherited(local_name, prefix, document),
                            document,

@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Multiple 'counter-reset' before 'counter' use</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#content" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="If multiple resets are specified on the same 'counter' then all of them occur in the order specified." />
+        <style type="text/css">
+            .test:before
+            {
+                content: counter(chapter);
+                counter-reset: chapter -2;
+            }
+            .test1
+            {
+                counter-reset: chapter -2;
+            }
+            .test2
+            {
+                counter-reset: chapter -2;
+            }
+            .test3
+            {
+                counter-reset: chapter -2;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a number '-2' below.</p>
+        <div class="test1 test2 test3 test"></div>
+    </body>
+</html>

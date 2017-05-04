@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: list-style: none - followed by a list-style-image reset</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#list-style" title="12.5.1 list-style shorthand" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#cascading-order" title="6.4.1 Cascading order" />
+  <link rel="match" href="list-style-021-ref.xht" />
+
+  <meta content="image" name="flags" />
+  <meta content="A value of 'none' for the 'list-style' property sets both 'list-style-type' and 'list-style-image' to 'none'. If two declarations have the same weight, origin and specificity, then the latter specified wins." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  body {margin-left: 100px;}
+
+  ul {list-style: none;}
+
+  ul {list-style-image: url("support/cat.png");}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a <strong>cat image</strong>.</p>
+
+  <ul>
+   <li>&nbsp;</li>
+  </ul>
+
+ </body>
+</html>

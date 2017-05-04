@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Display: display:contents works on floated elements</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:ecobos@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#valdef-display-contents">
+<link rel="match" href="display-contents-pass-no-red-ref.html">
+<style>
+  div {
+    display: contents;
+    float: right;
+    background: red;
+  }
+</style>
+<p>You should see the word PASS and no red below.</p>
+<div>P<span>A</span>S<span>S</span></div>

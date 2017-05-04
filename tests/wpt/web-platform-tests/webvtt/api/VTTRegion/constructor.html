@@ -1,0 +1,18 @@
+<!doctype html>
+<title>VTTRegion()</title>
+<link rel="help" href="https://w3c.github.io/webvtt/#dom-vttregion-vttregion">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+test(function() {
+    var region = new VTTRegion();
+    assert_equals(region.width, 100);
+    assert_equals(region.lines, 3);
+    assert_equals(region.regionAnchorX, 0);
+    assert_equals(region.regionAnchorY, 100);
+    assert_equals(region.viewportAnchorX, 0);
+    assert_equals(region.viewportAnchorY, 100);
+    assert_equals(region.scroll, '');
+}, document.title + ' initial values');
+</script>

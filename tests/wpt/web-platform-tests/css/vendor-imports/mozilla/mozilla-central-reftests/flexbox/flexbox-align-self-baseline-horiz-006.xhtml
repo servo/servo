@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Testcase for behavior of the 'baseline' value for align-items (and
+     align-self, implicitly). This test baseline-aligns various types of
+     content against content that is exempt from alignment due to an
+     orthognal writing-mode.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: Baseline alignment of block flex items with 'baseline' value for 'align-items' / 'align-self' against non-parallel writing-modes.</title>
+    <link rel="author" title="Brad Werth" href="mailto:bwerth@mozilla.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#baseline-participation"/>
+    <link rel="match" href="flexbox-align-self-baseline-horiz-006-ref.xhtml"/>
+    <style>
+      .container {
+        display: flex;
+        border: 1px dashed blue;
+        font: 14px sans-serif;
+        height: 50px;
+      }
+
+      .base     { align-items: baseline; }
+      .lastbase { align-items: last baseline; }
+
+      .ortho  { writing-mode: vertical-rl;
+                width: 17px;
+                height: 40px; }
+      .offset { margin-top: 10px;
+                margin-bottom: 3px; }
+
+      .lime   { background: lime;   }
+      .yellow { background: yellow; }
+      .orange { background: orange; }
+      .pink   { background: pink;   }
+    </style>
+  </head>
+  <body>
+    <div class="container base">
+      <div class="lime ortho">ortho</div>
+      <div class="yellow">one line</div>
+      <div class="orange">two<br/>lines</div>
+      <div class="pink offset">offset</div>
+    </div>
+    <div class="container lastbase">
+      <div class="lime ortho">ortho</div>
+      <div class="yellow">one line</div>
+      <div class="orange">two<br/>lines</div>
+      <div class="pink offset">offset</div>
+    </div>
+  </body>
+</html>

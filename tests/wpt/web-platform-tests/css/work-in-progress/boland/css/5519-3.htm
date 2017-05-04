@@ -1,0 +1,61 @@
+
+<html>
+
+<title>Third Test of Section 5.5.19 of CSS1 Spec</title>
+
+<style type="text/css">
+#id1 {border-right: thin dotted aqua}
+#id2 {border-right-width: thin;
+      border-style: dotted;
+      color: aqua;}
+#id3 {border-right: medium dotted aqua}
+</style>
+</head>
+
+
+
+<body>
+
+
+
+
+<h1 >Testing Statement #3 Below of Section 5.5.19 of CSS1 Spec</h1>
+
+
+
+
+
+
+<ul>
+<li>
+3. "border-right' is a shorthand property for setting the width, style and color
+of an element's right border.  Otherwise it is equivalent to the "border-top".
+</ul>
+
+
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p id=ID1 >
+If statement #3 above is passed, this paragraph should have a right border
+of thin dotted aqua.
+The rule applied is "#id1 {border-right: thin dotted aqua}".
+<p ID=id2>
+This paragraph should have a border-right-width of thin, a border style of
+dotted, and a color of aqua.
+The rule applied is "#id2 {border-right-width: thin;
+                           border-style: dotted;
+                           color: aqua;}".
+<p ID=id3>
+This paragraph should have a right border of medium dotted aqua.
+The rule applied is "#id3 {border-right: medium dotted aqua}".
+
+
+<p>
+All other properties of this page should be UA-default.
+
+
+</body>
+</html>

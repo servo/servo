@@ -159,10 +159,16 @@
                 }
 
                 try!(image.to_css(dest));
-                % for name in "repeat attachment position_x position_y".split():
+                % for name in "repeat attachment".split():
                     try!(write!(dest, " "));
                     try!(${name}.to_css(dest));
                 % endfor
+
+                try!(write!(dest, " "));
+                Position {
+                    horizontal: position_x.clone(),
+                    vertical: position_y.clone()
+                }.to_css(dest)?;
 
                 if *size != background_size::single_value::get_initial_specified_value() {
                     try!(write!(dest, " / "));
@@ -188,8 +194,8 @@
                     sub_properties="background-position-x background-position-y"
                     spec="https://drafts.csswg.org/css-backgrounds-4/#the-background-position">
     use properties::longhands::{background_position_x,background_position_y};
+    use values::specified::AllowQuirks;
     use values::specified::position::Position;
-    use parser::Parse;
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let mut position_x = background_position_x::SpecifiedValue(Vec::new());
@@ -198,7 +204,7 @@
 
         try!(input.parse_comma_separated(|input| {
             loop {
-                if let Ok(value) = input.try(|input| Position::parse(context, input)) {
+                if let Ok(value) = input.try(|input| Position::parse_quirky(context, input, AllowQuirks::Yes)) {
                     position_x.0.push(value.horizontal);
                     position_y.0.push(value.vertical);
                     any = true;
@@ -208,7 +214,7 @@
             }
             Ok(())
         }));
-        if any == false {
+        if !any {
             return Err(());
         }
 
@@ -225,9 +231,11 @@
                 return Ok(());
             }
             for i in 0..len {
-                self.background_position_x.0[i].to_css(dest)?;
-                dest.write_str(" ")?;
-                self.background_position_y.0[i].to_css(dest)?;
+                Position {
+                    horizontal: self.background_position_x.0[i].clone(),
+                    vertical: self.background_position_y.0[i].clone()
+                }.to_css(dest)?;
+
                 if i < len - 1 {
                     dest.write_str(", ")?;
                 }

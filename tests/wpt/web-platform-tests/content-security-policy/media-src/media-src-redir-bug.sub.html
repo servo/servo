@@ -8,7 +8,7 @@
 <body>
     <h1>Video element in media-src list - redirect test</h1>
     <div id='log'></div>
-    
+
   <p>This test tests a buggy interaction in Chrome 46.  Two hosts (self and www2) are both allowed
     as media-src, but only one (self) is allowed for connect-src.  If a video src starts on
     an allowed host (self), and is redirected to another allowed media-src host, it should succeed. But a bug
@@ -36,29 +36,29 @@
     <video id="videoObject" width="320" height="240" controls
            onloadeddata="media_loaded(source_test)">
         <source id="videoSourceObject"
-                type="video/mp4"
+                type="video/ogg"
                 onerror="media_error_handler(source_test)"
-                src="http://www2.{{host}}:{{ports[http][0]}}/media/white.mp4">
+                src="http://{{domains[www2]}}:{{ports[http][0]}}/media/A4.ogv">
     </video>
-    
+
     <video id="videoObject2" width="320" height="240" controls
            onerror="media_error_handler(src_test)"
            onloadeddata="media_loaded(src_test)"
-           src="http://www2.{{host}}:{{ports[http][0]}}/media/white.mp4">
+           src="http://{{domains[www2]}}:{{ports[http][0]}}/media/A4.ogv">
 
     <video id="videoObject3" width="320" height="240" controls
            onloadeddata="media_loaded(source_redir_test)">
         <source id="videoSourceObject"
-                type="video/mp4"
+                type="video/ogg"
                 onerror="media_error_handler(source_test)"
-                src="/common/redirect.py?location=http://www2.{{host}}:{{ports[http][0]}}/media/white.mp4">
+                src="/common/redirect.py?location=http://{{domains[www2]}}:{{ports[http][0]}}/media/A4.ogv">
     </video>
-        
+
     <video id="videoObject2" width="320" height="240" controls
            onerror="media_error_handler(src_redir_test)"
            onloadeddata="media_loaded(src_redir_test)"
-           src="/common/redirect.py?location=http://www2.{{host}}:{{ports[http][0]}}/media/white.mp4">
-        
+           src="/common/redirect.py?location=http://{{domains[www2]}}:{{ports[http][0]}}/media/A4.ogv">
+
   <script async defer src="../support/checkReport.sub.js?reportExists=false">
   </script>
 

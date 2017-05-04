@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Color Units</title>
+  <meta name="flags" content="ahem image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#color-units"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c63-color-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   body {color: blue;}
+   span {vertical-align: bottom; font: 15px/1 Ahem;}
+   img {vertical-align: bottom; color: red;}
+   .one {color: #0f0;}
+   .two {color: #00ff00;}
+   .three {color: rgb(0,255,0);}
+   .four {color: rgb(0%,100%,0%);}
+   .five {color: rgb(0.0%,100.0%,0.0%);}
+   .six {color: lime;}
+   .seven {color: invalidValue;}
+   .eight {color: rgb(1280,165,0);}
+   .nine {color: rgb(255,165,0);}
+   .ten {color: rgb(100%,64.7%,-500%);}
+   .eleven {color: rgb(100%,64.7%,0%);}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#color-units" title="4.3.6 Colors"/>
+ </head>
+ <body>
+  <p>There should be three solid bars of colour below, each longer than the last, each of the colour specified.</p>
+  <div>
+   Blue: <span>X</span><span class="seven">X</span><img src="support/swatch-blue.png" alt="FAIL"/>
+  </div>
+  <div>
+   Orange: <span class="eight">X</span><span class="nine">X</span><span class="ten">X</span><span class="eleven">X</span><img src="support/swatch-orange.png" alt="FAIL"/>
+  </div>
+  <div>
+   Lime: <span class="one">X</span><span class="two">X</span><span class="three">X</span><span class="four">X</span><span class="five">X</span><span class="six">X</span><span style="color: #0f0;">X</span><span style="color: #00ff00;">X</span><span style="color: rgb(0,255,0);">X</span><span style="color: rgb(0%,100%,0%);">X</span><span style="color: rgb(0.0%,100.0%,0.0%);">X</span><span style="color: lime;">X</span><img src="support/swatch-lime.png" alt="FAIL"/>
+  </div>
+ </body>
+</html>

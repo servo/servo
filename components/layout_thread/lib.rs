@@ -45,12 +45,11 @@ use euclid::rect::Rect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::Size2D;
 use fnv::FnvHasher;
-use gfx::display_list::{ClippingRegion, OpaqueNode};
-use gfx::display_list::WebRenderImageInfo;
+use gfx::display_list::{OpaqueNode, WebRenderImageInfo};
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
-use gfx_traits::{Epoch, FragmentType, ScrollRootId};
+use gfx_traits::{Epoch, node_id_from_clip_id};
 use heapsize::HeapSizeOf;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -61,7 +60,7 @@ use layout::context::heap_size_of_persistent_local_context;
 use layout::display_list_builder::ToGfxColor;
 use layout::flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow_ref::FlowRef;
-use layout::incremental::{LayoutDamageComputation, REFLOW_ENTIRE_DOCUMENT};
+use layout::incremental::{LayoutDamageComputation, REFLOW_ENTIRE_DOCUMENT, RelayoutMode};
 use layout::layout_debug;
 use layout::opaque_node::OpaqueNodeMethods;
 use layout::parallel;
@@ -107,14 +106,16 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 use style::animation::Animation;
-use style::context::{QuirksMode, ReflowGoal, SharedStyleContext, ThreadLocalStyleContextCreationInfo};
+use style::context::{QuirksMode, ReflowGoal, SharedStyleContext};
+use style::context::{StyleSystemOptions, ThreadLocalStyleContextCreationInfo};
 use style::data::StoredRestyleHint;
 use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
-use style::error_reporting::StdoutErrorReporter;
+use style::error_reporting::{NullReporter, RustLogReporter};
 use style::logical_geometry::LogicalPoint;
-use style::media_queries::{Device, MediaType};
+use style::media_queries::{Device, MediaList, MediaType};
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION, STORE_OVERFLOW};
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
+use style::stylearc::Arc as StyleArc;
 use style::stylesheets::{Origin, Stylesheet, UserAgentStylesheets};
 use style::stylist::{ExtraStyleData, Stylist};
 use style::thread_state;
@@ -192,10 +193,10 @@ pub struct LayoutThread {
     document_shared_lock: Option<SharedRwLock>,
 
     /// The list of currently-running animations.
-    running_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
+    running_animations: StyleArc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
 
     /// The list of animations that have expired since the last style recalculation.
-    expired_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
+    expired_animations: StyleArc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
 
     /// A counter for epoch messages
     epoch: Epoch,
@@ -412,7 +413,7 @@ impl LayoutThread {
         let font_cache_receiver =
             ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_font_cache_receiver);
 
-        let stylist = Arc::new(Stylist::new(device));
+        let stylist = StyleArc::new(Stylist::new(device));
         let outstanding_web_fonts_counter = Arc::new(AtomicUsize::new(0));
         let ua_stylesheets = &*UA_STYLESHEETS;
         let guard = ua_stylesheets.shared_lock.read();
@@ -448,8 +449,8 @@ impl LayoutThread {
             outstanding_web_fonts: outstanding_web_fonts_counter,
             root_flow: None,
             document_shared_lock: None,
-            running_animations: Arc::new(RwLock::new(HashMap::new())),
-            expired_animations: Arc::new(RwLock::new(HashMap::new())),
+            running_animations: StyleArc::new(RwLock::new(HashMap::new())),
+            expired_animations: StyleArc::new(RwLock::new(HashMap::new())),
             epoch: Epoch(0),
             viewport_size: Size2D::new(Au(0), Au(0)),
             webrender_api: webrender_api_sender.create_api(),
@@ -514,8 +515,10 @@ impl LayoutThread {
             ThreadLocalStyleContextCreationInfo::new(self.new_animations_sender.clone());
 
         LayoutContext {
+            id: self.id,
             style_context: SharedStyleContext {
                 stylist: rw_data.stylist.clone(),
+                options: StyleSystemOptions::default(),
                 guards: guards,
                 running_animations: self.running_animations.clone(),
                 expired_animations: self.expired_animations.clone(),
@@ -523,7 +526,7 @@ impl LayoutThread {
                 local_context_creation_data: Mutex::new(thread_local_style_context_creation_data),
                 timer: self.timer.clone(),
                 quirks_mode: self.quirks_mode.unwrap(),
-                animation_only_restyle: false,
+                traversal_flags: TraversalFlags::empty(),
             },
             image_cache: self.image_cache.clone(),
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
@@ -599,7 +602,7 @@ impl LayoutThread {
             Msg::AddStylesheet(style_info) => {
                 self.handle_add_stylesheet(style_info, possibly_locked_rw_data)
             }
-            Msg::SetQuirksMode => self.handle_set_quirks_mode(possibly_locked_rw_data),
+            Msg::SetQuirksMode(mode) => self.handle_set_quirks_mode(possibly_locked_rw_data, mode),
             Msg::GetRPC(response_chan) => {
                 response_chan.send(box LayoutRPCImpl(self.rw_data.clone()) as
                                    Box<LayoutRPC + Send>).unwrap();
@@ -739,7 +742,7 @@ impl LayoutThread {
     }
 
     fn handle_add_stylesheet<'a, 'b>(&self,
-                                     stylesheet: Arc<Stylesheet>,
+                                     stylesheet: StyleArc<Stylesheet>,
                                      possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         // Find all font-face rules and notify the font cache of them.
         // GWTODO: Need to handle unloading web fonts.
@@ -770,9 +773,11 @@ impl LayoutThread {
     }
 
     /// Sets quirks mode for the document, causing the quirks mode stylesheet to be used.
-    fn handle_set_quirks_mode<'a, 'b>(&self, possibly_locked_rw_data: &mut RwData<'a, 'b>) {
+    fn handle_set_quirks_mode<'a, 'b>(&self,
+                                      possibly_locked_rw_data: &mut RwData<'a, 'b>,
+                                      quirks_mode: QuirksMode) {
         let mut rw_data = possibly_locked_rw_data.lock();
-        Arc::get_mut(&mut rw_data.stylist).unwrap().set_quirks_mode(true);
+        StyleArc::get_mut(&mut rw_data.stylist).unwrap().set_quirks_mode(quirks_mode);
         possibly_locked_rw_data.block(rw_data);
     }
 
@@ -809,7 +814,7 @@ impl LayoutThread {
     fn solve_constraints(layout_root: &mut Flow,
                          layout_context: &LayoutContext) {
         let _scope = layout_debug_scope!("solve_constraints");
-        sequential::traverse_flow_tree_preorder(layout_root, layout_context);
+        sequential::traverse_flow_tree_preorder(layout_root, layout_context, RelayoutMode::Incremental);
     }
 
     /// Performs layout constraint solving in parallel.
@@ -852,8 +857,7 @@ impl LayoutThread {
                 LogicalPoint::zero(writing_mode).to_physical(writing_mode,
                                                              self.viewport_size);
 
-            flow::mut_base(layout_root).clip =
-                ClippingRegion::from_rect(&data.page_clip_rect);
+            flow::mut_base(layout_root).clip = data.page_clip_rect;
 
             if flow::base(layout_root).restyle_damage.contains(REPOSITION) {
                 layout_root.traverse_preorder(&ComputeAbsolutePositions {
@@ -935,7 +939,7 @@ impl LayoutThread {
             let Epoch(epoch_number) = self.epoch;
 
             let viewport_size = webrender_traits::LayoutSize::from_untyped(&viewport_size);
-            self.webrender_api.set_root_display_list(
+            self.webrender_api.set_display_list(
                 Some(get_root_flow_background_color(layout_root)),
                 webrender_traits::Epoch(epoch_number),
                 viewport_size,
@@ -1031,7 +1035,7 @@ impl LayoutThread {
         self.document_shared_lock = Some(document_shared_lock.clone());
         let author_guard = document_shared_lock.read();
         let device = Device::new(MediaType::Screen, initial_viewport);
-        Arc::get_mut(&mut rw_data.stylist).unwrap()
+        StyleArc::get_mut(&mut rw_data.stylist).unwrap()
             .set_device(device, &author_guard, &data.document_stylesheets);
 
         self.viewport_size =
@@ -1085,11 +1089,12 @@ impl LayoutThread {
         let mut extra_data = ExtraStyleData {
             marker: PhantomData,
         };
-        let needs_dirtying = Arc::get_mut(&mut rw_data.stylist).unwrap().update(
+        let needs_dirtying = StyleArc::get_mut(&mut rw_data.stylist).unwrap().update(
             &data.document_stylesheets,
             &guards,
             Some(ua_stylesheets),
             data.stylesheets_changed,
+            /* author_styles_disabled = */ false,
             &mut extra_data);
         let needs_reflow = viewport_size_changed && !needs_dirtying;
         if needs_dirtying {
@@ -1146,7 +1151,6 @@ impl LayoutThread {
         };
 
         let traversal = RecalcStyleAndConstructFlows::new(layout_context, traversal_driver);
-        let dom_depth = Some(0); // This is always the root node.
         let token = {
             let stylist = &<RecalcStyleAndConstructFlows as
                             DomTraversal<ServoLayoutElement>>::shared_context(&traversal).stylist;
@@ -1165,7 +1169,7 @@ impl LayoutThread {
                     let pool = self.parallel_traversal.as_mut().unwrap();
                     // Parallel mode
                     parallel::traverse_dom::<ServoLayoutElement, RecalcStyleAndConstructFlows>(
-                        &traversal, element, dom_depth, token, pool);
+                        &traversal, element, token, pool);
                 } else {
                     // Sequential mode
                     sequential::traverse_dom::<ServoLayoutElement, RecalcStyleAndConstructFlows>(
@@ -1282,7 +1286,8 @@ impl LayoutThread {
             },
             ReflowQueryType::NodeScrollRootIdQuery(node) => {
                 let node = unsafe { ServoLayoutNode::new(&node) };
-                rw_data.scroll_root_id_response = Some(process_node_scroll_root_id_request(node));
+                rw_data.scroll_root_id_response = Some(process_node_scroll_root_id_request(self.id,
+                                                                                           node));
             },
             ReflowQueryType::ResolvedStyleQuery(node, ref pseudo, ref property) => {
                 let node = unsafe { ServoLayoutNode::new(&node) };
@@ -1339,12 +1344,12 @@ impl LayoutThread {
             let offset = new_scroll_state.scroll_offset;
             layout_scroll_states.insert(new_scroll_state.scroll_root_id, offset);
 
-            if new_scroll_state.scroll_root_id == ScrollRootId::root() {
+            if new_scroll_state.scroll_root_id.is_root_scroll_node() {
                 script_scroll_states.push((UntrustedNodeAddress::from_id(0), offset))
-            } else if !new_scroll_state.scroll_root_id.is_special() &&
-                    new_scroll_state.scroll_root_id.fragment_type() == FragmentType::FragmentBody {
-                let id = new_scroll_state.scroll_root_id.id();
-                script_scroll_states.push((UntrustedNodeAddress::from_id(id), offset))
+            } else if let Some(id) = new_scroll_state.scroll_root_id.external_id() {
+                if let Some(node_id) = node_id_from_clip_id(id as usize) {
+                    script_scroll_states.push((UntrustedNodeAddress::from_id(node_id), offset))
+                }
             }
         }
         let _ = self.script_chan
@@ -1582,10 +1587,11 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
             None,
             None,
             Origin::UserAgent,
-            Default::default(),
+            MediaList::empty(),
             shared_lock.clone(),
             None,
-            &StdoutErrorReporter))
+            &NullReporter,
+            QuirksMode::NoQuirks))
     }
 
     let shared_lock = SharedRwLock::new();
@@ -1597,8 +1603,8 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
     }
     for &(ref contents, ref url) in &opts::get().user_stylesheets {
         user_or_user_agent_stylesheets.push(Stylesheet::from_bytes(
-            &contents, url.clone(), None, None, Origin::User, Default::default(),
-            shared_lock.clone(), None, &StdoutErrorReporter));
+            &contents, url.clone(), None, None, Origin::User, MediaList::empty(),
+            shared_lock.clone(), None, &RustLogReporter, QuirksMode::NoQuirks));
     }
 
     let quirks_mode_stylesheet = try!(parse_ua_stylesheet(&shared_lock, "quirks-mode.css"));

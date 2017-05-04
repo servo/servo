@@ -1,0 +1,77 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Third Test of Section 10.7 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+
+
+
+p {min-height: 20px}
+strong {min-height: 200%}
+h3 {min-height: inherit}
+h4 {min-height: 20px}
+h5 {min-height: 200%}
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<!--
+<h1 >
+Testing Third Testable Statement of Sec 10.7 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+3. The 'min-height' property has initial '0', it applies to all elements
+except certain ones, it is not inherited, percentages refer to width of 
+containing block, and media is visual.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+If statement #3 above is passed, then
+-->
+<blockquote>
+This blockquote element has min-height 0 (initial value, no explicit CSS
+rule defined)
+</blockquote>
+<p>
+This paragraph has min-height of 20px.  This <em>emphasized text</em> has
+min-height of UA-default, even though em is descendant of p (property not
+inherited).</p>
+<strong>This strong text has min height of 200%</strong>
+<h3>This h3 heading has min height of inherit</h3>
+<h4>This h4 text has min height of 20px</h4>
+
+<h5>This h5 heading is min height 200%</h5>
+
+
+The rules applied are "p {min-height: 20px}",
+"strong {min-height: 200%}",
+h3 {min-height: inherit}",
+h4 {min-height: 20px}",
+h5 {min-height: 200%}".
+
+NOTE: From all elements listed above, min-height property should apply to all
+elements.
+<!--
+All other properties of this page should be UA-default.
+-->
+
+
+</BODY>
+</HTML>
+

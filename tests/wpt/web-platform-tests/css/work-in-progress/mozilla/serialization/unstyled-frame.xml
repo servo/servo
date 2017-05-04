@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="unstyled-frame.css" type="text/css"?>
+<!-- The root element is forced to display:block, so look at its child -->
+<root><child/></root>

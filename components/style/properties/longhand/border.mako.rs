@@ -20,48 +20,27 @@
                               "::cssparser::Color::CurrentColor",
                               alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-color"),
                               spec=maybe_logical_spec(side, "color"),
-                              animatable=True, logical = side[1])}
-% endfor
+                              animation_value_type="IntermediateColor", logical = side[1])}
 
-% for side in ALL_SIDES:
     ${helpers.predefined_type("border-%s-style" % side[0], "BorderStyle",
                               "specified::BorderStyle::none",
                               need_clone=True,
                               alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-style"),
                               spec=maybe_logical_spec(side, "style"),
-                              animatable=False, logical = side[1])}
+                              animation_value_type="none", logical=side[1])}
+
+    ${helpers.predefined_type("border-%s-width" % side[0], "BorderWidth", "Au::from_px(3)",
+                              computed_type="::app_units::Au",
+                              alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-width"),
+                              spec=maybe_logical_spec(side, "width"),
+                              animation_value_type="ComputedValue",
+                              logical=side[1],
+                              allow_quirks=not side[1])}
 % endfor
 
 ${helpers.gecko_keyword_conversion(Keyword('border-style',
                                    "none solid double dotted dashed hidden groove ridge inset outset"),
                                    type="::values::specified::BorderStyle")}
-% for side in ALL_SIDES:
-    <%helpers:longhand name="border-${side[0]}-width" boxed="True" animatable="True" logical="${side[1]}"
-                       alias="${maybe_moz_logical_alias(product, side, '-moz-border-%s-width')}"
-                       spec="${maybe_logical_spec(side, 'width')}">
-        use app_units::Au;
-        use std::fmt;
-        use style_traits::ToCss;
-        use values::HasViewportPercentage;
-        use values::specified::BorderWidth;
-
-        pub type SpecifiedValue = BorderWidth;
-
-        #[inline]
-        pub fn parse(context: &ParserContext, input: &mut Parser)
-                     -> Result<SpecifiedValue, ()> {
-            BorderWidth::parse(context, input)
-        }
-
-        pub mod computed_value {
-            use app_units::Au;
-            pub type T = Au;
-        }
-        #[inline] pub fn get_initial_value() -> computed_value::T {
-            Au::from_px(3)  // medium
-        }
-    </%helpers:longhand>
-% endfor
 
 // FIXME(#4126): when gfx supports painting it, make this Size2D<LengthOrPercentage>
 % for corner in ["top-left", "top-right", "bottom-right", "bottom-left"]:
@@ -70,14 +49,138 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
                               "parse", extra_prefixes="webkit",
                               spec="https://drafts.csswg.org/css-backgrounds/#border-%s-radius" % corner,
                               boxed=True,
-                              animatable=True)}
+                              animation_value_type="ComputedValue")}
+% endfor
+
+/// -moz-border-*-colors: color, string, enum, none, inherit/initial
+/// These non-spec properties are just for Gecko (Stylo) internal use.
+% for side in PHYSICAL_SIDES:
+    <%helpers:longhand name="-moz-border-${side}-colors" animation_value_type="none"
+                       spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-border-*-colors)"
+                       products="gecko">
+        use std::fmt;
+        use style_traits::ToCss;
+        use values::HasViewportPercentage;
+        use values::specified::CSSColor;
+        no_viewport_percentage!(SpecifiedValue);
+
+        pub mod computed_value {
+            use values::computed::CSSColor;
+            #[derive(Debug, Clone, PartialEq)]
+            #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+            pub struct T(pub Option<Vec<CSSColor>>);
+        }
+
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub enum SpecifiedValue {
+            None,
+            Colors(Vec<CSSColor>),
+        }
+
+        impl ToCss for computed_value::T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match self.0 {
+                    None => return dest.write_str("none"),
+                    Some(ref vec) => {
+                        let mut first = true;
+                        for ref color in vec {
+                            if !first {
+                                try!(dest.write_str(" "));
+                            }
+                            first = false;
+                            try!(color.to_css(dest))
+                        }
+                        Ok(())
+                    }
+                }
+            }
+        }
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match *self {
+                    SpecifiedValue::None => return dest.write_str("none"),
+                    SpecifiedValue::Colors(ref vec) => {
+                        let mut first = true;
+                        for ref color in vec {
+                            if !first {
+                                try!(dest.write_str(" "));
+                            }
+                            first = false;
+                            try!(color.to_css(dest))
+                        }
+                        Ok(())
+                    }
+                }
+            }
+        }
+
+        #[inline] pub fn get_initial_value() -> computed_value::T {
+            computed_value::T(None)
+        }
+
+        #[inline] pub fn get_initial_specified_value() -> SpecifiedValue {
+            SpecifiedValue::None
+        }
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                match *self {
+                    SpecifiedValue::Colors(ref vec) => {
+                        computed_value::T(Some(vec.iter()
+                                                  .map(|c| c.to_computed_value(context))
+                                                  .collect()))
+                    },
+                    SpecifiedValue::None => {
+                        computed_value::T(None)
+                    }
+                }
+            }
+            #[inline]
+            fn from_computed_value(computed: &computed_value::T) -> Self {
+                match *computed {
+                    computed_value::T(Some(ref vec)) => {
+                        SpecifiedValue::Colors(vec.iter()
+                                                  .map(ToComputedValue::from_computed_value)
+                                                  .collect())
+                    },
+                    computed_value::T(None) => {
+                        SpecifiedValue::None
+                    }
+                }
+            }
+        }
+
+        #[inline]
+        pub fn parse(context: &ParserContext, input: &mut Parser)
+                     -> Result<SpecifiedValue, ()> {
+            if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+                return Ok(SpecifiedValue::None)
+            }
+
+            let mut result = Vec::new();
+            while let Ok(value) = input.try(|i| CSSColor::parse(context, i)) {
+                result.push(value);
+            }
+
+            if !result.is_empty() {
+                Ok(SpecifiedValue::Colors(result))
+            } else {
+                Err(())
+            }
+        }
+    </%helpers:longhand>
 % endfor
 
 ${helpers.single_keyword("box-decoration-break", "slice clone",
                          gecko_enum_prefix="StyleBoxDecorationBreak",
                          gecko_inexhaustive=True,
                          spec="https://drafts.csswg.org/css-break/#propdef-box-decoration-break",
-                         products="gecko", animatable=False)}
+                         products="gecko", animation_value_type="none")}
 
 ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
                          gecko_ffi_name="mFloatEdge",
@@ -85,85 +188,18 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
                          gecko_inexhaustive=True,
                          products="gecko",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-float-edge)",
-                         animatable=False)}
+                         animation_value_type="none")}
 
-<%helpers:longhand name="border-image-source" animatable="False" boxed="True"
-                   spec="https://drafts.csswg.org/css-backgrounds/#border-image-source">
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::HasViewportPercentage;
-    use values::specified::Image;
+${helpers.predefined_type("border-image-source", "LayerImage",
+    initial_value="computed_value::T(None)",
+    initial_specified_value="SpecifiedValue(None)",
+    spec="https://drafts.csswg.org/css-backgrounds/#the-background-image",
+    vector=False,
+    animation_value_type="none",
+    has_uncacheable_values=False,
+    boxed="True")}
 
-    no_viewport_percentage!(SpecifiedValue);
-
-    pub mod computed_value {
-        use values::computed;
-        #[derive(Debug, Clone, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Option<computed::Image>);
-    }
-
-    #[derive(Debug, Clone, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedValue(pub Option<Image>);
-
-    impl ToCss for computed_value::T {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match self.0 {
-                Some(ref image) => image.to_css(dest),
-                None => dest.write_str("none"),
-            }
-        }
-    }
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match self.0 {
-                Some(ref image) => image.to_css(dest),
-                None => dest.write_str("none"),
-            }
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(None)
-    }
-
-    #[inline]
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue(None)
-    }
-
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            match self.0 {
-                Some(ref image) => computed_value::T(Some(image.to_computed_value(context))),
-                None => computed_value::T(None),
-            }
-        }
-        #[inline]
-        fn from_computed_value(computed: &computed_value::T) -> Self {
-            match computed.0 {
-                Some(ref image) =>
-                    SpecifiedValue(Some(ToComputedValue::from_computed_value(image))),
-                None => SpecifiedValue(None),
-            }
-        }
-    }
-
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            return Ok(SpecifiedValue(None));
-        }
-
-        Ok(SpecifiedValue(Some(try!(Image::parse(context, input)))))
-    }
-</%helpers:longhand>
-
-<%helpers:longhand name="border-image-outset" animatable="False"
+<%helpers:longhand name="border-image-outset" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-outset">
     use std::fmt;
     use style_traits::ToCss;
@@ -279,7 +315,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="border-image-repeat" animatable="False"
+<%helpers:longhand name="border-image-repeat" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-repeat">
     use std::fmt;
     use style_traits::ToCss;
@@ -357,7 +393,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="border-image-width" animatable="False"
+<%helpers:longhand name="border-image-width" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-width">
     use std::fmt;
     use style_traits::ToCss;
@@ -525,16 +561,16 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     }
 
     impl Parse for SingleSpecifiedValue {
-        fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
             if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
                 return Ok(SingleSpecifiedValue::Auto);
             }
 
-            if let Ok(len) = input.try(|input| LengthOrPercentage::parse_non_negative(input)) {
+            if let Ok(len) = input.try(|input| LengthOrPercentage::parse_non_negative(context, input)) {
                 return Ok(SingleSpecifiedValue::LengthOrPercentage(len));
             }
 
-            let num = try!(Number::parse_non_negative(input));
+            let num = try!(Number::parse_non_negative(context, input));
             Ok(SingleSpecifiedValue::Number(num))
         }
     }
@@ -557,7 +593,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="border-image-slice" boxed="True" animatable="False"
+<%helpers:longhand name="border-image-slice" boxed="True" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-slice">
     use std::fmt;
     use style_traits::ToCss;
@@ -572,7 +608,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T {
-            pub corners: Vec<NumberOrPercentage>,
+            pub corners: [NumberOrPercentage; 4],
             pub fill: bool,
         }
     }
@@ -618,10 +654,10 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
         computed_value::T {
-            corners: vec![ComputedNumberOrPercentage::Percentage(Percentage(1.0)),
-                          ComputedNumberOrPercentage::Percentage(Percentage(1.0)),
-                          ComputedNumberOrPercentage::Percentage(Percentage(1.0)),
-                          ComputedNumberOrPercentage::Percentage(Percentage(1.0))],
+            corners: [ComputedNumberOrPercentage::Percentage(Percentage(1.0)),
+                      ComputedNumberOrPercentage::Percentage(Percentage(1.0)),
+                      ComputedNumberOrPercentage::Percentage(Percentage(1.0)),
+                      ComputedNumberOrPercentage::Percentage(Percentage(1.0))],
             fill: false,
         }
     }
@@ -641,22 +677,22 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
             let length = self.corners.len();
             let corners = match length {
-                4 => vec![self.corners[0].to_computed_value(context),
-                          self.corners[1].to_computed_value(context),
-                          self.corners[2].to_computed_value(context),
-                          self.corners[3].to_computed_value(context)],
-                3 => vec![self.corners[0].to_computed_value(context),
-                          self.corners[1].to_computed_value(context),
-                          self.corners[2].to_computed_value(context),
-                          self.corners[1].to_computed_value(context)],
-                2 => vec![self.corners[0].to_computed_value(context),
-                          self.corners[1].to_computed_value(context),
-                          self.corners[0].to_computed_value(context),
-                          self.corners[1].to_computed_value(context)],
-                1 => vec![self.corners[0].to_computed_value(context),
-                          self.corners[0].to_computed_value(context),
-                          self.corners[0].to_computed_value(context),
-                          self.corners[0].to_computed_value(context)],
+                4 => [self.corners[0].to_computed_value(context),
+                      self.corners[1].to_computed_value(context),
+                      self.corners[2].to_computed_value(context),
+                      self.corners[3].to_computed_value(context)],
+                3 => [self.corners[0].to_computed_value(context),
+                      self.corners[1].to_computed_value(context),
+                      self.corners[2].to_computed_value(context),
+                      self.corners[1].to_computed_value(context)],
+                2 => [self.corners[0].to_computed_value(context),
+                      self.corners[1].to_computed_value(context),
+                      self.corners[0].to_computed_value(context),
+                      self.corners[1].to_computed_value(context)],
+                1 => [self.corners[0].to_computed_value(context),
+                      self.corners[0].to_computed_value(context),
+                      self.corners[0].to_computed_value(context),
+                      self.corners[0].to_computed_value(context)],
                 _ => unreachable!(),
             };
             computed_value::T {
@@ -688,11 +724,11 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
             }
         }
 
-        if fill == false {
+        if !fill {
             fill = input.try(|input| input.expect_ident_matching("fill")).is_ok();
         }
 
-        if values.len() > 0 {
+        if !values.is_empty() {
             Ok(SpecifiedValue {
                 corners: values,
                 fill: fill

@@ -424,4 +424,38 @@ promise_test(() => {
 
 }, 'Closing must be propagated forward: shutdown must not occur until the final write completes');
 
+promise_test(() => {
+
+  const rs = recordingReadableStream();
+
+  let resolveWritePromise;
+  const ws = recordingWritableStream({
+    write() {
+      return new Promise(resolve => {
+        resolveWritePromise = resolve;
+      });
+    }
+  });
+
+  let pipeComplete = false;
+  const pipePromise = rs.pipeTo(ws, { preventClose: true }).then(() => {
+    pipeComplete = true;
+  });
+
+  rs.controller.enqueue('a');
+  rs.controller.close();
+
+  // Flush async events and verify that no shutdown occurs.
+  return flushAsyncEvents().then(() => {
+    assert_array_equals(ws.events, ['write', 'a'],
+      'the chunk must have been written, but close must not have happened yet');
+    assert_equals(pipeComplete, false, 'the pipe must not be complete');
+
+    resolveWritePromise();
+
+    return pipePromise;
+  });
+
+}, 'Closing must be propagated forward: shutdown must not occur until the final write completes; preventClose = true');
+
 done();

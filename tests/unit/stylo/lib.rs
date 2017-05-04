@@ -6,11 +6,9 @@ extern crate atomic_refcell;
 extern crate cssparser;
 extern crate env_logger;
 extern crate geckoservo;
-#[macro_use] extern crate lazy_static;
 #[macro_use] extern crate log;
 extern crate parking_lot;
 extern crate selectors;
-extern crate servo_url;
 #[macro_use] extern crate style;
 extern crate style_traits;
 

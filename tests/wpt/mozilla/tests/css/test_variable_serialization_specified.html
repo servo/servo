@@ -19,7 +19,6 @@ so an implementation could fail this test but still be conforming.
 // Values that should be serialized back to the same string.
 var values_with_unchanged_specified_value_serialization = [
   "var(--a)",
-  "var(--a)",
   "var(--a) ",
   "var( --a ) ",
   "var(--a, )",
@@ -27,7 +26,6 @@ var values_with_unchanged_specified_value_serialization = [
   "1px var(--a)",
   "var(--a) 1px",
   "something 3px url(whereever) calc(var(--a) + 1px)",
-  "var(--a)",
   "var(--a)var(--b)",
   "var(--a, var(--b, var(--c, black)))",
   "var(--a) <!--",

@@ -1,0 +1,47 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html lang="en">
+ <head>
+  <title>CSS inline background policy: continuous, simple test</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/background/inline/policy/continuous/001.html"/>
+    <style type="text/css">
+   .test {
+       background: url(/resources/images/rainbow);
+       -moz-background-inline-policy: continuous;
+       border: solid; line-height: 2.5; padding: 0.25em;
+   }
+  </style>
+ </head>
+ <body>
+
+  <p> <span class="test"> <strong>This element should have a rainbow
+  background which follows it around, however much it wraps, so that
+  it starts on red on the first line and gradually goes through
+  yellow, orange, green, blue, indigo, and violet. If the inline is
+  longer than the background, the background should start over. If
+  each line starts again at red, then the test has failed.</strong>
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  Filler text. Filler text. Filler text. Filler text. Filler text.
+  Filler text. Filler text. Filler text. Filler text.</span> </p>
+
+ </body>
+</html>

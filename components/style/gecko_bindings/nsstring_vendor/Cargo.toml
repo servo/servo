@@ -10,3 +10,5 @@ description = "Rust bindings to xpcom string types"
 
 [dependencies]
 
+[features]
+gecko_debug = []

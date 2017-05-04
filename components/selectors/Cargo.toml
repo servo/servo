@@ -14,9 +14,13 @@ license = "MPL-2.0"
 [lib]
 name = "selectors"
 path = "lib.rs"
+# https://github.com/servo/servo/issues/16710
+doctest = false
 
 [dependencies]
 bitflags = "0.7"
 matches = "0.1"
-cssparser = "0.12"
+cssparser = "0.13"
 fnv = "1.0"
+precomputed-hash = "0.1"
+smallvec = "0.3"

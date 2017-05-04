@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<head>
+    <meta http-equiv="Content-Security-Policy" content="style-src 'unsafe-inline';">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+
+    <script>
+      var t = async_test("Inline style should apply with 'unsafe-inline'");
+      document.addEventListener("securitypolicyviolation", t.unreached_func("Should not trigger a security policy violation"));
+    </script>
+
+    <style>
+        #content {
+            margin-left: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div id='log'></div>
+
+    <div id="content">Lorem ipsum</div>
+
+    <script>
+      t.step(function() {
+        var contentEl = document.getElementById("content");
+        var marginLeftVal = getComputedStyle(contentEl).getPropertyValue('margin-left');
+        assert_true(marginLeftVal == "2px");
+        t.done();
+      }, "Inline style should not be applied");
+    </script>
+
+</body>
+</html>

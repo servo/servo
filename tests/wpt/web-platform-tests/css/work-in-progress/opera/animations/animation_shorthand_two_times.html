@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - animation shorthand, two time values</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-animations/#the-animation-shorthand-property-">
+   <meta name="flags" content="dom">
+   <meta name="assert" content="In a comma-separated part of the animation
+   shorthand value, the first value that can be parsed as a time is assigned to
+   animation-duration and the second such value is assigned to animation-delay">
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      @keyframes move {
+         from {
+            left: 0px;
+         }
+         to {
+            left: 100px;
+         }
+      }
+      div {
+         width: 100px;
+         height: 100px;
+         background: blue;
+         position: relative;
+      }
+      .test {
+         animation: move 0.5s both 1000ms;
+      }
+   </style>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var div = document.querySelector('div');
+         var log = document.querySelectorAll('p')[1].firstChild;
+         var style = getComputedStyle(div, null);
+         var passed = false;
+         function aboutEqual(observed, actual) {
+            var maxDeviation = 100;
+            return (Math.abs(observed - actual) < maxDeviation);
+         }
+         var timeout = setTimeout(function() {
+            test(function(){assert_true(false);}, testName); done();
+            log.data = 'FAIL';
+         }, 2000);
+         div.addEventListener('animationstart', function() {
+            passed = (passed && aboutEqual(Date.now() - startTime, 1000));
+         });
+         div.addEventListener('animationend', function() {
+            clearTimeout(timeout);
+            passed = (passed && aboutEqual(Date.now() - startTime, 1500)
+                      && style.left == '100px');
+            test(function(){assert_true(passed);}, testName); done();
+            log.data = (passed ? 'PASS if the animation occurred.' : 'FAIL');
+         });
+         var startTime = Date.now();
+         div.className = 'test';
+         passed = (style.left == '0px');
+      }
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>The blue square below should be stationary for a second, then slide
+   rightwards for half a second.</p>
+   <p>Testing...</p>
+   <div></div>
+</body>
+</html>

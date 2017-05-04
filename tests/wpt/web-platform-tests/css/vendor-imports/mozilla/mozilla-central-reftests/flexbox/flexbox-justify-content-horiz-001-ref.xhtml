@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <style>
+      div.flexbox {
+        margin-bottom: 2px;
+        line-height: 0;
+      }
+      div.flexbox > * {
+        display: inline-block;
+      }
+      div.a {
+        height: 20px;
+        width: 10px;
+        background: lightgreen;
+      }
+      div.b {
+        height: 20px;
+        width: 50px;
+        background: pink;
+      }
+      div.c {
+        height: 20px;
+        width: 100px;
+        background: orange;
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- default (start) -->
+    <div class="flexbox">
+      <div class="a"/>
+    </div>
+    <div class="flexbox">
+      <div class="a"/><div class="b"></div>
+    </div>
+    <div class="flexbox">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- flex-start -->
+    <div class="flexbox">
+      <div class="a"/>
+    </div>
+    <div class="flexbox">
+      <div class="a"/><div class="b"/>
+    </div>
+    <div class="flexbox">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- flex-end -->
+    <div class="flexbox">
+      <div class="a" style="margin-left: 190px"/>
+    </div>
+    <div class="flexbox">
+      <div class="a" style="margin-left: 140px"/><div class="b"/>
+    </div>
+    <div class="flexbox">
+      <div class="a" style="margin-left: 40px"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- center -->
+    <div class="flexbox">
+      <div class="a" style="margin-left: 95px"/>
+    </div>
+    <div class="flexbox">
+      <div class="a" style="margin-left: 70px"/><div class="b"/>
+    </div>
+    <div class="flexbox">
+      <div class="a" style="margin-left: 20px"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- space-between -->
+    <div class="flexbox">
+      <div class="a"/>
+    </div>
+    <div class="flexbox">
+      <div class="a"/><div class="b" style="margin-left: 140px"/>
+    </div>
+    <div class="flexbox">
+      <div class="a"
+           /><div class="b" style="margin-left: 20px"
+           /><div class="c" style="margin-left: 20px"/>
+    </div>
+
+    <!-- space-around -->
+    <div class="flexbox">
+      <div class="a" style="margin-left: 95px"/>
+    </div>
+    <div class="flexbox">
+      <div class="a" style="margin-left: 35px"
+           /><div class="b" style="margin-left: 70px"/>
+    </div>
+    <div class="flexbox">
+      <div class="a" style="margin-left: calc(40px / 6)"
+           /><div class="b" style="margin-left: calc(40px / 3)"
+           /><div class="c" style="margin-left: calc(40px / 3)"/>
+    </div>
+
+    <!-- space-evenly -->
+    <div class="flexbox">
+      <div class="a" style="margin-left: 95px"/>
+    </div>
+    <div class="flexbox">
+      <div class="a" style="margin-left: calc(140px / 3)"
+           /><div class="b" style="margin-left: calc(140px / 3)"/>
+    </div>
+    <div class="flexbox">
+      <div class="a" style="margin-left: 10px"
+           /><div class="b" style="margin-left: 10px"
+           /><div class="c" style="margin-left: 10px"/>
+    </div>
+
+    <!-- left -->
+    <div class="flexbox">
+      <div class="a"/>
+    </div>
+    <div class="flexbox">
+      <div class="a"/><div class="b"/>
+    </div>
+    <div class="flexbox">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- right -->
+    <div class="flexbox">
+      <div class="a" style="margin-left: 190px"/>
+    </div>
+    <div class="flexbox">
+      <div class="a" style="margin-left: 140px"/><div class="b"/>
+    </div>
+    <div class="flexbox">
+      <div class="a" style="margin-left: 40px"/><div class="b"/><div class="c"/>
+    </div>
+
+  </body>
+</html>

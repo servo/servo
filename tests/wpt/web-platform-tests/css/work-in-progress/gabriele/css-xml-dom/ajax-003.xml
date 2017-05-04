@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Ajax 3</title>
+<meta http-equiv="Content-Type" content="text/xml; charset=utf-8" />
+<style type="text/css" media="screen">
+
+table {
+	display: table;
+	width: 50%;
+	border: 2px solid gray;
+	border-collapse: collapse;
+}
+
+tr {
+	display: table-row;
+}
+
+td {
+	display: table-cell;
+	border: 1px solid #000;
+	padding: 0.3em;
+}
+
+</style>
+
+<script type="text/javascript">
+<![CDATA[
+
+function XMLDoc() {
+	var me = this;
+	var req = null;
+	if (window.XMLHttpRequest) {
+		req = new XMLHttpRequest();
+	}
+	
+	this.request = req;
+	this.loadXMLDoc = function (url, handler) {
+		if (this.request) {
+			this.request.open ("GET", url, true);
+			this.request.onreadystatechange = function () {
+				handler(me);
+			};
+			this.request.setRequestHeader("Content-Type", "application/xml");
+			this.request.send(null);
+		}
+	};
+}
+
+function initXML () {
+	var newrequest = new XMLDoc();
+	newrequest.loadXMLDoc("xml/data.php", showData);
+}
+
+function showData(req) {
+	req = req.request;
+	var body = document.getElementsByTagName("body")[0];
+	var table = document.createElement("table");
+	body.appendChild(table);
+	var tr = document.createElement("tr");
+	table.appendChild(tr);
+	if (req.readyState == 4 && req.status == 200) {
+	
+		var items = req.responseXML.getElementsByTagName("item");
+		
+		for (var i=0; i<items.length; i++) {
+			var td = document.createElement("td");
+			td.appendChild(document.createTextNode(items[i].firstChild.nodeValue) );
+			tr.appendChild(td);
+		}
+		
+		
+	}
+}
+
+window.onload = initXML;
+			
+
+
+
+]]>
+
+</script>
+
+</head>
+
+<body>
+
+<p>You should see a table with a row and three cells.</p>
+
+
+
+
+</body>
+</html>

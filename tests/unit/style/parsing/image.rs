@@ -2,14 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::Parser;
 use euclid::size::TypedSize2D;
-use media_queries::CSSErrorReporterTest;
+use parsing::parse;
 use std::f32::consts::PI;
+use style::context::QuirksMode;
+use style::font_metrics::ServoMetricsProvider;
 use style::media_queries::{Device, MediaType};
-use style::parser::ParserContext;
-use style::properties::ComputedValues;
-use style::stylesheets::Origin;
+use style::properties::{ComputedValues, StyleBuilder};
 use style::values::computed;
 use style::values::computed::{Angle, Context, ToComputedValue};
 use style::values::specified;
@@ -28,8 +27,7 @@ fn test_linear_gradient() {
     assert_roundtrip_with_context!(Image::parse, "linear-gradient(to right top, red, green)");
 
     // Parsing with <angle>
-    assert_roundtrip_with_context!(Image::parse, "linear-gradient(45deg, red, green)",
-                                                 "linear-gradient(0.7853982rad, red, green)");
+    assert_roundtrip_with_context!(Image::parse, "linear-gradient(45deg, red, green)");
 
     // Parsing with more than two entries in <color-stop-list>
     assert_roundtrip_with_context!(Image::parse, "linear-gradient(red, yellow, green)");
@@ -51,8 +49,11 @@ fn test_linear_gradient() {
         device: &device,
         inherited_style: initial_style,
         layout_parent_style: initial_style,
-        style: initial_style.clone(),
-        font_metrics_provider: None,
+        style: StyleBuilder::for_derived_style(&initial_style),
+        cached_system_font: None,
+        font_metrics_provider: &ServoMetricsProvider,
+        in_media_query: false,
+        quirks_mode: QuirksMode::NoQuirks,
     };
     assert_eq!(specified::AngleOrCorner::None.to_computed_value(&specified_context),
                computed::AngleOrCorner::Angle(Angle::from_radians(PI)));

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<style>
+		.flow {
+			color: gray;
+		}
+		.float {
+			width: 50px;
+			height: 50px;
+		}
+		.right {
+			float: right;
+			background: lightgreen;
+		}
+		.left {
+			float: left;
+			background: lightblue;
+		}
+		.region {
+			width: 200px;
+			border: 2px solid black;
+			margin: 5px;
+		}
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if you see a black-bordered rectangle with the following contents: a light blue
+			square in the top left corner, a light green square in the top right with some filler gray
+			text in between the squares and under them.<br>
+			Test fails is you see any red.
+		</p>
+		<div class="region">
+			<div class="flow">
+				<div class="float right"></div>
+				<div class="float left"></div>
+				This is filler text. This is filler text. This is filler text. This is filler text. This is filler text. This is filler text. This is filler text.
+			</div>
+		</div>
+	</body>
+</html>

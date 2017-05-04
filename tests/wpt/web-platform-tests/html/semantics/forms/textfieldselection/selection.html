@@ -14,18 +14,24 @@
   var dirs = ['forward', 'backward', 'none'];
   var sampleText = "0123456789";
 
-  var createInputElement = function(value) {
+  var createInputElement = function(value, append = true) {
     var el = document.createElement("input");
     el.type = "text";
     el.value = value;
-    body.appendChild(el);
+    el.id = "input" + (append ? "-appended" : "-not-appended");
+    if (append) {
+      body.appendChild(el);
+    }
     return el;
   };
 
-  var createTextareaElement = function(value) {
+  var createTextareaElement = function(value, append = true) {
     var el = document.createElement("textarea");
     el.value = value;
-    body.appendChild(el);
+    el.id = "textarea" + (append ? "-appended" : "-not-appended");
+    if (append) {
+      body.appendChild(el);
+    }
     return el;
   };
 
@@ -82,49 +88,74 @@
   }, "test if non-ascii selection text is correct for textarea");
 
 
-  test(function() {
-    var el = createInputElement(sampleText);
-    // If there is no selection, then it must return the offset(in logical order)
-    // to the character that immediately follows the text entry cursor.
-    assert_equals(el.selectionStart, el.value.length, "SelectionStart offset without selection");
-    el.select();
-    assert_equals(el.selectionStart, 0, "SelectionStart offset");
-    el.parentNode.removeChild(el);
-  }, "test SelectionStart offset for input");
+  for (var append of [true, false]) {
+    test(function() {
+      var el = createInputElement(sampleText, append);
+      // If there is no selection, then it must return the offset(in logical order)
+      // to the character that immediately follows the text entry cursor.
+      assert_equals(el.selectionStart, el.value.length,
+                    "SelectionStart offset without selection in " + el.id);
+      if (!el.parentNode) {
+        return;
+      }
+      el.select();
+      assert_equals(el.selectionStart, 0, "SelectionStart offset");
+      el.parentNode.removeChild(el);
+    }, "test SelectionStart offset for input that is " +
+         (append ? "appended" : " not appended"));
+  }
+
+  for (var append of [true, false]) {
+    test(function() {
+      var el = createTextareaElement(sampleText, append);
+      // If there is no selection, then it must return the offset(in logical order)
+      // to the character that immediately follows the text entry cursor.
+      assert_equals(el.selectionStart, el.value.length,
+                    "SelectionStart offset without selection in " + el.id);
+      if (!el.parentNode) {
+        return;
+      }
+      el.select();
+      assert_equals(el.selectionStart, 0, "SelectionStart offset");
+      el.parentNode.removeChild(el);
+    }, "test SelectionStart offset for textarea that is " +
+         (append ? "appended" : " not appended"));
+  }
+
+  for (var append of [true, false]) {
+    test(function() {
+      var el = createInputElement(sampleText, append);
+      // If there is no selection, then it must return the offset(in logical order)
+      // to the character that immediately follows the text entry cursor.
+      assert_equals(el.selectionEnd, el.value.length,
+                    "SelectionEnd offset without selection in " + el.id);
+      if (!el.parentNode) {
+        return;
+      }
+      el.select();
+      assert_equals(el.selectionEnd, el.value.length, "SelectionEnd offset");
+      el.parentNode.removeChild(el);
+    }, "test SelectionEnd offset for input that is " +
+         (append ? "appended" : " not appended"));
+  }
 
 
-  test(function() {
-    var el = createTextareaElement(sampleText);
-    // If there is no selection, then it must return the offset(in logical order)
-    // to the character that immediately follows the text entry cursor.
-    assert_equals(el.selectionStart, el.value.length, "SelectionStart offset without selection");
-    el.select();
-    assert_equals(el.selectionStart, 0, "SelectionStart offset");
-    el.parentNode.removeChild(el);
-  }, "test SelectionStart offset for textarea");
-
-
-  test(function() {
-    var el = createInputElement(sampleText);
-    // If there is no selection, then it must return the offset(in logical order)
-    // to the character that immediately follows the text entry cursor.
-    assert_equals(el.selectionEnd, el.value.length, "SelectionEnd offset without selection");
-    el.select();
-    assert_equals(el.selectionEnd, el.value.length, "SelectionEnd offset");
-    el.parentNode.removeChild(el);
-  }, "test SelectionEnd offset for input");
-
-
-  test(function() {
-    var el = createTextareaElement(sampleText);
-    // If there is no selection, then it must return the offset(in logical order)
-    // to the character that immediately follows the text entry cursor.
-    assert_equals(el.selectionEnd, el.value.length, "SelectionEnd offset without selection");
-    el.select();
-    assert_equals(el.selectionEnd, el.value.length, "SelectionEnd offset");
-    el.parentNode.removeChild(el);
-  }, "test SelectionEnd offset for textarea");
-
+  for (var append of [true, false]) {
+    test(function() {
+      var el = createTextareaElement(sampleText, append);
+      // If there is no selection, then it must return the offset(in logical order)
+      // to the character that immediately follows the text entry cursor.
+      assert_equals(el.selectionEnd, el.value.length,
+                    "SelectionEnd offset without selection in " + el.id);
+      if (!el.parentNode) {
+        return;
+      }
+      el.select();
+      assert_equals(el.selectionEnd, el.value.length, "SelectionEnd offset");
+      el.parentNode.removeChild(el);
+    }, "test SelectionEnd offset for textarea that is " +
+         (append ? "appended" : " not appended"));
+  }
 
   test(function() {
     var el = createInputElement(sampleText);

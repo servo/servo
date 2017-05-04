@@ -4790,6 +4790,8 @@ cfg_if! {
             pub static nsCSSPseudoElements_before: *mut nsICSSPseudoElement;
             #[link_name = "_ZN19nsCSSPseudoElements8backdropE"]
             pub static nsCSSPseudoElements_backdrop: *mut nsICSSPseudoElement;
+            #[link_name = "_ZN19nsCSSPseudoElements3cueE"]
+            pub static nsCSSPseudoElements_cue: *mut nsICSSPseudoElement;
             #[link_name = "_ZN19nsCSSPseudoElements11firstLetterE"]
             pub static nsCSSPseudoElements_firstLetter: *mut nsICSSPseudoElement;
             #[link_name = "_ZN19nsCSSPseudoElements9firstLineE"]
@@ -9721,6 +9723,8 @@ cfg_if! {
             pub static nsCSSPseudoElements_before: *mut nsICSSPseudoElement;
             #[link_name = "?backdrop@nsCSSPseudoElements@@2PEAVnsICSSPseudoElement@@EA"]
             pub static nsCSSPseudoElements_backdrop: *mut nsICSSPseudoElement;
+            #[link_name = "?cue@nsCSSPseudoElements@@2PEAVnsICSSPseudoElement@@EA"]
+            pub static nsCSSPseudoElements_cue: *mut nsICSSPseudoElement;
             #[link_name = "?firstLetter@nsCSSPseudoElements@@2PEAVnsICSSPseudoElement@@EA"]
             pub static nsCSSPseudoElements_firstLetter: *mut nsICSSPseudoElement;
             #[link_name = "?firstLine@nsCSSPseudoElements@@2PEAVnsICSSPseudoElement@@EA"]
@@ -14652,6 +14656,8 @@ cfg_if! {
             pub static nsCSSPseudoElements_before: *mut nsICSSPseudoElement;
             #[link_name = "\x01?backdrop@nsCSSPseudoElements@@2PAVnsICSSPseudoElement@@A"]
             pub static nsCSSPseudoElements_backdrop: *mut nsICSSPseudoElement;
+            #[link_name = "\x01?cue@nsCSSPseudoElements@@2PAVnsICSSPseudoElement@@A"]
+            pub static nsCSSPseudoElements_cue: *mut nsICSSPseudoElement;
             #[link_name = "\x01?firstLetter@nsCSSPseudoElements@@2PAVnsICSSPseudoElement@@A"]
             pub static nsCSSPseudoElements_firstLetter: *mut nsICSSPseudoElement;
             #[link_name = "\x01?firstLine@nsCSSPseudoElements@@2PAVnsICSSPseudoElement@@A"]
@@ -19586,6 +19592,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_before as *mut _) } };
 (":backdrop") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_backdrop as *mut _) } };
+(":cue") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_cue as *mut _) } };
 (":first-letter") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_firstLetter as *mut _) } };
 (":first-line") =>

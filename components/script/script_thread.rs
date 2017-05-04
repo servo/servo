@@ -27,6 +27,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::EventBinding::EventInit;
+use dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use dom::bindings::codegen::Bindings::TransitionEventBinding::TransitionEventInit;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
@@ -46,6 +47,7 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::globalscope::GlobalScope;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmliframeelement::HTMLIFrameElement;
+use dom::mutationobserver::MutationObserver;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::serviceworker::TrustedServiceWorkerAddress;
 use dom::serviceworkerregistration::ServiceWorkerRegistration;
@@ -90,7 +92,6 @@ use script_traits::{ScriptThreadFactory, TimerEvent, TimerSchedulerMsg, TimerSou
 use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
 use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
-use script_traits::WebVREventMsg;
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use serviceworkerjob::{Job, JobQueue, AsyncJobHandler};
 use servo_config::opts;
@@ -118,7 +119,7 @@ use task_source::user_interaction::{UserInteractionTask, UserInteractionTaskSour
 use time::Tm;
 use url::Position;
 use webdriver_handlers;
-use webvr_traits::WebVRMsg;
+use webvr_traits::{WebVREvent, WebVRMsg};
 
 pub type ImageCacheMsg = (PipelineId, PendingImageResponse);
 
@@ -480,6 +481,9 @@ pub struct ScriptThread {
 
     microtask_queue: MicrotaskQueue,
 
+    /// The unit of related similar-origin browsing contexts' list of MutationObserver objects
+    mutation_observers: DOMRefCell<Vec<JS<MutationObserver>>>,
+
     /// A handle to the webvr thread, if available
     webvr_thread: Option<IpcSender<WebVRMsg>>,
 
@@ -570,6 +574,15 @@ impl ScriptThreadFactory for ScriptThread {
 }
 
 impl ScriptThread {
+    pub fn add_mutation_observer(observer: &MutationObserver) {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            script_thread.mutation_observers
+                .borrow_mut()
+                .push(JS::from_ref(observer));
+        })
+    }
+
     pub fn mark_document_with_no_blocked_loads(doc: &Document) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
@@ -721,6 +734,8 @@ impl ScriptThread {
             content_process_shutdown_chan: state.content_process_shutdown_chan,
 
             microtask_queue: MicrotaskQueue::default(),
+
+            mutation_observers: Default::default(),
 
             layout_to_constellation_chan: state.layout_to_constellation_chan,
 
@@ -1055,8 +1070,8 @@ impl ScriptThread {
                 self.handle_reload(pipeline_id),
             ConstellationControlMsg::ExitPipeline(pipeline_id, discard_browsing_context) =>
                 self.handle_exit_pipeline_msg(pipeline_id, discard_browsing_context),
-            ConstellationControlMsg::WebVREvent(pipeline_id, event) =>
-                self.handle_webvr_event(pipeline_id, event),
+            ConstellationControlMsg::WebVREvents(pipeline_id, events) =>
+                self.handle_webvr_events(pipeline_id, events),
             msg @ ConstellationControlMsg::AttachLayout(..) |
             msg @ ConstellationControlMsg::Viewport(..) |
             msg @ ConstellationControlMsg::SetScrollState(..) |
@@ -1769,6 +1784,7 @@ impl ScriptThread {
                                  incomplete.pipeline_id,
                                  incomplete.parent_info,
                                  incomplete.window_size,
+                                 incomplete.origin.clone(),
                                  self.webvr_thread.clone());
 
         // Initialize the browsing context for the window.
@@ -2171,11 +2187,11 @@ impl ScriptThread {
         }
     }
 
-    fn handle_webvr_event(&self, pipeline_id: PipelineId, event: WebVREventMsg) {
+    fn handle_webvr_events(&self, pipeline_id: PipelineId, events: Vec<WebVREvent>) {
         let window = self.documents.borrow().find_window(pipeline_id);
         if let Some(window) = window {
-            let navigator = window.Navigator();
-            navigator.handle_webvr_event(event);
+            let vr = window.Navigator().Vr();
+            vr.handle_webvr_events(events);
         }
     }
 

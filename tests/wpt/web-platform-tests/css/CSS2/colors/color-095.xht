@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Color set to rgb() using percentages with green set to a maximum minus one value, rgb(0%, 99%, 0%)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com" /> <!-- converted to reftest 01-07-2013 -->
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2013-04-08 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#propdef-color" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#colors" />
+        <link rel="match" href="color-095-ref.xht"/>
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'color' set to 'rgb(0%, 99%, 0%)' renders the correct foreground color of an element's text content." />
+        <style type="text/css">
+            #test
+            {
+                color: rgb(0%, 99%, 0%);
+                font: 100px/1 Ahem;
+            }
+            #reference
+            {
+                height: 100px;
+                width: 100px;
+                background-color: rgb(0%, 99%, 0%);
+                margin-top: 10px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are 2 squares with the <strong>same color</strong>.</p>
+        <div id="test">X</div>
+        <div id="reference"></div>
+    </body>
+</html>

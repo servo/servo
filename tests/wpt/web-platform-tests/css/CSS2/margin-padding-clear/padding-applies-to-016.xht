@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS Tables: Bottom Padding on Inline Children</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/table/013.xml" type="application/xhtml+xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#padding-properties" />
+
+  <style type="text/css">
+   /* reset everything to be sure we don't introduce oddities */
+   table { border: 0; border-spacing: 0; padding: 0; margin: 0; line-height: 1; }
+   td { border: 0; padding: 0; margin: 0; line-height: 1; }
+   span { border: 0; padding: 0; margin: 0; line-height: 1; display: inline; }
+
+   /* the test */
+   body { margin-top: 12em; }
+   table { background: red; }
+   span.control { background: green; color: white; }
+   span.test { padding-top: 10em; }
+  </style>
+ </head>
+ <body>
+  <table>
+   <tr>
+    <td>
+     <span class="test"><span class="control">There should be no red on this page.</span></span>
+    </td>
+   </tr>
+  </table>
+ </body>
+</html>

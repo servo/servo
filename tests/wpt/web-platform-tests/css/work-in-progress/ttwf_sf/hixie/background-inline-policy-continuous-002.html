@@ -1,0 +1,83 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html lang="en">
+ <head>
+  <title>CSS inline background policy: continuous, bidi test</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/background/inline/policy/continuous/002.html"/>
+    <style type="text/css">
+   .control { display: inline; font: 1em/1 Ahem, sans-serif; background: red; color: white; }
+   div p { font: 48px/1 Ahem; border: solid; padding: 0.5em; white: green; }
+   .test span { background: url(/resources/images/numbers); border: solid; }
+   .ref span { background: url(/resources/images/numbers); border: solid; }
+
+       # a.one o n.two c.one l.two e.one j.two i h g f.one k.two d.one m.two b.one #
+
+   .a { border-style: solid none solid solid; } /* 1 start */
+   .o { }
+   .n { border-style: solid none solid solid; } /* 2 end */
+   .c { } /* 1 */
+   .l { } /* 2 */
+   .e { } /* 1 */
+   .j { } /* 2 start */
+   .i { }
+   .h { }
+   .g { }
+   .f { } /* 1 end */
+   .k { } /* 2 */
+   .d { } /* 1 */
+   .m { } /* 2 */
+   .b { } /* 1 */
+
+
+  </style>
+ </head>
+ <body>
+  <div class="control">Ahem_font_required_for_this_test.</div>
+  <h1>incomplete pending wg resolution</h1>
+  <p> The following two blocks should be identical, including overflow. (Force bidi: &#x05D0;) </p>
+  <div>
+
+   <p class="test">&nbsp;<span class="one">&nbsp;&#x202E;&nbsp;&#x202D;&nbsp;&#x202E;&nbsp;&#x202D;&nbsp;&#x202E;&nbsp;</span>&nbsp;&#x202D;&nbsp;&#x202C;&nbsp;<span class="two">&nbsp;&#x202C;&nbsp;&#x202C;&nbsp;&#x202C;&nbsp;&#x202C;&nbsp;</span>&nbsp;&#x202C;&nbsp;</p>
+
+   <p class="ref">&nbsp;<span class="a">&nbsp;</span><span class="b">&nbsp;</span><span class="c">&nbsp;</span><span class="d">&nbsp;</span><span class="e">&nbsp;</span><span class="f">&nbsp;</span><span class="g">&nbsp;</span><span class="h">&nbsp;</span><span class="i">&nbsp;</span><span class="j">&nbsp;</span><span class="k">&nbsp;</span><span class="l">&nbsp;</span><span class="m">&nbsp;</span><span class="n">&nbsp;</span><span class="o">&nbsp;</span>&nbsp;</p>
+
+
+   <p class="test">
+
+     Z
+     Oa
+     &#x202E;   <
+       Ob
+       &#x202D;   >
+         Oc
+         &#x202E;   <
+           Od
+           &#x202D;   >
+             Oe
+             &#x202E;   <
+               Of
+               Zg
+               &#x202D;   >
+                 Zh
+               &#x202C;
+               Zi
+               Tj
+             &#x202C;
+             Tk
+           &#x202C;
+           Tl
+         &#x202C;
+         Tm
+       &#x202C;
+       Tn
+       Zo
+     &#x202C;
+     Z
+
+   </p>
+
+
+
+  </div>
+ </body>
+</html>

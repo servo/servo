@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test:inherited, direction rtl, unicode-bidi override</title>
+<link rel='author' title='Richard Ishida' href='http://rishida.net' />
+<link rel='help' href='http://www.w3.org/TR/CSS21/visuren.html#direction' />
+<link rel='alternate' href='http://www.w3.org/International/tests/tests-html-css/tests-direction-unicode-bidi/generate?test=25' />
+<meta name='flags' content='' />
+<meta name="assert" content="When direction:rtl and unicode-bidi:bidi-override is set on a block element, the override will not be inherited by a child block element, but the direction will." />
+<style type='text/css'>
+.test { direction: rtl; unicode-bidi: bidi-override; }
+
+/* the CSS below is not part of the test */
+.test { font-size: 28px; font-family: serif; }
+img { margin-left: 14px; margin-right: 10px;  }
+</style>
+</head>
+<body>
+<div dir='ltr'>
+<p class="instructions"><span class="instructionsymbol"><img src="support/same.png" alt="same" /></span> Test passes if characters are in the same order.</p></div>
+
+
+
+<div class="test"><div>W3C نشاط التدويل i18n activity!</div></div>
+
+
+<p style="text-align:right"><img src="support/direction-unicode-bidi-025.png" alt="reference graphic" /></p><div dir='ltr'>
+</div>
+</body>
+</html>

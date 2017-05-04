@@ -1,0 +1,46 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>LongTask Timing: long task in rAF</title>
+<body>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/raflongtask.js"></script>
+
+<h1>Long Task: requestAnimationFrame</h1>
+<div id="log"></div>
+<script>
+  async_test(function (t) {
+    var observer = new PerformanceObserver(
+        t.step_func(function (entryList) {
+            var entries = entryList.getEntries();
+            assert_equals(entries.length, 1,
+                "Exactly one entry is expected.");
+            var longtask = entries[0];
+            assert_equals(longtask.entryType, "longtask");
+            assert_equals(longtask.name, "same-origin-self");
+            assert_greater_than(longtask.duration, 50);
+            assert_equals(longtask.startTime, Math.floor(longtask.startTime),
+                "startTime expected to have 1 millisecond granularity");
+
+            // Assert the TaskAttributionTiming entry in attribution.
+            assert_equals(longtask.attribution.length, 1,
+                "Exactly one attribution entry is expected");
+            var attribution = longtask.attribution[0];
+            assert_equals(attribution.entryType, "taskattribution");
+            assert_equals(attribution.name, "frame");
+            assert_equals(attribution.duration, 0);
+            assert_equals(attribution.startTime, 0);
+            assert_equals(attribution.frameId, "");
+            assert_equals(attribution.frameName, "");
+            assert_equals(attribution.frameSrc, "");
+            observer.disconnect();
+            t.done();
+        })
+    );
+    observer.observe({entryTypes: ["longtask"]});
+
+}, "Performance longtask entries are observable");
+</script>
+
+</body>

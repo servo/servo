@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Bidi box model test 9</title>
+  <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#bidi-box-model"/>
+  <link rel="match" href="rtl-linebreak-ref.xht"/>
+  <link rel="mismatch" href="rtl-linebreak-notref1.xht"/>
+  <link rel="mismatch" href="rtl-linebreak-notref2.xht"/>
+  <meta name="flags" content="" />
+  <style type="text/css"><![CDATA[
+      .r { direction: rtl; }
+      .l { direction: ltr; }
+      div.r { width: 20em; }
+      span { border: 2px solid; padding: 0 10px 0 5px; margin: 0 60px 0 30px; }
+  ]]></style>
+  </head>
+  <body>
+    <div class="r"><span>One<br/>Two</span> Some long text that should make sure we line-wrap.  If this didn't line-wrap, it should be longer.  It really should.  And there should be a black border to the left of "Two" above.</div>
+  </body>
+</html>

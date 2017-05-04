@@ -39,6 +39,7 @@
 
 extern crate app_units;
 extern crate atomic_refcell;
+extern crate bit_vec;
 #[macro_use]
 extern crate bitflags;
 #[allow(unused_extern_crates)] extern crate byteorder;
@@ -47,9 +48,9 @@ extern crate bitflags;
 extern crate euclid;
 extern crate fnv;
 #[cfg(feature = "gecko")] #[macro_use] pub mod gecko_string_cache;
-extern crate heapsize;
+#[cfg(feature = "servo")] extern crate heapsize;
 #[cfg(feature = "servo")] #[macro_use] extern crate heapsize_derive;
-#[cfg(feature = "servo")] #[macro_use] extern crate html5ever_atoms;
+#[cfg(feature = "servo")] #[macro_use] extern crate html5ever;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
@@ -66,12 +67,14 @@ extern crate num_traits;
 extern crate ordered_float;
 extern crate parking_lot;
 extern crate pdqsort;
+#[cfg(feature = "gecko")] extern crate precomputed_hash;
 extern crate rayon;
 extern crate selectors;
+#[cfg(feature = "servo")] extern crate serde;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;
 #[cfg(feature = "servo")] #[macro_use] extern crate servo_atoms;
-extern crate servo_config;
-extern crate servo_url;
+#[cfg(feature = "servo")] extern crate servo_config;
+#[cfg(feature = "servo")] extern crate servo_url;
 extern crate smallvec;
 #[macro_use]
 extern crate style_traits;
@@ -81,12 +84,13 @@ extern crate unicode_segmentation;
 
 pub mod animation;
 #[allow(missing_docs)] // TODO.
-pub mod attr;
+#[cfg(feature = "servo")] pub mod attr;
 pub mod bezier;
 pub mod bloom;
 pub mod cache;
 pub mod cascade_info;
 pub mod context;
+pub mod counter_style;
 pub mod custom_properties;
 pub mod data;
 pub mod dom;
@@ -114,6 +118,9 @@ pub mod stylist;
 pub mod sequential;
 pub mod sink;
 pub mod str;
+pub mod style_adjuster;
+pub mod stylearc;
+pub mod stylesheet_set;
 pub mod stylesheets;
 pub mod supports;
 pub mod thread_state;
@@ -125,7 +132,6 @@ pub mod values;
 pub mod viewport;
 
 use std::fmt;
-use std::sync::Arc;
 use style_traits::ToCss;
 
 #[cfg(feature = "gecko")] pub use gecko_string_cache as string_cache;
@@ -135,9 +141,9 @@ use style_traits::ToCss;
 #[cfg(feature = "gecko")] pub use gecko_string_cache::Atom as LocalName;
 
 #[cfg(feature = "servo")] pub use servo_atoms::Atom;
-#[cfg(feature = "servo")] pub use html5ever_atoms::Prefix;
-#[cfg(feature = "servo")] pub use html5ever_atoms::LocalName;
-#[cfg(feature = "servo")] pub use html5ever_atoms::Namespace;
+#[cfg(feature = "servo")] pub use html5ever::Prefix;
+#[cfg(feature = "servo")] pub use html5ever::LocalName;
+#[cfg(feature = "servo")] pub use html5ever::Namespace;
 
 /// The CSS properties supported by the style system.
 /// Generated from the properties.mako.rs template by build.rs
@@ -169,14 +175,6 @@ macro_rules! reexport_computed_values {
     }
 }
 longhand_properties_idents!(reexport_computed_values);
-
-/// Returns whether the two arguments point to the same value.
-///
-/// FIXME: Remove this and use Arc::ptr_eq once we require Rust 1.17
-#[inline]
-pub fn arc_ptr_eq<T: 'static>(a: &Arc<T>, b: &Arc<T>) -> bool {
-    ptr_eq::<T>(&**a, &**b)
-}
 
 /// Pointer equality
 ///

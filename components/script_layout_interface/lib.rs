@@ -19,7 +19,7 @@ extern crate euclid;
 extern crate gfx_traits;
 extern crate heapsize;
 #[macro_use] extern crate heapsize_derive;
-#[macro_use] extern crate html5ever_atoms;
+#[macro_use] extern crate html5ever;
 extern crate ipc_channel;
 extern crate libc;
 #[macro_use]
@@ -32,6 +32,7 @@ extern crate script_traits;
 extern crate selectors;
 extern crate servo_url;
 extern crate style;
+extern crate webrender_traits;
 
 pub mod message;
 pub mod reporter;

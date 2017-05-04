@@ -5,6 +5,7 @@
 from __future__ import absolute_import, print_function
 
 from distutils.spawn import find_executable
+from distutils.version import StrictVersion
 import json
 import os
 import platform
@@ -77,18 +78,28 @@ def salt(context, force=False):
     # Hence, dynamically generate the config with an appropriate `root_dir`
     # and serialize it as JSON (which is valid YAML).
     config = {
-        'fileserver_backend': ['git'],
-        'gitfs_env_whitelist': 'base',
-        'gitfs_provider': 'gitpython',
-        'gitfs_remotes': [
-            'https://github.com/servo/saltfs.git',
-        ],
         'hash_type': 'sha384',
         'master': 'localhost',
         'root_dir': salt_root,
         'state_output': 'changes',
         'state_tabular': True,
     }
+    if 'SERVO_SALTFS_ROOT' in os.environ:
+        config.update({
+            'fileserver_backend': ['roots'],
+            'file_roots': {
+                'base': [os.path.abspath(os.environ['SERVO_SALTFS_ROOT'])],
+            },
+        })
+    else:
+        config.update({
+            'fileserver_backend': ['git'],
+            'gitfs_env_whitelist': 'base',
+            'gitfs_provider': 'gitpython',
+            'gitfs_remotes': [
+                'https://github.com/servo/saltfs.git',
+            ],
+        })
 
     if not os.path.exists(config_dir):
         os.makedirs(config_dir, mode=0o700)
@@ -159,39 +170,6 @@ def salt(context, force=False):
     return retcode
 
 
-def windows_gnu(context, force=False):
-    '''Bootstrapper for msys2 based environments for building in Windows.'''
-
-    if not find_executable('pacman'):
-        print(
-            'The Windows GNU bootstrapper only works with msys2 with pacman. '
-            'Get msys2 at http://msys2.github.io/'
-        )
-        return 1
-
-    # Ensure repositories are up to date
-    command = ['pacman', '--sync', '--refresh']
-    subprocess.check_call(command)
-
-    # Install packages
-    command = ['pacman', '--sync', '--needed']
-    if force:
-        command.append('--noconfirm')
-    subprocess.check_call(command + list(packages.WINDOWS_GNU))
-
-    # Downgrade GCC to 5.4.0-1
-    gcc_pkgs = ["gcc", "gcc-ada", "gcc-fortran", "gcc-libgfortran", "gcc-libs", "gcc-objc"]
-    gcc_version = "5.4.0-1"
-    mingw_url = "http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-{}-{}-any.pkg.tar.xz"
-    gcc_list = [mingw_url.format(gcc, gcc_version) for gcc in gcc_pkgs]
-
-    # Note: `--upgrade` also does downgrades
-    downgrade_command = ['pacman', '--upgrade']
-    if force:
-        downgrade_command.append('--noconfirm')
-    subprocess.check_call(downgrade_command + gcc_list)
-
-
 def windows_msvc(context, force=False):
     '''Bootstrapper for MSVC building on Windows.'''
 
@@ -204,10 +182,19 @@ def windows_msvc(context, force=False):
     def package_dir(package):
         return os.path.join(deps_dir, package, version(package))
 
+    def check_cmake(version):
+        cmake_path = find_executable("cmake")
+        if cmake_path:
+            cmake = subprocess.Popen([cmake_path, "--version"], stdout=PIPE)
+            cmake_version = cmake.stdout.read().splitlines()[0].replace("cmake version ", "")
+            if StrictVersion(cmake_version) >= StrictVersion(version):
+                return True
+        return False
+
     to_install = {}
     for package in packages.WINDOWS_MSVC:
         # Don't install CMake if it already exists in PATH
-        if package == "cmake" and find_executable(package):
+        if package == "cmake" and check_cmake(version("cmake")):
             continue
 
         if not os.path.isdir(package_dir(package)):
@@ -244,13 +231,17 @@ def bootstrap(context, force=False):
 
     bootstrapper = None
 
-    if "windows-gnu" in host_triple():
-        bootstrapper = windows_gnu
-    elif "windows-msvc" in host_triple():
+    if "windows-msvc" in host_triple():
         bootstrapper = windows_msvc
     elif "linux-gnu" in host_triple():
         distro, version, _ = platform.linux_distribution()
-        if distro in ['CentOS', 'CentOS Linux', 'Fedora', 'Ubuntu']:
+        if distro.lower() in [
+            'centos',
+            'centos linux',
+            'debian',
+            'fedora',
+            'ubuntu',
+        ]:
             context.distro = distro
             bootstrapper = salt
 

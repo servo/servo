@@ -1,0 +1,53 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: display - sub-table elements with 'display' set to 'inline'</title>
+
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#display-prop" />
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="author" title="Daniel Schattenkirchner" href="mailto:crazy-daniel@gmx.de" />
+  <link rel="match" href="display-018-ref.xht" />
+
+  <meta content="When an element with its property 'display' set to 'inline', then it makes its box laid out horizontally, beginning at the top of its containing block without beginning on a new line and without requiring to begin on a new line. Elements with 'display' set to 'inline' are laid out horizontally, one after the other, in the line box." name="assert" />
+  <meta content="" name="flags" />
+
+  <style type="text/css"><![CDATA[
+  table, caption, tbody, tr, th, td
+  {
+  display: inline;
+  vertical-align: baseline;
+  }
+
+  th, td {padding: 0px;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if the 3 "Filler text" are all on the same line.</p>
+
+  <table>
+   <caption>Filler text</caption>
+
+   <tbody>
+
+    <tr>
+     <th>Filler</th>
+     <td>text</td>
+    </tr>
+
+    <tr>
+     <th>Filler</th>
+     <td>text</td>
+    </tr>
+
+   </tbody>
+
+  </table>
+
+ </body>
+</html>

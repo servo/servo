@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Test: regions create stacking contexts</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+		<meta name="flags" content="ahem">
+		<meta name="assert" content="Test checks that regions create stacking contexts for content flowed into them.">
+		<link rel="match" href="reference/regions-stacking-context-004-ref.html">
+		<style>
+		#content {
+			opacity: 0.7;
+		}
+		#content > div {
+			position: relative;
+			width: 100px;
+			height: 100px;
+			flow-into: flow;
+		}
+		.left {
+			top: 0;
+			left: 0;
+			background-color: lightgreen;
+		}
+		.center {
+			top: -75px;
+			left: 25px;
+			background-color: lightblue;
+		}
+		.right {
+			top: -150px;
+			left: 50px;
+			background-color: yellow;
+		}
+
+		#region {
+			width: 150px;
+			height: 150px;
+			flow-from: flow;
+		}
+		#region p{
+			height: 50%;
+			background-color: red;
+		}
+
+		#dummy {
+			background-color: purple;
+			width: 100px;
+			height: 100px;
+			margin-top: -75px;
+			margin-left: 75px;
+		}
+		</style>
+	</head>
+	<body>
+		<ol>
+			<li>You should see no red.</li>
+			<li>You should see four colored overlapping squares, from back to front: a green square, a blue square, a yellow square and a purple square.</li>
+			<!-- The purple square should be painted on top of the other ones because the region creates a stackign context for its contents. -->
+		</ol>
+
+		<div id="region">
+			<p>&nbsp;</p>
+		</div>
+		<div id="dummy"></div>
+
+		<div id="content">
+			<div class="left"></div>
+			<div class="center"></div>
+			<div class="right"></div>
+		</div>
+	</body>
+</html>

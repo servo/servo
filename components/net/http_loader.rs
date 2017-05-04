@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use brotli::Decompressor;
-use connector::Connector;
+use connector::{Connector, create_http_connector};
 use cookie;
 use cookie_storage::CookieStorage;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest};
@@ -15,26 +15,26 @@ use hsts::HstsList;
 use hyper::Error as HttpError;
 use hyper::LanguageTag;
 use hyper::client::{Pool, Request as HyperRequest, Response as HyperResponse};
-use hyper::client::pool::PooledStream;
-use hyper::header::{AcceptEncoding, AcceptLanguage, AccessControlAllowCredentials};
-use hyper::header::{AccessControlAllowOrigin, AccessControlAllowHeaders, AccessControlAllowMethods};
-use hyper::header::{AccessControlRequestHeaders, AccessControlMaxAge, AccessControlRequestMethod};
-use hyper::header::{Authorization, Basic, CacheControl, CacheDirective, ContentEncoding};
-use hyper::header::{ContentLength, Encoding, Header, Headers, Host, IfMatch, IfRange};
-use hyper::header::{IfUnmodifiedSince, IfModifiedSince, IfNoneMatch, Location, Pragma, Quality};
-use hyper::header::{QualityItem, Referer, SetCookie, UserAgent, qitem};
-use hyper::header::Origin as HyperOrigin;
+use hyper::header::{Accept, AccessControlAllowCredentials, AccessControlAllowHeaders};
+use hyper::header::{AccessControlAllowMethods, AccessControlAllowOrigin};
+use hyper::header::{AccessControlMaxAge, AccessControlRequestHeaders};
+use hyper::header::{AccessControlRequestMethod, AcceptEncoding, AcceptLanguage};
+use hyper::header::{Authorization, Basic, CacheControl, CacheDirective};
+use hyper::header::{ContentEncoding, ContentLength, Encoding, Header, Headers};
+use hyper::header::{Host, Origin as HyperOrigin, IfMatch, IfRange};
+use hyper::header::{IfUnmodifiedSince, IfModifiedSince, IfNoneMatch, Location};
+use hyper::header::{Pragma, Quality, QualityItem, Referer, SetCookie};
+use hyper::header::{UserAgent, q, qitem};
 use hyper::method::Method;
-use hyper::net::{Fresh, HttpStream, HttpsStream, NetworkConnector};
 use hyper::status::StatusCode;
-use hyper_openssl::SslStream;
+use hyper_openssl::OpensslClient;
 use hyper_serde::Serde;
 use log;
 use msg::constellation_msg::PipelineId;
 use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
-use net_traits::hosts::replace_host;
 use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
-use net_traits::request::{RedirectMode, Referrer, Request, RequestMode, ResponseTainting};
+use net_traits::request::{RedirectMode, Referrer, Request, RequestMode};
+use net_traits::request::{ResponseTainting, Type};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use resource_thread::AuthCache;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -44,7 +44,7 @@ use std::io::{self, Read, Write};
 use std::iter::FromIterator;
 use std::mem;
 use std::ops::Deref;
-use std::sync::{Arc, RwLock};
+use std::sync::RwLock;
 use std::sync::mpsc::{channel, Sender};
 use std::thread;
 use time;
@@ -69,14 +69,18 @@ pub struct HttpState {
     pub hsts_list: RwLock<HstsList>,
     pub cookie_jar: RwLock<CookieStorage>,
     pub auth_cache: RwLock<AuthCache>,
+    pub ssl_client: OpensslClient,
+    pub connector: Pool<Connector>,
 }
 
 impl HttpState {
-    pub fn new() -> HttpState {
+    pub fn new(ssl_client: OpensslClient) -> HttpState {
         HttpState {
             hsts_list: RwLock::new(HstsList::new()),
             cookie_jar: RwLock::new(CookieStorage::new(150)),
             auth_cache: RwLock::new(AuthCache::new()),
+            ssl_client: ssl_client.clone(),
+            connector: create_http_connector(ssl_client),
         }
     }
 }
@@ -118,27 +122,45 @@ impl WrappedHttpResponse {
     }
 }
 
-struct NetworkHttpRequestFactory {
-    pub connector: Arc<Pool<Connector>>,
-}
-
-impl NetworkConnector for NetworkHttpRequestFactory {
-    type Stream = PooledStream<HttpsStream<SslStream<HttpStream>>>;
-
-    fn connect(&self, host: &str, port: u16, scheme: &str) -> Result<Self::Stream, HttpError> {
-        self.connector.connect(&replace_host(host), port, scheme)
+// Step 3 of https://fetch.spec.whatwg.org/#concept-fetch.
+pub fn set_default_accept(type_: Type, destination: Destination, headers: &mut Headers) {
+    if headers.has::<Accept>() {
+        return;
     }
-}
+    let value = match (type_, destination) {
+        // Step 3.2.
+        (_, Destination::Document) => {
+            vec![
+                qitem(mime!(Text / Html)),
+                qitem(mime!(Application / ("xhtml+xml"))),
+                QualityItem::new(mime!(Application / Xml), q(0.9)),
+                QualityItem::new(mime!(_ / _), q(0.8)),
+            ]
+        },
+        // Step 3.3.
+        (Type::Image, _) => {
+            vec![
+                qitem(mime!(Image / Png)),
+                qitem(mime!(Image / ("svg+xml") )),
+                QualityItem::new(mime!(Image / _), q(0.8)),
+                QualityItem::new(mime!(_ / _), q(0.5)),
+            ]
+        },
+        // Step 3.3.
+        (Type::Style, _) => {
+            vec![
+                qitem(mime!(Text / Css)),
+                QualityItem::new(mime!(_ / _), q(0.1))
+            ]
+        },
+        // Step 3.1.
+        _ => {
+            vec![qitem(mime!(_ / _))]
+        },
+    };
 
-impl NetworkHttpRequestFactory {
-    fn create(&self, url: ServoUrl, method: Method, headers: Headers)
-              -> Result<HyperRequest<Fresh>, NetworkError> {
-        let connection = HyperRequest::with_connector(method, url.clone().into_url(), self);
-        let mut request = connection.map_err(|e| NetworkError::from_hyper_error(&url, e))?;
-        *request.headers_mut() = headers;
-
-        Ok(request)
-    }
+    // Step 3.4.
+    headers.set(Accept(value));
 }
 
 fn set_default_accept_encoding(headers: &mut Headers) {
@@ -372,7 +394,7 @@ fn auth_from_cache(auth_cache: &RwLock<AuthCache>, origin: &ImmutableOrigin) -> 
     }
 }
 
-fn obtain_response(request_factory: &NetworkHttpRequestFactory,
+fn obtain_response(connector: &Pool<Connector>,
                    url: &ServoUrl,
                    method: &Method,
                    request_headers: &Headers,
@@ -423,8 +445,14 @@ fn obtain_response(request_factory: &NetworkHttpRequestFactory,
 
         let connect_start = precise_time_ms();
 
-        let request = try!(request_factory.create(url.clone(), method.clone(),
-                                                  headers.clone()));
+        let request = HyperRequest::with_connector(method.clone(),
+                                                   url.clone().into_url(),
+                                                   &*connector);
+        let mut request = match request {
+            Ok(request) => request,
+            Err(e) => return Err(NetworkError::from_hyper_error(&url, e)),
+        };
+        *request.headers_mut() = headers.clone();
 
         let connect_end = precise_time_ms();
 
@@ -443,7 +471,9 @@ fn obtain_response(request_factory: &NetworkHttpRequestFactory,
 
         let response = match request_writer.send() {
             Ok(w) => w,
-            Err(HttpError::Io(ref io_error)) if io_error.kind() == io::ErrorKind::ConnectionAborted => {
+            Err(HttpError::Io(ref io_error))
+                if io_error.kind() == io::ErrorKind::ConnectionAborted ||
+                   io_error.kind() == io::ErrorKind::ConnectionReset => {
                 debug!("connection aborted ({:?}), possibly stale, trying new connection", io_error.description());
                 continue;
             },
@@ -794,14 +824,11 @@ fn http_network_or_cache_fetch(request: &mut Request,
     };
 
     // Step 11
-    if !http_request.omit_origin_header {
-        let method = &http_request.method;
-        if cors_flag || (*method != Method::Get && *method != Method::Head) {
-            debug_assert!(http_request.origin != Origin::Client);
-            if let Origin::Origin(ref url_origin) = http_request.origin {
-                if let Some(hyper_origin) = try_immutable_origin_to_hyper_origin(url_origin) {
-                    http_request.headers.set(hyper_origin)
-                }
+    if cors_flag || (http_request.method != Method::Get && http_request.method != Method::Head) {
+        debug_assert!(http_request.origin != Origin::Client);
+        if let Origin::Origin(ref url_origin) = http_request.origin {
+            if let Some(hyper_origin) = try_immutable_origin_to_hyper_origin(url_origin) {
+                http_request.headers.set(hyper_origin)
             }
         }
     }
@@ -1044,10 +1071,6 @@ fn http_network_fetch(request: &Request,
     // TODO be able to tell if the connection is a failure
 
     // Step 4
-    let factory = NetworkHttpRequestFactory {
-        connector: context.connector.clone(),
-    };
-
     let url = request.current_url();
 
     let request_id = context.devtools_chan.as_ref().map(|_| {
@@ -1058,7 +1081,9 @@ fn http_network_fetch(request: &Request,
     // do not. Once we support other kinds of fetches we'll need to be more fine grained here
     // since things like image fetches are classified differently by devtools
     let is_xhr = request.destination == Destination::None;
-    let wrapped_response = obtain_response(&factory, &url, &request.method,
+    let wrapped_response = obtain_response(&context.state.connector,
+                                           &url,
+                                           &request.method,
                                            &request.headers,
                                            &request.body, &request.method,
                                            &request.pipeline_id, request.redirect_count + 1,
@@ -1069,6 +1094,13 @@ fn http_network_fetch(request: &Request,
         Ok(wrapped_response) => wrapped_response,
         Err(error) => return Response::network_error(error),
     };
+
+    if log_enabled!(log::LogLevel::Info) {
+        info!("response for {}", url);
+        for header in res.response.headers.iter() {
+            info!(" - {}", header);
+        }
+    }
 
     let mut response = Response::new(url.clone());
     response.status = Some(res.response.status);

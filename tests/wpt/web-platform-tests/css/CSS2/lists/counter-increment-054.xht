@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Counter-increment with a value of inherit</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-counter-increment" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#counters" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The counter-increment with the value inherit specified." />
+        <style type="text/css">
+            #wrapper
+            {
+                counter-increment: ident 5;
+            }
+            #test
+            {
+                counter-increment: inherit;
+            }
+            div:before
+            {
+                font-size: 30px;
+                content: counter(ident);
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the numbers '5 10' appear below in the same order.</p>
+        <div id="wrapper">
+            <div id="test"></div>
+        </div>
+    </body>
+</html>

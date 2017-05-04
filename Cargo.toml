@@ -3,7 +3,6 @@ members = [
     "ports/cef",
     "ports/geckolib",
     "ports/servo",
-    "support/android/build-apk",
 ]
 
 [profile.dev]

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<!-- Any copyright is dedicated to the Public Domain.
+   - http://creativecommons.org/publicdomain/zero/1.0/ -->
+
+<html>
+  <meta charset="utf-8">
+  <title>CSS Shape Test: float left, inset(50%) reference</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+  <style>
+  .container {
+    position: absolute;
+    width: 200px;
+    line-height: 0;
+  }
+
+  .shape {
+    float: left;
+    /* Omit shape-outside */
+    clip-path: inset(50%);
+    box-sizing: content-box;
+    height: 40px;
+    width: 40px;
+    padding: 20px;
+    border: 20px solid lightgreen;
+    margin: 20px;
+    background-color: orange;
+  }
+
+  .box {
+    position: absolute;
+    width: 200px;
+    background-color: blue;
+  }
+  </style>
+
+  <body class="container">
+    <div class="shape"></div>
+    <div class="box" style="height: 24px; top: 0; left: 0;"></div>
+    <div class="box" style="height: 36px; top: 24px; left: 0;"></div>
+    <div class="box" style="height: 36px; top: 60px; left: 0;"></div>
+    <div class="box" style="height: 24px; top: 96px; left: 0;"></div>
+  </body>
+</html>

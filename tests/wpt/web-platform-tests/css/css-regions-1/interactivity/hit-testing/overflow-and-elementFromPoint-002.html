@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>CSS Regions: document.elementFromPoint() for elements in a region's scroll overflow</title>
+	<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+	<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+	<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+	<meta name="assert" content="For regions that have scroll overflow, scrolling an element flowed in them into view and then calling document.elementFromPoint() on the visible location of the element should return the element">
+	<meta name="flags" content="dom interact">
+	<style>
+	p {
+		margin: 0;
+	}
+	input {
+		width: 100px;
+	}
+	#content {
+		font-family: monospace;
+		font-size: 20px;
+		line-height: 1em;
+		flow-into: f;
+	}
+	.spacer {
+		width: 100%;
+		height: 80px;
+		display: block;
+	}
+	.highlite {
+		color: deepskyblue;
+		display: inline-block;
+		height: 50px;
+		xbackground-color: yellow;
+
+	}
+	#parent {
+		height: 200px;
+	}
+	#region {
+		border: 2px solid black;
+		background-color: lightgray;
+		width: 100px;
+		height: 100px;
+		flow-from: f;
+		overflow-y: scroll;
+	}
+	#region p {
+		background-color: red;
+		width: 100%;
+		height: 50%;
+	}
+	#result {
+		color: green;
+		font-weight: bold;
+	}
+	</style>
+</head>
+<body>
+	This tests that calling <code>document.elementFromPoint()</code> on an element displayed in a region's
+	visible overflow will actually return that element (and not the element "underneath" it).<br>
+	You should see "PASS" being displayed below.
+	<div id="content"><span class="spacer"></span>This text has <span class="highlite">overflow</span></div>
+	<div id="result">&nbsp;</div>
+	<div id="parent">
+		<div id="region">
+			<p></p>
+		</div>
+	</div>
+	<script type="text/javascript">
+	if (window.testRunner) {
+		testRunner.waitUntilDone();
+		testRunner.dumpAsText();
+	}
+
+	function runScript() {
+		var region, regionBox, target, targetBox, fromPoint;
+
+		region = document.querySelector("#region");
+		region.scrollTop = 200;
+
+		regionBox = region.getBoundingClientRect();
+
+		document.body.offsetTop;
+
+		target = document.querySelector(".highlite");
+		targetBox = target.getBoundingClientRect();
+		fromPoint = document.elementFromPoint(targetBox.left + targetBox.width/2, targetBox.top + targetBox.height/2);
+
+		// Check we get the same element via DOM selection and via elementFromPoint() AND
+		// the element we get is in the visible part of the region
+		if ((fromPoint == target) && (targetBox.bottom <= regionBox.bottom)) {
+			result.innerHTML = "PASS";
+		} else {
+			result.innerHTML = "FAIL";
+			result.style.color = "red";
+		}
+
+		if (window.testRunner) {
+			testRunner.notifyDone();
+		}
+	}
+
+	document.addEventListener("DOMContentLoaded", runScript);
+	</script>
+</body>
+</html>

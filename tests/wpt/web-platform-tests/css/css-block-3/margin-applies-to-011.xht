@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Margin applied to element with display run-in</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-margin" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#margin-properties" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'Margin' property applies to elements with a display of run-in." />
+        <style type="text/css">
+            #wrapper
+            {
+                border: 10px solid blue;
+                position: absolute;
+            }
+            #test
+            {
+                border: 10px solid orange;
+                display: run-in;
+                height: 200px;
+                width: 200px;
+                margin: 50px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is space between the blue and orange lines below.</p>
+        <div id="wrapper">
+            <div id="test"></div>
+        </div>
+    </body>
+</html>

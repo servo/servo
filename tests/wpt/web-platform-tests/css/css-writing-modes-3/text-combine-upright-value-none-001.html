@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Writing Modes: text-combine-upright: none</title>
+<link rel="author" title="Masataka Yakura" href="https://google.com/+MasatakaYakura">
+<link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#text-combine-upright">
+<link rel="match" href="reference/vertical-ahem-1x3-ref.html">
+<link rel="mismatch" href="reference/horizontal-ahem-1x3-notref.html">
+<meta name="assert" content="'text-combine-upright: none' does not combine any characters in any circumstance.">
+<meta name="flags" content="ahem">
+<style>
+.test {
+  writing-mode: vertical-rl;
+  font-size: 5em;
+  line-height: 1;
+  font-family: Ahem;
+}
+
+.tcy {
+  text-combine-upright: none;
+}
+</style>
+</head>
+<body>
+
+<p>Test passes if there are 2 <strong>identical</strong> black rectangles.</p>
+
+<div class="test">
+  <p><span class="tcy">A01</span></p>
+  <p>xxx</p>
+</div>
+
+</body>
+</html>

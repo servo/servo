@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Margin Boxes - Top Right Corner</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#margin-boxes"/>
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="The top-right-corner margin box's margin edges are defined by a a fixed-size box defined by the intersection of the top and right margins of the page box"/>
+  <style type="text/css"><![CDATA[
+   @page {
+   		margin: 1in;
+		@top-right { 
+			content: "";
+			border-right: 2pt solid black; 
+		}
+		@right-top { 
+			content: "";
+			border-top: 2pt solid black; 
+		}
+		@top-right-corner {
+			content: "";
+			border-right: 2pt solid black; 
+			border-top: 2pt solid black; 
+			background: aqua;
+		}
+   }
+  ]]></style>
+</head>
+<body>
+	<p>There must be an aqua square in the upper right corner of the page, with visible borders on at least its left and bottom edges. (The top and right edges of the square may be visible too, or they may disappear off the corner of the page.) There is no space between the borders and the square.</p>
+</body>
+</html>

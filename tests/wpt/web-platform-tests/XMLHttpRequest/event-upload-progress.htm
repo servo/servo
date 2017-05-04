@@ -5,8 +5,6 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
     <link rel="help" href="https://xhr.spec.whatwg.org/#handler-xhr-onprogress" data-tested-assertations="../.." />
-    <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method" data-tested-assertations="following::*//a[contains(@href,'#make-upload-progress-notifications')] following::ol[1]/li[8]" />
-    <link rel="help" href="https://xhr.spec.whatwg.org/#make-upload-progress-notifications" data-tested-assertations=".. ../following::ul/li[1]" />
     <link rel="help" href="https://xhr.spec.whatwg.org/#dom-xmlhttprequest-upload" data-tested-assertations=".." />
 
 <div id="log"></div>
@@ -14,7 +12,11 @@
   var test = async_test();
   test.step(function() {
     var client = new XMLHttpRequest();
-    client.upload.onprogress = test.step_func(function() {
+    client.upload.onprogress = test.step_func(function(e) {
+      assert_true(e instanceof ProgressEvent);
+      // This short payload will most likely be sent before the first progress evt
+      assert_equals(e.loaded, 22);
+      assert_equals(e.total, 22);
       test.done();
     });
     client.onreadystatechange = test.step_func(function() {

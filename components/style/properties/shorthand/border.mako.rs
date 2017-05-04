@@ -14,16 +14,17 @@ ${helpers.four_sides_shorthand("border-style", "border-%s-style",
 
 <%helpers:shorthand name="border-width" sub_properties="${
         ' '.join('border-%s-width' % side
-                 for side in ['top', 'right', 'bottom', 'left'])}"
+                 for side in PHYSICAL_SIDES)}"
     spec="https://drafts.csswg.org/css-backgrounds/#border-width">
     use super::parse_four_sides;
-    use parser::Parse;
-    use values::specified;
+    use values::specified::{AllowQuirks, BorderWidth};
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
-        let (top, right, bottom, left) = try!(parse_four_sides(input, |i| specified::BorderWidth::parse(context, i)));
+        let (top, right, bottom, left) = try!(parse_four_sides(input, |i| {
+            BorderWidth::parse_quirky(context, i, AllowQuirks::Yes)
+        }));
         Ok(Longhands {
-            % for side in ["top", "right", "bottom", "left"]:
+            % for side in PHYSICAL_SIDES:
                 ${to_rust_ident('border-%s-width' % side)}: ${side},
             % endfor
         })
@@ -31,7 +32,7 @@ ${helpers.four_sides_shorthand("border-style", "border-%s-style",
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            % for side in ["top", "right", "bottom", "left"]:
+            % for side in PHYSICAL_SIDES:
                 let ${side} = self.border_${side}_width.clone();
             % endfor
 
@@ -122,19 +123,40 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
     </%helpers:shorthand>
 % endfor
 
-<%helpers:shorthand name="border" sub_properties="${' '.join(
-    'border-%s-%s' % (side, prop)
-    for side in ['top', 'right', 'bottom', 'left']
-    for prop in ['color', 'style', 'width']
-)}" spec="https://drafts.csswg.org/css-backgrounds/#border">
+<%helpers:shorthand name="border"
+    sub_properties="${' '.join('border-%s-%s' % (side, prop)
+        for side in PHYSICAL_SIDES
+        for prop in ['color', 'style', 'width'])}
+        ${' '.join('border-image-%s' % name
+        for name in ['outset', 'repeat', 'slice', 'source', 'width'])}
+        ${' '.join('-moz-border-%s-colors' % side
+        for side in PHYSICAL_SIDES) if product == 'gecko' else ''}"
+    spec="https://drafts.csswg.org/css-backgrounds/#border">
+
+    % if product == "gecko":
+        use properties::longhands::{_moz_border_top_colors, _moz_border_right_colors,
+                                    _moz_border_bottom_colors, _moz_border_left_colors};
+    % endif
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+        use properties::longhands::{border_image_outset, border_image_repeat, border_image_slice};
+        use properties::longhands::{border_image_source, border_image_width};
+
         let (color, style, width) = try!(super::parse_border(context, input));
         Ok(Longhands {
-            % for side in ["top", "right", "bottom", "left"]:
+            % for side in PHYSICAL_SIDES:
                 border_${side}_color: color.clone(),
                 border_${side}_style: style,
                 border_${side}_width: width.clone(),
+                % if product == "gecko":
+                    _moz_border_${side}_colors: _moz_border_${side}_colors::get_initial_specified_value(),
+                % endif
+            % endfor
+
+            // The ‘border’ shorthand resets ‘border-image’ to its initial value.
+            // See https://drafts.csswg.org/css-backgrounds-3/#the-border-shorthands
+            % for name in "outset repeat slice source width".split():
+                border_image_${name}: border_image_${name}::get_initial_specified_value(),
             % endfor
         })
     }
@@ -182,6 +204,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
     'border-%s-radius' % (corner)
      for corner in ['top-left', 'top-right', 'bottom-right', 'bottom-left']
 )}" extra_prefixes="webkit" spec="https://drafts.csswg.org/css-backgrounds/#border-radius">
+    use values::generics::serialize_radius_values;
     use values::specified::basic_shape::BorderRadius;
     use parser::Parse;
 
@@ -195,21 +218,13 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
         })
     }
 
-    // TODO: I do not understand how border radius works with respect to the slashes /,
-    // so putting a default generic impl for now
-    // https://developer.mozilla.org/en-US/docs/Web/CSS/border-radius
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            try!(self.border_top_left_radius.to_css(dest));
-            try!(write!(dest, " "));
-
-            try!(self.border_top_right_radius.to_css(dest));
-            try!(write!(dest, " "));
-
-            try!(self.border_bottom_right_radius.to_css(dest));
-            try!(write!(dest, " "));
-
-            self.border_bottom_left_radius.to_css(dest)
+            serialize_radius_values(dest,
+                                    &self.border_top_left_radius.0,
+                                    &self.border_top_right_radius.0,
+                                    &self.border_bottom_right_radius.0,
+                                    &self.border_bottom_left_radius.0)
         }
     }
 </%helpers:shorthand>

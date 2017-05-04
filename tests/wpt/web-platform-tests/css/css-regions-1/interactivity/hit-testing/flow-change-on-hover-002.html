@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>CSS Regions: Changing an element's named flow when hovering over a sibling</title>
+	<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+	<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+	<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+	<meta name="assert" content="Changing the named flow an element is extracted in using a rule that contains the :hover pseudoclass should be possible">
+	<meta name="flags" content="interact">
+	<style>
+	p {
+		margin: 0;
+	}
+	.box {
+		float: left;
+		width: 100px;
+		height: 200px;
+		margin: 10px;
+	}
+	#content {
+		background-color: lightgray;
+		font-family: Ahem;
+		font-size: 20px;
+		line-height: 1em;
+	}
+	#content p {
+		flow-into: f;
+	}
+	#content p:first-child {
+		color: lightblue;
+	}
+	#content p:first-child:hover + p {
+		flow-into: g;
+	}
+	#region1 {
+		flow-from: f;
+	}
+	#region1 p {
+		width: 100%;
+		height: 50%;
+		background-color: red;
+	}
+	#region2 {
+		flow-from: g;
+	}
+	</style>
+</head>
+<body>
+	<ol>
+		<li>You should see no red before or during this test.</li>
+		<li>Move the mouse over the blue square.</li>
+		<li>The black square below the blue square should appear on the right of the blue square.</li>
+	</ol>
+	<div id="content" class="box">
+		<p>xxxxx<br>xxxxx<br>xxxxx<br>xxxxx<br>xxxxx</p>
+		<p>xxxxx<br>xxxxx<br>xxxxx<br>xxxxx<br>xxxxx</p>
+	</div>
+	<div id="region1" class="box">
+		<p></p>
+	</div>
+	<div id="region2" class="box">
+		<p></p>
+	</div>
+</body>
+</html>

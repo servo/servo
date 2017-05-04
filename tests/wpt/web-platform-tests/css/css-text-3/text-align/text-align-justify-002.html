@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<head>
+<meta charset="utf-8">
+<title>text-align: justify, direction: ltr</title>
+<link rel='match' href='reference/text-align-justify-ref-002.html'>
+<link rel='author' title='Richard Ishida' href='mailto:ishida@w3.org'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-align-property'>
+<meta name="assert" content="text-align:justify aligns text in order to exactly fill the line box. Unless otherwise specified by text-align-last, the last line before a forced break or the end of the block is start-aligned – in this case, to the left.">
+<style type='text/css'>
+.test { text-align: justify; direction: ltr; }
+/* the CSS below is not part of the test */
+.test, .ref { border: 1px solid orange;  margin: 20px; width: 399px; color: orange; font: 24px/24px ahem; }
+.ref { text-align: right; position: relative; height:72px;  }
+.rb { position: absolute;  background-color: orange;  width: 72px; }
+#rb1 { top: 0; right: 0; height: 48px;  }
+#rb2 { top: 0; right: 109px; height: 48px; }
+#rb3 { top: 0; right: 218px; height: 48px; }
+#rb4 { top: 0; right: 327px; height: 72px; }
+#rb5 { top: 48px; left: 96px; height: 24px; }
+#rb6 { top: 48px; left: 192px; height: 24px; }
+</style>
+</head>
+<body>
+<div id='instructions'>Test passes if the shading in both orange boxes is identical.</div>
+<div style="direction: rtl;">
+<div class="test">XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX </div>
+<div class="ref"><div class="rb" id="rb1"></div><div class="rb" id="rb2"></div><div class="rb" id="rb3"></div><div class="rb" id="rb4"></div><div class="rb" id="rb5"></div><div class="rb" id="rb6"></div></div>
+</div>
+</body>
+</html>

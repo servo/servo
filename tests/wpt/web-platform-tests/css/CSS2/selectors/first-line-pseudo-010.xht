@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: CSS Block Box Model: first-line and borders</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/block/first-line/010.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-line-pseudo" />
+  <style type="text/css">
+   .test { border: solid green; }
+   :first-line { }
+  </style>
+ </head>
+ <body>
+  <!-- This specifically tests for an IE6 Preview bug. It only occurs
+  if the selector is a class or id selector, or a combination thereof,
+  without any other selector or combinator. -->
+  <p class="test">The text should have a solid green border.</p>
+ </body>
+</html>

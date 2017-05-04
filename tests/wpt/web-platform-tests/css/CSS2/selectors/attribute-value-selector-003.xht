@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Attribute selector matching value in list</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#attribute-selectors" />
+        <link rel="match" href="attribute-value-selector-001-ref.xht"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="Selector matches attribute with specific value in a space-separated list." />
+        <style type="text/css">
+            [class~=est]
+            {
+                color: green;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the first line of "Filler Text" below is black and the second one is green.</p>
+        <div class="t estDiv">Filler Text</div>
+        <div class="t est">Filler Text</div>
+    </body>
+</html>

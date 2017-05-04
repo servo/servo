@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: White-space 'normal' and linefeed characters</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-model" />
+        <meta name="flags" content="ahem may" />
+        <meta name="assert" content="Linefeed characters are transformed into spaces, zero-width space, or not rendered when 'white-space' is set to 'normal'." />
+        <style type="text/css">
+            div
+            {
+                font: 16px/1em Ahem;
+                height: 1em;
+                margin-bottom: 3px;
+            }
+            #div1
+            {
+                background-color: blue;
+                width: 5em;
+            }
+            #div2
+            {
+                background-color: orange;
+                width: 4em;
+            }
+            span
+            {
+                background-color: black;
+                white-space: normal;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the black box below is the same width as either the blue box or the orange box.</p>
+        <div id="div1"></div>
+        <div>
+            <span>XX&#10;XX</span>
+        </div>
+        <div id="div2"></div>
+    </body>
+</html>

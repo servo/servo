@@ -168,8 +168,7 @@ def check_call(*args, **kwargs):
 
 
 def is_windows():
-    """ Detect windows, mingw, cygwin """
-    return sys.platform == 'win32' or sys.platform == 'msys' or sys.platform == 'cygwin'
+    return sys.platform == 'win32'
 
 
 def is_macosx():
@@ -258,9 +257,6 @@ class CommandBase(object):
         self.config["tools"].setdefault("system-cargo", False)
         self.config["tools"].setdefault("rust-root", "")
         self.config["tools"].setdefault("cargo-root", "")
-        if not self.config["tools"]["system-cargo"]:
-            self.config["tools"]["cargo-root"] = path.join(
-                context.sharedir, "cargo", self.cargo_build_id())
         self.config["tools"].setdefault("rustc-with-gold", get_env_bool("SERVO_RUSTC_WITH_GOLD", True))
 
         # https://github.com/rust-lang/rust/pull/39754
@@ -284,12 +280,18 @@ class CommandBase(object):
         self.config["android"].setdefault("platform", "android-18")
         self.config["android"].setdefault("target", "arm-linux-androideabi")
 
+        self.set_cargo_root()
         self.set_use_stable_rust(False)
 
     _use_stable_rust = False
     _rust_version = None
     _rust_version_is_stable = False
     _cargo_build_id = None
+
+    def set_cargo_root(self):
+        if not self.config["tools"]["system-cargo"]:
+            self.config["tools"]["cargo-root"] = path.join(
+                self.context.sharedir, "cargo", self.cargo_build_id())
 
     def set_use_stable_rust(self, use_stable_rust=True):
         self._use_stable_rust = use_stable_rust
@@ -382,7 +384,7 @@ class CommandBase(object):
                                   " --release" if release else ""))
         sys.exit()
 
-    def build_env(self, hosts_file_path=None, target=None, is_build=False):
+    def build_env(self, hosts_file_path=None, target=None, is_build=False, geckolib=False):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
         if sys.platform == "win32" and type(env['PATH']) == unicode:
@@ -420,9 +422,6 @@ class CommandBase(object):
         if not self.config["tools"]["system-rust"] \
                 or self.config["tools"]["rust-root"]:
             env["RUST_ROOT"] = self.config["tools"]["rust-root"]
-            # Add mingw64 binary path before rust paths to avoid conflict with libstdc++-6.dll
-            if sys.platform == "msys":
-                extra_path += [path.join(os.sep, "mingw64", "bin")]
             # These paths are for when rust-root points to an unpacked installer
             extra_path += [path.join(self.config["tools"]["rust-root"], "rustc", "bin")]
             extra_lib += [path.join(self.config["tools"]["rust-root"], "rustc", "lib")]
@@ -489,7 +488,7 @@ class CommandBase(object):
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " " + self.config["build"]["rustflags"]
 
         # Don't run the gold linker if on Windows https://github.com/servo/servo/issues/9499
-        if self.config["tools"]["rustc-with-gold"] and sys.platform not in ("win32", "msys"):
+        if self.config["tools"]["rustc-with-gold"] and sys.platform != "win32":
             if subprocess.call(['which', 'ld.gold'], stdout=PIPE, stderr=PIPE) == 0:
                 env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C link-args=-fuse-ld=gold"
 
@@ -518,6 +517,10 @@ class CommandBase(object):
                 git_info.append('dirty')
 
         env['GIT_INFO'] = '-'.join(git_info)
+
+        if geckolib:
+            geckolib_build_path = path.join(self.context.topdir, "target", "geckolib").encode("UTF-8")
+            env["CARGO_TARGET_DIR"] = geckolib_build_path
 
         return env
 
