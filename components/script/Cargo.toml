@@ -54,6 +54,7 @@ image = "0.12"
 ipc-channel = "0.7"
 js = {git = "https://github.com/servo/rust-mozjs", features = ["promises"]}
 jstraceable_derive = {path = "../jstraceable_derive"}
+lazy_static = "0.2"
 libc = "0.2"
 log = "0.3.5"
 mime = "0.2.1"

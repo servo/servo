@@ -60,6 +60,8 @@ extern crate ipc_channel;
 extern crate js;
 #[macro_use]
 extern crate jstraceable_derive;
+#[macro_use]
+extern crate lazy_static;
 extern crate libc;
 #[macro_use]
 extern crate log;
