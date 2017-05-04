@@ -1052,7 +1052,8 @@ fn static_assert() {
 <%self:impl_trait style_struct_name="Position"
                   skip_longhands="${skip_position_longhands} z-index box-sizing order align-content
                                   justify-content align-self justify-self align-items
-                                  justify-items grid-auto-rows grid-auto-columns grid-auto-flow">
+                                  justify-items grid-auto-rows grid-auto-columns grid-auto-flow
+                                  grid-template-areas">
     % for side in SIDES:
     <% impl_split_style_coord("%s" % side.ident,
                               "mOffset",
@@ -1228,6 +1229,42 @@ fn static_assert() {
     }
 
     ${impl_simple_copy('grid_auto_flow', 'mGridAutoFlow')}
+
+    pub fn set_grid_template_areas(&mut self, v: longhands::grid_template_areas::computed_value::T) {
+        use gecko_bindings::bindings::Gecko_NewGridTemplateAreasValue;
+        use gecko_bindings::sugar::refptr::UniqueRefPtr;
+
+        let v = match v {
+            Either::First(areas) => areas,
+            Either::Second(_) => {
+                unsafe { self.gecko.mGridTemplateAreas.clear() }
+                return;
+            },
+        };
+
+        let mut refptr = unsafe {
+            UniqueRefPtr::from_addrefed(
+                Gecko_NewGridTemplateAreasValue(v.areas.len() as u32, v.strings.len() as u32, v.width))
+        };
+
+        for (servo, gecko) in v.areas.into_iter().zip(refptr.mNamedAreas.iter_mut()) {
+            gecko.mName.assign_utf8(&*servo.name);
+            gecko.mColumnStart = servo.columns.start;
+            gecko.mColumnEnd = servo.columns.end;
+            gecko.mRowStart = servo.rows.start;
+            gecko.mRowEnd = servo.rows.end;
+        }
+
+        for (servo, gecko) in v.strings.into_iter().zip(refptr.mTemplates.iter_mut()) {
+            gecko.assign_utf8(&*servo);
+        }
+
+        unsafe { self.gecko.mGridTemplateAreas.set_move(refptr.get()) }
+    }
+
+    pub fn copy_grid_template_areas_from(&mut self, other: &Self) {
+        unsafe { self.gecko.mGridTemplateAreas.set(&other.gecko.mGridTemplateAreas) }
+    }
 </%self:impl_trait>
 
 <% skip_outline_longhands = " ".join("outline-style outline-width".split() +
