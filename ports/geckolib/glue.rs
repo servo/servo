@@ -1313,6 +1313,15 @@ pub extern "C" fn Servo_ComputedValues_Inherit(
     style.into_strong()
 }
 
+#[no_mangle]
+pub extern "C" fn Servo_ComputedValues_GetVisitedStyle(values: ServoComputedValuesBorrowed)
+                                                       -> ServoComputedValuesStrong {
+    match ComputedValues::as_arc(&values).get_visited_style() {
+        Some(v) => v.clone().into_strong(),
+        None => Strong::null(),
+    }
+}
+
 /// See the comment in `Device` to see why it's ok to pass an owned reference to
 /// the pres context (hint: the context outlives the StyleSet, that holds the
 /// device alive).

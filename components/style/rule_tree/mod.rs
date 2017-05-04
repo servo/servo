@@ -16,6 +16,7 @@ use std::ptr;
 use std::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
 use stylearc::Arc;
 use stylesheets::StyleRule;
+use stylist::ApplicableDeclarationList;
 use thread_state;
 
 /// The rule tree, the structure servo uses to preserve the results of selector
@@ -213,6 +214,18 @@ impl RuleTree {
         }
 
         current
+    }
+
+    /// Given a list of applicable declarations, insert the rules and return the
+    /// corresponding rule node.
+    pub fn compute_rule_node(&self,
+                             applicable_declarations: &mut ApplicableDeclarationList,
+                             guards: &StylesheetGuards)
+                             -> StrongRuleNode
+    {
+        let rules = applicable_declarations.drain().map(|d| (d.source, d.level));
+        let rule_node = self.insert_ordered_rules_with_important(rules, guards);
+        rule_node
     }
 
     /// Insert the given rules, that must be in proper order by specifity, and
@@ -632,6 +645,8 @@ struct WeakRuleNode {
 /// A strong reference to a rule node.
 #[derive(Debug, PartialEq)]
 pub struct StrongRuleNode {
+    // TODO: Mark this as NonZero once stable to save space inside Option.
+    // https://github.com/rust-lang/rust/issues/27730
     ptr: *mut RuleNode,
 }
 

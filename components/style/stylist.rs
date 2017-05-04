@@ -568,6 +568,7 @@ impl Stylist {
                                 parent.map(|p| &**p),
                                 parent.map(|p| &**p),
                                 None,
+                                None,
                                 &RustLogReporter,
                                 font_metrics,
                                 cascade_flags,
@@ -639,12 +640,14 @@ impl Stylist {
         // difficult to assert that display: contents nodes never arrive here
         // (tl;dr: It doesn't apply for replaced elements and such, but the
         // computed value is still "contents").
+        // Bug 1364242: We need to add visited support for lazy pseudos
         let computed =
             properties::cascade(&self.device,
                                 &rule_node,
                                 guards,
                                 Some(parent_style),
                                 Some(parent_style),
+                                None,
                                 None,
                                 &RustLogReporter,
                                 font_metrics,
@@ -695,6 +698,7 @@ impl Stylist {
             }
         };
 
+        // Bug 1364242: We need to add visited support for lazy pseudos
         let mut declarations = ApplicableDeclarationList::new();
         let mut matching_context =
             MatchingContext::new(MatchingMode::ForStatelessPseudoElement, None);
@@ -1048,12 +1052,16 @@ impl Stylist {
         let rule_node =
             self.rule_tree.insert_ordered_rules(v.into_iter().map(|a| (a.source, a.level)));
 
+        // This currently ignores visited styles.  It appears to be used for
+        // font styles in <canvas> via Servo_StyleSet_ResolveForDeclarations.
+        // It is unclear if visited styles are meaningful for this case.
         let metrics = get_metrics_provider_for_product();
         Arc::new(properties::cascade(&self.device,
                                      &rule_node,
                                      guards,
                                      Some(parent_style),
                                      Some(parent_style),
+                                     None,
                                      None,
                                      &RustLogReporter,
                                      &metrics,

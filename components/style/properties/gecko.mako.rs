@@ -100,6 +100,11 @@ pub struct ComputedValues {
     pub font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
     /// The cached system font. See longhand/font.mako.rs
     pub cached_system_font: Option<longhands::system_font::ComputedSystemFont>,
+
+    /// The element's computed values if visited, only computed if there's a
+    /// relevant link for this element. A element's "relevant link" is the
+    /// element being matched if it is a link or the nearest ancestor link.
+    visited_style: Option<Arc<ComputedValues>>,
 }
 
 impl ComputedValues {
@@ -107,6 +112,7 @@ impl ComputedValues {
                writing_mode: WritingMode,
                root_font_size: Au,
                font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+               visited_style: Option<Arc<ComputedValues>>,
                % for style_struct in data.style_structs:
                ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
                % endfor
@@ -117,6 +123,7 @@ impl ComputedValues {
             root_font_size: root_font_size,
             cached_system_font: None,
             font_size_keyword: font_size_keyword,
+            visited_style: visited_style,
             % for style_struct in data.style_structs:
             ${style_struct.ident}: ${style_struct.ident},
             % endfor
@@ -130,6 +137,7 @@ impl ComputedValues {
             root_font_size: longhands::font_size::get_initial_value(), // FIXME(bz): Also seems dubious?
             font_size_keyword: Some((Default::default(), 1.)),
             cached_system_font: None,
+            visited_style: None,
             % for style_struct in data.style_structs:
                 ${style_struct.ident}: style_structs::${style_struct.name}::default(pres_context),
             % endfor
@@ -167,6 +175,23 @@ impl ComputedValues {
         Arc::make_mut(&mut self.${style_struct.ident})
     }
     % endfor
+
+    /// Gets a reference to the visited computed values, if any.
+    pub fn get_visited_style(&self) -> Option<<&Arc<ComputedValues>> {
+        self.visited_style.as_ref()
+    }
+
+    /// Gets a reference to the visited computed values. Panic if the element
+    /// does not have visited computed values.
+    pub fn visited_style(&self) -> &Arc<ComputedValues> {
+        self.get_visited_style().unwrap()
+    }
+
+    /// Clone the visited computed values Arc.  Used for inheriting parent styles
+    /// in StyleBuilder::for_inheritance.
+    pub fn clone_visited_style(&self) -> Option<Arc<ComputedValues>> {
+        self.visited_style.clone()
+    }
 
     pub fn custom_properties(&self) -> Option<Arc<ComputedValuesMap>> {
         self.custom_properties.clone()

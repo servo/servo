@@ -75,7 +75,7 @@ impl ElementSelectorFlags {
 ///
 /// There are two modes of selector matching. The difference is only noticeable
 /// in presence of pseudo-elements.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum MatchingMode {
     /// Don't ignore any pseudo-element selectors.
     Normal,
@@ -108,13 +108,14 @@ pub enum VisitedHandlingMode {
 /// Data associated with the matching process for a element.  This context is
 /// used across many selectors for an element, so it's not appropriate for
 /// transient data that applies to only a single selector.
+#[derive(Clone)]
 pub struct MatchingContext<'a> {
     /// Output that records certains relations between elements noticed during
     /// matching (and also extended after matching).
     pub relations: StyleRelations,
-    /// The matching mode we should use when matching selectors.
+    /// Input with the matching mode we should use when matching selectors.
     pub matching_mode: MatchingMode,
-    /// The bloom filter used to fast-reject selectors.
+    /// Input with the bloom filter used to fast-reject selectors.
     pub bloom_filter: Option<&'a BloomFilter>,
     /// Input that controls how matching for links is handled.
     pub visited_handling: VisitedHandlingMode,
@@ -122,7 +123,7 @@ pub struct MatchingContext<'a> {
     /// matching _any_ selector for this element. (This differs from
     /// `RelevantLinkStatus` which tracks the status for the _current_ selector
     /// only.)
-    relevant_link_found: bool,
+    pub relevant_link_found: bool,
 }
 
 impl<'a> MatchingContext<'a> {
@@ -136,6 +137,21 @@ impl<'a> MatchingContext<'a> {
             matching_mode: matching_mode,
             bloom_filter: bloom_filter,
             visited_handling: VisitedHandlingMode::AllLinksUnvisited,
+            relevant_link_found: false,
+        }
+    }
+
+    /// Constructs a new `MatchingContext` for use in visited matching.
+    pub fn new_for_visited(matching_mode: MatchingMode,
+                           bloom_filter: Option<&'a BloomFilter>,
+                           visited_handling: VisitedHandlingMode)
+                           -> Self
+    {
+        Self {
+            relations: StyleRelations::empty(),
+            matching_mode: matching_mode,
+            bloom_filter: bloom_filter,
+            visited_handling: visited_handling,
             relevant_link_found: false,
         }
     }

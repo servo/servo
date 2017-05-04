@@ -1743,6 +1743,11 @@ pub struct ComputedValues {
     pub root_font_size: Au,
     /// The keyword behind the current font-size property, if any
     pub font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+
+    /// The element's computed values if visited, only computed if there's a
+    /// relevant link for this element. A element's "relevant link" is the
+    /// element being matched if it is a link or the nearest ancestor link.
+    visited_style: Option<Arc<ComputedValues>>,
 }
 
 #[cfg(feature = "servo")]
@@ -1752,6 +1757,7 @@ impl ComputedValues {
                writing_mode: WritingMode,
                root_font_size: Au,
                font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+               visited_style: Option<Arc<ComputedValues>>,
             % for style_struct in data.active_style_structs():
                ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
             % endfor
@@ -1761,6 +1767,7 @@ impl ComputedValues {
             writing_mode: writing_mode,
             root_font_size: root_font_size,
             font_size_keyword: font_size_keyword,
+            visited_style: visited_style,
         % for style_struct in data.active_style_structs():
             ${style_struct.ident}: ${style_struct.ident},
         % endfor
@@ -1795,6 +1802,23 @@ impl ComputedValues {
             Arc::make_mut(&mut self.${style_struct.ident})
         }
     % endfor
+
+    /// Gets a reference to the visited computed values, if any.
+    pub fn get_visited_style(&self) -> Option<<&Arc<ComputedValues>> {
+        self.visited_style.as_ref()
+    }
+
+    /// Gets a reference to the visited computed values. Panic if the element
+    /// does not have visited computed values.
+    pub fn visited_style(&self) -> &Arc<ComputedValues> {
+        self.get_visited_style().unwrap()
+    }
+
+    /// Clone the visited computed values Arc.  Used for inheriting parent styles
+    /// in StyleBuilder::for_inheritance.
+    pub fn clone_visited_style(&self) -> Option<Arc<ComputedValues>> {
+        self.visited_style.clone()
+    }
 
     /// Get the custom properties map if necessary.
     ///
@@ -2183,6 +2207,10 @@ pub struct StyleBuilder<'a> {
     pub root_font_size: Au,
     /// The keyword behind the current font-size property, if any.
     pub font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+    /// The element's style if visited, only computed if there's a relevant link
+    /// for this element.  A element's "relevant link" is the element being
+    /// matched if it is a link or the nearest ancestor link.
+    visited_style: Option<Arc<ComputedValues>>,
     % for style_struct in data.active_style_structs():
         ${style_struct.ident}: StyleStructRef<'a, style_structs::${style_struct.name}>,
     % endfor
@@ -2195,6 +2223,7 @@ impl<'a> StyleBuilder<'a> {
         writing_mode: WritingMode,
         root_font_size: Au,
         font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+        visited_style: Option<Arc<ComputedValues>>,
         % for style_struct in data.active_style_structs():
             ${style_struct.ident}: &'a Arc<style_structs::${style_struct.name}>,
         % endfor
@@ -2204,6 +2233,7 @@ impl<'a> StyleBuilder<'a> {
             writing_mode: writing_mode,
             root_font_size: root_font_size,
             font_size_keyword: font_size_keyword,
+            visited_style: visited_style,
         % for style_struct in data.active_style_structs():
             ${style_struct.ident}: StyleStructRef::Borrowed(${style_struct.ident}),
         % endfor
@@ -2223,6 +2253,7 @@ impl<'a> StyleBuilder<'a> {
                   parent.writing_mode,
                   parent.root_font_size,
                   parent.font_size_keyword,
+                  parent.clone_visited_style(),
                   % for style_struct in data.active_style_structs():
                   % if style_struct.inherited:
                   parent.${style_struct.name_lower}_arc(),
@@ -2296,6 +2327,7 @@ impl<'a> StyleBuilder<'a> {
                             self.writing_mode,
                             self.root_font_size,
                             self.font_size_keyword,
+                            self.visited_style,
                             % for style_struct in data.active_style_structs():
                             self.${style_struct.ident}.build(),
                             % endfor
@@ -2339,6 +2371,7 @@ mod lazy_static_module {
             writing_mode: WritingMode::empty(),
             root_font_size: longhands::font_size::get_initial_value(),
             font_size_keyword: Some((Default::default(), 1.)),
+            visited_style: None,
         };
     }
 }
@@ -2392,6 +2425,7 @@ pub fn cascade(device: &Device,
                guards: &StylesheetGuards,
                parent_style: Option<<&ComputedValues>,
                layout_parent_style: Option<<&ComputedValues>,
+               visited_style: Option<Arc<ComputedValues>>,
                cascade_info: Option<<&mut CascadeInfo>,
                error_reporter: &ParseErrorReporter,
                font_metrics_provider: &FontMetricsProvider,
@@ -2438,6 +2472,7 @@ pub fn cascade(device: &Device,
                        iter_declarations,
                        inherited_style,
                        layout_parent_style,
+                       visited_style,
                        cascade_info,
                        error_reporter,
                        font_metrics_provider,
@@ -2453,6 +2488,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                                     iter_declarations: F,
                                     inherited_style: &ComputedValues,
                                     layout_parent_style: &ComputedValues,
+                                    visited_style: Option<Arc<ComputedValues>>,
                                     mut cascade_info: Option<<&mut CascadeInfo>,
                                     error_reporter: &ParseErrorReporter,
                                     font_metrics_provider: &FontMetricsProvider,
@@ -2483,6 +2519,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                           WritingMode::empty(),
                           inherited_style.root_font_size,
                           inherited_style.font_size_keyword,
+                          visited_style,
                           % for style_struct in data.active_style_structs():
                               % if style_struct.inherited:
                                   inherited_style.${style_struct.name_lower}_arc(),
@@ -2496,6 +2533,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                           WritingMode::empty(),
                           inherited_style.root_font_size,
                           inherited_style.font_size_keyword,
+                          visited_style,
                           % for style_struct in data.active_style_structs():
                               inherited_style.${style_struct.name_lower}_arc(),
                           % endfor
