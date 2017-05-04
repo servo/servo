@@ -32,9 +32,7 @@ unsafe fn update_or_create_typed_array(cx: *mut JSContext,
     match src {
         Some(data) => {
             if dst.get().is_null() {
-                rooted!(in (cx) let mut array = ptr::null_mut());
-                let _ = Float32Array::create(cx, CreateWith::Slice(data), array.handle_mut());
-                (*dst).set(array.get());
+                let _ = Float32Array::create(cx, CreateWith::Slice(data), dst.handle_mut());
             } else {
                 typedarray!(in(cx) let array: Float32Array = dst.get());
                 if let Ok(mut array) = array {

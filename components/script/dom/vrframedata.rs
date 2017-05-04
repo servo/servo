@@ -31,16 +31,8 @@ pub struct VRFrameData {
 }
 
 impl VRFrameData {
-    #[allow(unsafe_code)]
-    #[allow(unrooted_must_root)]
-    fn new(global: &GlobalScope) -> Root<VRFrameData> {
-        let matrix = [1.0, 0.0, 0.0, 0.0,
-                      0.0, 1.0, 0.0, 0.0,
-                      0.0, 0.0, 1.0, 0.0,
-                      0.0, 0.0, 0.0, 1.0f32];
-        let pose = VRPose::new(&global, &Default::default());
-
-        let framedata = VRFrameData {
+    fn new_inherited(pose: &VRPose) -> VRFrameData {
+        VRFrameData {
             reflector_: Reflector::new(),
             left_proj: Heap::default(),
             left_view: Heap::default(),
@@ -49,23 +41,25 @@ impl VRFrameData {
             pose: JS::from_ref(&*pose),
             timestamp: Cell::new(0.0),
             first_timestamp: Cell::new(0.0)
-        };
-
-        let root = reflect_dom_object(box framedata,
-                           global,
-                           VRFrameDataBinding::Wrap);
-
-        unsafe {
-            let ref framedata = *root;
-            let _ = Float32Array::create(global.get_cx(), CreateWith::Slice(&matrix),
-                                         framedata.left_proj.handle_mut());
-            let _ = Float32Array::create(global.get_cx(), CreateWith::Slice(&matrix),
-                                         framedata.left_view.handle_mut());
-            let _ = Float32Array::create(global.get_cx(), CreateWith::Slice(&matrix),
-                                         framedata.right_proj.handle_mut());
-            let _ = Float32Array::create(global.get_cx(), CreateWith::Slice(&matrix),
-                                         framedata.right_view.handle_mut());
         }
+    }
+
+    #[allow(unsafe_code)]
+    fn new(global: &GlobalScope) -> Root<VRFrameData> {
+        let matrix = [1.0, 0.0, 0.0, 0.0,
+                      0.0, 1.0, 0.0, 0.0,
+                      0.0, 0.0, 1.0, 0.0,
+                      0.0, 0.0, 0.0, 1.0f32];
+        let pose = VRPose::new(&global, &Default::default());
+
+        let root = reflect_dom_object(box VRFrameData::new_inherited(&pose),
+                                      global,
+                                      VRFrameDataBinding::Wrap);
+        let cx = global.get_cx();
+        create_typed_array(cx, &matrix, &root.left_proj);
+        create_typed_array(cx, &matrix, &root.left_view);
+        create_typed_array(cx, &matrix, &root.right_proj);
+        create_typed_array(cx, &matrix, &root.right_view);
 
         root
     }
@@ -75,6 +69,13 @@ impl VRFrameData {
     }
 }
 
+
+#[allow(unsafe_code)]
+fn create_typed_array(cx: *mut JSContext, src: &[f32], dst: &Heap<*mut JSObject>) {
+    unsafe {
+        let _ = Float32Array::create(cx, CreateWith::Slice(src), dst.handle_mut());
+    }
+}
 
 impl VRFrameData {
     #[allow(unsafe_code)]

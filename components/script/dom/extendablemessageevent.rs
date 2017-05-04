@@ -35,7 +35,7 @@ impl ExtendableMessageEvent {
                -> Root<ExtendableMessageEvent> {
         let ev = box ExtendableMessageEvent {
             event: ExtendableEvent::new_inherited(),
-            data: Heap::new(data.get()),
+            data: Heap::default(),
             origin: origin,
             lastEventId: lastEventId,
         };
@@ -44,6 +44,8 @@ impl ExtendableMessageEvent {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);
         }
+        ev.data.set(data.get());
+
         ev
     }
 
