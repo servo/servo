@@ -2429,3 +2429,12 @@ ${helpers.single_keyword("-moz-math-variant",
         }
     }
 % endif
+
+${helpers.single_keyword("-moz-osx-font-smoothing",
+                         "auto grayscale",
+                         gecko_constant_prefix="NS_FONT_SMOOTHING",
+                         gecko_ffi_name="mFont.smoothing",
+                         products="gecko",
+                         spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/font-smooth)",
+                         animation_value_type="none",
+                         need_clone=True)}
