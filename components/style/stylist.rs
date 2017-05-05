@@ -80,7 +80,7 @@ pub struct Stylist {
     viewport_constraints: Option<ViewportConstraints>,
 
     /// If true, the quirks-mode stylesheet is applied.
-    quirks_mode: QuirksMode,
+    pub quirks_mode: QuirksMode,
 
     /// If true, the device has changed, and the stylist needs to be updated.
     is_device_dirty: bool,
@@ -189,16 +189,17 @@ impl<'a> ExtraStyleData<'a> {
 }
 
 impl Stylist {
-    /// Construct a new `Stylist`, using a given `Device`.  If more members are
-    /// added here, think about whether they should be reset in clear().
+    /// Construct a new `Stylist`, using given `Device` and `QuirksMode`.
+    /// If more members are added here, think about whether they should
+    /// be reset in clear().
     #[inline]
-    pub fn new(device: Device) -> Self {
+    pub fn new(device: Device, quirks_mode: QuirksMode) -> Self {
         let mut stylist = Stylist {
             viewport_constraints: None,
             device: Arc::new(device),
             is_device_dirty: true,
             is_cleared: true,
-            quirks_mode: QuirksMode::NoQuirks,
+            quirks_mode: quirks_mode,
 
             element_map: PerPseudoElementSelectorMap::new(),
             pseudos_map: Default::default(),
