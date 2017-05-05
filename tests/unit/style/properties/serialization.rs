@@ -1043,19 +1043,19 @@ mod shorthand_serialization {
         #[test]
         fn transform_skew() {
             validate_serialization(
-                &SpecifiedOperation::Skew(Angle::from_degrees(42.3), None),
+                &SpecifiedOperation::Skew(Angle::from_degrees(42.3, false), None),
                 "skew(42.3deg)");
             validate_serialization(
-                &SpecifiedOperation::Skew(Angle::from_gradians(-50.0), Some(Angle::from_turns(0.73))),
+                &SpecifiedOperation::Skew(Angle::from_gradians(-50.0, false), Some(Angle::from_turns(0.73, false))),
                 "skew(-50grad, 0.73turn)");
             validate_serialization(
-                &SpecifiedOperation::SkewX(Angle::from_radians(0.31)), "skewX(0.31rad)");
+                &SpecifiedOperation::SkewX(Angle::from_radians(0.31, false)), "skewX(0.31rad)");
         }
 
         #[test]
         fn transform_rotate() {
             validate_serialization(
-                &SpecifiedOperation::Rotate(Angle::from_turns(35.0)),
+                &SpecifiedOperation::Rotate(Angle::from_turns(35.0, false)),
                 "rotate(35turn)"
             )
         }
