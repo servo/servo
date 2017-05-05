@@ -623,6 +623,7 @@ mod bindings {
             .whitelisted_function("Servo_.*")
             .whitelisted_function("Gecko_.*");
         let structs_types = [
+            "mozilla::css::GridTemplateAreasValue",
             "mozilla::css::URLValue",
             "mozilla::Side",
             "RawGeckoAnimationPropertySegment",
