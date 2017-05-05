@@ -117,7 +117,7 @@ pub struct Stylist {
     /// on state that is not otherwise visible to the cache, like attributes or
     /// tree-structural state like child index and pseudos).
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    selectors_for_cache_revalidation: Vec<SelectorInner<SelectorImpl>>,
+    selectors_for_cache_revalidation: SelectorMap<SelectorInner<SelectorImpl>>,
 
     /// The total number of selectors.
     num_selectors: usize,
@@ -177,7 +177,7 @@ impl Stylist {
             rules_source_order: 0,
             rule_tree: RuleTree::new(),
             dependencies: DependencySet::new(),
-            selectors_for_cache_revalidation: vec![],
+            selectors_for_cache_revalidation: SelectorMap::new(),
             num_selectors: 0,
             num_declarations: 0,
             num_rebuilds: 0,
@@ -260,7 +260,7 @@ impl Stylist {
         self.rules_source_order = 0;
         self.dependencies.clear();
         self.animations.clear();
-        self.selectors_for_cache_revalidation.clear();
+        self.selectors_for_cache_revalidation = SelectorMap::new();
         self.num_selectors = 0;
         self.num_declarations = 0;
 
@@ -376,7 +376,7 @@ impl Stylist {
     #[inline]
     fn note_for_revalidation(&mut self, selector: &Selector<SelectorImpl>) {
         if needs_revalidation(selector) {
-            self.selectors_for_cache_revalidation.push(selector.inner.clone());
+            self.selectors_for_cache_revalidation.insert(selector.inner.clone());
         }
     }
 
@@ -847,17 +847,20 @@ impl Stylist {
         use selectors::matching::StyleRelations;
         use selectors::matching::matches_selector;
 
-        let len = self.selectors_for_cache_revalidation.len();
-        let mut results = BitVec::from_elem(len, false);
-
-        for (i, ref selector) in self.selectors_for_cache_revalidation
-                                     .iter().enumerate() {
-            results.set(i, matches_selector(selector,
-                                            element,
-                                            Some(bloom),
-                                            &mut StyleRelations::empty(),
-                                            flags_setter));
-        }
+        // Note that, by the time we're revalidating, we're guaranteed that the
+        // candidate and the entry have the same id, classes, and local name.
+        // This means we're guaranteed to get the same rulehash buckets for all
+        // the lookups, which means that the bitvecs are comparable. We verify
+        // this in the caller by asserting that the bitvecs are same-length.
+        let mut results = BitVec::new();
+        self.selectors_for_cache_revalidation.lookup(*element, &mut |selector| {
+            results.push(matches_selector(selector,
+                                          element,
+                                          Some(bloom),
+                                          &mut StyleRelations::empty(),
+                                          flags_setter));
+            true
+        });
 
         results
     }
@@ -1005,11 +1008,11 @@ pub fn needs_revalidation(selector: &Selector<SelectorImpl>) -> bool {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 struct PerPseudoElementSelectorMap {
     /// Rules from user agent stylesheets
-    user_agent: SelectorMap,
+    user_agent: SelectorMap<Rule>,
     /// Rules from author stylesheets
-    author: SelectorMap,
+    author: SelectorMap<Rule>,
     /// Rules from user stylesheets
-    user: SelectorMap,
+    user: SelectorMap<Rule>,
 }
 
 impl PerPseudoElementSelectorMap {
@@ -1023,7 +1026,7 @@ impl PerPseudoElementSelectorMap {
     }
 
     #[inline]
-    fn borrow_for_origin(&mut self, origin: &Origin) -> &mut SelectorMap {
+    fn borrow_for_origin(&mut self, origin: &Origin) -> &mut SelectorMap<Rule> {
         match *origin {
             Origin::UserAgent => &mut self.user_agent,
             Origin::Author => &mut self.author,
@@ -1032,39 +1035,41 @@ impl PerPseudoElementSelectorMap {
     }
 }
 
-/// Map element data to Rules whose last simple selector starts with them.
+/// Map element data to selector-providing objects for which the last simple
+/// selector starts with them.
 ///
 /// e.g.,
-/// "p > img" would go into the set of Rules corresponding to the
+/// "p > img" would go into the set of selectors corresponding to the
 /// element "img"
-/// "a .foo .bar.baz" would go into the set of Rules corresponding to
+/// "a .foo .bar.baz" would go into the set of selectors corresponding to
 /// the class "bar"
 ///
-/// Because we match Rules right-to-left (i.e., moving up the tree
+/// Because we match selectors right-to-left (i.e., moving up the tree
 /// from an element), we need to compare the last simple selector in the
-/// Rule with the element.
+/// selector with the element.
 ///
 /// So, if an element has ID "id1" and classes "foo" and "bar", then all
 /// the rules it matches will have their last simple selector starting
 /// either with "#id1" or with ".foo" or with ".bar".
 ///
 /// Hence, the union of the rules keyed on each of element's classes, ID,
-/// element name, etc. will contain the Rules that actually match that
+/// element name, etc. will contain the Selectors that actually match that
 /// element.
 ///
 /// TODO: Tune the initial capacity of the HashMap
+#[derive(Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct SelectorMap {
+pub struct SelectorMap<T: Clone + Borrow<SelectorInner<SelectorImpl>>> {
     /// A hash from an ID to rules which contain that ID selector.
-    pub id_hash: FnvHashMap<Atom, Vec<Rule>>,
+    pub id_hash: FnvHashMap<Atom, Vec<T>>,
     /// A hash from a class name to rules which contain that class selector.
-    pub class_hash: FnvHashMap<Atom, Vec<Rule>>,
+    pub class_hash: FnvHashMap<Atom, Vec<T>>,
     /// A hash from local name to rules which contain that local name selector.
-    pub local_name_hash: FnvHashMap<LocalName, Vec<Rule>>,
+    pub local_name_hash: FnvHashMap<LocalName, Vec<T>>,
     /// Rules that don't have ID, class, or element selectors.
-    pub other_rules: Vec<Rule>,
-    /// Whether this hash is empty.
-    pub empty: bool,
+    pub other: Vec<T>,
+    /// The number of entries in this map.
+    pub count: usize,
 }
 
 #[inline]
@@ -1072,18 +1077,30 @@ fn sort_by_key<T, F: Fn(&T) -> K, K: Ord>(v: &mut [T], f: F) {
     sort_by(v, |a, b| f(a).cmp(&f(b)))
 }
 
-impl SelectorMap {
+impl<T> SelectorMap<T> where T: Clone + Borrow<SelectorInner<SelectorImpl>> {
     /// Trivially constructs an empty `SelectorMap`.
     pub fn new() -> Self {
         SelectorMap {
             id_hash: HashMap::default(),
             class_hash: HashMap::default(),
             local_name_hash: HashMap::default(),
-            other_rules: Vec::new(),
-            empty: true,
+            other: Vec::new(),
+            count: 0,
         }
     }
 
+    /// Returns whether there are any entries in the map.
+    pub fn is_empty(&self) -> bool {
+        self.count == 0
+    }
+
+    /// Returns the number of entries.
+    pub fn len(&self) -> usize {
+        self.count
+    }
+}
+
+impl SelectorMap<Rule> {
     /// Append to `rule_list` all Rules in `self` that match element.
     ///
     /// Extract matching rules as per element's ID, classes, tag name, etc..
@@ -1099,7 +1116,7 @@ impl SelectorMap {
               V: VecLike<ApplicableDeclarationBlock>,
               F: FnMut(&E, ElementSelectorFlags),
     {
-        if self.empty {
+        if self.is_empty() {
             return
         }
 
@@ -1138,7 +1155,7 @@ impl SelectorMap {
 
         SelectorMap::get_matching_rules(element,
                                         parent_bf,
-                                        &self.other_rules,
+                                        &self.other,
                                         matching_rules_list,
                                         relations,
                                         flags_setter,
@@ -1158,7 +1175,7 @@ impl SelectorMap {
                                -> Vec<ApplicableDeclarationBlock> {
         debug_assert!(!cascade_level.is_important());
         debug_assert!(important_cascade_level.is_important());
-        if self.empty {
+        if self.is_empty() {
             return vec![];
         }
 
@@ -1167,7 +1184,7 @@ impl SelectorMap {
         // We need to insert important rules _after_ normal rules for this to be
         // correct, and also to not trigger rule tree assertions.
         let mut important = vec![];
-        for rule in self.other_rules.iter() {
+        for rule in self.other.iter() {
             if rule.selector.complex.iter_raw().next().is_none() {
                 let style_rule = rule.style_rule.read_with(guard);
                 let block = style_rule.block.read_with(guard);
@@ -1245,23 +1262,24 @@ impl SelectorMap {
             }
         }
     }
+}
 
-    /// Insert rule into the correct hash.
-    /// Order in which to try: id_hash, class_hash, local_name_hash, other_rules.
-    pub fn insert(&mut self, rule: Rule) {
-        self.empty = false;
+impl<T> SelectorMap<T> where T: Clone + Borrow<SelectorInner<SelectorImpl>> {
+    /// Inserts into the correct hash, trying id, class, and localname.
+    pub fn insert(&mut self, entry: T) {
+        self.count += 1;
 
-        if let Some(id_name) = SelectorMap::get_id_name(&rule) {
-            find_push(&mut self.id_hash, id_name, rule);
+        if let Some(id_name) = get_id_name(entry.borrow()) {
+            find_push(&mut self.id_hash, id_name, entry);
             return;
         }
 
-        if let Some(class_name) = SelectorMap::get_class_name(&rule) {
-            find_push(&mut self.class_hash, class_name, rule);
+        if let Some(class_name) = get_class_name(entry.borrow()) {
+            find_push(&mut self.class_hash, class_name, entry);
             return;
         }
 
-        if let Some(LocalNameSelector { name, lower_name }) = SelectorMap::get_local_name(&rule) {
+        if let Some(LocalNameSelector { name, lower_name }) = get_local_name(entry.borrow()) {
             // If the local name in the selector isn't lowercase, insert it into
             // the rule hash twice. This means that, during lookup, we can always
             // find the rules based on the local name of the element, regardless
@@ -1274,55 +1292,165 @@ impl SelectorMap {
             // lookup may produce superfluous selectors, but the subsequent
             // selector matching work will filter them out.
             if name != lower_name {
-                find_push(&mut self.local_name_hash, lower_name, rule.clone());
+                find_push(&mut self.local_name_hash, lower_name, entry.clone());
             }
-            find_push(&mut self.local_name_hash, name, rule);
+            find_push(&mut self.local_name_hash, name, entry);
 
             return;
         }
 
-        self.other_rules.push(rule);
+        self.other.push(entry);
     }
 
-    /// Retrieve the first ID name in Rule, or None otherwise.
-    pub fn get_id_name(rule: &Rule) -> Option<Atom> {
-        for ss in rule.selector.complex.iter() {
-            // TODO(pradeep): Implement case-sensitivity based on the
-            // document type and quirks mode.
-            if let Component::ID(ref id) = *ss {
-                return Some(id.clone());
+    /// Looks up entries by id, class, local name, and other (in order).
+    ///
+    /// Each entry is passed to the callback, which returns true to continue
+    /// iterating entries, or false to terminate the lookup.
+    ///
+    /// Returns false if the callback ever returns false.
+    ///
+    /// FIXME(bholley) This overlaps with SelectorMap<Rule>::get_all_matching_rules,
+    /// but that function is extremely hot and I'd rather not rearrange it.
+    #[inline]
+    pub fn lookup<E, F>(&self, element: E, f: &mut F) -> bool
+        where E: TElement,
+              F: FnMut(&T) -> bool
+    {
+        // Id.
+        if let Some(id) = element.get_id() {
+            if let Some(v) = self.id_hash.get(&id) {
+                for entry in v.iter() {
+                    if !f(&entry) {
+                        return false;
+                    }
+                }
             }
         }
 
-        None
-    }
+        // Class.
+        let mut done = false;
+        element.each_class(|class| {
+            if !done {
+                if let Some(v) = self.class_hash.get(class) {
+                    for entry in v.iter() {
+                        if !f(&entry) {
+                            done = true;
+                            return;
+                        }
+                    }
+                }
+            }
+        });
+        if done {
+            return false;
+        }
 
-    /// Retrieve the FIRST class name in Rule, or None otherwise.
-    pub fn get_class_name(rule: &Rule) -> Option<Atom> {
-        for ss in rule.selector.complex.iter() {
-            // TODO(pradeep): Implement case-sensitivity based on the
-            // document type and quirks mode.
-            if let Component::Class(ref class) = *ss {
-                return Some(class.clone());
+        // Local name.
+        if let Some(v) = self.local_name_hash.get(element.get_local_name()) {
+            for entry in v.iter() {
+                if !f(&entry) {
+                    return false;
+                }
             }
         }
 
-        None
-    }
-
-    /// Retrieve the name if it is a type selector, or None otherwise.
-    pub fn get_local_name(rule: &Rule) -> Option<LocalNameSelector<SelectorImpl>> {
-        for ss in rule.selector.complex.iter() {
-            if let Component::LocalName(ref n) = *ss {
-                return Some(LocalNameSelector {
-                    name: n.name.clone(),
-                    lower_name: n.lower_name.clone(),
-                })
+        // Other.
+        for entry in self.other.iter() {
+            if !f(&entry) {
+                return false;
             }
         }
 
-        None
+        true
     }
+
+    /// Performs a normal lookup, and also looks up entries for the passed-in
+    /// id and classes.
+    ///
+    /// Each entry is passed to the callback, which returns true to continue
+    /// iterating entries, or false to terminate the lookup.
+    ///
+    /// Returns false if the callback ever returns false.
+    #[inline]
+    pub fn lookup_with_additional<E, F>(&self,
+                                        element: E,
+                                        additional_id: Option<Atom>,
+                                        additional_classes: &[Atom],
+                                        f: &mut F)
+                                        -> bool
+        where E: TElement,
+              F: FnMut(&T) -> bool
+    {
+        // Do the normal lookup.
+        if !self.lookup(element, f) {
+            return false;
+        }
+
+        // Check the additional id.
+        if let Some(id) = additional_id {
+            if let Some(v) = self.id_hash.get(&id) {
+                for entry in v.iter() {
+                    if !f(&entry) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        // Check the additional classes.
+        for class in additional_classes {
+            if let Some(v) = self.class_hash.get(class) {
+                for entry in v.iter() {
+                    if !f(&entry) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        true
+    }
+}
+
+/// Retrieve the first ID name in the selector, or None otherwise.
+pub fn get_id_name(selector: &SelectorInner<SelectorImpl>) -> Option<Atom> {
+    for ss in selector.complex.iter() {
+        // TODO(pradeep): Implement case-sensitivity based on the
+        // document type and quirks mode.
+        if let Component::ID(ref id) = *ss {
+            return Some(id.clone());
+        }
+    }
+
+    None
+}
+
+/// Retrieve the FIRST class name in the selector, or None otherwise.
+pub fn get_class_name(selector: &SelectorInner<SelectorImpl>) -> Option<Atom> {
+    for ss in selector.complex.iter() {
+        // TODO(pradeep): Implement case-sensitivity based on the
+        // document type and quirks mode.
+        if let Component::Class(ref class) = *ss {
+            return Some(class.clone());
+        }
+    }
+
+    None
+}
+
+/// Retrieve the name if it is a type selector, or None otherwise.
+pub fn get_local_name(selector: &SelectorInner<SelectorImpl>)
+                      -> Option<LocalNameSelector<SelectorImpl>> {
+    for ss in selector.complex.iter() {
+        if let Component::LocalName(ref n) = *ss {
+            return Some(LocalNameSelector {
+                name: n.name.clone(),
+                lower_name: n.lower_name.clone(),
+            })
+        }
+    }
+
+    None
 }
 
 /// A rule, that wraps a style rule, but represents a single selector of the
@@ -1345,6 +1473,12 @@ pub struct Rule {
     /// 31st bit: Whether the rule's declaration block has any important declarations.
     /// 32nd bit: Whether the rule's declaration block has any normal declarations.
     specificity_and_bits: u32,
+}
+
+impl Borrow<SelectorInner<SelectorImpl>> for Rule {
+    fn borrow(&self) -> &SelectorInner<SelectorImpl> {
+        &self.selector
+    }
 }
 
 /// Masks for specificity_and_bits.
@@ -1441,7 +1575,8 @@ impl ApplicableDeclarationBlock {
 }
 
 #[inline]
-fn find_push<Str: Eq + Hash>(map: &mut FnvHashMap<Str, Vec<Rule>>, key: Str,
-                             value: Rule) {
+fn find_push<Str: Eq + Hash, V>(map: &mut FnvHashMap<Str, Vec<V>>,
+                                key: Str,
+                                value: V) {
     map.entry(key).or_insert_with(Vec::new).push(value)
 }
