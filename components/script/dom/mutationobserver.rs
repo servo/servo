@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use core::ops::Deref;
+use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::MutationObserverBinding;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationCallback;
@@ -15,12 +17,14 @@ use dom::mutationrecord::MutationRecord;
 use dom::node::Node;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use html5ever::Namespace;
+use js::jsapi::IsCallable;
 use microtask::Microtask;
 use script_thread::ScriptThread;
 use servo_atoms::Atom;
 use std::cell::Cell;
+use std::ptr::null;
 use std::rc::Rc;
-use style::Namespace;
 
 #[dom_struct]
 pub struct MutationObserver {
@@ -97,7 +101,8 @@ impl MutationObserver {
             *mo.record_queue.borrow_mut() = Vec::new();
             // TODO: Step 5.3 Remove all transient registered observers whose observer is mo.
             if !queue.borrow().is_empty() {
-                //mo.callback;
+                let callback: MutationCallback = *mo.callback.deref();
+                return callback.Call_(mo, *queue.borrow_mut().deref(), mo, ExceptionHandling::Report);
             }
         }
         // Step 6 not needed as Servo doesn't implement anything related to slots yet.
@@ -107,9 +112,6 @@ impl MutationObserver {
     //https://dom.spec.whatwg.org/#queueing-a-mutation-record
     //Queuing a mutation record
     pub fn queue_a_mutation_record(target: &Node, attr_type: Mutation) {
-        let given_name = "";
-        let given_namespace = "";
-        let old_value = "";
         // Step 1
         let mut interestedObservers: Vec<Root<MutationObserver>> = vec![];
         let mut pairedStrings: Vec<DOMString> = vec![];
@@ -122,48 +124,40 @@ impl MutationObserver {
         for node in &nodes {
             for registered_observer in node.registered_mutation_observers().borrow().iter() {
                 match attr_type {
-                    Mutation::Attribute { ref name, ref namespace, ref oldValue, ref newValue } => {
-                        let given_name = &*name.clone();
-                        let given_namespace = &*namespace.clone();
-                        let old_value = &*oldValue.clone();
-                    },
-                }
-                let condition1: bool = node != &Root::from_ref(target) &&
-                    !registered_observer.subtree.get();
-                let condition2: bool = given_name == "attribute" &&
-                    registered_observer.attributes.get() == false;
-                let condition3: bool = (given_name == "attribute" &&
-                    registered_observer.attribute_filter != DOMRefCell::new(vec![])) &&
-                    (given_namespace != "");
-                let condition4: bool = given_name == "characterData" &&
-                    registered_observer.character_data.get() == false;
-                let condition5: bool = given_name == "childList" &&
-                    !registered_observer.child_list.get();
-                if !condition1 && !condition2 && !condition3 && !condition4 && !condition5 {
-                    // Step 3.1
-                    if !interestedObservers.contains(registered_observer) {
-                        interestedObservers.push(Root::from_ref(registered_observer));
+                	// TODO check for Mutations other than Attribute
+                    Mutation::Attribute { name, namespace, oldValue, newValue } => {
+                    	let condition1: bool = node != &Root::from_ref(target) &&
+                            !registered_observer.subtree.get();
+                        let condition2: bool = registered_observer.attributes.get() == false;
+                        let condition3: bool = registered_observer.attribute_filter != DOMRefCell::new(vec![]) &&
+                            (!registered_observer.attribute_filter.borrow().contains(&name.unwrap()) || match Some(namespace) { Some(_) => true });
+                    	if !condition1 && !condition2 && !condition3 {
+                            // Step 3.1
+                            if !interestedObservers.contains(registered_observer) {
+                                interestedObservers.push(Root::from_ref(registered_observer));
+                            }
+                            // Step 3.2
+                            if registered_observer.attribute_old_value.get() == true {
+                                pairedStrings.push(DOMString::from(oldValue));
+                            }
+                        }
                     }
-                    // Step 3.2
-                    let condition: bool = (given_name == "attribute" &&
-                        registered_observer.attribute_old_value.get() == true) ||
-                            (given_name == "characterData" &&
-                                registered_observer.character_data_old_value.get() == true);
-                    if condition {
-                        pairedStrings.push(DOMString::from(old_value));
-                    }
-                }
+            	}
             }
         }
         // Step 4
         let mut i = 0;
         for observer in &interestedObservers {
             //Step 4.1
-            let record = &MutationRecord::new(DOMString::from(&*given_name), target);
+            let record = &MutationRecord::new(DOMString::from("Attribute"), target);
             //Step 4.2
-            if given_name != "" && given_namespace != "" {
-                record.SetAttributeName(DOMString::from(&*given_name));
-                record.SetAttributeNamespace(DOMString::from(&*given_namespace));
+            match attr_type {
+            	Mutation::Attribute{ name, namespace, oldValue, newValue } => {
+                    if name != "" && namespace != "" {
+                    	record.SetAttributeName(DOMString::from(&*name));
+                        record.SetAttributeNamespace(DOMString::from(&*namespace));
+                    }
+            	}
             }
             //Step 4.3-4.6- TODO currently not relevant to mutation records for attribute mutations
             //Step 4.7
