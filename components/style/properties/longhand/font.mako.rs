@@ -1815,10 +1815,10 @@ ${helpers.single_keyword_system("font-variant-position",
         impl ToCss for FeatureTagValue {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 use std::str;
-                use byteorder::{WriteBytesExt, NativeEndian};
+                use byteorder::{WriteBytesExt, BigEndian};
 
                 let mut raw: Vec<u8> = vec!();
-                raw.write_u32::<NativeEndian>(self.tag).unwrap();
+                raw.write_u32::<BigEndian>(self.tag).unwrap();
                 let str_print = str::from_utf8(&raw).unwrap_or_default();
 
                 match self.value {
@@ -1836,7 +1836,7 @@ ${helpers.single_keyword_system("font-variant-position",
                 use std::io::Cursor;
                 use std::str;
                 use std::ops::Deref;
-                use byteorder::{ReadBytesExt, NativeEndian};
+                use byteorder::{ReadBytesExt, BigEndian};
 
                 let tag = try!(input.expect_string());
 
@@ -1848,7 +1848,7 @@ ${helpers.single_keyword_system("font-variant-position",
                 }
 
                 let mut raw = Cursor::new(tag.as_bytes());
-                let u_tag = raw.read_u32::<NativeEndian>().unwrap();
+                let u_tag = raw.read_u32::<BigEndian>().unwrap();
 
                 if let Ok(value) = input.try(|input| input.expect_integer()) {
                     // handle integer, throw if it is negative

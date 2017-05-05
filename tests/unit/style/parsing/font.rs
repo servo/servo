@@ -10,7 +10,7 @@ use style_traits::ToCss;
 
 #[test]
 fn font_feature_settings_should_parse_properly() {
-    use byteorder::{ReadBytesExt, NativeEndian};
+    use byteorder::{ReadBytesExt, BigEndian};
     use std::io::Cursor;
 
     let normal = parse_longhand!(font_feature_settings, "normal");
@@ -20,8 +20,8 @@ fn font_feature_settings_should_parse_properly() {
     let mut a_d_bytes = Cursor::new(b"abcd");
     let mut e_h_bytes = Cursor::new(b"efgh");
 
-    let abcd = a_d_bytes.read_u32::<NativeEndian>().unwrap();
-    let efgh = e_h_bytes.read_u32::<NativeEndian>().unwrap();
+    let abcd = a_d_bytes.read_u32::<BigEndian>().unwrap();
+    let efgh = e_h_bytes.read_u32::<BigEndian>().unwrap();
 
     let on = parse_longhand!(font_feature_settings, "\"abcd\" on");
     let on_computed = computed_value::T::Tag(vec![
