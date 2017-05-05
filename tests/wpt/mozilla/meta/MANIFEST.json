@@ -9524,6 +9524,11 @@
      {}
     ]
    ],
+   "mozilla/can_serialize_deep_tree.html~": [
+    [
+     {}
+    ]
+   ],
    "mozilla/click_prevent.html": [
     [
      {}
@@ -12668,6 +12673,12 @@
    "mozilla/calc.html": [
     [
      "/_mozilla/mozilla/calc.html",
+     {}
+    ]
+   ],
+   "mozilla/can_serialize_deep_tree.html": [
+    [
+     "/_mozilla/mozilla/can_serialize_deep_tree.html",
      {}
     ]
    ],
@@ -25373,6 +25384,14 @@
   "mozilla/calc.html": [
    "028fc71bdc9a99d552ba552036d38fb4eef11bc1",
    "testharness"
+  ],
+  "mozilla/can_serialize_deep_tree.html": [
+   "d47c08735741f690750b1e58d4c9fdcfe503585d",
+   "testharness"
+  ],
+  "mozilla/can_serialize_deep_tree.html~": [
+   "d5e1649c88102f27da5fe1ac16715cfee7f70f84",
+   "support"
   ],
   "mozilla/canvas.initial.reset.2dstate.html": [
    "9fb338806987e20f1bac3c09231e1e5718ac4b23",
