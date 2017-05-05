@@ -100,7 +100,7 @@ pub struct Opts {
     /// font for layout tests.
     pub enable_text_antialiasing: bool,
 
-    /// If set with --enable-subpixel, use subpixel antialiasing for glyphs. In the future
+    /// If set with --disable-subpixel, use subpixel antialiasing for glyphs. In the future
     /// this will likely become the default, but for now it's opt-in while we work
     /// out any bugs and improve the implementation.
     pub enable_subpixel_text_antialiasing: bool,
@@ -246,8 +246,8 @@ pub struct DebugOptions {
     /// Disable antialiasing of rendered text.
     pub disable_text_aa: bool,
 
-    /// Enable subpixel antialiasing of rendered text.
-    pub enable_subpixel_aa: bool,
+    /// Disable subpixel antialiasing of rendered text.
+    pub disable_subpixel_aa: bool,
 
     /// Disable antialiasing of rendered text on the HTML canvas element.
     pub disable_canvas_aa: bool,
@@ -349,7 +349,7 @@ impl DebugOptions {
                 "help" => self.help = true,
                 "bubble-widths" => self.bubble_widths = true,
                 "disable-text-aa" => self.disable_text_aa = true,
-                "enable-subpixel-aa" => self.enable_subpixel_aa = true,
+                "disable-subpixel-aa" => self.disable_subpixel_aa = true,
                 "disable-canvas-aa" => self.disable_text_aa = true,
                 "dump-style-tree" => self.dump_style_tree = true,
                 "dump-rule-tree" => self.dump_rule_tree = true,
@@ -828,7 +828,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         show_debug_parallel_layout: debug_options.show_parallel_layout,
         paint_flashing: debug_options.paint_flashing,
         enable_text_antialiasing: !debug_options.disable_text_aa,
-        enable_subpixel_text_antialiasing: debug_options.enable_subpixel_aa,
+        enable_subpixel_text_antialiasing: !debug_options.disable_subpixel_aa,
         enable_canvas_antialiasing: !debug_options.disable_canvas_aa,
         dump_style_tree: debug_options.dump_style_tree,
         dump_rule_tree: debug_options.dump_rule_tree,
