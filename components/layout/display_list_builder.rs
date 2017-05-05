@@ -289,12 +289,12 @@ impl<'a> DisplayListBuildState<'a> {
 
         let pipeline_id = self.layout_context.id;
         if stacking_context.context_type != StackingContextType::Real {
-            list.extend(info.scroll_roots.into_iter().map(|root| root.to_push(pipeline_id)));
+            list.extend(info.scroll_roots.into_iter().map(|root| root.to_define_item(pipeline_id)));
             self.to_display_list_for_items(list, child_items, info.children);
         } else {
             let (push_item, pop_item) = stacking_context.to_display_list_items(pipeline_id);
             list.push(push_item);
-            list.extend(info.scroll_roots.into_iter().map(|root| root.to_push(pipeline_id)));
+            list.extend(info.scroll_roots.into_iter().map(|root| root.to_define_item(pipeline_id)));
             self.to_display_list_for_items(list, child_items, info.children);
             list.push(pop_item);
         }
