@@ -183,28 +183,17 @@ impl<'a> Serialize for &'a Node {
                 NodeTypeId::DocumentFragment => {},
                 NodeTypeId::Document(_) => panic!("Can't serialize Document node itself"),
             };
-
-            match stack.pop() {
-                // Gets the head of the stack
-                Some(mut head) => {
-                    //  While the head of the stack has zero children to be ended
-                    while head.1 == 0 {
-                        // Ends the head of the stack
-                        try!(serializer.end_elem(head.0));
-                        match stack.pop() {
-                            // Gets the new head of the stack and reduces the number
-                            // of children to be ended
-                            Some(new_head) => {
-                                head = new_head;
-                                head.1 -= 1;
-                            },
-                            // If the stack is empty, it breaks the traversal
-                            None => break 'traversal
-                        }
-                    }
-                    stack.push(head);
-                },
-                None => ()
+            while {
+                let mut n_children = 1;
+                if let Some(head) = stack.last() {
+                    n_children = head.1;
+                }
+                n_children == 0
+            } {
+                try!(serializer.end_elem(stack.pop().unwrap().0));
+                if let Some(mut head) = stack.last_mut() {
+                    head.1 -= 1;
+                }
             }
         }
         if stack.is_empty() {
