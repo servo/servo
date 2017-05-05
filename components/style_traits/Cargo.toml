@@ -12,6 +12,7 @@ path = "lib.rs"
 [features]
 servo = ["heapsize", "heapsize_derive", "serde", "serde_derive",
          "cssparser/heapsize", "cssparser/serde"]
+gecko = []
 
 [dependencies]
 app_units = "0.4"

@@ -3978,6 +3978,11 @@ clip-path
                 Cursor::AllScroll => structs::NS_STYLE_CURSOR_ALL_SCROLL,
                 Cursor::ZoomIn => structs::NS_STYLE_CURSOR_ZOOM_IN,
                 Cursor::ZoomOut => structs::NS_STYLE_CURSOR_ZOOM_OUT,
+                // note: the following properties are gecko-only.
+                Cursor::MozGrab => structs::NS_STYLE_CURSOR_GRAB,
+                Cursor::MozGrabbing => structs::NS_STYLE_CURSOR_GRABBING,
+                Cursor::MozZoomIn => structs::NS_STYLE_CURSOR_ZOOM_IN,
+                Cursor::MozZoomOut => structs::NS_STYLE_CURSOR_ZOOM_OUT,
             }
         } as u8;
 
