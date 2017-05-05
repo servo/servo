@@ -1896,18 +1896,9 @@ impl ComputedValues {
         // TODO(gw): Add clip-path, isolation, mask-image, mask-border-source when supported.
         if effects.opacity < 1.0 ||
            !effects.filter.is_empty() ||
-           !effects.clip.is_auto() {
-           effects.mix_blend_mode != mix_blend_mode::T::normal ||
+           !effects.clip.is_auto() ||
+           effects.mix_blend_mode != mix_blend_mode::T::normal {
             return transform_style::T::flat;
-        }
-
-        if box_.transform_style == transform_style::T::auto {
-            if box_.transform.0.is_some() {
-                return transform_style::T::flat;
-            }
-            if let Either::First(ref _length) = box_.perspective {
-                return transform_style::T::flat;
-            }
         }
 
         // Return the computed value if not overridden by the above exceptions

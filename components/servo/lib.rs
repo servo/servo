@@ -182,6 +182,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 enable_aa: opts.enable_text_antialiasing,
                 enable_profiler: opts.webrender_stats,
                 debug: opts.webrender_debug,
+                enable_batcher: false, //TEMP
                 recorder: recorder,
                 precache_shaders: opts.precache_shaders,
                 enable_scrollbars: opts.output_file.is_none(),

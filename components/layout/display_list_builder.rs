@@ -66,7 +66,8 @@ use style::values::specified::{HorizontalDirection, VerticalDirection};
 use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
-use webrender_traits::{ColorF, ClipId, GradientStop, RepeatMode, ScrollPolicy};
+use webrender_helpers::{ToMixBlendMode, ToTransformStyle};
+use webrender_traits::{ColorF, ClipId, GradientStop, RepeatMode, ScrollPolicy, TransformStyle};
 
 trait ResolvePercentage {
     fn resolve(&self, length: u32) -> u32;
@@ -182,6 +183,9 @@ pub struct DisplayListBuildState<'a> {
     /// A stack of clips used to cull display list entries that are outside the
     /// rendered region, but only collected at containing block boundaries.
     pub containing_block_clip_stack: Vec<Rect<Au>>,
+
+    /// The current transform style of the stacking context.
+    current_transform_style: TransformStyle,
 }
 
 impl<'a> DisplayListBuildState<'a> {
@@ -199,6 +203,7 @@ impl<'a> DisplayListBuildState<'a> {
             iframe_sizes: Vec::new(),
             clip_stack: Vec::new(),
             containing_block_clip_stack: Vec::new(),
+            current_transform_style: TransformStyle::Flat,
         }
     }
 
@@ -210,6 +215,7 @@ impl<'a> DisplayListBuildState<'a> {
     fn add_stacking_context(&mut self,
                             parent_id: StackingContextId,
                             stacking_context: StackingContext) {
+        self.current_transform_style = stacking_context.transform_style;
         let info = self.stacking_context_info
                        .entry(parent_id)
                        .or_insert(StackingContextInfo::new());
@@ -1861,8 +1867,9 @@ impl FragmentDisplayListBuilding for Fragment {
                              &overflow,
                              self.effective_z_index(),
                              filters,
-                             self.style().get_effects().mix_blend_mode,
+                             self.style().get_effects().mix_blend_mode.to_mix_blend_mode(),
                              self.transform_matrix(&border_box),
+                             self.style().get_used_transform_style().to_transform_style(),
                              self.perspective_matrix(&border_box),
                              scroll_policy,
                              parent_scroll_id)
@@ -2067,6 +2074,7 @@ pub struct PreservedDisplayListState {
     containing_block_scroll_root_id: ClipId,
     clips_pushed: usize,
     containing_block_clips_pushed: usize,
+    transform_style: TransformStyle,
 }
 
 impl PreservedDisplayListState {
@@ -2077,6 +2085,7 @@ impl PreservedDisplayListState {
             containing_block_scroll_root_id: state.containing_block_scroll_root_id,
             clips_pushed: 0,
             containing_block_clips_pushed: 0,
+            transform_style: state.current_transform_style,
         }
     }
 
@@ -2097,6 +2106,8 @@ impl PreservedDisplayListState {
         let truncate_length = state.containing_block_clip_stack.len() -
                               self.containing_block_clips_pushed;
         state.containing_block_clip_stack.truncate(truncate_length);
+
+        state.current_transform_style = self.transform_style;
     }
 
     fn push_clip(&mut self,
@@ -2411,12 +2422,12 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         };
 
         let new_context = self.fragment.create_stacking_context(self.base.stacking_context_id,
-                                                                &self.base,
-                                                                ScrollPolicy::Scrollable,
-                                                                creation_mode,
-                                                                parent_scroll_root_id);
-        state.add_stacking_context(parent_stacking_context_id, new_context);
+            &self.base,
+            ScrollPolicy::Scrollable,
+            creation_mode,
+            parent_scroll_root_id);
 
+        state.add_stacking_context(parent_stacking_context_id, new_context);
         self.base.collect_stacking_contexts_for_children(state);
 
         let children = state.stacking_context_info.get_mut(&self.base.stacking_context_id)
@@ -2528,14 +2539,15 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                     fragment.stacking_context_id = fragment.stacking_context_id();
 
                     let current_stacking_context_id = state.current_stacking_context_id;
-                    let current_scroll_root_id = state.current_scroll_root_id;
+                    let stacking_context = fragment.create_stacking_context(
+                       fragment.stacking_context_id,
+                       &self.base,
+                       ScrollPolicy::Scrollable,
+                       StackingContextCreationMode::Normal,
+                       state.current_scroll_root_id);
+
                     state.add_stacking_context(current_stacking_context_id,
-                                               fragment.create_stacking_context(
-                                                   fragment.stacking_context_id,
-                                                   &self.base,
-                                                   ScrollPolicy::Scrollable,
-                                                   StackingContextCreationMode::Normal,
-                                                   current_scroll_root_id));
+                                               stacking_context);
                 }
                 _ => fragment.stacking_context_id = state.current_stacking_context_id,
             }
