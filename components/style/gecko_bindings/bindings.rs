@@ -1174,6 +1174,11 @@ extern "C" {
                                           aSource: *const nsStyleFont);
 }
 extern "C" {
+    pub fn Gecko_nsStyleFont_FixupNoneGeneric(font: *mut nsStyleFont,
+                                              pres_context:
+                                                  RawGeckoPresContextBorrowed);
+}
+extern "C" {
     pub fn Gecko_GetBaseSize(lang: *mut nsIAtom) -> FontSizePrefs;
 }
 extern "C" {

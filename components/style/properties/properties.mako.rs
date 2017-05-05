@@ -2609,7 +2609,11 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                                                  &mut cacheable,
                                                  &mut cascade_info,
                                                  error_reporter);
+                % if product == "gecko":
+                    context.style.mutate_font().fixup_none_generic(context.device);
+                % endif
             }
+
             if let Some(declaration) = font_size {
                 let discriminant = LonghandId::FontSize as usize;
                 (CASCADE_PROPERTY[discriminant])(declaration,
