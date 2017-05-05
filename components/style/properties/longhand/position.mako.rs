@@ -325,7 +325,7 @@ ${helpers.predefined_type("object-position",
     ${helpers.predefined_type("grid-template-%ss" % kind,
                               "TrackListOrNone",
                               "Either::Second(None_)",
-                              products="none",
+                              products="gecko",
                               spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-%ss" % kind,
                               boxed=True,
                               animation_value_type="none")}
