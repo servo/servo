@@ -5,6 +5,7 @@
 //! Rust sugar and convenience methods for Gecko types.
 
 mod ns_com_ptr;
+mod ns_compatibility;
 mod ns_css_shadow_array;
 pub mod ns_css_value;
 mod ns_style_auto_array;

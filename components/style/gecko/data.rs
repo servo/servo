@@ -9,6 +9,7 @@ use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use dom::OpaqueNode;
 use gecko_bindings::bindings::RawServoStyleSet;
 use gecko_bindings::structs::RawGeckoPresContextOwned;
+use gecko_bindings::structs::nsIDocument;
 use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use media_queries::Device;
 use parking_lot::RwLock;
@@ -56,11 +57,14 @@ impl PerDocumentStyleData {
     /// Create a dummy `PerDocumentStyleData`.
     pub fn new(pres_context: RawGeckoPresContextOwned) -> Self {
         let device = Device::new(pres_context);
+        let quirks_mode = unsafe {
+            (*(*device.pres_context).mDocument.raw::<nsIDocument>()).mCompatMode
+        };
 
         let (new_anims_sender, new_anims_receiver) = channel();
 
         PerDocumentStyleData(AtomicRefCell::new(PerDocumentStyleDataImpl {
-            stylist: Stylist::new(device),
+            stylist: Stylist::new(device, quirks_mode.into()),
             stylesheets: StylesheetSet::new(),
             new_animations_sender: new_anims_sender,
             new_animations_receiver: new_anims_receiver,
