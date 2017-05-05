@@ -119,15 +119,10 @@ impl<'a> Serialize for &'a Node {
     fn serialize<S: Serializer>(&self, serializer: &mut S,
                                 traversal_scope: TraversalScope) -> io::Result<()> {
         let mut roots = self.traverse_preorder();
-        // This stores the nodes that the serializer started and needs to end
-        // as well as the number of children of each node that need to be ended
         let mut stack = Vec::new();
-        // If we only want to serialize the children of the node, we skip the
-        // first element
         if traversal_scope == ChildrenOnly {
             roots.next().unwrap();
         }
-        // For each Root<Node> element
         'traversal: for root in roots {
             let node = root.r();
             match  node.type_id() {
@@ -145,10 +140,7 @@ impl<'a> Serialize for &'a Node {
                         let ar: AttrRef = (&qname, &**value);
                         ar
                     });
-                    // Starts an element in the serializer
                     try!(serializer.start_elem(name.clone(), attr_refs));
-                    // Adds the name of the node and the number of chidlren to
-                    // the stack
                     stack.push((name.clone(), node.children_count()));
                 },
                 NodeTypeId::DocumentType => {
