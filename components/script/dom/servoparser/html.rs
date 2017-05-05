@@ -198,10 +198,8 @@ impl<'a> Serialize for &'a Node {
         }
         if stack.is_empty() {
             Ok(())
-        }
-        else {
+        } else {
             Err(io::Error::new(io::ErrorKind::Other, "Stack is not empty!!!!"))
         }
-
     }
 }
