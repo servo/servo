@@ -114,7 +114,7 @@ impl MutationObserver {
     //Queuing a mutation record
     pub fn queue_a_mutation_record(target: &Node, attr_type: Mutation) {
         // Step 1
-        let mut interestedObservers: Vec<Root<MutationObserver>> = vec![];
+        let mut interestedObservers: Vec<(Root<MutationObserver>, DOMString)> = vec![];
         let mut pairedStrings: Vec<DOMString> = vec![];
         // Step 2
         let mut nodes: Vec<Root<Node>> = vec![];
@@ -134,13 +134,19 @@ impl MutationObserver {
                             (registered_observer.attribute_filter.borrow().iter()
                                 .find(|s| **s == DOMString::from(&*name)).is_none() || namespace != ns!());
                         if !condition1 && !condition2 && !condition3 {
-                            // Step 3.1
-                            if !interestedObservers.contains(registered_observer) {
-                                interestedObservers.push(Root::from_ref(registered_observer));
-                            }
-                            // Step 3.2
-                            if registered_observer.attribute_old_value.get() == true {
-                                pairedStrings.push(DOMString::from(oldValue));
+                            // Step 3.1.2
+                            let paired_string = if registered_observer.attribute_old_value.get() {
+                                DOMString::from(oldValue)
+                            } else {
+                                DOMString::from("")
+                            };
+                            // Step 3.1.1
+                            let idx = interestedObservers.iter().position(|&(ref o, _)|
+                                &**o as *const MutationObserver == &**registered_observer as *const MutationObserver);
+                            if let Some(idx) = idx {
+                                interestedObservers[idx].1 = paired_string;
+                            } else {
+                                interestedObservers.push((Root::from_ref(registered_observer), paired_string));
                             }
                         }
                     }
