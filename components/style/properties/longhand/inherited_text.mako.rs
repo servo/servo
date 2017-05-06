@@ -720,12 +720,13 @@ ${helpers.single_keyword("text-align-last",
     use cssparser;
     use std::fmt;
     use style_traits::ToCss;
+    use values::specified::Shadow;
     use values::HasViewportPercentage;
 
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
             let &SpecifiedValue(ref vec) = self;
-            vec.iter().any(|ref x| x .has_viewport_percentage())
+            vec.iter().any(|ref x| x.has_viewport_percentage())
         }
     }
 
@@ -750,6 +751,17 @@ ${helpers.single_keyword("text-align-last",
         pub color: Option<specified::CSSColor>,
     }
 
+    impl From<Shadow> for SpecifiedTextShadow {
+        fn from(shadow: Shadow) -> SpecifiedTextShadow {
+            SpecifiedTextShadow {
+                offset_x: shadow.offset_x,
+                offset_y: shadow.offset_y,
+                blur_radius: shadow.blur_radius,
+                color: shadow.color,
+            }
+        }
+    }
+
     pub mod computed_value {
         use app_units::Au;
         use cssparser::Color;
@@ -772,15 +784,13 @@ ${helpers.single_keyword("text-align-last",
     impl ToCss for computed_value::T {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             let mut iter = self.0.iter();
-            if let Some(shadow) = iter.next() {
-                try!(shadow.to_css(dest));
-            } else {
-                try!(dest.write_str("none"));
-                return Ok(())
+            match iter.next() {
+                Some(shadow) => shadow.to_css(dest)?,
+                None => return dest.write_str("none"),
             }
             for shadow in iter {
-                try!(dest.write_str(", "));
-                try!(shadow.to_css(dest));
+                dest.write_str(", ")?;
+                shadow.to_css(dest)?;
             }
             Ok(())
         }
@@ -788,29 +798,26 @@ ${helpers.single_keyword("text-align-last",
 
     impl ToCss for computed_value::TextShadow {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            try!(self.offset_x.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(self.offset_y.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(self.blur_radius.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(self.color.to_css(dest));
-            Ok(())
+            self.offset_x.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.offset_y.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.blur_radius.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.color.to_css(dest)
         }
     }
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             let mut iter = self.0.iter();
-            if let Some(shadow) = iter.next() {
-                try!(shadow.to_css(dest));
-            } else {
-                try!(dest.write_str("none"));
-                return Ok(())
+            match iter.next() {
+                Some(shadow) => shadow.to_css(dest)?,
+                None => return dest.write_str("none"),
             }
             for shadow in iter {
-                try!(dest.write_str(", "));
-                try!(shadow.to_css(dest));
+                dest.write_str(", ")?;
+                shadow.to_css(dest)?;
             }
             Ok(())
         }
@@ -818,15 +825,15 @@ ${helpers.single_keyword("text-align-last",
 
     impl ToCss for SpecifiedTextShadow {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            try!(self.offset_x.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(self.offset_y.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(self.blur_radius.to_css(dest));
+            self.offset_x.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.offset_y.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.blur_radius.to_css(dest)?;
 
             if let Some(ref color) = self.color {
-                try!(dest.write_str(" "));
-                try!(color.to_css(dest));
+                dest.write_str(" ")?;
+                color.to_css(dest)?;
             }
             Ok(())
         }
@@ -842,59 +849,10 @@ ${helpers.single_keyword("text-align-last",
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             Ok(SpecifiedValue(Vec::new()))
         } else {
-            input.parse_comma_separated(|i| parse_one_text_shadow(context, i)).map(SpecifiedValue)
+            input.parse_comma_separated(|i| {
+                Ok(SpecifiedTextShadow::from(Shadow::parse(context, i, true)?))
+            }).map(SpecifiedValue)
         }
-    }
-
-    fn parse_one_text_shadow(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedTextShadow,()> {
-        use app_units::Au;
-        let mut lengths = [specified::Length::zero(), specified::Length::zero(), specified::Length::zero()];
-        let mut lengths_parsed = false;
-        let mut color = None;
-
-        loop {
-            if !lengths_parsed {
-                if let Ok(value) = input.try(|i| specified::Length::parse(context, i)) {
-                    lengths[0] = value;
-                    let mut length_parsed_count = 1;
-                    while length_parsed_count < 3 {
-                        if let Ok(value) = input.try(|i| specified::Length::parse(context, i)) {
-                            lengths[length_parsed_count] = value
-                        } else {
-                            break
-                        }
-                        length_parsed_count += 1;
-                    }
-
-                    // The first two lengths must be specified.
-                    if length_parsed_count < 2 {
-                        return Err(())
-                    }
-
-                    lengths_parsed = true;
-                    continue
-                }
-            }
-            if color.is_none() {
-                if let Ok(value) = input.try(|i| specified::CSSColor::parse(context, i)) {
-                    color = Some(value);
-                    continue
-                }
-            }
-            break
-        }
-
-        // Lengths must be specified.
-        if !lengths_parsed {
-            return Err(())
-        }
-
-        Ok(SpecifiedTextShadow {
-            offset_x: lengths[0].take(),
-            offset_y: lengths[1].take(),
-            blur_radius: lengths[2].take(),
-            color: color,
-        })
     }
 
     impl ToComputedValue for SpecifiedValue {
