@@ -101,7 +101,7 @@ impl MutationObserver {
             let queue: Vec<Root<MutationRecord>> = mo.record_queue.borrow().clone();
             *mo.record_queue.borrow_mut() = Vec::new();
             // TODO: Step 5.3 Remove all transient registered observers whose observer is mo.
-            if !queue.borrow().is_empty() {
+            if !queue.is_empty() {
                 let callback: MutationCallback = *mo.callback;
                 callback.Call_(&*mo, queue, &*mo, ExceptionHandling::Report);
             }
@@ -131,8 +131,8 @@ impl MutationObserver {
                             !registered_observer.subtree.get();
                         let condition2: bool = registered_observer.attributes.get() == false;
                         let condition3: bool = !registered_observer.attribute_filter.borrow().is_empty() &&
-                            (registered_observer.attribute_filter.borrow().iter().find(|s| s == &*name).is_none() ||
-                                namespace != ns!());
+                            (registered_observer.attribute_filter.borrow().iter()
+                            	.find(|s| **s == DOMString::from(&*name)).is_none() || namespace != ns!());
                         if !condition1 && !condition2 && !condition3 {
                             // Step 3.1
                             if !interestedObservers.contains(registered_observer) {
