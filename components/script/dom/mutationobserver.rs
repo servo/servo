@@ -204,7 +204,7 @@ impl MutationObserverMethods for MutationObserver {
         }
         // Step 7
         for registered in target.registered_mutation_observers().borrow().iter() {
-//            if &*registered as *const Root<MutationObserver> == self as *const MutationObserver {
+            if &**registered as *const MutationObserver == self as *const MutationObserver {
                 // TODO: remove matching transient registered observers
                 if let Some(value) = options.attributeOldValue {
                     registered.attribute_old_value.set(value);
@@ -221,7 +221,7 @@ impl MutationObserverMethods for MutationObserver {
                 registered.child_list.set(options.childList);
                 registered.subtree.set(options.subtree);
                 *registered.attribute_filter.borrow_mut() = options.attributeFilter.clone().unwrap();
-//            }
+            }
             // Step 8
             target.add_registered_mutation_observer(&self);
         }

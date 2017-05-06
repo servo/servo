@@ -11,6 +11,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use dom::bindings::js::Root;
 use dom::globalscope::GlobalScope;
+use dom::mutationobserver::MutationObserver;
 use msg::constellation_msg::PipelineId;
 use std::cell::Cell;
 use std::mem;
@@ -72,7 +73,9 @@ impl MicrotaskQueue {
                             let _ = job.callback.Call_(&*target, ExceptionHandling::Report);
                         }
                     }
-                    Microtask::NotifyMutationObservers() => { }
+                    Microtask::NotifyMutationObservers() => {
+                        MutationObserver::notifyMutationObservers();
+                    }
                 }
             }
         }
