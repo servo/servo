@@ -132,7 +132,7 @@ impl MutationObserver {
                         let condition2: bool = registered_observer.attributes.get() == false;
                         let condition3: bool = !registered_observer.attribute_filter.borrow().is_empty() &&
                             (registered_observer.attribute_filter.borrow().iter()
-                            	.find(|s| **s == DOMString::from(&*name)).is_none() || namespace != ns!());
+                                .find(|s| **s == DOMString::from(&*name)).is_none() || namespace != ns!());
                         if !condition1 && !condition2 && !condition3 {
                             // Step 3.1
                             if !interestedObservers.contains(registered_observer) {
