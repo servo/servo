@@ -5519,10 +5519,10 @@ pub mod root {
                 pub mNamedAreas: root::nsTArray<root::mozilla::css::GridNamedArea>,
                 pub mTemplates: root::nsTArray<::nsstring::nsStringRepr>,
                 pub mNColumns: u32,
-                pub mRefCnt: root::nsAutoRefCnt,
+                pub mRefCnt: root::mozilla::ThreadSafeAutoRefCnt,
             }
             pub type GridTemplateAreasValue_HasThreadSafeRefCnt =
-                root::mozilla::FalseType;
+                root::mozilla::TrueType;
             #[test]
             fn bindgen_test_layout_GridTemplateAreasValue() {
                 assert_eq!(::std::mem::size_of::<GridTemplateAreasValue>() ,
@@ -15692,6 +15692,11 @@ pub mod root {
     }
     pub const nsIPresShell_FORCE_DRAW: root::nsIPresShell__bindgen_ty_5 =
         nsIPresShell__bindgen_ty_5::FORCE_DRAW;
+    pub const nsIPresShell_ADD_FOR_SUBDOC: root::nsIPresShell__bindgen_ty_5 =
+        nsIPresShell__bindgen_ty_5::ADD_FOR_SUBDOC;
+    pub const nsIPresShell_APPEND_UNSCROLLED_ONLY:
+              root::nsIPresShell__bindgen_ty_5 =
+        nsIPresShell__bindgen_ty_5::APPEND_UNSCROLLED_ONLY;
     #[repr(u32)]
     /**
    * Add a solid color item to the bottom of aList with frame aFrame and bounds
@@ -15699,9 +15704,23 @@ pub mod root {
    * canvas frame (if the FORCE_DRAW flag is passed then this check is skipped).
    * aBackstopColor is composed behind the background color of the canvas, it is
    * transparent by default.
+   * We attempt to make the background color part of the scrolled canvas (to reduce
+   * transparent layers), and if async scrolling is enabled (and the background
+   * is opaque) then we add a second, unscrolled item to handle the checkerboarding
+   * case.
+   * ADD_FOR_SUBDOC shoud be specified when calling this for a subdocument, and
+   * LayoutUseContainersForRootFrame might cause the whole list to be scrolled. In
+   * that case the second unscrolled item will be elided.
+   * APPEND_UNSCROLLED_ONLY only attempts to add the unscrolled item, so that we
+   * can add it manually after LayoutUseContainersForRootFrame has built the
+   * scrolling ContainerLayer.
    */
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-    pub enum nsIPresShell__bindgen_ty_5 { FORCE_DRAW = 1, }
+    pub enum nsIPresShell__bindgen_ty_5 {
+        FORCE_DRAW = 1,
+        ADD_FOR_SUBDOC = 2,
+        APPEND_UNSCROLLED_ONLY = 4,
+    }
     #[repr(C)]
     #[derive(Debug)]
     pub struct nsIPresShell_PointerCaptureInfo {
@@ -18462,6 +18481,7 @@ pub mod root {
         NS_FRAME_HAS_LAYER_ACTIVITY_PROPERTY = 18014398509481984,
         NS_FRAME_OWNS_ANON_BOXES = 36028797018963968,
         NS_FRAME_HAS_PROPERTIES = 72057594037927936,
+        NS_FRAME_SIMPLE_DISPLAYLIST = 144115188075855872,
         NS_FRAME_MATHML_SCRIPT_DESCENDANT = 288230376151711744,
         NS_FRAME_IS_IN_SINGLE_CHAR_MI = 576460752303423488,
         NS_STATE_BOX_CHILD_RESERVED = 1048576,
