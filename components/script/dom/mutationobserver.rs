@@ -100,7 +100,7 @@ impl MutationObserver {
             // TODO: Step 5.3 Remove all transient registered observers whose observer is mo.
             if !queue.is_empty() {
                 mo.callback.Call_(&**mo, queue, &**mo, ExceptionHandling::Report);
-            } 
+            }
         }
         // Step 6 not needed as Servo doesn't implement anything related to slots yet.
         Ok(())
@@ -111,7 +111,6 @@ impl MutationObserver {
     pub fn queue_a_mutation_record(target: &Node, attr_type: Mutation) {
         // Step 1
         let mut interestedObservers: Vec<(Root<MutationObserver>, DOMString)> = vec![];
-        let mut pairedStrings: Vec<DOMString> = vec![];
         // Step 2
         let mut nodes: Vec<Root<Node>> = vec![];
         for ancestor in target.inclusive_ancestors() {
@@ -150,23 +149,23 @@ impl MutationObserver {
             }
         }
         // Step 4
-//        let mut i = 0;
-        for (i, observer) in interestedObservers.iter().enumerate() {
-            //Step 4.1
+        for &(ref observer, ref paired_string) in &interestedObservers {
+            // Step 4.1
             let record = &MutationRecord::new(DOMString::from("attributes"), target);
-            //Step 4.2
+            // Step 4.2
             match attr_type {
                 Mutation::Attribute { ref name, ref namespace, ref oldValue, ref newValue } => {
                     record.SetAttributeName(DOMString::from(&**name));
                     record.SetAttributeNamespace(DOMString::from(&**namespace));
                 }
             }
-            //Step 4.3-4.6- TODO currently not relevant to mutation records for attribute mutations
-            //Step 4.7
-            if pairedStrings[i] != "" {
-                record.SetoldValue(pairedStrings[i].clone());
+            // Step 4.3-4.6- TODO currently not relevant to mutation records for attribute mutations
+            // Step 4.7
+            if paired_string != "" {
+                record.SetoldValue(paired_string.clone());
             }
-//            i = i + 1;
+            // Step 4.8
+            observer.record_queue.borrow_mut().push(record.clone());
         }
         // Step 5
         MutationObserver::queueMutationObserverCompoundMicrotask();
