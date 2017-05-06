@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use core::borrow::Borrow;
 use core::ops::Deref;
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
@@ -19,12 +18,10 @@ use dom::node::Node;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use html5ever::Namespace;
-use js::jsapi::IsCallable;
 use microtask::Microtask;
 use script_thread::ScriptThread;
 use servo_atoms::Atom;
 use std::cell::Cell;
-use std::ptr::null;
 use std::rc::Rc;
 
 #[dom_struct]
@@ -129,9 +126,9 @@ impl MutationObserver {
                         let condition1: bool = node != &Root::from_ref(target) &&
                             !registered_observer.subtree.get();
                         let condition2: bool = registered_observer.attributes.get() == false;
-                        let condition3: bool = !registered_observer.attribute_filter.borrow().is_empty() &&
+                        let condition3: bool = !registered_observer.attribute_filter.borrow().is_empty(); &&
                             (registered_observer.attribute_filter.borrow().iter()
-                                .find(|s| *s == &*name).is_none() || namespace != &ns!());
+                                .find(|s| &**s == &**name).is_none() || namespace != &ns!());
                         if !condition1 && !condition2 && !condition3 {
                             // Step 3.1.2
                             let paired_string = if registered_observer.attribute_old_value.get() {
@@ -153,15 +150,15 @@ impl MutationObserver {
             }
         }
         // Step 4
-        let mut i = 0;
-        for observer in &interestedObservers {
+//        let mut i = 0;
+        for (i, observer) in interestedObservers.iter().enumerate() {
             //Step 4.1
             let record = &MutationRecord::new(DOMString::from("attributes"), target);
             //Step 4.2
             match attr_type {
                 Mutation::Attribute { ref name, ref namespace, ref oldValue, ref newValue } => {
-                    record.SetAttributeName(DOMString::from(&*name));
-                    record.SetAttributeNamespace(DOMString::from(&*namespace));
+                    record.SetAttributeName(DOMString::from(&**name));
+                    record.SetAttributeNamespace(DOMString::from(&**namespace));
                 }
             }
             //Step 4.3-4.6- TODO currently not relevant to mutation records for attribute mutations
@@ -169,7 +166,7 @@ impl MutationObserver {
             if pairedStrings[i] != "" {
                 record.SetoldValue(pairedStrings[i].clone());
             }
-            i = i + 1;
+//            i = i + 1;
         }
         // Step 5
         MutationObserver::queueMutationObserverCompoundMicrotask();
