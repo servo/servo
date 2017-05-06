@@ -726,7 +726,7 @@ ${helpers.single_keyword("text-align-last",
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
             let &SpecifiedValue(ref vec) = self;
-            vec.iter().any(|ref x| x .has_viewport_percentage())
+            vec.iter().any(|ref x| x.has_viewport_percentage())
         }
     }
 
@@ -785,14 +785,14 @@ ${helpers.single_keyword("text-align-last",
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             let mut iter = self.0.iter();
             if let Some(shadow) = iter.next() {
-                try!(shadow.to_css(dest));
+                shadow.to_css(dest)?;
             } else {
-                try!(dest.write_str("none"));
+                dest.write_str("none")?;
                 return Ok(())
             }
             for shadow in iter {
-                try!(dest.write_str(", "));
-                try!(shadow.to_css(dest));
+                dest.write_str(", ")?;
+                shadow.to_css(dest)?;
             }
             Ok(())
         }
@@ -800,14 +800,13 @@ ${helpers.single_keyword("text-align-last",
 
     impl ToCss for computed_value::TextShadow {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            try!(self.offset_x.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(self.offset_y.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(self.blur_radius.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(self.color.to_css(dest));
-            Ok(())
+            self.offset_x.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.offset_y.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.blur_radius.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.color.to_css(dest)
         }
     }
 
@@ -815,14 +814,14 @@ ${helpers.single_keyword("text-align-last",
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             let mut iter = self.0.iter();
             if let Some(shadow) = iter.next() {
-                try!(shadow.to_css(dest));
+                shadow.to_css(dest)?;
             } else {
-                try!(dest.write_str("none"));
+                dest.write_str("none")?;
                 return Ok(())
             }
             for shadow in iter {
-                try!(dest.write_str(", "));
-                try!(shadow.to_css(dest));
+                dest.write_str(", ")?;
+                shadow.to_css(dest)?;
             }
             Ok(())
         }
@@ -830,15 +829,15 @@ ${helpers.single_keyword("text-align-last",
 
     impl ToCss for SpecifiedTextShadow {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            try!(self.offset_x.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(self.offset_y.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(self.blur_radius.to_css(dest));
+            self.offset_x.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.offset_y.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.blur_radius.to_css(dest)?;
 
             if let Some(ref color) = self.color {
-                try!(dest.write_str(" "));
-                try!(color.to_css(dest));
+                dest.write_str(" ")?;
+                color.to_css(dest)?;
             }
             Ok(())
         }
