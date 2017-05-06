@@ -650,8 +650,8 @@ fn convert_gradient_stops(gradient_items: &[GradientItem],
     }
 
     // Step 3: Evenly space stops without position.
-    // Note: Remove the + 1 if fix_gradient_stops is changed.
-    let mut stops = Vec::with_capacity(stop_items.len() + 1);
+    // Note: Remove the + 2 if fix_gradient_stops is changed.
+    let mut stops = Vec::with_capacity(stop_items.len() + 2);
     let mut stop_run = None;
     for (i, stop) in stop_items.iter().enumerate() {
         let offset = match stop.position {
@@ -698,7 +698,7 @@ fn convert_gradient_stops(gradient_items: &[GradientItem],
 }
 
 #[inline]
-/// Duplicate the last stop if its position is smaller 100%.
+/// Duplicate the first and last stops if necessary.
 ///
 /// Explanation by pyfisch:
 /// If the last stop is at the same position as the previous stop the
@@ -706,7 +706,17 @@ fn convert_gradient_stops(gradient_items: &[GradientItem],
 /// (I think so). The  implementations of Chrome and Firefox seem
 /// to have the same problem but work fine if the position of the last
 /// stop is smaller than 100%. (Otherwise they ignore the last stop.)
+///
+/// Similarly the first stop is duplicated if it is not placed
+/// at the start of the virtual gradient ray.
 fn fix_gradient_stops(stops: &mut Vec<GradientStop>) {
+    if stops.first().unwrap().offset > 0.0 {
+        let color = stops.first().unwrap().color;
+        stops.insert(0, GradientStop {
+            offset: 0.0,
+            color: color,
+        })
+    }
     if stops.last().unwrap().offset < 1.0 {
         let color = stops.last().unwrap().color;
         stops.push(GradientStop {
