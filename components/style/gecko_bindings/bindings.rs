@@ -1140,6 +1140,10 @@ extern "C" {
                                             unit: nsCSSUnit);
 }
 extern "C" {
+    pub fn Gecko_CSSValue_SetAtomIdent(css_value: nsCSSValueBorrowedMut,
+                                       atom: *mut nsIAtom);
+}
+extern "C" {
     pub fn Gecko_CSSValue_SetArray(css_value: nsCSSValueBorrowedMut,
                                    len: i32);
 }
