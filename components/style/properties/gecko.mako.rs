@@ -4152,7 +4152,7 @@ clip-path
                             let mut array = unsafe { &mut **self.gecko.mContents[i].mContent.mCounters.as_mut() };
                             array[0].set_string(&name);
                             // When we support <custom-ident> values for list-style-type this will need to be updated
-                            array[1].set_ident(&style.to_css_string());
+                            array[1].set_atom_ident(style.to_css_string().into());
                         }
                         ContentItem::Counters(name, sep, style) => {
                             unsafe {
@@ -4163,7 +4163,7 @@ clip-path
                             array[0].set_string(&name);
                             array[1].set_string(&sep);
                             // When we support <custom-ident> values for list-style-type this will need to be updated
-                            array[2].set_ident(&style.to_css_string());
+                            array[2].set_atom_ident(style.to_css_string().into());
                         }
                         ContentItem::Url(url) => {
                             unsafe { bindings::Gecko_SetContentDataImage(&mut self.gecko.mContents[i], url.for_ffi()) }

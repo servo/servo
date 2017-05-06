@@ -226,6 +226,14 @@ impl Atom {
         }
     }
 
+    /// Convert this atom into an addrefed nsIAtom pointer.
+    #[inline]
+    pub fn into_addrefed(self) -> *mut nsIAtom {
+        let ptr = self.as_ptr();
+        mem::forget(self);
+        ptr
+    }
+
     /// Return whether two atoms are ASCII-case-insensitive matches
     pub fn eq_ignore_ascii_case(&self, other: &Self) -> bool {
         let a = self.as_slice();
