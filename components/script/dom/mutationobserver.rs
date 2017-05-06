@@ -102,9 +102,8 @@ impl MutationObserver {
             *mo.record_queue.borrow_mut() = Vec::new();
             // TODO: Step 5.3 Remove all transient registered observers whose observer is mo.
             if !queue.is_empty() {
-                let callback: MutationCallback = *mo.callback;
-                callback.Call_(&*mo, queue, &*mo, ExceptionHandling::Report);
-            }
+                mo.callback.Call_(&**mo, queue, &**mo, ExceptionHandling::Report);
+            } 
         }
         // Step 6 not needed as Servo doesn't implement anything related to slots yet.
         Ok(())
@@ -126,17 +125,17 @@ impl MutationObserver {
             for registered_observer in node.registered_mutation_observers().borrow().iter() {
                 match attr_type {
                     // TODO check for Mutations other than Attribute
-                    Mutation::Attribute { name, namespace, oldValue, newValue } => {
+                    Mutation::Attribute { ref name, ref namespace, ref oldValue, ref newValue } => {
                         let condition1: bool = node != &Root::from_ref(target) &&
                             !registered_observer.subtree.get();
                         let condition2: bool = registered_observer.attributes.get() == false;
                         let condition3: bool = !registered_observer.attribute_filter.borrow().is_empty() &&
                             (registered_observer.attribute_filter.borrow().iter()
-                                .find(|s| **s == DOMString::from(&*name)).is_none() || namespace != ns!());
+                                .find(|s| *s == &*name).is_none() || namespace != &ns!());
                         if !condition1 && !condition2 && !condition3 {
                             // Step 3.1.2
                             let paired_string = if registered_observer.attribute_old_value.get() {
-                                DOMString::from(oldValue)
+                                DOMString::from(oldValue.deref())
                             } else {
                                 DOMString::from("")
                             };
@@ -160,7 +159,7 @@ impl MutationObserver {
             let record = &MutationRecord::new(DOMString::from("attributes"), target);
             //Step 4.2
             match attr_type {
-                Mutation::Attribute { name, namespace, oldValue, newValue } => {
+                Mutation::Attribute { ref name, ref namespace, ref oldValue, ref newValue } => {
                     record.SetAttributeName(DOMString::from(&*name));
                     record.SetAttributeNamespace(DOMString::from(&*namespace));
                 }
