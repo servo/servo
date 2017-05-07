@@ -223,7 +223,9 @@ impl MutationObserverMethods for MutationObserver {
                 registered.subtree.set(options.subtree);
                 *registered.attribute_filter.borrow_mut() = options.attributeFilter.clone().unwrap();
             }
-            // Step 8
+        }
+        // Step 8
+        if target.registered_mutation_observers().borrow().is_empty() {
             target.add_registered_mutation_observer(&self);
         }
         Ok(())
