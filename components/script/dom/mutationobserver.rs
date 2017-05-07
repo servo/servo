@@ -204,8 +204,10 @@ impl MutationObserverMethods for MutationObserver {
             return Err(Error::Type("characterDataOldValue is true but characterData is false".to_owned()));
         }
         // Step 7
+        let mut registered_not_found: bool = true;
         for registered in target.registered_mutation_observers().borrow().iter() {
             if &**registered as *const MutationObserver == self as *const MutationObserver {
+                registered_not_found = false;
                 // TODO: remove matching transient registered observers
                 if let Some(value) = options.attributeOldValue {
                     registered.attribute_old_value.set(value);
@@ -225,7 +227,7 @@ impl MutationObserverMethods for MutationObserver {
             }
         }
         // Step 8
-        if target.registered_mutation_observers().borrow().is_empty() {
+        if registered_not_found {
             target.add_registered_mutation_observer(&self);
         }
         Ok(())
