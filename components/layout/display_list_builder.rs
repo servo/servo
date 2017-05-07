@@ -603,13 +603,11 @@ fn build_border_radius_for_inner_rect(outer_rect: &Rect<Au>,
 }
 
 fn convert_gradient_stops(gradient_items: &[GradientItem],
-                          length: Au,
+                          total_length: Au,
                           style: &ServoComputedValues) -> Vec<GradientStop> {
     // Determine the position of each stop per CSS-IMAGES § 3.4.
-    //
-    // FIXME(#3908, pcwalton): Make sure later stops can't be behind earlier stops.
 
-    // Only keep the color stops. Discard the color items.
+    // Only keep the color stops, discard the color interpolation hints.
     let mut stop_items = gradient_items.iter().filter_map(|item| {
         match *item {
             GradientItem::ColorStop(ref stop) => Some(*stop),
@@ -622,14 +620,15 @@ fn convert_gradient_stops(gradient_items: &[GradientItem],
     // Run the algorithm from
     // https://drafts.csswg.org/css-images-3/#color-stop-syntax
 
-    // Step 1: If nothing else is specified the first stop is
-    // at 0% and the last stop is at 100%.
+    // Step 1:
+    // If the first color stop does not have a position, set its position to 0%.
     {
         let first = stop_items.first_mut().unwrap();
         if first.position.is_none() {
             first.position = Some(LengthOrPercentage::Percentage(0.0));
         }
     }
+    // If the last color stop does not have a position, set its position to 100%.
     {
         let last = stop_items.last_mut().unwrap();
         if last.position.is_none() {
@@ -639,13 +638,14 @@ fn convert_gradient_stops(gradient_items: &[GradientItem],
 
     // Step 2: Move any stops placed before earlier stops to the
     // same position as the preceding stop.
-    let mut state = stop_items.first().unwrap().position.unwrap();
-    for stop in stop_items.iter_mut() {
+    let mut last_stop_position = stop_items.first().unwrap().position.unwrap();
+    for stop in stop_items.iter_mut().skip(1) {
         if let Some(pos) = stop.position {
-            if position_to_offset(state, length) > position_to_offset(pos, length) {
-                stop.position = Some(state);
+            if position_to_offset(last_stop_position, total_length)
+                    > position_to_offset(pos, total_length) {
+                stop.position = Some(last_stop_position);
             }
-            state = stop.position.unwrap();
+            last_stop_position = stop.position.unwrap();
         }
     }
 
@@ -661,7 +661,7 @@ fn convert_gradient_stops(gradient_items: &[GradientItem],
                     // `unwrap()` here should never fail because this is the beginning of
                     // a stop run, which is always bounded by a length or percentage.
                     let start_offset =
-                        position_to_offset(stop_items[i - 1].position.unwrap(), length);
+                        position_to_offset(stop_items[i - 1].position.unwrap(), total_length);
                     // `unwrap()` here should never fail because this is the end of
                     // a stop run, which is always bounded by a length or percentage.
                     let (end_index, end_stop) = stop_items[(i + 1)..]
@@ -669,7 +669,7 @@ fn convert_gradient_stops(gradient_items: &[GradientItem],
                         .enumerate()
                         .find(|&(_, ref stop)| stop.position.is_some())
                         .unwrap();
-                    let end_offset = position_to_offset(end_stop.position.unwrap(), length);
+                    let end_offset = position_to_offset(end_stop.position.unwrap(), total_length);
                     stop_run = Some(StopRun {
                         start_offset: start_offset,
                         end_offset: end_offset,
@@ -686,7 +686,7 @@ fn convert_gradient_stops(gradient_items: &[GradientItem],
             }
             Some(position) => {
                 stop_run = None;
-                position_to_offset(position, length)
+                position_to_offset(position, total_length)
             }
         };
         stops.push(GradientStop {
@@ -1141,6 +1141,10 @@ impl FragmentDisplayListBuilding for Fragment {
             (delta.x.to_f32_px() * 2.0).hypot(delta.y.to_f32_px() * 2.0));
 
         let mut stops = convert_gradient_stops(stops, length, style);
+
+        // Only clamped gradients need to be fixed because in repeating gradients
+        // there is no "first" or "last" stop because they repeat infinitly in
+        // both directions, so the rendering is always correct.
         if !repeating {
             fix_gradient_stops(&mut stops);
         }
@@ -1179,6 +1183,8 @@ impl FragmentDisplayListBuilding for Fragment {
         };
 
         let mut stops = convert_gradient_stops(stops, radius.width, style);
+        // Repeating gradients have no last stops that can be ignored. So
+        // fixup is not necessary but may actually break the gradient.
         if !repeating {
             fix_gradient_stops(&mut stops);
         }
