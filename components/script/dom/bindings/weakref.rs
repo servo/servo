@@ -86,19 +86,19 @@ impl<T: WeakReferenceable> WeakRef<T> {
 
     /// Root a weak reference. Returns `None` if the object was already collected.
     pub fn root(&self) -> Option<Root<T>> {
-        unsafe { &**self.ptr }.value.get().map(Root::new)
+        unsafe { &*self.ptr.get() }.value.get().map(Root::new)
     }
 
     /// Return whether the weakly-referenced object is still alive.
     pub fn is_alive(&self) -> bool {
-        unsafe { &**self.ptr }.value.get().is_some()
+        unsafe { &*self.ptr.get() }.value.get().is_some()
     }
 }
 
 impl<T: WeakReferenceable> Clone for WeakRef<T> {
     fn clone(&self) -> WeakRef<T> {
         unsafe {
-            let box_ = &**self.ptr;
+            let box_ = &*self.ptr.get();
             let new_count = box_.count.get() + 1;
             box_.count.set(new_count);
             WeakRef {
@@ -117,7 +117,7 @@ impl<T: WeakReferenceable> HeapSizeOf for WeakRef<T> {
 impl<T: WeakReferenceable> PartialEq for WeakRef<T> {
    fn eq(&self, other: &Self) -> bool {
         unsafe {
-            (**self.ptr).value.get() == (**other.ptr).value.get()
+            (*self.ptr.get()).value.get() == (*other.ptr.get()).value.get()
         }
     }
 }
@@ -125,8 +125,8 @@ impl<T: WeakReferenceable> PartialEq for WeakRef<T> {
 impl<T: WeakReferenceable> PartialEq<T> for WeakRef<T> {
     fn eq(&self, other: &T) -> bool {
         unsafe {
-            match (**self.ptr).value.get() {
-                Some(ptr) => *ptr == other,
+            match (*self.ptr.get()).value.get() {
+                Some(ptr) => ptr.get() == other,
                 None => false,
             }
         }
@@ -143,7 +143,7 @@ impl<T: WeakReferenceable> Drop for WeakRef<T> {
     fn drop(&mut self) {
         unsafe {
             let (count, value) = {
-                let weak_box = &**self.ptr;
+                let weak_box = &*self.ptr.get();
                 assert!(weak_box.count.get() > 0);
                 let count = weak_box.count.get() - 1;
                 weak_box.count.set(count);
@@ -151,7 +151,7 @@ impl<T: WeakReferenceable> Drop for WeakRef<T> {
             };
             if count == 0 {
                 assert!(value.is_none());
-                mem::drop(Box::from_raw(*self.ptr));
+                mem::drop(Box::from_raw(self.ptr.get()));
             }
         }
     }
