@@ -975,12 +975,23 @@ pub struct GradientBorder {
     pub outset: SideOffsets2D<f32>,
 }
 
+/// A border that is made of radial gradient
+#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+pub struct RadialGradientBorder {
+    /// The gradient info that this border uses, border-image-source.
+    pub gradient: RadialGradient,
+
+    /// Outsets for the border, as per border-image-outset.
+    pub outset: SideOffsets2D<f32>,
+}
+
 /// Specifies the type of border
 #[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
 pub enum BorderDetails {
     Normal(NormalBorder),
     Image(ImageBorder),
     Gradient(GradientBorder),
+    RadialGradient(RadialGradientBorder),
 }
 
 /// Paints a border.

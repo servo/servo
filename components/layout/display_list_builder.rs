@@ -603,66 +603,90 @@ fn build_border_radius_for_inner_rect(outer_rect: &Rect<Au>,
 }
 
 fn convert_gradient_stops(gradient_items: &[GradientItem],
-                          length: Au,
+                          total_length: Au,
                           style: &ServoComputedValues) -> Vec<GradientStop> {
     // Determine the position of each stop per CSS-IMAGES § 3.4.
-    //
-    // FIXME(#3908, pcwalton): Make sure later stops can't be behind earlier stops.
-    let stop_items = gradient_items.iter().filter_map(|item| {
+
+    // Only keep the color stops, discard the color interpolation hints.
+    let mut stop_items = gradient_items.iter().filter_map(|item| {
         match *item {
-            GradientItem::ColorStop(ref stop) => Some(stop),
+            GradientItem::ColorStop(ref stop) => Some(*stop),
             _ => None,
         }
     }).collect::<Vec<_>>();
-    let mut stops = Vec::with_capacity(stop_items.len());
+
+    assert!(stop_items.len() >= 2);
+
+    // Run the algorithm from
+    // https://drafts.csswg.org/css-images-3/#color-stop-syntax
+
+    // Step 1:
+    // If the first color stop does not have a position, set its position to 0%.
+    {
+        let first = stop_items.first_mut().unwrap();
+        if first.position.is_none() {
+            first.position = Some(LengthOrPercentage::Percentage(0.0));
+        }
+    }
+    // If the last color stop does not have a position, set its position to 100%.
+    {
+        let last = stop_items.last_mut().unwrap();
+        if last.position.is_none() {
+            last.position = Some(LengthOrPercentage::Percentage(1.0));
+        }
+    }
+
+    // Step 2: Move any stops placed before earlier stops to the
+    // same position as the preceding stop.
+    let mut last_stop_position = stop_items.first().unwrap().position.unwrap();
+    for stop in stop_items.iter_mut().skip(1) {
+        if let Some(pos) = stop.position {
+            if position_to_offset(last_stop_position, total_length)
+                    > position_to_offset(pos, total_length) {
+                stop.position = Some(last_stop_position);
+            }
+            last_stop_position = stop.position.unwrap();
+        }
+    }
+
+    // Step 3: Evenly space stops without position.
+    // Note: Remove the + 2 if fix_gradient_stops is changed.
+    let mut stops = Vec::with_capacity(stop_items.len() + 2);
     let mut stop_run = None;
     for (i, stop) in stop_items.iter().enumerate() {
         let offset = match stop.position {
             None => {
                 if stop_run.is_none() {
                     // Initialize a new stop run.
-                    let start_offset = if i == 0 {
-                        0.0
-                    } else {
-                        // `unwrap()` here should never fail because this is the beginning of
-                        // a stop run, which is always bounded by a length or percentage.
-                        position_to_offset(stop_items[i - 1].position.unwrap(), length)
-                    };
-                    let (end_index, end_offset) =
-                        match stop_items[i..]
-                                        .iter()
-                                        .enumerate()
-                                        .find(|&(_, ref stop)| stop.position.is_some()) {
-                            None => (stop_items.len() - 1, 1.0),
-                            Some((end_index, end_stop)) => {
-                                // `unwrap()` here should never fail because this is the end of
-                                // a stop run, which is always bounded by a length or
-                                // percentage.
-                                (end_index,
-                                    position_to_offset(end_stop.position.unwrap(), length))
-                            }
-                        };
+                    // `unwrap()` here should never fail because this is the beginning of
+                    // a stop run, which is always bounded by a length or percentage.
+                    let start_offset =
+                        position_to_offset(stop_items[i - 1].position.unwrap(), total_length);
+                    // `unwrap()` here should never fail because this is the end of
+                    // a stop run, which is always bounded by a length or percentage.
+                    let (end_index, end_stop) = stop_items[(i + 1)..]
+                        .iter()
+                        .enumerate()
+                        .find(|&(_, ref stop)| stop.position.is_some())
+                        .unwrap();
+                    let end_offset = position_to_offset(end_stop.position.unwrap(), total_length);
                     stop_run = Some(StopRun {
                         start_offset: start_offset,
                         end_offset: end_offset,
-                        start_index: i,
-                        stop_count: end_index - i,
+                        start_index: i - 1,
+                        stop_count: end_index,
                     })
                 }
 
                 let stop_run = stop_run.unwrap();
                 let stop_run_length = stop_run.end_offset - stop_run.start_offset;
-                if stop_run.stop_count == 0 {
-                    stop_run.end_offset
-                } else {
-                    stop_run.start_offset +
-                        stop_run_length * (i - stop_run.start_index) as f32 /
-                            (stop_run.stop_count as f32)
-                }
+                stop_run.start_offset +
+                    stop_run_length * (i - stop_run.start_index) as f32 /
+                        ((2 + stop_run.stop_count) as f32)
             }
             Some(position) => {
                 stop_run = None;
-                position_to_offset(position, length)
+                position_to_offset(position, total_length)
             }
         };
         stops.push(GradientStop {
@@ -671,6 +695,35 @@ fn convert_gradient_stops(gradient_items: &[GradientItem],
         })
     }
     stops
+}
+
+#[inline]
+/// Duplicate the first and last stops if necessary.
+///
+/// Explanation by pyfisch:
+/// If the last stop is at the same position as the previous stop the
+/// last color is ignored by webrender. This differs from the spec
+/// (I think so). The  implementations of Chrome and Firefox seem
+/// to have the same problem but work fine if the position of the last
+/// stop is smaller than 100%. (Otherwise they ignore the last stop.)
+///
+/// Similarly the first stop is duplicated if it is not placed
+/// at the start of the virtual gradient ray.
+fn fix_gradient_stops(stops: &mut Vec<GradientStop>) {
+    if stops.first().unwrap().offset > 0.0 {
+        let color = stops.first().unwrap().color;
+        stops.insert(0, GradientStop {
+            offset: 0.0,
+            color: color,
+        })
+    }
+    if stops.last().unwrap().offset < 1.0 {
+        let color = stops.last().unwrap().color;
+        stops.push(GradientStop {
+            offset: 1.0,
+            color: color,
+        })
+    }
 }
 
 /// Returns the the distance to the nearest or farthest corner depending on the comperator.
@@ -710,7 +763,7 @@ fn convert_circle_size_keyword(keyword: SizeKeyword,
                                center: &Point2D<Au>) -> Size2D<Au> {
     use style::values::computed::image::SizeKeyword::*;
     let radius = match keyword {
-        ClosestSide => {
+        ClosestSide | Contain => {
             let dist = get_distance_to_sides(size, center, ::std::cmp::min);
             ::std::cmp::min(dist.width, dist.height)
         }
@@ -719,12 +772,7 @@ fn convert_circle_size_keyword(keyword: SizeKeyword,
             ::std::cmp::max(dist.width, dist.height)
         }
         ClosestCorner => get_distance_to_corner(size, center, ::std::cmp::min),
-        FarthestCorner => get_distance_to_corner(size, center, ::std::cmp::max),
-        _ => {
-            // TODO(#16542)
-            println!("TODO: implement size keyword {:?} for circles", keyword);
-            Au::new(0)
-        }
+        FarthestCorner | Cover => get_distance_to_corner(size, center, ::std::cmp::max),
     };
     Size2D::new(radius, radius)
 }
@@ -736,15 +784,10 @@ fn convert_ellipse_size_keyword(keyword: SizeKeyword,
                                 center: &Point2D<Au>) -> Size2D<Au> {
     use style::values::computed::image::SizeKeyword::*;
     match keyword {
-        ClosestSide => get_distance_to_sides(size, center, ::std::cmp::min),
+        ClosestSide | Contain => get_distance_to_sides(size, center, ::std::cmp::min),
         FarthestSide => get_distance_to_sides(size, center, ::std::cmp::max),
         ClosestCorner => get_ellipse_radius(size, center, ::std::cmp::min),
-        FarthestCorner => get_ellipse_radius(size, center, ::std::cmp::max),
-        _ => {
-            // TODO(#16542)
-            println!("TODO: implement size keyword {:?} for ellipses", keyword);
-            Size2D::new(Au::new(0), Au::new(0))
-        }
+        FarthestCorner | Cover => get_ellipse_radius(size, center, ::std::cmp::max),
     }
 }
 
@@ -1097,7 +1140,14 @@ impl FragmentDisplayListBuilding for Fragment {
         let length = Au::from_f32_px(
             (delta.x.to_f32_px() * 2.0).hypot(delta.y.to_f32_px() * 2.0));
 
-        let stops = convert_gradient_stops(stops, length, style);
+        let mut stops = convert_gradient_stops(stops, length, style);
+
+        // Only clamped gradients need to be fixed because in repeating gradients
+        // there is no "first" or "last" stop because they repeat infinitly in
+        // both directions, so the rendering is always correct.
+        if !repeating {
+            fix_gradient_stops(&mut stops);
+        }
 
         let center = Point2D::new(bounds.size.width / 2, bounds.size.height / 2);
 
@@ -1131,8 +1181,14 @@ impl FragmentDisplayListBuilding for Fragment {
             EndingShape::Ellipse(LengthOrPercentageOrKeyword::Keyword(word))
                 => convert_ellipse_size_keyword(word, &bounds.size, &center),
         };
-        let length = Au::from_f32_px(radius.width.to_f32_px().hypot(radius.height.to_f32_px()));
-        let stops = convert_gradient_stops(stops, length, style);
+
+        let mut stops = convert_gradient_stops(stops, radius.width, style);
+        // Repeating gradients have no last stops that can be ignored. So
+        // fixup is not necessary but may actually break the gradient.
+        if !repeating {
+            fix_gradient_stops(&mut stops);
+        }
+
         display_list::RadialGradient {
             center: center,
             radius: radius,
@@ -1321,8 +1377,24 @@ impl FragmentDisplayListBuilding for Fragment {
                             }),
                         }));
                     }
-                    GradientKind::Radial(_, _) => {
-                        // TODO(#16638): Handle border-image with radial gradient.
+                    GradientKind::Radial(ref shape, ref center) => {
+                        let grad = self.convert_radial_gradient(&bounds,
+                                                                &gradient.items[..],
+                                                                shape,
+                                                                center,
+                                                                gradient.repeating,
+                                                                style);
+                        state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
+                            base: base,
+                            border_widths: border.to_physical(style.writing_mode),
+                            details: BorderDetails::RadialGradient(
+                                display_list::RadialGradientBorder {
+                                    gradient: grad,
+
+                                    // TODO(gw): Support border-image-outset
+                                    outset: SideOffsets2D::zero(),
+                                }),
+                        }));
                     }
                 }
             }
@@ -2702,12 +2774,10 @@ struct StopRun {
 
 fn position_to_offset(position: LengthOrPercentage, Au(total_length): Au) -> f32 {
     match position {
-        LengthOrPercentage::Length(Au(length)) => {
-            (1.0f32).min(length as f32 / total_length as f32)
-        }
+        LengthOrPercentage::Length(Au(length)) => length as f32 / total_length as f32,
         LengthOrPercentage::Percentage(percentage) => percentage as f32,
         LengthOrPercentage::Calc(calc) =>
-            (1.0f32).min(calc.percentage() + (calc.length().0 as f32) / (total_length as f32)),
+            calc.percentage() + (calc.length().0 as f32) / (total_length as f32),
     }
 }
 

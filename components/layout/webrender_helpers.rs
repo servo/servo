@@ -353,14 +353,34 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                         }
                     }
                     BorderDetails::Gradient(ref gradient) => {
+                        let extend_mode = if gradient.gradient.repeating {
+                            ExtendMode::Repeat
+                        } else {
+                            ExtendMode::Clamp
+                        };
                         webrender_traits::BorderDetails::Gradient(webrender_traits::GradientBorder {
                             gradient: builder.create_gradient(
                                           gradient.gradient.start_point.to_pointf(),
                                           gradient.gradient.end_point.to_pointf(),
                                           gradient.gradient.stops.clone(),
-                                          ExtendMode::Clamp),
+                                          extend_mode),
                             outset: gradient.outset,
                         })
+                    }
+                    BorderDetails::RadialGradient(ref gradient) => {
+                        let extend_mode = if gradient.gradient.repeating {
+                            ExtendMode::Repeat
+                        } else {
+                            ExtendMode::Clamp
+                        };
+                       webrender_traits::BorderDetails::RadialGradient(webrender_traits::RadialGradientBorder {
+                           gradient: builder.create_radial_gradient(
+                               gradient.gradient.center.to_pointf(),
+                               gradient.gradient.radius.to_sizef(),
+                               gradient.gradient.stops.clone(),
+                               extend_mode),
+                           outset: gradient.outset,
+                       })
                     }
                 };
 
