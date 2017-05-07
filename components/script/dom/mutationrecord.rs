@@ -11,6 +11,7 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::node::{Node, window_from_node};
+use dom::nodelist::NodeList;
 use dom_struct::dom_struct;
 
 #[dom_struct]
@@ -90,4 +91,27 @@ impl MutationRecordMethods for MutationRecord {
     fn GetOldValue(&self) -> Option<DOMString> {
         self.old_value.borrow().clone()
     }
+
+    // https://dom.spec.whatwg.org/#dom-mutationrecord-addednodes
+    fn AddedNodes(&self) -> Root<NodeList> {
+        let window = window_from_node(self.target.deref());
+        NodeList::empty(&window)
+    }
+
+    // https://dom.spec.whatwg.org/#dom-mutationrecord-removednodes
+    fn RemovedNodes(&self) -> Root<NodeList> {
+        let window = window_from_node(self.target.deref());
+        NodeList::empty(&window)
+    }
+
+    // https://dom.spec.whatwg.org/#dom-mutationrecord-previoussibling
+    fn GetPreviousSibling(&self) -> Option<Root<Node>> {
+        None
+    }
+
+    // https://dom.spec.whatwg.org/#dom-mutationrecord-previoussibling
+    fn GetNextSibling(&self) -> Option<Root<Node>> {
+        None
+    }
+
 }

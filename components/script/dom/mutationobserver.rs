@@ -21,7 +21,7 @@ use html5ever::Namespace;
 use microtask::Microtask;
 use script_thread::ScriptThread;
 use servo_atoms::Atom;
-use std::cell::Cell;
+use std::cell::{Cell, Ref};
 use std::rc::Rc;
 
 #[dom_struct]
@@ -178,17 +178,18 @@ impl MutationObserverMethods for MutationObserver {
     /// MutationObserver.observe method
     fn Observe(&self, target: &Node, options: &MutationObserverInit) -> Fallible<()> {
         let mut options_cp: MutationObserverInit = MutationObserverInit {
-    	    attributeFilter: options.attributeFilter.clone(),
+            attributeFilter: options.attributeFilter.clone(),
             attributeOldValue: options.attributeOldValue,
             attributes: options.attributes,
             characterData: options.characterData,
             characterDataOldValue: options.characterDataOldValue,
             childList: options.childList,
             subtree: options.subtree
-    	};
+        };
         // Step 1: If either options’ attributeOldValue or attributeFilter is present and
         // options’ attributes is omitted, set options’ attributes to true.
-        if (options_cp.attributeOldValue.is_some() || options_cp.attributeFilter.is_some()) && options_cp.attributes.is_none() {
+        if (options_cp.attributeOldValue.is_some() || options_cp.attributeFilter.is_some()) &&
+            options_cp.attributes.is_none() {
             options_cp.attributes = Some(true);
         }
         // Step2: If options’ characterDataOldValue is present and options’ characterData is omitted,
@@ -197,7 +198,8 @@ impl MutationObserverMethods for MutationObserver {
             options_cp.characterData = Some(true);
         }
         // Step3: If none of options’ childList, attributes, and characterData is true, throw a TypeError.
-        if !options_cp.childList && !options_cp.attributes.unwrap_or(false) && !options_cp.characterData.unwrap_or(false) {
+        if !options_cp.childList && !options_cp.attributes.unwrap_or(false) &&
+            !options_cp.characterData.unwrap_or(false) {
             return Err(Error::Type("childList, attributes, and characterData not true".to_owned()));
         }
         // Step4: If options’ attributeOldValue is true and options’ attributes is false, throw a TypeError.
@@ -231,11 +233,11 @@ impl MutationObserverMethods for MutationObserver {
             &**registered as *const MutationObserver == self as *const MutationObserver
         });
         let registered = match idx {
-            Some(idx) => &(observers.borrow()[idx]),
+            Some(idx) => Ref::map(observers.borrow(), |obs| &*obs[idx]),
             None => {
                 target.add_registered_mutation_observer(self);
                 let idx = observers.borrow().len() - 1;
-                &(observers.borrow()[idx])
+                Ref::map(observers.borrow(), |obs| &*obs[idx])
             }
         };
         // TODO: remove matching transient registered observers
