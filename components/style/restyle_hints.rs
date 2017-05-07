@@ -22,6 +22,7 @@ use selectors::parser::{SelectorInner, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
 use smallvec::SmallVec;
 use std::borrow::Borrow;
+use std::cell::Cell;
 use std::clone::Clone;
 use stylist::SelectorMap;
 
@@ -194,6 +195,7 @@ struct ElementWrapper<'a, E>
     where E: TElement,
 {
     element: E,
+    cached_snapshot: Cell<Option<&'a Snapshot>>,
     snapshot_map: &'a SnapshotMap,
 }
 
@@ -202,20 +204,28 @@ impl<'a, E> ElementWrapper<'a, E>
 {
     /// Trivially constructs an `ElementWrapper`.
     fn new(el: E, snapshot_map: &'a SnapshotMap) -> Self {
-        ElementWrapper { element: el, snapshot_map: snapshot_map }
+        ElementWrapper {
+            element: el,
+            cached_snapshot: Cell::new(None),
+            snapshot_map: snapshot_map,
+        }
     }
 
     /// Gets the snapshot associated with this element, if any.
-    ///
-    /// TODO(emilio): If the hash table lookup happens to appear in profiles, we
-    /// can cache the snapshot in a RefCell<&'a Snapshot>.
     fn snapshot(&self) -> Option<&'a Snapshot> {
         if !self.element.has_snapshot() {
-            return None
+            return None;
+        }
+
+        if let Some(s) = self.cached_snapshot.get() {
+            return Some(s);
         }
 
         let snapshot = self.snapshot_map.get(&self.element);
         debug_assert!(snapshot.is_some(), "has_snapshot lied!");
+
+        self.cached_snapshot.set(snapshot);
+
         snapshot
     }
 }
