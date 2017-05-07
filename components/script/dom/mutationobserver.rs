@@ -125,7 +125,7 @@ impl MutationObserver {
                         let condition1: bool = node != &Root::from_ref(target) &&
                             !registered_observer.subtree.get();
                         let condition2: bool = registered_observer.attributes.get() == false;
-                        let condition3: bool = !registered_observer.attribute_filter.borrow().is_empty(); &&
+                        let condition3: bool = !registered_observer.attribute_filter.borrow().is_empty() &&
                             (registered_observer.attribute_filter.borrow().iter()
                                 .find(|s| &**s == &**name).is_none() || namespace != &ns!());
                         if !condition1 && !condition2 && !condition3 {
@@ -177,59 +177,76 @@ impl MutationObserverMethods for MutationObserver {
     /// https://dom.spec.whatwg.org/#dom-mutationobserver-observe
     /// MutationObserver.observe method
     fn Observe(&self, target: &Node, options: &MutationObserverInit) -> Fallible<()> {
+        let mut options_cp: MutationObserverInit = MutationObserverInit {
+    	    attributeFilter: options.attributeFilter.clone(),
+            attributeOldValue: options.attributeOldValue,
+            attributes: options.attributes,
+            characterData: options.characterData,
+            characterDataOldValue: options.characterDataOldValue,
+            childList: options.childList,
+            subtree: options.subtree
+    	};
         // Step 1: If either options’ attributeOldValue or attributeFilter is present and
         // options’ attributes is omitted, set options’ attributes to true.
-        if (options.attributeOldValue.is_some() || options.attributeFilter.is_some()) && options.attributes.is_none() {
-//            options.attributes.set(Some(true));
+        if (options_cp.attributeOldValue.is_some() || options_cp.attributeFilter.is_some()) && options_cp.attributes.is_none() {
+            options_cp.attributes = Some(true);
         }
         // Step2: If options’ characterDataOldValue is present and options’ characterData is omitted,
         // set options’ characterData to true.
-        if options.characterDataOldValue.is_some() && options.characterData.is_some() {
-//            options.characterData.set(Some(true));
+        if options_cp.characterDataOldValue.is_some() && options_cp.characterData.is_some() {
+            options_cp.characterData = Some(true);
         }
         // Step3: If none of options’ childList, attributes, and characterData is true, throw a TypeError.
-        if !options.childList && !options.attributes.unwrap_or(false) && !options.characterData.unwrap_or(false) {
+        if !options_cp.childList && !options_cp.attributes.unwrap_or(false) && !options_cp.characterData.unwrap_or(false) {
             return Err(Error::Type("childList, attributes, and characterData not true".to_owned()));
         }
         // Step4: If options’ attributeOldValue is true and options’ attributes is false, throw a TypeError.
-        if options.attributeOldValue.unwrap_or(false) && !options.attributes.unwrap_or(false) {
+        if options_cp.attributeOldValue.unwrap_or(false) && !options_cp.attributes.unwrap_or(false) {
             return Err(Error::Type("attributeOldValue is true but attributes is false".to_owned()));
         }
         // Step5: If options’ attributeFilter is present and options’ attributes is false, throw a TypeError.
-        if options.attributeFilter.is_some() && !options.attributes.unwrap_or(false) {
+        if options_cp.attributeFilter.is_some() && !options_cp.attributes.unwrap_or(false) {
             return Err(Error::Type("attributeFilter is present but attributes is false".to_owned()));
         }
         // Step6: If options’ characterDataOldValue is true and options’ characterData is false, throw a TypeError.
-        if options.characterDataOldValue.unwrap_or(false) && !options.characterData.unwrap_or(false) {
+        if options_cp.characterDataOldValue.unwrap_or(false) && !options_cp.characterData.unwrap_or(false) {
             return Err(Error::Type("characterDataOldValue is true but characterData is false".to_owned()));
         }
         // Step 7
-        let mut registered_not_found: bool = true;
         for registered in target.registered_mutation_observers().borrow().iter() {
             if &**registered as *const MutationObserver == self as *const MutationObserver {
-                registered_not_found = false;
                 // TODO: remove matching transient registered observers
-                if let Some(value) = options.attributeOldValue {
-                    registered.attribute_old_value.set(value);
-                }
-                if let Some(value) = options.attributes {
-                    registered.attributes.set(value);
-                }
-                if let Some(value) = options.characterData {
-                    registered.character_data.set(value);
-                }
-                if let Some(value) = options.characterDataOldValue {
-                    registered.character_data_old_value.set(value);
-                }
-                registered.child_list.set(options.childList);
-                registered.subtree.set(options.subtree);
-                *registered.attribute_filter.borrow_mut() = options.attributeFilter.clone().unwrap();
+                registered.attribute_old_value.set(options_cp.attributeOldValue.unwrap_or(false));
+                registered.attributes.set(options_cp.attributes.unwrap_or(false));
+                registered.character_data.set(options_cp.characterData.unwrap_or(false));
+                registered.character_data_old_value.set(options_cp.characterDataOldValue.unwrap_or(false));
+                registered.child_list.set(options_cp.childList);
+                registered.subtree.set(options_cp.subtree);
+                *registered.attribute_filter.borrow_mut() = options_cp.attributeFilter.clone().unwrap();
             }
         }
         // Step 8
-        if registered_not_found {
-            target.add_registered_mutation_observer(&self);
-        }
+        let observers = target.registered_mutation_observers();
+        let idx = observers.borrow().iter().position(|registered| {
+            &**registered as *const MutationObserver == self as *const MutationObserver
+        });
+        let registered = match idx {
+            Some(idx) => &(observers.borrow()[idx]),
+            None => {
+                target.add_registered_mutation_observer(self);
+                let idx = observers.borrow().len() - 1;
+                &(observers.borrow()[idx])
+            }
+        };
+        // TODO: remove matching transient registered observers
+        registered.attribute_old_value.set(options_cp.attributeOldValue.unwrap_or(false));
+        registered.attributes.set(options_cp.attributes.unwrap_or(false));
+        registered.character_data.set(options_cp.characterData.unwrap_or(false));
+        registered.character_data_old_value.set(options_cp.characterDataOldValue.unwrap_or(false));
+        registered.child_list.set(options_cp.childList);
+        registered.subtree.set(options_cp.subtree);
+        *registered.attribute_filter.borrow_mut() = options_cp.attributeFilter.clone().unwrap_or(vec![]);
+
         Ok(())
     }
 }
