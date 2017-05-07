@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! The context within which style is calculated.
-#![deny(missing_docs)]
 
 use animation::{Animation, PropertyAnimation};
 use app_units::Au;
@@ -20,6 +19,7 @@ use font_metrics::FontMetricsProvider;
 use matching::StyleSharingCandidateCache;
 use parking_lot::RwLock;
 #[cfg(feature = "gecko")] use properties::ComputedValues;
+use selector_parser::SnapshotMap;
 use selectors::matching::ElementSelectorFlags;
 #[cfg(feature = "servo")] use servo_config::opts;
 use shared_lock::StylesheetGuards;
@@ -135,6 +135,9 @@ pub struct SharedStyleContext<'a> {
 
     /// Flags controlling how we traverse the tree.
     pub traversal_flags: TraversalFlags,
+
+    /// A map with our snapshots in order to handle restyle hints.
+    pub snapshot_map: &'a SnapshotMap,
 }
 
 impl<'a> SharedStyleContext<'a> {

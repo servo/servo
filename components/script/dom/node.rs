@@ -144,29 +144,40 @@ pub struct Node {
 bitflags! {
     #[doc = "Flags for node items."]
     #[derive(JSTraceable, HeapSizeOf)]
-    pub flags NodeFlags: u8 {
+    pub flags NodeFlags: u16 {
         #[doc = "Specifies whether this node is in a document."]
-        const IS_IN_DOC = 0x01,
+        const IS_IN_DOC = 1 << 0,
+
         #[doc = "Specifies whether this node needs style recalc on next reflow."]
-        const HAS_DIRTY_DESCENDANTS = 0x08,
+        const HAS_DIRTY_DESCENDANTS = 1 << 1,
         // TODO: find a better place to keep this (#4105)
         // https://critic.hoppipolla.co.uk/showcomment?chain=8873
         // Perhaps using a Set in Document?
         #[doc = "Specifies whether or not there is an authentic click in progress on \
                  this element."]
-        const CLICK_IN_PROGRESS = 0x10,
+        const CLICK_IN_PROGRESS = 1 << 2,
         #[doc = "Specifies whether this node is focusable and whether it is supposed \
                  to be reachable with using sequential focus navigation."]
-        const SEQUENTIALLY_FOCUSABLE = 0x20,
+        const SEQUENTIALLY_FOCUSABLE = 1 << 3,
 
         /// Whether any ancestor is a fragmentation container
-        const CAN_BE_FRAGMENTED = 0x40,
+        const CAN_BE_FRAGMENTED = 1 << 4,
+
         #[doc = "Specifies whether this node needs to be dirted when viewport size changed."]
-        const DIRTY_ON_VIEWPORT_SIZE_CHANGE = 0x80,
+        const DIRTY_ON_VIEWPORT_SIZE_CHANGE = 1 << 5,
 
         #[doc = "Specifies whether the parser has set an associated form owner for \
                  this element. Only applicable for form-associatable elements."]
-        const PARSER_ASSOCIATED_FORM_OWNER = 0x90,
+        const PARSER_ASSOCIATED_FORM_OWNER = 1 << 6,
+
+        /// Whether this element has a snapshot stored due to a style or
+        /// attribute change.
+        ///
+        /// See the `style::restyle_hints` module.
+        const HAS_SNAPSHOT = 1 << 7,
+
+        /// Whether this element has already handled the stored snapshot.
+        const HANDLED_SNAPSHOT = 1 << 8,
     }
 }
 
@@ -289,7 +300,9 @@ impl Node {
 
         for node in child.traverse_preorder() {
             // Out-of-document elements never have the descendants flag set.
-            node.set_flag(IS_IN_DOC | HAS_DIRTY_DESCENDANTS, false);
+            node.set_flag(IS_IN_DOC | HAS_DIRTY_DESCENDANTS |
+                          HAS_SNAPSHOT | HANDLED_SNAPSHOT,
+                          false);
         }
         for node in child.traverse_preorder() {
             // This needs to be in its own loop, because unbind_from_tree may

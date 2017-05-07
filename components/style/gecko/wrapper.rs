@@ -62,7 +62,7 @@ use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use properties::animated_properties::{AnimationValue, AnimationValueMap, TransitionProperty};
 use properties::style_structs::Font;
 use rule_tree::CascadeLevel as ServoCascadeLevel;
-use selector_parser::{ElementExt, Snapshot};
+use selector_parser::ElementExt;
 use selectors::Element;
 use selectors::matching::{ElementSelectorFlags, StyleRelations};
 use selectors::parser::{AttrSelector, NamespaceConstraint};
@@ -363,6 +363,10 @@ impl<'le> GeckoElement<'le> {
     /// Clear the element data for a given element.
     pub fn clear_data(&self) {
         let ptr = self.0.mServoData.get();
+        unsafe {
+            self.unset_flags(ELEMENT_HAS_SNAPSHOT as u32 |
+                             ELEMENT_HANDLED_SNAPSHOT as u32);
+        }
         if !ptr.is_null() {
             debug!("Dropping ElementData for {:?}", self);
             let data = unsafe { Box::from_raw(self.0.mServoData.get()) };
@@ -390,11 +394,6 @@ impl<'le> GeckoElement<'le> {
                 unsafe { &* ptr }
             },
         }
-    }
-
-    /// Creates a blank snapshot for this element.
-    pub fn create_snapshot(&self) -> Snapshot {
-        Snapshot::new(*self)
     }
 }
 
@@ -589,6 +588,19 @@ impl<'le> TElement for GeckoElement<'le> {
             let context_ptr = Gecko_GetStyleContext(self.0, atom_ptr);
             context_ptr.as_ref()
         }
+    }
+
+    fn has_snapshot(&self) -> bool {
+        self.flags() & (ELEMENT_HAS_SNAPSHOT as u32) != 0
+    }
+
+    fn handled_snapshot(&self) -> bool {
+        self.flags() & (ELEMENT_HANDLED_SNAPSHOT as u32) != 0
+    }
+
+    unsafe fn set_handled_snapshot(&self) {
+        debug_assert!(self.get_data().is_some());
+        self.set_flags(ELEMENT_HANDLED_SNAPSHOT as u32)
     }
 
     fn has_dirty_descendants(&self) -> bool {

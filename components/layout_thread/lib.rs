@@ -113,6 +113,7 @@ use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
 use style::error_reporting::{NullReporter, RustLogReporter};
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaList, MediaType};
+use style::selector_parser::SnapshotMap;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION, STORE_OVERFLOW};
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylearc::Arc as StyleArc;
@@ -509,7 +510,8 @@ impl LayoutThread {
     fn build_layout_context<'a>(&self,
                                 guards: StylesheetGuards<'a>,
                                 rw_data: &LayoutThreadData,
-                                request_images: bool)
+                                request_images: bool,
+                                snapshot_map: &'a SnapshotMap)
                                 -> LayoutContext<'a> {
         let thread_local_style_context_creation_data =
             ThreadLocalStyleContextCreationInfo::new(self.new_animations_sender.clone());
@@ -527,6 +529,7 @@ impl LayoutThread {
                 timer: self.timer.clone(),
                 quirks_mode: self.quirks_mode.unwrap(),
                 traversal_flags: TraversalFlags::empty(),
+                snapshot_map: snapshot_map,
             },
             image_cache: self.image_cache.clone(),
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
@@ -1111,37 +1114,51 @@ impl LayoutThread {
         }
 
         let restyles = document.drain_pending_restyles();
-        debug!("Draining restyles: {} (needs dirtying? {:?})", restyles.len(), needs_dirtying);
-        if !needs_dirtying {
-            for (el, restyle) in restyles {
-                // Propagate the descendant bit up the ancestors. Do this before
-                // the restyle calculation so that we can also do it for new
-                // unstyled nodes, which the descendants bit helps us find.
-                if let Some(parent) = el.parent_element() {
-                    unsafe { parent.note_dirty_descendant() };
-                }
+        debug!("Draining restyles: {} (needs dirtying? {:?})",
+               restyles.len(), needs_dirtying);
+        let mut map = SnapshotMap::new();
+        let elements_with_snapshot: Vec<_> =
+            restyles
+                .iter()
+                .filter(|r| r.1.snapshot.is_some())
+                .map(|r| r.0)
+                .collect();
 
-                // If we haven't styled this node yet, we don't need to track a restyle.
-                let mut data = match el.mutate_layout_data() {
-                    Some(d) => d,
-                    None => continue,
-                };
-                let mut style_data = &mut data.base.style_data;
-                debug_assert!(style_data.has_current_styles());
-                let mut restyle_data = style_data.ensure_restyle();
-
-                // Stash the data on the element for processing by the style system.
-                restyle_data.hint = restyle.hint.into();
-                restyle_data.damage = restyle.damage;
-                if let Some(s) = restyle.snapshot {
-                    restyle_data.snapshot.ensure(move || s);
-                }
-                debug!("Noting restyle for {:?}: {:?}", el, restyle_data);
+        for (el, restyle) in restyles {
+            // Propagate the descendant bit up the ancestors. Do this before
+            // the restyle calculation so that we can also do it for new
+            // unstyled nodes, which the descendants bit helps us find.
+            if let Some(parent) = el.parent_element() {
+                unsafe { parent.note_dirty_descendant() };
             }
+
+            // If we haven't styled this node yet, we don't need to track a
+            // restyle.
+            let mut data = match el.mutate_layout_data() {
+                Some(d) => d,
+                None => {
+                    unsafe { el.unset_snapshot_flags() };
+                    continue;
+                }
+            };
+
+            if let Some(s) = restyle.snapshot {
+                unsafe { el.set_has_snapshot() };
+                map.insert(el.as_node().opaque(), s);
+            }
+
+            let mut style_data = &mut data.base.style_data;
+            let mut restyle_data = style_data.ensure_restyle();
+
+            // Stash the data on the element for processing by the style system.
+            restyle_data.hint.insert(&restyle.hint.into());
+            restyle_data.damage = restyle.damage;
+            debug!("Noting restyle for {:?}: {:?}", el, restyle_data);
         }
 
         // Create a layout context for use throughout the following passes.
-        let mut layout_context = self.build_layout_context(guards.clone(), &*rw_data, true);
+        let mut layout_context =
+            self.build_layout_context(guards.clone(), &*rw_data, true, &map);
 
         // NB: Type inference falls apart here for some reason, so we need to be very verbose. :-(
         let traversal_driver = if self.parallel_flag && self.parallel_traversal.is_some() {
@@ -1152,10 +1169,12 @@ impl LayoutThread {
 
         let traversal = RecalcStyleAndConstructFlows::new(layout_context, traversal_driver);
         let token = {
-            let stylist = &<RecalcStyleAndConstructFlows as
-                            DomTraversal<ServoLayoutElement>>::shared_context(&traversal).stylist;
+            let context = <RecalcStyleAndConstructFlows as
+                           DomTraversal<ServoLayoutElement>>::shared_context(&traversal);
             <RecalcStyleAndConstructFlows as
-             DomTraversal<ServoLayoutElement>>::pre_traverse(element, stylist, TraversalFlags::empty())
+             DomTraversal<ServoLayoutElement>>::pre_traverse(element,
+                                                             context,
+                                                             TraversalFlags::empty())
         };
 
         if token.should_traverse() {
@@ -1190,6 +1209,10 @@ impl LayoutThread {
 
             // Retrieve the (possibly rebuilt) root flow.
             self.root_flow = self.try_get_layout_root(element.as_node());
+        }
+
+        for element in elements_with_snapshot {
+            unsafe { element.unset_snapshot_flags() }
         }
 
         layout_context = traversal.destroy();
@@ -1382,7 +1405,11 @@ impl LayoutThread {
                 author: &author_guard,
                 ua_or_user: &ua_or_user_guard,
             };
-            let mut layout_context = self.build_layout_context(guards, &*rw_data, false);
+            let snapshots = SnapshotMap::new();
+            let mut layout_context = self.build_layout_context(guards,
+                                                               &*rw_data,
+                                                               false,
+                                                               &snapshots);
 
             {
                 // Perform an abbreviated style recalc that operates without access to the DOM.

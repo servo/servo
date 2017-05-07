@@ -16,6 +16,8 @@ use std::fmt;
 use std::ptr;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 
+pub use gecko::snapshot::SnapshotMap;
+
 /// A representation of a CSS pseudo-element.
 ///
 /// In Gecko, we represent pseudo-elements as plain `Atom`s.
