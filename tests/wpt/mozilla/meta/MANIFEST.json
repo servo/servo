@@ -9484,11 +9484,6 @@
      {}
     ]
    ],
-   "mozilla/#can_serialize_deep_tree.html#": [
-    [
-     {}
-    ]
-   ],
    "mozilla/2x2.png": [
     [
      {}
@@ -9525,11 +9520,6 @@
     ]
    ],
    "mozilla/bluetooth/bluetooth-helpers.js": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/can_serialize_deep_tree.html~": [
     [
      {}
     ]
@@ -24454,10 +24444,6 @@
    "9ac1f9756a4cd44196242beb80621b9bc8cbe2ff",
    "testharness"
   ],
-  "mozilla/#can_serialize_deep_tree.html#": [
-   "b7222dd9062de2a1b7488c4933c6d4821f6db074",
-   "support"
-  ],
   "mozilla/2x2.png": [
    "c67d3f646e86413722833d2308a9bfc793a916bf",
    "support"
@@ -25397,10 +25383,6 @@
   "mozilla/can_serialize_deep_tree.html": [
    "a5e9326245e22650e52fa7ae0ed2b4e707e75e0f",
    "testharness"
-  ],
-  "mozilla/can_serialize_deep_tree.html~": [
-   "1b2dc51509a6a435dbc2f7838ab4ffffac033f58",
-   "support"
   ],
   "mozilla/canvas.initial.reset.2dstate.html": [
    "9fb338806987e20f1bac3c09231e1e5718ac4b23",
