@@ -9484,6 +9484,11 @@
      {}
     ]
    ],
+   "mozilla/#can_serialize_deep_tree.html#": [
+    [
+     {}
+    ]
+   ],
    "mozilla/2x2.png": [
     [
      {}
@@ -24449,6 +24454,10 @@
    "9ac1f9756a4cd44196242beb80621b9bc8cbe2ff",
    "testharness"
   ],
+  "mozilla/#can_serialize_deep_tree.html#": [
+   "b7222dd9062de2a1b7488c4933c6d4821f6db074",
+   "support"
+  ],
   "mozilla/2x2.png": [
    "c67d3f646e86413722833d2308a9bfc793a916bf",
    "support"
@@ -25386,11 +25395,11 @@
    "testharness"
   ],
   "mozilla/can_serialize_deep_tree.html": [
-   "d47c08735741f690750b1e58d4c9fdcfe503585d",
+   "a5e9326245e22650e52fa7ae0ed2b4e707e75e0f",
    "testharness"
   ],
   "mozilla/can_serialize_deep_tree.html~": [
-   "d5e1649c88102f27da5fe1ac16715cfee7f70f84",
+   "1b2dc51509a6a435dbc2f7838ab4ffffac033f58",
    "support"
   ],
   "mozilla/canvas.initial.reset.2dstate.html": [
