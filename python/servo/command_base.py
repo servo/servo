@@ -574,3 +574,30 @@ class CommandBase(object):
             Registrar.dispatch("bootstrap-cargo", context=self.context)
 
         self.context.bootstrapped = True
+
+    def ensure_clobbered(self, target_dir=None):
+        if target_dir is None:
+            target_dir = self.get_target_dir()
+        auto = True if os.environ.get('AUTOCLOBBER', False) else False
+        src_clobber = os.path.join(self.context.topdir, 'CLOBBER')
+        target_clobber = os.path.join(target_dir, 'CLOBBER')
+
+        if not os.path.exists(target_dir):
+            os.makedirs(target_dir)
+
+        if not os.path.exists(target_clobber):
+            # Simply touch the file.
+            with open(target_clobber, 'a'):
+                pass
+
+        if auto:
+            if os.path.getmtime(src_clobber) > os.path.getmtime(target_clobber):
+                print('Automatically clobbering target directory: {}'.format(target_dir))
+
+                try:
+                    Registrar.dispatch("clean", context=self.context, verbose=True)
+                    print('Successfully completed auto clobber.')
+                except subprocess.CalledProcessError as error:
+                    sys.exit(error)
+            else:
+                print("Clobber not needed.")

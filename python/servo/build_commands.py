@@ -24,7 +24,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, cd, call, BIN_SUFFIX
+from servo.command_base import CommandBase, cd, call, check_call, BIN_SUFFIX
 from servo.util import host_triple
 
 
@@ -228,6 +228,7 @@ class MachCommands(CommandBase):
             opts += ["--target", target]
 
         self.ensure_bootstrapped(target=target)
+        self.ensure_clobbered()
 
         if debug_mozjs:
             features += ["debugmozjs"]
@@ -360,6 +361,7 @@ class MachCommands(CommandBase):
     def build_cef(self, jobs=None, verbose=False, release=False,
                   with_debug_assertions=False):
         self.ensure_bootstrapped()
+        self.ensure_clobbered()
 
         ret = None
         opts = []
@@ -411,6 +413,7 @@ class MachCommands(CommandBase):
     def build_geckolib(self, with_gecko=None, jobs=None, verbose=False, release=False):
         self.set_use_stable_rust()
         self.ensure_bootstrapped()
+        self.ensure_clobbered()
 
         env = self.build_env(is_build=True, geckolib=True)
 
@@ -455,7 +458,7 @@ class MachCommands(CommandBase):
                      help='Print verbose output')
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
-    def clean(self, manifest_path, params, verbose=False):
+    def clean(self, manifest_path=None, params=[], verbose=False):
         self.ensure_bootstrapped()
 
         opts = []
@@ -464,5 +467,5 @@ class MachCommands(CommandBase):
         if verbose:
             opts += ["-v"]
         opts += params
-        return call(["cargo", "clean"] + opts,
-                    env=self.build_env(), cwd=self.servo_crate(), verbose=verbose)
+        return check_call(["cargo", "clean"] + opts,
+                          env=self.build_env(), cwd=self.servo_crate(), verbose=verbose)
