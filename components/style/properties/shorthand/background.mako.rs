@@ -15,7 +15,7 @@
     use properties::longhands::background_clip;
     use properties::longhands::background_clip::single_value::computed_value::T as Clip;
     use properties::longhands::background_origin::single_value::computed_value::T as Origin;
-    use values::specified::position::Position;
+    use values::specified::{Position, PositionComponent};
     use parser::Parse;
 
     impl From<background_origin::single_value::SpecifiedValue> for background_clip::single_value::SpecifiedValue {
@@ -39,7 +39,7 @@
             let mut background_${name} = background_${name}::SpecifiedValue(Vec::new());
         % endfor
         try!(input.parse_comma_separated(|input| {
-            % for name in "image position_x position_y repeat size attachment origin clip".split():
+            % for name in "image position repeat size attachment origin clip".split():
                 let mut ${name} = None;
             % endfor
             loop {
@@ -52,10 +52,9 @@
                         return Err(())
                     }
                 }
-                if position_x.is_none() && position_y.is_none() {
+                if position.is_none() {
                     if let Ok(value) = input.try(|input| Position::parse(context, input)) {
-                        position_x = Some(value.horizontal);
-                        position_y = Some(value.vertical);
+                        position = Some(value);
 
                         // Parse background size, if applicable.
                         size = input.try(|input| {
@@ -83,22 +82,17 @@
                 }
             }
             let mut any = false;
-            % for name in "image position_x position_y repeat size attachment origin clip".split():
+            % for name in "image position repeat size attachment origin clip".split():
                 any = any || ${name}.is_some();
             % endfor
             any = any || background_color.is_some();
             if any {
-                if position_x.is_some() || position_y.is_some() {
-                    % for name in "position_x position_y".split():
-                        if let Some(bg_${name}) = ${name} {
-                            background_${name}.0.push(bg_${name});
-                        }
-                    % endfor
+                if let Some(position) = position {
+                    background_position_x.0.push(position.horizontal);
+                    background_position_y.0.push(position.vertical);
                 } else {
-                    % for name in "position_x position_y".split():
-                        background_${name}.0.push(background_${name}::single_value
-                                                                    ::get_initial_position_value());
-                    % endfor
+                    background_position_x.0.push(PositionComponent::zero());
+                    background_position_y.0.push(PositionComponent::zero());
                 }
                 % for name in "image repeat size attachment origin clip".split():
                     if let Some(bg_${name}) = ${name} {
@@ -193,7 +187,7 @@
 <%helpers:shorthand name="background-position"
                     sub_properties="background-position-x background-position-y"
                     spec="https://drafts.csswg.org/css-backgrounds-4/#the-background-position">
-    use properties::longhands::{background_position_x,background_position_y};
+    use properties::longhands::{background_position_x, background_position_y};
     use values::specified::AllowQuirks;
     use values::specified::position::Position;
 
@@ -202,18 +196,13 @@
         let mut position_y = background_position_y::SpecifiedValue(Vec::new());
         let mut any = false;
 
-        try!(input.parse_comma_separated(|input| {
-            loop {
-                if let Ok(value) = input.try(|input| Position::parse_quirky(context, input, AllowQuirks::Yes)) {
-                    position_x.0.push(value.horizontal);
-                    position_y.0.push(value.vertical);
-                    any = true;
-                    continue
-                }
-                break
-            }
+        input.parse_comma_separated(|input| {
+            let value = Position::parse_quirky(context, input, AllowQuirks::Yes)?;
+            position_x.0.push(value.horizontal);
+            position_y.0.push(value.vertical);
+            any = true;
             Ok(())
-        }));
+        })?;
         if !any {
             return Err(());
         }

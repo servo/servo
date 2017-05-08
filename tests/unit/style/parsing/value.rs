@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use parsing::parse;
 use style::values::HasViewportPercentage;
 use style::values::specified::{AbsoluteLength, NoCalcLength, ViewportPercentageLength};
 

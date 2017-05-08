@@ -90,49 +90,14 @@ ${helpers.single_keyword("mask-mode",
     }
 </%helpers:vector_longhand>
 
-<%helpers:vector_longhand name="mask-position-x" products="gecko"
-                          animation_value_type="ComputedValue" extra_prefixes="webkit"
-                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-position">
-    pub use properties::longhands::background_position_x::single_value::get_initial_value;
-    pub use properties::longhands::background_position_x::single_value::get_initial_position_value;
-    pub use properties::longhands::background_position_x::single_value::get_initial_specified_value;
-    pub use properties::longhands::background_position_x::single_value::parse;
-    pub use properties::longhands::background_position_x::single_value::SpecifiedValue;
-    pub use properties::longhands::background_position_x::single_value::computed_value;
-    use properties::animated_properties::{Animatable, RepeatableListAnimatable};
-    use properties::longhands::mask_position_x::computed_value::T as MaskPositionX;
-
-    impl Animatable for MaskPositionX {
-        #[inline]
-        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-            Ok(MaskPositionX(try!(self.0.interpolate(&other.0, progress))))
-        }
-    }
-
-    impl RepeatableListAnimatable for MaskPositionX {}
-</%helpers:vector_longhand>
-
-<%helpers:vector_longhand name="mask-position-y" products="gecko"
-                          animation_value_type="ComputedValue" extra_prefixes="webkit"
-                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-position">
-    pub use properties::longhands::background_position_y::single_value::get_initial_value;
-    pub use properties::longhands::background_position_y::single_value::get_initial_position_value;
-    pub use properties::longhands::background_position_y::single_value::get_initial_specified_value;
-    pub use properties::longhands::background_position_y::single_value::parse;
-    pub use properties::longhands::background_position_y::single_value::SpecifiedValue;
-    pub use properties::longhands::background_position_y::single_value::computed_value;
-    use properties::animated_properties::{Animatable, RepeatableListAnimatable};
-    use properties::longhands::mask_position_y::computed_value::T as MaskPositionY;
-
-    impl Animatable for MaskPositionY {
-        #[inline]
-        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-            Ok(MaskPositionY(try!(self.0.interpolate(&other.0, progress))))
-        }
-    }
-
-    impl RepeatableListAnimatable for MaskPositionY {}
-</%helpers:vector_longhand>
+% for (axis, direction) in [("x", "Horizontal"), ("y", "Vertical")]:
+    ${helpers.predefined_type("mask-position-" + axis, "position::" + direction + "Position",
+                              products="gecko", extra_prefixes="webkit",
+                              initial_value="computed::LengthOrPercentage::zero()",
+                              initial_specified_value="specified::PositionComponent::Center",
+                              spec="https://drafts.fxtf.org/css-masking/#propdef-mask-position",
+                              animation_value_type="ComputedValue", vector=True, delegate_animate=True)}
+% endfor
 
 ${helpers.single_keyword("mask-clip",
                          "border-box content-box padding-box",

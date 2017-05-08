@@ -20,6 +20,10 @@ fn parse<T, F: Fn(&ParserContext, &mut Parser) -> Result<T, ()>>(f: F, s: &str) 
     f(&context, &mut parser)
 }
 
+fn parse_entirely<T, F: Fn(&ParserContext, &mut Parser) -> Result<T, ()>>(f: F, s: &str) -> Result<T, ()> {
+    parse(|context, parser| parser.parse_entirely(|p| f(context, p)), s)
+}
+
 // This is a macro so that the file/line information
 // is preserved in the panic
 macro_rules! assert_roundtrip_with_context {

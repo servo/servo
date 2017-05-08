@@ -367,17 +367,16 @@ fn color_to_nscolor_zero_currentcolor(color: Color) -> structs::nscolor {
 <%def name="impl_position(ident, gecko_ffi_name, need_clone=False)">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        ${set_gecko_property("%s.mXPosition" % gecko_ffi_name, "v.horizontal.0.into()")}
-        ${set_gecko_property("%s.mYPosition" % gecko_ffi_name, "v.vertical.0.into()")}
+        ${set_gecko_property("%s.mXPosition" % gecko_ffi_name, "v.horizontal.into()")}
+        ${set_gecko_property("%s.mYPosition" % gecko_ffi_name, "v.vertical.into()")}
     }
     <%call expr="impl_simple_copy(ident, gecko_ffi_name)"></%call>
     % if need_clone:
         #[allow(non_snake_case)]
         pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-            use values::generics::position::{HorizontalPosition, Position, VerticalPosition};
-            Position {
-                horizontal: HorizontalPosition(self.gecko.${gecko_ffi_name}.mXPosition.into()),
-                vertical: VerticalPosition(self.gecko.${gecko_ffi_name}.mYPosition.into()),
+            longhands::${ident}::computed_value::T {
+                horizontal: self.gecko.${gecko_ffi_name}.mXPosition.into(),
+                vertical: self.gecko.${gecko_ffi_name}.mYPosition.into(),
             }
         }
     % endif
@@ -2040,8 +2039,8 @@ fn static_assert() {
         for (gecko, servo) in self.gecko.mScrollSnapCoordinate
                                .iter_mut()
                                .zip(v) {
-            gecko.mXPosition = servo.horizontal.0.into();
-            gecko.mYPosition = servo.vertical.0.into();
+            gecko.mXPosition = servo.horizontal.into();
+            gecko.mYPosition = servo.vertical.into();
         }
     }
 
@@ -2726,12 +2725,12 @@ fn static_assert() {
         }
     </%self:simple_image_array_property>
 
-    % for orientation in [("x", "Horizontal"), ("y", "Vertical")]:
-    pub fn copy_${shorthand}_position_${orientation[0]}_from(&mut self, other: &Self) {
+    % for orientation in ["x", "y"]:
+    pub fn copy_${shorthand}_position_${orientation}_from(&mut self, other: &Self) {
         use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
 
-        self.gecko.${image_layers_field}.mPosition${orientation[0].upper()}Count
-            = cmp::min(1, other.gecko.${image_layers_field}.mPosition${orientation[0].upper()}Count);
+        self.gecko.${image_layers_field}.mPosition${orientation.upper()}Count
+            = cmp::min(1, other.gecko.${image_layers_field}.mPosition${orientation.upper()}Count);
         self.gecko.${image_layers_field}.mLayers.mFirstElement.mPosition =
             other.gecko.${image_layers_field}.mLayers.mFirstElement.mPosition;
         unsafe {
@@ -2742,20 +2741,19 @@ fn static_assert() {
 
         for (layer, other) in self.gecko.${image_layers_field}.mLayers.iter_mut()
                                   .zip(other.gecko.${image_layers_field}.mLayers.iter()) {
-            layer.mPosition.m${orientation[0].upper()}Position
-                = other.mPosition.m${orientation[0].upper()}Position;
+            layer.mPosition.m${orientation.upper()}Position
+                = other.mPosition.m${orientation.upper()}Position;
         }
-        self.gecko.${image_layers_field}.mPosition${orientation[0].upper()}Count
-               = other.gecko.${image_layers_field}.mPosition${orientation[0].upper()}Count;
+        self.gecko.${image_layers_field}.mPosition${orientation.upper()}Count
+               = other.gecko.${image_layers_field}.mPosition${orientation.upper()}Count;
     }
 
-    pub fn clone_${shorthand}_position_${orientation[0]}(&self)
-        -> longhands::${shorthand}_position_${orientation[0]}::computed_value::T {
-        use values::generics::position::${orientation[1]}Position;
-        longhands::${shorthand}_position_${orientation[0]}::computed_value::T(
+    pub fn clone_${shorthand}_position_${orientation}(&self)
+        -> longhands::${shorthand}_position_${orientation}::computed_value::T {
+        longhands::${shorthand}_position_${orientation}::computed_value::T(
             self.gecko.${image_layers_field}.mLayers.iter()
-                .take(self.gecko.${image_layers_field}.mPosition${orientation[0].upper()}Count as usize)
-                .map(|position| ${orientation[1]}Position(position.mPosition.m${orientation[0].upper()}Position.into()))
+                .take(self.gecko.${image_layers_field}.mPosition${orientation.upper()}Count as usize)
+                .map(|position| position.mPosition.m${orientation.upper()}Position.into())
                 .collect()
         )
     }
@@ -2778,7 +2776,7 @@ fn static_assert() {
         self.gecko.${image_layers_field}.mPosition${orientation[0].upper()}Count = v.len() as u32;
         for (servo, geckolayer) in v.zip(self.gecko.${image_layers_field}
                                                            .mLayers.iter_mut()) {
-            geckolayer.mPosition.m${orientation[0].upper()}Position = servo.0.into();
+            geckolayer.mPosition.m${orientation[0].upper()}Position = servo.into();
         }
     }
     % endfor

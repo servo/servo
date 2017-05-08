@@ -36,7 +36,7 @@ pub use self::length::{FontRelativeLength, ViewportPercentageLength, CharacterWi
 pub use self::length::{Percentage, LengthOrNone, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
 pub use self::length::{LengthOrPercentageOrNone, LengthOrPercentageOrAutoOrContent, NoCalcLength};
 pub use self::length::{MaxLength, MinLength};
-pub use self::position::{HorizontalPosition, Position, VerticalPosition};
+pub use self::position::{Position, PositionComponent};
 
 #[cfg(feature = "gecko")]
 pub mod align;
