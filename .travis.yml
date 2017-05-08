@@ -30,6 +30,7 @@ matrix:
           - $HOME/.ccache
       before_cache:
         - ./mach clean-nightlies --keep 2 --force
+        - ./mach clean-cargo-cache --keep 2 --force
       env: CCACHE=/usr/bin/ccache
       addons:
         apt:
