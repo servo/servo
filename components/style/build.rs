@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#[cfg(feature = "gecko")]
 #[macro_use]
 extern crate lazy_static;
 #[cfg(feature = "bindgen")]
@@ -53,6 +52,10 @@ fn find_python() -> String {
     }.to_owned()
 }
 
+lazy_static! {
+    pub static ref PYTHON: String = env::var("PYTHON").ok().unwrap_or_else(find_python);
+}
+
 fn generate_properties() {
     for entry in WalkDir::new("properties") {
         let entry = entry.unwrap();
@@ -64,10 +67,9 @@ fn generate_properties() {
         }
     }
 
-    let python = env::var("PYTHON").ok().unwrap_or_else(find_python);
     let script = Path::new(file!()).parent().unwrap().join("properties").join("build.py");
     let product = if cfg!(feature = "gecko") { "gecko" } else { "servo" };
-    let status = Command::new(python)
+    let status = Command::new(&*PYTHON)
         .arg(&script)
         .arg(product)
         .arg("style-crate")
