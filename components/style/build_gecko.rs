@@ -3,11 +3,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 mod common {
-    use std::env;
-    use std::path::PathBuf;
+    use std::{env, fs, io};
+    use std::path::{Path, PathBuf};
 
     lazy_static! {
         pub static ref OUTDIR_PATH: PathBuf = PathBuf::from(env::var("OUT_DIR").unwrap()).join("gecko");
+    }
+
+    /// Copy contents of one directory into another.
+    /// It currently only does a shallow copy.
+    pub fn copy_dir<P, Q, F>(from: P, to: Q, callback: F) -> io::Result<()>
+    where P: AsRef<Path>, Q: AsRef<Path>, F: Fn(&Path) {
+        let to = to.as_ref();
+        for entry in from.as_ref().read_dir()? {
+            let entry = entry?;
+            let path = entry.path();
+            callback(&path);
+            fs::copy(&path, to.join(entry.file_name()))?;
+        }
+        Ok(())
     }
 }
 
@@ -62,11 +76,6 @@ mod bindings {
         pub static ref LAST_MODIFIED: Mutex<SystemTime> =
             Mutex::new(get_modified_time(&env::current_exe().unwrap())
                        .expect("Failed to get modified time of executable"));
-        static ref BINDING_DISTDIR_PATH: PathBuf = {
-            let path = DISTDIR_PATH.join("rust_bindings/style");
-            fs::create_dir_all(&path).expect("Fail to create bindings dir in dist");
-            path
-        };
     }
 
     fn get_modified_time(file: &Path) -> Option<SystemTime> {
@@ -239,8 +248,6 @@ mod bindings {
         }
         let bytes = result.into_bytes();
         File::create(&out_file).unwrap().write_all(&bytes).expect("Unable to write output");
-        File::create(&BINDING_DISTDIR_PATH.join(file)).unwrap()
-            .write_all(&bytes).expect("Unable to write output to binding dist");
     }
 
     fn get_arc_types() -> Vec<String> {
@@ -850,25 +857,28 @@ mod bindings {
             generate_bindings(),
             generate_atoms(),
         }
+
+        // Copy all generated files to dist for the binding package
+        let path = DISTDIR_PATH.join("rust_bindings/style");
+        if path.exists() {
+            fs::remove_dir_all(&path).expect("Fail to remove binding dir in dist");
+        }
+        fs::create_dir_all(&path).expect("Fail to create bindings dir in dist");
+        copy_dir(&*OUTDIR_PATH, &path, |_| {}).expect("Fail to copy generated files to dist dir");
     }
 }
 
 #[cfg(not(feature = "bindgen"))]
 mod bindings {
-    use std::fs;
     use std::path::Path;
     use super::common::*;
 
     pub fn generate() {
         let dir = Path::new(file!()).parent().unwrap().join("gecko/generated");
         println!("cargo:rerun-if-changed={}", dir.display());
-        let entries = dir.read_dir().expect("Fail to list the generated directory");
-        for entry in entries {
-            let entry = entry.expect("Fail to get dir entry");
-            println!("cargo:rerun-if-changed={}", entry.path().display());
-            fs::copy(entry.path(), OUTDIR_PATH.join(entry.file_name()))
-                .expect("Fail to copy the file");
-        }
+        copy_dir(&dir, &*OUTDIR_PATH, |path| {
+            println!("cargo:rerun-if-changed={}", path.display());
+        }).expect("Fail to copy generated files to out dir");
     }
 }
 
