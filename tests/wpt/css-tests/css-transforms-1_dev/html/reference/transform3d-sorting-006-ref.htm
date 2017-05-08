@@ -2,7 +2,6 @@
 <html><head>
     <title>CSS Reftest Reference</title>
     <link href="mailto:ayg@aryeh.name" rel="author" title="Aryeh Gregor">
-    <link href="mailto:dmalyshau@mozilla.com" rel="author" title="Dzmitry Malyshau">
     <!--
     In a correct implementation, the bottom borders here will be invisible, because
     the later divs get painted on top.  This is to catch an incorrect pass in
@@ -12,18 +11,20 @@
     -->
   </head>
   <body>
-    <div style="height: 70px; width: 50px; background: green;
-      border-top: 30px solid black;
-      transform: rotateX(45deg) rotateY(-45deg);
-      transform-origin: right"></div>
-    <div style="height: 100px; width: 50px; background: red;
-      transform: translateY(-100px) rotateX(45deg) rotateY(45deg);
-      transform-origin: right"></div>
     <div style="height: 70px; width: 50px; background: red;
-      border-top: 30px solid black;
+      border-bottom: 30px solid black;
+      transform: rotateX(45deg) rotateY(45deg);
+      transform-origin: right"></div>
+    <div style="height: 70px; width: 50px; background: green;
+      border-bottom: 30px solid black;
+      transform: translate(50px, -100px) rotateX(45deg) rotateY(-45deg);
+      transform-origin: left"></div>
+    <div style="height: 100px; width: 50px; background: red;
       transform: translate(50px, -200px) rotateX(45deg) rotateY(45deg);
       transform-origin: left"></div>
     <div style="height: 100px; width: 50px; background: green;
-      transform: translate(50px, -300px) rotateX(45deg) rotateY(-45deg);
-      transform-origin: left"></div>
+      transform: translateY(-300px) rotateX(45deg) rotateY(-45deg);
+      transform-origin: right"></div>
+  
+
 </body></html>

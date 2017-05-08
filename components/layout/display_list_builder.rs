@@ -2611,12 +2611,11 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                     fragment.stacking_context_id = fragment.stacking_context_id();
 
                     let current_stacking_context_id = state.current_stacking_context_id;
-                    let stacking_context = fragment.create_stacking_context(
-                       fragment.stacking_context_id,
-                       &self.base,
-                       ScrollPolicy::Scrollable,
-                       StackingContextCreationMode::Normal,
-                       state.current_scroll_root_id);
+                    let stacking_context = fragment.create_stacking_context(fragment.stacking_context_id,
+                                                                            &self.base,
+                                                                            ScrollPolicy::Scrollable,
+                                                                            StackingContextCreationMode::Normal,
+                                                                            state.current_scroll_root_id);
 
                     state.add_stacking_context(current_stacking_context_id,
                                                stacking_context);
