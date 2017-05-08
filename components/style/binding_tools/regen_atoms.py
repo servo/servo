@@ -258,7 +258,7 @@ def write_pseudo_element_helper(atoms, target_filename):
 def generate_atoms(dist):
     style_path = os.path.dirname(os.path.dirname(__file__))
     atoms = collect_atoms(dist)
-    write_atom_macro(atoms, os.path.join(style_path, "gecko_string_cache/atom_macro.rs"))
+    write_atom_macro(atoms, os.path.join(style_path, "gecko/generated/atom_macro.rs"))
     write_pseudo_element_helper(atoms, os.path.join(style_path, "gecko/generated/pseudo_element_helper.rs"))
 
 

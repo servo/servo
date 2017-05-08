@@ -40,7 +40,7 @@ files = [
   "./components/style/gecko/generated/bindings.rs",
   "./components/style/gecko/generated/structs_debug.rs",
   "./components/style/gecko/generated/structs_release.rs",
-  "./components/style/gecko_string_cache/atom_macro.rs",
+  "./components/style/gecko/generated/atom_macro.rs",
   "./resources/hsts_preload.json",
   "./tests/wpt/metadata/MANIFEST.json",
   "./tests/wpt/metadata-css/MANIFEST.json",
