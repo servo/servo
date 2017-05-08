@@ -58,11 +58,11 @@ impl MutationRecord {
     }
     // setter for attr_namespace
     pub fn SetAttributeNamespace(&self, attr_namespace: DOMString) {
-        *self.attribute_name.borrow_mut() = Some(attr_namespace);
+        *self.attribute_namespace.borrow_mut() = Some(attr_namespace);
     }
-    // setter for attr_oldvalue
+    // setter for oldvalue
     pub fn SetoldValue(&self, attr_oldvalue: DOMString) {
-        *self.attribute_name.borrow_mut() = Some(attr_oldvalue);
+        *self.old_value.borrow_mut() = Some(attr_oldvalue);
     }
 }
 

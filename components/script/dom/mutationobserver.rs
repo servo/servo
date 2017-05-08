@@ -156,7 +156,9 @@ impl MutationObserver {
             match attr_type {
                 Mutation::Attribute { ref name, ref namespace, ref oldValue, ref newValue } => {
                     record.SetAttributeName(DOMString::from(&**name));
-                    record.SetAttributeNamespace(DOMString::from(&**namespace));
+                    if namespace != &ns!() {
+                        record.SetAttributeNamespace(DOMString::from(&**namespace));
+                    }
                 }
             }
             // Step 4.3-4.6- TODO currently not relevant to mutation records for attribute mutations
