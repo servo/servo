@@ -141,10 +141,20 @@ class PackageCommands(CommandBase):
         dir_to_root = self.get_top_dir()
         target_dir = path.dirname(binary_path)
         if android:
-            if dev:
-                task_name = "assembleArmDebug"
+            android_target = self.config["android"]["target"]
+            if "aarch64" in android_target:
+                build_type = "Arm64"
+            elif "armv7" in android_target:
+                build_type = "Armv7"
             else:
-                task_name = "assembleArmRelease"
+                build_type = "Arm"
+
+            if dev:
+                build_mode = "Debug"
+            else:
+                build_mode = "Release"
+
+            task_name = "assemble" + build_type + build_mode
             try:
                 with cd(path.join("support", "android", "apk")):
                     subprocess.check_call(["./gradlew", "--no-daemon", task_name], env=env)
