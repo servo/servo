@@ -3,28 +3,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 mod common {
-    use std::env;
-    use std::path::PathBuf;
+    use std::{env, fs, io};
+    use std::path::{Path, PathBuf};
 
     lazy_static! {
         pub static ref OUTDIR_PATH: PathBuf = PathBuf::from(env::var("OUT_DIR").unwrap()).join("gecko");
     }
 
-    pub const STRUCTS_DEBUG_FILE: &'static str = "structs_debug.rs";
-    pub const STRUCTS_RELEASE_FILE: &'static str = "structs_release.rs";
-    pub const BINDINGS_FILE: &'static str = "bindings.rs";
-
-    #[derive(Clone, Copy, PartialEq)]
-    pub enum BuildType {
-        Debug,
-        Release,
-    }
-
-    pub fn structs_file(build_type: BuildType) -> &'static str {
-        match build_type {
-            BuildType::Debug => STRUCTS_DEBUG_FILE,
-            BuildType::Release => STRUCTS_RELEASE_FILE
+    /// Copy contents of one directory into another.
+    /// It currently only does a shallow copy.
+    pub fn copy_dir<P, Q, F>(from: P, to: Q, callback: F) -> io::Result<()>
+    where P: AsRef<Path>, Q: AsRef<Path>, F: Fn(&Path) {
+        let to = to.as_ref();
+        for entry in from.as_ref().read_dir()? {
+            let entry = entry?;
+            let path = entry.path();
+            callback(&path);
+            fs::copy(&path, to.join(entry.file_name()))?;
         }
+        Ok(())
     }
 }
 
@@ -39,9 +36,28 @@ mod bindings {
     use std::fs::{self, File};
     use std::io::{Read, Write};
     use std::path::{Path, PathBuf};
+    use std::process::{Command, exit};
     use std::sync::Mutex;
     use std::time::SystemTime;
     use super::common::*;
+    use super::super::PYTHON;
+
+    const STRUCTS_DEBUG_FILE: &'static str = "structs_debug.rs";
+    const STRUCTS_RELEASE_FILE: &'static str = "structs_release.rs";
+    const BINDINGS_FILE: &'static str = "bindings.rs";
+
+    #[derive(Clone, Copy, PartialEq)]
+    enum BuildType {
+        Debug,
+        Release,
+    }
+
+    fn structs_file(build_type: BuildType) -> &'static str {
+        match build_type {
+            BuildType::Debug => STRUCTS_DEBUG_FILE,
+            BuildType::Release => STRUCTS_RELEASE_FILE
+        }
+    }
 
     lazy_static! {
         static ref INCLUDE_RE: Regex = Regex::new(r#"#include\s*"(.+?)""#).unwrap();
@@ -60,11 +76,6 @@ mod bindings {
         pub static ref LAST_MODIFIED: Mutex<SystemTime> =
             Mutex::new(get_modified_time(&env::current_exe().unwrap())
                        .expect("Failed to get modified time of executable"));
-        static ref BINDING_DISTDIR_PATH: PathBuf = {
-            let path = DISTDIR_PATH.join("rust_bindings/style");
-            fs::create_dir_all(&path).expect("Fail to create bindings dir in dist");
-            path
-        };
     }
 
     fn get_modified_time(file: &Path) -> Option<SystemTime> {
@@ -237,8 +248,6 @@ mod bindings {
         }
         let bytes = result.into_bytes();
         File::create(&out_file).unwrap().write_all(&bytes).expect("Unable to write output");
-        File::create(&BINDING_DISTDIR_PATH.join(file)).unwrap()
-            .write_all(&bytes).expect("Unable to write output to binding dist");
     }
 
     fn get_arc_types() -> Vec<String> {
@@ -276,7 +285,7 @@ mod bindings {
         }
     }
 
-    pub fn generate_structs(build_type: BuildType) {
+    fn generate_structs(build_type: BuildType) {
         let mut builder = Builder::get_initial_builder(build_type)
             .enable_cxx_namespaces()
             .with_codegen_config(CodegenConfig {
@@ -565,7 +574,7 @@ mod bindings {
         write_binding_file(builder, structs_file(build_type), &fixups);
     }
 
-    pub fn setup_logging() {
+    fn setup_logging() -> bool {
         use log;
 
         struct BuildLogger {
@@ -594,20 +603,23 @@ mod bindings {
             }
         }
 
-        log::set_logger(|log_level| {
-            log_level.set(log::LogLevelFilter::Debug);
-            Box::new(BuildLogger {
-                file: env::var("STYLO_BUILD_LOG").ok().and_then(|path| {
-                    fs::File::create(path).ok().map(Mutex::new)
-                }),
-                filter: env::var("STYLO_BUILD_FILTER").ok()
-                    .unwrap_or_else(|| "bindgen".to_owned()),
+        if let Ok(path) = env::var("STYLO_BUILD_LOG") {
+            log::set_logger(|log_level| {
+                log_level.set(log::LogLevelFilter::Debug);
+                Box::new(BuildLogger {
+                    file: fs::File::create(path).ok().map(Mutex::new),
+                    filter: env::var("STYLO_BUILD_FILTER").ok()
+                        .unwrap_or_else(|| "bindgen".to_owned()),
+                })
             })
-        })
-        .expect("Failed to set logger.");
+            .expect("Failed to set logger.");
+            true
+        } else {
+            false
+        }
     }
 
-    pub fn generate_bindings() {
+    fn generate_bindings() {
         let mut builder = Builder::get_initial_builder(BuildType::Release)
             .disable_name_namespacing()
             .with_codegen_config(CodegenConfig {
@@ -816,52 +828,70 @@ mod bindings {
         }
         write_binding_file(builder, BINDINGS_FILE, &Vec::new());
     }
+
+    fn generate_atoms() {
+        let script = Path::new(file!()).parent().unwrap().join("binding_tools").join("regen_atoms.py");
+        println!("cargo:rerun-if-changed={}", script.display());
+        let status = Command::new(&*PYTHON)
+            .arg(&script)
+            .arg(DISTDIR_PATH.as_os_str())
+            .arg(OUTDIR_PATH.as_os_str())
+            .status()
+            .unwrap();
+        if !status.success() {
+            exit(1);
+        }
+    }
+
+    pub fn generate() {
+        use std::thread;
+        macro_rules! run_tasks {
+            ($($task:expr,)+) => {
+                if setup_logging() {
+                    $($task;)+
+                } else {
+                    let threads = vec![$( thread::spawn(|| $task) ),+];
+                    for thread in threads.into_iter() {
+                        thread.join().unwrap();
+                    }
+                }
+            }
+        }
+        run_tasks! {
+            generate_structs(BuildType::Debug),
+            generate_structs(BuildType::Release),
+            generate_bindings(),
+            generate_atoms(),
+        }
+
+        // Copy all generated files to dist for the binding package
+        let path = DISTDIR_PATH.join("rust_bindings/style");
+        if path.exists() {
+            fs::remove_dir_all(&path).expect("Fail to remove binding dir in dist");
+        }
+        fs::create_dir_all(&path).expect("Fail to create bindings dir in dist");
+        copy_dir(&*OUTDIR_PATH, &path, |_| {}).expect("Fail to copy generated files to dist dir");
+    }
 }
 
 #[cfg(not(feature = "bindgen"))]
 mod bindings {
-    use std::fs;
-    use std::path::{Path, PathBuf};
+    use std::path::Path;
     use super::common::*;
 
-    lazy_static! {
-        static ref BINDINGS_PATH: PathBuf = Path::new(file!()).parent().unwrap().join("gecko_bindings");
-    }
-
-    pub fn setup_logging() {}
-
-    pub fn generate_structs(build_type: BuildType) {
-        let file = structs_file(build_type);
-        let source = BINDINGS_PATH.join(file);
-        println!("cargo:rerun-if-changed={}", source.display());
-        fs::copy(source, OUTDIR_PATH.join(file)).unwrap();
-    }
-
-    pub fn generate_bindings() {
-        let source = BINDINGS_PATH.join(BINDINGS_FILE);
-        println!("cargo:rerun-if-changed={}", source.display());
-        fs::copy(source, OUTDIR_PATH.join(BINDINGS_FILE)).unwrap();
+    pub fn generate() {
+        let dir = Path::new(file!()).parent().unwrap().join("gecko/generated");
+        println!("cargo:rerun-if-changed={}", dir.display());
+        copy_dir(&dir, &*OUTDIR_PATH, |path| {
+            println!("cargo:rerun-if-changed={}", path.display());
+        }).expect("Fail to copy generated files to out dir");
     }
 }
 
 pub fn generate() {
     use self::common::*;
-    use std::{env, fs, thread};
+    use std::fs;
     println!("cargo:rerun-if-changed=build_gecko.rs");
     fs::create_dir_all(&*OUTDIR_PATH).unwrap();
-    bindings::setup_logging();
-    if env::var("STYLO_BUILD_LOG").is_ok() {
-        bindings::generate_structs(BuildType::Debug);
-        bindings::generate_structs(BuildType::Release);
-        bindings::generate_bindings();
-    } else {
-        let threads = vec![
-            thread::spawn(|| bindings::generate_structs(BuildType::Debug)),
-            thread::spawn(|| bindings::generate_structs(BuildType::Release)),
-            thread::spawn(|| bindings::generate_bindings()),
-        ];
-        for t in threads.into_iter() {
-            t.join().unwrap();
-        }
-    }
+    bindings::generate();
 }

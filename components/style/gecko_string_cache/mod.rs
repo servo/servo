@@ -25,7 +25,10 @@ use std::slice;
 
 #[macro_use]
 #[allow(improper_ctypes, non_camel_case_types, missing_docs)]
-pub mod atom_macro;
+pub mod atom_macro {
+    include!(concat!(env!("OUT_DIR"), "/gecko/atom_macro.rs"));
+}
+
 #[macro_use]
 pub mod namespace;
 

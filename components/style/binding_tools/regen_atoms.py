@@ -97,7 +97,9 @@ class Atom:
 def collect_atoms(objdir):
     atoms = []
     for source in SOURCES:
-        with open(os.path.join(objdir, source.FILE)) as f:
+        path = os.path.abspath(os.path.join(objdir, source.FILE))
+        print("cargo:rerun-if-changed={}".format(path))
+        with open(path) as f:
             for line in f.readlines():
                 result = re.match(source.PATTERN, line)
                 if result:
@@ -255,15 +257,14 @@ def write_pseudo_element_helper(atoms, target_filename):
         f.write("}\n")
 
 
-def generate_atoms(dist):
-    style_path = os.path.dirname(os.path.dirname(__file__))
+def generate_atoms(dist, out):
     atoms = collect_atoms(dist)
-    write_atom_macro(atoms, os.path.join(style_path, "gecko_string_cache/atom_macro.rs"))
-    write_pseudo_element_helper(atoms, os.path.join(style_path, "gecko/generated/gecko_pseudo_element_helper.rs"))
+    write_atom_macro(atoms, os.path.join(out, "atom_macro.rs"))
+    write_pseudo_element_helper(atoms, os.path.join(out, "pseudo_element_helper.rs"))
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: {} objdir".format(sys.argv[0]))
+    if len(sys.argv) != 3:
+        print("Usage: {} dist out".format(sys.argv[0]))
         exit(2)
-    generate_atoms(os.path.join(sys.argv[1], "dist"))
+    generate_atoms(sys.argv[1], sys.argv[2])

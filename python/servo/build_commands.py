@@ -24,7 +24,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, cd, call, BIN_SUFFIX, find_dep_path_newest
+from servo.command_base import CommandBase, cd, call, BIN_SUFFIX
 from servo.util import host_triple
 
 
@@ -413,7 +413,6 @@ class MachCommands(CommandBase):
         self.ensure_bootstrapped()
 
         env = self.build_env(is_build=True, geckolib=True)
-        geckolib_build_path = path.join(self.context.topdir, "target", "geckolib").encode("UTF-8")
 
         ret = None
         opts = []
@@ -433,14 +432,6 @@ class MachCommands(CommandBase):
         if features:
             opts += ["--features", ' '.join(features)]
 
-        if with_gecko is not None:
-            print("Generating atoms data...")
-            run_file = path.join(self.context.topdir, "components",
-                                 "style", "binding_tools", "regen_atoms.py")
-            run_globals = {"__file__": run_file}
-            execfile(run_file, run_globals)
-            run_globals["generate_atoms"](env["MOZ_DIST"])
-
         build_start = time()
         with cd(path.join("ports", "geckolib")):
             ret = call(["cargo", "build"] + opts, env=env, verbose=verbose)
@@ -450,15 +441,6 @@ class MachCommands(CommandBase):
         notify_build_done(self.config, elapsed)
 
         print("GeckoLib build completed in %s" % format_duration(elapsed))
-
-        if with_gecko is not None:
-            print("Copying binding files to style/gecko_bindings...")
-            build_path = path.join(geckolib_build_path, "release" if release else "debug", "")
-            target_style_path = find_dep_path_newest("style", build_path)
-            out_gecko_path = path.join(target_style_path, "out", "gecko")
-            bindings_path = path.join(self.context.topdir, "components", "style", "gecko_bindings")
-            for f in ["bindings.rs", "structs_debug.rs", "structs_release.rs"]:
-                shutil.copy(path.join(out_gecko_path, f), bindings_path)
 
         return ret
 
