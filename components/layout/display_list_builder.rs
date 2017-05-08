@@ -577,7 +577,7 @@ fn build_border_radius(abs_bounds: &Rect<Au>,
 /// Get the border radius for the rectangle inside of a rounded border. This is useful
 /// for building the clip for the content inside the border.
 fn build_border_radius_for_inner_rect(outer_rect: &Rect<Au>,
-                                      style: ::StyleArc<ServoComputedValues>)
+                                      style: &ServoComputedValues)
                                       -> BorderRadii<Au> {
     let mut radii = build_border_radius(&outer_rect, style.get_border());
     if radii.is_square() {
@@ -2376,7 +2376,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         let mut clip = ClippingRegion::from_rect(&clip_rect);
 
         let border_radii = build_border_radius_for_inner_rect(&border_box,
-                                                              self.fragment.style.clone());
+                                                              &self.fragment.style);
         if !border_radii.is_square() {
             clip.intersect_with_rounded_rect(&clip_rect, &border_radii)
         }
@@ -2398,7 +2398,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 
         let clip_rect = Rect::new(Point2D::zero(), content_box.size);
         let mut clip = ClippingRegion::from_rect(&clip_rect);
-        let radii = build_border_radius_for_inner_rect(&border_box, self.fragment.style.clone());
+        let radii = build_border_radius_for_inner_rect(&border_box, &self.fragment.style);
         if !radii.is_square() {
             clip.intersect_with_rounded_rect(&clip_rect, &radii)
         }
