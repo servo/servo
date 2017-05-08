@@ -564,20 +564,20 @@ fn build_border_radius(abs_bounds: &Rect<Au>,
 
     handle_overlapping_radii(&abs_bounds.size, &BorderRadii {
         top_left:     model::specified_border_radius(border_style.border_top_left_radius,
-                                                     abs_bounds.size.width),
+                                                     abs_bounds.size),
         top_right:    model::specified_border_radius(border_style.border_top_right_radius,
-                                                     abs_bounds.size.width),
+                                                     abs_bounds.size),
         bottom_right: model::specified_border_radius(border_style.border_bottom_right_radius,
-                                                     abs_bounds.size.width),
+                                                     abs_bounds.size),
         bottom_left:  model::specified_border_radius(border_style.border_bottom_left_radius,
-                                                     abs_bounds.size.width),
+                                                     abs_bounds.size),
     })
 }
 
 /// Get the border radius for the rectangle inside of a rounded border. This is useful
 /// for building the clip for the content inside the border.
 fn build_border_radius_for_inner_rect(outer_rect: &Rect<Au>,
-                                      style: ::StyleArc<ServoComputedValues>)
+                                      style: &ServoComputedValues)
                                       -> BorderRadii<Au> {
     let mut radii = build_border_radius(&outer_rect, style.get_border());
     if radii.is_square() {
@@ -1278,7 +1278,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 spread_radius: box_shadow.spread_radius,
                 border_radius: model::specified_border_radius(style.get_border()
                                                                    .border_top_left_radius,
-                                                              absolute_bounds.size.width).width,
+                                                              absolute_bounds.size).width,
                 clip_mode: if box_shadow.inset {
                     BoxShadowClipMode::Inset
                 } else {
@@ -2376,7 +2376,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         let mut clip = ClippingRegion::from_rect(&clip_rect);
 
         let border_radii = build_border_radius_for_inner_rect(&border_box,
-                                                              self.fragment.style.clone());
+                                                              &self.fragment.style);
         if !border_radii.is_square() {
             clip.intersect_with_rounded_rect(&clip_rect, &border_radii)
         }
@@ -2398,7 +2398,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 
         let clip_rect = Rect::new(Point2D::zero(), content_box.size);
         let mut clip = ClippingRegion::from_rect(&clip_rect);
-        let radii = build_border_radius_for_inner_rect(&border_box, self.fragment.style.clone());
+        let radii = build_border_radius_for_inner_rect(&border_box, &self.fragment.style);
         if !radii.is_square() {
             clip.intersect_with_rounded_rect(&clip_rect, &radii)
         }
