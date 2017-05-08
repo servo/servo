@@ -564,13 +564,13 @@ fn build_border_radius(abs_bounds: &Rect<Au>,
 
     handle_overlapping_radii(&abs_bounds.size, &BorderRadii {
         top_left:     model::specified_border_radius(border_style.border_top_left_radius,
-                                                     abs_bounds.size.width),
+                                                     abs_bounds.size),
         top_right:    model::specified_border_radius(border_style.border_top_right_radius,
-                                                     abs_bounds.size.width),
+                                                     abs_bounds.size),
         bottom_right: model::specified_border_radius(border_style.border_bottom_right_radius,
-                                                     abs_bounds.size.width),
+                                                     abs_bounds.size),
         bottom_left:  model::specified_border_radius(border_style.border_bottom_left_radius,
-                                                     abs_bounds.size.width),
+                                                     abs_bounds.size),
     })
 }
 
@@ -1278,7 +1278,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 spread_radius: box_shadow.spread_radius,
                 border_radius: model::specified_border_radius(style.get_border()
                                                                    .border_top_left_radius,
-                                                              absolute_bounds.size.width).width,
+                                                              absolute_bounds.size).width,
                 clip_mode: if box_shadow.inset {
                     BoxShadowClipMode::Inset
                 } else {
