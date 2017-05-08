@@ -1262,8 +1262,11 @@ impl ToCss for PropertyDeclaration {
             PropertyDeclaration::CSSWideKeyword(_, keyword) => keyword.to_css(dest),
             PropertyDeclaration::WithVariables(_, ref with_variables) => {
                 // https://drafts.csswg.org/css-variables/#variables-in-shorthands
-                if with_variables.from_shorthand.is_none() {
-                    dest.write_str(&*with_variables.css)?
+                match with_variables.from_shorthand {
+                    Some(shorthand) if shorthand.flags().contains(ALIAS_PROPERTY) =>
+                        dest.write_str(&*with_variables.css)?,
+                    None => dest.write_str(&*with_variables.css)?,
+                    _ => {},
                 }
                 Ok(())
             },
@@ -1341,7 +1344,12 @@ impl PropertyDeclaration {
                     if s == shorthand {
                         Some(&*with_variables.css)
                     } else { None }
-                } else { None }
+                } else {
+                    if shorthand.flags().contains(ALIAS_PROPERTY) {
+                        return Some(&*with_variables.css);
+                    }
+                    None
+                }
             },
             _ => None,
         }
