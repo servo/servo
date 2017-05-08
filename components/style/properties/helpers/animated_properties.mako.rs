@@ -41,7 +41,6 @@ use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone
 use values::computed::{BorderRadiusSize, ClipRect};
 use values::computed::{CalcLengthOrPercentage, Context, LengthOrPercentage};
 use values::computed::{MaxLength, MinLength};
-use values::computed::position::{HorizontalPosition, VerticalPosition};
 use values::computed::ToComputedValue;
 use values::generics::position as generic_position;
 
@@ -621,6 +620,7 @@ pub trait Interpolate: Sized {
 /// https://drafts.csswg.org/css-transitions/#animtype-repeatable-list
 pub trait RepeatableListInterpolate: Interpolate {}
 
+impl RepeatableListInterpolate for LengthOrPercentage {}
 impl RepeatableListInterpolate for Either<f32, LengthOrPercentage> {}
 
 impl<T: RepeatableListInterpolate> Interpolate for SmallVec<[T; 1]> {
@@ -989,26 +989,6 @@ impl<H: Interpolate, V: Interpolate> Interpolate for generic_position::Position<
 
 impl<H, V> RepeatableListInterpolate for generic_position::Position<H, V>
     where H: RepeatableListInterpolate, V: RepeatableListInterpolate {}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-simple-list
-impl Interpolate for HorizontalPosition {
-    #[inline]
-    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-        self.0.interpolate(&other.0, progress).map(generic_position::HorizontalPosition)
-    }
-}
-
-impl RepeatableListInterpolate for HorizontalPosition {}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-simple-list
-impl Interpolate for VerticalPosition {
-    #[inline]
-    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-        self.0.interpolate(&other.0, progress).map(generic_position::VerticalPosition)
-    }
-}
-
-impl RepeatableListInterpolate for VerticalPosition {}
 
 /// https://drafts.csswg.org/css-transitions/#animtype-rect
 impl Interpolate for ClipRect {
@@ -2609,30 +2589,6 @@ impl<H, V> ComputeDistance for generic_position::Position<H, V>
     fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
         Ok(try!(self.horizontal.compute_squared_distance(&other.horizontal)) +
            try!(self.vertical.compute_squared_distance(&other.vertical)))
-    }
-}
-
-impl ComputeDistance for HorizontalPosition {
-    #[inline]
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.0.compute_distance(&other.0)
-    }
-
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.0.compute_squared_distance(&other.0)
-    }
-}
-
-impl ComputeDistance for VerticalPosition {
-    #[inline]
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.0.compute_distance(&other.0)
-    }
-
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.0.compute_squared_distance(&other.0)
     }
 }
 

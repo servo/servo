@@ -1008,9 +1008,9 @@ impl FragmentDisplayListBuilding for Fragment {
             let horiz_position = *get_cyclic(&background.background_position_x.0, index);
             let vert_position = *get_cyclic(&background.background_position_y.0, index);
             // Use `background-position` to get the offset.
-            let horizontal_position = model::specified(horiz_position.0,
+            let horizontal_position = model::specified(horiz_position,
                                                        bounds.size.width - image_size.width);
-            let vertical_position = model::specified(vert_position.0,
+            let vertical_position = model::specified(vert_position,
                                                      bounds.size.height - image_size.height);
 
             // The anchor position for this background, based on both the background-attachment
@@ -1167,8 +1167,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                repeating: bool,
                                style: &ServoComputedValues)
                                -> display_list::RadialGradient {
-        let center = Point2D::new(specified(center.horizontal.0, bounds.size.width),
-                                  specified(center.vertical.0, bounds.size.height));
+        let center = Point2D::new(specified(center.horizontal, bounds.size.width),
+                                  specified(center.vertical, bounds.size.height));
         let radius = match *shape {
             EndingShape::Circle(LengthOrKeyword::Length(length))
                 => Size2D::new(length, length),

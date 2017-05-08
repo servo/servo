@@ -2143,11 +2143,11 @@ ${helpers.predefined_type("perspective",
                           animation_value_type="ComputedValue")}
 
 ${helpers.predefined_type("perspective-origin",
-                          "position::OriginPosition",
-                          "computed::position::OriginPosition::center()",
+                          "position::Position",
+                          "computed::position::Position::center()",
                           boxed="True",
                           extra_prefixes="moz webkit",
-                          spec="https://drafts.csswg.org/css-transforms/#perspective-origin-property",
+                          spec="https://drafts.csswg.org/css-transforms-2/#perspective-origin-property",
                           animation_value_type="ComputedValue")}
 
 ${helpers.single_keyword("backface-visibility",

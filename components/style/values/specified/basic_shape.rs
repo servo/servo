@@ -11,6 +11,7 @@ use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use properties::shorthands::parse_four_sides;
 use std::ascii::AsciiExt;
+use std::borrow::Cow;
 use std::fmt;
 use style_traits::ToCss;
 use values::HasViewportPercentage;
@@ -19,8 +20,8 @@ use values::computed::basic_shape as computed_basic_shape;
 use values::generics::BorderRadiusSize;
 use values::generics::basic_shape::{BorderRadius as GenericBorderRadius, ShapeRadius as GenericShapeRadius};
 use values::generics::basic_shape::{InsetRect as GenericInsetRect, Polygon as GenericPolygon, ShapeSource};
-use values::specified::{LengthOrPercentage, Percentage};
-use values::specified::position::{Keyword, Position};
+use values::specified::{LengthOrPercentage, Percentage, Position, PositionComponent};
+use values::specified::position::Side;
 
 /// The specified value used by `clip-path`
 pub type ShapeWithGeometryBox = ShapeSource<BasicShape, GeometryBox>;
@@ -138,75 +139,62 @@ impl Parse for InsetRect {
 fn serialize_basicshape_position<W>(position: &Position, dest: &mut W) -> fmt::Result
     where W: fmt::Write
 {
-    // 0 length should be replaced with 0%
-    fn replace_with_percent(input: LengthOrPercentage) -> LengthOrPercentage {
-        match input {
-            LengthOrPercentage::Length(ref l) if l.is_zero() =>
-                LengthOrPercentage::Percentage(Percentage(0.0)),
-            _ => input
-        }
-    }
-
-    // keyword-percentage pairs can be folded into a single percentage
-    fn fold_keyword(keyword: Option<Keyword>,
-                    length: Option<LengthOrPercentage>) -> Option<LengthOrPercentage> {
-        let is_length_none = length.is_none();
-        let pc = match length.map(replace_with_percent) {
-            Some(LengthOrPercentage::Percentage(pc)) => pc,
-            None => Percentage(0.0),        // unspecified length = 0%
-            _ => return None
-        };
-
-        let percent = match keyword {
-            Some(Keyword::Center) => {
-                assert!(is_length_none);        // center cannot pair with lengths
-                Percentage(0.5)
+    fn to_keyword_and_lop<S>(component: &PositionComponent<S>) -> (S, Cow<LengthOrPercentage>)
+        where S: Copy + Side
+    {
+        match *component {
+            PositionComponent::Center => {
+                (S::start(), Cow::Owned(LengthOrPercentage::Percentage(Percentage(0.5))))
             },
-            Some(Keyword::Left) | Some(Keyword::Top) | None => pc,
-            Some(Keyword::Right) | Some(Keyword::Bottom) => Percentage(1.0 - pc.0),
-            _ => return None,
-        };
-
-        Some(LengthOrPercentage::Percentage(percent))
+            PositionComponent::Side(keyword, None) => {
+                // left | top => 0%
+                // right | bottom => 100%
+                let p = if keyword.is_start() { 0. } else { 1. };
+                (S::start(), Cow::Owned(LengthOrPercentage::Percentage(Percentage(p))))
+            },
+            PositionComponent::Side(keyword, Some(ref lop)) if !keyword.is_start() => {
+                if let LengthOrPercentage::Percentage(p) = *to_non_zero_length(lop) {
+                    (S::start(), Cow::Owned(LengthOrPercentage::Percentage(Percentage(1. - p.0))))
+                } else {
+                    (keyword, Cow::Borrowed(lop))
+                }
+            },
+            PositionComponent::Length(ref lop) |
+            PositionComponent::Side(_, Some(ref lop)) => {
+                (S::start(), to_non_zero_length(lop))
+            },
+        }
     }
 
-    fn serialize_position_pair<W>(x: LengthOrPercentage, y: LengthOrPercentage,
-                                  dest: &mut W) -> fmt::Result where W: fmt::Write {
-        replace_with_percent(x).to_css(dest)?;
-        dest.write_str(" ")?;
-        replace_with_percent(y).to_css(dest)
-    }
-
-    match (position.horizontal.0.keyword, position.horizontal.0.position.clone(),
-           position.vertical.0.keyword, position.vertical.0.position.clone()) {
-        (Some(hk), None, Some(vk), None) => {
-            // two keywords: serialize as two lengths
-            serialize_position_pair(hk.into(), vk.into(), dest)
-        }
-        (None, Some(hp), None, Some(vp)) => {
-            // two lengths: just serialize regularly
-            serialize_position_pair(hp, vp, dest)
-        }
-        (hk, hp, vk, vp) => {
-            // only fold if both fold; the three-value form isn't
-            // allowed here.
-            if let (Some(x), Some(y)) = (fold_keyword(hk, hp.clone()),
-                                         fold_keyword(vk, vp.clone())) {
-                serialize_position_pair(x, y, dest)
-            } else {
-                // We failed to reduce it to a two-value form,
-                // so we expand it to 4-value
-                let zero = LengthOrPercentage::Percentage(Percentage(0.0));
-                hk.unwrap_or(Keyword::Left).to_css(dest)?;
-                dest.write_str(" ")?;
-                replace_with_percent(hp.unwrap_or(zero.clone())).to_css(dest)?;
-                dest.write_str(" ")?;
-                vk.unwrap_or(Keyword::Top).to_css(dest)?;
-                dest.write_str(" ")?;
-                replace_with_percent(vp.unwrap_or(zero)).to_css(dest)
+    fn to_non_zero_length(lop: &LengthOrPercentage) -> Cow<LengthOrPercentage> {
+        match *lop {
+            LengthOrPercentage::Length(ref l) if l.is_zero() => {
+                Cow::Owned(LengthOrPercentage::Percentage(Percentage(0.)))
+            },
+            _ => {
+                Cow::Borrowed(lop)
             }
         }
     }
+
+    fn write_pair<A, B, W>(a: &A, b: &B, dest: &mut W) -> fmt::Result
+        where A: ToCss, B: ToCss, W: fmt::Write
+    {
+        a.to_css(dest)?;
+        dest.write_str(" ")?;
+        b.to_css(dest)
+    }
+
+    let (x_pos, x_lop) = to_keyword_and_lop(&position.horizontal);
+    let (y_pos, y_lop) = to_keyword_and_lop(&position.vertical);
+
+    if x_pos.is_start() && y_pos.is_start() {
+        return write_pair(&*x_lop, &*y_lop, dest);
+    }
+
+    write_pair(&x_pos, &*x_lop, dest)?;
+    dest.write_str(" ")?;
+    write_pair(&y_pos, &*y_lop, dest)
 }
 
 #[derive(Clone, PartialEq, Debug)]

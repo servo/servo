@@ -25,7 +25,7 @@ use style::stylearc::Arc;
 use style::stylesheets::{Origin, Namespaces};
 use style::stylesheets::{Stylesheet, NamespaceRule, CssRule, CssRules, StyleRule, KeyframesRule};
 use style::values::{KeyframesName, CustomIdent};
-use style::values::specified::{LengthOrPercentageOrAuto, Percentage};
+use style::values::specified::{LengthOrPercentageOrAuto, Percentage, PositionComponent};
 
 pub fn block_from<I>(iterable: I) -> PropertyDeclarationBlock
 where I: IntoIterator<Item=(PropertyDeclaration, Importance)> {
@@ -183,13 +183,11 @@ fn test_parse_stylesheet() {
                      Importance::Normal),
                     (PropertyDeclaration::BackgroundPositionX(
                         longhands::background_position_x::SpecifiedValue(
-                        vec![longhands::background_position_x::single_value
-                                                   ::get_initial_position_value()])),
-                    Importance::Normal),
+                        vec![PositionComponent::zero()])),
+                     Importance::Normal),
                     (PropertyDeclaration::BackgroundPositionY(
                         longhands::background_position_y::SpecifiedValue(
-                        vec![longhands::background_position_y::single_value
-                                                   ::get_initial_position_value()])),
+                        vec![PositionComponent::zero()])),
                      Importance::Normal),
                     (PropertyDeclaration::BackgroundRepeat(
                         longhands::background_repeat::SpecifiedValue(
