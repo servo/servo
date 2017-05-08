@@ -27,7 +27,7 @@ use selectors::Element;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{AFFECTED_BY_STYLE_ATTRIBUTE, AFFECTED_BY_PRESENTATIONAL_HINTS};
 use selectors::matching::{ElementSelectorFlags, StyleRelations, matches_selector};
-use selectors::parser::{Combinator, Component, Selector, SelectorInner, SelectorIter};
+use selectors::parser::{AttrSelector, Combinator, Component, Selector, SelectorInner, SelectorIter};
 use selectors::parser::{SelectorMethods, LocalName as LocalNameSelector};
 use selectors::visitor::SelectorVisitor;
 use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
@@ -118,6 +118,23 @@ pub struct Stylist {
     /// Selector dependencies used to compute restyle hints.
     dependencies: DependencySet,
 
+    /// The attribute local names that appear in attribute selectors.  Used
+    /// to avoid taking element snapshots when an irrelevant attribute changes.
+    /// (We don't bother storing the namespace, since namespaced attributes
+    /// are rare.)
+    ///
+    /// FIXME(heycam): This doesn't really need to be a counting Bloom filter.
+    #[cfg_attr(feature = "servo", ignore_heap_size_of = "just an array")]
+    attribute_dependencies: BloomFilter,
+
+    /// Whether `"style"` appears in an attribute selector.  This is not common,
+    /// and by tracking this explicitly, we can avoid taking an element snapshot
+    /// in the common case of style=""` changing due to modifying
+    /// `element.style`.  (We could track this in `attribute_dependencies`, like
+    /// all other attributes, but we should probably not risk incorrectly
+    /// returning `true` for `"style"` just due to a hash collision.)
+    style_attribute_dependency: bool,
+
     /// Selectors that require explicit cache revalidation (i.e. which depend
     /// on state that is not otherwise visible to the cache, like attributes or
     /// tree-structural state like child index and pseudos).
@@ -184,6 +201,8 @@ impl Stylist {
             rules_source_order: 0,
             rule_tree: RuleTree::new(),
             dependencies: DependencySet::new(),
+            attribute_dependencies: BloomFilter::new(),
+            style_attribute_dependency: false,
             selectors_for_cache_revalidation: SelectorMap::new(),
             num_selectors: 0,
             num_declarations: 0,
@@ -254,6 +273,8 @@ impl Stylist {
         self.rules_source_order = 0;
         // We want to keep rule_tree around across stylist rebuilds.
         self.dependencies.clear();
+        self.attribute_dependencies.clear();
+        self.style_attribute_dependency = false;
         self.selectors_for_cache_revalidation = SelectorMap::new();
         self.num_selectors = 0;
         self.num_declarations = 0;
@@ -375,6 +396,7 @@ impl Stylist {
                         self.add_rule_to_map(selector, locked, stylesheet);
                         self.dependencies.note_selector(selector);
                         self.note_for_revalidation(selector);
+                        self.note_attribute_dependencies(selector);
                     }
                     self.rules_source_order += 1;
                 }
@@ -432,6 +454,28 @@ impl Stylist {
         if needs_revalidation(selector) {
             self.selectors_for_cache_revalidation.insert(selector.inner.clone());
         }
+    }
+
+    /// Returns whether the given attribute might appear in an attribute
+    /// selector of some rule in the stylist.
+    pub fn might_have_attribute_dependency(&self,
+                                           local_name: &<SelectorImpl as ::selectors::SelectorImpl>::LocalName)
+                                           -> bool {
+        #[cfg(feature = "servo")]
+        let style_lower_name = local_name!("style");
+        #[cfg(feature = "gecko")]
+        let style_lower_name = atom!("style");
+
+        if *local_name == style_lower_name {
+            self.style_attribute_dependency
+        } else {
+            self.attribute_dependencies.might_contain(local_name)
+        }
+    }
+
+    #[inline]
+    fn note_attribute_dependencies(&mut self, selector: &Selector<SelectorImpl>) {
+        selector.visit(&mut AttributeDependencyVisitor(self));
     }
 
     /// Computes the style for a given "precomputed" pseudo-element, taking the
@@ -959,6 +1003,28 @@ impl Drop for Stylist {
         // TODO(emilio): We can at least assert all the elements in the free
         // list are indeed free.
         unsafe { self.rule_tree.gc(); }
+    }
+}
+
+/// Visitor to collect names that appear in attribute selectors.
+struct AttributeDependencyVisitor<'a>(&'a mut Stylist);
+
+impl<'a> SelectorVisitor for AttributeDependencyVisitor<'a> {
+    type Impl = SelectorImpl;
+
+    fn visit_attribute_selector(&mut self, selector: &AttrSelector<Self::Impl>) -> bool {
+        #[cfg(feature = "servo")]
+        let style_lower_name = local_name!("style");
+        #[cfg(feature = "gecko")]
+        let style_lower_name = atom!("style");
+
+        if selector.lower_name == style_lower_name {
+            self.0.style_attribute_dependency = true;
+        } else {
+            self.0.attribute_dependencies.insert(&selector.name);
+            self.0.attribute_dependencies.insert(&selector.lower_name);
+        }
+        true
     }
 }
 
