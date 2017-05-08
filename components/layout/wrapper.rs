@@ -43,7 +43,7 @@ use style::selector_parser::RestyleDamage;
 pub type NonOpaqueStyleAndLayoutData = AtomicRefCell<PersistentLayoutData>;
 
 pub unsafe fn drop_style_and_layout_data(data: OpaqueStyleAndLayoutData) {
-    let ptr: *mut AtomicRefCell<PartialPersistentLayoutData> = *data.ptr;
+    let ptr: *mut AtomicRefCell<PartialPersistentLayoutData> = data.ptr.get();
     let non_opaque: *mut NonOpaqueStyleAndLayoutData = ptr as *mut _;
     let _ = Box::from_raw(non_opaque);
 }
@@ -77,7 +77,7 @@ pub trait GetRawData {
 impl<T: GetLayoutData> GetRawData for T {
     fn get_raw_data(&self) -> Option<&NonOpaqueStyleAndLayoutData> {
         self.get_style_and_layout_data().map(|opaque| {
-            let container = *opaque.ptr as *mut NonOpaqueStyleAndLayoutData;
+            let container = opaque.ptr.get() as *mut NonOpaqueStyleAndLayoutData;
             unsafe { &*container }
         })
     }

@@ -442,7 +442,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     fn get_data(&self) -> Option<&AtomicRefCell<ElementData>> {
         unsafe {
             self.get_style_and_layout_data().map(|d| {
-                let ppld: &AtomicRefCell<PartialPersistentLayoutData> = &**d.ptr;
+                let ppld: &AtomicRefCell<PartialPersistentLayoutData> = &*d.ptr.get();
                 let psd: &AtomicRefCell<ElementData> = transmute(ppld);
                 psd
             })
@@ -505,7 +505,7 @@ impl<'le> ServoLayoutElement<'le> {
 
     fn get_partial_layout_data(&self) -> Option<&AtomicRefCell<PartialPersistentLayoutData>> {
         unsafe {
-            self.get_style_and_layout_data().map(|d| &**d.ptr)
+            self.get_style_and_layout_data().map(|d| &*d.ptr.get())
         }
     }
 
