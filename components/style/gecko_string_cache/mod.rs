@@ -26,7 +26,7 @@ use std::slice;
 #[macro_use]
 #[allow(improper_ctypes, non_camel_case_types, missing_docs)]
 pub mod atom_macro {
-    include!("../gecko/generated/atom_macro.rs");
+    include!(concat!(env!("OUT_DIR"), "/gecko/atom_macro.rs"));
 }
 
 #[macro_use]

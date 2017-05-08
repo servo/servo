@@ -22,9 +22,11 @@ mod bindings {
     use std::fs::{self, File};
     use std::io::{Read, Write};
     use std::path::{Path, PathBuf};
+    use std::process::{Command, exit};
     use std::sync::Mutex;
     use std::time::SystemTime;
     use super::common::*;
+    use super::super::PYTHON;
 
     const STRUCTS_DEBUG_FILE: &'static str = "structs_debug.rs";
     const STRUCTS_RELEASE_FILE: &'static str = "structs_release.rs";
@@ -814,6 +816,20 @@ mod bindings {
         write_binding_file(builder, BINDINGS_FILE, &Vec::new());
     }
 
+    fn generate_atoms() {
+        let script = Path::new(file!()).parent().unwrap().join("binding_tools").join("regen_atoms.py");
+        println!("cargo:rerun-if-changed={}", script.display());
+        let status = Command::new(&*PYTHON)
+            .arg(&script)
+            .arg(DISTDIR_PATH.as_os_str())
+            .arg(OUTDIR_PATH.as_os_str())
+            .status()
+            .unwrap();
+        if !status.success() {
+            exit(1);
+        }
+    }
+
     pub fn generate() {
         use std::thread;
         macro_rules! run_tasks {
@@ -832,6 +848,7 @@ mod bindings {
             generate_structs(BuildType::Debug),
             generate_structs(BuildType::Release),
             generate_bindings(),
+            generate_atoms(),
         }
     }
 }
