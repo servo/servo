@@ -2273,10 +2273,11 @@ fn static_assert() {
         use gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_no_properties;
         use gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_variable;
         use gecko_bindings::structs::nsCSSPropertyID::eCSSProperty_UNKNOWN;
+        use gecko_bindings::structs::nsIAtom;
 
         let property = self.gecko.mTransitions[index].mProperty;
         if property == eCSSProperty_UNKNOWN || property == eCSSPropertyExtra_variable {
-            let atom = self.gecko.mTransitions[index].mUnknownProperty.raw();
+            let atom = self.gecko.mTransitions[index].mUnknownProperty.raw::<nsIAtom>();
             debug_assert!(!atom.is_null());
             TransitionProperty::Unsupported(atom.into())
         } else if property == eCSSPropertyExtra_no_properties {
@@ -2295,6 +2296,7 @@ fn static_assert() {
     pub fn copy_transition_property_from(&mut self, other: &Self) {
         use gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_variable;
         use gecko_bindings::structs::nsCSSPropertyID::eCSSProperty_UNKNOWN;
+        use gecko_bindings::structs::nsIAtom;
         unsafe { self.gecko.mTransitions.ensure_len(other.gecko.mTransitions.len()) };
 
         let count = other.gecko.mTransitionPropertyCount;
@@ -2304,7 +2306,7 @@ fn static_assert() {
             transition.mProperty = other.gecko.mTransitions[index].mProperty;
             if transition.mProperty == eCSSProperty_UNKNOWN ||
                transition.mProperty == eCSSPropertyExtra_variable {
-                let atom = other.gecko.mTransitions[index].mUnknownProperty.raw();
+                let atom = other.gecko.mTransitions[index].mUnknownProperty.raw::<nsIAtom>();
                 debug_assert!(!atom.is_null());
                 unsafe { Gecko_StyleTransition_SetUnsupportedProperty(transition, atom) };
             }

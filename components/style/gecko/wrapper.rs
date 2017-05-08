@@ -1060,7 +1060,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
 
     fn get_local_name(&self) -> &WeakAtom {
         unsafe {
-            WeakAtom::new(self.as_node().node_info().mInner.mName.raw())
+            WeakAtom::new(self.as_node().node_info().mInner.mName.raw::<nsIAtom>())
         }
     }
 
