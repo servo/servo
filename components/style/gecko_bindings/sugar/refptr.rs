@@ -280,3 +280,7 @@ impl_threadsafe_refcount!(::gecko_bindings::structs::mozilla::css::URLValue,
 impl_threadsafe_refcount!(::gecko_bindings::structs::mozilla::css::GridTemplateAreasValue,
                           Gecko_AddRefGridTemplateAreasValueArbitraryThread,
                           Gecko_ReleaseGridTemplateAreasValueArbitraryThread);
+impl_threadsafe_refcount!(::gecko_bindings::structs::ImageValue,
+                          Gecko_AddRefImageValueArbitraryThread,
+                          Gecko_ReleaseImageValueArbitraryThread);
+
