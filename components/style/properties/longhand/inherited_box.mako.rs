@@ -87,13 +87,13 @@ ${helpers.single_keyword("image-rendering",
             if let Some(angle) = self.angle {
                 try!(angle.to_css(dest));
                 if self.flipped {
-                    dest.write_str(" flipped")
+                    dest.write_str(" flip")
                 } else {
                     Ok(())
                 }
             } else {
                 if self.flipped {
-                    dest.write_str("flipped")
+                    dest.write_str("flip")
                 } else {
                     dest.write_str("from-image")
                 }
