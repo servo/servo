@@ -542,8 +542,8 @@ class MachCommands(CommandBase):
                             if pack not in packages["git"][crate_name]["objects"]:
                                 pack_path = path.join(exist_db_path, "objects", "pack", pack)
                                 print(" Remove object: ({}MB) {}".format(round(get_size(pack_path), 2), path.join(exist[1], pack)))
-                                if force:
-                                    delete(pack_path)
+#                                if force:
+#                                    delete(pack_path)
 
         if removing_anything and show_size:
             print("\nTotal size of {} MB".format(round(total_size, 2)))
