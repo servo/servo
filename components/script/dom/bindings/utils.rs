@@ -82,6 +82,7 @@ enum CrossOriginObjectType {
 }
 
 unsafe fn identify_cross_origin_object(obj: HandleObject) -> CrossOriginObjectType {
+    println!("unchecked unwrap for identfy xoo");
     let obj = UncheckedUnwrapObject(obj.get(), /* stopAtWindowProxy = */ 0);
     let obj_class = JS_GetClass(obj);
     let name = str::from_utf8(CStr::from_ptr((*obj_class).name).to_bytes()).unwrap().to_owned();
@@ -312,6 +313,7 @@ pub fn is_platform_object(obj: *mut JSObject) -> bool {
         }
         // Now for simplicity check for security wrappers before anything else
         if IsWrapper(obj) {
+            println!("unwrap obj for sec wrapper check");
             let unwrapped_obj = UnwrapObject(obj, /* stopAtWindowProxy = */ 0);
             if unwrapped_obj.is_null() {
                 return false;
