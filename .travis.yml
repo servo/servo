@@ -30,7 +30,7 @@ matrix:
         - ./mach clean-cargo-cache --keep 2 --force
       env:
         - CCACHE=/usr/bin/ccache
-        - RUST_LOG=trace
+        #- RUST_LOG=trace
       addons:
         apt:
           packages:
