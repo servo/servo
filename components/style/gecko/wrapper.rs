@@ -117,6 +117,17 @@ impl<'ln> GeckoNode<'ln> {
         unsafe { &*self.0.mNodeInfo.mRawPtr }
     }
 
+    // These live in different locations depending on processor architecture.
+    #[cfg(target_pointer_width = "64")]
+    fn bool_flags(&self) -> u32 {
+        (self.0)._base._base_1.mBoolFlags
+    }
+
+    #[cfg(target_pointer_width = "32")]
+    fn bool_flags(&self) -> u32 {
+        (self.0).mBoolFlags
+    }
+
     fn owner_doc(&self) -> &structs::nsIDocument {
         debug_assert!(!self.node_info().mDocument.is_null());
         unsafe { &*self.node_info().mDocument }
@@ -177,7 +188,7 @@ impl<'ln> GeckoNode<'ln> {
 impl<'ln> NodeInfo for GeckoNode<'ln> {
     fn is_element(&self) -> bool {
         use gecko_bindings::structs::nsINode_BooleanFlag;
-        self.0.mBoolFlags & (1u32 << nsINode_BooleanFlag::NodeIsElement as u32) != 0
+        self.bool_flags() & (1u32 << nsINode_BooleanFlag::NodeIsElement as u32) != 0
     }
 
     fn is_text_node(&self) -> bool {
