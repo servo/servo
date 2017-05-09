@@ -19,7 +19,7 @@ cssparser = "0.13"
 euclid = "0.11"
 html5ever = "0.16"
 parking_lot = "0.3"
-rayon = "0.6"
+rayon = "0.7"
 rustc-serialize = "0.3"
 selectors = {path = "../../../components/selectors"}
 servo_atoms = {path = "../../../components/atoms"}

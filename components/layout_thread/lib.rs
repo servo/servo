@@ -398,7 +398,7 @@ impl LayoutThread {
             opts::get().initial_window_size.to_f32() * ScaleFactor::new(1.0));
 
         let configuration =
-            rayon::Configuration::new().set_num_threads(layout_threads);
+            rayon::Configuration::new().num_threads(layout_threads);
         let parallel_traversal = rayon::ThreadPool::new(configuration).ok();
         debug!("Possible layout Threads: {}", layout_threads);
 

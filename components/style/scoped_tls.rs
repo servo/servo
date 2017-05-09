@@ -27,7 +27,7 @@ impl<'scope, T: Send> ScopedTLS<'scope, T> {
     /// Create a new scoped TLS that will last as long as this rayon threadpool
     /// reference.
     pub fn new(p: &'scope rayon::ThreadPool) -> Self {
-        let count = p.num_threads();
+        let count = p.current_num_threads();
         let mut v = Vec::with_capacity(count);
         for _ in 0..count {
             v.push(RefCell::new(None));
