@@ -436,6 +436,7 @@ class MachCommands(CommandBase):
                 packages["git"][crate_name] = {
                     "current": [],
                     "exist": [],
+                    "objects": [],
                 }
             if os.path.isdir(path.join(git_checkout_dir, d)):
                 with cd(path.join(git_checkout_dir, d)):
@@ -464,15 +465,20 @@ class MachCommands(CommandBase):
             sorted_packages = sorted(packages[packages_type])
             for crate_name in sorted_packages:
                 crate_count = 0
+                packages[packages_type][crate_name]["objects"] = []
                 existed_crates = packages[packages_type][crate_name]["exist"]
                 for exist in sorted(existed_crates, reverse=True):
                     current_crate = packages[packages_type][crate_name]["current"]
                     size = 0
-                    exist_name = exist
+                    exist_name = path.join(exist[1], exist[2]) if packages_type == "git" else exist
                     exist_item = exist[2] if packages_type == "git" else exist
+                    if packages_type == "git":
+                        exist_checkout_path = path.join(git_checkout_dir, exist[1])
+                        exist_db_path = path.join(git_db_dir, exist[1])
+                        exist_path = path.join(git_checkout_dir, exist_name)
                     if exist_item not in current_crate:
                         crate_count += 1
-                        if int(crate_count) >= int(keep) or not current_crate or exist[0] == "del":
+                        if int(crate_count) >= int(keep) or not current_crate or exist[0] == "del" or exist[2] == "master":
                             removing_anything = True
                             crate_paths = []
                             if packages_type == "git":
@@ -498,8 +504,8 @@ class MachCommands(CommandBase):
 
                                     exist_checkout_list = glob.glob(path.join(exist_checkout_path, '*'))
                                     if len(exist_checkout_list) <= 1:
-                                        print(exist_checkout_path)
-                                        print(len(exist_checkout_list))
+                                        # print(exist_checkout_path)
+                                        # print(len(exist_checkout_list))
                                         crate_paths.append(exist_checkout_path)
                                         if os.path.isdir(exist_db_path):
                                             crate_paths.append(exist_db_path)
@@ -517,6 +523,27 @@ class MachCommands(CommandBase):
                                         delete(crate_path)
                             else:
                                 print("Would remove `{}`{} package from {}".format(*print_msg))
+                        else:
+                            if packages_type == "git":  # and force:
+                                with cd(path.join(exist_path, ".git", "objects", "pack")):
+                                    for pack in glob.glob("*"):
+                                        packages["git"][crate_name]["objects"].append(pack)
+                                        pack_path = path.join(exist_db_path, "objects", "pack", pack)
+                                        if not os.path.exists(pack_path):
+                                            ck_pack = path.join(exist_path, ".git", "objects", "pack", pack)
+                                            size = -(get_size(ck_pack))
+                                            total_size += size
+                                            print("Missing object: ({}MB) {}".format(round(size, 2), path.join(exist[1], pack)))
+                                            if force:
+                                                shutil.copy2(ck_pack, pack_path)
+                if packages_type == "git":
+                    with cd(path.join(exist_db_path, "objects", "pack")):
+                        for pack in glob.glob("*"):
+                            if pack not in packages["git"][crate_name]["objects"]:
+                                pack_path = path.join(exist_db_path, "objects", "pack", pack)
+                                print(" Remove object: ({}MB) {}".format(round(get_size(pack_path), 2), path.join(exist[1], pack)))
+                                if force:
+                                    remove(pack_path)
 
         if removing_anything and show_size:
             print("\nTotal size of {} MB".format(round(total_size, 2)))
