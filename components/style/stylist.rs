@@ -10,7 +10,7 @@ use {Atom, LocalName};
 use bit_vec::BitVec;
 use context::QuirksMode;
 use data::ComputedStyle;
-use dom::{AnimationRules, PresentationalHintsSynthesizer, TElement};
+use dom::{AnimationRules, TElement};
 use error_reporting::RustLogReporter;
 use font_metrics::FontMetricsProvider;
 use keyframes::KeyframesAnimation;
@@ -35,7 +35,6 @@ use sink::Push;
 use smallvec::VecLike;
 use std::borrow::Borrow;
 use std::collections::HashMap;
-use std::fmt;
 use std::hash::Hash;
 #[cfg(feature = "servo")]
 use std::marker::PhantomData;
@@ -488,9 +487,7 @@ impl Stylist {
                                                   parent: &Arc<ComputedValues>,
                                                   font_metrics: &FontMetricsProvider)
                                                   -> Option<ComputedStyle>
-        where E: TElement +
-                 fmt::Debug +
-                 PresentationalHintsSynthesizer
+        where E: TElement,
     {
         let rule_node = match self.lazy_pseudo_rules(guards, element, pseudo) {
             Some(rule_node) => rule_node,
@@ -525,7 +522,7 @@ impl Stylist {
                                 element: &E,
                                 pseudo: &PseudoElement)
                                 -> Option<StrongRuleNode>
-        where E: TElement + fmt::Debug + PresentationalHintsSynthesizer
+        where E: TElement
     {
         debug_assert!(pseudo.is_lazy());
         if self.pseudos_map.get(pseudo).is_none() {
@@ -686,9 +683,7 @@ impl Stylist {
                                         applicable_declarations: &mut V,
                                         flags_setter: &mut F)
                                         -> StyleRelations
-        where E: TElement +
-                 fmt::Debug +
-                 PresentationalHintsSynthesizer,
+        where E: TElement,
               V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock>,
               F: FnMut(&E, ElementSelectorFlags),
     {
