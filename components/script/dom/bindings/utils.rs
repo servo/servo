@@ -17,7 +17,7 @@ use heapsize::HeapSizeOf;
 use js;
 use js::JS_CALLEE;
 use js::glue::{CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper};
-use js::glue::{GetCrossCompartmentWrapper, GetSecurityWrapper, WrapperNew};
+use js::glue::{GetCrossCompartmentWrapper, CreateCrossOriginWrapper, GetSecurityWrapper, GetOpaqueWrapper, WrapperNew};
 use js::glue::{GetPrincipalOrigin, CreateWrapperProxyHandler, UncheckedUnwrapObject};
 use js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT, RUST_JSID_IS_STRING};
 use js::glue::{RUST_JSID_TO_INT, RUST_JSID_TO_STRING, UnwrapObject};
@@ -85,6 +85,7 @@ unsafe fn identify_cross_origin_object(obj: HandleObject) -> CrossOriginObjectTy
     let obj = UncheckedUnwrapObject(obj.get(), /* stopAtWindowProxy = */ 0);
     let obj_class = JS_GetClass(obj);
     let name = str::from_utf8(CStr::from_ptr((*obj_class).name).to_bytes()).unwrap().to_owned();
+    println!("{}, {:?}", name, obj);
     match &*name {
         "Location" => CrossOriginObjectType::CrossOriginLocation,
         "Window" => CrossOriginObjectType::CrossOriginWindow,
@@ -119,12 +120,13 @@ unsafe fn target_subsumes_obj(cx: *mut JSContext, obj: HandleObject) -> bool {
 
 //TODO check what type of wrapper we should use to disallow any access
 unsafe fn get_opaque_wrapper() -> *const ::libc::c_void {
-    GetSecurityWrapper()
+    //GetSecurityWrapper()
+    GetOpaqueWrapper()
 }
 
 // FIXME use an actual XOW
 unsafe fn get_cross_origin_wrapper() -> *const ::libc::c_void {
-    GetSecurityWrapper()
+    CreateCrossOriginWrapper()
 }
 
 //TODO is same_origin_domain equivalent to subsumes for our purposes 
@@ -139,13 +141,16 @@ pub unsafe extern fn subsumes(obj: *mut JSPrincipals, other: *mut JSPrincipals) 
 unsafe fn select_wrapper(cx: *mut JSContext, obj: HandleObject) -> *const libc::c_void {
     let security_wrapper = !target_subsumes_obj(cx, obj);
     if !security_wrapper {
+        println!("CCW");
         return GetCrossCompartmentWrapper()
     };
 
     if identify_cross_origin_object(obj) != CrossOriginObjectType::CrossOriginOpaque {
+        println!("XOW");
         return get_cross_origin_wrapper()
     };
 
+    println!("Opaque");
     get_opaque_wrapper()
 }
 

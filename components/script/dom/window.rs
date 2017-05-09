@@ -635,6 +635,7 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-frames
     fn Frames(&self) -> Root<BrowsingContext> {
+        println!("frames!");
         self.browsing_context()
     }
 
