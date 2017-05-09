@@ -349,6 +349,7 @@ mod bindings {
             "mozilla::ServoElementSnapshot.*",
             "mozilla::CSSPseudoClassType",
             "mozilla::css::SheetParsingMode",
+            "mozilla::css::URLMatchingFunction",
             "mozilla::HalfCorner",
             "mozilla::PropertyStyleAnimationValuePair",
             "mozilla::TraversalRestyleBehavior",
@@ -739,6 +740,7 @@ mod bindings {
             "UpdateAnimationsTasks",
             "LengthParsingMode",
             "InheritTarget",
+            "URLMatchingFunction",
         ];
         struct ArrayType {
             cpp_type: &'static str,

@@ -42,6 +42,8 @@ use std::marker::PhantomData;
 use style_traits::viewport::ViewportConstraints;
 use stylearc::Arc;
 use stylesheets::{CssRule, FontFaceRule, Origin, StyleRule, Stylesheet, UserAgentStylesheets};
+#[cfg(feature = "servo")]
+use stylesheets::NestedRulesResult;
 use thread_state;
 use viewport::{self, MaybeNew, ViewportRule};
 
@@ -596,12 +598,23 @@ impl Stylist {
         fn mq_eval_changed(guard: &SharedRwLockReadGuard, rules: &[CssRule],
                            before: &Device, after: &Device, quirks_mode: QuirksMode) -> bool {
             for rule in rules {
-                let changed = rule.with_nested_rules_and_mq(guard, |rules, mq| {
-                    if let Some(mq) = mq {
-                        if mq.evaluate(before, quirks_mode) != mq.evaluate(after, quirks_mode) {
-                            return true
-                        }
-                    }
+                let changed = rule.with_nested_rules_mq_and_doc_rule(guard,
+                                                                     |result| {
+                    let rules = match result {
+                        NestedRulesResult::Rules(rules) => rules,
+                        NestedRulesResult::RulesWithMediaQueries(rules, mq) => {
+                            if mq.evaluate(before, quirks_mode) != mq.evaluate(after, quirks_mode) {
+                                return true;
+                            }
+                            rules
+                        },
+                        NestedRulesResult::RulesWithDocument(rules, doc_rule) => {
+                            if !doc_rule.condition.evaluate(before) {
+                                return false;
+                            }
+                            rules
+                        },
+                    };
                     mq_eval_changed(guard, rules, before, after, quirks_mode)
                 });
                 if changed {

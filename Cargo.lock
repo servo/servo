@@ -963,6 +963,7 @@ dependencies = [
  "env_logger 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "nsstring_vendor 0.1.0",
  "parking_lot 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "selectors 0.18.0",
  "style 0.0.1",
