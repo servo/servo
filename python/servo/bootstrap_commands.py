@@ -438,12 +438,17 @@ class MachCommands(CommandBase):
                     "exist": [],
                 }
             if os.path.isdir(path.join(git_checkout_dir, d)):
-                for d2 in os.listdir(path.join(git_checkout_dir, d)):
+                with cd(path.join(git_checkout_dir, d)):
+                    git_crate_hash = glob.glob('*')
+                if not git_crate_hash or not os.path.isdir(path.join(git_db_dir, d)):
+                    packages["git"][crate_name]["exist"].append(("del", d, ""))
+                    continue
+                for d2 in git_crate_hash:
                     dep_path = path.join(git_checkout_dir, d, d2)
                     if os.path.isdir(dep_path):
                         packages["git"][crate_name]["exist"].append((path.getmtime(dep_path), d, d2))
             elif os.path.isdir(path.join(git_db_dir, d)):
-                packages["git"][crate_name]["exist"].append(("db", d, ""))
+                packages["git"][crate_name]["exist"].append(("del", d, ""))
 
         for d in os.listdir(crates_src_dir):
             crate_name = re.sub(r"\-\d+(\.\d+){1,3}.+", "", d)
@@ -467,8 +472,8 @@ class MachCommands(CommandBase):
                     exist_item = exist[2] if packages_type == "git" else exist
                     if exist_item not in current_crate:
                         crate_count += 1
-                        removing_anything = True
-                        if int(crate_count) >= int(keep) or not current_crate:
+                        if int(crate_count) >= int(keep) or not current_crate or exist[0] == "del":
+                            removing_anything = True
                             crate_paths = []
                             if packages_type == "git":
                                 exist_checkout_path = path.join(git_checkout_dir, exist[1])
@@ -476,15 +481,14 @@ class MachCommands(CommandBase):
                                 exist_name = path.join(exist[1], exist[2])
                                 exist_path = path.join(git_checkout_dir, exist_name)
 
-                                if exist[0] == "db":
-                                    crate_paths.append(exist_db_path)
+                                if exist[0] == "del":
+                                    if os.path.isdir(exist_checkout_path):
+                                        crate_paths.append(exist_checkout_path)
+                                    if os.path.isdir(exist_db_path):
+                                        crate_paths.append(exist_db_path)
                                     crate_count += -1
                                 else:
                                     crate_paths.append(exist_path)
-
-                                    # remove crate from checkout if doesn't exist in db directory
-                                    if not os.path.isdir(exist_db_path):
-                                        crate_count += -1
 
                                     with cd(path.join(exist_path, ".git", "objects", "pack")):
                                         for pack in glob.glob("*"):
@@ -492,7 +496,10 @@ class MachCommands(CommandBase):
                                             if os.path.exists(pack_path):
                                                 crate_paths.append(pack_path)
 
-                                    if len(os.listdir(exist_checkout_path)) <= 1:
+                                    exist_checkout_list = glob.glob(path.join(exist_checkout_path, '*'))
+                                    if len(exist_checkout_list) <= 1:
+                                        print(exist_checkout_path)
+                                        print(len(exist_checkout_list))
                                         crate_paths.append(exist_checkout_path)
                                         if os.path.isdir(exist_db_path):
                                             crate_paths.append(exist_db_path)
