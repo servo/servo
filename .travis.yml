@@ -13,16 +13,13 @@ matrix:
       script:
          - ./mach build -d --verbose
          - ./mach test-compiletest
-         # disabled due to #15076
-         #- ./mach test-unit
-         # disabled due to #14723
-         #- ./mach build-geckolib
-         #- ./mach test-stylo
+         - ./mach test-unit
+         - ./mach clean
+         - ./mach build-geckolib
+         - ./mach test-stylo
          - bash etc/ci/check_no_panic.sh
          - bash etc/ci/lockfile_changed.sh
          - bash etc/ci/manifest_changed.sh
-         - ./mach cargo test -p selectors
-         - ./mach test-unit -p style
       cache:
         directories:
           - .cargo
