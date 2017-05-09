@@ -93,6 +93,7 @@ pub mod context;
 pub mod counter_style;
 pub mod custom_properties;
 pub mod data;
+pub mod document_condition;
 pub mod dom;
 pub mod element_state;
 #[cfg(feature = "servo")] mod encoding_support;
