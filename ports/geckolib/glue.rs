@@ -17,6 +17,7 @@ use style::context::{ThreadLocalStyleContext, ThreadLocalStyleContextCreationInf
 use style::data::{ElementData, ElementStyles, RestyleData};
 use style::dom::{AnimationOnlyDirtyDescendants, DirtyDescendants};
 use style::dom::{ShowSubtreeData, TElement, TNode};
+use style::element_state::ElementState;
 use style::error_reporting::RustLogReporter;
 use style::font_metrics::get_metrics_provider_for_product;
 use style::gecko::data::{PerDocumentStyleData, PerDocumentStyleDataImpl};
@@ -2337,4 +2338,11 @@ pub extern "C" fn Servo_StyleSet_MightHaveAttributeDependency(raw_data: RawServo
                                                               local_name: *mut nsIAtom) -> bool {
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     unsafe { Atom::with(local_name, &mut |atom| data.stylist.might_have_attribute_dependency(atom)) }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleSet_HasStateDependency(raw_data: RawServoStyleSetBorrowed,
+                                                    state: u64) -> bool {
+    let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
+    data.stylist.has_state_dependency(ElementState::from_bits_truncate(state))
 }

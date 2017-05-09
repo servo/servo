@@ -11,6 +11,7 @@ use bit_vec::BitVec;
 use context::QuirksMode;
 use data::ComputedStyle;
 use dom::{AnimationRules, TElement};
+use element_state::ElementState;
 use error_reporting::RustLogReporter;
 use font_metrics::FontMetricsProvider;
 use keyframes::KeyframesAnimation;
@@ -135,6 +136,11 @@ pub struct Stylist {
     /// returning `true` for `"style"` just due to a hash collision.)
     style_attribute_dependency: bool,
 
+    /// The element state bits that are relied on by selectors.  Like
+    /// `attribute_dependencies`, this is used to avoid taking element snapshots
+    /// when an irrelevant element state bit changes.
+    state_dependencies: ElementState,
+
     /// Selectors that require explicit cache revalidation (i.e. which depend
     /// on state that is not otherwise visible to the cache, like attributes or
     /// tree-structural state like child index and pseudos).
@@ -203,6 +209,7 @@ impl Stylist {
             dependencies: DependencySet::new(),
             attribute_dependencies: BloomFilter::new(),
             style_attribute_dependency: false,
+            state_dependencies: ElementState::empty(),
             selectors_for_cache_revalidation: SelectorMap::new(),
             num_selectors: 0,
             num_declarations: 0,
@@ -275,6 +282,7 @@ impl Stylist {
         self.dependencies.clear();
         self.attribute_dependencies.clear();
         self.style_attribute_dependency = false;
+        self.state_dependencies = ElementState::empty();
         self.selectors_for_cache_revalidation = SelectorMap::new();
         self.num_selectors = 0;
         self.num_declarations = 0;
@@ -396,7 +404,7 @@ impl Stylist {
                         self.add_rule_to_map(selector, locked, stylesheet);
                         self.dependencies.note_selector(selector);
                         self.note_for_revalidation(selector);
-                        self.note_attribute_dependencies(selector);
+                        self.note_attribute_and_state_dependencies(selector);
                     }
                     self.rules_source_order += 1;
                 }
@@ -473,9 +481,15 @@ impl Stylist {
         }
     }
 
+    /// Returns whether the given ElementState bit is relied upon by a selector
+    /// of some rule in the stylist.
+    pub fn has_state_dependency(&self, state: ElementState) -> bool {
+        self.state_dependencies.intersects(state)
+    }
+
     #[inline]
-    fn note_attribute_dependencies(&mut self, selector: &Selector<SelectorImpl>) {
-        selector.visit(&mut AttributeDependencyVisitor(self));
+    fn note_attribute_and_state_dependencies(&mut self, selector: &Selector<SelectorImpl>) {
+        selector.visit(&mut AttributeAndStateDependencyVisitor(self));
     }
 
     /// Computes the style for a given "precomputed" pseudo-element, taking the
@@ -1006,10 +1020,11 @@ impl Drop for Stylist {
     }
 }
 
-/// Visitor to collect names that appear in attribute selectors.
-struct AttributeDependencyVisitor<'a>(&'a mut Stylist);
+/// Visitor to collect names that appear in attribute selectors and any
+/// dependencies on ElementState bits.
+struct AttributeAndStateDependencyVisitor<'a>(&'a mut Stylist);
 
-impl<'a> SelectorVisitor for AttributeDependencyVisitor<'a> {
+impl<'a> SelectorVisitor for AttributeAndStateDependencyVisitor<'a> {
     type Impl = SelectorImpl;
 
     fn visit_attribute_selector(&mut self, selector: &AttrSelector<Self::Impl>) -> bool {
@@ -1023,6 +1038,13 @@ impl<'a> SelectorVisitor for AttributeDependencyVisitor<'a> {
         } else {
             self.0.attribute_dependencies.insert(&selector.name);
             self.0.attribute_dependencies.insert(&selector.lower_name);
+        }
+        true
+    }
+
+    fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) -> bool {
+        if let Component::NonTSPseudoClass(ref p) = *s {
+            self.0.state_dependencies.insert(p.state_flag());
         }
         true
     }
