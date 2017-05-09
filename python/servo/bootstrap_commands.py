@@ -496,11 +496,11 @@ class MachCommands(CommandBase):
                                 else:
                                     crate_paths.append(exist_path)
 
-                                    with cd(path.join(exist_path, ".git", "objects", "pack")):
-                                        for pack in glob.glob("*"):
-                                            pack_path = path.join(exist_db_path, "objects", "pack", pack)
-                                            if os.path.exists(pack_path):
-                                                crate_paths.append(pack_path)
+                                   # with cd(path.join(exist_path, ".git", "objects", "pack")):
+                                   #     for pack in glob.glob("*"):
+                                   #         pack_path = path.join(exist_db_path, "objects", "pack", pack)
+                                   #         if os.path.exists(pack_path):
+                                   #            crate_paths.append(pack_path)
 
                                     exist_checkout_list = glob.glob(path.join(exist_checkout_path, '*'))
                                     if len(exist_checkout_list) <= 1:

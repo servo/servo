@@ -23,7 +23,7 @@ matrix:
          - bash etc/ci/manifest_changed.sh
       cache:
         directories:
-          - .cargo
+          #- .cargo
           - .servo
           - $HOME/.ccache
       before_cache:
