@@ -384,6 +384,8 @@ class MachCommands(CommandBase):
             cargo_dir = os.environ.get("CARGO_HOME")
         else:
             cargo_dir = path.join(self.context.topdir, ".cargo")
+        if not os.path.isdir(cargo_dir):
+            return
         cargo_file = open(path.join(self.context.topdir, "Cargo.lock"))
         content = toml.load(cargo_file)
 
