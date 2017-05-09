@@ -10,8 +10,6 @@ matrix:
       cache: false
     - sudo: 9000
       dist: trusty
-      before_script:
-         - ./mach clean-cargo-cache --keep 2 --force
       script:
          - ./mach build -d --verbose
          - ./mach test-compiletest
@@ -30,7 +28,9 @@ matrix:
       before_cache:
         - ./mach clean-nightlies --keep 2 --force
         - ./mach clean-cargo-cache --keep 2 --force
-      env: CCACHE=/usr/bin/ccache
+      env:
+        - CCACHE=/usr/bin/ccache
+        - RUST_LOG=trace
       addons:
         apt:
           packages:
