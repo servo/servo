@@ -11,6 +11,7 @@ matrix:
     - sudo: 9000
       dist: trusty
       script:
+         - rm -rf .cargo
          - ./mach clean-cargo-cache --keep 2 --force --show-size
          - ./mach build -d --verbose
          - ./mach test-compiletest
@@ -23,7 +24,7 @@ matrix:
          - bash etc/ci/manifest_changed.sh
       cache:
         directories:
-          #- .cargo
+          - .cargo
           - .servo
           - $HOME/.ccache
       before_cache:
