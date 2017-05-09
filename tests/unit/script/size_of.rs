@@ -30,13 +30,13 @@ macro_rules! sizeof_checker (
 
 // Update the sizes here
 sizeof_checker!(size_event_target, EventTarget, 40);
-sizeof_checker!(size_node, Node, 152);
-sizeof_checker!(size_element, Element, 328);
-sizeof_checker!(size_htmlelement, HTMLElement, 344);
-sizeof_checker!(size_div, HTMLDivElement, 344);
-sizeof_checker!(size_span, HTMLSpanElement, 344);
-sizeof_checker!(size_text, Text, 184);
-sizeof_checker!(size_characterdata, CharacterData, 184);
+sizeof_checker!(size_node, Node, 184);
+sizeof_checker!(size_element, Element, 360);
+sizeof_checker!(size_htmlelement, HTMLElement, 376);
+sizeof_checker!(size_div, HTMLDivElement, 376);
+sizeof_checker!(size_span, HTMLSpanElement, 376);
+sizeof_checker!(size_text, Text, 216);
+sizeof_checker!(size_characterdata, CharacterData, 216);
 sizeof_checker!(size_servothreadsafelayoutnode, ServoThreadSafeLayoutNode, 16);
 
 // We use these types in the parallel traversal. They should stay pointer-sized.
