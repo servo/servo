@@ -326,6 +326,7 @@ mod bindings {
             .constified_enum("UpdateAnimationsTasks")
             .parse_callbacks(Box::new(Callbacks));
         let whitelist_vars = [
+            "NS_AUTHOR_SPECIFIED_.*",
             "NS_THEME_.*",
             "NODE_.*",
             "NS_FONT_.*",

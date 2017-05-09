@@ -250,6 +250,11 @@ pub type RawServoSupportsRuleBorrowed<'a> = &'a RawServoSupportsRule;
 pub type RawServoSupportsRuleBorrowedOrNull<'a> = Option<&'a RawServoSupportsRule>;
 enum RawServoSupportsRuleVoid { }
 pub struct RawServoSupportsRule(RawServoSupportsRuleVoid);
+pub type RawServoRuleNodeStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoRuleNode>;
+pub type RawServoRuleNodeBorrowed<'a> = &'a RawServoRuleNode;
+pub type RawServoRuleNodeBorrowedOrNull<'a> = Option<&'a RawServoRuleNode>;
+enum RawServoRuleNodeVoid { }
+pub struct RawServoRuleNode(RawServoRuleNodeVoid);
 pub type RawServoStyleSetOwned = ::gecko_bindings::sugar::ownership::Owned<RawServoStyleSet>;
 pub type RawServoStyleSetOwnedOrNull = ::gecko_bindings::sugar::ownership::OwnedOrNull<RawServoStyleSet>;
 pub type RawServoStyleSetBorrowed<'a> = &'a RawServoStyleSet;
@@ -410,6 +415,12 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_SupportsRule_Release(ptr: RawServoSupportsRuleBorrowed);
+}
+extern "C" {
+    pub fn Servo_RuleNode_AddRef(ptr: RawServoRuleNodeBorrowed);
+}
+extern "C" {
+    pub fn Servo_RuleNode_Release(ptr: RawServoRuleNodeBorrowed);
 }
 extern "C" {
     pub fn Servo_StyleSet_Drop(ptr: RawServoStyleSetOwned);
@@ -2182,6 +2193,18 @@ extern "C" {
                                     pseudo_tag: *mut nsIAtom, is_probe: bool,
                                     set: RawServoStyleSetBorrowed)
      -> ServoComputedValuesStrong;
+}
+extern "C" {
+    pub fn Servo_ResolveRuleNode(element: RawGeckoElementBorrowed,
+                                 pseudo_tag: *mut nsIAtom,
+                                 set: RawServoStyleSetBorrowed)
+     -> RawServoRuleNodeStrong;
+}
+extern "C" {
+    pub fn Servo_HasAuthorSpecifiedRules(rule_node: RawServoRuleNodeBorrowed,
+                                         element: RawGeckoElementBorrowed,
+                                         rule_type_mask: u32,
+                                         author_colors_allowed: bool) -> bool;
 }
 extern "C" {
     pub fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,

@@ -492,12 +492,45 @@ impl Stylist {
                  fmt::Debug +
                  PresentationalHintsSynthetizer
     {
+        let rule_node = match self.lazy_pseudo_rules(guards, element, pseudo) {
+            Some(rule_node) => rule_node,
+            None => return None
+        };
+
+        // Read the comment on `precomputed_values_for_pseudo` to see why it's
+        // difficult to assert that display: contents nodes never arrive here
+        // (tl;dr: It doesn't apply for replaced elements and such, but the
+        // computed value is still "contents").
+        let computed =
+            properties::cascade(&self.device,
+                                &rule_node,
+                                guards,
+                                Some(&**parent),
+                                Some(&**parent),
+                                None,
+                                &RustLogReporter,
+                                font_metrics,
+                                CascadeFlags::empty(),
+                                self.quirks_mode);
+
+        Some(ComputedStyle::new(rule_node, Arc::new(computed)))
+    }
+
+    /// Computes the rule node for a lazily-cascaded pseudo-element.
+    ///
+    /// See the documentation on lazy pseudo-elements in
+    /// docs/components/style.md
+    pub fn lazy_pseudo_rules<E>(&self,
+                                guards: &StylesheetGuards,
+                                element: &E,
+                                pseudo: &PseudoElement)
+                                -> Option<StrongRuleNode>
+        where E: TElement + fmt::Debug + PresentationalHintsSynthetizer
+    {
         debug_assert!(pseudo.is_lazy());
         if self.pseudos_map.get(pseudo).is_none() {
-            return None;
+            return None
         }
-
-        let mut declarations = vec![];
 
         // Apply the selector flags. We should be in sequential mode
         // already, so we can directly apply the parent flags.
@@ -524,6 +557,7 @@ impl Stylist {
         };
 
 
+        let mut declarations = vec![];
         self.push_applicable_declarations(element,
                                           None,
                                           None,
@@ -533,32 +567,14 @@ impl Stylist {
                                           guards,
                                           &mut declarations,
                                           &mut set_selector_flags);
-
         if declarations.is_empty() {
             return None
         }
 
-        let rule_node =
-            self.rule_tree.insert_ordered_rules(
-                declarations.into_iter().map(|a| (a.source, a.level)));
-
-        // Read the comment on `precomputed_values_for_pseudo` to see why it's
-        // difficult to assert that display: contents nodes never arrive here
-        // (tl;dr: It doesn't apply for replaced elements and such, but the
-        // computed value is still "contents").
-        let computed =
-            properties::cascade(&self.device,
-                                &rule_node,
-                                guards,
-                                Some(&**parent),
-                                Some(&**parent),
-                                None,
-                                &RustLogReporter,
-                                font_metrics,
-                                CascadeFlags::empty(),
-                                self.quirks_mode);
-
-        Some(ComputedStyle::new(rule_node, Arc::new(computed)))
+        let rule_node = self.rule_tree.insert_ordered_rules(declarations.into_iter().map(|a| {
+            (a.source, a.level)
+        }));
+        Some(rule_node)
     }
 
     /// Set a given device, which may change the styles that apply to the

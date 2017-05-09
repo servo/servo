@@ -9,6 +9,7 @@
 #![allow(non_snake_case, missing_docs)]
 
 use gecko_bindings::bindings::{RawServoMediaList, RawServoMediaRule, RawServoNamespaceRule, RawServoPageRule};
+use gecko_bindings::bindings::{RawServoRuleNode, RawServoRuleNodeStrong};
 use gecko_bindings::bindings::{RawServoStyleSheet, RawServoImportRule, RawServoSupportsRule};
 use gecko_bindings::bindings::{ServoComputedValues, ServoCssRules};
 use gecko_bindings::structs::{RawServoDeclarationBlock, RawServoStyleRule};
@@ -17,7 +18,9 @@ use gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI};
 use media_queries::MediaList;
 use properties::{ComputedValues, PropertyDeclarationBlock};
 use properties::animated_properties::AnimationValue;
+use rule_tree::StrongRuleNode;
 use shared_lock::Locked;
+use std::{mem, ptr};
 use stylesheets::{CssRules, Stylesheet, StyleRule, ImportRule, MediaRule};
 use stylesheets::{NamespaceRule, PageRule, SupportsRule};
 
@@ -75,3 +78,28 @@ impl_arc_ffi!(Locked<PageRule> => RawServoPageRule
 
 impl_arc_ffi!(Locked<SupportsRule> => RawServoSupportsRule
               [Servo_SupportsRule_AddRef, Servo_SupportsRule_Release]);
+
+// RuleNode is a Arc-like type but it does not use Arc.
+
+impl StrongRuleNode {
+    pub fn into_strong(self) -> RawServoRuleNodeStrong {
+        let ptr = self.ptr();
+        mem::forget(self);
+        unsafe { mem::transmute(ptr) }
+    }
+
+    pub fn from_ffi<'a>(ffi: &'a &RawServoRuleNode) -> &'a Self {
+        unsafe { &*(ffi as *const &RawServoRuleNode as *const StrongRuleNode) }
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_RuleNode_AddRef(obj: &RawServoRuleNode) {
+    mem::forget(StrongRuleNode::from_ffi(&obj).clone());
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Servo_RuleNode_Release(obj: &RawServoRuleNode) {
+    let ptr = StrongRuleNode::from_ffi(&obj);
+    ptr::read(ptr as *const StrongRuleNode);
+}

@@ -1126,6 +1126,10 @@ pub mod root {
     pub const kNameSpaceID_disabled_SVG: ::std::os::raw::c_uint = 12;
     pub const kNameSpaceID_LastBuiltin: ::std::os::raw::c_uint = 12;
     pub const kNameSpaceID_Wildcard: ::std::os::raw::c_int = -2147483648;
+    pub const NS_AUTHOR_SPECIFIED_BACKGROUND: ::std::os::raw::c_uint = 1;
+    pub const NS_AUTHOR_SPECIFIED_BORDER: ::std::os::raw::c_uint = 2;
+    pub const NS_AUTHOR_SPECIFIED_PADDING: ::std::os::raw::c_uint = 4;
+    pub const NS_AUTHOR_SPECIFIED_TEXT_SHADOW: ::std::os::raw::c_uint = 8;
     pub const NS_STYLE_INHERIT_MASK: ::std::os::raw::c_uint = 16777215;
     pub const NS_STYLE_HAS_TEXT_DECORATION_LINES: ::std::os::raw::c_uint =
         16777216;
