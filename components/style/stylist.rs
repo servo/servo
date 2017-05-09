@@ -10,7 +10,7 @@ use {Atom, LocalName};
 use bit_vec::BitVec;
 use context::QuirksMode;
 use data::ComputedStyle;
-use dom::{AnimationRules, PresentationalHintsSynthetizer, TElement};
+use dom::{AnimationRules, PresentationalHintsSynthesizer, TElement};
 use error_reporting::RustLogReporter;
 use font_metrics::FontMetricsProvider;
 use keyframes::KeyframesAnimation;
@@ -490,7 +490,7 @@ impl Stylist {
                                                   -> Option<ComputedStyle>
         where E: TElement +
                  fmt::Debug +
-                 PresentationalHintsSynthetizer
+                 PresentationalHintsSynthesizer
     {
         let rule_node = match self.lazy_pseudo_rules(guards, element, pseudo) {
             Some(rule_node) => rule_node,
@@ -525,7 +525,7 @@ impl Stylist {
                                 element: &E,
                                 pseudo: &PseudoElement)
                                 -> Option<StrongRuleNode>
-        where E: TElement + fmt::Debug + PresentationalHintsSynthetizer
+        where E: TElement + fmt::Debug + PresentationalHintsSynthesizer
     {
         debug_assert!(pseudo.is_lazy());
         if self.pseudos_map.get(pseudo).is_none() {
@@ -688,7 +688,7 @@ impl Stylist {
                                         -> StyleRelations
         where E: TElement +
                  fmt::Debug +
-                 PresentationalHintsSynthetizer,
+                 PresentationalHintsSynthesizer,
               V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock>,
               F: FnMut(&E, ElementSelectorFlags),
     {

@@ -267,7 +267,7 @@ pub unsafe fn raw_note_descendants<E, B>(element: E) -> bool
 }
 
 /// A trait used to synthesize presentational hints for HTML element attributes.
-pub trait PresentationalHintsSynthetizer {
+pub trait PresentationalHintsSynthesizer {
     /// Generate the proper applicable declarations due to presentational hints,
     /// and insert them into `hints`.
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
@@ -290,7 +290,7 @@ impl AnimationRules {
 
 /// The element trait, the main abstraction the style crate acts over.
 pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
-                     ElementExt + PresentationalHintsSynthetizer {
+                     ElementExt + PresentationalHintsSynthesizer {
     /// The concrete node type.
     type ConcreteNode: TNode<ConcreteElement = Self>;
 
