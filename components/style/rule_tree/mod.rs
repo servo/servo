@@ -377,7 +377,8 @@ impl CascadeLevel {
     }
 }
 
-struct RuleNode {
+/// A node in the rule tree.
+pub struct RuleNode {
     /// The root node. Only the root has no root pointer, for obvious reasons.
     root: Option<WeakRuleNode>,
 
@@ -648,7 +649,8 @@ impl StrongRuleNode {
         }
     }
 
-    fn ptr(&self) -> *mut RuleNode {
+    /// Raw pointer to the RuleNode
+    pub fn ptr(&self) -> *mut RuleNode {
         self.ptr
     }
 
@@ -788,6 +790,208 @@ impl StrongRuleNode {
         if self.get().free_count.load(Ordering::Relaxed) > RULE_TREE_GC_INTERVAL {
             self.gc();
         }
+    }
+
+    /// Implementation of `nsRuleNode::HasAuthorSpecifiedRules` for Servo rule nodes.
+    ///
+    /// Returns true if any properties specified by `rule_type_mask` was set by an author rule.
+    #[cfg(feature = "gecko")]
+    pub fn has_author_specified_rules<E>(&self,
+                                         mut element: E,
+                                         guards: &StylesheetGuards,
+                                         rule_type_mask: u32,
+                                         author_colors_allowed: bool)
+        -> bool
+        where E: ::dom::TElement
+    {
+        use cssparser::RGBA;
+        use gecko_bindings::structs::{NS_AUTHOR_SPECIFIED_BACKGROUND, NS_AUTHOR_SPECIFIED_BORDER};
+        use gecko_bindings::structs::{NS_AUTHOR_SPECIFIED_PADDING, NS_AUTHOR_SPECIFIED_TEXT_SHADOW};
+        use properties::{CSSWideKeyword, LonghandId, LonghandIdSet};
+        use properties::{PropertyDeclaration, PropertyDeclarationId};
+        use std::borrow::Cow;
+        use values::specified::Color;
+
+        // Reset properties:
+        const BACKGROUND_PROPS: &'static [LonghandId] = &[
+            LonghandId::BackgroundColor,
+            LonghandId::BackgroundImage,
+        ];
+
+        const BORDER_PROPS: &'static [LonghandId] = &[
+            LonghandId::BorderTopColor,
+            LonghandId::BorderTopStyle,
+            LonghandId::BorderTopWidth,
+            LonghandId::BorderRightColor,
+            LonghandId::BorderRightStyle,
+            LonghandId::BorderRightWidth,
+            LonghandId::BorderBottomColor,
+            LonghandId::BorderBottomStyle,
+            LonghandId::BorderBottomWidth,
+            LonghandId::BorderLeftColor,
+            LonghandId::BorderLeftStyle,
+            LonghandId::BorderLeftWidth,
+            LonghandId::BorderTopLeftRadius,
+            LonghandId::BorderTopRightRadius,
+            LonghandId::BorderBottomRightRadius,
+            LonghandId::BorderBottomLeftRadius,
+        ];
+
+        const PADDING_PROPS: &'static [LonghandId] = &[
+            LonghandId::PaddingTop,
+            LonghandId::PaddingRight,
+            LonghandId::PaddingBottom,
+            LonghandId::PaddingLeft,
+        ];
+
+        // Inherited properties:
+        const TEXT_SHADOW_PROPS: &'static [LonghandId] = &[
+            LonghandId::TextShadow,
+        ];
+
+        fn inherited(id: LonghandId) -> bool {
+            id == LonghandId::TextShadow
+        }
+
+        // Set of properties that we are currently interested in.
+        let mut properties = LonghandIdSet::new();
+
+        if rule_type_mask & NS_AUTHOR_SPECIFIED_BACKGROUND != 0 {
+            for id in BACKGROUND_PROPS {
+                properties.insert(*id);
+            }
+        }
+        if rule_type_mask & NS_AUTHOR_SPECIFIED_BORDER != 0 {
+            for id in BORDER_PROPS {
+                properties.insert(*id);
+            }
+        }
+        if rule_type_mask & NS_AUTHOR_SPECIFIED_PADDING != 0 {
+            for id in PADDING_PROPS {
+                properties.insert(*id);
+            }
+        }
+        if rule_type_mask & NS_AUTHOR_SPECIFIED_TEXT_SHADOW != 0 {
+            for id in TEXT_SHADOW_PROPS {
+                properties.insert(*id);
+            }
+        }
+
+        // If author colors are not allowed, only claim to have author-specified rules if we're
+        // looking at a non-color property or if we're looking at the background color and it's
+        // set to transparent.
+        const IGNORED_WHEN_COLORS_DISABLED: &'static [LonghandId]  = &[
+            LonghandId::BackgroundImage,
+            LonghandId::BorderTopColor,
+            LonghandId::BorderRightColor,
+            LonghandId::BorderBottomColor,
+            LonghandId::BorderLeftColor,
+            LonghandId::TextShadow,
+        ];
+
+        if !author_colors_allowed {
+            for id in IGNORED_WHEN_COLORS_DISABLED {
+                properties.remove(*id);
+            }
+        }
+
+        let mut element_rule_node = Cow::Borrowed(self);
+
+        loop {
+            // We need to be careful not to count styles covered up by user-important or
+            // UA-important declarations.  But we do want to catch explicit inherit styling in
+            // those and check our parent element to see whether we have user styling for
+            // those properties.  Note that we don't care here about inheritance due to lack of
+            // a specified value, since all the properties we care about are reset properties.
+            //
+            // FIXME: The above comment is copied from Gecko, but the last sentence is no longer
+            // correct since 'text-shadow' support was added.  This is a bug in Gecko, replicated
+            // in Stylo for now: https://bugzilla.mozilla.org/show_bug.cgi?id=1363088
+
+            let mut inherited_properties = LonghandIdSet::new();
+            let mut have_explicit_ua_inherit = false;
+
+            for node in element_rule_node.self_and_ancestors() {
+                let declarations = match node.style_source() {
+                    Some(source) => source.read(node.cascade_level().guard(guards)).declarations(),
+                    None => continue
+                };
+
+                // Iterate over declarations of the longhands we care about.
+                let node_importance = node.importance();
+                let longhands = declarations.iter().rev()
+                    .filter_map(|&(ref declaration, importance)| {
+                        if importance != node_importance { return None }
+                        match declaration.id() {
+                            PropertyDeclarationId::Longhand(id) => {
+                                Some((id, declaration))
+                            }
+                            _ => None
+                        }
+                    });
+
+                match node.cascade_level() {
+                    // Non-author rules:
+                    CascadeLevel::UANormal |
+                    CascadeLevel::UAImportant |
+                    CascadeLevel::UserNormal |
+                    CascadeLevel::UserImportant => {
+                        for (id, declaration) in longhands {
+                            if properties.contains(id) {
+                                // This property was set by a non-author rule. Stop looking for it in
+                                // this element's rule nodes.
+                                properties.remove(id);
+
+                                // However, if it is inherited, then it might be inherited from an
+                                // author rule from an ancestor element's rule nodes.
+                                if declaration.get_css_wide_keyword() == Some(CSSWideKeyword::Inherit) ||
+                                    (declaration.get_css_wide_keyword() == Some(CSSWideKeyword::Unset) &&
+                                     inherited(id))
+                                {
+                                    have_explicit_ua_inherit = true;
+                                    inherited_properties.insert(id);
+                                }
+                            }
+                        }
+                    }
+                    // Author rules:
+                    CascadeLevel::PresHints |
+                    CascadeLevel::AuthorNormal |
+                    CascadeLevel::StyleAttributeNormal |
+                    CascadeLevel::SMILOverride |
+                    CascadeLevel::Animations |
+                    CascadeLevel::AuthorImportant |
+                    CascadeLevel::StyleAttributeImportant |
+                    CascadeLevel::Transitions => {
+                        for (id, declaration) in longhands {
+                            if properties.contains(id) {
+                                if !author_colors_allowed {
+                                    if let PropertyDeclaration::BackgroundColor(ref color) = *declaration {
+                                        return color.parsed == Color::RGBA(RGBA::transparent())
+                                    }
+                                }
+                                return true
+                            }
+                        }
+                    }
+                }
+            }
+
+            if !have_explicit_ua_inherit { break }
+
+            // Continue to the parent element and search for the inherited properties.
+            element = match element.parent_element() {
+                Some(parent) => parent,
+                None => break
+            };
+            let parent_data = element.mutate_data().unwrap();
+            let parent_rule_node = parent_data.styles().primary.rules.clone();
+            element_rule_node = Cow::Owned(parent_rule_node);
+
+            properties = inherited_properties;
+        }
+
+        false
     }
 
     /// Returns true if there is either animation or transition level rule.
