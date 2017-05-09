@@ -1085,6 +1085,9 @@ def check_commits(path='.'):
     if last_merge_author != 'bors-servo':
         yield (':', ':', 'no merge commits allowed, please rebase your commits over the upstream master branch')
 
+    if len(commits) > 1:
+        yield ('.', 0, 'multiple commits should be squashed into one commit.')
+
     raise StopIteration
 
 
