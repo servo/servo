@@ -22,7 +22,7 @@ use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 use style::attr::AttrValue;
 
 #[derive(JSTraceable)]
@@ -41,7 +41,7 @@ pub struct HTMLTableRowElement {
 }
 
 impl HTMLTableRowElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document)
+    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document)
                      -> HTMLTableRowElement {
         HTMLTableRowElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
@@ -50,7 +50,7 @@ impl HTMLTableRowElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName, prefix: Option<DOMString>, document: &Document)
+    pub fn new(local_name: LocalName, prefix: Option<Prefix>, document: &Document)
                -> Root<HTMLTableRowElement> {
         Node::reflect_node(box HTMLTableRowElement::new_inherited(local_name, prefix, document),
                            document,

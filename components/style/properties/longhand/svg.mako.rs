@@ -190,98 +190,13 @@ ${helpers.single_keyword("mask-composite",
                          extra_prefixes="webkit",
                          animation_value_type="none",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-composite")}
-
-<%helpers:vector_longhand name="mask-image" products="gecko" animation_value_type="none" extra_prefixes="webkit"
-                          has_uncacheable_values="${product == 'gecko'}"
-                          flags="CREATES_STACKING_CONTEXT",
-                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-image">
-    use std::fmt;
-    use style_traits::ToCss;
-    use stylearc::Arc;
-    use values::specified::Image;
-    use values::specified::url::SpecifiedUrl;
-    use values::HasViewportPercentage;
-
-    pub mod computed_value {
-        use std::fmt;
-        use style_traits::ToCss;
-        use values::computed;
-        use values::specified::url::SpecifiedUrl;
-        #[derive(Debug, Clone, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub enum T {
-            Image(computed::Image),
-            None
-        }
-
-        impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                match *self {
-                    T::None => dest.write_str("none"),
-                    T::Image(ref image) => image.to_css(dest),
-                }
-            }
-        }
-    }
-
-    no_viewport_percentage!(SpecifiedValue);
-
-    #[derive(Debug, Clone, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub enum SpecifiedValue {
-        Image(Image),
-        None
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                SpecifiedValue::Image(ref image) => image.to_css(dest),
-                SpecifiedValue::None => dest.write_str("none"),
-            }
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::None
-    }
-    #[inline]
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue::None
-    }
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            Ok(SpecifiedValue::None)
-        } else {
-            let image = try!(Image::parse(context, input));
-            match image {
-                Image::Url(url_value) => {
-                    Ok(SpecifiedValue::Image(Image::Url(url_value)))
-                }
-                image => Ok(SpecifiedValue::Image(image))
-            }
-        }
-    }
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            match *self {
-                SpecifiedValue::None => computed_value::T::None,
-                SpecifiedValue::Image(ref image) =>
-                    computed_value::T::Image(image.to_computed_value(context)),
-            }
-        }
-
-        #[inline]
-        fn from_computed_value(computed: &computed_value::T) -> Self {
-            match *computed {
-                computed_value::T::None => SpecifiedValue::None,
-                computed_value::T::Image(ref image) =>
-                    SpecifiedValue::Image(ToComputedValue::from_computed_value(image)),
-            }
-        }
-    }
-</%helpers:vector_longhand>
+${helpers.predefined_type("mask-image", "LayerImage",
+    initial_value="computed_value::T(None)",
+    initial_specified_value="SpecifiedValue(None)",
+    spec="https://drafts.fxtf.org/css-masking/#propdef-mask-image",
+    vector=True,
+    products="gecko",
+    extra_prefixes="webkit",
+    animation_value_type="none",
+    flags="CREATES_STACKING_CONTEXT",
+    has_uncacheable_values="True" if product == "gecko" else "False")}

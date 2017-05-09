@@ -8,7 +8,7 @@ import os
 import re
 
 ROOT_PATH = os.path.join("..", "..", "..")
-INPUT_FILE = os.path.join(ROOT_PATH, "components", "style", "gecko_bindings", "bindings.rs")
+INPUT_FILE = os.path.join(ROOT_PATH, "components", "style", "gecko", "generated", "bindings.rs")
 OUTPUT_FILE = os.path.join(os.environ["OUT_DIR"], "check_bindings.rs")
 GLUE_FILE = os.path.join(ROOT_PATH, "ports", "geckolib", "glue.rs")
 GLUE_OUTPUT_FILE = os.path.join(os.environ["OUT_DIR"], "glue.rs")

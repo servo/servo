@@ -28,7 +28,7 @@ use dom::mediaerror::MediaError;
 use dom::node::{window_from_node, document_from_node, Node, UnbindContext};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError};
@@ -227,7 +227,7 @@ pub struct HTMLMediaElement {
 
 impl HTMLMediaElement {
     pub fn new_inherited(tag_name: LocalName,
-                         prefix: Option<DOMString>, document: &Document)
+                         prefix: Option<Prefix>, document: &Document)
                          -> HTMLMediaElement {
         HTMLMediaElement {
             htmlelement:

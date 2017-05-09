@@ -10,7 +10,7 @@ use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLTimeElement {
@@ -18,7 +18,7 @@ pub struct HTMLTimeElement {
 }
 
 impl HTMLTimeElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLTimeElement {
+    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLTimeElement {
         HTMLTimeElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
@@ -26,7 +26,7 @@ impl HTMLTimeElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLTimeElement> {
         Node::reflect_node(box HTMLTimeElement::new_inherited(local_name, prefix, document),
                            document,

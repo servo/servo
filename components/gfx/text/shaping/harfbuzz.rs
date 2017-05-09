@@ -164,7 +164,7 @@ impl Shaper {
                               Shaper::float_to_fixed(pt_size) as c_int);
 
             // configure static function callbacks.
-            hb_font_set_funcs(hb_font, **HB_FONT_FUNCS, font as *mut Font as *mut c_void, None);
+            hb_font_set_funcs(hb_font, HB_FONT_FUNCS.as_ptr(), font as *mut Font as *mut c_void, None);
 
             Shaper {
                 hb_face: hb_face,

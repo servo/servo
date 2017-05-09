@@ -23,7 +23,7 @@ use dom::node::{Node, UnbindContext};
 use dom::text::Text;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 use std::cell::Cell;
 use style::element_state::*;
 use style::str::{split_html_space_chars, str_join};
@@ -41,7 +41,7 @@ pub struct HTMLOptionElement {
 
 impl HTMLOptionElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> HTMLOptionElement {
         HTMLOptionElement {
             htmlelement:
@@ -54,7 +54,7 @@ impl HTMLOptionElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLOptionElement> {
         Node::reflect_node(box HTMLOptionElement::new_inherited(local_name, prefix, document),
                            document,

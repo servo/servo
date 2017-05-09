@@ -40,7 +40,7 @@ lazy_static! {
             None
         } else {
             let configuration =
-                rayon::Configuration::new().set_num_threads(num_threads);
+                rayon::Configuration::new().num_threads(num_threads);
             let pool = rayon::ThreadPool::new(configuration).ok();
             pool
         };

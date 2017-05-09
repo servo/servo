@@ -165,7 +165,7 @@ impl PseudoElement {
             }}
         }
 
-        include!("generated/gecko_pseudo_element_helper.rs");
+        include!(concat!(env!("OUT_DIR"), "/gecko/pseudo_element_helper.rs"));
 
         None
     }
@@ -190,7 +190,7 @@ impl PseudoElement {
             }}
         }
 
-        include!("generated/gecko_pseudo_element_helper.rs");
+        include!(concat!(env!("OUT_DIR"), "/gecko/pseudo_element_helper.rs"));
 
         None
     }
@@ -492,7 +492,7 @@ impl SelectorImpl {
             }}
         }
 
-        include!("generated/gecko_pseudo_element_helper.rs")
+        include!(concat!(env!("OUT_DIR"), "/gecko/pseudo_element_helper.rs"));
     }
 
     #[inline]

@@ -13,7 +13,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, Node};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLTitleElement {
@@ -21,7 +21,7 @@ pub struct HTMLTitleElement {
 }
 
 impl HTMLTitleElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLTitleElement {
+    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLTitleElement {
         HTMLTitleElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
         }
@@ -29,7 +29,7 @@ impl HTMLTitleElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLTitleElement> {
         Node::reflect_node(box HTMLTitleElement::new_inherited(local_name, prefix, document),
                            document,

@@ -13,7 +13,7 @@ use dom::node::Node;
 use dom::svggraphicselement::SVGGraphicsElement;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 use script_layout_interface::SVGSVGData;
 use style::attr::AttrValue;
 
@@ -27,7 +27,7 @@ pub struct SVGSVGElement {
 
 impl SVGSVGElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> SVGSVGElement {
         SVGSVGElement {
             svggraphicselement:
@@ -37,7 +37,7 @@ impl SVGSVGElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<SVGSVGElement> {
         Node::reflect_node(box SVGSVGElement::new_inherited(local_name, prefix, document),
                            document,

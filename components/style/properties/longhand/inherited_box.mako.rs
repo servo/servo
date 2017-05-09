@@ -168,7 +168,7 @@ ${helpers.single_keyword("image-rendering",
                 computed_value::T::AngleWithFlipped(angle, flipped) => {
                     try!(angle.to_css(dest));
                     if flipped {
-                        try!(dest.write_str(" flipped"));
+                        try!(dest.write_str(" flip"));
                     }
                     Ok(())
                 },

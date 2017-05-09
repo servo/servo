@@ -4,7 +4,7 @@
 
 use base64;
 use net_traits::response::{Response, ResponseBody, ResponseType};
-use openssl::hash::{MessageDigest, hash};
+use openssl::hash::{MessageDigest, hash2};
 use std::iter::Filter;
 use std::str::Split;
 use std::sync::MutexGuard;
@@ -119,7 +119,7 @@ fn apply_algorithm_to_response(body: MutexGuard<ResponseBody>,
                                message_digest: MessageDigest)
                                -> String {
     if let ResponseBody::Done(ref vec) = *body {
-        let response_digest = hash(message_digest, vec).unwrap();
+        let response_digest = hash2(message_digest, vec).unwrap(); //Now hash2
         base64::encode(&response_digest)
     } else {
         unreachable!("Tried to calculate digest of incomplete response body")

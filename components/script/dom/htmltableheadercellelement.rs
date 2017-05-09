@@ -4,12 +4,11 @@
 
 use dom::bindings::codegen::Bindings::HTMLTableHeaderCellElementBinding;
 use dom::bindings::js::Root;
-use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::htmltablecellelement::HTMLTableCellElement;
 use dom::node::Node;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLTableHeaderCellElement {
@@ -18,7 +17,7 @@ pub struct HTMLTableHeaderCellElement {
 
 impl HTMLTableHeaderCellElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> HTMLTableHeaderCellElement {
         HTMLTableHeaderCellElement {
             htmltablecellelement:
@@ -28,7 +27,7 @@ impl HTMLTableHeaderCellElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLTableHeaderCellElement> {
         Node::reflect_node(box HTMLTableHeaderCellElement::new_inherited(local_name, prefix, document),
                            document,

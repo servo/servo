@@ -12,7 +12,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 use style::attr::AttrValue;
 
 #[dom_struct]
@@ -21,7 +21,7 @@ pub struct HTMLLIElement {
 }
 
 impl HTMLLIElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLLIElement {
+    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLLIElement {
         HTMLLIElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
         }
@@ -29,7 +29,7 @@ impl HTMLLIElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLLIElement> {
         Node::reflect_node(box HTMLLIElement::new_inherited(local_name, prefix, document),
                            document,

@@ -2404,20 +2404,24 @@ ${helpers.single_keyword("appearance",
 ${helpers.single_keyword("-moz-appearance",
                          """none button button-arrow-down button-arrow-next button-arrow-previous button-arrow-up
                             button-bevel button-focus caret checkbox checkbox-container checkbox-label checkmenuitem
-                            dualbutton groupbox listbox listitem menuarrow menubar menucheckbox menuimage menuitem
-                            menuitemtext menulist menulist-button menulist-text menulist-textfield menupopup menuradio
-                            menuseparator meterbar meterchunk number-input progressbar progressbar-vertical
-                            progresschunk
-                            progresschunk-vertical radio radio-container radio-label radiomenuitem range range-thumb
-                            resizer resizerpanel scale-horizontal scalethumbend scalethumb-horizontal scalethumbstart
-                            scalethumbtick scalethumb-vertical scale-vertical scrollbarbutton-down scrollbarbutton-left
-                            scrollbarbutton-right scrollbarbutton-up scrollbarthumb-horizontal scrollbarthumb-vertical
-                            scrollbartrack-horizontal scrollbartrack-vertical searchfield separator spinner
-                            spinner-downbutton spinner-textfield spinner-upbutton splitter statusbar statusbarpanel tab
-                            tabpanel tabpanels tab-scroll-arrow-back tab-scroll-arrow-forward textfield
-                            textfield-multiline toolbar toolbarbutton toolbarbutton-dropdown toolbargripper toolbox
-                            tooltip treeheader treeheadercell treeheadersortarrow treeitem treeline treetwisty
-                            treetwistyopen treeview -moz-win-borderless-glass -moz-win-browsertabbar-toolbox
+                            dialog dualbutton groupbox listbox listitem menuarrow menubar menucheckbox menuimage
+                            menuitem menuitemtext menulist menulist-button menulist-text menulist-textfield menupopup
+                            menuradio menuseparator meterbar meterchunk number-input progressbar progressbar-vertical
+                            progresschunk progresschunk-vertical radio radio-container radio-label radiomenuitem range
+                            range-thumb resizer resizerpanel scale-horizontal scalethumbend scalethumb-horizontal
+                            scalethumbstart scalethumbtick scalethumb-vertical scale-vertical scrollbar
+                            scrollbar-horizontal scrollbar-small scrollbar-vertical scrollbarbutton-down
+                            scrollbarbutton-left scrollbarbutton-right scrollbarbutton-up scrollbarthumb-horizontal
+                            scrollbarthumb-vertical scrollbartrack-horizontal scrollbartrack-vertical searchfield
+                            separator spinner spinner-downbutton spinner-textfield spinner-upbutton splitter statusbar
+                            statusbarpanel tab tabpanel tabpanels tab-scroll-arrow-back tab-scroll-arrow-forward
+                            textfield textfield-multiline toolbar toolbarbutton toolbarbutton-dropdown toolbargripper
+                            toolbox tooltip treeheader treeheadercell treeheadersortarrow treeitem treeline treetwisty
+                            treetwistyopen treeview window
+                            -moz-gtk-info-bar -moz-mac-active-source-list-selection -moz-mac-disclosure-button-closed
+                            -moz-mac-disclosure-button-open -moz-mac-fullscreen-button -moz-mac-help-button
+                            -moz-mac-source-list -moz-mac-source-list-selection -moz-mac-vibrancy-dark
+                            -moz-mac-vibrancy-light -moz-win-borderless-glass -moz-win-browsertabbar-toolbox
                             -moz-win-communications-toolbox -moz-win-exclude-glass -moz-win-glass -moz-win-media-toolbox
                             -moz-window-button-box -moz-window-button-box-maximized -moz-window-button-close
                             -moz-window-button-maximize -moz-window-button-minimize -moz-window-button-restore

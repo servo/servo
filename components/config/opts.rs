@@ -32,11 +32,6 @@ pub struct Opts {
     /// The initial URL to load.
     pub url: Option<ServoUrl>,
 
-    /// How many threads to use for CPU painting (`-t`).
-    ///
-    /// Note that painting is sequentialized when using GPU painting.
-    pub paint_threads: usize,
-
     /// The maximum size of each tile in pixels (`-s`).
     pub tile_size: usize,
 
@@ -105,7 +100,7 @@ pub struct Opts {
     /// font for layout tests.
     pub enable_text_antialiasing: bool,
 
-    /// If set with --enable-subpixel, use subpixel antialiasing for glyphs. In the future
+    /// If set with --disable-subpixel, use subpixel antialiasing for glyphs. In the future
     /// this will likely become the default, but for now it's opt-in while we work
     /// out any bugs and improve the implementation.
     pub enable_subpixel_text_antialiasing: bool,
@@ -251,8 +246,8 @@ pub struct DebugOptions {
     /// Disable antialiasing of rendered text.
     pub disable_text_aa: bool,
 
-    /// Enable subpixel antialiasing of rendered text.
-    pub enable_subpixel_aa: bool,
+    /// Disable subpixel antialiasing of rendered text.
+    pub disable_subpixel_aa: bool,
 
     /// Disable antialiasing of rendered text on the HTML canvas element.
     pub disable_canvas_aa: bool,
@@ -354,7 +349,7 @@ impl DebugOptions {
                 "help" => self.help = true,
                 "bubble-widths" => self.bubble_widths = true,
                 "disable-text-aa" => self.disable_text_aa = true,
-                "enable-subpixel-aa" => self.enable_subpixel_aa = true,
+                "disable-subpixel-aa" => self.disable_subpixel_aa = true,
                 "disable-canvas-aa" => self.disable_text_aa = true,
                 "dump-style-tree" => self.dump_style_tree = true,
                 "dump-rule-tree" => self.dump_rule_tree = true,
@@ -504,7 +499,6 @@ pub fn default_opts() -> Opts {
     Opts {
         is_running_problem_test: false,
         url: Some(ServoUrl::parse("about:blank").unwrap()),
-        paint_threads: 1,
         tile_size: 512,
         device_pixels_per_px: None,
         time_profiling: None,
@@ -693,12 +687,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
             .unwrap_or_else(|err| args_fail(&format!("Error parsing option: --device-pixel-ratio ({})", err)))
     );
 
-    let mut paint_threads: usize = match opt_match.opt_str("t") {
-        Some(paint_threads_str) => paint_threads_str.parse()
-            .unwrap_or_else(|err| args_fail(&format!("Error parsing option: -t ({})", err))),
-        None => cmp::max(num_cpus::get() * 3 / 4, 1),
-    };
-
     // If only the flag is present, default to a 5 second period for both profilers
     let time_profiling = if opt_match.opt_present("p") {
         match opt_match.opt_str("p") {
@@ -748,7 +736,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
 
     let mut bubble_inline_sizes_separately = debug_options.bubble_widths;
     if debug_options.trace_layout {
-        paint_threads = 1;
         layout_threads = Some(1);
         bubble_inline_sizes_separately = true;
     }
@@ -809,7 +796,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     let opts = Opts {
         is_running_problem_test: is_running_problem_test,
         url: Some(url),
-        paint_threads: paint_threads,
         tile_size: tile_size,
         device_pixels_per_px: device_pixels_per_px,
         time_profiling: time_profiling,
@@ -842,7 +828,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         show_debug_parallel_layout: debug_options.show_parallel_layout,
         paint_flashing: debug_options.paint_flashing,
         enable_text_antialiasing: !debug_options.disable_text_aa,
-        enable_subpixel_text_antialiasing: debug_options.enable_subpixel_aa,
+        enable_subpixel_text_antialiasing: !debug_options.disable_subpixel_aa,
         enable_canvas_antialiasing: !debug_options.disable_canvas_aa,
         dump_style_tree: debug_options.dump_style_tree,
         dump_rule_tree: debug_options.dump_rule_tree,

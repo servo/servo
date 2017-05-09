@@ -827,8 +827,8 @@ mod shorthand_serialization {
             let mut properties = Vec::new();
 
             let image = single_vec_value_typedef!(image,
-                image::single_value::SpecifiedValue::Image(
-                    Image::Url(SpecifiedUrl::new_for_testing("http://servo/test.png"))));
+                image::single_value::SpecifiedValue(
+                    Some(Image::Url(SpecifiedUrl::new_for_testing("http://servo/test.png")))));
 
             let mode = single_vec_keyword_value!(mode, luminance);
 
@@ -882,8 +882,8 @@ mod shorthand_serialization {
             let mut properties = Vec::new();
 
             let image = single_vec_value_typedef!(image,
-                image::single_value::SpecifiedValue::Image(
-                    Image::Url(SpecifiedUrl::new_for_testing("http://servo/test.png"))));
+                image::single_value::SpecifiedValue(
+                    Some(Image::Url(SpecifiedUrl::new_for_testing("http://servo/test.png")))));
 
             let mode = single_vec_keyword_value!(mode, luminance);
 
@@ -1043,19 +1043,19 @@ mod shorthand_serialization {
         #[test]
         fn transform_skew() {
             validate_serialization(
-                &SpecifiedOperation::Skew(Angle::from_degrees(42.3), None),
+                &SpecifiedOperation::Skew(Angle::from_degrees(42.3, false), None),
                 "skew(42.3deg)");
             validate_serialization(
-                &SpecifiedOperation::Skew(Angle::from_gradians(-50.0), Some(Angle::from_turns(0.73))),
+                &SpecifiedOperation::Skew(Angle::from_gradians(-50.0, false), Some(Angle::from_turns(0.73, false))),
                 "skew(-50grad, 0.73turn)");
             validate_serialization(
-                &SpecifiedOperation::SkewX(Angle::from_radians(0.31)), "skewX(0.31rad)");
+                &SpecifiedOperation::SkewX(Angle::from_radians(0.31, false)), "skewX(0.31rad)");
         }
 
         #[test]
         fn transform_rotate() {
             validate_serialization(
-                &SpecifiedOperation::Rotate(Angle::from_turns(35.0)),
+                &SpecifiedOperation::Rotate(Angle::from_turns(35.0, false)),
                 "rotate(35turn)"
             )
         }

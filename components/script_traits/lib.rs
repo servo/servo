@@ -130,7 +130,7 @@ pub enum LayoutControlMsg {
 
 /// can be passed to `LoadUrl` to load a page with GET/POST
 /// parameters or headers
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct LoadData {
     /// The URL.
     pub url: ServoUrl,

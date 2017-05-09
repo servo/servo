@@ -14,7 +14,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 use servo_atoms::Atom;
 use style::attr::AttrValue;
 use style::str::{HTML_SPACE_CHARACTERS, read_numbers};
@@ -26,7 +26,7 @@ pub struct HTMLFontElement {
 
 
 impl HTMLFontElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLFontElement {
+    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLFontElement {
         HTMLFontElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
@@ -34,7 +34,7 @@ impl HTMLFontElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLFontElement> {
         Node::reflect_node(box HTMLFontElement::new_inherited(local_name, prefix, document),
                            document,
