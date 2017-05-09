@@ -10,6 +10,8 @@ matrix:
       cache: false
     - sudo: 9000
       dist: trusty
+      before_script:
+         - ./mach clean-cargo-cache --keep 2 --force
       script:
          - ./mach build -d --verbose
          - ./mach test-compiletest
