@@ -64,20 +64,24 @@
                     ContentItem::String(ref s) => {
                         cssparser::serialize_string(&**s, dest)
                     }
-                    ContentItem::Counter(ref s, ref list_style_type) => {
+                    ContentItem::Counter(ref s, list_style_type) => {
                         try!(dest.write_str("counter("));
                         try!(cssparser::serialize_identifier(&**s, dest));
-                        try!(dest.write_str(", "));
-                        try!(list_style_type.to_css(dest));
+                        if list_style_type != list_style_type::computed_value::T::decimal {
+                            try!(dest.write_str(", "));
+                            try!(list_style_type.to_css(dest));
+                        }
                         dest.write_str(")")
                     }
-                    ContentItem::Counters(ref s, ref separator, ref list_style_type) => {
+                    ContentItem::Counters(ref s, ref separator, list_style_type) => {
                         try!(dest.write_str("counter("));
                         try!(cssparser::serialize_identifier(&**s, dest));
                         try!(dest.write_str(", "));
                         try!(cssparser::serialize_string(&**separator, dest));
-                        try!(dest.write_str(", "));
-                        try!(list_style_type.to_css(dest));
+                        if list_style_type != list_style_type::computed_value::T::decimal {
+                            try!(dest.write_str(", "));
+                            try!(list_style_type.to_css(dest));
+                        }
                         dest.write_str(")")
                     }
                     ContentItem::OpenQuote => dest.write_str("open-quote"),
