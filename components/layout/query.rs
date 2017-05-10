@@ -38,7 +38,6 @@ use style::logical_geometry::{WritingMode, BlockFlowDirection, InlineBaseDirecti
 use style::properties::{style_structs, PropertyId, PropertyDeclarationId, LonghandId};
 use style::properties::longhands::{display, position};
 use style::selector_parser::PseudoElement;
-use style::stylist::Stylist;
 use style_traits::ToCss;
 use style_traits::cursor::Cursor;
 use webrender_traits::ClipId;
@@ -53,9 +52,6 @@ pub struct LayoutThreadData {
 
     /// The root stacking context.
     pub display_list: Option<Arc<DisplayList>>,
-
-    /// Performs CSS selector matching and style resolution.
-    pub stylist: ::StyleArc<Stylist>,
 
     /// A queued response for the union of the content boxes of a node.
     pub content_box_response: Option<Rect<Au>>,
