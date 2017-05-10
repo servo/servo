@@ -152,7 +152,9 @@ impl MarginCollapseInfo {
 
                 if may_collapse_through {
                     match fragment.style().min_block_size() {
-                        LengthOrPercentage::Length(Au(0)) | LengthOrPercentage::Percentage(0.) => {
+                        LengthOrPercentageOrAuto::Length(Au(0)) |
+                        LengthOrPercentageOrAuto::Percentage(0.) |
+                        LengthOrPercentageOrAuto::Auto => {
                             FinalMarginState::MarginsCollapseThrough
                         },
                         _ => {
@@ -450,13 +452,17 @@ impl MaybeAuto {
 /// `style_length`: content size as given in the CSS.
 pub fn style_length(style_length: LengthOrPercentageOrAuto,
                     container_size: Option<Au>) -> MaybeAuto {
-    match container_size {
-        Some(length) => MaybeAuto::from_style(style_length, length),
-        None => if let LengthOrPercentageOrAuto::Length(length) = style_length {
-            MaybeAuto::Specified(length)
-        } else {
+    match (style_length, container_size) {
+        (LengthOrPercentageOrAuto::Length(length) , _) =>
+            MaybeAuto::Specified(length),
+        (LengthOrPercentageOrAuto::Calc(calc), _) =>
+            MaybeAuto::from_option(calc.to_computed(container_size)),
+        (LengthOrPercentageOrAuto::Percentage(percent) , Some(size)) =>
+            MaybeAuto::Specified(size.scale_by(percent)),
+        (LengthOrPercentageOrAuto::Percentage(_) , None) =>
+            MaybeAuto::Auto,
+        (LengthOrPercentageOrAuto::Auto , _) =>
             MaybeAuto::Auto
-        }
     }
 }
 
@@ -552,18 +558,10 @@ pub struct SizeConstraint {
 impl SizeConstraint {
     /// Create a `SizeConstraint` for an axis.
     pub fn new(container_size: Option<Au>,
-               min_size: LengthOrPercentage,
+               min_size: LengthOrPercentageOrAuto,
                max_size: LengthOrPercentageOrNone,
                border: Option<Au>) -> SizeConstraint {
-        let mut min_size = match container_size {
-            Some(container_size) => specified(min_size, container_size),
-            None => if let LengthOrPercentage::Length(length) = min_size {
-                length
-            } else {
-                Au(0)
-            }
-        };
-
+        let mut min_size = style_length(min_size, container_size).specified_or_zero();
         let mut max_size = match container_size {
             Some(container_size) => specified_or_none(max_size, container_size),
             None => if let LengthOrPercentageOrNone::Length(length) = max_size {
