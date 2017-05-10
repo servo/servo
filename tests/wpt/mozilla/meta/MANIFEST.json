@@ -5849,6 +5849,18 @@
      {}
     ]
    ],
+   "css/transform_3d_from_outside_viewport.html": [
+    [
+     "/_mozilla/css/transform_3d_from_outside_viewport.html",
+     [
+      [
+       "/_mozilla/css/transform_3d_from_outside_viewport_ref.html",
+       "!="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/transform_optimization.html": [
     [
      "/_mozilla/css/transform_optimization.html",
@@ -9255,6 +9267,11 @@
     ]
    ],
    "css/textarea_space_calculation-ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/transform_3d_from_outside_viewport_ref.html": [
     [
      {}
     ]
@@ -24061,6 +24078,14 @@
   "css/transform_3d.html": [
    "1450d169d4c5506fff240adca5c28b0cb6accd9f",
    "reftest"
+  ],
+  "css/transform_3d_from_outside_viewport.html": [
+   "b59ccc70dec5de8bf55440ef3d4dd35d2ec1493a",
+   "reftest"
+  ],
+  "css/transform_3d_from_outside_viewport_ref.html": [
+   "87531bec4e8b60f17d885d6236ec0629f68f6c9a",
+   "support"
   ],
   "css/transform_3d_ref.html": [
    "e59866f74ae9dc10a2220c1bb240862371f3edc9",
