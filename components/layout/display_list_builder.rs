@@ -58,7 +58,7 @@ use style::properties::longhands::border_image_repeat::computed_value::RepeatKey
 use style::properties::style_structs;
 use style::servo::restyle_damage::REPAINT;
 use style::values::{Either, RGBA, computed};
-use style::values::computed::{AngleOrCorner, Gradient, GradientItem, GradientKind, LengthOrPercentage};
+use style::values::computed::{AngleOrCorner, Gradient, GradientItem, GradientKind, LengthOrNumber, LengthOrPercentage};
 use style::values::computed::{LengthOrPercentageOrAuto, LengthOrKeyword, LengthOrPercentageOrKeyword};
 use style::values::computed::{NumberOrPercentage, Position};
 use style::values::computed::image::{EndingShape, SizeKeyword};
@@ -401,7 +401,8 @@ pub trait FragmentDisplayListBuilding {
                                shape: &EndingShape,
                                center: &Position,
                                repeating: bool,
-                               style: &ServoComputedValues)
+                               style: &ServoComputedValues,
+                               outset: SideOffsets2D<Au>)
                                -> display_list::RadialGradient;
 
     /// Adds the display items necessary to paint the background linear gradient of this fragment
@@ -1165,7 +1166,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                shape: &EndingShape,
                                center: &Position,
                                repeating: bool,
-                               style: &ServoComputedValues)
+                               style: &ServoComputedValues,
+                               outset: SideOffsets2D<Au>)
                                -> display_list::RadialGradient {
         let center = Point2D::new(specified(center.horizontal.0, bounds.size.width),
                                   specified(center.vertical.0, bounds.size.height));
@@ -1180,7 +1182,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                 specified(vertical, bounds.size.height)),
             EndingShape::Ellipse(LengthOrPercentageOrKeyword::Keyword(word))
                 => convert_ellipse_size_keyword(word, &bounds.size, &center),
-        };
+        } + Size2D::new((outset.left + outset.right).scale_by(0.5),
+                        (outset.top + outset.bottom).scale_by(0.5));
 
         let mut stops = convert_gradient_stops(stops, radius.width, style);
         // Repeating gradients have no last stops that can be ignored. So
@@ -1190,7 +1193,8 @@ impl FragmentDisplayListBuilding for Fragment {
         }
 
         display_list::RadialGradient {
-            center: center,
+            center: center + Point2D::new((outset.right - outset.left).scale_by(0.5),
+                                          (outset.bottom - outset.top).scale_by(0.5)),
             radius: radius,
             stops: stops,
             repeating: repeating,
@@ -1239,7 +1243,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                                             shape,
                                                             center,
                                                             gradient.repeating,
-                                                            style);
+                                                            style,
+                                                            SideOffsets2D::zero());
                 DisplayItem::RadialGradient(box RadialGradientDisplayItem {
                     base: base,
                     gradient: gradient,
@@ -1342,6 +1347,19 @@ impl FragmentDisplayListBuilding for Fragment {
                                                   style.get_cursor(Cursor::Default),
                                                   display_list_section);
 
+        let border_attrs = style.get_border();
+        let style_outset = &border_attrs.border_image_outset;
+        let top = outset_to_length(style_outset.0, border_attrs.border_top_width);
+        let right = outset_to_length(style_outset.1, border_attrs.border_right_width);
+        let bottom = outset_to_length(style_outset.2, border_attrs.border_bottom_width);
+        let left = outset_to_length(style_outset.3, border_attrs.border_left_width);
+        let outset_prec = SideOffsets2D::new(top, right, bottom, left);
+        let outset = SideOffsets2D::new(top.to_f32_px(),
+                                        right.to_f32_px(),
+                                        bottom.to_f32_px(),
+                                        left.to_f32_px());
+
+
         match border_style_struct.border_image_source.0 {
             None => {
                 state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
@@ -1371,9 +1389,7 @@ impl FragmentDisplayListBuilding for Fragment {
                             border_widths: border.to_physical(style.writing_mode),
                             details: BorderDetails::Gradient(display_list::GradientBorder {
                                 gradient: grad,
-
-                                // TODO(gw): Support border-image-outset
-                                outset: SideOffsets2D::zero(),
+                                outset: outset,
                             }),
                         }));
                     }
@@ -1383,16 +1399,15 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                 shape,
                                                                 center,
                                                                 gradient.repeating,
-                                                                style);
+                                                                style,
+                                                                outset_prec);
                         state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
                             base: base,
                             border_widths: border.to_physical(style.writing_mode),
                             details: BorderDetails::RadialGradient(
                                 display_list::RadialGradientBorder {
                                     gradient: grad,
-
-                                    // TODO(gw): Support border-image-outset
-                                    outset: SideOffsets2D::zero(),
+                                    outset: outset,
                                 }),
                         }));
                     }
@@ -1424,8 +1439,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                           corners[1].resolve(webrender_image.width),
                                                           corners[2].resolve(webrender_image.height),
                                                           corners[3].resolve(webrender_image.width)),
-                                // TODO(gw): Support border-image-outset
-                                outset: SideOffsets2D::zero(),
+                                outset: outset,
                                 repeat_horizontal: convert_repeat_mode(border_style_struct.border_image_repeat.0),
                                 repeat_vertical: convert_repeat_mode(border_style_struct.border_image_repeat.1),
                             }),
@@ -1441,8 +1455,6 @@ impl FragmentDisplayListBuilding for Fragment {
                                                     style: &ServoComputedValues,
                                                     bounds: &Rect<Au>,
                                                     clip: &Rect<Au>) {
-        use style::values::Either;
-
         let width = style.get_outline().outline_width;
         if width == Au(0) {
             return
@@ -2778,6 +2790,13 @@ fn position_to_offset(position: LengthOrPercentage, Au(total_length): Au) -> f32
         LengthOrPercentage::Percentage(percentage) => percentage as f32,
         LengthOrPercentage::Calc(calc) =>
             calc.percentage() + (calc.length().0 as f32) / (total_length as f32),
+    }
+}
+
+fn outset_to_length(outset: LengthOrNumber, border_width: Au) -> Au {
+    match outset {
+        Either::First(length) => length,
+        Either::Second(factor) => border_width.scale_by(factor),
     }
 }
 
