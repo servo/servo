@@ -1117,24 +1117,32 @@ pub extern "C" fn Servo_StyleSet_Drop(data: RawServoStyleSetOwned) {
     let _ = data.into_box::<PerDocumentStyleData>();
 }
 
+fn parse_property(property_id: PropertyId,
+                  value: *const nsACString,
+                  data: *mut URLExtraData,
+                  length_parsing_mode: structs::LengthParsingMode) -> Result<ParsedDeclaration, ()> {
+    let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
+    let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
+    let length_parsing_mode = match length_parsing_mode {
+        structs::LengthParsingMode::Default => LengthParsingMode::Default,
+        structs::LengthParsingMode::SVG => LengthParsingMode::SVG,
+    };
+
+    parse_one_declaration(property_id,
+                          value,
+                          url_data,
+                          &RustLogReporter,
+                          length_parsing_mode,
+                          QuirksMode::NoQuirks)
+}
+
 #[no_mangle]
 pub extern "C" fn Servo_ParseProperty(property: nsCSSPropertyID, value: *const nsACString,
                                       data: *mut URLExtraData)
                                       -> RawServoDeclarationBlockStrong {
     let id = get_property_id_from_nscsspropertyid!(property,
                                                    RawServoDeclarationBlockStrong::null());
-    let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
-
-    let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
-    let reporter = RustLogReporter;
-    let context = ParserContext::new(Origin::Author,
-                                     url_data,
-                                     &reporter,
-                                     Some(CssRuleType::Style),
-                                     LengthParsingMode::Default,
-                                     QuirksMode::NoQuirks);
-
-    match ParsedDeclaration::parse(id, &context, &mut Parser::new(value)) {
+    match parse_property(id, value, data, structs::LengthParsingMode::Default) {
         Ok(parsed) => {
             let global_style_data = &*GLOBAL_STYLE_DATA;
             let mut block = PropertyDeclarationBlock::new();
@@ -1293,20 +1301,14 @@ pub extern "C" fn Servo_DeclarationBlock_GetPropertyIsImportant(declarations: Ra
 fn set_property(declarations: RawServoDeclarationBlockBorrowed, property_id: PropertyId,
                 value: *const nsACString, is_important: bool, data: *mut URLExtraData,
                 length_parsing_mode: structs::LengthParsingMode) -> bool {
-    let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
-    let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
-    let length_parsing_mode = match length_parsing_mode {
-        structs::LengthParsingMode::Default => LengthParsingMode::Default,
-        structs::LengthParsingMode::SVG => LengthParsingMode::SVG,
-    };
-    if let Ok(parsed) = parse_one_declaration(property_id, value, url_data, &RustLogReporter,
-                                              length_parsing_mode, QuirksMode::NoQuirks) {
-        let importance = if is_important { Importance::Important } else { Importance::Normal };
-        write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
-            parsed.expand_set_into(decls, importance)
-        })
-    } else {
-        false
+    match parse_property(property_id, value, data, length_parsing_mode) {
+        Ok(parsed) => {
+            let importance = if is_important { Importance::Important } else { Importance::Normal };
+            write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
+                parsed.expand_set_into(decls, importance)
+            })
+        },
+        Err(_) => false,
     }
 }
 
