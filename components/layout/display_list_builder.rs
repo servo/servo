@@ -26,8 +26,7 @@ use gfx::display_list::{BorderDisplayItem, ImageBorder, NormalBorder};
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayItemMetadata, DisplayList, DisplayListSection};
 use gfx::display_list::{GradientDisplayItem, RadialGradientDisplayItem, IframeDisplayItem, ImageDisplayItem};
-use gfx::display_list::{LineDisplayItem, OpaqueNode};
-use gfx::display_list::{SolidColorDisplayItem, ScrollRoot, StackingContext, StackingContextType};
+use gfx::display_list::{OpaqueNode, SolidColorDisplayItem, ScrollRoot, StackingContext, StackingContextType};
 use gfx::display_list::{TextDisplayItem, TextOrientation, WebGLDisplayItem, WebRenderImageInfo};
 use gfx_traits::{combine_id_with_fragment_type, FragmentType, StackingContextId};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
@@ -1502,12 +1501,9 @@ impl FragmentDisplayListBuilding for Fragment {
                                                  state: &mut DisplayListBuildState,
                                                  style: &ServoComputedValues,
                                                  stacking_relative_border_box: &Rect<Au>,
-                                                 stacking_relative_content_box: &Rect<Au>,
-                                                 text_fragment: &ScannedTextFragmentInfo,
+                                                 _stacking_relative_content_box: &Rect<Au>,
+                                                 _text_fragment: &ScannedTextFragmentInfo,
                                                  clip: &Rect<Au>) {
-        // FIXME(pcwalton, #2795): Get the real container size.
-        let container_size = Size2D::zero();
-
         // Compute the text fragment bounds and draw a border surrounding them.
         let base = state.create_base_display_item(stacking_relative_border_box,
                                                   &ClippingRegion::from_rect(&clip),
@@ -1522,25 +1518,6 @@ impl FragmentDisplayListBuilding for Fragment {
                 style: SideOffsets2D::new_all_same(border_style::T::solid),
                 radius: Default::default(),
             }),
-        }));
-
-        // Draw a rectangle representing the baselines.
-        let mut baseline = LogicalRect::from_physical(self.style.writing_mode,
-                                                      *stacking_relative_content_box,
-                                                      container_size);
-        baseline.start.b = baseline.start.b + text_fragment.run.ascent();
-        baseline.size.block = Au(0);
-        let baseline = baseline.to_physical(self.style.writing_mode, container_size);
-
-        let base = state.create_base_display_item(&baseline,
-                                                  &ClippingRegion::from_rect(&clip),
-                                                  self.node,
-                                                  style.get_cursor(Cursor::Default),
-                                                  DisplayListSection::Content);
-        state.add_display_item(DisplayItem::Line(box LineDisplayItem {
-            base: base,
-            color: ColorF::rgb(0, 200, 0),
-            style: border_style::T::dashed,
         }));
     }
 

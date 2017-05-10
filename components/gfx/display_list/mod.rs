@@ -594,7 +594,6 @@ pub enum DisplayItem {
     Border(Box<BorderDisplayItem>),
     Gradient(Box<GradientDisplayItem>),
     RadialGradient(Box<RadialGradientDisplayItem>),
-    Line(Box<LineDisplayItem>),
     BoxShadow(Box<BoxShadowDisplayItem>),
     Iframe(Box<IframeDisplayItem>),
     PushStackingContext(Box<PushStackingContextItem>),
@@ -1136,18 +1135,6 @@ impl<T> BorderRadii<T> where T: PartialEq + Zero + Clone {
     }
 }
 
-/// Paints a line segment.
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
-pub struct LineDisplayItem {
-    pub base: BaseDisplayItem,
-
-    /// The line segment color.
-    pub color: ColorF,
-
-    /// The line segment style.
-    pub style: border_style::T
-}
-
 /// Paints a box shadow per CSS-BACKGROUNDS.
 #[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
 pub struct BoxShadowDisplayItem {
@@ -1229,7 +1216,6 @@ impl DisplayItem {
             DisplayItem::Border(ref border) => &border.base,
             DisplayItem::Gradient(ref gradient) => &gradient.base,
             DisplayItem::RadialGradient(ref gradient) => &gradient.base,
-            DisplayItem::Line(ref line) => &line.base,
             DisplayItem::BoxShadow(ref box_shadow) => &box_shadow.base,
             DisplayItem::Iframe(ref iframe) => &iframe.base,
             DisplayItem::PushStackingContext(ref stacking_context) => &stacking_context.base,
@@ -1349,7 +1335,6 @@ impl fmt::Debug for DisplayItem {
                 DisplayItem::Border(_) => "Border".to_owned(),
                 DisplayItem::Gradient(_) => "Gradient".to_owned(),
                 DisplayItem::RadialGradient(_) => "RadialGradient".to_owned(),
-                DisplayItem::Line(_) => "Line".to_owned(),
                 DisplayItem::BoxShadow(_) => "BoxShadow".to_owned(),
                 DisplayItem::Iframe(_) => "Iframe".to_owned(),
                 DisplayItem::PushStackingContext(_) |
