@@ -41,7 +41,6 @@ use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone
 use values::computed::{BorderRadiusSize, ClipRect};
 use values::computed::{CalcLengthOrPercentage, Context, LengthOrPercentage};
 use values::computed::{MaxLength, MinLength};
-use values::computed::position::{HorizontalPosition, VerticalPosition};
 use values::computed::ToComputedValue;
 use values::generics::position as generic_position;
 
@@ -655,6 +654,7 @@ pub trait Animatable: Sized {
 /// https://drafts.csswg.org/css-transitions/#animtype-repeatable-list
 pub trait RepeatableListAnimatable: Animatable {}
 
+impl RepeatableListAnimatable for LengthOrPercentage {}
 impl RepeatableListAnimatable for Either<f32, LengthOrPercentage> {}
 
 impl<T: RepeatableListAnimatable> Animatable for SmallVec<[T; 1]> {
@@ -1335,46 +1335,6 @@ impl<H: Animatable, V: Animatable> Animatable for generic_position::Position<H, 
 
 impl<H, V> RepeatableListAnimatable for generic_position::Position<H, V>
     where H: RepeatableListAnimatable, V: RepeatableListAnimatable {}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-simple-list
-impl Animatable for HorizontalPosition {
-    #[inline]
-    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-        self.0.interpolate(&other.0, progress).map(generic_position::HorizontalPosition)
-    }
-
-    #[inline]
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.0.compute_distance(&other.0)
-    }
-
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.0.compute_squared_distance(&other.0)
-    }
-}
-
-impl RepeatableListAnimatable for HorizontalPosition {}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-simple-list
-impl Animatable for VerticalPosition {
-    #[inline]
-    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-        self.0.interpolate(&other.0, progress).map(generic_position::VerticalPosition)
-    }
-
-    #[inline]
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.0.compute_distance(&other.0)
-    }
-
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.0.compute_squared_distance(&other.0)
-    }
-}
-
-impl RepeatableListAnimatable for VerticalPosition {}
 
 /// https://drafts.csswg.org/css-transitions/#animtype-rect
 impl Animatable for ClipRect {

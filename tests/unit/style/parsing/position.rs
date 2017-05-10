@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use parsing::parse;
+use parsing::{parse, parse_entirely};
 use style::parser::Parse;
 use style::values::specified::position::*;
 use style_traits::ToCss;
@@ -28,8 +28,8 @@ fn test_position() {
     assert_roundtrip_with_context!(Position::parse, "right 10%", "right 10%");
 
     // Only keywords can be reordered
-    assert!(parse(Position::parse, "top 40%").is_err());
-    assert!(parse(Position::parse, "40% left").is_err());
+    assert!(parse_entirely(Position::parse, "top 40%").is_err());
+    assert!(parse_entirely(Position::parse, "40% left").is_err());
 
     // 3 and 4 value serialization
     assert_roundtrip_with_context!(Position::parse, "left 10px top 15px", "left 10px top 15px");
@@ -46,31 +46,31 @@ fn test_position() {
     assert_roundtrip_with_context!(Position::parse, "center bottom 10px", "center bottom 10px");
 
     // Invalid 3 value positions
-    assert!(parse(Position::parse, "20px 30px 20px").is_err());
-    assert!(parse(Position::parse, "top 30px 20px").is_err());
-    assert!(parse(Position::parse, "50% bottom 20%").is_err());
+    assert!(parse_entirely(Position::parse, "20px 30px 20px").is_err());
+    assert!(parse_entirely(Position::parse, "top 30px 20px").is_err());
+    assert!(parse_entirely(Position::parse, "50% bottom 20%").is_err());
 
     // Only horizontal and vertical keywords can have positions
-    assert!(parse(Position::parse, "center 10px left 15px").is_err());
-    assert!(parse(Position::parse, "center 10px 15px").is_err());
-    assert!(parse(Position::parse, "center 10px bottom").is_err());
+    assert!(parse_entirely(Position::parse, "center 10px left 15px").is_err());
+    assert!(parse_entirely(Position::parse, "center 10px 15px").is_err());
+    assert!(parse_entirely(Position::parse, "center 10px bottom").is_err());
 
     // "Horizontal Horizontal" or "Vertical Vertical" positions cause error
-    assert!(parse(Position::parse, "left right").is_err());
-    assert!(parse(Position::parse, "left 10px right").is_err());
-    assert!(parse(Position::parse, "left 10px right 15%").is_err());
-    assert!(parse(Position::parse, "top bottom").is_err());
-    assert!(parse(Position::parse, "top 10px bottom").is_err());
-    assert!(parse(Position::parse, "top 10px bottom 15%").is_err());
+    assert!(parse_entirely(Position::parse, "left right").is_err());
+    assert!(parse_entirely(Position::parse, "left 10px right").is_err());
+    assert!(parse_entirely(Position::parse, "left 10px right 15%").is_err());
+    assert!(parse_entirely(Position::parse, "top bottom").is_err());
+    assert!(parse_entirely(Position::parse, "top 10px bottom").is_err());
+    assert!(parse_entirely(Position::parse, "top 10px bottom 15%").is_err());
 
-    // Logical keywords are not supported in Position yet
+    // Logical keywords are not supported in Position yet.
     assert!(parse(Position::parse, "x-start").is_err());
     assert!(parse(Position::parse, "y-end").is_err());
     assert!(parse(Position::parse, "x-start y-end").is_err());
     assert!(parse(Position::parse, "x-end 10px").is_err());
     assert!(parse(Position::parse, "y-start 20px").is_err());
     assert!(parse(Position::parse, "x-start bottom 10%").is_err());
-    assert!(parse(Position::parse, "left y-start 10%").is_err());
+    assert!(parse_entirely(Position::parse, "left y-start 10%").is_err());
     assert!(parse(Position::parse, "x-start 20px y-end 10%").is_err());
 }
 
@@ -82,29 +82,31 @@ fn test_horizontal_position() {
     assert_roundtrip_with_context!(HorizontalPosition::parse, "center", "center");
     assert_roundtrip_with_context!(HorizontalPosition::parse, "left", "left");
     assert_roundtrip_with_context!(HorizontalPosition::parse, "right", "right");
-    assert_roundtrip_with_context!(HorizontalPosition::parse, "x-start", "x-start");
-    assert_roundtrip_with_context!(HorizontalPosition::parse, "x-end", "x-end");
 
     // Two value serializations.
     assert_roundtrip_with_context!(HorizontalPosition::parse, "right 10px", "right 10px");
-    assert_roundtrip_with_context!(HorizontalPosition::parse, "10px left", "left 10px");
-    assert_roundtrip_with_context!(HorizontalPosition::parse, "x-end 20%", "x-end 20%");
-    assert_roundtrip_with_context!(HorizontalPosition::parse, "20px x-start", "x-start 20px");
 
     // Invalid horizontal positions.
     assert!(parse(HorizontalPosition::parse, "top").is_err());
     assert!(parse(HorizontalPosition::parse, "bottom").is_err());
     assert!(parse(HorizontalPosition::parse, "y-start").is_err());
     assert!(parse(HorizontalPosition::parse, "y-end").is_err());
-    assert!(parse(HorizontalPosition::parse, "20px y-end").is_err());
     assert!(parse(HorizontalPosition::parse, "y-end 20px ").is_err());
     assert!(parse(HorizontalPosition::parse, "bottom 20px").is_err());
-    assert!(parse(HorizontalPosition::parse, "20px top").is_err());
-    assert!(parse(HorizontalPosition::parse, "left center").is_err());
     assert!(parse(HorizontalPosition::parse, "bottom top").is_err());
-    assert!(parse(HorizontalPosition::parse, "left top").is_err());
-    assert!(parse(HorizontalPosition::parse, "left right").is_err());
-    assert!(parse(HorizontalPosition::parse, "20px 30px").is_err());
+    assert!(parse_entirely(HorizontalPosition::parse, "20px y-end").is_err());
+    assert!(parse_entirely(HorizontalPosition::parse, "20px top").is_err());
+    assert!(parse_entirely(HorizontalPosition::parse, "left center").is_err());
+    assert!(parse_entirely(HorizontalPosition::parse, "left top").is_err());
+    assert!(parse_entirely(HorizontalPosition::parse, "left right").is_err());
+    assert!(parse_entirely(HorizontalPosition::parse, "20px 30px").is_err());
+    assert!(parse_entirely(HorizontalPosition::parse, "10px left").is_err());
+    assert!(parse_entirely(HorizontalPosition::parse, "x-end 20%").is_err());
+    assert!(parse_entirely(HorizontalPosition::parse, "20px x-start").is_err());
+
+    // Logical keywords are not supported in Position yet.
+    assert!(parse(HorizontalPosition::parse, "x-start").is_err());
+    assert!(parse(HorizontalPosition::parse, "x-end").is_err());
 }
 
 #[test]
@@ -115,29 +117,31 @@ fn test_vertical_position() {
     assert_roundtrip_with_context!(VerticalPosition::parse, "center", "center");
     assert_roundtrip_with_context!(VerticalPosition::parse, "top", "top");
     assert_roundtrip_with_context!(VerticalPosition::parse, "bottom", "bottom");
-    assert_roundtrip_with_context!(VerticalPosition::parse, "y-start", "y-start");
-    assert_roundtrip_with_context!(VerticalPosition::parse, "y-end", "y-end");
 
     // Two value serializations.
     assert_roundtrip_with_context!(VerticalPosition::parse, "bottom 10px", "bottom 10px");
-    assert_roundtrip_with_context!(VerticalPosition::parse, "10px top", "top 10px");
-    assert_roundtrip_with_context!(VerticalPosition::parse, "y-end 20%", "y-end 20%");
-    assert_roundtrip_with_context!(VerticalPosition::parse, "20px y-start", "y-start 20px");
 
     // Invalid vertical positions.
     assert!(parse(VerticalPosition::parse, "left").is_err());
     assert!(parse(VerticalPosition::parse, "right").is_err());
     assert!(parse(VerticalPosition::parse, "x-start").is_err());
     assert!(parse(VerticalPosition::parse, "x-end").is_err());
-    assert!(parse(VerticalPosition::parse, "20px x-end").is_err());
-    assert!(parse(VerticalPosition::parse, "x-end 20px ").is_err());
+    assert!(parse(VerticalPosition::parse, "x-end 20px").is_err());
     assert!(parse(VerticalPosition::parse, "left 20px").is_err());
-    assert!(parse(VerticalPosition::parse, "20px right").is_err());
     assert!(parse(VerticalPosition::parse, "left center").is_err());
-    assert!(parse(VerticalPosition::parse, "bottom top").is_err());
     assert!(parse(VerticalPosition::parse, "left top").is_err());
     assert!(parse(VerticalPosition::parse, "left right").is_err());
-    assert!(parse(VerticalPosition::parse, "20px 30px").is_err());
+    assert!(parse_entirely(VerticalPosition::parse, "20px x-end").is_err());
+    assert!(parse_entirely(VerticalPosition::parse, "20px right").is_err());
+    assert!(parse_entirely(VerticalPosition::parse, "bottom top").is_err());
+    assert!(parse_entirely(VerticalPosition::parse, "20px 30px").is_err());
+    assert!(parse_entirely(VerticalPosition::parse, "10px top").is_err());
+    assert!(parse_entirely(VerticalPosition::parse, "y-end 20%").is_err());
+    assert!(parse_entirely(VerticalPosition::parse, "20px y-start").is_err());
+
+    // Logical keywords are not supported in Position yet.
+    assert!(parse(VerticalPosition::parse, "y-start").is_err());
+    assert!(parse(VerticalPosition::parse, "y-end").is_err());
 }
 
 #[test]

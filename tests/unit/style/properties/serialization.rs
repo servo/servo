@@ -9,8 +9,10 @@ use style::properties::longhands::outline_color::computed_value::T as ComputedCo
 use style::properties::parse_property_declaration_list;
 use style::values::{RGBA, Auto};
 use style::values::CustomIdent;
-use style::values::specified::{BorderStyle, BorderWidth, CSSColor, Length, NoCalcLength};
-use style::values::specified::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrAutoOrContent};
+use style::values::specified::{BorderStyle, BorderWidth, CSSColor, Length, LengthOrPercentage};
+use style::values::specified::{LengthOrPercentageOrAuto, LengthOrPercentageOrAutoOrContent};
+use style::values::specified::{NoCalcLength, PositionComponent};
+use style::values::specified::position::Y;
 use style::values::specified::url::SpecifiedUrl;
 use style_traits::ToCss;
 use stylesheets::block_from;
@@ -796,7 +798,6 @@ mod shorthand_serialization {
         use style::properties::longhands::mask_position_y as position_y;
         use style::properties::longhands::mask_repeat as repeat;
         use style::properties::longhands::mask_size as size;
-        use style::values::generics::position::{HorizontalPosition, Keyword, PositionValue, VerticalPosition};
         use style::values::specified::Image;
         use super::*;
 
@@ -833,16 +834,13 @@ mod shorthand_serialization {
             let mode = single_vec_keyword_value!(mode, luminance);
 
             let position_x = single_vec_value_typedef!(position_x,
-                HorizontalPosition(PositionValue {
-                    keyword: None,
-                    position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(7f32))),
-                })
+                PositionComponent::Length(LengthOrPercentage::Length(NoCalcLength::from_px(7f32)))
             );
             let position_y = single_vec_value_typedef!(position_y,
-                VerticalPosition(PositionValue {
-                    keyword: Some(Keyword::Bottom),
-                    position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(4f32))),
-                })
+                PositionComponent::Side(
+                    Y::Bottom,
+                    Some(LengthOrPercentage::Length(NoCalcLength::from_px(4f32))),
+                )
             );
 
             let size = single_vec_variant_value!(size,
@@ -888,17 +886,11 @@ mod shorthand_serialization {
             let mode = single_vec_keyword_value!(mode, luminance);
 
             let position_x = single_vec_value_typedef!(position_x,
-                HorizontalPosition(PositionValue {
-                    keyword: None,
-                    position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(7f32))),
-                })
+                PositionComponent::Length(LengthOrPercentage::Length(NoCalcLength::from_px(7f32)))
             );
 
             let position_y = single_vec_value_typedef!(position_y,
-                VerticalPosition(PositionValue  {
-                    keyword: None,
-                    position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(4f32))),
-                })
+                PositionComponent::Length(LengthOrPercentage::Length(NoCalcLength::from_px(4f32)))
             );
 
             let size = single_vec_variant_value!(size,
