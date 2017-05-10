@@ -99,24 +99,17 @@ ${helpers.single_keyword("mask-mode",
     pub use properties::longhands::background_position_x::single_value::parse;
     pub use properties::longhands::background_position_x::single_value::SpecifiedValue;
     pub use properties::longhands::background_position_x::single_value::computed_value;
-    use properties::animated_properties::{ComputeDistance, Interpolate, RepeatableListInterpolate};
+    use properties::animated_properties::{Animatable, RepeatableListAnimatable};
     use properties::longhands::mask_position_x::computed_value::T as MaskPositionX;
 
-    impl Interpolate for MaskPositionX {
+    impl Animatable for MaskPositionX {
         #[inline]
         fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
             Ok(MaskPositionX(try!(self.0.interpolate(&other.0, progress))))
         }
     }
 
-    impl RepeatableListInterpolate for MaskPositionX {}
-
-    impl ComputeDistance for MaskPositionX {
-        #[inline]
-        fn compute_distance(&self, _other: &Self) -> Result<f64, ()> {
-            Err(())
-        }
-    }
+    impl RepeatableListAnimatable for MaskPositionX {}
 </%helpers:vector_longhand>
 
 <%helpers:vector_longhand name="mask-position-y" products="gecko"
@@ -128,24 +121,17 @@ ${helpers.single_keyword("mask-mode",
     pub use properties::longhands::background_position_y::single_value::parse;
     pub use properties::longhands::background_position_y::single_value::SpecifiedValue;
     pub use properties::longhands::background_position_y::single_value::computed_value;
-    use properties::animated_properties::{ComputeDistance, Interpolate, RepeatableListInterpolate};
+    use properties::animated_properties::{Animatable, RepeatableListAnimatable};
     use properties::longhands::mask_position_y::computed_value::T as MaskPositionY;
 
-    impl Interpolate for MaskPositionY {
+    impl Animatable for MaskPositionY {
         #[inline]
         fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
             Ok(MaskPositionY(try!(self.0.interpolate(&other.0, progress))))
         }
     }
 
-    impl RepeatableListInterpolate for MaskPositionY {}
-
-    impl ComputeDistance for MaskPositionY {
-        #[inline]
-        fn compute_distance(&self, _other: &Self) -> Result<f64, ()> {
-            Err(())
-        }
-    }
+    impl RepeatableListAnimatable for MaskPositionY {}
 </%helpers:vector_longhand>
 
 ${helpers.single_keyword("mask-clip",

@@ -1022,7 +1022,7 @@ ${helpers.single_keyword_system("font-variant-caps",
     }
 
     pub mod computed_value {
-        use properties::animated_properties::{ComputeDistance, Interpolate};
+        use properties::animated_properties::Animatable;
         use std::fmt;
         use style_traits::ToCss;
         use values::CSSFloat;
@@ -1054,7 +1054,7 @@ ${helpers.single_keyword_system("font-variant-caps",
             }
         }
 
-        impl Interpolate for T {
+        impl Animatable for T {
             fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
                 match (*self, *other) {
                     (T::Number(ref number), T::Number(ref other)) =>
@@ -1062,9 +1062,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                     _ => Err(()),
                 }
             }
-        }
 
-        impl ComputeDistance for T {
             #[inline]
             fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
                 match (*self, *other) {

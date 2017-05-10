@@ -75,7 +75,7 @@ use style::parser::{LengthParsingMode, ParserContext};
 use style::properties::{CascadeFlags, ComputedValues, Importance, ParsedDeclaration, StyleBuilder};
 use style::properties::{PropertyDeclarationBlock, PropertyId};
 use style::properties::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
-use style::properties::animated_properties::{AnimationValue, ComputeDistance, Interpolate, TransitionProperty};
+use style::properties::animated_properties::{Animatable, AnimationValue, TransitionProperty};
 use style::properties::parse_one_declaration;
 use style::restyle_hints::{self, RestyleHint};
 use style::rule_tree::{StrongRuleNode, StyleSource};

@@ -111,15 +111,12 @@
                 pub struct T(pub SmallVec<[single_value::T; 1]>);
 
                 % if delegate_animate:
-                    use properties::animated_properties::Interpolate;
-                    impl Interpolate for T {
+                    use properties::animated_properties::Animatable;
+                    impl Animatable for T {
                         fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
                             self.0.interpolate(&other.0, progress).map(T)
                         }
-                    }
 
-                    use properties::animated_properties::ComputeDistance;
-                    impl ComputeDistance for T {
                         #[inline]
                         fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
                             self.0.compute_distance(&other.0)
@@ -974,10 +971,10 @@
     %>
 </%def>
 
-/// Macro for defining Interpolate trait for tuple struct which has Option<T>,
+/// Macro for defining Animatable trait for tuple struct which has Option<T>,
 /// e.g. struct T(pub Option<Au>).
-<%def name="impl_interpolate_for_option_tuple(value_for_none)">
-    impl Interpolate for T {
+<%def name="impl_animatable_for_option_tuple(value_for_none)">
+    impl Animatable for T {
         #[inline]
         fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
             match (self, other) {
@@ -995,13 +992,7 @@
                 },
             }
         }
-    }
-</%def>
 
-/// Macro for defining ComputeDistance trait for tuple struct which has Option<T>,
-/// e.g. struct T(pub Option<Au>).
-<%def name="impl_compute_distance_for_option_tuple(value_for_none)">
-    impl ComputeDistance for T {
         #[inline]
         fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
             match (self, other) {
