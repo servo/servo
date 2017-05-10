@@ -18,7 +18,7 @@ use std::collections::HashMap;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use stylearc::Arc;
 use stylesheet_set::StylesheetSet;
-use stylesheets::{FontFaceRule, Origin, Stylesheet};
+use stylesheets::{FontFaceRule, Origin};
 use stylist::{ExtraStyleData, Stylist};
 
 /// The container for data that a Servo-backed Gecko document needs to style
@@ -102,10 +102,8 @@ impl PerDocumentStyleDataImpl {
         };
 
         let author_style_disabled = self.stylesheets.author_style_disabled();
-        let mut stylesheets = Vec::<Arc<Stylesheet>>::new();
-        self.stylesheets.flush(&mut stylesheets);
         self.stylist.clear();
-        self.stylist.rebuild(stylesheets.iter(),
+        self.stylist.rebuild(self.stylesheets.flush(),
                              &StylesheetGuards::same(guard),
                              /* ua_sheets = */ None,
                              /* stylesheets_changed = */ true,
