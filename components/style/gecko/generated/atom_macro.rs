@@ -172,6 +172,68 @@ cfg_if! {
             pub static nsGkAtoms_archive: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms4areaE"]
             pub static nsGkAtoms_area: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms21aria_activedescendantE"]
+            pub static nsGkAtoms_aria_activedescendant: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms11aria_atomicE"]
+            pub static nsGkAtoms_aria_atomic: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms17aria_autocompleteE"]
+            pub static nsGkAtoms_aria_autocomplete: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms9aria_busyE"]
+            pub static nsGkAtoms_aria_busy: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms12aria_checkedE"]
+            pub static nsGkAtoms_aria_checked: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms13aria_controlsE"]
+            pub static nsGkAtoms_aria_controls: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms16aria_describedbyE"]
+            pub static nsGkAtoms_aria_describedby: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms13aria_disabledE"]
+            pub static nsGkAtoms_aria_disabled: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms15aria_dropeffectE"]
+            pub static nsGkAtoms_aria_dropeffect: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms13aria_expandedE"]
+            pub static nsGkAtoms_aria_expanded: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms11aria_flowtoE"]
+            pub static nsGkAtoms_aria_flowto: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms13aria_haspopupE"]
+            pub static nsGkAtoms_aria_haspopup: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms11aria_hiddenE"]
+            pub static nsGkAtoms_aria_hidden: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms12aria_invalidE"]
+            pub static nsGkAtoms_aria_invalid: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms15aria_labelledbyE"]
+            pub static nsGkAtoms_aria_labelledby: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms10aria_levelE"]
+            pub static nsGkAtoms_aria_level: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms9aria_liveE"]
+            pub static nsGkAtoms_aria_live: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms14aria_multilineE"]
+            pub static nsGkAtoms_aria_multiline: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms20aria_multiselectableE"]
+            pub static nsGkAtoms_aria_multiselectable: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms9aria_ownsE"]
+            pub static nsGkAtoms_aria_owns: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms13aria_posinsetE"]
+            pub static nsGkAtoms_aria_posinset: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms12aria_pressedE"]
+            pub static nsGkAtoms_aria_pressed: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms13aria_readonlyE"]
+            pub static nsGkAtoms_aria_readonly: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms13aria_relevantE"]
+            pub static nsGkAtoms_aria_relevant: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms13aria_requiredE"]
+            pub static nsGkAtoms_aria_required: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms13aria_selectedE"]
+            pub static nsGkAtoms_aria_selected: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms12aria_setsizeE"]
+            pub static nsGkAtoms_aria_setsize: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms9aria_sortE"]
+            pub static nsGkAtoms_aria_sort: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms13aria_valuemaxE"]
+            pub static nsGkAtoms_aria_valuemax: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms13aria_valueminE"]
+            pub static nsGkAtoms_aria_valuemin: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms13aria_valuenowE"]
+            pub static nsGkAtoms_aria_valuenow: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms5arrowE"]
             pub static nsGkAtoms_arrow: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms7articleE"]
@@ -2394,6 +2456,8 @@ cfg_if! {
             pub static nsGkAtoms_sup: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms7summaryE"]
             pub static nsGkAtoms_summary: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms7_switchE"]
+            pub static nsGkAtoms__switch: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms14systemPropertyE"]
             pub static nsGkAtoms_systemProperty: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms3tabE"]
@@ -4314,88 +4378,26 @@ cfg_if! {
             pub static nsGkAtoms_alertdialog: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms11applicationE"]
             pub static nsGkAtoms_application: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms21aria_activedescendantE"]
-            pub static nsGkAtoms_aria_activedescendant: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms11aria_atomicE"]
-            pub static nsGkAtoms_aria_atomic: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms17aria_autocompleteE"]
-            pub static nsGkAtoms_aria_autocomplete: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms9aria_busyE"]
-            pub static nsGkAtoms_aria_busy: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms12aria_checkedE"]
-            pub static nsGkAtoms_aria_checked: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms13aria_colcountE"]
             pub static nsGkAtoms_aria_colcount: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms13aria_colindexE"]
             pub static nsGkAtoms_aria_colindex: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms13aria_controlsE"]
-            pub static nsGkAtoms_aria_controls: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms16aria_describedbyE"]
-            pub static nsGkAtoms_aria_describedby: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms12aria_detailsE"]
             pub static nsGkAtoms_aria_details: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms13aria_disabledE"]
-            pub static nsGkAtoms_aria_disabled: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms15aria_dropeffectE"]
-            pub static nsGkAtoms_aria_dropeffect: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms17aria_errormessageE"]
             pub static nsGkAtoms_aria_errormessage: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms13aria_expandedE"]
-            pub static nsGkAtoms_aria_expanded: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms11aria_flowtoE"]
-            pub static nsGkAtoms_aria_flowto: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms12aria_grabbedE"]
             pub static nsGkAtoms_aria_grabbed: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms13aria_haspopupE"]
-            pub static nsGkAtoms_aria_haspopup: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms11aria_hiddenE"]
-            pub static nsGkAtoms_aria_hidden: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms12aria_invalidE"]
-            pub static nsGkAtoms_aria_invalid: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms10aria_labelE"]
             pub static nsGkAtoms_aria_label: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms15aria_labelledbyE"]
-            pub static nsGkAtoms_aria_labelledby: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms10aria_levelE"]
-            pub static nsGkAtoms_aria_level: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms9aria_liveE"]
-            pub static nsGkAtoms_aria_live: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms10aria_modalE"]
             pub static nsGkAtoms_aria_modal: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms14aria_multilineE"]
-            pub static nsGkAtoms_aria_multiline: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms20aria_multiselectableE"]
-            pub static nsGkAtoms_aria_multiselectable: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms16aria_orientationE"]
             pub static nsGkAtoms_aria_orientation: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms9aria_ownsE"]
-            pub static nsGkAtoms_aria_owns: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms13aria_posinsetE"]
-            pub static nsGkAtoms_aria_posinset: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms12aria_pressedE"]
-            pub static nsGkAtoms_aria_pressed: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms13aria_readonlyE"]
-            pub static nsGkAtoms_aria_readonly: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms13aria_relevantE"]
-            pub static nsGkAtoms_aria_relevant: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms13aria_requiredE"]
-            pub static nsGkAtoms_aria_required: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms13aria_rowcountE"]
             pub static nsGkAtoms_aria_rowcount: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms13aria_rowindexE"]
             pub static nsGkAtoms_aria_rowindex: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms13aria_selectedE"]
-            pub static nsGkAtoms_aria_selected: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms12aria_setsizeE"]
-            pub static nsGkAtoms_aria_setsize: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms9aria_sortE"]
-            pub static nsGkAtoms_aria_sort: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms13aria_valuenowE"]
-            pub static nsGkAtoms_aria_valuenow: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms13aria_valueminE"]
-            pub static nsGkAtoms_aria_valuemin: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms13aria_valuemaxE"]
-            pub static nsGkAtoms_aria_valuemax: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms14aria_valuetextE"]
             pub static nsGkAtoms_aria_valuetext: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms14auto_generatedE"]
@@ -4490,8 +4492,6 @@ cfg_if! {
             pub static nsGkAtoms_spinbutton: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms6statusE"]
             pub static nsGkAtoms_status: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms7_switchE"]
-            pub static nsGkAtoms__switch: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms14tableCellIndexE"]
             pub static nsGkAtoms_tableCellIndex: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms7tablistE"]
@@ -5185,6 +5185,68 @@ cfg_if! {
             pub static nsGkAtoms_archive: *mut nsIAtom;
             #[link_name = "?area@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_area: *mut nsIAtom;
+            #[link_name = "?aria_activedescendant@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_activedescendant: *mut nsIAtom;
+            #[link_name = "?aria_atomic@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_atomic: *mut nsIAtom;
+            #[link_name = "?aria_autocomplete@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_autocomplete: *mut nsIAtom;
+            #[link_name = "?aria_busy@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_busy: *mut nsIAtom;
+            #[link_name = "?aria_checked@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_checked: *mut nsIAtom;
+            #[link_name = "?aria_controls@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_controls: *mut nsIAtom;
+            #[link_name = "?aria_describedby@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_describedby: *mut nsIAtom;
+            #[link_name = "?aria_disabled@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_disabled: *mut nsIAtom;
+            #[link_name = "?aria_dropeffect@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_dropeffect: *mut nsIAtom;
+            #[link_name = "?aria_expanded@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_expanded: *mut nsIAtom;
+            #[link_name = "?aria_flowto@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_flowto: *mut nsIAtom;
+            #[link_name = "?aria_haspopup@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_haspopup: *mut nsIAtom;
+            #[link_name = "?aria_hidden@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_hidden: *mut nsIAtom;
+            #[link_name = "?aria_invalid@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_invalid: *mut nsIAtom;
+            #[link_name = "?aria_labelledby@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_labelledby: *mut nsIAtom;
+            #[link_name = "?aria_level@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_level: *mut nsIAtom;
+            #[link_name = "?aria_live@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_live: *mut nsIAtom;
+            #[link_name = "?aria_multiline@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_multiline: *mut nsIAtom;
+            #[link_name = "?aria_multiselectable@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_multiselectable: *mut nsIAtom;
+            #[link_name = "?aria_owns@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_owns: *mut nsIAtom;
+            #[link_name = "?aria_posinset@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_posinset: *mut nsIAtom;
+            #[link_name = "?aria_pressed@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_pressed: *mut nsIAtom;
+            #[link_name = "?aria_readonly@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_readonly: *mut nsIAtom;
+            #[link_name = "?aria_relevant@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_relevant: *mut nsIAtom;
+            #[link_name = "?aria_required@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_required: *mut nsIAtom;
+            #[link_name = "?aria_selected@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_selected: *mut nsIAtom;
+            #[link_name = "?aria_setsize@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_setsize: *mut nsIAtom;
+            #[link_name = "?aria_sort@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_sort: *mut nsIAtom;
+            #[link_name = "?aria_valuemax@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_valuemax: *mut nsIAtom;
+            #[link_name = "?aria_valuemin@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_valuemin: *mut nsIAtom;
+            #[link_name = "?aria_valuenow@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_aria_valuenow: *mut nsIAtom;
             #[link_name = "?arrow@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_arrow: *mut nsIAtom;
             #[link_name = "?article@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -7407,6 +7469,8 @@ cfg_if! {
             pub static nsGkAtoms_sup: *mut nsIAtom;
             #[link_name = "?summary@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_summary: *mut nsIAtom;
+            #[link_name = "?_switch@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms__switch: *mut nsIAtom;
             #[link_name = "?systemProperty@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_systemProperty: *mut nsIAtom;
             #[link_name = "?tab@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -9327,88 +9391,26 @@ cfg_if! {
             pub static nsGkAtoms_alertdialog: *mut nsIAtom;
             #[link_name = "?application@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_application: *mut nsIAtom;
-            #[link_name = "?aria_activedescendant@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_activedescendant: *mut nsIAtom;
-            #[link_name = "?aria_atomic@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_atomic: *mut nsIAtom;
-            #[link_name = "?aria_autocomplete@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_autocomplete: *mut nsIAtom;
-            #[link_name = "?aria_busy@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_busy: *mut nsIAtom;
-            #[link_name = "?aria_checked@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_checked: *mut nsIAtom;
             #[link_name = "?aria_colcount@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_aria_colcount: *mut nsIAtom;
             #[link_name = "?aria_colindex@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_aria_colindex: *mut nsIAtom;
-            #[link_name = "?aria_controls@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_controls: *mut nsIAtom;
-            #[link_name = "?aria_describedby@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_describedby: *mut nsIAtom;
             #[link_name = "?aria_details@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_aria_details: *mut nsIAtom;
-            #[link_name = "?aria_disabled@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_disabled: *mut nsIAtom;
-            #[link_name = "?aria_dropeffect@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_dropeffect: *mut nsIAtom;
             #[link_name = "?aria_errormessage@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_aria_errormessage: *mut nsIAtom;
-            #[link_name = "?aria_expanded@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_expanded: *mut nsIAtom;
-            #[link_name = "?aria_flowto@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_flowto: *mut nsIAtom;
             #[link_name = "?aria_grabbed@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_aria_grabbed: *mut nsIAtom;
-            #[link_name = "?aria_haspopup@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_haspopup: *mut nsIAtom;
-            #[link_name = "?aria_hidden@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_hidden: *mut nsIAtom;
-            #[link_name = "?aria_invalid@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_invalid: *mut nsIAtom;
             #[link_name = "?aria_label@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_aria_label: *mut nsIAtom;
-            #[link_name = "?aria_labelledby@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_labelledby: *mut nsIAtom;
-            #[link_name = "?aria_level@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_level: *mut nsIAtom;
-            #[link_name = "?aria_live@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_live: *mut nsIAtom;
             #[link_name = "?aria_modal@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_aria_modal: *mut nsIAtom;
-            #[link_name = "?aria_multiline@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_multiline: *mut nsIAtom;
-            #[link_name = "?aria_multiselectable@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_multiselectable: *mut nsIAtom;
             #[link_name = "?aria_orientation@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_aria_orientation: *mut nsIAtom;
-            #[link_name = "?aria_owns@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_owns: *mut nsIAtom;
-            #[link_name = "?aria_posinset@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_posinset: *mut nsIAtom;
-            #[link_name = "?aria_pressed@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_pressed: *mut nsIAtom;
-            #[link_name = "?aria_readonly@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_readonly: *mut nsIAtom;
-            #[link_name = "?aria_relevant@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_relevant: *mut nsIAtom;
-            #[link_name = "?aria_required@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_required: *mut nsIAtom;
             #[link_name = "?aria_rowcount@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_aria_rowcount: *mut nsIAtom;
             #[link_name = "?aria_rowindex@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_aria_rowindex: *mut nsIAtom;
-            #[link_name = "?aria_selected@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_selected: *mut nsIAtom;
-            #[link_name = "?aria_setsize@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_setsize: *mut nsIAtom;
-            #[link_name = "?aria_sort@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_sort: *mut nsIAtom;
-            #[link_name = "?aria_valuenow@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_valuenow: *mut nsIAtom;
-            #[link_name = "?aria_valuemin@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_valuemin: *mut nsIAtom;
-            #[link_name = "?aria_valuemax@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_aria_valuemax: *mut nsIAtom;
             #[link_name = "?aria_valuetext@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_aria_valuetext: *mut nsIAtom;
             #[link_name = "?auto_generated@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -9503,8 +9505,6 @@ cfg_if! {
             pub static nsGkAtoms_spinbutton: *mut nsIAtom;
             #[link_name = "?status@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_status: *mut nsIAtom;
-            #[link_name = "?_switch@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms__switch: *mut nsIAtom;
             #[link_name = "?tableCellIndex@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_tableCellIndex: *mut nsIAtom;
             #[link_name = "?tablist@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -10198,6 +10198,68 @@ cfg_if! {
             pub static nsGkAtoms_archive: *mut nsIAtom;
             #[link_name = "\x01?area@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_area: *mut nsIAtom;
+            #[link_name = "\x01?aria_activedescendant@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_activedescendant: *mut nsIAtom;
+            #[link_name = "\x01?aria_atomic@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_atomic: *mut nsIAtom;
+            #[link_name = "\x01?aria_autocomplete@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_autocomplete: *mut nsIAtom;
+            #[link_name = "\x01?aria_busy@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_busy: *mut nsIAtom;
+            #[link_name = "\x01?aria_checked@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_checked: *mut nsIAtom;
+            #[link_name = "\x01?aria_controls@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_controls: *mut nsIAtom;
+            #[link_name = "\x01?aria_describedby@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_describedby: *mut nsIAtom;
+            #[link_name = "\x01?aria_disabled@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_disabled: *mut nsIAtom;
+            #[link_name = "\x01?aria_dropeffect@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_dropeffect: *mut nsIAtom;
+            #[link_name = "\x01?aria_expanded@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_expanded: *mut nsIAtom;
+            #[link_name = "\x01?aria_flowto@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_flowto: *mut nsIAtom;
+            #[link_name = "\x01?aria_haspopup@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_haspopup: *mut nsIAtom;
+            #[link_name = "\x01?aria_hidden@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_hidden: *mut nsIAtom;
+            #[link_name = "\x01?aria_invalid@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_invalid: *mut nsIAtom;
+            #[link_name = "\x01?aria_labelledby@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_labelledby: *mut nsIAtom;
+            #[link_name = "\x01?aria_level@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_level: *mut nsIAtom;
+            #[link_name = "\x01?aria_live@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_live: *mut nsIAtom;
+            #[link_name = "\x01?aria_multiline@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_multiline: *mut nsIAtom;
+            #[link_name = "\x01?aria_multiselectable@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_multiselectable: *mut nsIAtom;
+            #[link_name = "\x01?aria_owns@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_owns: *mut nsIAtom;
+            #[link_name = "\x01?aria_posinset@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_posinset: *mut nsIAtom;
+            #[link_name = "\x01?aria_pressed@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_pressed: *mut nsIAtom;
+            #[link_name = "\x01?aria_readonly@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_readonly: *mut nsIAtom;
+            #[link_name = "\x01?aria_relevant@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_relevant: *mut nsIAtom;
+            #[link_name = "\x01?aria_required@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_required: *mut nsIAtom;
+            #[link_name = "\x01?aria_selected@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_selected: *mut nsIAtom;
+            #[link_name = "\x01?aria_setsize@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_setsize: *mut nsIAtom;
+            #[link_name = "\x01?aria_sort@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_sort: *mut nsIAtom;
+            #[link_name = "\x01?aria_valuemax@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_valuemax: *mut nsIAtom;
+            #[link_name = "\x01?aria_valuemin@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_valuemin: *mut nsIAtom;
+            #[link_name = "\x01?aria_valuenow@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_aria_valuenow: *mut nsIAtom;
             #[link_name = "\x01?arrow@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_arrow: *mut nsIAtom;
             #[link_name = "\x01?article@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -12420,6 +12482,8 @@ cfg_if! {
             pub static nsGkAtoms_sup: *mut nsIAtom;
             #[link_name = "\x01?summary@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_summary: *mut nsIAtom;
+            #[link_name = "\x01?_switch@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms__switch: *mut nsIAtom;
             #[link_name = "\x01?systemProperty@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_systemProperty: *mut nsIAtom;
             #[link_name = "\x01?tab@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -14340,88 +14404,26 @@ cfg_if! {
             pub static nsGkAtoms_alertdialog: *mut nsIAtom;
             #[link_name = "\x01?application@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_application: *mut nsIAtom;
-            #[link_name = "\x01?aria_activedescendant@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_activedescendant: *mut nsIAtom;
-            #[link_name = "\x01?aria_atomic@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_atomic: *mut nsIAtom;
-            #[link_name = "\x01?aria_autocomplete@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_autocomplete: *mut nsIAtom;
-            #[link_name = "\x01?aria_busy@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_busy: *mut nsIAtom;
-            #[link_name = "\x01?aria_checked@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_checked: *mut nsIAtom;
             #[link_name = "\x01?aria_colcount@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_aria_colcount: *mut nsIAtom;
             #[link_name = "\x01?aria_colindex@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_aria_colindex: *mut nsIAtom;
-            #[link_name = "\x01?aria_controls@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_controls: *mut nsIAtom;
-            #[link_name = "\x01?aria_describedby@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_describedby: *mut nsIAtom;
             #[link_name = "\x01?aria_details@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_aria_details: *mut nsIAtom;
-            #[link_name = "\x01?aria_disabled@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_disabled: *mut nsIAtom;
-            #[link_name = "\x01?aria_dropeffect@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_dropeffect: *mut nsIAtom;
             #[link_name = "\x01?aria_errormessage@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_aria_errormessage: *mut nsIAtom;
-            #[link_name = "\x01?aria_expanded@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_expanded: *mut nsIAtom;
-            #[link_name = "\x01?aria_flowto@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_flowto: *mut nsIAtom;
             #[link_name = "\x01?aria_grabbed@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_aria_grabbed: *mut nsIAtom;
-            #[link_name = "\x01?aria_haspopup@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_haspopup: *mut nsIAtom;
-            #[link_name = "\x01?aria_hidden@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_hidden: *mut nsIAtom;
-            #[link_name = "\x01?aria_invalid@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_invalid: *mut nsIAtom;
             #[link_name = "\x01?aria_label@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_aria_label: *mut nsIAtom;
-            #[link_name = "\x01?aria_labelledby@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_labelledby: *mut nsIAtom;
-            #[link_name = "\x01?aria_level@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_level: *mut nsIAtom;
-            #[link_name = "\x01?aria_live@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_live: *mut nsIAtom;
             #[link_name = "\x01?aria_modal@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_aria_modal: *mut nsIAtom;
-            #[link_name = "\x01?aria_multiline@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_multiline: *mut nsIAtom;
-            #[link_name = "\x01?aria_multiselectable@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_multiselectable: *mut nsIAtom;
             #[link_name = "\x01?aria_orientation@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_aria_orientation: *mut nsIAtom;
-            #[link_name = "\x01?aria_owns@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_owns: *mut nsIAtom;
-            #[link_name = "\x01?aria_posinset@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_posinset: *mut nsIAtom;
-            #[link_name = "\x01?aria_pressed@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_pressed: *mut nsIAtom;
-            #[link_name = "\x01?aria_readonly@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_readonly: *mut nsIAtom;
-            #[link_name = "\x01?aria_relevant@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_relevant: *mut nsIAtom;
-            #[link_name = "\x01?aria_required@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_required: *mut nsIAtom;
             #[link_name = "\x01?aria_rowcount@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_aria_rowcount: *mut nsIAtom;
             #[link_name = "\x01?aria_rowindex@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_aria_rowindex: *mut nsIAtom;
-            #[link_name = "\x01?aria_selected@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_selected: *mut nsIAtom;
-            #[link_name = "\x01?aria_setsize@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_setsize: *mut nsIAtom;
-            #[link_name = "\x01?aria_sort@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_sort: *mut nsIAtom;
-            #[link_name = "\x01?aria_valuenow@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_valuenow: *mut nsIAtom;
-            #[link_name = "\x01?aria_valuemin@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_valuemin: *mut nsIAtom;
-            #[link_name = "\x01?aria_valuemax@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_aria_valuemax: *mut nsIAtom;
             #[link_name = "\x01?aria_valuetext@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_aria_valuetext: *mut nsIAtom;
             #[link_name = "\x01?auto_generated@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -14516,8 +14518,6 @@ cfg_if! {
             pub static nsGkAtoms_spinbutton: *mut nsIAtom;
             #[link_name = "\x01?status@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_status: *mut nsIAtom;
-            #[link_name = "\x01?_switch@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms__switch: *mut nsIAtom;
             #[link_name = "\x01?tableCellIndex@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_tableCellIndex: *mut nsIAtom;
             #[link_name = "\x01?tablist@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -15214,6 +15214,68 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_archive as *mut _) } };
 ("area") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_area as *mut _) } };
+("aria-activedescendant") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_activedescendant as *mut _) } };
+("aria-atomic") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_atomic as *mut _) } };
+("aria-autocomplete") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_autocomplete as *mut _) } };
+("aria-busy") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_busy as *mut _) } };
+("aria-checked") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_checked as *mut _) } };
+("aria-controls") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_controls as *mut _) } };
+("aria-describedby") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_describedby as *mut _) } };
+("aria-disabled") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_disabled as *mut _) } };
+("aria-dropeffect") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_dropeffect as *mut _) } };
+("aria-expanded") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_expanded as *mut _) } };
+("aria-flowto") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_flowto as *mut _) } };
+("aria-haspopup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_haspopup as *mut _) } };
+("aria-hidden") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_hidden as *mut _) } };
+("aria-invalid") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_invalid as *mut _) } };
+("aria-labelledby") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_labelledby as *mut _) } };
+("aria-level") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_level as *mut _) } };
+("aria-live") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_live as *mut _) } };
+("aria-multiline") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_multiline as *mut _) } };
+("aria-multiselectable") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_multiselectable as *mut _) } };
+("aria-owns") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_owns as *mut _) } };
+("aria-posinset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_posinset as *mut _) } };
+("aria-pressed") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_pressed as *mut _) } };
+("aria-readonly") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_readonly as *mut _) } };
+("aria-relevant") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_relevant as *mut _) } };
+("aria-required") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_required as *mut _) } };
+("aria-selected") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_selected as *mut _) } };
+("aria-setsize") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_setsize as *mut _) } };
+("aria-sort") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_sort as *mut _) } };
+("aria-valuemax") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_valuemax as *mut _) } };
+("aria-valuemin") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_valuemin as *mut _) } };
+("aria-valuenow") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_valuenow as *mut _) } };
 ("arrow") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arrow as *mut _) } };
 ("article") =>
@@ -17436,6 +17498,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sup as *mut _) } };
 ("summary") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_summary as *mut _) } };
+("switch") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__switch as *mut _) } };
 ("system-property") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_systemProperty as *mut _) } };
 ("tab") =>
@@ -19356,88 +19420,26 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_alertdialog as *mut _) } };
 ("application") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_application as *mut _) } };
-("aria-activedescendant") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_activedescendant as *mut _) } };
-("aria-atomic") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_atomic as *mut _) } };
-("aria-autocomplete") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_autocomplete as *mut _) } };
-("aria-busy") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_busy as *mut _) } };
-("aria-checked") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_checked as *mut _) } };
 ("aria-colcount") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_colcount as *mut _) } };
 ("aria-colindex") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_colindex as *mut _) } };
-("aria-controls") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_controls as *mut _) } };
-("aria-describedby") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_describedby as *mut _) } };
 ("aria-details") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_details as *mut _) } };
-("aria-disabled") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_disabled as *mut _) } };
-("aria-dropeffect") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_dropeffect as *mut _) } };
 ("aria-errormessage") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_errormessage as *mut _) } };
-("aria-expanded") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_expanded as *mut _) } };
-("aria-flowto") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_flowto as *mut _) } };
 ("aria-grabbed") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_grabbed as *mut _) } };
-("aria-haspopup") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_haspopup as *mut _) } };
-("aria-hidden") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_hidden as *mut _) } };
-("aria-invalid") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_invalid as *mut _) } };
 ("aria-label") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_label as *mut _) } };
-("aria-labelledby") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_labelledby as *mut _) } };
-("aria-level") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_level as *mut _) } };
-("aria-live") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_live as *mut _) } };
 ("aria-modal") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_modal as *mut _) } };
-("aria-multiline") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_multiline as *mut _) } };
-("aria-multiselectable") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_multiselectable as *mut _) } };
 ("aria-orientation") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_orientation as *mut _) } };
-("aria-owns") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_owns as *mut _) } };
-("aria-posinset") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_posinset as *mut _) } };
-("aria-pressed") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_pressed as *mut _) } };
-("aria-readonly") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_readonly as *mut _) } };
-("aria-relevant") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_relevant as *mut _) } };
-("aria-required") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_required as *mut _) } };
 ("aria-rowcount") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_rowcount as *mut _) } };
 ("aria-rowindex") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_rowindex as *mut _) } };
-("aria-selected") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_selected as *mut _) } };
-("aria-setsize") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_setsize as *mut _) } };
-("aria-sort") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_sort as *mut _) } };
-("aria-valuenow") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_valuenow as *mut _) } };
-("aria-valuemin") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_valuemin as *mut _) } };
-("aria-valuemax") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_valuemax as *mut _) } };
 ("aria-valuetext") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_valuetext as *mut _) } };
 ("auto-generated") =>
@@ -19532,8 +19534,6 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_spinbutton as *mut _) } };
 ("status") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_status as *mut _) } };
-("switch") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__switch as *mut _) } };
 ("table-cell-index") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tableCellIndex as *mut _) } };
 ("tablist") =>
