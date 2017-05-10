@@ -15,8 +15,8 @@ use dom::bindings::trace::RootedTraceableBox;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, HandleValue, JSContext};
-use js::jsval::JSVal;
+use js;
+use js::jsapi;
 use servo_atoms::Atom;
 use std::cell::Cell;
 
@@ -28,7 +28,7 @@ pub struct ErrorEvent {
     lineno: Cell<u32>,
     colno: Cell<u32>,
     #[ignore_heap_size_of = "Defined in rust-mozjs"]
-    error: Heap<JSVal>,
+    error: js::heap::Heap<jsapi::JS::Value>,
 }
 
 impl ErrorEvent {
@@ -39,7 +39,7 @@ impl ErrorEvent {
             filename: DOMRefCell::new(DOMString::new()),
             lineno: Cell::new(0),
             colno: Cell::new(0),
-            error: Heap::default()
+            error: js::heap::Heap::default()
         }
     }
 
@@ -57,7 +57,7 @@ impl ErrorEvent {
                filename: DOMString,
                lineno: u32,
                colno: u32,
-               error: HandleValue) -> Root<ErrorEvent> {
+               error: jsapi::JS::HandleValue) -> Root<ErrorEvent> {
         let ev = ErrorEvent::new_uninitialized(global);
         {
             let event = ev.upcast::<Event>();
@@ -132,7 +132,7 @@ impl ErrorEventMethods for ErrorEvent {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-errorevent-error
-    unsafe fn Error(&self, _cx: *mut JSContext) -> JSVal {
+    unsafe fn Error(&self, _cx: *mut jsapi::JSContext) -> jsapi::JS::Value {
         self.error.get()
     }
 

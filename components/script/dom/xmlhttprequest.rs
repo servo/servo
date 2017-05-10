@@ -50,9 +50,9 @@ use hyper::mime::{self, Attr as MimeAttr, Mime, Value as MimeValue};
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use js::jsapi::{Heap, JSContext, JS_ParseJSON};
-use js::jsapi::JS_ClearPendingException;
-use js::jsval::{JSVal, NullValue, UndefinedValue};
+use js;
+use js::jsapi;
+use js::jsval::{NullValue, UndefinedValue};
 use net_traits::{FetchMetadata, FilteredMetadata};
 use net_traits::{FetchResponseListener, NetworkError, ReferrerPolicy};
 use net_traits::CoreResourceMsg::Fetch;
@@ -133,7 +133,7 @@ pub struct XMLHttpRequest {
     response_xml: MutNullableJS<Document>,
     response_blob: MutNullableJS<Blob>,
     #[ignore_heap_size_of = "Defined in rust-mozjs"]
-    response_json: Heap<JSVal>,
+    response_json: js::heap::Heap<jsapi::JS::Value>,
     #[ignore_heap_size_of = "Defined in hyper"]
     response_headers: DOMRefCell<Headers>,
     #[ignore_heap_size_of = "Defined in hyper"]
@@ -183,7 +183,7 @@ impl XMLHttpRequest {
             response_type: Cell::new(XMLHttpRequestResponseType::_empty),
             response_xml: Default::default(),
             response_blob: Default::default(),
-            response_json: Heap::default(),
+            response_json: js::heap::Heap::default(),
             response_headers: DOMRefCell::new(Headers::new()),
             override_mime_type: DOMRefCell::new(None),
             override_charset: DOMRefCell::new(None),
@@ -760,7 +760,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     #[allow(unsafe_code)]
     // https://xhr.spec.whatwg.org/#the-response-attribute
-    unsafe fn Response(&self, cx: *mut JSContext) -> JSVal {
+    unsafe fn Response(&self, cx: *mut jsapi::JSContext) -> jsapi::JS::Value {
         rooted!(in(cx) let mut rval = UndefinedValue());
         match self.response_type.get() {
             XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Text => {
@@ -1151,7 +1151,7 @@ impl XMLHttpRequest {
 
     #[allow(unsafe_code)]
     // https://xhr.spec.whatwg.org/#json-response
-    fn json_response(&self, cx: *mut JSContext) -> JSVal {
+    fn json_response(&self, cx: *mut jsapi::JSContext) -> jsapi::JS::Value {
         // Step 1
         let response_json = self.response_json.get();
         if !response_json.is_null_or_undefined() {
@@ -1169,11 +1169,11 @@ impl XMLHttpRequest {
         // Step 5
         rooted!(in(cx) let mut rval = UndefinedValue());
         unsafe {
-            if !JS_ParseJSON(cx,
+            if !jsapi::JS_ParseJSON(cx,
                              json_text.as_ptr(),
                              json_text.len() as u32,
                              rval.handle_mut()) {
-                JS_ClearPendingException(cx);
+                jsapi::JS_ClearPendingException(cx);
                 return NullValue();
             }
         }

@@ -47,8 +47,8 @@ use euclid::Size2D;
 use fnv::FnvHashMap;
 use half::f16;
 use js::conversions::ConversionBehavior;
-use js::jsapi::{JSContext, JSObject, Type, Rooted};
-use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UndefinedValue};
+use js::jsapi;
+use js::jsval::{BooleanValue, DoubleValue, Int32Value, NullValue, UndefinedValue};
 use js::typedarray::{TypedArray, TypedArrayElement, Float32, Int32};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageResponse;
@@ -756,8 +756,8 @@ impl WebGLRenderingContext {
                                          format: TexFormat,
                                          data_type: TexDataType,
                                          unpacking_alignment: u32,
-                                         data: *mut JSObject,
-                                         cx: *mut JSContext)
+                                         data: *mut jsapi::JSObject,
+                                         cx: *mut jsapi::JSContext)
                                          -> Result<u32, ()> {
         let element_size = data_type.element_size();
         let components_per_element = data_type.components_per_element();
@@ -1092,12 +1092,12 @@ impl Drop for WebGLRenderingContext {
 }
 
 // FIXME: After [1] lands and the relevant Servo and codegen PR too, we should
-// convert all our raw JSObject pointers to proper types.
+// convert all our raw jsapi::JSObject pointers to proper types.
 //
 // [1]: https://github.com/servo/rust-mozjs/pull/304
 #[allow(unsafe_code)]
-unsafe fn typed_array_or_sequence_to_vec<T>(cx: *mut JSContext,
-                                            sequence_or_abv: *mut JSObject,
+unsafe fn typed_array_or_sequence_to_vec<T>(cx: *mut jsapi::JSContext,
+                                            sequence_or_abv: *mut jsapi::JSObject,
                                             config: <T::Element as FromJSValConvertible>::Config)
                                             -> Result<Vec<T::Element>, Error>
     where T: TypedArrayElement,
@@ -1105,7 +1105,7 @@ unsafe fn typed_array_or_sequence_to_vec<T>(cx: *mut JSContext,
           <T::Element as FromJSValConvertible>::Config: Clone,
 {
     // TODO(servo/rust-mozjs#330): replace this with a macro that supports generic types.
-    let mut typed_array_root = Rooted::new_unrooted();
+    let mut typed_array_root = jsapi::JS::Rooted::new_unrooted();
     let typed_array: Option<TypedArray<T>> =
           TypedArray::from(cx, &mut typed_array_root, sequence_or_abv).ok();
     if let Some(mut typed_array) = typed_array {
@@ -1125,7 +1125,9 @@ unsafe fn typed_array_or_sequence_to_vec<T>(cx: *mut JSContext,
 }
 
 #[allow(unsafe_code)]
-unsafe fn fallible_array_buffer_view_to_vec(cx: *mut JSContext, abv: *mut JSObject) -> Result<Vec<u8>, Error>
+unsafe fn fallible_array_buffer_view_to_vec(cx: *mut jsapi::JSContext,
+                                            abv: *mut jsapi::JSObject)
+                                            -> Result<Vec<u8>, Error>
 {
     assert!(!abv.is_null());
     typedarray!(in(cx) let array_buffer_view: ArrayBufferView = abv);
@@ -1169,7 +1171,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    unsafe fn GetBufferParameter(&self, _cx: *mut JSContext, target: u32, parameter: u32) -> JSVal {
+    unsafe fn GetBufferParameter(&self, _cx: *mut jsapi::JSContext, target: u32, parameter: u32) -> jsapi::JS::Value {
         let (sender, receiver) = webgl_channel().unwrap();
         self.send_command(WebGLCommand::GetBufferParameter(target, parameter, sender));
 
@@ -1185,7 +1187,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    unsafe fn GetParameter(&self, cx: *mut JSContext, parameter: u32) -> JSVal {
+    unsafe fn GetParameter(&self, cx: *mut jsapi::JSContext, parameter: u32) -> jsapi::JS::Value {
         // Handle the GL_*_BINDING without going all the way
         // to the GL, since we would just need to map back from GL's
         // returned ID to the WebGL* object we're tracking.
@@ -1312,8 +1314,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14
-    unsafe fn GetExtension(&self, _cx: *mut JSContext, name: DOMString)
-                    -> Option<NonZero<*mut JSObject>> {
+    unsafe fn GetExtension(&self,
+                           _cx: *mut jsapi::JSContext,
+                           name: DOMString)
+                           -> Option<NonZero<*mut jsapi::JSObject>> {
         self.extension_manager.init_once(|| {
             self.get_gl_extensions()
         });
@@ -1514,7 +1518,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    unsafe fn BufferData(&self, cx: *mut JSContext, target: u32, data: *mut JSObject, usage: u32) -> Fallible<()> {
+    unsafe fn BufferData(&self,
+                         cx: *mut jsapi::JSContext,
+                         target: u32,
+                         data: *mut jsapi::JSObject,
+                         usage: u32)
+                         -> Fallible<()> {
         if data.is_null() {
             return Ok(self.webgl_error(InvalidValue));
         }
@@ -1582,7 +1591,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    unsafe fn BufferSubData(&self, cx: *mut JSContext, target: u32, offset: i64, data: *mut JSObject) -> Fallible<()> {
+    unsafe fn BufferSubData(&self,
+                            cx: *mut jsapi::JSContext,
+                            target: u32,
+                            offset: i64,
+                            data: *mut jsapi::JSObject)
+                            -> Fallible<()> {
         if data.is_null() {
             return Ok(self.webgl_error(InvalidValue));
         }
@@ -1618,8 +1632,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    unsafe fn CompressedTexImage2D(&self, cx: *mut JSContext, _target: u32, _level: i32, _internal_format: u32,
-                            _width: i32, _height: i32, _border: i32, pixels: *mut JSObject) -> Fallible<()> {
+    unsafe fn CompressedTexImage2D(&self, cx: *mut jsapi::JSContext, _target: u32, _level: i32, _internal_format: u32,
+                            _width: i32, _height: i32, _border: i32, pixels: *mut jsapi::JSObject) -> Fallible<()> {
         let _data = fallible_array_buffer_view_to_vec(cx, pixels)?;
         // FIXME: No compressed texture format is currently supported, so error out as per
         // https://www.khronos.org/registry/webgl/specs/latest/1.0/#COMPRESSED_TEXTURE_SUPPORT
@@ -1629,9 +1643,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    unsafe fn CompressedTexSubImage2D(&self, cx: *mut JSContext, _target: u32, _level: i32,
+    unsafe fn CompressedTexSubImage2D(&self, cx: *mut jsapi::JSContext, _target: u32, _level: i32,
                                _xoffset: i32, _yoffset: i32, _width: i32, _height: i32,
-                               _format: u32, pixels: *mut JSObject) -> Fallible<()> {
+                               _format: u32, pixels: *mut jsapi::JSObject) -> Fallible<()> {
         let _data = fallible_array_buffer_view_to_vec(cx, pixels)?;
         // FIXME: No compressed texture format is currently supported, so error out as per
         // https://www.khronos.org/registry/webgl/specs/latest/1.0/#COMPRESSED_TEXTURE_SUPPORT
@@ -2171,7 +2185,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    unsafe fn GetProgramParameter(&self, _: *mut JSContext, program: Option<&WebGLProgram>, param_id: u32) -> JSVal {
+    unsafe fn GetProgramParameter(&self,
+                                  _: *mut jsapi::JSContext,
+                                  program: Option<&WebGLProgram>,
+                                  param_id: u32)
+                                  -> jsapi::JS::Value {
         if let Some(program) = program {
             match handle_potential_webgl_error!(self, program.parameter(param_id), WebGLParameter::Invalid) {
                 WebGLParameter::Int(val) => Int32Value(val),
@@ -2195,9 +2213,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    unsafe fn GetShaderParameter(&self, _: *mut JSContext, shader: Option<&WebGLShader>, param_id: u32) -> JSVal {
+    unsafe fn GetShaderParameter(&self,
+                                 _: *mut jsapi::JSContext,
+                                 shader: Option<&WebGLShader>,
+                                 param_id: u32)
+                                 -> jsapi::JS::Value {
         if let Some(shader) = shader {
-            match handle_potential_webgl_error!(self, shader.parameter(param_id), WebGLParameter::Invalid) {
+            match handle_potential_webgl_error!(self,
+                                                shader.parameter(param_id),
+                                                WebGLParameter::Invalid) {
                 WebGLParameter::Int(val) => Int32Value(val),
                 WebGLParameter::Bool(val) => BooleanValue(val),
                 WebGLParameter::String(_) => panic!("Shader parameter should not be string"),
@@ -2245,7 +2269,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    unsafe fn GetVertexAttrib(&self, cx: *mut JSContext, index: u32, pname: u32) -> JSVal {
+    unsafe fn GetVertexAttrib(&self, cx: *mut jsapi::JSContext, index: u32, pname: u32) -> jsapi::JS::Value {
         if index == 0 && pname == constants::CURRENT_VERTEX_ATTRIB {
             rooted!(in(cx) let mut result = UndefinedValue());
             let (x, y, z, w) = self.current_vertex_attrib_0.get();
@@ -2413,8 +2437,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.12
-    unsafe fn ReadPixels(&self, cx: *mut JSContext, x: i32, y: i32, width: i32, height: i32,
-                  format: u32, pixel_type: u32, pixels: *mut JSObject) -> Fallible<()> {
+    unsafe fn ReadPixels(&self, cx: *mut jsapi::JSContext, x: i32, y: i32, width: i32, height: i32,
+                  format: u32, pixel_type: u32, pixels: *mut jsapi::JSObject) -> Fallible<()> {
         if pixels.is_null() {
             return Ok(self.webgl_error(InvalidValue));
         }
@@ -2430,7 +2454,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
 
         match array_type {
-            Type::Uint8 => (),
+            jsapi::js::Scalar::Type::Uint8 => (),
             _ => return Ok(self.webgl_error(InvalidOperation)),
         }
 
@@ -2644,9 +2668,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
     unsafe fn Uniform1iv(&self,
-                  cx: *mut JSContext,
+                  cx: *mut jsapi::JSContext,
                   uniform: Option<&WebGLUniformLocation>,
-                  data: *mut JSObject) -> Fallible<()> {
+                  data: *mut jsapi::JSObject) -> Fallible<()> {
         assert!(!data.is_null());
         let data_vec = typed_array_or_sequence_to_vec::<Int32>(cx, data, ConversionBehavior::Default)?;
 
@@ -2660,9 +2684,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
     unsafe fn Uniform1fv(&self,
-                  cx: *mut JSContext,
+                  cx: *mut jsapi::JSContext,
                   uniform: Option<&WebGLUniformLocation>,
-                  data: *mut JSObject) -> Fallible<()> {
+                  data: *mut jsapi::JSObject) -> Fallible<()> {
         assert!(!data.is_null());
         let data_vec = typed_array_or_sequence_to_vec::<Float32>(cx, data, ())?;
 
@@ -2685,9 +2709,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
     unsafe fn Uniform2fv(&self,
-                  cx: *mut JSContext,
+                  cx: *mut jsapi::JSContext,
                   uniform: Option<&WebGLUniformLocation>,
-                  data: *mut JSObject) -> Fallible<()> {
+                  data: *mut jsapi::JSObject) -> Fallible<()> {
         assert!(!data.is_null());
         let data_vec = typed_array_or_sequence_to_vec::<Float32>(cx, data, ())?;
 
@@ -2714,9 +2738,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
     unsafe fn Uniform2iv(&self,
-                  cx: *mut JSContext,
+                  cx: *mut jsapi::JSContext,
                   uniform: Option<&WebGLUniformLocation>,
-                  data: *mut JSObject) -> Fallible<()> {
+                  data: *mut jsapi::JSObject) -> Fallible<()> {
         assert!(!data.is_null());
         let data_vec = typed_array_or_sequence_to_vec::<Int32>(cx, data, ConversionBehavior::Default)?;
 
@@ -2743,9 +2767,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
     unsafe fn Uniform3fv(&self,
-                  cx: *mut JSContext,
+                  cx: *mut jsapi::JSContext,
                   uniform: Option<&WebGLUniformLocation>,
-                  data: *mut JSObject) -> Fallible<()> {
+                  data: *mut jsapi::JSObject) -> Fallible<()> {
         assert!(!data.is_null());
         let data_vec = typed_array_or_sequence_to_vec::<Float32>(cx, data, ())?;
 
@@ -2772,9 +2796,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
     unsafe fn Uniform3iv(&self,
-                  cx: *mut JSContext,
+                  cx: *mut jsapi::JSContext,
                   uniform: Option<&WebGLUniformLocation>,
-                  data: *mut JSObject) -> Fallible<()> {
+                  data: *mut jsapi::JSObject) -> Fallible<()> {
         assert!(!data.is_null());
         let data_vec = typed_array_or_sequence_to_vec::<Int32>(cx, data, ConversionBehavior::Default)?;
 
@@ -2802,9 +2826,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
     unsafe fn Uniform4iv(&self,
-                  cx: *mut JSContext,
+                  cx: *mut jsapi::JSContext,
                   uniform: Option<&WebGLUniformLocation>,
-                  data: *mut JSObject) -> Fallible<()> {
+                  data: *mut jsapi::JSObject) -> Fallible<()> {
         assert!(!data.is_null());
         let data_vec = typed_array_or_sequence_to_vec::<Int32>(cx, data, ConversionBehavior::Default)?;
 
@@ -2831,9 +2855,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
     unsafe fn Uniform4fv(&self,
-                  cx: *mut JSContext,
+                  cx: *mut jsapi::JSContext,
                   uniform: Option<&WebGLUniformLocation>,
-                  data: *mut JSObject) -> Fallible<()> {
+                  data: *mut jsapi::JSObject) -> Fallible<()> {
         assert!(!data.is_null());
         let data_vec = typed_array_or_sequence_to_vec::<Float32>(cx, data, ())?;
 
@@ -2849,10 +2873,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
     unsafe fn UniformMatrix2fv(&self,
-                        cx: *mut JSContext,
+                        cx: *mut jsapi::JSContext,
                         uniform: Option<&WebGLUniformLocation>,
                         transpose: bool,
-                        data: *mut JSObject) -> Fallible<()> {
+                        data: *mut jsapi::JSObject) -> Fallible<()> {
         assert!(!data.is_null());
         let data_vec = typed_array_or_sequence_to_vec::<Float32>(cx, data, ())?;
         if self.validate_uniform_parameters(uniform,
@@ -2867,10 +2891,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
     unsafe fn UniformMatrix3fv(&self,
-                        cx: *mut JSContext,
+                        cx: *mut jsapi::JSContext,
                         uniform: Option<&WebGLUniformLocation>,
                         transpose: bool,
-                        data: *mut JSObject) -> Fallible<()> {
+                        data: *mut jsapi::JSObject) -> Fallible<()> {
         assert!(!data.is_null());
         let data_vec = typed_array_or_sequence_to_vec::<Float32>(cx, data, ())?;
         if self.validate_uniform_parameters(uniform,
@@ -2885,10 +2909,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
     unsafe fn UniformMatrix4fv(&self,
-                        cx: *mut JSContext,
+                        cx: *mut jsapi::JSContext,
                         uniform: Option<&WebGLUniformLocation>,
                         transpose: bool,
-                        data: *mut JSObject) -> Fallible<()> {
+                        data: *mut jsapi::JSObject) -> Fallible<()> {
         assert!(!data.is_null());
         let data_vec = typed_array_or_sequence_to_vec::<Float32>(cx, data, ())?;
         if self.validate_uniform_parameters(uniform,
@@ -2926,7 +2950,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
-    unsafe fn VertexAttrib1fv(&self, cx: *mut JSContext, indx: u32, data: *mut JSObject) -> Fallible<()> {
+    unsafe fn VertexAttrib1fv(&self, cx: *mut jsapi::JSContext, indx: u32, data: *mut jsapi::JSObject) -> Fallible<()> {
         assert!(!data.is_null());
         let data_vec = typed_array_or_sequence_to_vec::<Float32>(cx, data, ())?;
         if data_vec.len() < 1 {
@@ -2943,7 +2967,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
-    unsafe fn VertexAttrib2fv(&self, cx: *mut JSContext, indx: u32, data: *mut JSObject) -> Fallible<()> {
+    unsafe fn VertexAttrib2fv(&self, cx: *mut jsapi::JSContext, indx: u32, data: *mut jsapi::JSObject) -> Fallible<()> {
         assert!(!data.is_null());
         let data_vec = typed_array_or_sequence_to_vec::<Float32>(cx, data, ())?;
         if data_vec.len() < 2 {
@@ -2960,7 +2984,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
-    unsafe fn VertexAttrib3fv(&self, cx: *mut JSContext, indx: u32, data: *mut JSObject) -> Fallible<()> {
+    unsafe fn VertexAttrib3fv(&self, cx: *mut jsapi::JSContext, indx: u32, data: *mut jsapi::JSObject) -> Fallible<()> {
         assert!(!data.is_null());
         let data_vec = typed_array_or_sequence_to_vec::<Float32>(cx, data, ())?;
         if data_vec.len() < 3 {
@@ -2977,7 +3001,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     #[allow(unsafe_code)]
-    unsafe fn VertexAttrib4fv(&self, cx: *mut JSContext, indx: u32, data: *mut JSObject) -> Fallible<()> {
+    unsafe fn VertexAttrib4fv(&self, cx: *mut jsapi::JSContext, indx: u32, data: *mut jsapi::JSObject) -> Fallible<()> {
         assert!(!data.is_null());
         let data_vec = typed_array_or_sequence_to_vec::<Float32>(cx, data, ())?;
         if data_vec.len() < 4 {
@@ -3046,7 +3070,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     #[allow(unsafe_code)]
     unsafe fn TexImage2D(&self,
-                  cx: *mut JSContext,
+                  cx: *mut jsapi::JSContext,
                   target: u32,
                   level: i32,
                   internal_format: u32,
@@ -3055,7 +3079,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   border: i32,
                   format: u32,
                   data_type: u32,
-                  data_ptr: *mut JSObject) -> Fallible<()> {
+                  data_ptr: *mut jsapi::JSObject) -> Fallible<()> {
         if !self.extension_manager.is_tex_type_enabled(data_type) {
             return Ok(self.webgl_error(InvalidEnum));
         }
@@ -3177,7 +3201,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     #[allow(unsafe_code)]
     unsafe fn TexSubImage2D(&self,
-                     cx: *mut JSContext,
+                     cx: *mut jsapi::JSContext,
                      target: u32,
                      level: i32,
                      xoffset: i32,
@@ -3186,7 +3210,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                      height: i32,
                      format: u32,
                      data_type: u32,
-                     data_ptr: *mut JSObject) -> Fallible<()> {
+                     data_ptr: *mut jsapi::JSObject) -> Fallible<()> {
         let data = if data_ptr.is_null() {
             None
         } else {

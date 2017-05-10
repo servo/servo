@@ -15,8 +15,7 @@ use dom::webglrenderingcontext::WebGLRenderingContext;
 use fnv::{FnvHashMap, FnvHashSet};
 use gleam::gl::GLenum;
 use heapsize::HeapSizeOf;
-use js::jsapi::{JSContext, JSObject};
-use js::jsval::JSVal;
+use js::jsapi;
 use ref_filter_map::ref_filter_map;
 use std::cell::Ref;
 use std::collections::HashMap;
@@ -109,7 +108,10 @@ impl WebGLExtensions {
                                 .collect()
     }
 
-    pub fn get_or_init_extension(&self, name: &str, ctx: &WebGLRenderingContext) -> Option<NonZero<*mut JSObject>> {
+    pub fn get_or_init_extension(&self,
+                                 name: &str,
+                                 ctx: &WebGLRenderingContext)
+                                 -> Option<NonZero<*mut jsapi::JSObject>> {
         let name = name.to_uppercase();
         self.extensions.borrow().get(&name).and_then(|extension| {
             if extension.is_supported(self) {
@@ -227,8 +229,8 @@ impl WebGLExtensions {
 #[derive(Eq, Hash, HeapSizeOf, JSTraceable, PartialEq)]
 struct TexFormatType(u32, u32);
 
-type WebGLQueryParameterFunc = Fn(*mut JSContext, &WebGLRenderingContext)
-                               -> Result<JSVal, WebGLError>;
+type WebGLQueryParameterFunc = Fn(*mut jsapi::JSContext, &WebGLRenderingContext)
+                               -> Result<jsapi::JS::Value, WebGLError>;
 
 #[derive(HeapSizeOf)]
 struct WebGLQueryParameterHandler {

@@ -17,7 +17,8 @@ use dom::gamepadevent::{GamepadEvent, GamepadEventType};
 use dom::globalscope::GlobalScope;
 use dom::vrpose::VRPose;
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSContext, JSObject};
+use js;
+use js::jsapi;
 use js::typedarray::{Float64Array, CreateWith};
 use std::cell::Cell;
 use std::ptr;
@@ -32,7 +33,7 @@ pub struct Gamepad {
     connected: Cell<bool>,
     timestamp: Cell<f64>,
     mapping_type: String,
-    axes: Heap<*mut JSObject>,
+    axes: js::heap::Heap<*mut jsapi::JSObject>,
     buttons: JS<GamepadButtonList>,
     pose: Option<JS<VRPose>>,
     #[ignore_heap_size_of = "Defined in rust-webvr"]
@@ -59,7 +60,7 @@ impl Gamepad {
             connected: Cell::new(connected),
             timestamp: Cell::new(timestamp),
             mapping_type: mapping_type,
-            axes: Heap::default(),
+            axes: js::heap::Heap::default(),
             buttons: JS::from_ref(buttons),
             pose: pose.map(JS::from_ref),
             hand: hand,
@@ -127,7 +128,7 @@ impl GamepadMethods for Gamepad {
 
     #[allow(unsafe_code)]
     // https://w3c.github.io/gamepad/#dom-gamepad-axes
-    unsafe fn Axes(&self, _cx: *mut JSContext) -> NonZero<*mut JSObject> {
+    unsafe fn Axes(&self, _cx: *mut jsapi::JSContext) -> NonZero<*mut jsapi::JSObject> {
         NonZero::new_unchecked(self.axes.get())
     }
 

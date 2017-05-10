@@ -17,7 +17,7 @@ use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom::serviceworkerregistration::ServiceWorkerRegistration;
 use dom::urlhelper::UrlHelper;
-use js::jsapi::JSAutoCompartment;
+use js;
 use script_thread::{ScriptThread, Runnable};
 use servo_url::ServoUrl;
 use std::cmp::PartialEq;
@@ -313,8 +313,12 @@ impl AsyncPromiseSettle {
     }
 }
 
+#[allow(unsafe_code)]
 fn settle_job_promise(global: &GlobalScope, promise: &Promise, settle: SettleType) {
-    let _ac = JSAutoCompartment::new(global.get_cx(), promise.reflector().get_jsobject().get());
+    let _ac = unsafe {
+        js::ac::AutoCompartment::with_obj(global.get_cx(),
+                                          promise.reflector().get_jsobject().get())
+    };
     match settle {
         SettleType::Resolve(reg) => promise.resolve_native(global.get_cx(), &*reg.root()),
         SettleType::Reject(err) => promise.reject_error(global.get_cx(), err),

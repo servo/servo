@@ -9,7 +9,7 @@
 //!
 //! As [explained earlier](../index.html#a-dom-object-and-its-reflector), the
 //! implementation of an interface `Foo` involves two objects: the DOM object
-//! (implemented in Rust) and the reflector (a `JSObject`).
+//! (implemented in Rust) and the reflector (a `jsapi::JSObject`).
 //!
 //! In order to expose the interface's members to the web, properties
 //! corresponding to the operations and attributes are defined on an object in
@@ -42,9 +42,9 @@
 //! (#throwing-exceptions) will have the return value wrapped in
 //! [`Fallible<T>`](error/type.Fallible.html).
 //! Methods that use certain WebIDL types like `any` or `object` will get a
-//! `*mut JSContext` argument prepended to the argument list. Static methods
+//! `*mut jsapi::JSContext` argument prepended to the argument list. Static methods
 //! will be passed a [`&GlobalScope`](../globalscope/struct.GlobalScope.html)
-//! for the relevant global. This argument comes before the `*mut JSContext`
+//! for the relevant global. This argument comes before the `*mut jsapi::JSContext`
 //! argument, if any.
 //!
 //! Rust reflections of WebIDL operations (methods)

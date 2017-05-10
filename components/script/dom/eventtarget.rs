@@ -29,7 +29,8 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use fnv::FnvHasher;
 use heapsize::HeapSizeOf;
-use js::jsapi::{CompileFunction, JS_GetFunctionObject, JSAutoCompartment};
+use js;
+use js::jsapi;
 use js::rust::{AutoObjectVectorWrapper, CompileOptionsWrapper};
 use libc::{c_char, size_t};
 use servo_atoms::Atom;
@@ -415,23 +416,25 @@ impl EventTarget {
 
         let scopechain = AutoObjectVectorWrapper::new(cx);
 
-        let _ac = JSAutoCompartment::new(cx, window.reflector().get_jsobject().get());
+        let _ac = unsafe {
+            js::ac::AutoCompartment::with_obj(cx, window.reflector().get_jsobject().get())
+        };
         rooted!(in(cx) let mut handler = ptr::null_mut());
         let rv = unsafe {
-            CompileFunction(cx,
-                            scopechain.ptr,
-                            options.ptr,
-                            name.as_ptr(),
-                            args.len() as u32,
-                            args.as_ptr(),
-                            body.as_ptr(),
-                            body.len() as size_t,
-                            handler.handle_mut())
+            jsapi::JS::CompileFunction(cx,
+                                       scopechain.ptr,
+                                       options.ptr,
+                                       name.as_ptr(),
+                                       args.len() as u32,
+                                       args.as_ptr(),
+                                       body.as_ptr(),
+                                       body.len() as size_t,
+                                       handler.handle_mut())
         };
         if !rv || handler.get().is_null() {
             // Step 1.8.2
             unsafe {
-                let _ac = JSAutoCompartment::new(cx, self.reflector().get_jsobject().get());
+                let _ac = js::ac::AutoCompartment::with_obj(cx, self.reflector().get_jsobject().get());
                 // FIXME(#13152): dispatch error event.
                 report_pending_exception(cx, false);
             }
@@ -440,7 +443,7 @@ impl EventTarget {
         }
 
         // TODO step 1.11-13
-        let funobj = unsafe { JS_GetFunctionObject(handler.get()) };
+        let funobj = unsafe { jsapi::JS_GetFunctionObject(handler.get()) };
         assert!(!funobj.is_null());
         // Step 1.14
         if is_error {

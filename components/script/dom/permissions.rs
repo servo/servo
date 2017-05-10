@@ -15,7 +15,7 @@ use dom::permissionstatus::PermissionStatus;
 use dom::promise::Promise;
 use dom_struct::dom_struct;
 use js::conversions::ConversionResult;
-use js::jsapi::{JSContext, JSObject};
+use js::jsapi;
 use js::jsval::{ObjectValue, UndefinedValue};
 #[cfg(target_os = "linux")]
 use servo_config::opts;
@@ -34,12 +34,12 @@ const ROOT_DESC_CONVERSION_ERROR: &'static str = "Can't convert to an IDL value 
 pub trait PermissionAlgorithm {
     type Descriptor;
     type Status;
-    fn create_descriptor(cx: *mut JSContext,
-                         permission_descriptor_obj: *mut JSObject)
+    fn create_descriptor(cx: *mut jsapi::JSContext,
+                         permission_descriptor_obj: *mut jsapi::JSObject)
                          -> Result<Self::Descriptor, Error>;
-    fn permission_query(cx: *mut JSContext, promise: &Rc<Promise>,
+    fn permission_query(cx: *mut jsapi::JSContext, promise: &Rc<Promise>,
                         descriptor: &Self::Descriptor, status: &Self::Status);
-    fn permission_request(cx: *mut JSContext, promise: &Rc<Promise>,
+    fn permission_request(cx: *mut jsapi::JSContext, promise: &Rc<Promise>,
                           descriptor: &Self::Descriptor, status: &Self::Status);
     fn permission_revoke(descriptor: &Self::Descriptor, status: &Self::Status);
 }
@@ -75,8 +75,8 @@ impl Permissions {
     // https://w3c.github.io/permissions/#dom-permissions-revoke
     fn manipulate(&self,
                   op: Operation,
-                  cx: *mut JSContext,
-                  permissionDesc: *mut JSObject,
+                  cx: *mut jsapi::JSContext,
+                  permissionDesc: *mut jsapi::JSObject,
                   promise: Option<Rc<Promise>>)
                   -> Rc<Promise> {
         // (Query, Request) Step 3.
@@ -178,21 +178,21 @@ impl PermissionsMethods for Permissions {
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     // https://w3c.github.io/permissions/#dom-permissions-query
-    unsafe fn Query(&self, cx: *mut JSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
+    unsafe fn Query(&self, cx: *mut jsapi::JSContext, permissionDesc: *mut jsapi::JSObject) -> Rc<Promise> {
         self.manipulate(Operation::Query, cx, permissionDesc, None)
     }
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     // https://w3c.github.io/permissions/#dom-permissions-request
-    unsafe fn Request(&self, cx: *mut JSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
+    unsafe fn Request(&self, cx: *mut jsapi::JSContext, permissionDesc: *mut jsapi::JSObject) -> Rc<Promise> {
         self.manipulate(Operation::Request, cx, permissionDesc, None)
     }
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     // https://w3c.github.io/permissions/#dom-permissions-revoke
-    unsafe fn Revoke(&self, cx: *mut JSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
+    unsafe fn Revoke(&self, cx: *mut jsapi::JSContext, permissionDesc: *mut jsapi::JSObject) -> Rc<Promise> {
         self.manipulate(Operation::Revoke, cx, permissionDesc, None)
     }
 }
@@ -202,8 +202,8 @@ impl PermissionAlgorithm for Permissions {
     type Status = PermissionStatus;
 
     #[allow(unsafe_code)]
-    fn create_descriptor(cx: *mut JSContext,
-                         permission_descriptor_obj: *mut JSObject)
+    fn create_descriptor(cx: *mut jsapi::JSContext,
+                         permission_descriptor_obj: *mut jsapi::JSObject)
                          -> Result<PermissionDescriptor, Error> {
         rooted!(in(cx) let mut property = UndefinedValue());
         property.handle_mut().set(ObjectValue(permission_descriptor_obj));
@@ -217,7 +217,7 @@ impl PermissionAlgorithm for Permissions {
     }
 
     // https://w3c.github.io/permissions/#boolean-permission-query-algorithm
-    fn permission_query(_cx: *mut JSContext,
+    fn permission_query(_cx: *mut jsapi::JSContext,
                         _promise: &Rc<Promise>,
                         _descriptor: &PermissionDescriptor,
                         status: &PermissionStatus) {
@@ -226,7 +226,7 @@ impl PermissionAlgorithm for Permissions {
     }
 
     // https://w3c.github.io/permissions/#boolean-permission-request-algorithm
-    fn permission_request(cx: *mut JSContext,
+    fn permission_request(cx: *mut jsapi::JSContext,
                           promise: &Rc<Promise>,
                           descriptor: &PermissionDescriptor,
                           status: &PermissionStatus) {

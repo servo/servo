@@ -11,8 +11,8 @@ use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom::webglvertexarrayobjectoes::WebGLVertexArrayObjectOES;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::JSContext;
-use js::jsval::{JSVal, NullValue};
+use js::jsapi;
+use js::jsval::NullValue;
 use std::iter;
 use super::{WebGLExtension, WebGLExtensions};
 
@@ -33,7 +33,7 @@ impl OESVertexArrayObject {
     }
 
     #[allow(unsafe_code)]
-    fn get_current_binding(&self, cx:*mut JSContext) -> JSVal {
+    fn get_current_binding(&self, cx:*mut jsapi::JSContext) -> jsapi::JS::Value {
         rooted!(in(cx) let mut rval = NullValue());
         if let Some(bound_vao) = self.bound_vao.get() {
             unsafe {

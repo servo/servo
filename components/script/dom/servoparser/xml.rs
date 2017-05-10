@@ -10,7 +10,7 @@ use dom::document::Document;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::node::Node;
 use dom::servoparser::Sink;
-use js::jsapi::JSTracer;
+use js::jsapi;
 use servo_url::ServoUrl;
 use xml5ever::buffer_queue::BufferQueue;
 use xml5ever::tokenizer::XmlTokenizer;
@@ -68,8 +68,8 @@ impl Tokenizer {
 
 #[allow(unsafe_code)]
 unsafe impl JSTraceable for XmlTokenizer<XmlTreeBuilder<JS<Node>, Sink>> {
-    unsafe fn trace(&self, trc: *mut JSTracer) {
-        struct Tracer(*mut JSTracer);
+    unsafe fn trace(&self, trc: *mut jsapi::JSTracer) {
+        struct Tracer(*mut jsapi::JSTracer);
         let tracer = Tracer(trc);
 
         impl XmlTracer for Tracer {

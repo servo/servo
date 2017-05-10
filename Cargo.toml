@@ -6,7 +6,7 @@ members = [
 ]
 
 [profile.dev]
-codegen-units = 4
+codegen-units = 48
 
 [profile.release]
 opt-level = 3

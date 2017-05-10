@@ -4,9 +4,8 @@
 
 //! WebIDL constants.
 
-use js::jsapi::{HandleObject, JSContext, JSPROP_ENUMERATE, JSPROP_PERMANENT};
-use js::jsapi::{JSPROP_READONLY, JS_DefineProperty};
-use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UInt32Value};
+use js::jsapi;
+use js::jsval::{BooleanValue, DoubleValue, Int32Value, NullValue, UInt32Value};
 use libc;
 
 /// Representation of an IDL constant.
@@ -35,8 +34,8 @@ pub enum ConstantVal {
 }
 
 impl ConstantSpec {
-    /// Returns a `JSVal` that represents the value of this `ConstantSpec`.
-    pub fn get_value(&self) -> JSVal {
+    /// Returns a `jsapi::JS::Value` that represents the value of this `ConstantSpec`.
+    pub fn get_value(&self) -> jsapi::JS::Value {
         match self.value {
             ConstantVal::NullVal => NullValue(),
             ConstantVal::IntVal(i) => Int32Value(i),
@@ -50,17 +49,19 @@ impl ConstantSpec {
 /// Defines constants on `obj`.
 /// Fails on JSAPI failure.
 pub unsafe fn define_constants(
-        cx: *mut JSContext,
-        obj: HandleObject,
+        cx: *mut jsapi::JSContext,
+        obj: jsapi::JS::HandleObject,
         constants: &[ConstantSpec]) {
     for spec in constants {
         rooted!(in(cx) let value = spec.get_value());
-        assert!(JS_DefineProperty(cx,
-                                  obj,
-                                  spec.name.as_ptr() as *const libc::c_char,
-                                  value.handle(),
-                                  JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT,
-                                  None,
-                                  None));
+        assert!(jsapi::JS_DefineProperty(cx,
+                                         obj,
+                                         spec.name.as_ptr() as *const libc::c_char,
+                                         value.handle(),
+                                         (jsapi::JSPROP_ENUMERATE |
+                                          jsapi::JSPROP_READONLY |
+                                          jsapi::JSPROP_PERMANENT) as _,
+                                         None,
+                                         None));
     }
 }

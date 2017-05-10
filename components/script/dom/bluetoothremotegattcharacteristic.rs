@@ -27,7 +27,7 @@ use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::JSContext;
+use js::jsapi;
 use std::rc::Rc;
 
 // Maximum length of an attribute value.
@@ -256,7 +256,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
 }
 
 impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
-    fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut jsapi::JSContext, promise: &Rc<Promise>) {
         let device = self.Service().Device();
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren

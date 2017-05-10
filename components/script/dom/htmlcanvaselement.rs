@@ -32,7 +32,7 @@ use image::ColorType;
 use image::png::PNGEncoder;
 use ipc_channel::ipc;
 use js::error::throw_type_error;
-use js::jsapi::{HandleValue, JSContext};
+use js::jsapi;
 use offscreen_gl_context::GLContextAttributes;
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
 use std::iter::repeat;
@@ -167,8 +167,8 @@ impl HTMLCanvasElement {
 
     #[allow(unsafe_code)]
     pub fn get_or_init_webgl_context(&self,
-                                 cx: *mut JSContext,
-                                 attrs: Option<HandleValue>) -> Option<Root<WebGLRenderingContext>> {
+                                 cx: *mut jsapi::JSContext,
+                                 attrs: Option<jsapi::JS::HandleValue>) -> Option<Root<WebGLRenderingContext>> {
         if self.context.borrow().is_none() {
             let window = window_from_node(self);
             let size = self.get_size();
@@ -255,9 +255,9 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-canvas-getcontext
     unsafe fn GetContext(&self,
-                  cx: *mut JSContext,
+                  cx: *mut jsapi::JSContext,
                   id: DOMString,
-                  attributes: Vec<HandleValue>)
+                  attributes: Vec<jsapi::JS::HandleValue>)
         -> Option<CanvasRenderingContext2DOrWebGLRenderingContext> {
         match &*id {
             "2d" => {
@@ -275,9 +275,9 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-canvas-todataurl
     unsafe fn ToDataURL(&self,
-                 _context: *mut JSContext,
+                 _context: *mut jsapi::JSContext,
                  _mime_type: Option<DOMString>,
-                 _arguments: Vec<HandleValue>) -> Fallible<DOMString> {
+                 _arguments: Vec<jsapi::JS::HandleValue>) -> Fallible<DOMString> {
         // Step 1.
         if let Some(CanvasContext::Context2d(ref context)) = *self.context.borrow() {
             if !context.origin_is_clean() {
