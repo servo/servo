@@ -105,7 +105,7 @@ impl PerDocumentStyleDataImpl {
         let mut stylesheets = Vec::<Arc<Stylesheet>>::new();
         self.stylesheets.flush(&mut stylesheets);
         self.stylist.clear();
-        self.stylist.rebuild(stylesheets.as_slice(),
+        self.stylist.rebuild(stylesheets.iter(),
                              &StylesheetGuards::same(guard),
                              /* ua_sheets = */ None,
                              /* stylesheets_changed = */ true,
