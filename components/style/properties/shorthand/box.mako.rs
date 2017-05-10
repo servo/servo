@@ -148,6 +148,15 @@ macro_rules! try_parse_one {
             % endfor
         }
 
+        % for name in "duration delay".split():
+            if ${name}s.is_empty() {
+                ${name}s.push(transition_${name}::single_value::get_initial_value());
+            }
+        % endfor
+        if timing_functions.is_empty() {
+            timing_functions.push(transition_timing_function::single_value::get_initial_specified_value());
+        }
+
         Ok(Longhands {
             % for prop in "property duration timing_function delay".split():
             transition_${prop}: transition_${prop}::SpecifiedValue(${prop}s),
@@ -257,6 +266,15 @@ macro_rules! try_parse_one {
             % for prop in props:
             ${prop}s.push(result.animation_${prop});
             % endfor
+        }
+
+        % for name in "duration delay direction fill_mode iteration_count play_state".split():
+            if ${name}s.is_empty() {
+                ${name}s.push(animation_${name}::single_value::get_initial_value());
+            }
+        % endfor
+        if timing_functions.is_empty() {
+            timing_functions.push(animation_timing_function::single_value::get_initial_specified_value());
         }
 
         Ok(Longhands {
