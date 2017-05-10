@@ -37,8 +37,7 @@ fn get_mock_rules(css_selectors: &[&str]) -> (Vec<Vec<Rule>>, SharedRwLock) {
         let guard = shared_lock.read();
         let rule = locked.read_with(&guard);
         rule.selectors.0.iter().map(|s| {
-            Rule::new(&guard,
-                      s.inner.clone(),
+            Rule::new(s.inner.clone(),
                       locked.clone(),
                       i,
                       s.specificity)
@@ -213,9 +212,7 @@ fn test_get_universal_rules() {
     thread_state::initialize(thread_state::LAYOUT);
     let (map, shared_lock) = get_mock_map(&["*|*", "#foo > *|*", ".klass", "#id"]);
 
-    let guard = shared_lock.read();
-    let decls = map.get_universal_rules(
-        &guard, CascadeLevel::UserNormal, CascadeLevel::UserImportant);
+    let decls = map.get_universal_rules(CascadeLevel::UserNormal);
 
     assert_eq!(decls.len(), 1);
 }
