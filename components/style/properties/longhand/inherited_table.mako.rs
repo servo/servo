@@ -30,7 +30,7 @@ ${helpers.single_keyword("caption-side", "top bottom",
 
     pub mod computed_value {
         use app_units::Au;
-        use properties::animated_properties::{Animatable, ComputeDistance};
+        use properties::animated_properties::Animatable;
 
         #[derive(Clone, Copy, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -48,9 +48,7 @@ ${helpers.single_keyword("caption-side", "top bottom",
                     vertical: try!(self.vertical.interpolate(&other.vertical, time)),
                 })
             }
-        }
 
-        impl ComputeDistance for T {
             #[inline]
             fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
                 self.compute_squared_distance(other).map(|sd| sd.sqrt())

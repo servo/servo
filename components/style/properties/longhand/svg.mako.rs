@@ -99,7 +99,7 @@ ${helpers.single_keyword("mask-mode",
     pub use properties::longhands::background_position_x::single_value::parse;
     pub use properties::longhands::background_position_x::single_value::SpecifiedValue;
     pub use properties::longhands::background_position_x::single_value::computed_value;
-    use properties::animated_properties::{Animatable, ComputeDistance, RepeatableListAnimatable};
+    use properties::animated_properties::{Animatable, RepeatableListAnimatable};
     use properties::longhands::mask_position_x::computed_value::T as MaskPositionX;
 
     impl Animatable for MaskPositionX {
@@ -110,13 +110,6 @@ ${helpers.single_keyword("mask-mode",
     }
 
     impl RepeatableListAnimatable for MaskPositionX {}
-
-    impl ComputeDistance for MaskPositionX {
-        #[inline]
-        fn compute_distance(&self, _other: &Self) -> Result<f64, ()> {
-            Err(())
-        }
-    }
 </%helpers:vector_longhand>
 
 <%helpers:vector_longhand name="mask-position-y" products="gecko"
@@ -128,7 +121,7 @@ ${helpers.single_keyword("mask-mode",
     pub use properties::longhands::background_position_y::single_value::parse;
     pub use properties::longhands::background_position_y::single_value::SpecifiedValue;
     pub use properties::longhands::background_position_y::single_value::computed_value;
-    use properties::animated_properties::{Animatable, ComputeDistance, RepeatableListAnimatable};
+    use properties::animated_properties::{Animatable, RepeatableListAnimatable};
     use properties::longhands::mask_position_y::computed_value::T as MaskPositionY;
 
     impl Animatable for MaskPositionY {
@@ -139,13 +132,6 @@ ${helpers.single_keyword("mask-mode",
     }
 
     impl RepeatableListAnimatable for MaskPositionY {}
-
-    impl ComputeDistance for MaskPositionY {
-        #[inline]
-        fn compute_distance(&self, _other: &Self) -> Result<f64, ()> {
-            Err(())
-        }
-    }
 </%helpers:vector_longhand>
 
 ${helpers.single_keyword("mask-clip",

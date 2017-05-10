@@ -116,10 +116,7 @@
                         fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
                             self.0.interpolate(&other.0, progress).map(T)
                         }
-                    }
 
-                    use properties::animated_properties::ComputeDistance;
-                    impl ComputeDistance for T {
                         #[inline]
                         fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
                             self.0.compute_distance(&other.0)
@@ -995,13 +992,7 @@
                 },
             }
         }
-    }
-</%def>
 
-/// Macro for defining ComputeDistance trait for tuple struct which has Option<T>,
-/// e.g. struct T(pub Option<Au>).
-<%def name="impl_compute_distance_for_option_tuple(value_for_none)">
-    impl ComputeDistance for T {
         #[inline]
         fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
             match (self, other) {
