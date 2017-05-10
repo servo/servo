@@ -19,7 +19,7 @@ use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::mediaquerylistevent::MediaQueryListEvent;
 use dom_struct::dom_struct;
-use js::jsapi::JSTracer;
+use js::jsapi;
 use std::cell::Cell;
 use std::rc::Rc;
 use style::media_queries::{Device, MediaList, MediaType};
@@ -156,7 +156,7 @@ impl WeakMediaQueryListVec {
 
 #[allow(unsafe_code)]
 unsafe impl JSTraceable for WeakMediaQueryListVec {
-    unsafe fn trace(&self, _: *mut JSTracer) {
+    unsafe fn trace(&self, _: *mut jsapi::JSTracer) {
         self.cell.borrow_mut().retain_alive()
     }
 }

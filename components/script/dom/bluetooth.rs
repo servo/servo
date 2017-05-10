@@ -33,8 +33,9 @@ use dom::promise::Promise;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
+use js;
 use js::conversions::ConversionResult;
-use js::jsapi::{JSAutoCompartment, JSContext, JSObject};
+use js::jsapi;
 use js::jsval::{ObjectValue, UndefinedValue};
 use script_thread::Runnable;
 use std::cell::Ref;
@@ -95,18 +96,21 @@ struct BluetoothContext<T: AsyncBluetoothListener + DomObject> {
 }
 
 pub trait AsyncBluetoothListener {
-    fn handle_response(&self, result: BluetoothResponse, cx: *mut JSContext, promise: &Rc<Promise>);
+    fn handle_response(&self, result: BluetoothResponse, cx: *mut jsapi::JSContext, promise: &Rc<Promise>);
 }
 
 impl<T: AsyncBluetoothListener + DomObject> BluetoothContext<T> {
-    #[allow(unrooted_must_root)]
+    #[allow(unrooted_must_root, unsafe_code)]
     fn response(&mut self, response: BluetoothResponseResult) {
         let promise = self.promise.take().expect("bt promise is missing").root();
         let promise_cx = promise.global().get_cx();
 
         // JSAutoCompartment needs to be manually made.
         // Otherwise, Servo will crash.
-        let _ac = JSAutoCompartment::new(promise_cx, promise.reflector().get_jsobject().get());
+        let _ac = unsafe {
+            js::ac::AutoCompartment::with_obj(promise_cx,
+                                              promise.reflector().get_jsobject().get())
+        };
         match response {
             Ok(response) => self.receiver.root().handle_response(response, promise_cx, &promise),
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
@@ -506,7 +510,7 @@ impl BluetoothMethods for Bluetooth {
 }
 
 impl AsyncBluetoothListener for Bluetooth {
-    fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut jsapi::JSContext, promise: &Rc<Promise>) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
             // Step 11, 13 - 14.
@@ -546,8 +550,8 @@ impl PermissionAlgorithm for Bluetooth {
     type Status = BluetoothPermissionResult;
 
     #[allow(unsafe_code)]
-    fn create_descriptor(cx: *mut JSContext,
-                         permission_descriptor_obj: *mut JSObject)
+    fn create_descriptor(cx: *mut jsapi::JSContext,
+                         permission_descriptor_obj: *mut jsapi::JSObject)
                          -> Result<BluetoothPermissionDescriptor, Error> {
         rooted!(in(cx) let mut property = UndefinedValue());
         property.handle_mut().set(ObjectValue(permission_descriptor_obj));
@@ -561,7 +565,7 @@ impl PermissionAlgorithm for Bluetooth {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#query-the-bluetooth-permission
-    fn permission_query(cx: *mut JSContext, promise: &Rc<Promise>,
+    fn permission_query(cx: *mut jsapi::JSContext, promise: &Rc<Promise>,
                         descriptor: &BluetoothPermissionDescriptor,
                         status: &BluetoothPermissionResult) {
         // Step 1: We are not using the `global` variable.
@@ -640,7 +644,7 @@ impl PermissionAlgorithm for Bluetooth {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#request-the-bluetooth-permission
-    fn permission_request(cx: *mut JSContext, promise: &Rc<Promise>,
+    fn permission_request(cx: *mut jsapi::JSContext, promise: &Rc<Promise>,
                           descriptor: &BluetoothPermissionDescriptor,
                           status: &BluetoothPermissionResult) {
         // Step 1.

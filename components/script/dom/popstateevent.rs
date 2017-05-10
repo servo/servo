@@ -14,8 +14,8 @@ use dom::bindings::trace::RootedTraceableBox;
 use dom::event::Event;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, HandleValue, JSContext};
-use js::jsval::JSVal;
+use js;
+use js::jsapi;
 use servo_atoms::Atom;
 
 // https://html.spec.whatwg.org/multipage/#the-popstateevent-interface
@@ -23,14 +23,14 @@ use servo_atoms::Atom;
 pub struct PopStateEvent {
     event: Event,
     #[ignore_heap_size_of = "Defined in rust-mozjs"]
-    state: Heap<JSVal>,
+    state: js::heap::Heap<jsapi::JS::Value>,
 }
 
 impl PopStateEvent {
     fn new_inherited() -> PopStateEvent {
         PopStateEvent {
             event: Event::new_inherited(),
-            state: Heap::default(),
+            state: js::heap::Heap::default(),
         }
     }
 
@@ -44,7 +44,7 @@ impl PopStateEvent {
                type_: Atom,
                bubbles: bool,
                cancelable: bool,
-               state: HandleValue)
+               state: jsapi::JS::HandleValue)
                -> Root<PopStateEvent> {
         let ev = PopStateEvent::new_uninitialized(window);
         ev.state.set(state.get());
@@ -70,7 +70,7 @@ impl PopStateEvent {
 impl PopStateEventMethods for PopStateEvent {
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-popstateevent-state
-    unsafe fn State(&self, _cx: *mut JSContext) -> JSVal {
+    unsafe fn State(&self, _cx: *mut jsapi::JSContext) -> jsapi::JS::Value {
         self.state.get()
     }
 

@@ -38,10 +38,7 @@ use dom::workletglobalscope::WorkletGlobalScopeType;
 use dom::workletglobalscope::WorkletTask;
 use dom_struct::dom_struct;
 use euclid::Size2D;
-use js::jsapi::JSGCParamKey;
-use js::jsapi::JSTracer;
-use js::jsapi::JS_GC;
-use js::jsapi::JS_GetGCParameter;
+use js::jsapi;
 use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
 use net_traits::IpcSend;
@@ -417,7 +414,7 @@ struct WorkletThread {
 
 #[allow(unsafe_code)]
 unsafe impl JSTraceable for WorkletThread {
-    unsafe fn trace(&self, trc: *mut JSTracer) {
+    unsafe fn trace(&self, trc: *mut jsapi::JSTracer) {
         debug!("Tracing worklet thread.");
         self.global_scopes.trace(trc);
     }
@@ -527,14 +524,16 @@ impl WorkletThread {
     /// The current memory usage of the thread
     #[allow(unsafe_code)]
     fn current_memory_usage(&self) -> u32 {
-        unsafe { JS_GetGCParameter(self.runtime.rt(), JSGCParamKey::JSGC_BYTES) }
+        unsafe {
+            jsapi::JS_GetGCParameter(self.runtime.cx(), jsapi::JSGCParamKey::JSGC_BYTES)
+        }
     }
 
     /// Perform a GC.
     #[allow(unsafe_code)]
     fn gc(&mut self) {
         debug!("BEGIN GC (usage = {}, threshold = {}).", self.current_memory_usage(), self.gc_threshold);
-        unsafe { JS_GC(self.runtime.rt()) };
+        unsafe { jsapi::JS_GC(self.runtime.cx()) };
         self.gc_threshold = max(MIN_GC_THRESHOLD, self.current_memory_usage() * 2);
         debug!("END GC (usage = {}, threshold = {}).", self.current_memory_usage(), self.gc_threshold);
     }

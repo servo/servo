@@ -20,8 +20,8 @@
 //!    calls `trace()` on the field.
 //!    For example, for fields of type `JS<T>`, `JS<T>::trace()` calls
 //!    `trace_reflector()`.
-//! 4. `trace_reflector()` calls `JS::TraceEdge()` with a
-//!    pointer to the `JSObject` for the reflector. This notifies the GC, which
+//! 4. `trace_reflector()` calls `jsapi::JS::TraceEdge()` with a
+//!    pointer to the `jsapi::JSObject` for the reflector. This notifies the GC, which
 //!    will add the object to the graph, and will trace that object as well.
 //! 5. When the GC finishes tracing, it [`finalizes`](../index.html#destruction)
 //!    any reflectors that were not reachable.
@@ -54,8 +54,8 @@ use hyper::mime::Mime;
 use hyper::status::StatusCode;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use js::glue::{CallObjectTracer, CallValueTracer};
-use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSTracer, TraceKind};
-use js::jsval::JSVal;
+use js::heap::Heap;
+use js::jsapi;
 use js::rust::Runtime;
 use msg::constellation_msg::{BrowsingContextId, FrameType, PipelineId, TopLevelBrowsingContextId};
 use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
@@ -111,7 +111,7 @@ use webvr_traits::WebVRGamepadHand;
 /// A trait to allow tracing (only) DOM objects.
 pub unsafe trait JSTraceable {
     /// Trace `self`.
-    unsafe fn trace(&self, trc: *mut JSTracer);
+    unsafe fn trace(&self, trc: *mut jsapi::JSTracer);
 }
 
 unsafe_no_jsmanaged_fields!(CSSError);
@@ -122,8 +122,8 @@ unsafe_no_jsmanaged_fields!(Reflector);
 
 unsafe_no_jsmanaged_fields!(Duration);
 
-/// Trace a `JSVal`.
-pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) {
+/// Trace a `jsapi::JS::Value`.
+pub fn trace_jsval(tracer: *mut jsapi::JSTracer, description: &str, val: &Heap<jsapi::JS::Value>) {
     unsafe {
         if !val.get().is_markable() {
             return;
@@ -131,72 +131,72 @@ pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) 
 
         trace!("tracing value {}", description);
         CallValueTracer(tracer,
-                        val.ptr.get() as *mut _,
-                        GCTraceKindToAscii(val.get().trace_kind()));
+                        val as *const _ as *mut _,
+                        jsapi::JS::GCTraceKindToAscii(val.get().trace_kind()));
     }
 }
 
-/// Trace the `JSObject` held by `reflector`.
+/// Trace the `jsapi::JSObject` held by `reflector`.
 #[allow(unrooted_must_root)]
-pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
+pub fn trace_reflector(tracer: *mut jsapi::JSTracer, description: &str, reflector: &Reflector) {
     trace!("tracing reflector {}", description);
     trace_object(tracer, description, reflector.rootable())
 }
 
-/// Trace a `JSObject`.
-pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JSObject>) {
+/// Trace a `jsapi::JSObject`.
+pub fn trace_object(tracer: *mut jsapi::JSTracer, description: &str, obj: &Heap<*mut jsapi::JSObject>) {
     unsafe {
         trace!("tracing {}", description);
         CallObjectTracer(tracer,
-                         obj.ptr.get() as *mut _,
-                         GCTraceKindToAscii(TraceKind::Object));
+                         obj as *const _ as *mut _,
+                         jsapi::JS::GCTraceKindToAscii(jsapi::JS::TraceKind::Object));
     }
 }
 
 unsafe impl<T: JSTraceable> JSTraceable for Rc<T> {
-    unsafe fn trace(&self, trc: *mut JSTracer) {
+    unsafe fn trace(&self, trc: *mut jsapi::JSTracer) {
         (**self).trace(trc)
     }
 }
 
 unsafe impl<T: JSTraceable> JSTraceable for Arc<T> {
-    unsafe fn trace(&self, trc: *mut JSTracer) {
+    unsafe fn trace(&self, trc: *mut jsapi::JSTracer) {
         (**self).trace(trc)
     }
 }
 
 unsafe impl<T: JSTraceable> JSTraceable for StyleArc<T> {
-    unsafe fn trace(&self, trc: *mut JSTracer) {
+    unsafe fn trace(&self, trc: *mut jsapi::JSTracer) {
         (**self).trace(trc)
     }
 }
 
 unsafe impl<T: JSTraceable + ?Sized> JSTraceable for Box<T> {
-    unsafe fn trace(&self, trc: *mut JSTracer) {
+    unsafe fn trace(&self, trc: *mut jsapi::JSTracer) {
         (**self).trace(trc)
     }
 }
 
 unsafe impl<T: JSTraceable + Copy> JSTraceable for Cell<T> {
-    unsafe fn trace(&self, trc: *mut JSTracer) {
+    unsafe fn trace(&self, trc: *mut jsapi::JSTracer) {
         self.get().trace(trc)
     }
 }
 
 unsafe impl<T: JSTraceable> JSTraceable for UnsafeCell<T> {
-    unsafe fn trace(&self, trc: *mut JSTracer) {
+    unsafe fn trace(&self, trc: *mut jsapi::JSTracer) {
         (*self.get()).trace(trc)
     }
 }
 
 unsafe impl<T: JSTraceable> JSTraceable for DOMRefCell<T> {
-    unsafe fn trace(&self, trc: *mut JSTracer) {
+    unsafe fn trace(&self, trc: *mut jsapi::JSTracer) {
         (*self).borrow_for_gc_trace().trace(trc)
     }
 }
 
-unsafe impl JSTraceable for Heap<*mut JSObject> {
-    unsafe fn trace(&self, trc: *mut JSTracer) {
+unsafe impl JSTraceable for Heap<*mut jsapi::JSObject> {
+    unsafe fn trace(&self, trc: *mut jsapi::JSTracer) {
         if self.get().is_null() {
             return;
         }
@@ -204,8 +204,8 @@ unsafe impl JSTraceable for Heap<*mut JSObject> {
     }
 }
 
-unsafe impl JSTraceable for Heap<JSVal> {
-    unsafe fn trace(&self, trc: *mut JSTracer) {
+unsafe impl JSTraceable for Heap<jsapi::JS::Value> {
+    unsafe fn trace(&self, trc: *mut jsapi::JSTracer) {
         trace_jsval(trc, "heap value", self);
     }
 }
@@ -214,7 +214,7 @@ unsafe impl JSTraceable for Heap<JSVal> {
 // if e.trace() is a no-op (e.g it is an unsafe_no_jsmanaged_fields type)
 unsafe impl<T: JSTraceable> JSTraceable for Vec<T> {
     #[inline]
-    unsafe fn trace(&self, trc: *mut JSTracer) {
+    unsafe fn trace(&self, trc: *mut jsapi::JSTracer) {
         for e in &*self {
             e.trace(trc);
         }
@@ -223,7 +223,7 @@ unsafe impl<T: JSTraceable> JSTraceable for Vec<T> {
 
 unsafe impl<T: JSTraceable> JSTraceable for VecDeque<T> {
     #[inline]
-    unsafe fn trace(&self, trc: *mut JSTracer) {
+    unsafe fn trace(&self, trc: *mut jsapi::JSTracer) {
         for e in &*self {
             e.trace(trc);
         }
@@ -231,7 +231,7 @@ unsafe impl<T: JSTraceable> JSTraceable for VecDeque<T> {
 }
 
 unsafe impl<T: JSTraceable> JSTraceable for (T, T, T, T) {
-    unsafe fn trace(&self, trc: *mut JSTracer) {
+    unsafe fn trace(&self, trc: *mut jsapi::JSTracer) {
         self.0.trace(trc);
         self.1.trace(trc);
         self.2.trace(trc);
@@ -243,7 +243,7 @@ unsafe impl<T: JSTraceable> JSTraceable for (T, T, T, T) {
 // if e.trace() is a no-op (e.g it is an unsafe_no_jsmanaged_fields type)
 unsafe impl<T: JSTraceable + 'static> JSTraceable for SmallVec<[T; 1]> {
     #[inline]
-    unsafe fn trace(&self, trc: *mut JSTracer) {
+    unsafe fn trace(&self, trc: *mut jsapi::JSTracer) {
         for e in self.iter() {
             e.trace(trc);
         }
@@ -252,14 +252,14 @@ unsafe impl<T: JSTraceable + 'static> JSTraceable for SmallVec<[T; 1]> {
 
 unsafe impl<T: JSTraceable> JSTraceable for Option<T> {
     #[inline]
-    unsafe fn trace(&self, trc: *mut JSTracer) {
+    unsafe fn trace(&self, trc: *mut jsapi::JSTracer) {
         self.as_ref().map(|e| e.trace(trc));
     }
 }
 
 unsafe impl<T: JSTraceable, U: JSTraceable> JSTraceable for Result<T, U> {
     #[inline]
-    unsafe fn trace(&self, trc: *mut JSTracer) {
+    unsafe fn trace(&self, trc: *mut jsapi::JSTracer) {
         match *self {
             Ok(ref inner) => inner.trace(trc),
             Err(ref inner) => inner.trace(trc),
@@ -273,7 +273,7 @@ unsafe impl<K, V, S> JSTraceable for HashMap<K, V, S>
           S: BuildHasher
 {
     #[inline]
-    unsafe fn trace(&self, trc: *mut JSTracer) {
+    unsafe fn trace(&self, trc: *mut jsapi::JSTracer) {
         for (k, v) in &*self {
             k.trace(trc);
             v.trace(trc);
@@ -286,7 +286,7 @@ unsafe impl<T, S> JSTraceable for HashSet<T, S>
           S: BuildHasher
 {
     #[inline]
-    unsafe fn trace(&self, trc: *mut JSTracer) {
+    unsafe fn trace(&self, trc: *mut jsapi::JSTracer) {
         for v in &*self {
             v.trace(trc);
         }
@@ -295,7 +295,7 @@ unsafe impl<T, S> JSTraceable for HashSet<T, S>
 
 unsafe impl<K: Ord + JSTraceable, V: JSTraceable> JSTraceable for BTreeMap<K, V> {
     #[inline]
-    unsafe fn trace(&self, trc: *mut JSTracer) {
+    unsafe fn trace(&self, trc: *mut jsapi::JSTracer) {
         for (k, v) in self {
             k.trace(trc);
             v.trace(trc);
@@ -305,7 +305,7 @@ unsafe impl<K: Ord + JSTraceable, V: JSTraceable> JSTraceable for BTreeMap<K, V>
 
 unsafe impl<A: JSTraceable, B: JSTraceable> JSTraceable for (A, B) {
     #[inline]
-    unsafe fn trace(&self, trc: *mut JSTracer) {
+    unsafe fn trace(&self, trc: *mut jsapi::JSTracer) {
         let (ref a, ref b) = *self;
         a.trace(trc);
         b.trace(trc);
@@ -314,7 +314,7 @@ unsafe impl<A: JSTraceable, B: JSTraceable> JSTraceable for (A, B) {
 
 unsafe impl<A: JSTraceable, B: JSTraceable, C: JSTraceable> JSTraceable for (A, B, C) {
     #[inline]
-    unsafe fn trace(&self, trc: *mut JSTracer) {
+    unsafe fn trace(&self, trc: *mut jsapi::JSTracer) {
         let (ref a, ref b, ref c) = *self;
         a.trace(trc);
         b.trace(trc);
@@ -393,21 +393,21 @@ unsafe_no_jsmanaged_fields!(WebVRGamepadHand);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]
-    unsafe fn trace(&self, _: *mut JSTracer) {
+    unsafe fn trace(&self, _: *mut jsapi::JSTracer) {
         // Do nothing
     }
 }
 
 unsafe impl<A, B> JSTraceable for fn(A) -> B {
     #[inline]
-    unsafe fn trace(&self, _: *mut JSTracer) {
+    unsafe fn trace(&self, _: *mut jsapi::JSTracer) {
         // Do nothing
     }
 }
 
 unsafe impl<T> JSTraceable for IpcSender<T> where T: for<'de> Deserialize<'de> + Serialize {
     #[inline]
-    unsafe fn trace(&self, _: *mut JSTracer) {
+    unsafe fn trace(&self, _: *mut jsapi::JSTracer) {
         // Do nothing
     }
 }
@@ -415,63 +415,63 @@ unsafe impl<T> JSTraceable for IpcSender<T> where T: for<'de> Deserialize<'de> +
 // Safe thanks to the Send bound.
 unsafe impl JSTraceable for Box<LayoutRPC + Send + 'static> {
     #[inline]
-    unsafe fn trace(&self, _: *mut JSTracer) {
+    unsafe fn trace(&self, _: *mut jsapi::JSTracer) {
         // Do nothing
     }
 }
 
 unsafe impl JSTraceable for () {
     #[inline]
-    unsafe fn trace(&self, _: *mut JSTracer) {
+    unsafe fn trace(&self, _: *mut jsapi::JSTracer) {
         // Do nothing
     }
 }
 
 unsafe impl<T> JSTraceable for IpcReceiver<T> where T: for<'de> Deserialize<'de> + Serialize {
     #[inline]
-    unsafe fn trace(&self, _: *mut JSTracer) {
+    unsafe fn trace(&self, _: *mut jsapi::JSTracer) {
         // Do nothing
     }
 }
 
 unsafe impl<T: DomObject> JSTraceable for Trusted<T> {
     #[inline]
-    unsafe fn trace(&self, _: *mut JSTracer) {
+    unsafe fn trace(&self, _: *mut jsapi::JSTracer) {
         // Do nothing
     }
 }
 
 unsafe impl<T: Send> JSTraceable for Receiver<T> {
     #[inline]
-    unsafe fn trace(&self, _: *mut JSTracer) {
+    unsafe fn trace(&self, _: *mut jsapi::JSTracer) {
         // Do nothing
     }
 }
 
 unsafe impl<T: Send> JSTraceable for Sender<T> {
     #[inline]
-    unsafe fn trace(&self, _: *mut JSTracer) {
+    unsafe fn trace(&self, _: *mut jsapi::JSTracer) {
         // Do nothing
     }
 }
 
 unsafe impl JSTraceable for Transform2D<f32> {
     #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
+    unsafe fn trace(&self, _trc: *mut jsapi::JSTracer) {
         // Do nothing
     }
 }
 
 unsafe impl JSTraceable for Transform3D<f64> {
     #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
+    unsafe fn trace(&self, _trc: *mut jsapi::JSTracer) {
         // Do nothing
     }
 }
 
 unsafe impl JSTraceable for Point2D<f32> {
     #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
+    unsafe fn trace(&self, _trc: *mut jsapi::JSTracer) {
         // Do nothing
     }
 }
@@ -485,112 +485,112 @@ unsafe impl JSTraceable for Vector2D<f32> {
 
 unsafe impl<T> JSTraceable for EuclidLength<u64, T> {
     #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
+    unsafe fn trace(&self, _trc: *mut jsapi::JSTracer) {
         // Do nothing
     }
 }
 
 unsafe impl JSTraceable for Rect<Au> {
     #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
+    unsafe fn trace(&self, _trc: *mut jsapi::JSTracer) {
         // Do nothing
     }
 }
 
 unsafe impl JSTraceable for Rect<f32> {
     #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
+    unsafe fn trace(&self, _trc: *mut jsapi::JSTracer) {
         // Do nothing
     }
 }
 
 unsafe impl JSTraceable for Size2D<i32> {
     #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
+    unsafe fn trace(&self, _trc: *mut jsapi::JSTracer) {
         // Do nothing
     }
 }
 
 unsafe impl JSTraceable for Mutex<Option<SharedRt>> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
+    unsafe fn trace(&self, _trc: *mut jsapi::JSTracer) {
         // Do nothing.
     }
 }
 
 unsafe impl JSTraceable for StyleLocked<FontFaceRule> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
+    unsafe fn trace(&self, _trc: *mut jsapi::JSTracer) {
         // Do nothing.
     }
 }
 
 unsafe impl JSTraceable for StyleLocked<CssRules> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
+    unsafe fn trace(&self, _trc: *mut jsapi::JSTracer) {
         // Do nothing.
     }
 }
 
 unsafe impl JSTraceable for StyleLocked<Keyframe> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
+    unsafe fn trace(&self, _trc: *mut jsapi::JSTracer) {
         // Do nothing.
     }
 }
 
 unsafe impl JSTraceable for StyleLocked<KeyframesRule> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
+    unsafe fn trace(&self, _trc: *mut jsapi::JSTracer) {
         // Do nothing.
     }
 }
 
 unsafe impl JSTraceable for StyleLocked<ImportRule> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
+    unsafe fn trace(&self, _trc: *mut jsapi::JSTracer) {
         // Do nothing.
     }
 }
 
 unsafe impl JSTraceable for StyleLocked<SupportsRule> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
+    unsafe fn trace(&self, _trc: *mut jsapi::JSTracer) {
         // Do nothing.
     }
 }
 
 unsafe impl JSTraceable for StyleLocked<MediaRule> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
+    unsafe fn trace(&self, _trc: *mut jsapi::JSTracer) {
         // Do nothing.
     }
 }
 
 unsafe impl JSTraceable for StyleLocked<NamespaceRule> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
+    unsafe fn trace(&self, _trc: *mut jsapi::JSTracer) {
         // Do nothing.
     }
 }
 
 unsafe impl JSTraceable for StyleLocked<StyleRule> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
+    unsafe fn trace(&self, _trc: *mut jsapi::JSTracer) {
         // Do nothing.
     }
 }
 
 unsafe impl JSTraceable for StyleLocked<ViewportRule> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
+    unsafe fn trace(&self, _trc: *mut jsapi::JSTracer) {
         // Do nothing.
     }
 }
 
 unsafe impl JSTraceable for StyleLocked<PropertyDeclarationBlock> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
+    unsafe fn trace(&self, _trc: *mut jsapi::JSTracer) {
         // Do nothing.
     }
 }
 
 unsafe impl JSTraceable for RwLock<SharedRt> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
+    unsafe fn trace(&self, _trc: *mut jsapi::JSTracer) {
         // Do nothing.
     }
 }
 
 unsafe impl JSTraceable for StyleLocked<MediaList> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
+    unsafe fn trace(&self, _trc: *mut jsapi::JSTracer) {
         // Do nothing.
     }
 }
@@ -632,7 +632,7 @@ impl RootedTraceableSet {
         })
     }
 
-    unsafe fn trace(&self, tracer: *mut JSTracer) {
+    unsafe fn trace(&self, tracer: *mut jsapi::JSTracer) {
         for traceable in &self.set {
             (**traceable).trace(tracer);
         }
@@ -642,7 +642,7 @@ impl RootedTraceableSet {
 /// Roots any JSTraceable thing
 ///
 /// If you have a valid DomObject, use Root.
-/// If you have GC things like *mut JSObject or JSVal, use rooted!.
+/// If you have GC things like *mut jsapi::JSObject or jsapi::JS::Value, use rooted!.
 /// If you have an arbitrary number of DomObjects to root, use rooted_vec!.
 /// If you know what you're doing, use this.
 #[derive(JSTraceable)]
@@ -673,7 +673,7 @@ impl<'a, T: JSTraceable + 'static> Drop for RootedTraceable<'a, T> {
 /// Roots any JSTraceable thing
 ///
 /// If you have a valid DomObject, use Root.
-/// If you have GC things like *mut JSObject or JSVal, use rooted!.
+/// If you have GC things like *mut jsapi::JSObject or jsapi::JS::Value, use rooted!.
 /// If you have an arbitrary number of DomObjects to root, use rooted_vec!.
 /// If you know what you're doing, use this.
 pub struct RootedTraceableBox<T: 'static + JSTraceable> {
@@ -681,7 +681,7 @@ pub struct RootedTraceableBox<T: 'static + JSTraceable> {
 }
 
 unsafe impl<T: JSTraceable + 'static> JSTraceable for RootedTraceableBox<T> {
-    unsafe fn trace(&self, tracer: *mut JSTracer) {
+    unsafe fn trace(&self, tracer: *mut jsapi::JSTracer) {
         (*self.ptr).trace(tracer);
     }
 }
@@ -803,7 +803,7 @@ impl<'a, T: JSTraceable> DerefMut for RootedVec<'a, T> {
 }
 
 /// SM Callback that traces the rooted traceables
-pub unsafe fn trace_traceables(tracer: *mut JSTracer) {
+pub unsafe fn trace_traceables(tracer: *mut jsapi::JSTracer) {
     trace!("tracing stack-rooted traceables");
     ROOTED_TRACEABLES.with(|ref traceables| {
         let traceables = traceables.borrow();

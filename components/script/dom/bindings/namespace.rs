@@ -6,20 +6,20 @@
 
 use dom::bindings::guard::Guard;
 use dom::bindings::interface::{create_object, define_on_global_object};
-use js::jsapi::{HandleObject, JSClass, JSContext, JSFunctionSpec, MutableHandleObject};
+use js::jsapi;
 use libc;
 use std::ptr;
 
 /// The class of a namespace object.
 #[derive(Copy, Clone)]
-pub struct NamespaceObjectClass(JSClass);
+pub struct NamespaceObjectClass(jsapi::JSClass);
 
 unsafe impl Sync for NamespaceObjectClass {}
 
 impl NamespaceObjectClass {
     /// Create a new `NamespaceObjectClass` structure.
     pub const unsafe fn new(name: &'static [u8]) -> Self {
-        NamespaceObjectClass(JSClass {
+        NamespaceObjectClass(jsapi::JSClass {
             name: name as *const _ as *const libc::c_char,
             flags: 0,
             cOps: ptr::null_mut(),
@@ -30,13 +30,13 @@ impl NamespaceObjectClass {
 
 /// Create a new namespace object.
 pub unsafe fn create_namespace_object(
-        cx: *mut JSContext,
-        global: HandleObject,
-        proto: HandleObject,
+        cx: *mut jsapi::JSContext,
+        global: jsapi::JS::HandleObject,
+        proto: jsapi::JS::HandleObject,
         class: &'static NamespaceObjectClass,
-        methods: &[Guard<&'static [JSFunctionSpec]>],
+        methods: &[Guard<&'static [jsapi::JSFunctionSpec]>],
         name: &[u8],
-        rval: MutableHandleObject) {
+        rval: jsapi::JS::MutableHandleObject) {
     create_object(cx, proto, &class.0, methods, &[], &[], rval);
     define_on_global_object(cx, global, name, rval.handle());
 }

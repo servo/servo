@@ -11,7 +11,8 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use euclid::Size2D;
-use js::jsapi::{Heap, JSContext, JSObject};
+use js;
+use js::jsapi;
 use js::rust::Runtime;
 use js::typedarray::{Uint8ClampedArray, CreateWith};
 use std::default::Default;
@@ -23,7 +24,7 @@ pub struct ImageData {
     reflector_: Reflector,
     width: u32,
     height: u32,
-    data: Heap<*mut JSObject>,
+    data: js::heap::Heap<*mut jsapi::JSObject>,
 }
 
 impl ImageData {
@@ -53,7 +54,7 @@ impl ImageData {
     unsafe fn new_with_jsobject(global: &GlobalScope,
                                 width: u32,
                                 mut opt_height: Option<u32>,
-                                opt_jsobject: Option<*mut JSObject>)
+                                opt_jsobject: Option<*mut jsapi::JSObject>)
                                 -> Fallible<Root<ImageData>> {
         assert!(opt_jsobject.is_some() || opt_height.is_some());
 
@@ -95,7 +96,7 @@ impl ImageData {
             reflector_: Reflector::new(),
             width: width,
             height: height,
-            data: Heap::default(),
+            data: js::heap::Heap::default(),
         };
 
         if let Some(jsobject) = opt_jsobject {
@@ -120,9 +121,9 @@ impl ImageData {
     // https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-4
     #[allow(unsafe_code)]
     #[allow(unused_variables)]
-    pub unsafe fn Constructor_(cx: *mut JSContext,
+    pub unsafe fn Constructor_(cx: *mut jsapi::JSContext,
                                global: &GlobalScope,
-                               jsobject: *mut JSObject,
+                               jsobject: *mut jsapi::JSObject,
                                width: u32,
                                opt_height: Option<u32>)
                                -> Fallible<Root<Self>> {
@@ -159,7 +160,7 @@ impl ImageDataMethods for ImageData {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-imagedata-data
-    unsafe fn Data(&self, _: *mut JSContext) -> NonZero<*mut JSObject> {
+    unsafe fn Data(&self, _: *mut jsapi::JSContext) -> NonZero<*mut jsapi::JSObject> {
         assert!(!self.data.get().is_null());
         NonZero::new(self.data.get())
     }

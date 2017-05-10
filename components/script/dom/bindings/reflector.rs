@@ -7,7 +7,8 @@
 use dom::bindings::conversions::DerivedFrom;
 use dom::bindings::js::Root;
 use dom::globalscope::GlobalScope;
-use js::jsapi::{HandleObject, JSContext, JSObject, Heap};
+use js::heap::Heap;
+use js::jsapi;
 use std::default::Default;
 
 /// Create the reflector for a new DOM object and yield ownership to the
@@ -15,7 +16,7 @@ use std::default::Default;
 pub fn reflect_dom_object<T, U>(
         obj: Box<T>,
         global: &U,
-        wrap_fn: unsafe fn(*mut JSContext, &GlobalScope, Box<T>) -> Root<T>)
+        wrap_fn: unsafe fn(*mut jsapi::JSContext, &GlobalScope, Box<T>) -> Root<T>)
         -> Root<T>
     where T: DomObject, U: DerivedFrom<GlobalScope>
 {
@@ -32,7 +33,7 @@ pub fn reflect_dom_object<T, U>(
 // If you're renaming or moving this field, update the path in plugins::reflector as well
 pub struct Reflector {
     #[ignore_heap_size_of = "defined and measured in rust-mozjs"]
-    object: Heap<*mut JSObject>,
+    object: Heap<*mut jsapi::JSObject>,
 }
 
 #[allow(unrooted_must_root)]
@@ -45,12 +46,12 @@ impl PartialEq for Reflector {
 impl Reflector {
     /// Get the reflector.
     #[inline]
-    pub fn get_jsobject(&self) -> HandleObject {
+    pub fn get_jsobject(&self) -> jsapi::JS::HandleObject {
         self.object.handle()
     }
 
     /// Initialize the reflector. (May be called only once.)
-    pub fn set_jsobject(&mut self, object: *mut JSObject) {
+    pub fn set_jsobject(&mut self, object: *mut jsapi::JSObject) {
         assert!(self.object.get().is_null());
         assert!(!object.is_null());
         self.object.set(object);
@@ -59,7 +60,7 @@ impl Reflector {
     /// Return a pointer to the memory location at which the JS reflector
     /// object is stored. Used to root the reflector, as
     /// required by the JSAPI rooting APIs.
-    pub fn rootable(&self) -> &Heap<*mut JSObject> {
+    pub fn rootable(&self) -> &Heap<*mut jsapi::JSObject> {
         &self.object
     }
 
@@ -91,11 +92,11 @@ impl DomObject for Reflector {
 /// A trait to initialize the `Reflector` for a DOM object.
 pub trait MutDomObject: DomObject {
     /// Initializes the Reflector
-    fn init_reflector(&mut self, obj: *mut JSObject);
+    fn init_reflector(&mut self, obj: *mut jsapi::JSObject);
 }
 
 impl MutDomObject for Reflector {
-    fn init_reflector(&mut self, obj: *mut JSObject) {
+    fn init_reflector(&mut self, obj: *mut jsapi::JSObject) {
         self.set_jsobject(obj)
     }
 }

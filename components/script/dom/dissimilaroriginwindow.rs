@@ -14,8 +14,8 @@ use dom::globalscope::GlobalScope;
 use dom::windowproxy::WindowProxy;
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
-use js::jsapi::{JSContext, HandleValue};
-use js::jsval::{JSVal, UndefinedValue};
+use js::jsapi;
+use js::jsval::UndefinedValue;
 use msg::constellation_msg::PipelineId;
 use script_traits::ScriptMsg as ConstellationMsg;
 use servo_url::ImmutableOrigin;
@@ -130,7 +130,7 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-window-postmessage
-    unsafe fn PostMessage(&self, cx: *mut JSContext, message: HandleValue, origin: DOMString) -> ErrorResult {
+    unsafe fn PostMessage(&self, cx: *mut jsapi::JSContext, message: jsapi::JS::HandleValue, origin: DOMString) -> ErrorResult {
         // Step 3-5.
         let origin = match &origin[..] {
             "*" => None,
@@ -155,14 +155,14 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-opener
-    unsafe fn Opener(&self, _: *mut JSContext) -> JSVal {
+    unsafe fn Opener(&self, _: *mut jsapi::JSContext) -> jsapi::JS::Value {
         // TODO: Implement x-origin opener
         UndefinedValue()
     }
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-opener
-    unsafe fn SetOpener(&self, _: *mut JSContext, _: HandleValue) {
+    unsafe fn SetOpener(&self, _: *mut jsapi::JSContext, _: jsapi::JS::HandleValue) {
         // TODO: Implement x-origin opener
     }
 

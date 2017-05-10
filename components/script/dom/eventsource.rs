@@ -20,8 +20,8 @@ use euclid::Length;
 use hyper::header::{Accept, qitem};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
+use js;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::JSAutoCompartment;
 use js::jsval::UndefinedValue;
 use mime::{Mime, TopLevel, SubLevel};
 use net_traits::{CoreResourceMsg, FetchMetadata, FetchResponseMsg, FetchResponseListener, NetworkError};
@@ -175,8 +175,10 @@ impl EventSourceContext {
         };
         // Steps 4-5
         let event = {
-            let _ac = JSAutoCompartment::new(event_source.global().get_cx(),
-                                             event_source.reflector().get_jsobject().get());
+            let _ac = unsafe {
+                js::ac::AutoCompartment::with_obj(event_source.global().get_cx(),
+                                                  event_source.reflector().get_jsobject().get())
+            };
             rooted!(in(event_source.global().get_cx()) let mut data = UndefinedValue());
             unsafe { self.data.to_jsval(event_source.global().get_cx(), data.handle_mut()) };
             MessageEvent::new(&*event_source.global(), type_, false, false, data.handle(),

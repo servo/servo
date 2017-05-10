@@ -35,9 +35,10 @@ use dom::promise::Promise;
 use dom::promisenativehandler::{PromiseNativeHandler, Callback};
 use dom::url::URL;
 use dom_struct::dom_struct;
-use js::jsapi::{HandleObject, HandleValue, Heap, JSContext, JSObject, JSAutoCompartment};
-use js::jsapi::{JS_NewPlainObject, JS_NewUint8ClampedArray};
-use js::jsval::{JSVal, NullValue};
+use js;
+use js::heap::Heap;
+use js::jsapi;
+use js::jsval::NullValue;
 use script_traits::MsDuration;
 use servo_config::prefs::PREFS;
 use std::borrow::ToOwned;
@@ -151,23 +152,23 @@ impl TestBindingMethods for TestBinding {
     }
     fn SetUnion9Attribute(&self, _: ByteStringOrLong) {}
     #[allow(unsafe_code)]
-    unsafe fn ArrayAttribute(&self, cx: *mut JSContext) -> NonZero<*mut JSObject> {
-        rooted!(in(cx) let array = JS_NewUint8ClampedArray(cx, 16));
+    unsafe fn ArrayAttribute(&self, cx: *mut jsapi::JSContext) -> NonZero<*mut jsapi::JSObject> {
+        rooted!(in(cx) let array = jsapi::JS_NewUint8ClampedArray(cx, 16));
         assert!(!array.is_null());
         NonZero::new(array.get())
     }
     #[allow(unsafe_code)]
-    unsafe fn AnyAttribute(&self, _: *mut JSContext) -> JSVal { NullValue() }
+    unsafe fn AnyAttribute(&self, _: *mut jsapi::JSContext) -> jsapi::JS::Value { NullValue() }
     #[allow(unsafe_code)]
-    unsafe fn SetAnyAttribute(&self, _: *mut JSContext, _: HandleValue) {}
+    unsafe fn SetAnyAttribute(&self, _: *mut jsapi::JSContext, _: jsapi::JS::HandleValue) {}
     #[allow(unsafe_code)]
-    unsafe fn ObjectAttribute(&self, cx: *mut JSContext) -> NonZero<*mut JSObject> {
-        rooted!(in(cx) let obj = JS_NewPlainObject(cx));
+    unsafe fn ObjectAttribute(&self, cx: *mut jsapi::JSContext) -> NonZero<*mut jsapi::JSObject> {
+        rooted!(in(cx) let obj = jsapi::JS_NewPlainObject(cx));
         assert!(!obj.is_null());
         NonZero::new(obj.get())
     }
     #[allow(unsafe_code)]
-    unsafe fn SetObjectAttribute(&self, _: *mut JSContext, _: *mut JSObject) {}
+    unsafe fn SetObjectAttribute(&self, _: *mut jsapi::JSContext, _: *mut jsapi::JSObject) {}
 
     fn GetBooleanAttributeNullable(&self) -> Option<bool> { Some(false) }
     fn SetBooleanAttributeNullable(&self, _: Option<bool>) {}
@@ -220,9 +221,9 @@ impl TestBindingMethods for TestBinding {
         self.url.set(url);
     }
     #[allow(unsafe_code)]
-    unsafe fn GetObjectAttributeNullable(&self, _: *mut JSContext) -> Option<NonZero<*mut JSObject>> { None }
+    unsafe fn GetObjectAttributeNullable(&self, _: *mut jsapi::JSContext) -> Option<NonZero<*mut jsapi::JSObject>> { None }
     #[allow(unsafe_code)]
-    unsafe fn SetObjectAttributeNullable(&self, _: *mut JSContext, _: *mut JSObject) {}
+    unsafe fn SetObjectAttributeNullable(&self, _: *mut jsapi::JSContext, _: *mut jsapi::JSObject) {}
     fn GetUnionAttributeNullable(&self) -> Option<HTMLElementOrLong> {
         Some(HTMLElementOrLong::Long(0))
     }
@@ -270,9 +271,9 @@ impl TestBindingMethods for TestBinding {
         Blob::new(&self.global(), BlobImpl::new_from_bytes(vec![]), "".to_owned())
     }
     #[allow(unsafe_code)]
-    unsafe fn ReceiveAny(&self, _: *mut JSContext) -> JSVal { NullValue() }
+    unsafe fn ReceiveAny(&self, _: *mut jsapi::JSContext) -> jsapi::JS::Value { NullValue() }
     #[allow(unsafe_code)]
-    unsafe fn ReceiveObject(&self, cx: *mut JSContext) -> NonZero<*mut JSObject> {
+    unsafe fn ReceiveObject(&self, cx: *mut jsapi::JSContext) -> NonZero<*mut jsapi::JSObject> {
         self.ObjectAttribute(cx)
     }
     fn ReceiveUnion(&self) -> HTMLElementOrLong { HTMLElementOrLong::Long(0) }
@@ -316,7 +317,7 @@ impl TestBindingMethods for TestBinding {
         Some(Blob::new(&self.global(), BlobImpl::new_from_bytes(vec![]), "".to_owned()))
     }
     #[allow(unsafe_code)]
-    unsafe fn ReceiveNullableObject(&self, cx: *mut JSContext) -> Option<NonZero<*mut JSObject>> {
+    unsafe fn ReceiveNullableObject(&self, cx: *mut jsapi::JSContext) -> Option<NonZero<*mut jsapi::JSObject>> {
         self.GetObjectAttributeNullable(cx)
     }
     fn ReceiveNullableUnion(&self) -> Option<HTMLElementOrLong> {
@@ -438,13 +439,13 @@ impl TestBindingMethods for TestBinding {
     fn PassUnion8(&self, _: ByteStringSequenceOrLong) {}
     fn PassUnion9(&self, _: RootedTraceableBox<UnionTypes::TestDictionaryOrLong>) {}
     #[allow(unsafe_code)]
-    unsafe fn PassUnion10(&self, _: *mut JSContext, _: RootedTraceableBox<UnionTypes::StringOrObject>) {}
+    unsafe fn PassUnion10(&self, _: *mut jsapi::JSContext, _: RootedTraceableBox<UnionTypes::StringOrObject>) {}
     fn PassUnionWithTypedef(&self, _: DocumentOrTestTypedef) {}
     fn PassUnionWithTypedef2(&self, _: LongSequenceOrTestTypedef) {}
     #[allow(unsafe_code)]
-    unsafe fn PassAny(&self, _: *mut JSContext, _: HandleValue) {}
+    unsafe fn PassAny(&self, _: *mut jsapi::JSContext, _: jsapi::JS::HandleValue) {}
     #[allow(unsafe_code)]
-    unsafe fn PassObject(&self, _: *mut JSContext, _: *mut JSObject) {}
+    unsafe fn PassObject(&self, _: *mut jsapi::JSContext, _: *mut jsapi::JSObject) {}
     fn PassCallbackFunction(&self, _: Rc<Function>) {}
     fn PassCallbackInterface(&self, _: Rc<EventListener>) {}
     fn PassSequence(&self, _: Vec<i32>) {}
@@ -470,7 +471,7 @@ impl TestBindingMethods for TestBinding {
     // fn PassNullableEnum(self, _: Option<TestEnum>) {}
     fn PassNullableInterface(&self, _: Option<&Blob>) {}
     #[allow(unsafe_code)]
-    unsafe fn PassNullableObject(&self, _: *mut JSContext, _: *mut JSObject) {}
+    unsafe fn PassNullableObject(&self, _: *mut jsapi::JSContext, _: *mut jsapi::JSObject) {}
     fn PassNullableUnion(&self, _: Option<HTMLElementOrLong>) {}
     fn PassNullableUnion2(&self, _: Option<EventOrString>) {}
     fn PassNullableUnion3(&self, _: Option<StringOrLongSequence>) {}
@@ -506,9 +507,9 @@ impl TestBindingMethods for TestBinding {
     fn PassOptionalUnion5(&self, _: Option<UnsignedLongOrBoolean>) {}
     fn PassOptionalUnion6(&self, _: Option<ByteStringOrLong>) {}
     #[allow(unsafe_code)]
-    unsafe fn PassOptionalAny(&self, _: *mut JSContext, _: HandleValue) {}
+    unsafe fn PassOptionalAny(&self, _: *mut jsapi::JSContext, _: jsapi::JS::HandleValue) {}
     #[allow(unsafe_code)]
-    unsafe fn PassOptionalObject(&self, _: *mut JSContext, _: Option<*mut JSObject>) {}
+    unsafe fn PassOptionalObject(&self, _: *mut jsapi::JSContext, _: Option<*mut jsapi::JSObject>) {}
     fn PassOptionalCallbackFunction(&self, _: Option<Rc<Function>>) {}
     fn PassOptionalCallbackInterface(&self, _: Option<Rc<EventListener>>) {}
     fn PassOptionalSequence(&self, _: Option<Vec<i32>>) {}
@@ -532,7 +533,7 @@ impl TestBindingMethods for TestBinding {
     // fn PassOptionalNullableEnum(self, _: Option<Option<TestEnum>>) {}
     fn PassOptionalNullableInterface(&self, _: Option<Option<&Blob>>) {}
     #[allow(unsafe_code)]
-    unsafe fn PassOptionalNullableObject(&self, _: *mut JSContext, _: Option<*mut JSObject>) {}
+    unsafe fn PassOptionalNullableObject(&self, _: *mut jsapi::JSContext, _: Option<*mut jsapi::JSObject>) {}
     fn PassOptionalNullableUnion(&self, _: Option<Option<HTMLElementOrLong>>) {}
     fn PassOptionalNullableUnion2(&self, _: Option<Option<EventOrString>>) {}
     fn PassOptionalNullableUnion3(&self, _: Option<Option<StringOrLongSequence>>) {}
@@ -576,13 +577,13 @@ impl TestBindingMethods for TestBinding {
     // fn PassOptionalNullableEnumWithDefault(self, _: Option<TestEnum>) {}
     fn PassOptionalNullableInterfaceWithDefault(&self, _: Option<&Blob>) {}
     #[allow(unsafe_code)]
-    unsafe fn PassOptionalNullableObjectWithDefault(&self, _: *mut JSContext, _: *mut JSObject) {}
+    unsafe fn PassOptionalNullableObjectWithDefault(&self, _: *mut jsapi::JSContext, _: *mut jsapi::JSObject) {}
     fn PassOptionalNullableUnionWithDefault(&self, _: Option<HTMLElementOrLong>) {}
     fn PassOptionalNullableUnion2WithDefault(&self, _: Option<EventOrString>) {}
     // fn PassOptionalNullableCallbackFunctionWithDefault(self, _: Option<Function>) {}
     fn PassOptionalNullableCallbackInterfaceWithDefault(&self, _: Option<Rc<EventListener>>) {}
     #[allow(unsafe_code)]
-    unsafe fn PassOptionalAnyWithDefault(&self, _: *mut JSContext, _: HandleValue) {}
+    unsafe fn PassOptionalAnyWithDefault(&self, _: *mut jsapi::JSContext, _: jsapi::JS::HandleValue) {}
 
     fn PassOptionalNullableBooleanWithNonNullDefault(&self, _: Option<bool>) {}
     fn PassOptionalNullableByteWithNonNullDefault(&self, _: Option<i8>) {}
@@ -628,9 +629,9 @@ impl TestBindingMethods for TestBinding {
     fn PassVariadicUnion6(&self, _: Vec<UnsignedLongOrBoolean>) {}
     fn PassVariadicUnion7(&self, _: Vec<ByteStringOrLong>) {}
     #[allow(unsafe_code)]
-    unsafe fn PassVariadicAny(&self, _: *mut JSContext, _: Vec<HandleValue>) {}
+    unsafe fn PassVariadicAny(&self, _: *mut jsapi::JSContext, _: Vec<jsapi::JS::HandleValue>) {}
     #[allow(unsafe_code)]
-    unsafe fn PassVariadicObject(&self, _: *mut JSContext, _: Vec<*mut JSObject>) {}
+    unsafe fn PassVariadicObject(&self, _: *mut jsapi::JSContext, _: Vec<*mut jsapi::JSObject>) {}
     fn BooleanMozPreference(&self, pref_name: DOMString) -> bool {
         PREFS.get(pref_name.as_ref()).as_boolean().unwrap_or(false)
     }
@@ -670,27 +671,27 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveMozMapOfNullableInts(&self) -> MozMap<Option<i32>> { MozMap::new() }
     fn ReceiveNullableMozMapOfNullableInts(&self) -> Option<MozMap<Option<i32>>> { Some(MozMap::new()) }
     fn ReceiveMozMapOfMozMaps(&self) -> MozMap<MozMap<i32>> { MozMap::new() }
-    fn ReceiveAnyMozMap(&self) -> MozMap<JSVal> { MozMap::new() }
+    fn ReceiveAnyMozMap(&self) -> MozMap<jsapi::JS::Value> { MozMap::new() }
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn ReturnResolvedPromise(&self, cx: *mut JSContext, v: HandleValue) -> Fallible<Rc<Promise>> {
+    unsafe fn ReturnResolvedPromise(&self, cx: *mut jsapi::JSContext, v: jsapi::JS::HandleValue) -> Fallible<Rc<Promise>> {
         Promise::Resolve(&self.global(), cx, v)
     }
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn ReturnRejectedPromise(&self, cx: *mut JSContext, v: HandleValue) -> Fallible<Rc<Promise>> {
+    unsafe fn ReturnRejectedPromise(&self, cx: *mut jsapi::JSContext, v: jsapi::JS::HandleValue) -> Fallible<Rc<Promise>> {
         Promise::Reject(&self.global(), cx, v)
     }
 
     #[allow(unsafe_code)]
-    unsafe fn PromiseResolveNative(&self, cx: *mut JSContext, p: &Promise, v: HandleValue) {
+    unsafe fn PromiseResolveNative(&self, cx: *mut jsapi::JSContext, p: &Promise, v: jsapi::JS::HandleValue) {
         p.resolve(cx, v);
     }
 
     #[allow(unsafe_code)]
-    unsafe fn PromiseRejectNative(&self, cx: *mut JSContext, p: &Promise, v: HandleValue) {
+    unsafe fn PromiseRejectNative(&self, cx: *mut jsapi::JSContext, p: &Promise, v: jsapi::JS::HandleValue) {
         p.reject(cx, v);
     }
 
@@ -735,7 +736,7 @@ impl TestBindingMethods for TestBinding {
         }
         impl Callback for SimpleHandler {
             #[allow(unsafe_code)]
-            fn callback(&self, cx: *mut JSContext, v: HandleValue) {
+            fn callback(&self, cx: *mut jsapi::JSContext, v: jsapi::JS::HandleValue) {
                 let global = unsafe { GlobalScope::from_context(cx) };
                 let _ = self.handler.Call_(&*global, v, ExceptionHandling::Report);
             }
@@ -800,8 +801,8 @@ impl TestBinding {
 
 #[allow(unsafe_code)]
 impl TestBinding {
-    pub unsafe fn condition_satisfied(_: *mut JSContext, _: HandleObject) -> bool { true }
-    pub unsafe fn condition_unsatisfied(_: *mut JSContext, _: HandleObject) -> bool { false }
+    pub unsafe fn condition_satisfied(_: *mut jsapi::JSContext, _: jsapi::JS::HandleObject) -> bool { true }
+    pub unsafe fn condition_unsatisfied(_: *mut jsapi::JSContext, _: jsapi::JS::HandleObject) -> bool { false }
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -812,11 +813,13 @@ pub struct TestBindingCallback {
 }
 
 impl TestBindingCallback {
-    #[allow(unrooted_must_root)]
+    #[allow(unrooted_must_root, unsafe_code)]
     pub fn invoke(self) {
         let p = self.promise.root();
         let cx = p.global().get_cx();
-        let _ac = JSAutoCompartment::new(cx, p.reflector().get_jsobject().get());
+        let _ac = unsafe {
+            js::ac::AutoCompartment::with_obj(cx, p.reflector().get_jsobject().get())
+        };
         p.resolve_native(cx, &self.value);
     }
 }

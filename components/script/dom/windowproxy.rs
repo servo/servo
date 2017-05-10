@@ -15,22 +15,13 @@ use dom::element::Element;
 use dom::globalscope::GlobalScope;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use js::JSCLASS_IS_GLOBAL;
+use js;
 use js::glue::{CreateWrapperProxyHandler, ProxyTraps, NewWindowProxy};
-use js::glue::{GetProxyPrivate, SetProxyExtra, GetProxyExtra};
-use js::jsapi::{Handle, HandleId, HandleObject, HandleValue};
-use js::jsapi::{JSAutoCompartment, JSContext, JSErrNum, JSFreeOp, JSObject};
-use js::jsapi::{JSPROP_READONLY, JSTracer, JS_DefinePropertyById};
-use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo};
-use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_HasPropertyById, JS_HasOwnPropertyById};
-use js::jsapi::{JS_IsExceptionPending, JS_TransplantObject, SetWindowProxy};
-use js::jsapi::{MutableHandle, MutableHandleObject, MutableHandleValue};
-use js::jsapi::{ObjectOpResult, PropertyDescriptor};
-use js::jsval::{UndefinedValue, PrivateValue};
-use js::rust::get_object_class;
+use js::glue::{GetProxyPrivate, SetProxyReservedSlot, GetProxyReservedSlot};
+use js::jsapi;
 use msg::constellation_msg::BrowsingContextId;
-use msg::constellation_msg::PipelineId;
 use msg::constellation_msg::TopLevelBrowsingContextId;
+use msg::constellation_msg::PipelineId;
 use std::cell::Cell;
 use std::ptr;
 
@@ -106,8 +97,8 @@ impl WindowProxy {
             let cx = window.get_cx();
             let window_jsobject = window.reflector().get_jsobject();
             assert!(!window_jsobject.get().is_null());
-            assert!(((*get_object_class(window_jsobject.get())).flags & JSCLASS_IS_GLOBAL) != 0);
-            let _ac = JSAutoCompartment::new(cx, window_jsobject.get());
+            assert!(((*js::rust::get_object_class(window_jsobject.get())).flags & jsapi::JSCLASS_IS_GLOBAL) != 0);
+            let _ac = js::ac::AutoCompartment::with_obj(cx, window_jsobject.get());
 
             // Create a new window proxy.
             rooted!(in(cx) let js_proxy = NewWindowProxy(cx, window_jsobject, handler));
@@ -123,10 +114,11 @@ impl WindowProxy {
 
             // The window proxy owns the browsing context.
             // When we finalize the window proxy, it drops the browsing context it owns.
-            SetProxyExtra(js_proxy.get(), 0, &PrivateValue((&*window_proxy).as_void_ptr()));
+            let private = js::jsval::PrivateValue((&*window_proxy).as_void_ptr());
+            SetProxyReservedSlot(js_proxy.get(), 0, &private as *const _);
 
             // Notify the JS engine about the new window proxy binding.
-            SetWindowProxy(cx, window_jsobject, js_proxy.handle());
+            jsapi::js::SetWindowProxy(cx, window_jsobject, js_proxy.handle());
 
             // Set the reflector.
             debug!("Initializing reflector of {:p} to {:p}.", window_proxy, js_proxy.get());
@@ -159,8 +151,8 @@ impl WindowProxy {
             let window = DissimilarOriginWindow::new(global_to_clone_from, &*window_proxy);
             let window_jsobject = window.reflector().get_jsobject();
             assert!(!window_jsobject.get().is_null());
-            assert!(((*get_object_class(window_jsobject.get())).flags & JSCLASS_IS_GLOBAL) != 0);
-            let _ac = JSAutoCompartment::new(cx, window_jsobject.get());
+            assert!(((*js::rust::get_object_class(window_jsobject.get())).flags & jsapi::JSCLASS_IS_GLOBAL) != 0);
+            let _ac = js::ac::AutoCompartment::with_obj(cx, window_jsobject.get());
 
             // Create a new window proxy.
             rooted!(in(cx) let js_proxy = NewWindowProxy(cx, window_jsobject, handler));
@@ -168,10 +160,10 @@ impl WindowProxy {
 
             // The window proxy owns the browsing context.
             // When we finalize the window proxy, it drops the browsing context it owns.
-            SetProxyExtra(js_proxy.get(), 0, &PrivateValue((&*window_proxy).as_void_ptr()));
+            SetProxyReservedSlot(js_proxy.get(), 0, &js::jsval::PrivateValue((&*window_proxy).as_void_ptr()));
 
             // Notify the JS engine about the new window proxy binding.
-            SetWindowProxy(cx, window_jsobject, js_proxy.handle());
+            jsapi::js::SetWindowProxy(cx, window_jsobject, js_proxy.handle());
 
             // Set the reflector.
             debug!("Initializing reflector of {:p} to {:p}.", window_proxy, js_proxy.get());
@@ -226,29 +218,31 @@ impl WindowProxy {
             let window_jsobject = window.reflector().get_jsobject();
             let old_js_proxy = self.reflector.get_jsobject();
             assert!(!window_jsobject.get().is_null());
-            assert!(((*get_object_class(window_jsobject.get())).flags & JSCLASS_IS_GLOBAL) != 0);
-            let _ac = JSAutoCompartment::new(cx, window_jsobject.get());
+            assert!(((*js::rust::get_object_class(window_jsobject.get())).flags & jsapi::JSCLASS_IS_GLOBAL) != 0);
+            let _ac = js::ac::AutoCompartment::with_obj(cx, window_jsobject.get());
 
             // The old window proxy no longer owns this browsing context.
-            SetProxyExtra(old_js_proxy.get(), 0, &PrivateValue(ptr::null_mut()));
+            SetProxyReservedSlot(old_js_proxy.get(), 0, &js::jsval::PrivateValue(ptr::null_mut()));
 
             // Brain transpant the window proxy.
             // We need to do this, because the Window and WindowProxy
             // objects need to be in the same compartment.
-            // JS_TransplantObject does this by copying the contents
+            // jsapi::JS_TransplantObject does this by copying the contents
             // of the old window proxy to the new window proxy, then
             // making the old window proxy a cross-compartment wrapper
             // pointing to the new window proxy.
             rooted!(in(cx) let new_js_proxy = NewWindowProxy(cx, window_jsobject, handler));
             debug!("Transplanting proxy from {:p} to {:p}.", old_js_proxy.get(), new_js_proxy.get());
-            rooted!(in(cx) let new_js_proxy = JS_TransplantObject(cx, old_js_proxy, new_js_proxy.handle()));
+            rooted!(in(cx) let new_js_proxy = jsapi::JS_TransplantObject(cx, old_js_proxy, new_js_proxy.handle()));
             debug!("Transplanted proxy is {:p}.", new_js_proxy.get());
 
             // Transfer ownership of this browsing context from the old window proxy to the new one.
-            SetProxyExtra(new_js_proxy.get(), 0, &PrivateValue(self.as_void_ptr()));
+            SetProxyReservedSlot(new_js_proxy.get(),
+                                 0,
+                                 &js::jsval::PrivateValue(self.as_void_ptr()));
 
             // Notify the JS engine about the new window proxy binding.
-            SetWindowProxy(cx, window_jsobject, new_js_proxy.handle());
+            jsapi::js::SetWindowProxy(cx, window_jsobject, new_js_proxy.handle());
 
             // Update the reflector.
             debug!("Setting reflector of {:p} to {:p}.", self, new_js_proxy.get());
@@ -275,9 +269,9 @@ impl WindowProxy {
 }
 
 #[allow(unsafe_code)]
-unsafe fn GetSubframeWindow(cx: *mut JSContext,
-                            proxy: HandleObject,
-                            id: HandleId)
+unsafe fn GetSubframeWindow(cx: *mut jsapi::JSContext,
+                            proxy: jsapi::JS::HandleObject,
+                            id: jsapi::JS::HandleId)
                             -> Option<Root<Window>> {
     let index = get_array_index_from_id(cx, id);
     if let Some(index) = index {
@@ -291,22 +285,22 @@ unsafe fn GetSubframeWindow(cx: *mut JSContext,
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn getOwnPropertyDescriptor(cx: *mut JSContext,
-                                              proxy: HandleObject,
-                                              id: HandleId,
-                                              mut desc: MutableHandle<PropertyDescriptor>)
+unsafe extern "C" fn getOwnPropertyDescriptor(cx: *mut jsapi::JSContext,
+                                              proxy: jsapi::JS::HandleObject,
+                                              id: jsapi::JS::HandleId,
+                                              mut desc: jsapi::JS::MutableHandle<jsapi::JS::PropertyDescriptor>)
                                               -> bool {
     let window = GetSubframeWindow(cx, proxy, id);
     if let Some(window) = window {
-        rooted!(in(cx) let mut val = UndefinedValue());
+        rooted!(in(cx) let mut val = js::jsval::UndefinedValue());
         window.to_jsval(cx, val.handle_mut());
         desc.value = val.get();
-        fill_property_descriptor(desc, proxy.get(), JSPROP_READONLY);
+        fill_property_descriptor(desc, proxy.get(), jsapi::JSPROP_READONLY as _);
         return true;
     }
 
     rooted!(in(cx) let target = GetProxyPrivate(proxy.get()).to_object());
-    if !JS_GetOwnPropertyDescriptorById(cx, target.handle(), id, desc) {
+    if !jsapi::JS_GetOwnPropertyDescriptorById(cx, target.handle(), id, desc) {
         return false;
     }
 
@@ -320,29 +314,29 @@ unsafe extern "C" fn getOwnPropertyDescriptor(cx: *mut JSContext,
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn defineProperty(cx: *mut JSContext,
-                                    proxy: HandleObject,
-                                    id: HandleId,
-                                    desc: Handle<PropertyDescriptor>,
-                                    res: *mut ObjectOpResult)
+unsafe extern "C" fn defineProperty(cx: *mut jsapi::JSContext,
+                                    proxy: jsapi::JS::HandleObject,
+                                    id: jsapi::JS::HandleId,
+                                    desc: jsapi::JS::Handle<jsapi::JS::PropertyDescriptor>,
+                                    res: *mut jsapi::JS::ObjectOpResult)
                                     -> bool {
     if get_array_index_from_id(cx, id).is_some() {
         // Spec says to Reject whether this is a supported index or not,
         // since we have no indexed setter or indexed creator.  That means
         // throwing in strict mode (FIXME: Bug 828137), doing nothing in
         // non-strict mode.
-        (*res).code_ = JSErrNum::JSMSG_CANT_DEFINE_WINDOW_ELEMENT as ::libc::uintptr_t;
+        (*res).code_ = jsapi::JSErrNum::JSMSG_CANT_DEFINE_WINDOW_ELEMENT as ::libc::uintptr_t;
         return true;
     }
 
     rooted!(in(cx) let target = GetProxyPrivate(*proxy.ptr).to_object());
-    JS_DefinePropertyById(cx, target.handle(), id, desc, res)
+    jsapi::JS_DefinePropertyById(cx, target.handle(), id, desc, res)
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn has(cx: *mut JSContext,
-                         proxy: HandleObject,
-                         id: HandleId,
+unsafe extern "C" fn has(cx: *mut jsapi::JSContext,
+                         proxy: jsapi::JS::HandleObject,
+                         id: jsapi::JS::HandleId,
                          bp: *mut bool)
                          -> bool {
     let window = GetSubframeWindow(cx, proxy, id);
@@ -353,7 +347,7 @@ unsafe extern "C" fn has(cx: *mut JSContext,
 
     rooted!(in(cx) let target = GetProxyPrivate(*proxy.ptr).to_object());
     let mut found = false;
-    if !JS_HasPropertyById(cx, target.handle(), id, &mut found) {
+    if !jsapi::JS_HasPropertyById(cx, target.handle(), id, &mut found) {
         return false;
     }
 
@@ -362,11 +356,11 @@ unsafe extern "C" fn has(cx: *mut JSContext,
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn get(cx: *mut JSContext,
-                         proxy: HandleObject,
-                         receiver: HandleValue,
-                         id: HandleId,
-                         vp: MutableHandleValue)
+unsafe extern "C" fn get(cx: *mut jsapi::JSContext,
+                         proxy: jsapi::JS::HandleObject,
+                         receiver: jsapi::JS::HandleValue,
+                         id: jsapi::JS::HandleId,
+                         vp: jsapi::JS::MutableHandleValue)
                          -> bool {
     let window = GetSubframeWindow(cx, proxy, id);
     if let Some(window) = window {
@@ -375,25 +369,25 @@ unsafe extern "C" fn get(cx: *mut JSContext,
     }
 
     rooted!(in(cx) let target = GetProxyPrivate(*proxy.ptr).to_object());
-    JS_ForwardGetPropertyTo(cx, target.handle(), id, receiver, vp)
+    jsapi::JS_ForwardGetPropertyTo(cx, target.handle(), id, receiver, vp)
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn set(cx: *mut JSContext,
-                         proxy: HandleObject,
-                         id: HandleId,
-                         v: HandleValue,
-                         receiver: HandleValue,
-                         res: *mut ObjectOpResult)
+unsafe extern "C" fn set(cx: *mut jsapi::JSContext,
+                         proxy: jsapi::JS::HandleObject,
+                         id: jsapi::JS::HandleId,
+                         v: jsapi::JS::HandleValue,
+                         receiver: jsapi::JS::HandleValue,
+                         res: *mut jsapi::JS::ObjectOpResult)
                          -> bool {
     if get_array_index_from_id(cx, id).is_some() {
         // Reject (which means throw if and only if strict) the set.
-        (*res).code_ = JSErrNum::JSMSG_READ_ONLY as ::libc::uintptr_t;
+        (*res).code_ = jsapi::JSErrNum::JSMSG_READ_ONLY as ::libc::uintptr_t;
         return true;
     }
 
     rooted!(in(cx) let target = GetProxyPrivate(*proxy.ptr).to_object());
-    JS_ForwardSetPropertyTo(cx,
+    jsapi::JS_ForwardSetPropertyTo(cx,
                             target.handle(),
                             id,
                             v,
@@ -402,10 +396,10 @@ unsafe extern "C" fn set(cx: *mut JSContext,
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn get_prototype_if_ordinary(_: *mut JSContext,
-                                               _: HandleObject,
+unsafe extern "C" fn get_prototype_if_ordinary(_: *mut jsapi::JSContext,
+                                               _: jsapi::JS::HandleObject,
                                                is_ordinary: *mut bool,
-                                               _: MutableHandleObject)
+                                               _: jsapi::JS::MutableHandleObject)
                                                -> bool {
     // Window's [[GetPrototypeOf]] trap isn't the ordinary definition:
     //
@@ -467,8 +461,8 @@ pub fn new_window_proxy_handler() -> WindowProxyHandler {
 // defined in the DissimilarOriginWindow IDL.
 
 #[allow(unsafe_code)]
-unsafe fn throw_security_error(cx: *mut JSContext) -> bool {
-    if !JS_IsExceptionPending(cx) {
+unsafe fn throw_security_error(cx: *mut jsapi::JSContext) -> bool {
+    if !jsapi::JS_IsExceptionPending(cx) {
         let global = GlobalScope::from_context(cx);
         throw_dom_exception(cx, &*global, Error::Security);
     }
@@ -476,15 +470,15 @@ unsafe fn throw_security_error(cx: *mut JSContext) -> bool {
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn has_xorigin(cx: *mut JSContext,
-                                 proxy: HandleObject,
-                                 id: HandleId,
+unsafe extern "C" fn has_xorigin(cx: *mut jsapi::JSContext,
+                                 proxy: jsapi::JS::HandleObject,
+                                 id: jsapi::JS::HandleId,
                                  bp: *mut bool)
                                  -> bool
 {
     rooted!(in(cx) let target = GetProxyPrivate(*proxy.ptr).to_object());
     let mut found = false;
-    JS_HasOwnPropertyById(cx, target.handle(), id, &mut found);
+    jsapi::JS_HasOwnPropertyById(cx, target.handle(), id, &mut found);
     if found {
         *bp = true;
         true
@@ -494,11 +488,11 @@ unsafe extern "C" fn has_xorigin(cx: *mut JSContext,
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn get_xorigin(cx: *mut JSContext,
-                                 proxy: HandleObject,
-                                 receiver: HandleValue,
-                                 id: HandleId,
-                                 vp: MutableHandleValue)
+unsafe extern "C" fn get_xorigin(cx: *mut jsapi::JSContext,
+                                 proxy: jsapi::JS::HandleObject,
+                                 receiver: jsapi::JS::HandleValue,
+                                 id: jsapi::JS::HandleId,
+                                 vp: jsapi::JS::MutableHandleValue)
                                  -> bool
 {
     let mut found = false;
@@ -507,32 +501,32 @@ unsafe extern "C" fn get_xorigin(cx: *mut JSContext,
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn set_xorigin(cx: *mut JSContext,
-                                 _: HandleObject,
-                                 _: HandleId,
-                                 _: HandleValue,
-                                 _: HandleValue,
-                                 _: *mut ObjectOpResult)
+unsafe extern "C" fn set_xorigin(cx: *mut jsapi::JSContext,
+                                 _: jsapi::JS::HandleObject,
+                                 _: jsapi::JS::HandleId,
+                                 _: jsapi::JS::HandleValue,
+                                 _: jsapi::JS::HandleValue,
+                                 _: *mut jsapi::JS::ObjectOpResult)
                                  -> bool
 {
     throw_security_error(cx)
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn delete_xorigin(cx: *mut JSContext,
-                                    _: HandleObject,
-                                    _: HandleId,
-                                    _: *mut ObjectOpResult)
+unsafe extern "C" fn delete_xorigin(cx: *mut jsapi::JSContext,
+                                    _: jsapi::JS::HandleObject,
+                                    _: jsapi::JS::HandleId,
+                                    _: *mut jsapi::JS::ObjectOpResult)
                                     -> bool
 {
     throw_security_error(cx)
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn getOwnPropertyDescriptor_xorigin(cx: *mut JSContext,
-                                                      proxy: HandleObject,
-                                                      id: HandleId,
-                                                      desc: MutableHandle<PropertyDescriptor>)
+unsafe extern "C" fn getOwnPropertyDescriptor_xorigin(cx: *mut jsapi::JSContext,
+                                                      proxy: jsapi::JS::HandleObject,
+                                                      id: jsapi::JS::HandleId,
+                                                      desc: jsapi::JS::MutableHandle<jsapi::JS::PropertyDescriptor>)
                                                       -> bool
 {
     let mut found = false;
@@ -541,20 +535,20 @@ unsafe extern "C" fn getOwnPropertyDescriptor_xorigin(cx: *mut JSContext,
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn defineProperty_xorigin(cx: *mut JSContext,
-                                            _: HandleObject,
-                                            _: HandleId,
-                                            _: Handle<PropertyDescriptor>,
-                                            _: *mut ObjectOpResult)
+unsafe extern "C" fn defineProperty_xorigin(cx: *mut jsapi::JSContext,
+                                            _: jsapi::JS::HandleObject,
+                                            _: jsapi::JS::HandleId,
+                                            _: jsapi::JS::Handle<jsapi::JS::PropertyDescriptor>,
+                                            _: *mut jsapi::JS::ObjectOpResult)
                                             -> bool
 {
     throw_security_error(cx)
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn preventExtensions_xorigin(cx: *mut JSContext,
-                                               _: HandleObject,
-                                               _: *mut ObjectOpResult)
+unsafe extern "C" fn preventExtensions_xorigin(cx: *mut jsapi::JSContext,
+                                               _: jsapi::JS::HandleObject,
+                                               _: *mut jsapi::JS::ObjectOpResult)
                                                -> bool
 {
     throw_security_error(cx)
@@ -595,8 +589,8 @@ static XORIGIN_PROXY_HANDLER: ProxyTraps = ProxyTraps {
 // How WindowProxy objects are garbage collected.
 
 #[allow(unsafe_code)]
-unsafe extern fn finalize(_fop: *mut JSFreeOp, obj: *mut JSObject) {
-    let this = GetProxyExtra(obj, 0).to_private() as *mut WindowProxy;
+unsafe extern fn finalize(_fop: *mut jsapi::JSFreeOp, obj: *mut jsapi::JSObject) {
+    let this = GetProxyReservedSlot(obj, 0).to_private() as *mut WindowProxy;
     if this.is_null() {
         // GC during obj creation or after transplanting.
         return;
@@ -607,8 +601,8 @@ unsafe extern fn finalize(_fop: *mut JSFreeOp, obj: *mut JSObject) {
 }
 
 #[allow(unsafe_code)]
-unsafe extern fn trace(trc: *mut JSTracer, obj: *mut JSObject) {
-    let this = GetProxyExtra(obj, 0).to_private() as *const WindowProxy;
+unsafe extern fn trace(trc: *mut jsapi::JSTracer, obj: *mut jsapi::JSObject) {
+    let this = GetProxyReservedSlot(obj, 0).to_private() as *const WindowProxy;
     if this.is_null() {
         // GC during obj creation or after transplanting.
         return;

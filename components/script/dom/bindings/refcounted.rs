@@ -29,8 +29,8 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::{DomObject, Reflector};
 use dom::bindings::trace::trace_reflector;
 use dom::promise::Promise;
-use js::jsapi::JSAutoCompartment;
-use js::jsapi::JSTracer;
+use js;
+use js::jsapi;
 use libc;
 use script_thread::Runnable;
 use script_thread::ScriptThread;
@@ -122,7 +122,7 @@ impl TrustedPromise {
     }
 
     /// A runnable which will reject the promise.
-    #[allow(unrooted_must_root)]
+    #[allow(unrooted_must_root, unsafe_code)]
     pub fn reject_runnable(self, error: Error) -> impl Runnable + Send {
         struct RejectPromise(TrustedPromise, Error);
         impl Runnable for RejectPromise {
@@ -130,7 +130,9 @@ impl TrustedPromise {
                 let this = *self;
                 let cx = script_thread.get_cx();
                 let promise = this.0.root();
-                let _ac = JSAutoCompartment::new(cx, promise.reflector().get_jsobject().get());
+                let _ac = unsafe {
+                    js::ac::AutoCompartment::with_obj(cx, promise.reflector().get_jsobject().get())
+                };
                 promise.reject_error(cx, this.1);
             }
         }
@@ -138,7 +140,7 @@ impl TrustedPromise {
     }
 
     /// A runnable which will resolve the promise.
-    #[allow(unrooted_must_root)]
+    #[allow(unrooted_must_root, unsafe_code)]
     pub fn resolve_runnable<T>(self, value: T) -> impl Runnable + Send where
         T: ToJSValConvertible + Send
     {
@@ -148,7 +150,9 @@ impl TrustedPromise {
                 let this = *self;
                 let cx = script_thread.get_cx();
                 let promise = this.0.root();
-                let _ac = JSAutoCompartment::new(cx, promise.reflector().get_jsobject().get());
+                let _ac = unsafe {
+                    js::ac::AutoCompartment::with_obj(cx, promise.reflector().get_jsobject().get())
+                };
                 promise.resolve_native(cx, &this.1);
             }
         }
@@ -281,7 +285,7 @@ fn remove_nulls<K: Eq + Hash + Clone, V> (table: &mut HashMap<K, Weak<V>>) {
 
 /// A JSTraceDataOp for tracing reflectors held in LIVE_REFERENCES
 #[allow(unrooted_must_root)]
-pub unsafe extern "C" fn trace_refcounted_objects(tracer: *mut JSTracer,
+pub unsafe extern "C" fn trace_refcounted_objects(tracer: *mut jsapi::JSTracer,
                                                   _data: *mut os::raw::c_void) {
     info!("tracing live refcounted references");
     LIVE_REFERENCES.with(|ref r| {

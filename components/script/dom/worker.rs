@@ -24,7 +24,8 @@ use dom::messageevent::MessageEvent;
 use dom::workerglobalscope::prepare_workerscope_init;
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
-use js::jsapi::{HandleValue, JSAutoCompartment, JSContext, NullHandleValue};
+use js;
+use js::jsapi;
 use js::jsval::UndefinedValue;
 use script_thread::Runnable;
 use script_traits::WorkerScriptLoadOrigin;
@@ -120,6 +121,7 @@ impl Worker {
         self.terminated.get()
     }
 
+    #[allow(unsafe_code)]
     pub fn handle_message(address: TrustedWorkerAddress,
                           data: StructuredCloneData) {
         let worker = address.root();
@@ -130,7 +132,10 @@ impl Worker {
 
         let global = worker.global();
         let target = worker.upcast();
-        let _ac = JSAutoCompartment::new(global.get_cx(), target.reflector().get_jsobject().get());
+        let _ac = unsafe {
+            js::ac::AutoCompartment::with_obj(global.get_cx(),
+                                              target.reflector().get_jsobject().get())
+        };
         rooted!(in(global.get_cx()) let mut message = UndefinedValue());
         data.read(&global, message.handle_mut());
         MessageEvent::dispatch_jsval(target, &global, message.handle());
@@ -152,21 +157,21 @@ impl Worker {
                                     error_info.filename.as_str().into(),
                                     error_info.lineno,
                                     error_info.column,
-                                    unsafe { NullHandleValue });
+                                    unsafe { jsapi::JS::NullHandleValue });
 
         let event_status = event.upcast::<Event>().fire(self.upcast::<EventTarget>());
         if event_status == EventStatus::Canceled {
             return;
         }
 
-        global.report_an_error(error_info, unsafe { NullHandleValue });
+        global.report_an_error(error_info, unsafe { jsapi::JS::NullHandleValue });
     }
 }
 
 impl WorkerMethods for Worker {
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-worker-postmessage
-    unsafe fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
+    unsafe fn PostMessage(&self, cx: *mut jsapi::JSContext, message: jsapi::JS::HandleValue) -> ErrorResult {
         let data = StructuredCloneData::write(cx, message)?;
         let address = Trusted::new(self);
 

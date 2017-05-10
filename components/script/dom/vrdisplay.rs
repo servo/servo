@@ -33,7 +33,7 @@ use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use ipc_channel::ipc::{IpcSender, IpcReceiver};
-use js::jsapi::JSContext;
+use js::jsapi;
 use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory::WebVREvent;
 use script_thread::Runnable;
@@ -530,7 +530,7 @@ impl VRDisplay {
         api_sender.send(CanvasMsg::WebVR(msg)).unwrap();
     }
 
-    // Only called when the JSContext is destroyed while presenting.
+    // Only called when the jsapi::JSContext is destroyed while presenting.
     // In this case we don't want to wait for WebVR Thread response.
     fn force_stop_present(&self) {
         self.webvr_thread().send(WebVRMsg::ExitPresent(self.global().pipeline_id(),
@@ -630,7 +630,7 @@ fn parse_bounds(src: &Option<Vec<Finite<f32>>>, dst: &mut [f32; 4]) -> Result<()
     }
 }
 
-fn validate_layer(cx: *mut JSContext,
+fn validate_layer(cx: *mut jsapi::JSContext,
                   layer: &VRLayer)
                   -> Result<(WebVRLayer, Root<WebGLRenderingContext>), &'static str> {
     let ctx = layer.source.as_ref().map(|ref s| s.get_or_init_webgl_context(cx, None)).unwrap_or(None);

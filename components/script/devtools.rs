@@ -22,7 +22,8 @@ use dom::globalscope::GlobalScope;
 use dom::node::{Node, window_from_node};
 use dom::window::Window;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::{JSAutoCompartment, ObjectClassName};
+use js::ac::AutoCompartment;
+use js::jsapi;
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::PipelineId;
 use script_thread::Documents;
@@ -34,11 +35,11 @@ use uuid::Uuid;
 
 #[allow(unsafe_code)]
 pub fn handle_evaluate_js(global: &GlobalScope, eval: String, reply: IpcSender<EvaluateJSReply>) {
-    // global.get_cx() returns a valid `JSContext` pointer, so this is safe.
+    // global.get_cx() returns a valid `jsapi::JSContext` pointer, so this is safe.
     let result = unsafe {
         let cx = global.get_cx();
         let globalhandle = global.reflector().get_jsobject();
-        let _ac = JSAutoCompartment::new(cx, globalhandle.get());
+        let _ac = AutoCompartment::with_obj(cx, globalhandle.get());
         rooted!(in(cx) let mut rval = UndefinedValue());
         global.evaluate_js_on_global_with_result(&eval, rval.handle_mut());
 
@@ -60,7 +61,7 @@ pub fn handle_evaluate_js(global: &GlobalScope, eval: String, reply: IpcSender<E
             assert!(rval.is_object());
 
             rooted!(in(cx) let obj = rval.to_object());
-            let class_name = CStr::from_ptr(ObjectClassName(cx, obj.handle()));
+            let class_name = CStr::from_ptr(jsapi::js::ObjectClassName(cx, obj.handle()));
             let class_name = str::from_utf8(class_name.to_bytes()).unwrap();
 
             EvaluateJSReply::ActorValue {

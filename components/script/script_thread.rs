@@ -65,9 +65,9 @@ use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
+use js;
 use js::glue::GetWindowProxyClass;
-use js::jsapi::{JSAutoCompartment, JSContext, JS_SetWrapObjectCallbacks};
-use js::jsapi::{JSTracer, SetWindowProxyClass};
+use js::jsapi;
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use mem::heap_size_of_self_and_children;
@@ -124,7 +124,7 @@ pub type ImageCacheMsg = (PipelineId, PendingImageResponse);
 thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None));
 thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = Cell::new(None));
 
-pub unsafe fn trace_thread(tr: *mut JSTracer) {
+pub unsafe fn trace_thread(tr: *mut jsapi::JSTracer) {
     SCRIPT_THREAD_ROOT.with(|root| {
         if let Some(script_thread) = root.get() {
             debug!("tracing fields of ScriptThread");
@@ -596,10 +596,9 @@ impl ScriptThread {
     pub unsafe fn note_newly_transitioning_nodes(nodes: Vec<UntrustedNodeAddress>) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = &*root.get().unwrap();
-            let js_runtime = script_thread.js_runtime.rt();
             let new_nodes = nodes
                 .into_iter()
-                .map(|n| JS::from_ref(&*from_untrusted_node_address(js_runtime, n)));
+                .map(|n| JS::from_ref(&*from_untrusted_node_address(n)));
             script_thread.transitioning_nodes.borrow_mut().extend(new_nodes);
         })
     }
@@ -738,9 +737,8 @@ impl ScriptThread {
         let runtime = unsafe { new_rt_and_cx() };
 
         unsafe {
-            JS_SetWrapObjectCallbacks(runtime.rt(),
-                                      &WRAP_CALLBACKS);
-            SetWindowProxyClass(runtime.rt(), GetWindowProxyClass());
+            jsapi::JS_SetWrapObjectCallbacks(runtime.cx(), &WRAP_CALLBACKS);
+            jsapi::js::SetWindowProxyClass(runtime.cx(), GetWindowProxyClass());
         }
 
         // Ask the router to proxy IPC messages from the devtools to us.
@@ -818,7 +816,7 @@ impl ScriptThread {
         }
     }
 
-    pub fn get_cx(&self) -> *mut JSContext {
+    pub fn get_cx(&self) -> *mut jsapi::JSContext {
         self.js_runtime.cx()
     }
 
@@ -1703,9 +1701,8 @@ impl ScriptThread {
 
     /// Handles firing of transition events.
     fn handle_transition_event(&self, unsafe_node: UntrustedNodeAddress, name: String, duration: f64) {
-        let js_runtime = self.js_runtime.rt();
         let node = unsafe {
-            from_untrusted_node_address(js_runtime, unsafe_node)
+            from_untrusted_node_address(unsafe_node)
         };
 
         let idx = self.transitioning_nodes
@@ -2006,7 +2003,7 @@ impl ScriptThread {
 
             // Script source is ready to be evaluated (11.)
             unsafe {
-                let _ac = JSAutoCompartment::new(self.get_cx(), window.reflector().get_jsobject().get());
+                let _ac = js::ac::AutoCompartment::with_obj(self.get_cx(), window.reflector().get_jsobject().get());
                 rooted!(in(self.get_cx()) let mut jsval = UndefinedValue());
                 window.upcast::<GlobalScope>().evaluate_js_on_global_with_result(
                     &script_source, jsval.handle_mut());

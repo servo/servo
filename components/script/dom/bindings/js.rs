@@ -31,7 +31,7 @@ use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::trace_reflector;
 use dom::node::Node;
 use heapsize::HeapSizeOf;
-use js::jsapi::{JSObject, JSTracer};
+use js::jsapi;
 use script_layout_interface::TrustedNodeAddress;
 use script_thread::STACK_ROOTS;
 use std::cell::UnsafeCell;
@@ -105,7 +105,7 @@ impl<T: DomObject> Deref for JS<T> {
 }
 
 unsafe impl<T: DomObject> JSTraceable for JS<T> {
-    unsafe fn trace(&self, trc: *mut JSTracer) {
+    unsafe fn trace(&self, trc: *mut jsapi::JSTracer) {
         #[cfg(debug_assertions)]
         let trace_str = format!("for {} on heap", type_name::<T>());
         #[cfg(debug_assertions)]
@@ -159,7 +159,7 @@ impl<T: Castable> LayoutJS<T> {
 
 impl<T: DomObject> LayoutJS<T> {
     /// Get the reflector.
-    pub unsafe fn get_jsobject(&self) -> *mut JSObject {
+    pub unsafe fn get_jsobject(&self) -> *mut jsapi::JSObject {
         debug_assert!(thread_state::get().is_layout());
         (*self.ptr.get()).reflector().get_jsobject().get()
     }
@@ -490,7 +490,7 @@ impl RootCollection {
 }
 
 /// SM Callback that traces the rooted reflectors
-pub unsafe fn trace_roots(tracer: *mut JSTracer) {
+pub unsafe fn trace_roots(tracer: *mut jsapi::JSTracer) {
     debug!("tracing stack roots");
     STACK_ROOTS.with(|ref collection| {
         let RootCollectionPtr(collection) = collection.get().unwrap();
@@ -600,7 +600,7 @@ impl<T: DomObject> Drop for Root<T> {
 }
 
 unsafe impl<T: DomObject> JSTraceable for Root<T> {
-    unsafe fn trace(&self, _: *mut JSTracer) {
+    unsafe fn trace(&self, _: *mut jsapi::JSTracer) {
         // Already traced.
     }
 }

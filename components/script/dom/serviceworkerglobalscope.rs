@@ -21,7 +21,8 @@ use dom::workerglobalscope::WorkerGlobalScope;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
 use ipc_channel::router::ROUTER;
-use js::jsapi::{JS_SetInterruptCallback, JSAutoCompartment, JSContext};
+use js;
+use js::jsapi;
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use net_traits::{load_whole_resource, IpcSend, CustomResponseMediator};
@@ -197,7 +198,7 @@ impl ServiceWorkerGlobalScope {
 
             unsafe {
                 // Handle interrupt requests
-                JS_SetInterruptCallback(scope.runtime(), Some(interrupt_callback));
+                jsapi::JS_AddInterruptCallback(js::rust::Runtime::get(), Some(interrupt_callback));
             }
 
             scope.execute_script(DOMString::from(source));
@@ -250,6 +251,7 @@ impl ServiceWorkerGlobalScope {
         }
     }
 
+    #[allow(unsafe_code)]
     fn handle_script_event(&self, msg: ServiceWorkerScriptMsg) {
         use self::ServiceWorkerScriptMsg::*;
 
@@ -257,7 +259,10 @@ impl ServiceWorkerGlobalScope {
             CommonWorker(WorkerScriptMsg::DOMMessage(data)) => {
                 let scope = self.upcast::<WorkerGlobalScope>();
                 let target = self.upcast();
-                let _ac = JSAutoCompartment::new(scope.get_cx(), scope.reflector().get_jsobject().get());
+                let _ac = unsafe {
+                    js::ac::AutoCompartment::with_obj(scope.get_cx(),
+                                                      scope.reflector().get_jsobject().get())
+                };
                 rooted!(in(scope.get_cx()) let mut message = UndefinedValue());
                 data.read(scope.upcast(), message.handle_mut());
                 ExtendableMessageEvent::dispatch_jsval(target, scope.upcast(), message.handle());
@@ -331,7 +336,7 @@ impl ServiceWorkerGlobalScope {
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> bool {
+unsafe extern "C" fn interrupt_callback(cx: *mut jsapi::JSContext) -> bool {
     let worker =
         Root::downcast::<WorkerGlobalScope>(GlobalScope::from_context(cx))
             .expect("global is not a worker scope");

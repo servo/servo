@@ -18,7 +18,7 @@ use dom::request::Request;
 use dom::response::Response;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use js::jsapi::JSAutoCompartment;
+use js;
 use net_traits::{FetchResponseListener, NetworkError};
 use net_traits::{FilteredMetadata, FetchMetadata, Metadata};
 use net_traits::CoreResourceMsg::Fetch as NetTraitsFetch;
@@ -120,14 +120,16 @@ impl FetchResponseListener for FetchContext {
         // TODO
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(unrooted_must_root, unsafe_code)]
     fn process_response(&mut self, fetch_metadata: Result<FetchMetadata, NetworkError>) {
         let promise = self.fetch_promise.take().expect("fetch promise is missing").root();
 
         // JSAutoCompartment needs to be manually made.
         // Otherwise, Servo will crash.
         let promise_cx = promise.global().get_cx();
-        let _ac = JSAutoCompartment::new(promise_cx, promise.reflector().get_jsobject().get());
+        let _ac = unsafe {
+            js::ac::AutoCompartment::with_obj(promise_cx, promise.reflector().get_jsobject().get())
+        };
         match fetch_metadata {
             // Step 4.1
             Err(_) => {
@@ -173,11 +175,14 @@ impl FetchResponseListener for FetchContext {
         self.body.append(&mut chunk);
     }
 
+    #[allow(unsafe_code)]
     fn process_response_eof(&mut self, _response: Result<(), NetworkError>) {
         let response = self.response_object.root();
         let global = response.global();
         let cx = global.get_cx();
-        let _ac = JSAutoCompartment::new(cx, global.reflector().get_jsobject().get());
+        let _ac = unsafe {
+            js::ac::AutoCompartment::with_obj(cx, global.reflector().get_jsobject().get())
+        };
         response.finish(mem::replace(&mut self.body, vec![]));
         // TODO
         // ... trailerObject is not supported in Servo yet.

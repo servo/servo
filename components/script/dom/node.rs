@@ -59,7 +59,7 @@ use dom_struct::dom_struct;
 use euclid::{Point2D, Vector2D, Rect, Size2D};
 use heapsize::{HeapSizeOf, heap_size_of};
 use html5ever::{Prefix, Namespace, QualName};
-use js::jsapi::{JSContext, JSObject, JSRuntime};
+use js::jsapi;
 use libc::{self, c_void, uintptr_t};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use ref_slice::ref_slice;
@@ -940,13 +940,11 @@ fn first_node_not_in<I>(mut nodes: I, not_in: &[NodeOrString]) -> Option<Root<No
 /// If the given untrusted node address represents a valid DOM node in the given runtime,
 /// returns it.
 #[allow(unsafe_code)]
-pub unsafe fn from_untrusted_node_address(_runtime: *mut JSRuntime, candidate: UntrustedNodeAddress)
-    -> Root<Node> {
+pub unsafe fn from_untrusted_node_address(candidate: UntrustedNodeAddress) -> Root<Node> {
     // https://github.com/servo/servo/issues/6383
     let candidate: uintptr_t = mem::transmute(candidate.0);
-//        let object: *mut JSObject = jsfriendapi::bindgen::JS_GetAddressableObject(runtime,
-//                                                                                  candidate);
-    let object: *mut JSObject = mem::transmute(candidate);
+    // let object: *mut jsapi::JSObject = jsapi::JS_GetAddressableObject(runtime, candidate);
+    let object: *mut jsapi::JSObject = mem::transmute(candidate);
     if object.is_null() {
         panic!("Attempted to create a `JS<Node>` from an invalid pointer!")
     }
@@ -1388,7 +1386,7 @@ impl Node {
     pub fn reflect_node<N>(
             node: Box<N>,
             document: &Document,
-            wrap_fn: unsafe extern "Rust" fn(*mut JSContext, &GlobalScope, Box<N>) -> Root<N>)
+            wrap_fn: unsafe extern "Rust" fn(*mut jsapi::JSContext, &GlobalScope, Box<N>) -> Root<N>)
             -> Root<N>
         where N: DerivedFrom<Node> + DomObject
     {

@@ -11,10 +11,7 @@ use dom::blob::{Blob, BlobImpl};
 use dom::formdata::FormData;
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
-use js::jsapi::JSContext;
-use js::jsapi::JS_ClearPendingException;
-use js::jsapi::JS_ParseJSON;
-use js::jsapi::Value as JSValue;
+use js::jsapi;
 use js::jsval::UndefinedValue;
 use mime::{Mime, TopLevel, SubLevel};
 use std::cell::Ref;
@@ -32,7 +29,7 @@ pub enum BodyType {
 
 pub enum FetchedData {
     Text(String),
-    Json(JSValue),
+    Json(jsapi::JS::Value),
     BlobData(Root<Blob>),
     FormData(Root<FormData>),
 }
@@ -112,17 +109,17 @@ fn run_text_data_algorithm(bytes: Vec<u8>) -> Fallible<FetchedData> {
 }
 
 #[allow(unsafe_code)]
-fn run_json_data_algorithm(cx: *mut JSContext,
+fn run_json_data_algorithm(cx: *mut jsapi::JSContext,
                            bytes: Vec<u8>) -> Fallible<FetchedData> {
     let json_text = String::from_utf8_lossy(&bytes);
     let json_text: Vec<u16> = json_text.encode_utf16().collect();
     rooted!(in(cx) let mut rval = UndefinedValue());
     unsafe {
-        if !JS_ParseJSON(cx,
+        if !jsapi::JS_ParseJSON(cx,
                          json_text.as_ptr(),
                          json_text.len() as u32,
                          rval.handle_mut()) {
-            JS_ClearPendingException(cx);
+            jsapi::JS_ClearPendingException(cx);
             // TODO: See issue #13464. Exception should be thrown instead of cleared.
             return Err(Error::Type("Failed to parse JSON".to_string()));
         }

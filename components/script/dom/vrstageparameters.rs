@@ -11,7 +11,8 @@ use dom::bindings::num::Finite;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSContext, JSObject};
+use js;
+use js::jsapi;
 use js::typedarray::{Float32Array, CreateWith};
 use webvr_traits::WebVRStageParameters;
 
@@ -20,7 +21,7 @@ pub struct VRStageParameters {
     reflector_: Reflector,
     #[ignore_heap_size_of = "Defined in rust-webvr"]
     parameters: DOMRefCell<WebVRStageParameters>,
-    transform: Heap<*mut JSObject>,
+    transform: js::heap::Heap<*mut jsapi::JSObject>,
 }
 
 unsafe_no_jsmanaged_fields!(WebVRStageParameters);
@@ -30,7 +31,7 @@ impl VRStageParameters {
         VRStageParameters {
             reflector_: Reflector::new(),
             parameters: DOMRefCell::new(parameters),
-            transform: Heap::default()
+            transform: js::heap::Heap::default()
         }
     }
 
@@ -66,7 +67,7 @@ impl VRStageParameters {
 impl VRStageParametersMethods for VRStageParameters {
     #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrstageparameters-sittingtostandingtransform
-    unsafe fn SittingToStandingTransform(&self, _cx: *mut JSContext) -> NonZero<*mut JSObject> {
+    unsafe fn SittingToStandingTransform(&self, _cx: *mut jsapi::JSContext) -> NonZero<*mut jsapi::JSObject> {
         NonZero::new(self.transform.get())
     }
 

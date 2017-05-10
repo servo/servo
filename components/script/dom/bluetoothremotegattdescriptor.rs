@@ -21,7 +21,7 @@ use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::JSContext;
+use js::jsapi;
 use std::rc::Rc;
 
 // http://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattdescriptor
@@ -147,7 +147,7 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
 }
 
 impl AsyncBluetoothListener for BluetoothRemoteGATTDescriptor {
-    fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut jsapi::JSContext, promise: &Rc<Promise>) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-readvalue
             BluetoothResponse::ReadValue(result) => {

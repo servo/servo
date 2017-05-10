@@ -57,8 +57,8 @@ use euclid::{Point2D, Vector2D, Rect, Size2D};
 use fetch;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
-use js::jsapi::{HandleObject, HandleValue, JSAutoCompartment, JSContext};
-use js::jsapi::{JS_GC, JS_GetRuntime};
+use js;
+use js::jsapi;
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use layout_image::fetch_image_for_layout;
@@ -300,7 +300,7 @@ impl Window {
         self.globalscope.origin()
     }
 
-    pub fn get_cx(&self) -> *mut JSContext {
+    pub fn get_cx(&self) -> *mut jsapi::JSContext {
         self.js_runtime.borrow().as_ref().unwrap().cx()
     }
 
@@ -601,8 +601,8 @@ impl WindowMethods for Window {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
-    unsafe fn SetTimeout(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32,
-                         args: Vec<HandleValue>) -> i32 {
+    unsafe fn SetTimeout(&self, _cx: *mut jsapi::JSContext, callback: Rc<Function>, timeout: i32,
+                         args: Vec<jsapi::JS::HandleValue>) -> i32 {
         self.upcast::<GlobalScope>().set_timeout_or_interval(
             TimerCallback::FunctionTimerCallback(callback),
             args,
@@ -612,8 +612,8 @@ impl WindowMethods for Window {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
-    unsafe fn SetTimeout_(&self, _cx: *mut JSContext, callback: DOMString,
-                          timeout: i32, args: Vec<HandleValue>) -> i32 {
+    unsafe fn SetTimeout_(&self, _cx: *mut jsapi::JSContext, callback: DOMString,
+                          timeout: i32, args: Vec<jsapi::JS::HandleValue>) -> i32 {
         self.upcast::<GlobalScope>().set_timeout_or_interval(
             TimerCallback::StringTimerCallback(callback),
             args,
@@ -628,8 +628,8 @@ impl WindowMethods for Window {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
-    unsafe fn SetInterval(&self, _cx: *mut JSContext, callback: Rc<Function>,
-                          timeout: i32, args: Vec<HandleValue>) -> i32 {
+    unsafe fn SetInterval(&self, _cx: *mut jsapi::JSContext, callback: Rc<Function>,
+                          timeout: i32, args: Vec<jsapi::JS::HandleValue>) -> i32 {
         self.upcast::<GlobalScope>().set_timeout_or_interval(
             TimerCallback::FunctionTimerCallback(callback),
             args,
@@ -639,8 +639,8 @@ impl WindowMethods for Window {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
-    unsafe fn SetInterval_(&self, _cx: *mut JSContext, callback: DOMString,
-                           timeout: i32, args: Vec<HandleValue>) -> i32 {
+    unsafe fn SetInterval_(&self, _cx: *mut jsapi::JSContext, callback: DOMString,
+                           timeout: i32, args: Vec<jsapi::JS::HandleValue>) -> i32 {
         self.upcast::<GlobalScope>().set_timeout_or_interval(
             TimerCallback::StringTimerCallback(callback),
             args,
@@ -745,8 +745,8 @@ impl WindowMethods for Window {
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-window-postmessage
     unsafe fn PostMessage(&self,
-                   cx: *mut JSContext,
-                   message: HandleValue,
+                   cx: *mut jsapi::JSContext,
+                   message: jsapi::JS::HandleValue,
                    origin: DOMString)
                    -> ErrorResult {
         // Step 3-5.
@@ -790,7 +790,7 @@ impl WindowMethods for Window {
     #[allow(unsafe_code)]
     fn Gc(&self) {
         unsafe {
-            JS_GC(JS_GetRuntime(self.get_cx()));
+            jsapi::JS_GC(js::rust::Runtime::get());
         }
     }
 
@@ -800,7 +800,7 @@ impl WindowMethods for Window {
     }
 
     #[allow(unsafe_code)]
-    unsafe fn WebdriverCallback(&self, cx: *mut JSContext, val: HandleValue) {
+    unsafe fn WebdriverCallback(&self, cx: *mut jsapi::JSContext, val: jsapi::JS::HandleValue) {
         let rv = jsval_to_webdriver(cx, val);
         let opt_chan = self.webdriver_script_chan.borrow_mut().take();
         if let Some(chan) = opt_chan {
@@ -1286,9 +1286,9 @@ impl Window {
 
         for image in complete.pending_images {
             let id = image.id;
-            let js_runtime = self.js_runtime.borrow();
-            let js_runtime = js_runtime.as_ref().unwrap();
-            let node = unsafe { from_untrusted_node_address(js_runtime.rt(), image.node) };
+            let node = unsafe {
+                from_untrusted_node_address(image.node)
+            };
 
             if let PendingImageState::Unrequested(ref url) = image.state {
                 fetch_image_for_layout(url.clone(), &*node, id, self.image_cache.clone());
@@ -1509,10 +1509,8 @@ impl Window {
         }
 
         let response = self.layout_rpc.offset_parent();
-        let js_runtime = self.js_runtime.borrow();
-        let js_runtime = js_runtime.as_ref().unwrap();
         let element = response.node_address.and_then(|parent_node_address| {
-            let node = unsafe { from_untrusted_node_address(js_runtime.rt(), parent_node_address) };
+            let node = unsafe { from_untrusted_node_address(parent_node_address) };
             Root::downcast(node)
         });
         (element, response.rect)
@@ -1746,7 +1744,7 @@ impl Window {
     /// Returns whether mozbrowser is enabled and `obj` has been created
     /// in a top-level `Window` global.
     #[allow(unsafe_code)]
-    pub unsafe fn global_is_mozbrowser(_: *mut JSContext, obj: HandleObject) -> bool {
+    pub unsafe fn global_is_mozbrowser(_: *mut jsapi::JSContext, obj: jsapi::JS::HandleObject) -> bool {
         GlobalScope::from_object(obj.get())
             .downcast::<Window>()
             .map_or(false, |window| window.is_mozbrowser())
@@ -1969,6 +1967,7 @@ impl PostMessageHandler {
 
 impl Runnable for PostMessageHandler {
     // https://html.spec.whatwg.org/multipage/#dom-window-postmessage steps 10-12.
+    #[allow(unsafe_code)]
     fn handler(self: Box<PostMessageHandler>) {
         let this = *self;
         let window = this.destination.root();
@@ -1983,7 +1982,9 @@ impl Runnable for PostMessageHandler {
 
         let cx = window.get_cx();
         let globalhandle = window.reflector().get_jsobject();
-        let _ac = JSAutoCompartment::new(cx, globalhandle.get());
+        let _ac = unsafe {
+            js::ac::AutoCompartment::with_obj(cx, globalhandle.get())
+        };
 
         rooted!(in(cx) let mut message = UndefinedValue());
         this.message.read(window.upcast(), message.handle_mut());

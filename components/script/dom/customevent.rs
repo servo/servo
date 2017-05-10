@@ -14,8 +14,8 @@ use dom::bindings::trace::RootedTraceableBox;
 use dom::event::Event;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, HandleValue, JSContext};
-use js::jsval::JSVal;
+use js;
+use js::jsapi;
 use servo_atoms::Atom;
 
 // https://dom.spec.whatwg.org/#interface-customevent
@@ -23,14 +23,14 @@ use servo_atoms::Atom;
 pub struct CustomEvent {
     event: Event,
     #[ignore_heap_size_of = "Defined in rust-mozjs"]
-    detail: Heap<JSVal>,
+    detail: js::heap::Heap<jsapi::JS::Value>,
 }
 
 impl CustomEvent {
     fn new_inherited() -> CustomEvent {
         CustomEvent {
             event: Event::new_inherited(),
-            detail: Heap::default(),
+            detail: js::heap::Heap::default(),
         }
     }
 
@@ -43,7 +43,7 @@ impl CustomEvent {
                type_: Atom,
                bubbles: bool,
                cancelable: bool,
-               detail: HandleValue)
+               detail: jsapi::JS::HandleValue)
                -> Root<CustomEvent> {
         let ev = CustomEvent::new_uninitialized(global);
         ev.init_custom_event(type_, bubbles, cancelable, detail);
@@ -66,7 +66,7 @@ impl CustomEvent {
                          type_: Atom,
                          can_bubble: bool,
                          cancelable: bool,
-                         detail: HandleValue) {
+                         detail: jsapi::JS::HandleValue) {
         let event = self.upcast::<Event>();
         if event.dispatching() {
             return;
@@ -80,18 +80,18 @@ impl CustomEvent {
 impl CustomEventMethods for CustomEvent {
     #[allow(unsafe_code)]
     // https://dom.spec.whatwg.org/#dom-customevent-detail
-    unsafe fn Detail(&self, _cx: *mut JSContext) -> JSVal {
+    unsafe fn Detail(&self, _cx: *mut jsapi::JSContext) -> jsapi::JS::Value {
         self.detail.get()
     }
 
     #[allow(unsafe_code)]
     // https://dom.spec.whatwg.org/#dom-customevent-initcustomevent
     unsafe fn InitCustomEvent(&self,
-                       _cx: *mut JSContext,
+                       _cx: *mut jsapi::JSContext,
                        type_: DOMString,
                        can_bubble: bool,
                        cancelable: bool,
-                       detail: HandleValue) {
+                       detail: jsapi::JS::HandleValue) {
         self.init_custom_event(Atom::from(type_), can_bubble, cancelable, detail)
     }
 

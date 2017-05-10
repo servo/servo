@@ -38,7 +38,8 @@ use dom::windowproxy::WindowProxy;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
-use js::jsapi::{JSAutoCompartment, JSContext, MutableHandleValue};
+use js;
+use js::jsapi;
 use js::jsval::{NullValue, UndefinedValue};
 use msg::constellation_msg::{FrameType, BrowsingContextId, PipelineId, TopLevelBrowsingContextId, TraversalDirection};
 use net_traits::response::HttpsState;
@@ -447,7 +448,9 @@ pub fn build_mozbrowser_custom_event(window: &Window, event: MozBrowserEvent) ->
     // See https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API
     // for a list of mozbrowser events.
     let cx = window.get_cx();
-    let _ac = JSAutoCompartment::new(cx, window.reflector().get_jsobject().get());
+    let _ac = unsafe {
+        js::ac::AutoCompartment::with_obj(cx, window.reflector().get_jsobject().get())
+    };
     rooted!(in(cx) let mut detail = UndefinedValue());
     let event_name = Atom::from(event.name());
     unsafe { build_mozbrowser_event_detail(event, cx, detail.handle_mut()); }
@@ -460,8 +463,8 @@ pub fn build_mozbrowser_custom_event(window: &Window, event: MozBrowserEvent) ->
 
 #[allow(unsafe_code)]
 unsafe fn build_mozbrowser_event_detail(event: MozBrowserEvent,
-                                        cx: *mut JSContext,
-                                        rval: MutableHandleValue) {
+                                        cx: *mut jsapi::JSContext,
+                                        rval: jsapi::JS::MutableHandleValue) {
     match event {
         MozBrowserEvent::AsyncScroll | MozBrowserEvent::Close | MozBrowserEvent::ContextMenu |
         MozBrowserEvent::LoadEnd | MozBrowserEvent::LoadStart |

@@ -5,7 +5,7 @@
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::structuredclone::StructuredCloneData;
-use js::jsapi::{JSRuntime, JS_RequestInterruptCallback};
+use js::jsapi;
 use js::rust::Runtime;
 use script_runtime::CommonScriptMsg;
 
@@ -31,20 +31,20 @@ impl<T: DomObject> SimpleWorkerErrorHandler<T> {
 
 #[derive(Copy, Clone)]
 pub struct SharedRt {
-    rt: *mut JSRuntime
+    cx: *mut jsapi::JSContext
 }
 
 impl SharedRt {
     pub fn new(rt: &Runtime) -> SharedRt {
         SharedRt {
-            rt: rt.rt()
+            cx: rt.cx()
         }
     }
 
     #[allow(unsafe_code)]
     pub fn request_interrupt(&self) {
         unsafe {
-            JS_RequestInterruptCallback(self.rt);
+            jsapi::JS_RequestInterruptCallback(self.cx);
         }
     }
 }

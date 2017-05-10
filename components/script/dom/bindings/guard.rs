@@ -4,7 +4,7 @@
 
 //! Machinery to conditionally expose things.
 
-use js::jsapi::{HandleObject, JSContext};
+use js::jsapi;
 use servo_config::prefs::PREFS;
 
 /// A container with a condition.
@@ -25,7 +25,7 @@ impl<T: Clone + Copy> Guard<T> {
     /// Expose the value if the condition is satisfied.
     ///
     /// The passed handle is the object on which the value may be exposed.
-    pub unsafe fn expose(&self, cx: *mut JSContext, obj: HandleObject) -> Option<T> {
+    pub unsafe fn expose(&self, cx: *mut jsapi::JSContext, obj: jsapi::JS::HandleObject) -> Option<T> {
         if self.condition.is_satisfied(cx, obj) {
             Some(self.value)
         } else {
@@ -37,7 +37,7 @@ impl<T: Clone + Copy> Guard<T> {
 /// A condition to expose things.
 pub enum Condition {
     /// The condition is satisfied if the function returns true.
-    Func(unsafe fn(*mut JSContext, HandleObject) -> bool),
+    Func(unsafe fn(*mut jsapi::JSContext, jsapi::JS::HandleObject) -> bool),
     /// The condition is satisfied if the preference is set.
     Pref(&'static str),
     /// The condition is always satisfied.
@@ -45,7 +45,7 @@ pub enum Condition {
 }
 
 impl Condition {
-    unsafe fn is_satisfied(&self, cx: *mut JSContext, obj: HandleObject) -> bool {
+    unsafe fn is_satisfied(&self, cx: *mut jsapi::JSContext, obj: jsapi::JS::HandleObject) -> bool {
         match *self {
             Condition::Pref(name) => PREFS.get(name).as_boolean().unwrap_or(false),
             Condition::Func(f) => f(cx, obj),

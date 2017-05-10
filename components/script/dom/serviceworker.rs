@@ -16,7 +16,7 @@ use dom::bindings::structuredclone::StructuredCloneData;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use js::jsapi::{HandleValue, JSContext};
+use js::jsapi;
 use script_thread::Runnable;
 use script_traits::{ScriptMsg, DOMMessage};
 use servo_url::ServoUrl;
@@ -83,7 +83,7 @@ impl ServiceWorkerMethods for ServiceWorker {
 
     #[allow(unsafe_code)]
     // https://w3c.github.io/ServiceWorker/#service-worker-postmessage
-    unsafe fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
+    unsafe fn PostMessage(&self, cx: *mut jsapi::JSContext, message: jsapi::JS::HandleValue) -> ErrorResult {
         // Step 1
         if let ServiceWorkerState::Redundant = self.state.get() {
             return Err(Error::InvalidState);

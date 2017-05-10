@@ -15,8 +15,9 @@ use dom::xmlhttprequest::XHRTimeoutCallback;
 use euclid::Length;
 use heapsize::HeapSizeOf;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::{HandleValue, Heap};
-use js::jsval::{JSVal, UndefinedValue};
+use js::heap::Heap;
+use js::jsapi;
+use js::jsval::UndefinedValue;
 use script_traits::{MsDuration, precise_time_ms};
 use script_traits::{TimerEvent, TimerEventId, TimerEventRequest};
 use script_traits::{TimerSchedulerMsg, TimerSource};
@@ -283,7 +284,7 @@ impl OneshotTimers {
     pub fn set_timeout_or_interval(&self,
                                global: &GlobalScope,
                                callback: TimerCallback,
-                               arguments: Vec<HandleValue>,
+                               arguments: Vec<jsapi::JS::HandleValue>,
                                timeout: i32,
                                is_interval: IsInterval,
                                source: TimerSource)
@@ -350,7 +351,7 @@ pub enum TimerCallback {
 #[derive(JSTraceable, Clone)]
 enum InternalTimerCallback {
     StringTimerCallback(DOMString),
-    FunctionTimerCallback(Rc<Function>, Rc<Vec<Heap<JSVal>>>),
+    FunctionTimerCallback(Rc<Function>, Rc<Vec<Heap<jsapi::JS::Value>>>),
 }
 
 impl HeapSizeOf for InternalTimerCallback {
@@ -374,7 +375,7 @@ impl JsTimers {
     pub fn set_timeout_or_interval(&self,
                                global: &GlobalScope,
                                callback: TimerCallback,
-                               arguments: Vec<HandleValue>,
+                               arguments: Vec<jsapi::JS::HandleValue>,
                                timeout: i32,
                                is_interval: IsInterval,
                                source: TimerSource)

@@ -16,7 +16,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::trace::JSTraceable;
 use heapsize::HeapSizeOf;
-use js::jsapi::{JSTracer, JS_GetReservedSlot, JS_SetReservedSlot};
+use js::jsapi;
 use js::jsval::PrivateValue;
 use libc::c_void;
 use std::cell::{Cell, UnsafeCell};
@@ -51,7 +51,7 @@ pub trait WeakReferenceable: DomObject + Sized {
     fn downgrade(&self) -> WeakRef<Self> {
         unsafe {
             let object = self.reflector().get_jsobject().get();
-            let mut ptr = JS_GetReservedSlot(object,
+            let mut ptr = jsapi::JS_GetReservedSlot(object,
                                              DOM_WEAK_SLOT)
                               .to_private() as *mut WeakBox<Self>;
             if ptr.is_null() {
@@ -60,7 +60,8 @@ pub trait WeakReferenceable: DomObject + Sized {
                     count: Cell::new(1),
                     value: Cell::new(Some(NonZero::new(self))),
                 });
-                JS_SetReservedSlot(object, DOM_WEAK_SLOT, PrivateValue(ptr as *const c_void));
+                let ptr = PrivateValue(ptr as *const c_void);
+                jsapi::JS_SetReservedSlot(object, DOM_WEAK_SLOT, &ptr as *const _);
             }
             let box_ = &*ptr;
             assert!(box_.value.get().is_some());
@@ -134,7 +135,7 @@ impl<T: WeakReferenceable> PartialEq<T> for WeakRef<T> {
 }
 
 unsafe impl<T: WeakReferenceable> JSTraceable for WeakRef<T> {
-    unsafe fn trace(&self, _: *mut JSTracer) {
+    unsafe fn trace(&self, _: *mut jsapi::JSTracer) {
         // Do nothing.
     }
 }
@@ -193,7 +194,7 @@ impl<T: WeakReferenceable> HeapSizeOf for MutableWeakRef<T> {
 }
 
 unsafe impl<T: WeakReferenceable> JSTraceable for MutableWeakRef<T> {
-    unsafe fn trace(&self, _: *mut JSTracer) {
+    unsafe fn trace(&self, _: *mut jsapi::JSTracer) {
         let ptr = self.cell.get();
         let should_drop = match *ptr {
             Some(ref value) => !value.is_alive(),

@@ -22,12 +22,10 @@ use dom::workerglobalscope::WorkerGlobalScope;
 use dom::workletglobalscope::WorkletGlobalScope;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
-use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
+use js;
 use js::glue::{IsWrapper, UnwrapObject};
-use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
-use js::jsapi::{HandleValue, Evaluate2, JSAutoCompartment, JSContext};
-use js::jsapi::{JSObject, JS_GetContext};
-use js::jsapi::{JS_GetObjectRuntime, MutableHandleValue};
+use js::jsapi;
+use js::jsapi::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use js::panic::maybe_resume_unwind;
 use js::rust::{CompileOptionsWrapper, Runtime, get_object_class};
 use libc;
@@ -138,23 +136,23 @@ impl GlobalScope {
 
     /// Returns the global scope of the realm that the given JS object was created in.
     #[allow(unsafe_code)]
-    pub unsafe fn from_object(obj: *mut JSObject) -> Root<Self> {
+    pub unsafe fn from_object(obj: *mut jsapi::JSObject) -> Root<Self> {
         assert!(!obj.is_null());
-        let global = GetGlobalForObjectCrossCompartment(obj);
+        let global = jsapi::js::GetGlobalForObjectCrossCompartment(obj);
         global_scope_from_global(global)
     }
 
-    /// Returns the global scope for the given JSContext
+    /// Returns the global scope for the given jsapi::JSContext
     #[allow(unsafe_code)]
-    pub unsafe fn from_context(cx: *mut JSContext) -> Root<Self> {
-        let global = CurrentGlobalOrNull(cx);
+    pub unsafe fn from_context(cx: *mut jsapi::JSContext) -> Root<Self> {
+        let global = jsapi::JS::CurrentGlobalOrNull(cx);
         global_scope_from_global(global)
     }
 
     /// Returns the global object of the realm that the given JS object
     /// was created in, after unwrapping any wrappers.
     #[allow(unsafe_code)]
-    pub unsafe fn from_object_maybe_wrapped(mut obj: *mut JSObject) -> Root<Self> {
+    pub unsafe fn from_object_maybe_wrapped(mut obj: *mut jsapi::JSObject) -> Root<Self> {
         if IsWrapper(obj) {
             obj = UnwrapObject(obj, /* stopAtWindowProxy = */ 0);
             assert!(!obj.is_null());
@@ -162,16 +160,8 @@ impl GlobalScope {
         GlobalScope::from_object(obj)
     }
 
-    #[allow(unsafe_code)]
-    pub fn get_cx(&self) -> *mut JSContext {
-        unsafe {
-            let runtime = JS_GetObjectRuntime(
-                self.reflector().get_jsobject().get());
-            assert!(!runtime.is_null());
-            let context = JS_GetContext(runtime);
-            assert!(!context.is_null());
-            context
-        }
+    pub fn get_cx(&self) -> *mut jsapi::JSContext {
+        js::rust::Runtime::get()
     }
 
     pub fn crypto(&self) -> Root<Crypto> {
@@ -288,7 +278,7 @@ impl GlobalScope {
     }
 
     /// https://html.spec.whatwg.org/multipage/#report-the-error
-    pub fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue) {
+    pub fn report_an_error(&self, error_info: ErrorInfo, value: jsapi::JS::HandleValue) {
         // Step 1.
         if self.in_error_reporting_mode.get() {
             return;
@@ -357,15 +347,21 @@ impl GlobalScope {
     }
 
     /// Evaluate JS code on this global scope.
-    pub fn evaluate_js_on_global_with_result(
-            &self, code: &str, rval: MutableHandleValue) -> bool {
+    pub fn evaluate_js_on_global_with_result(&self,
+                                             code: &str,
+                                             rval: jsapi::JS::MutableHandleValue)
+                                             -> bool {
         self.evaluate_script_on_global_with_result(code, "", rval, 1)
     }
 
     /// Evaluate a JS script on this global scope.
     #[allow(unsafe_code)]
-    pub fn evaluate_script_on_global_with_result(
-            &self, code: &str, filename: &str, rval: MutableHandleValue, line_number: u32) -> bool {
+    pub fn evaluate_script_on_global_with_result(&self,
+                                                 code: &str,
+                                                 filename: &str,
+                                                 rval: jsapi::JS::MutableHandleValue,
+                                                 line_number: u32)
+                                                 -> bool {
         let metadata = time::TimerMetadata {
             url: if filename.is_empty() {
                 self.get_url().as_str().into()
@@ -385,20 +381,22 @@ impl GlobalScope {
                 let code: Vec<u16> = code.encode_utf16().collect();
                 let filename = CString::new(filename).unwrap();
 
-                let _ac = JSAutoCompartment::new(cx, globalhandle.get());
+                let _ac = unsafe {
+                    js::ac::AutoCompartment::with_obj(cx, globalhandle.get())
+                };
                 let _aes = AutoEntryScript::new(self);
                 let options = CompileOptionsWrapper::new(cx, filename.as_ptr(), line_number);
-
-                debug!("evaluating JS string");
                 let result = unsafe {
-                    Evaluate2(cx, options.ptr, code.as_ptr(),
-                              code.len() as libc::size_t,
-                              rval)
+                    jsapi::JS::Evaluate2(cx, options.ptr, code.as_ptr(),
+                                         code.len() as libc::size_t,
+                                         rval)
                 };
 
                 if !result {
                     debug!("error evaluating JS string");
-                    unsafe { report_pending_exception(cx, true) };
+                    unsafe {
+                        report_pending_exception(cx, true);
+                    }
                 }
 
                 maybe_resume_unwind();
@@ -420,7 +418,7 @@ impl GlobalScope {
     pub fn set_timeout_or_interval(
             &self,
             callback: TimerCallback,
-            arguments: Vec<HandleValue>,
+            arguments: Vec<jsapi::JS::HandleValue>,
             timeout: i32,
             is_interval: IsInterval)
             -> i32 {
@@ -547,7 +545,7 @@ impl GlobalScope {
         unsafe {
             let cx = Runtime::get();
             assert!(!cx.is_null());
-            let global = CurrentGlobalOrNull(cx);
+            let global = jsapi::JS::CurrentGlobalOrNull(cx);
             global_scope_from_global(global)
         }
     }
@@ -573,7 +571,7 @@ fn timestamp_in_ms(time: Timespec) -> u64 {
 
 /// Returns the Rust global scope from a JS global object.
 #[allow(unsafe_code)]
-unsafe fn global_scope_from_global(global: *mut JSObject) -> Root<GlobalScope> {
+unsafe fn global_scope_from_global(global: *mut jsapi::JSObject) -> Root<GlobalScope> {
     assert!(!global.is_null());
     let clasp = get_object_class(global);
     assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);

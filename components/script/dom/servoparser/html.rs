@@ -24,7 +24,7 @@ use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::tokenizer::{Tokenizer as HtmlTokenizer, TokenizerOpts, TokenizerResult};
 use html5ever::tree_builder::{Tracer as HtmlTracer, TreeBuilder, TreeBuilderOpts};
-use js::jsapi::JSTracer;
+use js::jsapi;
 use servo_url::ServoUrl;
 use std::io;
 
@@ -97,8 +97,8 @@ impl Tokenizer {
 
 #[allow(unsafe_code)]
 unsafe impl JSTraceable for HtmlTokenizer<TreeBuilder<JS<Node>, Sink>> {
-    unsafe fn trace(&self, trc: *mut JSTracer) {
-        struct Tracer(*mut JSTracer);
+    unsafe fn trace(&self, trc: *mut jsapi::JSTracer) {
+        struct Tracer(*mut jsapi::JSTracer);
         let tracer = Tracer(trc);
 
         impl HtmlTracer for Tracer {

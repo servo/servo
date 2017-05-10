@@ -23,8 +23,8 @@ use dom::workerglobalscope::WorkerGlobalScope;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use js::jsapi::{HandleValue, JS_SetInterruptCallback};
-use js::jsapi::{JSAutoCompartment, JSContext};
+use js;
+use js::jsapi;
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::TopLevelBrowsingContextId;
@@ -223,7 +223,7 @@ impl DedicatedWorkerGlobalScope {
 
             unsafe {
                 // Handle interrupt requests
-                JS_SetInterruptCallback(scope.runtime(), Some(interrupt_callback));
+                jsapi::JS_AddInterruptCallback(js::rust::Runtime::get(), Some(interrupt_callback));
             }
 
             if scope.is_closing() {
@@ -303,13 +303,16 @@ impl DedicatedWorkerGlobalScope {
         }
     }
 
+    #[allow(unsafe_code)]
     fn handle_script_event(&self, msg: WorkerScriptMsg) {
         match msg {
             WorkerScriptMsg::DOMMessage(data) => {
                 let scope = self.upcast::<WorkerGlobalScope>();
                 let target = self.upcast();
-                let _ac = JSAutoCompartment::new(scope.get_cx(),
-                                                 scope.reflector().get_jsobject().get());
+                let _ac = unsafe {
+                    js::ac::AutoCompartment::with_obj(scope.get_cx(),
+                                                      scope.reflector().get_jsobject().get())
+                };
                 rooted!(in(scope.get_cx()) let mut message = UndefinedValue());
                 data.read(scope.upcast(), message.handle_mut());
                 MessageEvent::dispatch_jsval(target, scope.upcast(), message.handle());
@@ -370,7 +373,7 @@ impl DedicatedWorkerGlobalScope {
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> bool {
+unsafe extern "C" fn interrupt_callback(cx: *mut jsapi::JSContext) -> bool {
     let worker =
         Root::downcast::<WorkerGlobalScope>(GlobalScope::from_context(cx))
             .expect("global is not a worker scope");
@@ -383,7 +386,7 @@ unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> bool {
 impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
-    unsafe fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
+    unsafe fn PostMessage(&self, cx: *mut jsapi::JSContext, message: jsapi::JS::HandleValue) -> ErrorResult {
         let data = StructuredCloneData::write(cx, message)?;
         let worker = self.worker.borrow().as_ref().unwrap().clone();
         self.parent_sender

@@ -10,12 +10,10 @@ use dom::bindings::reflector::DomObject;
 use dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
 use dom::bindings::utils::AsCCharPtrPtr;
 use dom::globalscope::GlobalScope;
-use js::jsapi::{Heap, MutableHandleObject};
-use js::jsapi::{IsCallable, JSContext, JSObject, JS_WrapObject, AddRawValueRoot};
-use js::jsapi::{JSCompartment, JS_EnterCompartment, JS_LeaveCompartment, RemoveRawValueRoot};
-use js::jsapi::JSAutoCompartment;
-use js::jsapi::JS_GetProperty;
-use js::jsval::{JSVal, UndefinedValue, ObjectValue};
+use js::ac::AutoCompartment;
+use js::heap::Heap;
+use js::jsapi;
+use js::jsval::{UndefinedValue, ObjectValue};
 use js::rust::Runtime;
 use std::default::Default;
 use std::ffi::CString;
@@ -38,9 +36,9 @@ pub enum ExceptionHandling {
 #[derive(JSTraceable)]
 #[must_root]
 pub struct CallbackObject {
-    /// The underlying `JSObject`.
-    callback: Heap<*mut JSObject>,
-    permanent_js_root: Heap<JSVal>,
+    /// The underlying `jsapi::JSObject`.
+    callback: Heap<*mut jsapi::JSObject>,
+    permanent_js_root: Heap<jsapi::JS::Value>,
 
     /// The ["callback context"], that is, the global to use as incumbent
     /// global when calling the callback.
@@ -73,16 +71,16 @@ impl CallbackObject {
         }
     }
 
-    pub fn get(&self) -> *mut JSObject {
+    pub fn get(&self) -> *mut jsapi::JSObject {
         self.callback.get()
     }
 
     #[allow(unsafe_code)]
-    unsafe fn init(&mut self, cx: *mut JSContext, callback: *mut JSObject) {
+    unsafe fn init(&mut self, cx: *mut jsapi::JSContext, callback: *mut jsapi::JSObject) {
         self.callback.set(callback);
         self.permanent_js_root.set(ObjectValue(callback));
-        assert!(AddRawValueRoot(cx, self.permanent_js_root.get_unsafe(),
-                                b"CallbackObject::root\n".as_c_char_ptr()));
+        assert!(jsapi::js::AddRawValueRoot(cx, self.permanent_js_root.get_unsafe(),
+                                    b"CallbackObject::root\n".as_c_char_ptr()));
     }
 }
 
@@ -91,7 +89,7 @@ impl Drop for CallbackObject {
     fn drop(&mut self) {
         unsafe {
             let cx = Runtime::get();
-            RemoveRawValueRoot(cx, self.permanent_js_root.get_unsafe());
+            jsapi::js::RemoveRawValueRoot(cx, self.permanent_js_root.get_unsafe());
         }
     }
 
@@ -107,12 +105,12 @@ impl PartialEq for CallbackObject {
 /// A trait to be implemented by concrete IDL callback function and
 /// callback interface types.
 pub trait CallbackContainer {
-    /// Create a new CallbackContainer object for the given `JSObject`.
-    unsafe fn new(cx: *mut JSContext, callback: *mut JSObject) -> Rc<Self>;
+    /// Create a new CallbackContainer object for the given `jsapi::JSObject`.
+    unsafe fn new(cx: *mut jsapi::JSContext, callback: *mut jsapi::JSObject) -> Rc<Self>;
     /// Returns the underlying `CallbackObject`.
     fn callback_holder(&self) -> &CallbackObject;
-    /// Returns the underlying `JSObject`.
-    fn callback(&self) -> *mut JSObject {
+    /// Returns the underlying `jsapi::JSObject`.
+    fn callback(&self) -> *mut jsapi::JSObject {
         self.callback_holder().get()
     }
     /// Returns the ["callback context"], that is, the global to use as
@@ -148,7 +146,7 @@ impl CallbackFunction {
 
     /// Initialize the callback function with a value.
     /// Should be called once this object is done moving.
-    pub unsafe fn init(&mut self, cx: *mut JSContext, callback: *mut JSObject) {
+    pub unsafe fn init(&mut self, cx: *mut jsapi::JSContext, callback: *mut jsapi::JSObject) {
         self.object.init(cx, callback);
     }
 }
@@ -164,7 +162,7 @@ pub struct CallbackInterface {
 }
 
 impl CallbackInterface {
-    /// Create a new CallbackInterface object for the given `JSObject`.
+    /// Create a new CallbackInterface object for the given `jsapi::JSObject`.
     pub fn new() -> CallbackInterface {
         CallbackInterface {
             object: CallbackObject::new(),
@@ -178,22 +176,22 @@ impl CallbackInterface {
 
     /// Initialize the callback function with a value.
     /// Should be called once this object is done moving.
-    pub unsafe fn init(&mut self, cx: *mut JSContext, callback: *mut JSObject) {
+    pub unsafe fn init(&mut self, cx: *mut jsapi::JSContext, callback: *mut jsapi::JSObject) {
         self.object.init(cx, callback);
     }
 
     /// Returns the property with the given `name`, if it is a callable object,
     /// or an error otherwise.
-    pub fn get_callable_property(&self, cx: *mut JSContext, name: &str) -> Fallible<JSVal> {
+    pub fn get_callable_property(&self, cx: *mut jsapi::JSContext, name: &str) -> Fallible<jsapi::JS::Value> {
         rooted!(in(cx) let mut callable = UndefinedValue());
         rooted!(in(cx) let obj = self.callback_holder().get());
         unsafe {
             let c_name = CString::new(name).unwrap();
-            if !JS_GetProperty(cx, obj.handle(), c_name.as_ptr(), callable.handle_mut()) {
+            if !jsapi::JS_GetProperty(cx, obj.handle(), c_name.as_ptr(), callable.handle_mut()) {
                 return Err(Error::JSFailed);
             }
 
-            if !callable.is_object() || !IsCallable(callable.to_object()) {
+            if !callable.is_object() || !jsapi::JS::IsCallable(callable.to_object()) {
                 return Err(Error::Type(format!("The value of the {} property is not callable",
                                                name)));
             }
@@ -204,14 +202,14 @@ impl CallbackInterface {
 
 
 /// Wraps the reflector for `p` into the compartment of `cx`.
-pub fn wrap_call_this_object<T: DomObject>(cx: *mut JSContext,
+pub fn wrap_call_this_object<T: DomObject>(cx: *mut jsapi::JSContext,
                                            p: &T,
-                                           rval: MutableHandleObject) {
+                                           rval: jsapi::JS::MutableHandleObject) {
     rval.set(p.reflector().get_jsobject().get());
     assert!(!rval.get().is_null());
 
     unsafe {
-        if !JS_WrapObject(cx, rval) {
+        if !jsapi::JS_WrapObject(cx, rval) {
             rval.set(ptr::null_mut());
         }
     }
@@ -224,10 +222,10 @@ pub struct CallSetup {
     /// The global for reporting exceptions. This is the global object of the
     /// (possibly wrapped) callback object.
     exception_global: Root<GlobalScope>,
-    /// The `JSContext` used for the call.
-    cx: *mut JSContext,
+    /// The `jsapi::JSContext` used for the call.
+    cx: *mut jsapi::JSContext,
     /// The compartment we were in before the call.
-    old_compartment: *mut JSCompartment,
+    old_compartment: *mut jsapi::JSCompartment,
     /// The exception handling used for the call.
     handling: ExceptionHandling,
     /// https://heycam.github.io/webidl/#es-invoking-callback-functions
@@ -252,15 +250,15 @@ impl CallSetup {
         CallSetup {
             exception_global: global,
             cx: cx,
-            old_compartment: unsafe { JS_EnterCompartment(cx, callback.callback()) },
+            old_compartment: unsafe { jsapi::JS_EnterCompartment(cx, callback.callback()) },
             handling: handling,
             entry_script: Some(aes),
             incumbent_script: ais,
         }
     }
 
-    /// Returns the `JSContext` used for the call.
-    pub fn get_context(&self) -> *mut JSContext {
+    /// Returns the `jsapi::JSContext` used for the call.
+    pub fn get_context(&self) -> *mut jsapi::JSContext {
         self.cx
     }
 }
@@ -268,10 +266,10 @@ impl CallSetup {
 impl Drop for CallSetup {
     fn drop(&mut self) {
         unsafe {
-            JS_LeaveCompartment(self.cx, self.old_compartment);
+            jsapi::JS_LeaveCompartment(self.cx, self.old_compartment);
             if self.handling == ExceptionHandling::Report {
-                let _ac = JSAutoCompartment::new(self.cx,
-                                                 self.exception_global.reflector().get_jsobject().get());
+                let _ac = AutoCompartment::with_obj(self.cx,
+                                               self.exception_global.reflector().get_jsobject().get());
                 report_pending_exception(self.cx, true);
             }
             drop(self.incumbent_script.take());

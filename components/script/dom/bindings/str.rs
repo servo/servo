@@ -150,7 +150,7 @@ pub fn is_token(s: &[u8]) -> bool {
 /// and in Servo.)
 ///
 /// This type is currently `!Send`, in order to help with an independent
-/// experiment to store `JSString`s rather than Rust `String`s.
+/// experiment to store `jsapi::JSString`s rather than Rust `String`s.
 #[derive(Clone, Debug, Eq, Hash, HeapSizeOf, Ord, PartialEq, PartialOrd)]
 pub struct DOMString(String);
 

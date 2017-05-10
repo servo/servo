@@ -16,14 +16,14 @@ use dom::extendableevent::ExtendableEvent;
 use dom::globalscope::GlobalScope;
 use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use dom_struct::dom_struct;
-use js::jsapi::{HandleValue, Heap, JSContext};
-use js::jsval::JSVal;
+use js;
+use js::jsapi;
 use servo_atoms::Atom;
 
 #[dom_struct]
 pub struct ExtendableMessageEvent {
     event: ExtendableEvent,
-    data: Heap<JSVal>,
+    data: js::heap::Heap<jsapi::JS::Value>,
     origin: DOMString,
     lastEventId: DOMString,
 }
@@ -31,11 +31,11 @@ pub struct ExtendableMessageEvent {
 impl ExtendableMessageEvent {
     pub fn new(global: &GlobalScope, type_: Atom,
                bubbles: bool, cancelable: bool,
-               data: HandleValue, origin: DOMString, lastEventId: DOMString)
+               data: jsapi::JS::HandleValue, origin: DOMString, lastEventId: DOMString)
                -> Root<ExtendableMessageEvent> {
         let ev = box ExtendableMessageEvent {
             event: ExtendableEvent::new_inherited(),
-            data: Heap::default(),
+            data: js::heap::Heap::default(),
             origin: origin,
             lastEventId: lastEventId,
         };
@@ -68,7 +68,7 @@ impl ExtendableMessageEvent {
 impl ExtendableMessageEvent {
     pub fn dispatch_jsval(target: &EventTarget,
                           scope: &GlobalScope,
-                          message: HandleValue) {
+                          message: jsapi::JS::HandleValue) {
         let Extendablemessageevent = ExtendableMessageEvent::new(
             scope, atom!("message"), false, false, message,
             DOMString::new(), DOMString::new());
@@ -79,7 +79,7 @@ impl ExtendableMessageEvent {
 impl ExtendableMessageEventMethods for ExtendableMessageEvent {
     #[allow(unsafe_code)]
     // https://w3c.github.io/ServiceWorker/#extendablemessage-event-data-attribute
-    unsafe fn Data(&self, _cx: *mut JSContext) -> JSVal {
+    unsafe fn Data(&self, _cx: *mut jsapi::JSContext) -> jsapi::JS::Value {
         self.data.get()
     }
 

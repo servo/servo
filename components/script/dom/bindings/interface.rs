@@ -85,22 +85,11 @@ use dom::htmlelement::HTMLElement;
 use dom::window::Window;
 use html5ever::LocalName;
 use html5ever::interface::QualName;
+use js;
 use js::error::throw_type_error;
-use js::glue::{RUST_SYMBOL_TO_JSID, UncheckedUnwrapObject, UnwrapObject};
-use js::jsapi::{CallArgs, Class, ClassOps, CompartmentOptions, CurrentGlobalOrNull};
-use js::jsapi::{GetGlobalForObjectCrossCompartment, GetWellKnownSymbol, HandleObject, HandleValue};
-use js::jsapi::{JSAutoCompartment, JSClass, JSContext, JSFUN_CONSTRUCTOR, JSFunctionSpec, JSObject};
-use js::jsapi::{JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_RESOLVING};
-use js::jsapi::{JSPropertySpec, JSString, JSTracer, JSVersion, JS_AtomizeAndPinString};
-use js::jsapi::{JS_DefineProperty, JS_DefineProperty1, JS_DefineProperty2};
-use js::jsapi::{JS_DefineProperty4, JS_DefinePropertyById3, JS_FireOnNewGlobalObject};
-use js::jsapi::{JS_GetFunctionObject, JS_GetPrototype};
-use js::jsapi::{JS_LinkConstructorAndPrototype, JS_NewFunction, JS_NewGlobalObject};
-use js::jsapi::{JS_NewObject, JS_NewObjectWithUniqueType, JS_NewPlainObject};
-use js::jsapi::{JS_NewStringCopyN, JS_SetReservedSlot, MutableHandleObject};
-use js::jsapi::{MutableHandleValue, ObjectOps, OnNewGlobalHookOption, SymbolCode};
-use js::jsapi::{TrueHandleValue, Value};
-use js::jsval::{JSVal, PrivateValue};
+use js::glue::{RUST_SYMBOL_TO_JSID, UncheckedUnwrapObject};
+use js::jsapi;
+use js::jsval::PrivateValue;
 use js::rust::{define_methods, define_properties, get_object_class};
 use libc;
 use std::ptr;
@@ -109,7 +98,7 @@ use std::ptr;
 #[derive(Copy, Clone)]
 pub struct NonCallbackInterfaceObjectClass {
     /// The SpiderMonkey Class structure.
-    pub class: Class,
+    pub class: jsapi::js::Class,
     /// The prototype id of that interface, used in the hasInstance hook.
     pub proto_id: PrototypeList::ID,
     /// The prototype depth of that interface, used in the hasInstance hook.
@@ -128,7 +117,7 @@ impl NonCallbackInterfaceObjectClass {
                      proto_depth: u16)
                      -> NonCallbackInterfaceObjectClass {
         NonCallbackInterfaceObjectClass {
-            class: Class {
+            class: jsapi::js::Class {
                 name: b"Function\0" as *const _ as *const libc::c_char,
                 flags: 0,
                 cOps: &constructor_behavior.0,
@@ -143,24 +132,24 @@ impl NonCallbackInterfaceObjectClass {
     }
 
     /// cast own reference to `JSClass` reference
-    pub fn as_jsclass(&self) -> &JSClass {
+    pub fn as_jsclass(&self) -> &jsapi::JSClass {
         unsafe {
-            &*(self as *const _ as *const JSClass)
+            &*(self as *const _ as *const jsapi::JSClass)
         }
     }
 }
 
 /// A constructor class hook.
 pub type ConstructorClassHook =
-    unsafe extern "C" fn(cx: *mut JSContext, argc: u32, vp: *mut Value) -> bool;
+    unsafe extern "C" fn(cx: *mut jsapi::JSContext, argc: u32, vp: *mut jsapi::JS::Value) -> bool;
 
 /// The constructor behavior of a non-callback interface object.
-pub struct InterfaceConstructorBehavior(ClassOps);
+pub struct InterfaceConstructorBehavior(jsapi::js::ClassOps);
 
 impl InterfaceConstructorBehavior {
     /// An interface constructor that unconditionally throws a type error.
     pub const fn throw() -> Self {
-        InterfaceConstructorBehavior(ClassOps {
+        InterfaceConstructorBehavior(jsapi::js::ClassOps {
             addProperty: None,
             delProperty: None,
             getProperty: None,
@@ -178,7 +167,7 @@ impl InterfaceConstructorBehavior {
 
     /// An interface constructor that calls a native Rust function.
     pub const fn call(hook: ConstructorClassHook) -> Self {
-        InterfaceConstructorBehavior(ClassOps {
+        InterfaceConstructorBehavior(jsapi::js::ClassOps {
             addProperty: None,
             delProperty: None,
             getProperty: None,
@@ -197,40 +186,43 @@ impl InterfaceConstructorBehavior {
 
 /// A trace hook.
 pub type TraceHook =
-    unsafe extern "C" fn(trc: *mut JSTracer, obj: *mut JSObject);
+    unsafe extern "C" fn(trc: *mut jsapi::JSTracer, obj: *mut jsapi::JSObject);
 
 /// Create a global object with the given class.
 pub unsafe fn create_global_object(
-        cx: *mut JSContext,
-        class: &'static JSClass,
+        cx: *mut jsapi::JSContext,
+        class: &'static jsapi::JSClass,
         private: *const libc::c_void,
         trace: TraceHook,
-        rval: MutableHandleObject) {
+        rval: jsapi::JS::MutableHandleObject) {
     assert!(rval.is_null());
 
-    let mut options = CompartmentOptions::default();
-    options.behaviors_.version_ = JSVersion::JSVERSION_ECMA_5;
+    let mut options = jsapi::JS::CompartmentOptions::default();
+    options.behaviors_.version_ = jsapi::JSVersion::JSVERSION_ECMA_5;
     options.creationOptions_.traceGlobal_ = Some(trace);
     options.creationOptions_.sharedMemoryAndAtomics_ = true;
 
-    rval.set(JS_NewGlobalObject(cx,
+    rval.set(jsapi::JS_NewGlobalObject(cx,
                                 class,
                                 ptr::null_mut(),
-                                OnNewGlobalHookOption::DontFireOnNewGlobalHook,
+                                jsapi::JS::OnNewGlobalHookOption::DontFireOnNewGlobalHook,
                                 &options));
     assert!(!rval.is_null());
 
     // Initialize the reserved slots before doing anything that can GC, to
     // avoid getting trace hooks called on a partially initialized object.
-    JS_SetReservedSlot(rval.get(), DOM_OBJECT_SLOT, PrivateValue(private));
+    let private = PrivateValue(private);
+    jsapi::JS_SetReservedSlot(rval.get(), DOM_OBJECT_SLOT, &private as *const _);
     let proto_array: Box<ProtoOrIfaceArray> =
-        box [0 as *mut JSObject; PrototypeList::PROTO_OR_IFACE_LENGTH];
-    JS_SetReservedSlot(rval.get(),
-                       DOM_PROTOTYPE_SLOT,
-                       PrivateValue(Box::into_raw(proto_array) as *const libc::c_void));
+        box [0 as *mut jsapi::JSObject; PrototypeList::PROTO_OR_IFACE_LENGTH];
 
-    let _ac = JSAutoCompartment::new(cx, rval.get());
-    JS_FireOnNewGlobalObject(cx, rval.handle());
+    let proto_array = PrivateValue(Box::into_raw(proto_array) as *const libc::c_void);
+    jsapi::JS_SetReservedSlot(rval.get(),
+                              DOM_PROTOTYPE_SLOT,
+                              &proto_array as *const _);
+
+    let _ac = js::ac::AutoCompartment::with_obj(cx, rval.get());
+    jsapi::JS_FireOnNewGlobalObject(cx, rval.handle());
 }
 
 // https://html.spec.whatwg.org/multipage/#htmlconstructor
@@ -302,13 +294,13 @@ pub unsafe fn html_constructor<T>(window: &Window, call_args: &CallArgs) -> Fall
 
 /// Create and define the interface object of a callback interface.
 pub unsafe fn create_callback_interface_object(
-        cx: *mut JSContext,
-        global: HandleObject,
+        cx: *mut jsapi::JSContext,
+        global: jsapi::JS::HandleObject,
         constants: &[Guard<&[ConstantSpec]>],
         name: &[u8],
-        rval: MutableHandleObject) {
+        rval: jsapi::JS::MutableHandleObject) {
     assert!(!constants.is_empty());
-    rval.set(JS_NewObject(cx, ptr::null()));
+    rval.set(jsapi::JS_NewObject(cx, ptr::null()));
     assert!(!rval.ptr.is_null());
     define_guarded_constants(cx, rval.handle(), constants);
     define_name(cx, rval.handle(), name);
@@ -317,43 +309,43 @@ pub unsafe fn create_callback_interface_object(
 
 /// Create the interface prototype object of a non-callback interface.
 pub unsafe fn create_interface_prototype_object(
-        cx: *mut JSContext,
-        proto: HandleObject,
-        class: &'static JSClass,
-        regular_methods: &[Guard<&'static [JSFunctionSpec]>],
-        regular_properties: &[Guard<&'static [JSPropertySpec]>],
+        cx: *mut jsapi::JSContext,
+        proto: jsapi::JS::HandleObject,
+        class: &'static jsapi::JSClass,
+        regular_methods: &[Guard<&'static [jsapi::JSFunctionSpec]>],
+        regular_properties: &[Guard<&'static [jsapi::JSPropertySpec]>],
         constants: &[Guard<&[ConstantSpec]>],
         unscopable_names: &[&[u8]],
-        rval: MutableHandleObject) {
+        rval: jsapi::JS::MutableHandleObject) {
     create_object(cx, proto, class, regular_methods, regular_properties, constants, rval);
 
     if !unscopable_names.is_empty() {
         rooted!(in(cx) let mut unscopable_obj = ptr::null_mut());
         create_unscopable_object(cx, unscopable_names, unscopable_obj.handle_mut());
 
-        let unscopable_symbol = GetWellKnownSymbol(cx, SymbolCode::unscopables);
+        let unscopable_symbol = jsapi::JS::GetWellKnownSymbol(cx, jsapi::JS::SymbolCode::unscopables);
         assert!(!unscopable_symbol.is_null());
 
         rooted!(in(cx) let unscopable_id = RUST_SYMBOL_TO_JSID(unscopable_symbol));
-        assert!(JS_DefinePropertyById3(
+        assert!(jsapi::JS_DefinePropertyById3(
             cx, rval.handle(), unscopable_id.handle(), unscopable_obj.handle(),
-            JSPROP_READONLY, None, None))
+            jsapi::JSPROP_READONLY as _, None, None))
     }
 }
 
 /// Create and define the interface object of a non-callback interface.
 pub unsafe fn create_noncallback_interface_object(
-        cx: *mut JSContext,
-        global: HandleObject,
-        proto: HandleObject,
+        cx: *mut jsapi::JSContext,
+        global: jsapi::JS::HandleObject,
+        proto: jsapi::JS::HandleObject,
         class: &'static NonCallbackInterfaceObjectClass,
-        static_methods: &[Guard<&'static [JSFunctionSpec]>],
-        static_properties: &[Guard<&'static [JSPropertySpec]>],
+        static_methods: &[Guard<&'static [jsapi::JSFunctionSpec]>],
+        static_properties: &[Guard<&'static [jsapi::JSPropertySpec]>],
         constants: &[Guard<&[ConstantSpec]>],
-        interface_prototype_object: HandleObject,
+        interface_prototype_object: jsapi::JS::HandleObject,
         name: &[u8],
         length: u32,
-        rval: MutableHandleObject) {
+        rval: jsapi::JS::MutableHandleObject) {
     create_object(cx,
                   proto,
                   class.as_jsclass(),
@@ -361,7 +353,7 @@ pub unsafe fn create_noncallback_interface_object(
                   static_properties,
                   constants,
                   rval);
-    assert!(JS_LinkConstructorAndPrototype(cx, rval.handle(), interface_prototype_object));
+    assert!(jsapi::JS_LinkConstructorAndPrototype(cx, rval.handle(), interface_prototype_object));
     define_name(cx, rval.handle(), name);
     define_length(cx, rval.handle(), length);
     define_on_global_object(cx, global, name, rval.handle());
@@ -369,29 +361,29 @@ pub unsafe fn create_noncallback_interface_object(
 
 /// Create and define the named constructors of a non-callback interface.
 pub unsafe fn create_named_constructors(
-        cx: *mut JSContext,
-        global: HandleObject,
+        cx: *mut jsapi::JSContext,
+        global: jsapi::JS::HandleObject,
         named_constructors: &[(ConstructorClassHook, &[u8], u32)],
-        interface_prototype_object: HandleObject) {
+        interface_prototype_object: jsapi::JS::HandleObject) {
     rooted!(in(cx) let mut constructor = ptr::null_mut());
 
     for &(native, name, arity) in named_constructors {
         assert!(*name.last().unwrap() == b'\0');
 
-        let fun = JS_NewFunction(cx,
+        let fun = jsapi::JS_NewFunction(cx,
                                  Some(native),
                                  arity,
-                                 JSFUN_CONSTRUCTOR,
+                                 jsapi::JSFUN_CONSTRUCTOR,
                                  name.as_ptr() as *const libc::c_char);
         assert!(!fun.is_null());
-        constructor.set(JS_GetFunctionObject(fun));
+        constructor.set(jsapi::JS_GetFunctionObject(fun));
         assert!(!constructor.is_null());
 
-        assert!(JS_DefineProperty1(cx,
+        assert!(jsapi::JS_DefineProperty1(cx,
                                    constructor.handle(),
                                    b"prototype\0".as_ptr() as *const libc::c_char,
                                    interface_prototype_object,
-                                   JSPROP_PERMANENT | JSPROP_READONLY,
+                                   (jsapi::JSPROP_PERMANENT | jsapi::JSPROP_READONLY) as _,
                                    None,
                                    None));
 
@@ -401,14 +393,14 @@ pub unsafe fn create_named_constructors(
 
 /// Create a new object with a unique type.
 pub unsafe fn create_object(
-        cx: *mut JSContext,
-        proto: HandleObject,
-        class: &'static JSClass,
-        methods: &[Guard<&'static [JSFunctionSpec]>],
-        properties: &[Guard<&'static [JSPropertySpec]>],
+        cx: *mut jsapi::JSContext,
+        proto: jsapi::JS::HandleObject,
+        class: &'static jsapi::JSClass,
+        methods: &[Guard<&'static [jsapi::JSFunctionSpec]>],
+        properties: &[Guard<&'static [jsapi::JSPropertySpec]>],
         constants: &[Guard<&[ConstantSpec]>],
-        rval: MutableHandleObject) {
-    rval.set(JS_NewObjectWithUniqueType(cx, class, proto));
+        rval: jsapi::JS::MutableHandleObject) {
+    rval.set(jsapi::JS_NewObjectWithUniqueType(cx, class, proto));
     assert!(!rval.ptr.is_null());
     define_guarded_methods(cx, rval.handle(), methods);
     define_guarded_properties(cx, rval.handle(), properties);
@@ -417,8 +409,8 @@ pub unsafe fn create_object(
 
 /// Conditionally define constants on an object.
 pub unsafe fn define_guarded_constants(
-        cx: *mut JSContext,
-        obj: HandleObject,
+        cx: *mut jsapi::JSContext,
+        obj: jsapi::JS::HandleObject,
         constants: &[Guard<&[ConstantSpec]>]) {
     for guard in constants {
         if let Some(specs) = guard.expose(cx, obj) {
@@ -429,9 +421,9 @@ pub unsafe fn define_guarded_constants(
 
 /// Conditionally define methods on an object.
 pub unsafe fn define_guarded_methods(
-        cx: *mut JSContext,
-        obj: HandleObject,
-        methods: &[Guard<&'static [JSFunctionSpec]>]) {
+        cx: *mut jsapi::JSContext,
+        obj: jsapi::JS::HandleObject,
+        methods: &[Guard<&'static [jsapi::JSFunctionSpec]>]) {
     for guard in methods {
         if let Some(specs) = guard.expose(cx, obj) {
             define_methods(cx, obj, specs).unwrap();
@@ -441,9 +433,9 @@ pub unsafe fn define_guarded_methods(
 
 /// Conditionally define properties on an object.
 pub unsafe fn define_guarded_properties(
-        cx: *mut JSContext,
-        obj: HandleObject,
-        properties: &[Guard<&'static [JSPropertySpec]>]) {
+        cx: *mut jsapi::JSContext,
+        obj: jsapi::JS::HandleObject,
+        properties: &[Guard<&'static [jsapi::JSPropertySpec]>]) {
     for guard in properties {
         if let Some(specs) = guard.expose(cx, obj) {
             define_properties(cx, obj, specs).unwrap();
@@ -453,7 +445,7 @@ pub unsafe fn define_guarded_properties(
 
 /// Returns whether an interface with exposure set given by `globals` should
 /// be exposed in the global object `obj`.
-pub unsafe fn is_exposed_in(object: HandleObject, globals: Globals) -> bool {
+pub unsafe fn is_exposed_in(object: jsapi::JS::HandleObject, globals: Globals) -> bool {
     let unwrapped = UncheckedUnwrapObject(object.get(), /* stopAtWindowProxy = */ 0);
     let dom_class = get_dom_class(unwrapped).unwrap();
     globals.contains(dom_class.global)
@@ -462,20 +454,20 @@ pub unsafe fn is_exposed_in(object: HandleObject, globals: Globals) -> bool {
 /// Define a property with a given name on the global object. Should be called
 /// through the resolve hook.
 pub unsafe fn define_on_global_object(
-        cx: *mut JSContext,
-        global: HandleObject,
+        cx: *mut jsapi::JSContext,
+        global: jsapi::JS::HandleObject,
         name: &[u8],
-        obj: HandleObject) {
+        obj: jsapi::JS::HandleObject) {
     assert!(*name.last().unwrap() == b'\0');
-    assert!(JS_DefineProperty1(cx,
+    assert!(jsapi::JS_DefineProperty1(cx,
                                global,
                                name.as_ptr() as *const libc::c_char,
                                obj,
-                               JSPROP_RESOLVING,
+                               jsapi::JSPROP_RESOLVING,
                                None, None));
 }
 
-const OBJECT_OPS: ObjectOps = ObjectOps {
+const OBJECT_OPS: jsapi::js::ObjectOps = jsapi::js::ObjectOps {
     lookupProperty: None,
     defineProperty: None,
     hasProperty: None,
@@ -490,23 +482,23 @@ const OBJECT_OPS: ObjectOps = ObjectOps {
     funToString: Some(fun_to_string_hook),
 };
 
-unsafe extern "C" fn fun_to_string_hook(cx: *mut JSContext,
-                                        obj: HandleObject,
+unsafe extern "C" fn fun_to_string_hook(cx: *mut jsapi::JSContext,
+                                        obj: jsapi::JS::HandleObject,
                                         _indent: u32)
-                                        -> *mut JSString {
+                                        -> *mut jsapi::JSString {
     let js_class = get_object_class(obj.get());
     assert!(!js_class.is_null());
     let repr = (*(js_class as *const NonCallbackInterfaceObjectClass)).representation;
     assert!(!repr.is_empty());
-    let ret = JS_NewStringCopyN(cx, repr.as_ptr() as *const libc::c_char, repr.len());
+    let ret = jsapi::JS_NewStringCopyN(cx, repr.as_ptr() as *const libc::c_char, repr.len());
     assert!(!ret.is_null());
     ret
 }
 
 /// Hook for instanceof on interface objects.
-unsafe extern "C" fn has_instance_hook(cx: *mut JSContext,
-        obj: HandleObject,
-        value: MutableHandleValue,
+unsafe extern "C" fn has_instance_hook(cx: *mut jsapi::JSContext,
+        obj: jsapi::JS::HandleObject,
+        value: jsapi::JS::MutableHandleValue,
         rval: *mut bool) -> bool {
     match has_instance(cx, obj, value.handle()) {
         Ok(result) => {
@@ -520,9 +512,9 @@ unsafe extern "C" fn has_instance_hook(cx: *mut JSContext,
 /// Return whether a value is an instance of a given prototype.
 /// http://heycam.github.io/webidl/#es-interface-hasinstance
 unsafe fn has_instance(
-        cx: *mut JSContext,
-        interface_object: HandleObject,
-        value: HandleValue)
+        cx: *mut jsapi::JSContext,
+        interface_object: jsapi::JS::HandleObject,
+        value: jsapi::JS::HandleValue)
         -> Result<bool, ()> {
     if !value.is_object() {
         // Step 1.
@@ -542,14 +534,14 @@ unsafe fn has_instance(
     }
 
     // Step 2.
-    let global = GetGlobalForObjectCrossCompartment(interface_object.get());
+    let global = jsapi::js::GetGlobalForObjectCrossCompartment(interface_object.get());
     assert!(!global.is_null());
     let proto_or_iface_array = get_proto_or_iface_array(global);
     rooted!(in(cx) let prototype = (*proto_or_iface_array)[object_class.proto_id as usize]);
     assert!(!prototype.is_null());
     // Step 3 only concern legacy callback interface objects (i.e. NodeFilter).
 
-    while JS_GetPrototype(cx, value.handle(), value.handle_mut()) {
+    while jsapi::JS_GetPrototype(cx, value.handle(), value.handle_mut()) {
         if value.is_null() {
             // Step 5.2.
             return Ok(false);
@@ -558,60 +550,60 @@ unsafe fn has_instance(
             return Ok(true);
         }
     }
-    // JS_GetPrototype threw an exception.
+    // jsapi::JS_GetPrototype threw an exception.
     Err(())
 }
 
 unsafe fn create_unscopable_object(
-        cx: *mut JSContext,
+        cx: *mut jsapi::JSContext,
         names: &[&[u8]],
-        rval: MutableHandleObject) {
+        rval: jsapi::JS::MutableHandleObject) {
     assert!(!names.is_empty());
     assert!(rval.is_null());
-    rval.set(JS_NewPlainObject(cx));
+    rval.set(jsapi::JS_NewPlainObject(cx));
     assert!(!rval.ptr.is_null());
     for &name in names {
         assert!(*name.last().unwrap() == b'\0');
-        assert!(JS_DefineProperty(
-            cx, rval.handle(), name.as_ptr() as *const libc::c_char, TrueHandleValue,
-            JSPROP_READONLY, None, None));
+        assert!(jsapi::JS_DefineProperty(
+            cx, rval.handle(), name.as_ptr() as *const libc::c_char, jsapi::JS::TrueHandleValue,
+            jsapi::JSPROP_READONLY as _, None, None));
     }
 }
 
-unsafe fn define_name(cx: *mut JSContext, obj: HandleObject, name: &[u8]) {
+unsafe fn define_name(cx: *mut jsapi::JSContext, obj: jsapi::JS::HandleObject, name: &[u8]) {
     assert!(*name.last().unwrap() == b'\0');
-    rooted!(in(cx) let name = JS_AtomizeAndPinString(cx, name.as_ptr() as *const libc::c_char));
+    rooted!(in(cx) let name = jsapi::JS_AtomizeAndPinString(cx, name.as_ptr() as *const libc::c_char));
     assert!(!name.is_null());
-    assert!(JS_DefineProperty2(cx,
+    assert!(jsapi::JS_DefineProperty2(cx,
                                obj,
                                b"name\0".as_ptr() as *const libc::c_char,
                                name.handle(),
-                               JSPROP_READONLY,
+                               jsapi::JSPROP_READONLY as _,
                                None, None));
 }
 
-unsafe fn define_length(cx: *mut JSContext, obj: HandleObject, length: u32) {
-    assert!(JS_DefineProperty4(cx,
+unsafe fn define_length(cx: *mut jsapi::JSContext, obj: jsapi::JS::HandleObject, length: u32) {
+    assert!(jsapi::JS_DefineProperty4(cx,
                                obj,
                                b"length\0".as_ptr() as *const libc::c_char,
                                length,
-                               JSPROP_READONLY,
+                               jsapi::JSPROP_READONLY as _,
                                None, None));
 }
 
 unsafe extern "C" fn invalid_constructor(
-        cx: *mut JSContext,
+        cx: *mut jsapi::JSContext,
         _argc: libc::c_uint,
-        _vp: *mut JSVal)
+        _vp: *mut jsapi::JS::Value)
         -> bool {
     throw_type_error(cx, "Illegal constructor.");
     false
 }
 
 unsafe extern "C" fn non_new_constructor(
-        cx: *mut JSContext,
+        cx: *mut jsapi::JSContext,
         _argc: libc::c_uint,
-        _vp: *mut JSVal)
+        _vp: *mut jsapi::JS::Value)
         -> bool {
     throw_type_error(cx, "This constructor needs to be called with `new`.");
     false

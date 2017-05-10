@@ -12,14 +12,7 @@ use dom::bindings::str::USVString;
 use dom::domexception::{DOMErrorName, DOMException};
 use dom::globalscope::GlobalScope;
 use js::error::{throw_range_error, throw_type_error};
-use js::jsapi::HandleObject;
-use js::jsapi::JSContext;
-use js::jsapi::JS_ClearPendingException;
-use js::jsapi::JS_ErrorFromException;
-use js::jsapi::JS_GetPendingException;
-use js::jsapi::JS_IsExceptionPending;
-use js::jsapi::JS_SetPendingException;
-use js::jsapi::MutableHandleValue;
+use js::jsapi;
 use js::jsval::UndefinedValue;
 use libc::c_uint;
 use std::slice::from_raw_parts;
@@ -87,7 +80,7 @@ pub type Fallible<T> = Result<T, Error>;
 pub type ErrorResult = Fallible<()>;
 
 /// Set a pending exception for the given `result` on `cx`.
-pub unsafe fn throw_dom_exception(cx: *mut JSContext, global: &GlobalScope, result: Error) {
+pub unsafe fn throw_dom_exception(cx: *mut jsapi::JSContext, global: &GlobalScope, result: Error) {
     let code = match result {
         Error::IndexSize => DOMErrorName::IndexSizeError,
         Error::NotFound => DOMErrorName::NotFoundError,
@@ -111,26 +104,26 @@ pub unsafe fn throw_dom_exception(cx: *mut JSContext, global: &GlobalScope, resu
         Error::TypeMismatch => DOMErrorName::TypeMismatchError,
         Error::InvalidModification => DOMErrorName::InvalidModificationError,
         Error::Type(message) => {
-            assert!(!JS_IsExceptionPending(cx));
+            assert!(!jsapi::JS_IsExceptionPending(cx));
             throw_type_error(cx, &message);
             return;
         },
         Error::Range(message) => {
-            assert!(!JS_IsExceptionPending(cx));
+            assert!(!jsapi::JS_IsExceptionPending(cx));
             throw_range_error(cx, &message);
             return;
         },
         Error::JSFailed => {
-            assert!(JS_IsExceptionPending(cx));
+            assert!(jsapi::JS_IsExceptionPending(cx));
             return;
         }
     };
 
-    assert!(!JS_IsExceptionPending(cx));
+    assert!(!jsapi::JS_IsExceptionPending(cx));
     let exception = DOMException::new(global, code);
     rooted!(in(cx) let mut thrown = UndefinedValue());
     exception.to_jsval(cx, thrown.handle_mut());
-    JS_SetPendingException(cx, thrown.handle());
+    jsapi::JS_SetPendingException(cx, thrown.handle());
 }
 
 /// A struct encapsulating information about a runtime script error.
@@ -146,43 +139,37 @@ pub struct ErrorInfo {
 }
 
 impl ErrorInfo {
-    unsafe fn from_native_error(cx: *mut JSContext, object: HandleObject)
+    unsafe fn from_native_error(cx: *mut jsapi::JSContext, object: jsapi::JS::HandleObject)
                                 -> Option<ErrorInfo> {
-        let report = JS_ErrorFromException(cx, object);
+        let report = jsapi::JS_ErrorFromException(cx, object);
         if report.is_null() {
             return None;
         }
 
-        let filename = {
-            let filename = (*report).filename as *const u8;
-            if !filename.is_null() {
-                let length = (0..).find(|idx| *filename.offset(*idx) == 0).unwrap();
-                let filename = from_raw_parts(filename, length as usize);
-                String::from_utf8_lossy(filename).into_owned()
-            } else {
-                "none".to_string()
-            }
-        };
-
-        let lineno = (*report).lineno;
-        let column = (*report).column;
+        // TODO(fitzgen): Errors now have zero or more "notes", each of which
+        // may have a filename, line, and column. However, these notes are
+        // behind `UniquePtr`s that are too complicated for bindgen to
+        // understand at the moment.
+        let filename = "none".to_string();
+        let lineno = 0;
+        let column = 0;
 
         let message = {
-            let message = (*report).ucmessage;
+            let message = (*report)._base.message_.data_;
             let length = (0..).find(|idx| *message.offset(*idx) == 0).unwrap();
-            let message = from_raw_parts(message, length as usize);
-            String::from_utf16_lossy(message)
+            let message = from_raw_parts(message as _, length as usize);
+            String::from_utf8_lossy(message)
         };
 
         Some(ErrorInfo {
             filename: filename,
-            message: message,
+            message: message.to_string(),
             lineno: lineno,
             column: column,
         })
     }
 
-    fn from_dom_exception(object: HandleObject) -> Option<ErrorInfo> {
+    fn from_dom_exception(object: jsapi::JS::HandleObject) -> Option<ErrorInfo> {
         let exception = match root_from_object::<DOMException>(object.get()) {
             Ok(exception) => exception,
             Err(_) => return None,
@@ -201,17 +188,17 @@ impl ErrorInfo {
 ///
 /// The `dispatch_event` argument is temporary and non-standard; passing false
 /// prevents dispatching the `error` event.
-pub unsafe fn report_pending_exception(cx: *mut JSContext, dispatch_event: bool) {
-    if !JS_IsExceptionPending(cx) { return; }
+pub unsafe fn report_pending_exception(cx: *mut jsapi::JSContext, dispatch_event: bool) {
+    if !jsapi::JS_IsExceptionPending(cx) { return; }
 
     rooted!(in(cx) let mut value = UndefinedValue());
-    if !JS_GetPendingException(cx, value.handle_mut()) {
-        JS_ClearPendingException(cx);
-        error!("Uncaught exception: JS_GetPendingException failed");
+    if !jsapi::JS_GetPendingException(cx, value.handle_mut()) {
+        jsapi::JS_ClearPendingException(cx);
+        error!("Uncaught exception: jsapi::JS_GetPendingException failed");
         return;
     }
 
-    JS_ClearPendingException(cx);
+    jsapi::JS_ClearPendingException(cx);
     let error_info = if value.is_object() {
         rooted!(in(cx) let object = value.to_object());
         ErrorInfo::from_native_error(cx, object.handle())
@@ -252,18 +239,18 @@ pub unsafe fn report_pending_exception(cx: *mut JSContext, dispatch_event: bool)
     }
 }
 
-/// Throw an exception to signal that a `JSVal` can not be converted to any of
+/// Throw an exception to signal that a `jsapi::JS::Value` can not be converted to any of
 /// the types in an IDL union type.
-pub unsafe fn throw_not_in_union(cx: *mut JSContext, names: &'static str) {
-    assert!(!JS_IsExceptionPending(cx));
+pub unsafe fn throw_not_in_union(cx: *mut jsapi::JSContext, names: &'static str) {
+    assert!(!jsapi::JS_IsExceptionPending(cx));
     let error = format!("argument could not be converted to any of: {}", names);
     throw_type_error(cx, &error);
 }
 
-/// Throw an exception to signal that a `JSObject` can not be converted to a
+/// Throw an exception to signal that a `jsapi::JSObject` can not be converted to a
 /// given DOM type.
-pub unsafe fn throw_invalid_this(cx: *mut JSContext, proto_id: u16) {
-    debug_assert!(!JS_IsExceptionPending(cx));
+pub unsafe fn throw_invalid_this(cx: *mut jsapi::JSContext, proto_id: u16) {
+    debug_assert!(!jsapi::JS_IsExceptionPending(cx));
     let error = format!("\"this\" object does not implement interface {}.",
                         proto_id_to_name(proto_id));
     throw_type_error(cx, &error);
@@ -271,11 +258,11 @@ pub unsafe fn throw_invalid_this(cx: *mut JSContext, proto_id: u16) {
 
 impl Error {
     /// Convert this error value to a JS value, consuming it in the process.
-    pub unsafe fn to_jsval(self, cx: *mut JSContext, global: &GlobalScope, rval: MutableHandleValue) {
-        assert!(!JS_IsExceptionPending(cx));
+    pub unsafe fn to_jsval(self, cx: *mut jsapi::JSContext, global: &GlobalScope, rval: jsapi::JS::MutableHandleValue) {
+        assert!(!jsapi::JS_IsExceptionPending(cx));
         throw_dom_exception(cx, global, self);
-        assert!(JS_IsExceptionPending(cx));
-        assert!(JS_GetPendingException(cx, rval));
-        JS_ClearPendingException(cx);
+        assert!(jsapi::JS_IsExceptionPending(cx));
+        assert!(jsapi::JS_GetPendingException(cx, rval));
+        jsapi::JS_ClearPendingException(cx);
     }
 }

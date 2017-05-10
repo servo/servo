@@ -13,7 +13,8 @@ use dom::globalscope::GlobalScope;
 use dom::vrpose::VRPose;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSContext, JSObject};
+use js::heap::Heap;
+use js::jsapi;
 use js::typedarray::{Float32Array, CreateWith};
 use std::cell::Cell;
 use webvr_traits::WebVRFrameData;
@@ -21,10 +22,10 @@ use webvr_traits::WebVRFrameData;
 #[dom_struct]
 pub struct VRFrameData {
     reflector_: Reflector,
-    left_proj: Heap<*mut JSObject>,
-    left_view: Heap<*mut JSObject>,
-    right_proj: Heap<*mut JSObject>,
-    right_view: Heap<*mut JSObject>,
+    left_proj: Heap<*mut jsapi::JSObject>,
+    left_view: Heap<*mut jsapi::JSObject>,
+    right_proj: Heap<*mut jsapi::JSObject>,
+    right_view: Heap<*mut jsapi::JSObject>,
     pose: JS<VRPose>,
     timestamp: Cell<f64>,
     first_timestamp: Cell<f64>
@@ -71,7 +72,7 @@ impl VRFrameData {
 
 
 #[allow(unsafe_code)]
-fn create_typed_array(cx: *mut JSContext, src: &[f32], dst: &Heap<*mut JSObject>) {
+fn create_typed_array(cx: *mut jsapi::JSContext, src: &[f32], dst: &Heap<*mut jsapi::JSObject>) {
     unsafe {
         let _ = Float32Array::create(cx, CreateWith::Slice(src), dst.handle_mut());
     }
@@ -115,25 +116,25 @@ impl VRFrameDataMethods for VRFrameData {
 
     #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrframedata-leftprojectionmatrix
-    unsafe fn LeftProjectionMatrix(&self, _cx: *mut JSContext) -> NonZero<*mut JSObject> {
+    unsafe fn LeftProjectionMatrix(&self, _cx: *mut jsapi::JSContext) -> NonZero<*mut jsapi::JSObject> {
         NonZero::new(self.left_proj.get())
     }
 
     #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrframedata-leftviewmatrix
-    unsafe fn LeftViewMatrix(&self, _cx: *mut JSContext) -> NonZero<*mut JSObject> {
+    unsafe fn LeftViewMatrix(&self, _cx: *mut jsapi::JSContext) -> NonZero<*mut jsapi::JSObject> {
         NonZero::new(self.left_view.get())
     }
 
     #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrframedata-rightprojectionmatrix
-    unsafe fn RightProjectionMatrix(&self, _cx: *mut JSContext) -> NonZero<*mut JSObject> {
+    unsafe fn RightProjectionMatrix(&self, _cx: *mut jsapi::JSContext) -> NonZero<*mut jsapi::JSObject> {
         NonZero::new(self.right_proj.get())
     }
 
     #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vrframedata-rightviewmatrix
-    unsafe fn RightViewMatrix(&self, _cx: *mut JSContext) -> NonZero<*mut JSObject> {
+    unsafe fn RightViewMatrix(&self, _cx: *mut jsapi::JSContext) -> NonZero<*mut jsapi::JSObject> {
         NonZero::new(self.right_view.get())
     }
 

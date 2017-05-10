@@ -7,15 +7,7 @@
 use dom::bindings::conversions::jsid_to_string;
 use dom::bindings::str::DOMString;
 use js::conversions::{FromJSValConvertible, ToJSValConvertible, ConversionResult};
-use js::jsapi::GetPropertyKeys;
-use js::jsapi::HandleValue;
-use js::jsapi::JSContext;
-use js::jsapi::JSITER_OWNONLY;
-use js::jsapi::JSPROP_ENUMERATE;
-use js::jsapi::JS_DefineUCProperty2;
-use js::jsapi::JS_GetPropertyById;
-use js::jsapi::JS_NewPlainObject;
-use js::jsapi::MutableHandleValue;
+use js::jsapi;
 use js::jsval::ObjectValue;
 use js::jsval::UndefinedValue;
 use js::rust::IdVector;
@@ -50,7 +42,7 @@ impl<T, C> FromJSValConvertible for MozMap<T>
           C: Clone,
 {
     type Config = C;
-    unsafe fn from_jsval(cx: *mut JSContext, value: HandleValue, config: C)
+    unsafe fn from_jsval(cx: *mut jsapi::JSContext, value: jsapi::JS::HandleValue, config: C)
                          -> Result<ConversionResult<Self>, ()> {
         if !value.is_object() {
             return Ok(ConversionResult::Failure("MozMap value was not an object".into()));
@@ -58,14 +50,14 @@ impl<T, C> FromJSValConvertible for MozMap<T>
 
         rooted!(in(cx) let object = value.to_object());
         let ids = IdVector::new(cx);
-        assert!(GetPropertyKeys(cx, object.handle(), JSITER_OWNONLY, ids.get()));
+        assert!(jsapi::js::GetPropertyKeys(cx, object.handle(), jsapi::JSITER_OWNONLY, ids.get()));
 
         let mut map = HashMap::new();
         for id in &*ids {
             rooted!(in(cx) let id = *id);
 
             rooted!(in(cx) let mut property = UndefinedValue());
-            if !JS_GetPropertyById(cx, object.handle(), id.handle(), property.handle_mut()) {
+            if !jsapi::JS_GetPropertyById(cx, object.handle(), id.handle(), property.handle_mut()) {
                 return Err(());
             }
 
@@ -86,8 +78,8 @@ impl<T, C> FromJSValConvertible for MozMap<T>
 
 impl<T: ToJSValConvertible> ToJSValConvertible for MozMap<T> {
     #[inline]
-    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
-        rooted!(in(cx) let js_object = JS_NewPlainObject(cx));
+    unsafe fn to_jsval(&self, cx: *mut jsapi::JSContext, rval: jsapi::JS::MutableHandleValue) {
+        rooted!(in(cx) let js_object = jsapi::JS_NewPlainObject(cx));
         assert!(!js_object.handle().is_null());
 
         rooted!(in(cx) let mut js_value = UndefinedValue());
@@ -95,12 +87,12 @@ impl<T: ToJSValConvertible> ToJSValConvertible for MozMap<T> {
             let key = key.encode_utf16().collect::<Vec<_>>();
             value.to_jsval(cx, js_value.handle_mut());
 
-            assert!(JS_DefineUCProperty2(cx,
+            assert!(jsapi::JS_DefineUCProperty2(cx,
                                          js_object.handle(),
                                          key.as_ptr(),
                                          key.len(),
                                          js_value.handle(),
-                                         JSPROP_ENUMERATE,
+                                         jsapi::JSPROP_ENUMERATE as _,
                                          None,
                                          None));
         }

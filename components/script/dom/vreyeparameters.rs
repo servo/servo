@@ -11,7 +11,8 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::globalscope::GlobalScope;
 use dom::vrfieldofview::VRFieldOfView;
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSContext, JSObject};
+use js;
+use js::jsapi;
 use js::typedarray::{Float32Array, CreateWith};
 use std::default::Default;
 use webvr_traits::WebVREyeParameters;
@@ -21,7 +22,7 @@ pub struct VREyeParameters {
     reflector_: Reflector,
     #[ignore_heap_size_of = "Defined in rust-webvr"]
     parameters: DOMRefCell<WebVREyeParameters>,
-    offset: Heap<*mut JSObject>,
+    offset: js::heap::Heap<*mut jsapi::JSObject>,
     fov: JS<VRFieldOfView>,
 }
 
@@ -32,7 +33,7 @@ impl VREyeParameters {
         VREyeParameters {
             reflector_: Reflector::new(),
             parameters: DOMRefCell::new(parameters),
-            offset: Heap::default(),
+            offset: js::heap::Heap::default(),
             fov: JS::from_ref(&*fov)
         }
     }
@@ -57,7 +58,7 @@ impl VREyeParameters {
 impl VREyeParametersMethods for VREyeParameters {
     #[allow(unsafe_code)]
     // https://w3c.github.io/webvr/#dom-vreyeparameters-offset
-    unsafe fn Offset(&self, _cx: *mut JSContext) -> NonZero<*mut JSObject> {
+    unsafe fn Offset(&self, _cx: *mut jsapi::JSContext) -> NonZero<*mut jsapi::JSObject> {
         NonZero::new(self.offset.get())
     }
 
