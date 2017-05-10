@@ -814,6 +814,12 @@ extern "C" {
                                        gradient: *mut nsStyleGradient);
 }
 extern "C" {
+    pub fn Gecko_AddRefImageValueArbitraryThread(aPtr: *mut ImageValue);
+}
+extern "C" {
+    pub fn Gecko_ReleaseImageValueArbitraryThread(aPtr: *mut ImageValue);
+}
+extern "C" {
     pub fn Gecko_SetUrlImageValue(image: *mut nsStyleImage,
                                   uri: ServoBundledURI);
 }
