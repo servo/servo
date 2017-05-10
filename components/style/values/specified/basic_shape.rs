@@ -14,7 +14,6 @@ use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::fmt;
 use style_traits::ToCss;
-use values::HasViewportPercentage;
 use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use values::computed::basic_shape as computed_basic_shape;
 use values::generics::BorderRadiusSize;
