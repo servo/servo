@@ -26,7 +26,7 @@ use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::JSContext;
+use js::jsapi;
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -267,7 +267,7 @@ impl BluetoothDeviceMethods for BluetoothDevice {
 }
 
 impl AsyncBluetoothListener for BluetoothDevice {
-    fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut jsapi::JSContext, promise: &Rc<Promise>) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-unwatchadvertisements
             BluetoothResponse::WatchAdvertisements(_result) => {

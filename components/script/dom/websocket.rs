@@ -24,7 +24,7 @@ use dom::messageevent::MessageEvent;
 use dom::urlhelper::UrlHelper;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use js::jsapi::JSAutoCompartment;
+use js;
 use js::jsval::UndefinedValue;
 use js::typedarray::{ArrayBuffer, CreateWith};
 use net_traits::{WebSocketCommunicate, WebSocketConnectData, WebSocketDomAction, WebSocketNetworkEvent};
@@ -502,10 +502,10 @@ impl Runnable for MessageReceivedTask {
 
         // Step 2-5.
         let global = ws.global();
-        // global.get_cx() returns a valid `JSContext` pointer, so this is safe.
+        // global.get_cx() returns a valid `jsapi::JSContext` pointer, so this is safe.
         unsafe {
             let cx = global.get_cx();
-            let _ac = JSAutoCompartment::new(cx, ws.reflector().get_jsobject().get());
+            let _ac = js::ac::AutoCompartment::with_obj(cx, ws.reflector().get_jsobject().get());
             rooted!(in(cx) let mut message = UndefinedValue());
             match self.message {
                 MessageData::Text(text) => text.to_jsval(cx, message.handle_mut()),

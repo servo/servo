@@ -123,7 +123,7 @@ Now let's look at the `JSTraceable` trait, which we use for tracing:
 
 ```rust
 pub unsafe trait JSTraceable {
-    unsafe fn trace(&self, trc: *mut JSTracer);
+    unsafe fn trace(&self, trc: *mut jsapi::JSTracer);
 }
 ```
 
@@ -171,20 +171,20 @@ is where we actually call the SpiderMonkey trace hooks:
 [js]: http://doc.servo.org/script/dom/bindings/js/struct.JS.html
 
 ```rust
-pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
+pub fn trace_reflector(tracer: *mut jsapi::JSTracer, description: &str, reflector: &Reflector) {
     unsafe {
         let name = CString::new(description).unwrap();
         (*tracer).debugPrinter_ = None;
         (*tracer).debugPrintIndex_ = !0;
         (*tracer).debugPrintArg_ = name.as_ptr() as *const libc::c_void;
         debug!("tracing reflector {}", description);
-        JS_CallUnbarrieredObjectTracer(tracer, reflector.rootable(),
+        jsapi::JS_CallUnbarrieredObjectTracer(tracer, reflector.rootable(),
                                        GCTraceKindToAscii(JSGCTraceKind::JSTRACE_OBJECT));
     }
 }
 
 impl<T: DomObject> JSTraceable for JS<T> {
-    unsafe fn trace(&self, trc: *mut JSTracer) {
+    unsafe fn trace(&self, trc: *mut jsapi::JSTracer) {
         trace_reflector(trc, "", unsafe { (**self.ptr).reflector() });
     }
 }

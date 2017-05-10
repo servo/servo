@@ -28,7 +28,7 @@ use dom::text::Text;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use heapsize::HeapSizeOf;
-use js::jsapi::JSTracer;
+use js::jsapi;
 use std::cell::{Cell, UnsafeCell};
 use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
 
@@ -1256,7 +1256,7 @@ impl HeapSizeOf for WeakRangeVec {
 
 #[allow(unsafe_code)]
 unsafe impl JSTraceable for WeakRangeVec {
-    unsafe fn trace(&self, _: *mut JSTracer) {
+    unsafe fn trace(&self, _: *mut jsapi::JSTracer) {
         (*self.cell.get()).retain_alive()
     }
 }

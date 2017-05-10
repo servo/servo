@@ -5,10 +5,7 @@
 use dom::bindings::js::{JS, Root};
 use dom::bindings::trace::JSTraceable;
 use dom::globalscope::GlobalScope;
-use js::jsapi::GetScriptedCallerGlobal;
-use js::jsapi::HideScriptedCaller;
-use js::jsapi::JSTracer;
-use js::jsapi::UnhideScriptedCaller;
+use js::jsapi;
 use js::rust::Runtime;
 use std::cell::RefCell;
 use std::thread;
@@ -29,7 +26,7 @@ struct StackEntry {
 }
 
 /// Traces the script settings stack.
-pub unsafe fn trace(tracer: *mut JSTracer) {
+pub unsafe fn trace(tracer: *mut jsapi::JSTracer) {
     STACK.with(|stack| {
         stack.borrow().trace(tracer);
     })
@@ -102,7 +99,7 @@ impl AutoIncumbentScript {
         unsafe {
             let cx = Runtime::get();
             assert!(!cx.is_null());
-            HideScriptedCaller(cx);
+            jsapi::JS::HideScriptedCaller(cx);
         }
         STACK.with(|stack| {
             trace!("Prepare to run a callback with {:p}", global);
@@ -137,7 +134,7 @@ impl Drop for AutoIncumbentScript {
             // Step 1-2.
             let cx = Runtime::get();
             assert!(!cx.is_null());
-            UnhideScriptedCaller(cx);
+            jsapi::JS::UnhideScriptedCaller(cx);
         }
     }
 }
@@ -155,7 +152,7 @@ pub fn incumbent_global() -> Option<Root<GlobalScope>> {
     unsafe {
         let cx = Runtime::get();
         assert!(!cx.is_null());
-        let global = GetScriptedCallerGlobal(cx);
+        let global = jsapi::JS::GetScriptedCallerGlobal(cx);
         if !global.is_null() {
             return Some(GlobalScope::from_object(global));
         }

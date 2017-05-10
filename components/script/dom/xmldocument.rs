@@ -15,7 +15,7 @@ use dom::location::Location;
 use dom::node::Node;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use js::jsapi::{JSContext, JSObject};
+use js::jsapi;
 use script_traits::DocumentActivity;
 use servo_url::{MutableOrigin, ServoUrl};
 
@@ -97,7 +97,7 @@ impl XMLDocumentMethods for XMLDocument {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
-    unsafe fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString) -> Option<NonZero<*mut JSObject>> {
+    unsafe fn NamedGetter(&self, _cx: *mut jsapi::JSContext, name: DOMString) -> Option<NonZero<*mut jsapi::JSObject>> {
         self.upcast::<Document>().NamedGetter(_cx, name)
     }
 }

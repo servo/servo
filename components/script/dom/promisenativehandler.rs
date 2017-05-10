@@ -9,10 +9,10 @@ use dom::bindings::trace::JSTraceable;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use heapsize::HeapSizeOf;
-use js::jsapi::{JSContext, HandleValue};
+use js::jsapi;
 
 pub trait Callback: JSTraceable + HeapSizeOf {
-    fn callback(&self, cx: *mut JSContext, v: HandleValue);
+    fn callback(&self, cx: *mut jsapi::JSContext, v: jsapi::JS::HandleValue);
 }
 
 #[dom_struct]
@@ -34,17 +34,17 @@ impl PromiseNativeHandler {
         }, global, PromiseNativeHandlerBinding::Wrap)
     }
 
-    fn callback(callback: &Option<Box<Callback>>, cx: *mut JSContext, v: HandleValue) {
+    fn callback(callback: &Option<Box<Callback>>, cx: *mut jsapi::JSContext, v: jsapi::JS::HandleValue) {
         if let Some(ref callback) = *callback {
             callback.callback(cx, v)
         }
     }
 
-    pub fn resolved_callback(&self, cx: *mut JSContext, v: HandleValue) {
+    pub fn resolved_callback(&self, cx: *mut jsapi::JSContext, v: jsapi::JS::HandleValue) {
         PromiseNativeHandler::callback(&self.resolve, cx, v)
     }
 
-    pub fn rejected_callback(&self, cx: *mut JSContext, v: HandleValue) {
+    pub fn rejected_callback(&self, cx: *mut jsapi::JSContext, v: jsapi::JS::HandleValue) {
         PromiseNativeHandler::callback(&self.reject, cx, v)
     }
 }

@@ -17,7 +17,7 @@
 //!
 //! * the **DOM object**: an instance of the Rust struct `dom::foo::Foo`
 //!   (marked with the `#[dom_struct]` attribute) on the Rust heap;
-//! * the **reflector**: a `JSObject` allocated by SpiderMonkey, that owns the
+//! * the **reflector**: a `jsapi::JSObject` allocated by SpiderMonkey, that owns the
 //!   DOM object.
 //!
 //! Memory management
@@ -130,7 +130,7 @@
 //! =============================
 //!
 //! Every DOM object has a `Reflector` as its first (transitive) member field.
-//! This contains a `*mut JSObject` that points to its reflector.
+//! This contains a `*mut jsapi::JSObject` that points to its reflector.
 //!
 //! The `FooBinding::Wrap` function creates the reflector, stores a pointer to
 //! the DOM object in the reflector, and initializes the pointer to the reflector

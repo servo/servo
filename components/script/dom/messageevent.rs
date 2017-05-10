@@ -15,14 +15,14 @@ use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use js::jsapi::{HandleValue, Heap, JSContext};
-use js::jsval::JSVal;
+use js;
+use js::jsapi;
 use servo_atoms::Atom;
 
 #[dom_struct]
 pub struct MessageEvent {
     event: Event,
-    data: Heap<JSVal>,
+    data: js::heap::Heap<jsapi::JS::Value>,
     origin: DOMString,
     lastEventId: DOMString,
 }
@@ -30,18 +30,18 @@ pub struct MessageEvent {
 impl MessageEvent {
     pub fn new_uninitialized(global: &GlobalScope) -> Root<MessageEvent> {
         MessageEvent::new_initialized(global,
-                                      HandleValue::undefined(),
+                                      jsapi::JS::HandleValue::undefined(),
                                       DOMString::new(),
                                       DOMString::new())
     }
 
     pub fn new_initialized(global: &GlobalScope,
-                           data: HandleValue,
+                           data: jsapi::JS::HandleValue,
                            origin: DOMString,
                            lastEventId: DOMString) -> Root<MessageEvent> {
         let ev = box MessageEvent {
             event: Event::new_inherited(),
-            data: Heap::default(),
+            data: js::heap::Heap::default(),
             origin: origin,
             lastEventId: lastEventId,
         };
@@ -53,7 +53,7 @@ impl MessageEvent {
 
     pub fn new(global: &GlobalScope, type_: Atom,
                bubbles: bool, cancelable: bool,
-               data: HandleValue, origin: DOMString, lastEventId: DOMString)
+               data: jsapi::JS::HandleValue, origin: DOMString, lastEventId: DOMString)
                -> Root<MessageEvent> {
         let ev = MessageEvent::new_initialized(global, data, origin, lastEventId);
         {
@@ -81,7 +81,7 @@ impl MessageEvent {
 impl MessageEvent {
     pub fn dispatch_jsval(target: &EventTarget,
                           scope: &GlobalScope,
-                          message: HandleValue) {
+                          message: jsapi::JS::HandleValue) {
         let messageevent = MessageEvent::new(
             scope,
             atom!("message"),
@@ -97,7 +97,7 @@ impl MessageEvent {
 impl MessageEventMethods for MessageEvent {
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-messageevent-data
-    unsafe fn Data(&self, _cx: *mut JSContext) -> JSVal {
+    unsafe fn Data(&self, _cx: *mut jsapi::JSContext) -> jsapi::JS::Value {
         self.data.get()
     }
 

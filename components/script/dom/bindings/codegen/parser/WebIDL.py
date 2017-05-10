@@ -2886,7 +2886,7 @@ class IDLWrapperType(IDLType):
         # On the other hand, if our type is a dictionary, we should
         # depend on it, because the member types of a dictionary
         # affect whether a method taking the dictionary as an argument
-        # takes a JSContext* argument or not.
+        # takes a jsapi::JSContext* argument or not.
         if self.isDictionary():
             return set([self.inner])
         return set()

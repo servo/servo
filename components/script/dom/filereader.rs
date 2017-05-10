@@ -25,10 +25,10 @@ use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncodingRef};
 use hyper::mime::{Attr, Mime};
-use js::jsapi::Heap;
-use js::jsapi::JSAutoCompartment;
-use js::jsapi::JSContext;
-use js::jsval::{self, JSVal};
+use js;
+use js::heap::Heap;
+use js::jsapi;
+use js::jsval;
 use js::typedarray::{ArrayBuffer, CreateWith};
 use script_thread::RunnableWrapper;
 use servo_atoms::Atom;
@@ -79,7 +79,7 @@ pub enum FileReaderReadyState {
 
 #[derive(HeapSizeOf, JSTraceable)]
 pub enum FileReaderResult {
-    ArrayBuffer(Heap<JSVal>),
+    ArrayBuffer(Heap<jsapi::JS::Value>),
     String(DOMString),
 }
 
@@ -198,7 +198,10 @@ impl FileReader {
             FileReaderFunction::ReadAsText =>
                 FileReader::perform_readastext(&fr.result, data, &blob_contents),
             FileReaderFunction::ReadAsArrayBuffer => {
-                let _ac = JSAutoCompartment::new(fr.global().get_cx(), *fr.reflector().get_jsobject());
+                let _ac = unsafe {
+                    js::ac::AutoCompartment::with_obj(fr.global().get_cx(),
+                                                      *fr.reflector().get_jsobject())
+                };
                 FileReader::perform_readasarraybuffer(&fr.result, fr.global().get_cx(), data, &blob_contents)
             },
         };
@@ -261,7 +264,7 @@ impl FileReader {
     // https://w3c.github.io/FileAPI/#dfn-readAsArrayBuffer
     #[allow(unsafe_code)]
     fn perform_readasarraybuffer(result: &DOMRefCell<Option<FileReaderResult>>,
-        cx: *mut JSContext, _: ReadMetaData, bytes: &[u8]) {
+        cx: *mut jsapi::JSContext, _: ReadMetaData, bytes: &[u8]) {
         unsafe {
             rooted!(in(cx) let mut array_buffer = ptr::null_mut());
             assert!(ArrayBuffer::create(cx, CreateWith::Slice(bytes), array_buffer.handle_mut()).is_ok());
@@ -334,12 +337,12 @@ impl FileReaderMethods for FileReader {
 
     #[allow(unsafe_code)]
     // https://w3c.github.io/FileAPI/#dfn-result
-    unsafe fn GetResult(&self, _: *mut JSContext) -> Option<StringOrObject> {
+    unsafe fn GetResult(&self, _: *mut jsapi::JSContext) -> Option<StringOrObject> {
         self.result.borrow().as_ref().map(|r| match *r {
             FileReaderResult::String(ref string) =>
                 StringOrObject::String(string.clone()),
             FileReaderResult::ArrayBuffer(ref arr_buffer) => {
-                StringOrObject::Object(Heap::new((*arr_buffer.ptr.get()).to_object()))
+                StringOrObject::Object(Heap::new((arr_buffer.get()).to_object()))
             }
         })
     }
