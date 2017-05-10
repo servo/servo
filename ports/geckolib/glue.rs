@@ -1138,11 +1138,12 @@ fn parse_property(property_id: PropertyId,
 
 #[no_mangle]
 pub extern "C" fn Servo_ParseProperty(property: nsCSSPropertyID, value: *const nsACString,
-                                      data: *mut URLExtraData)
+                                      data: *mut URLExtraData,
+                                      length_parsing_mode: structs::LengthParsingMode)
                                       -> RawServoDeclarationBlockStrong {
     let id = get_property_id_from_nscsspropertyid!(property,
                                                    RawServoDeclarationBlockStrong::null());
-    match parse_property(id, value, data, structs::LengthParsingMode::Default) {
+    match parse_property(id, value, data, length_parsing_mode) {
         Ok(parsed) => {
             let global_style_data = &*GLOBAL_STYLE_DATA;
             let mut block = PropertyDeclarationBlock::new();
