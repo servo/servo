@@ -42,7 +42,7 @@ pub use style::dom::OpaqueNode;
 /// items that involve a blur. This ensures that the display item boundaries include all the ink.
 pub static BLUR_INFLATION_FACTOR: i32 = 3;
 
-#[derive(HeapSizeOf, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct DisplayList {
     pub list: Vec<DisplayItem>,
 }
@@ -327,7 +327,7 @@ impl<'a> Iterator for DisplayListTraversal<'a> {
 /// Display list sections that make up a stacking context. Each section  here refers
 /// to the steps in CSS 2.1 Appendix E.
 ///
-#[derive(Clone, Copy, Debug, Deserialize, Eq, HeapSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum DisplayListSection {
     BackgroundAndBorders,
     BlockBackgroundsAndBorders,
@@ -335,7 +335,7 @@ pub enum DisplayListSection {
     Outlines,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, HeapSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum StackingContextType {
     Real,
     PseudoPositioned,
@@ -343,7 +343,7 @@ pub enum StackingContextType {
     PseudoScrollingArea,
 }
 
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 /// Represents one CSS stacking context, which may or may not have a hardware layer.
 pub struct StackingContext {
     /// The ID of this StackingContext for uniquely identifying it.
@@ -493,7 +493,7 @@ impl fmt::Debug for StackingContext {
 }
 
 /// Defines a stacking context.
-#[derive(Clone, Debug, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ScrollRoot {
     /// The WebRender clip id of this scroll root based on the source of this clip
     /// and information about the fragment.
@@ -520,7 +520,7 @@ impl ScrollRoot {
 
 
 /// One drawing command in the list.
-#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum DisplayItem {
     SolidColor(Box<SolidColorDisplayItem>),
     Text(Box<TextDisplayItem>),
@@ -537,7 +537,7 @@ pub enum DisplayItem {
 }
 
 /// Information common to all display items.
-#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct BaseDisplayItem {
     /// The boundaries of the display item, in layer coordinates.
     pub bounds: Rect<Au>,
@@ -603,7 +603,7 @@ impl BaseDisplayItem {
 /// A clipping region for a display item. Currently, this can describe rectangles, rounded
 /// rectangles (for `border-radius`), or arbitrary intersections of the two. Arbitrary transforms
 /// are not supported because those are handled by the higher-level `StackingContext` abstraction.
-#[derive(Clone, PartialEq, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, Deserialize, Serialize)]
 pub struct ClippingRegion {
     /// The main rectangular region. This does not include any corners.
     pub main: Rect<Au>,
@@ -617,7 +617,7 @@ pub struct ClippingRegion {
 /// A complex clipping region. These don't as easily admit arbitrary intersection operations, so
 /// they're stored in a list over to the side. Currently a complex clipping region is just a
 /// rounded rectangle, but the CSS WGs will probably make us throw more stuff in here eventually.
-#[derive(Clone, PartialEq, Debug, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
 pub struct ComplexClippingRegion {
     /// The boundaries of the rectangle.
     pub rect: Rect<Au>,
@@ -787,7 +787,7 @@ impl ComplexClippingRegion {
 /// Metadata attached to each display item. This is useful for performing auxiliary threads with
 /// the display list involving hit testing: finding the originating DOM node and determining the
 /// cursor to use when the element is hovered over.
-#[derive(Clone, Copy, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Copy, Deserialize, Serialize)]
 pub struct DisplayItemMetadata {
     /// The DOM node from which this display item originated.
     pub node: OpaqueNode,
@@ -797,7 +797,7 @@ pub struct DisplayItemMetadata {
 }
 
 /// Paints a solid color.
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct SolidColorDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -807,13 +807,12 @@ pub struct SolidColorDisplayItem {
 }
 
 /// Paints text.
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct TextDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
 
     /// The text run.
-    #[ignore_heap_size_of = "Because it is non-owning"]
     pub text_run: Arc<TextRun>,
 
     /// The range of text within the text run.
@@ -832,7 +831,7 @@ pub struct TextDisplayItem {
     pub blur_radius: Au,
 }
 
-#[derive(Clone, Eq, PartialEq, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub enum TextOrientation {
     Upright,
     SidewaysLeft,
@@ -840,13 +839,12 @@ pub enum TextOrientation {
 }
 
 /// Paints an image.
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct ImageDisplayItem {
     pub base: BaseDisplayItem,
 
     pub webrender_image: WebRenderImageInfo,
 
-    #[ignore_heap_size_of = "Because it is non-owning"]
     pub image_data: Option<Arc<IpcSharedMemory>>,
 
     /// The dimensions to which the image display item should be stretched. If this is smaller than
@@ -863,7 +861,7 @@ pub struct ImageDisplayItem {
     pub image_rendering: image_rendering::T,
 }
 
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct WebGLDisplayItem {
     pub base: BaseDisplayItem,
     pub context_id: WebGLContextId,
@@ -871,14 +869,14 @@ pub struct WebGLDisplayItem {
 
 
 /// Paints an iframe.
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct IframeDisplayItem {
     pub base: BaseDisplayItem,
     pub iframe: PipelineId,
 }
 
 /// Paints a gradient.
-#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct Gradient {
     /// The start point of the gradient (computed during display list construction).
     pub start_point: Point2D<Au>,
@@ -893,7 +891,7 @@ pub struct Gradient {
     pub repeating: bool,
 }
 
-#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct GradientDisplayItem {
     /// Fields common to all display item.
     pub base: BaseDisplayItem,
@@ -903,7 +901,7 @@ pub struct GradientDisplayItem {
 }
 
 /// Paints a radial gradient.
-#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct RadialGradient {
     /// The center point of the gradient.
     pub center: Point2D<Au>,
@@ -918,7 +916,7 @@ pub struct RadialGradient {
     pub repeating: bool,
 }
 
-#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct RadialGradientDisplayItem {
     /// Fields common to all display item.
     pub base: BaseDisplayItem,
@@ -928,7 +926,7 @@ pub struct RadialGradientDisplayItem {
 }
 
 /// A normal border, supporting CSS border styles.
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct NormalBorder {
     /// Border colors.
     pub color: SideOffsets2D<ColorF>,
@@ -943,7 +941,7 @@ pub struct NormalBorder {
 }
 
 /// A border that is made of image segments.
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct ImageBorder {
     /// The image this border uses, border-image-source.
     pub image: WebRenderImageInfo,
@@ -965,7 +963,7 @@ pub struct ImageBorder {
 }
 
 /// A border that is made of linear gradient
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct GradientBorder {
     /// The gradient info that this border uses, border-image-source.
     pub gradient: Gradient,
@@ -975,7 +973,7 @@ pub struct GradientBorder {
 }
 
 /// A border that is made of radial gradient
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct RadialGradientBorder {
     /// The gradient info that this border uses, border-image-source.
     pub gradient: RadialGradient,
@@ -985,7 +983,7 @@ pub struct RadialGradientBorder {
 }
 
 /// Specifies the type of border
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum BorderDetails {
     Normal(NormalBorder),
     Image(ImageBorder),
@@ -994,7 +992,7 @@ pub enum BorderDetails {
 }
 
 /// Paints a border.
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct BorderDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -1009,7 +1007,7 @@ pub struct BorderDisplayItem {
 /// Information about the border radii.
 ///
 /// TODO(pcwalton): Elliptical radii.
-#[derive(Clone, PartialEq, Debug, Copy, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, Debug, Copy, Deserialize, Serialize)]
 pub struct BorderRadii<T> {
     pub top_left: Size2D<T>,
     pub top_right: Size2D<T>,
@@ -1071,7 +1069,7 @@ impl<T> BorderRadii<T> where T: PartialEq + Zero + Clone {
 }
 
 /// Paints a box shadow per CSS-BACKGROUNDS.
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct BoxShadowDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -1101,7 +1099,7 @@ pub struct BoxShadowDisplayItem {
 }
 
 /// Defines a stacking context.
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct PushStackingContextItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -1110,7 +1108,7 @@ pub struct PushStackingContextItem {
 }
 
 /// Defines a stacking context.
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct PopStackingContextItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -1119,7 +1117,7 @@ pub struct PopStackingContextItem {
 }
 
 /// Starts a group of items inside a particular scroll root.
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct DefineClipItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -1129,7 +1127,7 @@ pub struct DefineClipItem {
 }
 
 /// How a box shadow should be clipped.
-#[derive(Clone, Copy, Debug, PartialEq, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
 pub enum BoxShadowClipMode {
     /// No special clipping should occur. This is used for (shadowed) text decorations.
     None,
@@ -1275,7 +1273,7 @@ impl fmt::Debug for DisplayItem {
     }
 }
 
-#[derive(Copy, Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Copy, Clone, Deserialize, Serialize)]
 pub struct WebRenderImageInfo {
     pub width: u32,
     pub height: u32,

@@ -45,7 +45,6 @@ extern crate gfx_traits;
 extern crate harfbuzz_sys as harfbuzz;
 
 extern crate heapsize;
-#[macro_use] extern crate heapsize_derive;
 extern crate ipc_channel;
 #[macro_use]
 extern crate lazy_static;
