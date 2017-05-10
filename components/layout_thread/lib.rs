@@ -1091,7 +1091,7 @@ impl LayoutThread {
             marker: PhantomData,
         };
         let needs_dirtying = self.stylist.update(
-            &data.document_stylesheets,
+            data.document_stylesheets.iter(),
             &guards,
             Some(ua_stylesheets),
             data.stylesheets_changed,
