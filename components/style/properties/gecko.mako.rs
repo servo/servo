@@ -3383,7 +3383,6 @@ fn static_assert() {
     <% text_align_keyword = Keyword("text-align",
                                     "start end left right center justify -moz-center -moz-left -moz-right char",
                                     gecko_strip_moz_prefix=False) %>
-    <% text_align_reachable_keyword = Keyword("text-align", "start end left right center justify char") %>
     ${impl_keyword('text_align', 'mTextAlign', text_align_keyword, need_clone=False)}
     ${impl_keyword_clone('text_align', 'mTextAlign', text_align_keyword)}
 

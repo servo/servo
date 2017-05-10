@@ -259,6 +259,29 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
     }
 
+    /// -moz-center, -moz-left and -moz-right are used for HTML's alignment.
+    ///
+    /// This is covering the <div align="right"><table>...</table></div> case.
+    ///
+    /// In this case, we don't want to inherit the text alignment into the
+    /// table.
+    #[cfg(feature = "gecko")]
+    fn adjust_for_table_text_align(&mut self) {
+        use properties::longhands::text_align::computed_value::T as text_align;
+       if self.style.get_box().clone_display() != display::table {
+           return;
+       }
+
+       match self.style.get_inheritedtext().clone_text_align() {
+           text_align::_moz_left |
+           text_align::_moz_center |
+           text_align::_moz_right => {}
+           _ => return,
+       }
+
+       self.style.mutate_inheritedtext().set_text_align(text_align::start);
+    }
+
     /// Adjusts the style to account for various fixups that don't fit naturally
     /// into the cascade.
     ///
@@ -274,6 +297,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         self.adjust_for_overflow();
         #[cfg(feature = "gecko")]
         {
+            self.adjust_for_table_text_align();
             self.adjust_for_contain();
         }
         #[cfg(feature = "servo")]
