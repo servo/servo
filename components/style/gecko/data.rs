@@ -108,17 +108,25 @@ impl PerDocumentStyleDataImpl {
         let author_style_disabled = self.stylesheets.author_style_disabled();
         let mut stylesheets = Vec::<Arc<Stylesheet>>::new();
         self.stylesheets.flush(&mut stylesheets);
-        stylist.update(stylesheets.as_slice(),
-                       &StylesheetGuards::same(guard),
-                       /* ua_sheets = */ None,
-                       /* stylesheets_changed = */ true,
-                       author_style_disabled,
-                       &mut extra_data);
+        stylist.clear();
+        stylist.rebuild(stylesheets.as_slice(),
+                        &StylesheetGuards::same(guard),
+                        /* ua_sheets = */ None,
+                        /* stylesheets_changed = */ true,
+                        author_style_disabled,
+                        &mut extra_data);
     }
 
     /// Get the default computed values for this document.
     pub fn default_computed_values(&self) -> &Arc<ComputedValues> {
         self.stylist.device.default_computed_values_arc()
+    }
+
+    /// Clear the stylist.  This will be a no-op if the stylist is
+    /// already cleared; the stylist handles that.
+    pub fn clear_stylist(&mut self) {
+        let mut stylist = Arc::get_mut(&mut self.stylist).unwrap();
+        stylist.clear();
     }
 }
 
