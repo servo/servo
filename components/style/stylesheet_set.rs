@@ -11,7 +11,7 @@ use stylesheets::Stylesheet;
 /// Entry for a StylesheetSet. We don't bother creating a constructor, because
 /// there's no sensible defaults for the member variables.
 pub struct StylesheetSetEntry {
-    unique_id: u32,
+    unique_id: u64,
     sheet: Arc<Stylesheet>,
 }
 
@@ -58,13 +58,13 @@ impl StylesheetSet {
         self.author_style_disabled
     }
 
-    fn remove_stylesheet_if_present(&mut self, unique_id: u32) {
+    fn remove_stylesheet_if_present(&mut self, unique_id: u64) {
         self.entries.retain(|x| x.unique_id != unique_id);
     }
 
     /// Appends a new stylesheet to the current set.
     pub fn append_stylesheet(&mut self, sheet: &Arc<Stylesheet>,
-                             unique_id: u32) {
+                             unique_id: u64) {
         self.remove_stylesheet_if_present(unique_id);
         self.entries.push(StylesheetSetEntry {
             unique_id: unique_id,
@@ -75,7 +75,7 @@ impl StylesheetSet {
 
     /// Prepend a new stylesheet to the current set.
     pub fn prepend_stylesheet(&mut self, sheet: &Arc<Stylesheet>,
-                              unique_id: u32) {
+                              unique_id: u64) {
         self.remove_stylesheet_if_present(unique_id);
         self.entries.insert(0, StylesheetSetEntry {
             unique_id: unique_id,
@@ -87,8 +87,8 @@ impl StylesheetSet {
     /// Insert a given stylesheet before another stylesheet in the document.
     pub fn insert_stylesheet_before(&mut self,
                                     sheet: &Arc<Stylesheet>,
-                                    unique_id: u32,
-                                    before_unique_id: u32) {
+                                    unique_id: u64,
+                                    before_unique_id: u64) {
         self.remove_stylesheet_if_present(unique_id);
         let index = self.entries.iter().position(|x| {
             x.unique_id == before_unique_id
@@ -101,7 +101,7 @@ impl StylesheetSet {
     }
 
     /// Remove a given stylesheet from the set.
-    pub fn remove_stylesheet(&mut self, unique_id: u32) {
+    pub fn remove_stylesheet(&mut self, unique_id: u64) {
         self.remove_stylesheet_if_present(unique_id);
         self.dirty = true;
     }
