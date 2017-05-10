@@ -1827,21 +1827,9 @@ pub extern "C" fn Servo_DeclarationBlock_SetTextDecorationColorOverride(declarat
 
 #[no_mangle]
 pub extern "C" fn Servo_CSSSupports2(property: *const nsACString, value: *const nsACString) -> bool {
-    let property = unsafe { property.as_ref().unwrap().as_str_unchecked() };
-    let id =  if let Ok(id) = PropertyId::parse(property.into()) {
-        id
-    } else {
-        return false
-    };
-    let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
+    let id = get_property_id_from_property!(property, false);
 
-    let url_data = unsafe { dummy_url_data() };
-    parse_one_declaration(id,
-                          &value,
-                          url_data,
-                          &RustLogReporter,
-                          LengthParsingMode::Default,
-                          QuirksMode::NoQuirks).is_ok()
+    parse_property(id, value, unsafe { DUMMY_URL_DATA }, structs::LengthParsingMode::Default).is_ok()
 }
 
 #[no_mangle]
