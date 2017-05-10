@@ -441,13 +441,13 @@ ${helpers.single_keyword("text-align-last",
 
     pub mod computed_value {
         use app_units::Au;
-        use properties::animated_properties::{ComputeDistance, Interpolate};
+        use properties::animated_properties::{Animatable, ComputeDistance};
 
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Option<Au>);
 
-        ${helpers.impl_interpolate_for_option_tuple('Au(0)')}
+        ${helpers.impl_animatable_for_option_tuple('Au(0)')}
         ${helpers.impl_compute_distance_for_option_tuple('Au(0)')}
     }
 
@@ -527,13 +527,13 @@ ${helpers.single_keyword("text-align-last",
     }
 
     pub mod computed_value {
-        use properties::animated_properties::{ComputeDistance, Interpolate};
+        use properties::animated_properties::{ComputeDistance, Animatable};
         use values::computed::LengthOrPercentage;
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Option<LengthOrPercentage>);
 
-        ${helpers.impl_interpolate_for_option_tuple('LengthOrPercentage::zero()')}
+        ${helpers.impl_animatable_for_option_tuple('LengthOrPercentage::zero()')}
         ${helpers.impl_compute_distance_for_option_tuple('LengthOrPercentage::zero()')}
     }
 

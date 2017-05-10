@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::{Color, RGBA};
-use style::properties::animated_properties::Interpolate;
+use style::properties::animated_properties::Animatable;
 
 #[test]
 fn test_rgba_color_interepolation_preserves_transparent() {

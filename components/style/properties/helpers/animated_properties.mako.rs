@@ -581,7 +581,7 @@ impl AnimationValue {
     }
 }
 
-impl Interpolate for AnimationValue {
+impl Animatable for AnimationValue {
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         match (self, other) {
             % for prop in data.longhands:
@@ -613,17 +613,17 @@ impl Interpolate for AnimationValue {
 /// A trait used to implement [interpolation][interpolated-types].
 ///
 /// [interpolated-types]: https://drafts.csswg.org/css-transitions/#interpolated-types
-pub trait Interpolate: Sized {
+pub trait Animatable: Sized {
     /// Interpolate a value with another for a given property.
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()>;
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-repeatable-list
-pub trait RepeatableListInterpolate: Interpolate {}
+pub trait RepeatableListAnimatable: Animatable {}
 
-impl RepeatableListInterpolate for Either<f32, LengthOrPercentage> {}
+impl RepeatableListAnimatable for Either<f32, LengthOrPercentage> {}
 
-impl<T: RepeatableListInterpolate> Interpolate for SmallVec<[T; 1]> {
+impl<T: RepeatableListAnimatable> Animatable for SmallVec<[T; 1]> {
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         use num_integer::lcm;
         let len = lcm(self.len(), other.len());
@@ -634,15 +634,15 @@ impl<T: RepeatableListInterpolate> Interpolate for SmallVec<[T; 1]> {
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-number
-impl Interpolate for Au {
+impl Animatable for Au {
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         Ok(Au((self.0 as f64 + (other.0 as f64 - self.0 as f64) * progress).round() as i32))
     }
 }
 
-impl <T> Interpolate for Option<T>
-    where T: Interpolate,
+impl <T> Animatable for Option<T>
+    where T: Animatable,
 {
     #[inline]
     fn interpolate(&self, other: &Option<T>, progress: f64) -> Result<Option<T>, ()> {
@@ -656,7 +656,7 @@ impl <T> Interpolate for Option<T>
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-number
-impl Interpolate for f32 {
+impl Animatable for f32 {
     #[inline]
     fn interpolate(&self, other: &f32, progress: f64) -> Result<Self, ()> {
         Ok(((*self as f64) + ((*other as f64) - (*self as f64)) * progress) as f32)
@@ -664,7 +664,7 @@ impl Interpolate for f32 {
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-number
-impl Interpolate for f64 {
+impl Animatable for f64 {
     #[inline]
     fn interpolate(&self, other: &f64, progress: f64) -> Result<Self, ()> {
         Ok(*self + (*other - *self) * progress)
@@ -672,7 +672,7 @@ impl Interpolate for f64 {
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-integer
-impl Interpolate for i32 {
+impl Animatable for i32 {
     #[inline]
     fn interpolate(&self, other: &i32, progress: f64) -> Result<Self, ()> {
         let a = *self as f64;
@@ -682,7 +682,7 @@ impl Interpolate for i32 {
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-number
-impl Interpolate for Angle {
+impl Animatable for Angle {
     #[inline]
     fn interpolate(&self, other: &Angle, progress: f64) -> Result<Self, ()> {
         self.radians().interpolate(&other.radians(), progress).map(Angle::from_radians)
@@ -690,7 +690,7 @@ impl Interpolate for Angle {
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-visibility
-impl Interpolate for Visibility {
+impl Animatable for Visibility {
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         match (*self, *other) {
@@ -708,7 +708,7 @@ impl Interpolate for Visibility {
     }
 }
 
-impl<T: Interpolate + Copy> Interpolate for Size2D<T> {
+impl<T: Animatable + Copy> Animatable for Size2D<T> {
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         let width = try!(self.width.interpolate(&other.width, progress));
@@ -718,7 +718,7 @@ impl<T: Interpolate + Copy> Interpolate for Size2D<T> {
     }
 }
 
-impl<T: Interpolate + Copy> Interpolate for Point2D<T> {
+impl<T: Animatable + Copy> Animatable for Point2D<T> {
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         let x = try!(self.x.interpolate(&other.x, progress));
@@ -728,7 +728,7 @@ impl<T: Interpolate + Copy> Interpolate for Point2D<T> {
     }
 }
 
-impl Interpolate for BorderRadiusSize {
+impl Animatable for BorderRadiusSize {
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         self.0.interpolate(&other.0, progress).map(generics::BorderRadiusSize)
@@ -736,7 +736,7 @@ impl Interpolate for BorderRadiusSize {
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-length
-impl Interpolate for VerticalAlign {
+impl Animatable for VerticalAlign {
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         match (*self, *other) {
@@ -751,7 +751,7 @@ impl Interpolate for VerticalAlign {
     }
 }
 
-impl Interpolate for BackgroundSizeList {
+impl Animatable for BackgroundSizeList {
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         self.0.interpolate(&other.0, progress).map(BackgroundSizeList)
@@ -759,7 +759,7 @@ impl Interpolate for BackgroundSizeList {
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-color
-impl Interpolate for RGBA {
+impl Animatable for RGBA {
     #[inline]
     fn interpolate(&self, other: &RGBA, progress: f64) -> Result<Self, ()> {
         fn clamp(val: f32) -> f32 {
@@ -786,7 +786,7 @@ impl Interpolate for RGBA {
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-color
-impl Interpolate for CSSParserColor {
+impl Animatable for CSSParserColor {
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         match (*self, *other) {
@@ -799,14 +799,14 @@ impl Interpolate for CSSParserColor {
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
-impl Interpolate for CalcLengthOrPercentage {
+impl Animatable for CalcLengthOrPercentage {
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         fn interpolate_half<T>(this: Option<T>,
                                other: Option<T>,
                                progress: f64)
                                -> Result<Option<T>, ()>
-            where T: Default + Interpolate,
+            where T: Default + Animatable,
         {
             match (this, other) {
                 (None, None) => Ok(None),
@@ -826,7 +826,7 @@ impl Interpolate for CalcLengthOrPercentage {
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
-impl Interpolate for LengthOrPercentage {
+impl Animatable for LengthOrPercentage {
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         match (*self, *other) {
@@ -849,7 +849,7 @@ impl Interpolate for LengthOrPercentage {
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
-impl Interpolate for LengthOrPercentageOrAuto {
+impl Animatable for LengthOrPercentageOrAuto {
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         match (*self, *other) {
@@ -877,7 +877,7 @@ impl Interpolate for LengthOrPercentageOrAuto {
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
-impl Interpolate for LengthOrPercentageOrNone {
+impl Animatable for LengthOrPercentageOrNone {
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         match (*self, *other) {
@@ -898,7 +898,7 @@ impl Interpolate for LengthOrPercentageOrNone {
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
-impl Interpolate for MinLength {
+impl Animatable for MinLength {
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         match (*self, *other) {
@@ -912,7 +912,7 @@ impl Interpolate for MinLength {
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
-impl Interpolate for MaxLength {
+impl Animatable for MaxLength {
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         match (*self, *other) {
@@ -927,7 +927,7 @@ impl Interpolate for MaxLength {
 
 /// https://drafts.csswg.org/css-transitions/#animtype-number
 /// https://drafts.csswg.org/css-transitions/#animtype-length
-impl Interpolate for LineHeight {
+impl Animatable for LineHeight {
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         match (*self, *other) {
@@ -948,7 +948,7 @@ impl Interpolate for LineHeight {
 }
 
 /// http://dev.w3.org/csswg/css-transitions/#animtype-font-weight
-impl Interpolate for FontWeight {
+impl Animatable for FontWeight {
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         let a = (*self as u32) as f64;
@@ -977,7 +977,7 @@ impl Interpolate for FontWeight {
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-simple-list
-impl<H: Interpolate, V: Interpolate> Interpolate for generic_position::Position<H, V> {
+impl<H: Animatable, V: Animatable> Animatable for generic_position::Position<H, V> {
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         Ok(generic_position::Position {
@@ -987,31 +987,31 @@ impl<H: Interpolate, V: Interpolate> Interpolate for generic_position::Position<
     }
 }
 
-impl<H, V> RepeatableListInterpolate for generic_position::Position<H, V>
-    where H: RepeatableListInterpolate, V: RepeatableListInterpolate {}
+impl<H, V> RepeatableListAnimatable for generic_position::Position<H, V>
+    where H: RepeatableListAnimatable, V: RepeatableListAnimatable {}
 
 /// https://drafts.csswg.org/css-transitions/#animtype-simple-list
-impl Interpolate for HorizontalPosition {
+impl Animatable for HorizontalPosition {
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         self.0.interpolate(&other.0, progress).map(generic_position::HorizontalPosition)
     }
 }
 
-impl RepeatableListInterpolate for HorizontalPosition {}
+impl RepeatableListAnimatable for HorizontalPosition {}
 
 /// https://drafts.csswg.org/css-transitions/#animtype-simple-list
-impl Interpolate for VerticalPosition {
+impl Animatable for VerticalPosition {
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         self.0.interpolate(&other.0, progress).map(generic_position::VerticalPosition)
     }
 }
 
-impl RepeatableListInterpolate for VerticalPosition {}
+impl RepeatableListAnimatable for VerticalPosition {}
 
 /// https://drafts.csswg.org/css-transitions/#animtype-rect
-impl Interpolate for ClipRect {
+impl Animatable for ClipRect {
     #[inline]
     fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
         Ok(ClipRect {
@@ -1023,8 +1023,8 @@ impl Interpolate for ClipRect {
     }
 }
 
-<%def name="impl_interpolate_for_shadow(item, transparent_color)">
-    impl Interpolate for ${item} {
+<%def name="impl_animatable_for_shadow(item, transparent_color)">
+    impl Animatable for ${item} {
         #[inline]
         fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
             % if "Box" in item:
@@ -1056,7 +1056,7 @@ impl Interpolate for ClipRect {
     }
 
     /// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
-    impl Interpolate for ${item}List {
+    impl Animatable for ${item}List {
         #[inline]
         fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
             // The inset value must change
@@ -1109,8 +1109,8 @@ impl Interpolate for ClipRect {
     }
 </%def>
 
-${impl_interpolate_for_shadow('BoxShadow', 'CSSParserColor::RGBA(RGBA::transparent())',)}
-${impl_interpolate_for_shadow('TextShadow', 'CSSParserColor::RGBA(RGBA::transparent())',)}
+${impl_animatable_for_shadow('BoxShadow', 'CSSParserColor::RGBA(RGBA::transparent())',)}
+${impl_animatable_for_shadow('TextShadow', 'CSSParserColor::RGBA(RGBA::transparent())',)}
 
 /// Check if it's possible to do a direct numerical interpolation
 /// between these two transform lists.
@@ -1321,7 +1321,7 @@ pub struct MatrixDecomposed2D {
     pub matrix: InnerMatrix2D,
 }
 
-impl Interpolate for InnerMatrix2D {
+impl Animatable for InnerMatrix2D {
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         Ok(InnerMatrix2D {
             m11: try!(self.m11.interpolate(&other.m11, progress)),
@@ -1332,7 +1332,7 @@ impl Interpolate for InnerMatrix2D {
     }
 }
 
-impl Interpolate for Translate2D {
+impl Animatable for Translate2D {
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         Ok(Translate2D(
             try!(self.0.interpolate(&other.0, progress)),
@@ -1341,7 +1341,7 @@ impl Interpolate for Translate2D {
     }
 }
 
-impl Interpolate for Scale2D {
+impl Animatable for Scale2D {
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         Ok(Scale2D(
             try!(self.0.interpolate(&other.0, progress)),
@@ -1350,7 +1350,7 @@ impl Interpolate for Scale2D {
     }
 }
 
-impl Interpolate for MatrixDecomposed2D {
+impl Animatable for MatrixDecomposed2D {
     /// https://drafts.csswg.org/css-transforms/#interpolation-of-decomposed-2d-matrix-values
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         // If x-axis of one is flipped, and y-axis of the other,
@@ -1396,7 +1396,7 @@ impl Interpolate for MatrixDecomposed2D {
     }
 }
 
-impl Interpolate for ComputedMatrix {
+impl Animatable for ComputedMatrix {
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         if self.is_3d() || other.is_3d() {
             let decomposed_from = decompose_3d_matrix(*self);
@@ -1730,7 +1730,7 @@ fn cross(row1: [f32; 3], row2: [f32; 3]) -> [f32; 3] {
     ]
 }
 
-impl Interpolate for Translate3D {
+impl Animatable for Translate3D {
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         Ok(Translate3D(
             try!(self.0.interpolate(&other.0, progress)),
@@ -1740,7 +1740,7 @@ impl Interpolate for Translate3D {
     }
 }
 
-impl Interpolate for Scale3D {
+impl Animatable for Scale3D {
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         Ok(Scale3D(
             try!(self.0.interpolate(&other.0, progress)),
@@ -1750,7 +1750,7 @@ impl Interpolate for Scale3D {
     }
 }
 
-impl Interpolate for Skew {
+impl Animatable for Skew {
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         Ok(Skew(
             try!(self.0.interpolate(&other.0, progress)),
@@ -1760,7 +1760,7 @@ impl Interpolate for Skew {
     }
 }
 
-impl Interpolate for Perspective {
+impl Animatable for Perspective {
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         Ok(Perspective(
             try!(self.0.interpolate(&other.0, progress)),
@@ -1771,7 +1771,7 @@ impl Interpolate for Perspective {
     }
 }
 
-impl Interpolate for MatrixDecomposed3D {
+impl Animatable for MatrixDecomposed3D {
     /// https://drafts.csswg.org/css-transforms/#interpolation-of-decomposed-3d-matrix-values
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         let mut interpolated = *self;
@@ -2009,7 +2009,7 @@ impl ComputedMatrix {
 }
 
 /// https://drafts.csswg.org/css-transforms/#interpolation-of-transforms
-impl Interpolate for TransformList {
+impl Animatable for TransformList {
     #[inline]
     fn interpolate(&self, other: &TransformList, progress: f64) -> Result<Self, ()> {
         // http://dev.w3.org/csswg/css-transforms/#interpolation-of-transforms
@@ -2038,8 +2038,8 @@ impl Interpolate for TransformList {
     }
 }
 
-impl<T, U> Interpolate for Either<T, U>
-        where T: Interpolate + Copy, U: Interpolate + Copy,
+impl<T, U> Animatable for Either<T, U>
+        where T: Animatable + Copy, U: Animatable + Copy,
 {
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
@@ -2105,8 +2105,8 @@ impl IntermediateRGBA {
     }
 }
 
-/// Unlike Interpolate for RGBA we don't clamp any component values.
-impl Interpolate for IntermediateRGBA {
+/// Unlike Animatable for RGBA we don't clamp any component values.
+impl Animatable for IntermediateRGBA {
     #[inline]
     fn interpolate(&self, other: &IntermediateRGBA, progress: f64) -> Result<Self, ()> {
         let alpha = try!(self.alpha.interpolate(&other.alpha, progress));
@@ -2803,7 +2803,7 @@ pub enum IntermediateColor {
     IntermediateRGBA(IntermediateRGBA),
 }
 
-impl Interpolate for IntermediateColor {
+impl Animatable for IntermediateColor {
     #[inline]
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         match (*self, *other) {
@@ -2907,8 +2907,8 @@ impl <'a> From<<&'a IntermediateColor> for CSSParserColor {
             }
         }
     }
-    ${impl_interpolate_for_shadow('Intermediate%sShadow' % type,
-                                  'IntermediateColor::IntermediateRGBA(IntermediateRGBA::transparent())')}
+    ${impl_animatable_for_shadow('Intermediate%sShadow' % type,
+                                 'IntermediateColor::IntermediateRGBA(IntermediateRGBA::transparent())')}
 </%def>
 
 ${impl_intermediate_type_for_shadow('Box')}

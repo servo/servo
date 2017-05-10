@@ -195,7 +195,8 @@ ${helpers.single_keyword("background-origin",
     #[allow(missing_docs)]
     pub mod computed_value {
         use values::computed::LengthOrPercentageOrAuto;
-        use properties::animated_properties::{ComputeDistance, Interpolate, RepeatableListInterpolate};
+        use properties::animated_properties::{Animatable, ComputeDistance,
+                                              RepeatableListAnimatable};
 
         #[derive(PartialEq, Clone, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -212,9 +213,9 @@ ${helpers.single_keyword("background-origin",
             Contain,
         }
 
-        impl RepeatableListInterpolate for T {}
+        impl RepeatableListAnimatable for T {}
 
-        impl Interpolate for T {
+        impl Animatable for T {
             fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
                 use properties::longhands::background_size::single_value::computed_value::ExplicitSize;
                 match (self, other) {

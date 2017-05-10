@@ -2181,7 +2181,7 @@ ${helpers.single_keyword("transform-style",
     use values::specified::{NoCalcLength, LengthOrPercentage, Percentage};
 
     pub mod computed_value {
-        use properties::animated_properties::{ComputeDistance, Interpolate};
+        use properties::animated_properties::{Animatable, ComputeDistance};
         use values::computed::{Length, LengthOrPercentage};
 
         #[derive(Clone, Copy, Debug, PartialEq)]
@@ -2192,7 +2192,7 @@ ${helpers.single_keyword("transform-style",
             pub depth: Length,
         }
 
-        impl Interpolate for T {
+        impl Animatable for T {
             #[inline]
             fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
                 Ok(T {

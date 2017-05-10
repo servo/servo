@@ -30,7 +30,7 @@ ${helpers.single_keyword("caption-side", "top bottom",
 
     pub mod computed_value {
         use app_units::Au;
-        use properties::animated_properties::{ComputeDistance, Interpolate};
+        use properties::animated_properties::{Animatable, ComputeDistance};
 
         #[derive(Clone, Copy, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -40,7 +40,7 @@ ${helpers.single_keyword("caption-side", "top bottom",
         }
 
         /// https://drafts.csswg.org/css-transitions/#animtype-simple-list
-        impl Interpolate for T {
+        impl Animatable for T {
             #[inline]
             fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
                 Ok(T {

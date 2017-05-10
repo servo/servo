@@ -111,8 +111,8 @@
                 pub struct T(pub SmallVec<[single_value::T; 1]>);
 
                 % if delegate_animate:
-                    use properties::animated_properties::Interpolate;
-                    impl Interpolate for T {
+                    use properties::animated_properties::Animatable;
+                    impl Animatable for T {
                         fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
                             self.0.interpolate(&other.0, progress).map(T)
                         }
@@ -974,10 +974,10 @@
     %>
 </%def>
 
-/// Macro for defining Interpolate trait for tuple struct which has Option<T>,
+/// Macro for defining Animatable trait for tuple struct which has Option<T>,
 /// e.g. struct T(pub Option<Au>).
-<%def name="impl_interpolate_for_option_tuple(value_for_none)">
-    impl Interpolate for T {
+<%def name="impl_animatable_for_option_tuple(value_for_none)">
+    impl Animatable for T {
         #[inline]
         fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
             match (self, other) {

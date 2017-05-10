@@ -11,7 +11,7 @@
 use Atom;
 pub use cssparser::{RGBA, Token, Parser, serialize_identifier, serialize_string};
 use parser::{Parse, ParserContext};
-use properties::animated_properties::{ComputeDistance, Interpolate};
+use properties::animated_properties::{Animatable, ComputeDistance};
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::fmt::{self, Debug};
@@ -127,7 +127,7 @@ macro_rules! define_keyword_type {
             }
         }
 
-        impl Interpolate for $name {
+        impl Animatable for $name {
             #[inline]
             fn interpolate(&self, _other: &Self, _progress: f64) -> Result<Self, ()> {
                 Ok($name)
