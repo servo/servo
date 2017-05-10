@@ -1441,18 +1441,14 @@ pub extern "C" fn Servo_MediaList_DeleteMedium(list: RawServoMediaListBorrowed,
 }
 
 macro_rules! get_longhand_from_id {
-    ($id:expr, $retval:expr) => {
+    ($id:expr) => {
         match PropertyId::from_nscsspropertyid($id) {
             Ok(PropertyId::Longhand(long)) => long,
             _ => {
-                error!("stylo: unknown presentation property with id {:?}", $id);
-                return $retval
+                panic!("stylo: unknown presentation property with id {:?}", $id);
             }
         }
     };
-    ($id:expr) => {
-        get_longhand_from_id!($id, ())
-    }
 }
 
 macro_rules! match_wrap_declared {
@@ -1462,8 +1458,7 @@ macro_rules! match_wrap_declared {
                 LonghandId::$property => PropertyDeclaration::$property($inner),
             )*
             _ => {
-                error!("stylo: Don't know how to handle presentation property {:?}", $longhand);
-                return
+                panic!("stylo: Don't know how to handle presentation property {:?}", $longhand);
             }
         }
     )
@@ -1475,7 +1470,7 @@ pub extern "C" fn Servo_DeclarationBlock_PropertyIsSet(declarations:
                                                        property: nsCSSPropertyID)
         -> bool {
     use style::properties::PropertyDeclarationId;
-    let long = get_longhand_from_id!(property, false);
+    let long = get_longhand_from_id!(property);
     read_locked_arc(declarations, |decls: &PropertyDeclarationBlock| {
         decls.get(PropertyDeclarationId::Longhand(long)).is_some()
     })
