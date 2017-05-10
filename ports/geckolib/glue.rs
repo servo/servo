@@ -455,7 +455,7 @@ pub extern "C" fn Servo_AnimationValue_GetTransform(value: RawServoAnimationValu
         let list = unsafe { &mut *list };
         match servo_list.0 {
             Some(ref servo_list) => {
-                style_structs::Box::convert_transform(servo_list.clone(), list);
+                style_structs::Box::convert_transform(servo_list, list);
             },
             None => unsafe {
                 list.set_move(RefPtr::from_addrefed(Gecko_NewNoneTransform()));
