@@ -39,7 +39,7 @@ use style_traits::viewport::ViewportConstraints;
 use time::{precise_time_ns, precise_time_s};
 use touch::{TouchHandler, TouchAction};
 use webrender;
-use webrender_traits::{self, ClipId, LayoutPoint, ScrollEventPhase, ScrollLocation};
+use webrender_traits::{self, ClipId, LayoutPoint, ScrollEventPhase, ScrollLocation, ScrollClamping};
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
 #[derive(Debug, PartialEq)]
@@ -777,7 +777,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn scroll_fragment_to_point(&mut self, id: ClipId, point: Point2D<f32>) {
-        self.webrender_api.scroll_node_with_id(LayoutPoint::from_untyped(&point), id);
+        self.webrender_api.scroll_node_with_id(LayoutPoint::from_untyped(&point), id,
+                                               ScrollClamping::ToContentBounds);
     }
 
     fn handle_window_message(&mut self, event: WindowEvent) {
