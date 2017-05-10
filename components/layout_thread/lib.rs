@@ -133,7 +133,7 @@ pub struct LayoutThread {
     url: ServoUrl,
 
     /// Performs CSS selector matching and style resolution.
-    stylist: ::StyleArc<Stylist>,
+    stylist: Stylist,
 
     /// Is the current reflow of an iframe, as opposed to a root window?
     is_iframe: bool,
@@ -418,7 +418,7 @@ impl LayoutThread {
         let font_cache_receiver =
             ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_font_cache_receiver);
 
-        let stylist = StyleArc::new(Stylist::new(device));
+        let stylist = Stylist::new(device);
         let outstanding_web_fonts_counter = Arc::new(AtomicUsize::new(0));
         let ua_stylesheets = &*UA_STYLESHEETS;
         let guard = ua_stylesheets.shared_lock.read();
@@ -679,11 +679,10 @@ impl LayoutThread {
             size: display_list.map_or(0, |sc| sc.heap_size_of_children()),
         });
 
-        let stylist = self.stylist.as_ref();
         reports.push(Report {
             path: path![formatted_url, "layout-thread", "stylist"],
             kind: ReportKind::ExplicitJemallocHeapSize,
-            size: stylist.heap_size_of_children(),
+            size: self.stylist.heap_size_of_children(),
         });
 
         // The LayoutThread has data in Persistent TLS...
@@ -780,7 +779,7 @@ impl LayoutThread {
 
     /// Sets quirks mode for the document, causing the quirks mode stylesheet to be used.
     fn handle_set_quirks_mode<'a, 'b>(&mut self, quirks_mode: QuirksMode) {
-        StyleArc::get_mut(&mut self.stylist).unwrap().set_quirks_mode(quirks_mode);
+        self.stylist.set_quirks_mode(quirks_mode);
     }
 
     fn try_get_layout_root<N: LayoutNode>(&self, node: N) -> Option<FlowRef> {
@@ -1038,8 +1037,7 @@ impl LayoutThread {
         self.document_shared_lock = Some(document_shared_lock.clone());
         let author_guard = document_shared_lock.read();
         let device = Device::new(MediaType::Screen, initial_viewport);
-        StyleArc::get_mut(&mut self.stylist).unwrap()
-            .set_device(device, &author_guard, &data.document_stylesheets);
+        self.stylist.set_device(device, &author_guard, &data.document_stylesheets);
 
         self.viewport_size =
             self.stylist.viewport_constraints().map_or(current_screen_size, |constraints| {
@@ -1092,7 +1090,7 @@ impl LayoutThread {
         let mut extra_data = ExtraStyleData {
             marker: PhantomData,
         };
-        let needs_dirtying = StyleArc::get_mut(&mut self.stylist).unwrap().update(
+        let needs_dirtying = self.stylist.update(
             &data.document_stylesheets,
             &guards,
             Some(ua_stylesheets),
