@@ -34,7 +34,7 @@ use style::computed_values::{border_style, filter, image_rendering, mix_blend_mo
 use style_traits::cursor::Cursor;
 use text::TextRun;
 use text::glyph::ByteIndex;
-use webrender_traits::{self, ClipId, ColorF, GradientStop, ScrollPolicy, WebGLContextId};
+use webrender_traits::{self, ClipId, ColorF, ExtendMode, GradientStop, ScrollPolicy, WebGLContextId};
 
 pub use style::dom::OpaqueNode;
 
@@ -887,8 +887,8 @@ pub struct Gradient {
     /// A list of color stops.
     pub stops: Vec<GradientStop>,
 
-    /// True if gradient repeats infinitly.
-    pub repeating: bool,
+    /// Clamp or Repeat depending on the gradient.
+    pub extend_mode: ExtendMode,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -912,8 +912,8 @@ pub struct RadialGradient {
     /// A list of color stops.
     pub stops: Vec<GradientStop>,
 
-    /// True if gradient repeats infinitly.
-    pub repeating: bool,
+    /// Clamp or Repeat depending on the gradient.
+    pub extend_mode: ExtendMode,
 }
 
 #[derive(Clone, Deserialize, Serialize)]

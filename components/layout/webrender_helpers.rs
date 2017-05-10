@@ -15,7 +15,7 @@ use msg::constellation_msg::PipelineId;
 use style::computed_values::{image_rendering, mix_blend_mode};
 use style::computed_values::filter::{self, Filter};
 use style::values::computed::BorderStyle;
-use webrender_traits::{self, DisplayListBuilder, ExtendMode};
+use webrender_traits::{self, DisplayListBuilder};
 use webrender_traits::{LayoutTransform, ClipId, ClipRegionToken};
 
 pub trait WebRenderDisplayListConverter {
@@ -353,32 +353,22 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                         }
                     }
                     BorderDetails::Gradient(ref gradient) => {
-                        let extend_mode = if gradient.gradient.repeating {
-                            ExtendMode::Repeat
-                        } else {
-                            ExtendMode::Clamp
-                        };
                         webrender_traits::BorderDetails::Gradient(webrender_traits::GradientBorder {
                             gradient: builder.create_gradient(
                                           gradient.gradient.start_point.to_pointf(),
                                           gradient.gradient.end_point.to_pointf(),
                                           gradient.gradient.stops.clone(),
-                                          extend_mode),
+                                          gradient.gradient.extend_mode),
                             outset: gradient.outset,
                         })
                     }
                     BorderDetails::RadialGradient(ref gradient) => {
-                        let extend_mode = if gradient.gradient.repeating {
-                            ExtendMode::Repeat
-                        } else {
-                            ExtendMode::Clamp
-                        };
                        webrender_traits::BorderDetails::RadialGradient(webrender_traits::RadialGradientBorder {
                            gradient: builder.create_radial_gradient(
                                gradient.gradient.center.to_pointf(),
                                gradient.gradient.radius.to_sizef(),
                                gradient.gradient.stops.clone(),
-                               extend_mode),
+                               gradient.gradient.extend_mode),
                            outset: gradient.outset,
                        })
                     }
@@ -391,15 +381,10 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 let start_point = item.gradient.start_point.to_pointf();
                 let end_point = item.gradient.end_point.to_pointf();
                 let clip = item.base.clip.push_clip_region(builder);
-                let extend_mode = if item.gradient.repeating {
-                    ExtendMode::Repeat
-                } else {
-                    ExtendMode::Clamp
-                };
                 let gradient = builder.create_gradient(start_point,
                                                        end_point,
                                                        item.gradient.stops.clone(),
-                                                       extend_mode);
+                                                       item.gradient.extend_mode);
                 builder.push_gradient(rect,
                                       clip,
                                       gradient,
@@ -411,15 +396,10 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 let center = item.gradient.center.to_pointf();
                 let radius = item.gradient.radius.to_sizef();
                 let clip = item.base.clip.push_clip_region(builder);
-                let extend_mode = if item.gradient.repeating {
-                    ExtendMode::Repeat
-                } else {
-                    ExtendMode::Clamp
-                };
                 let gradient = builder.create_radial_gradient(center,
                                                               radius,
                                                               item.gradient.stops.clone(),
-                                                              extend_mode);
+                                                              item.gradient.extend_mode);
                 builder.push_radial_gradient(rect,
                                              clip,
                                              gradient,
