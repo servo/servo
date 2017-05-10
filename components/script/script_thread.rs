@@ -576,9 +576,9 @@ impl ScriptThreadFactory for ScriptThread {
 }
 
 impl ScriptThread {
-    pub fn note_newly_transitioning_nodes(nodes: Vec<UntrustedNodeAddress>) {
+    pub unsafe fn note_newly_transitioning_nodes(nodes: Vec<UntrustedNodeAddress>) {
         SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.get().unwrap() };
+            let script_thread = &*root.get().unwrap();
             let js_runtime = script_thread.js_runtime.rt();
             let new_nodes = nodes
                 .into_iter()
@@ -1619,7 +1619,9 @@ impl ScriptThread {
     /// Handles firing of transition events.
     fn handle_transition_event(&self, unsafe_node: UntrustedNodeAddress, name: String, duration: f64) {
         let js_runtime = self.js_runtime.rt();
-        let node = from_untrusted_node_address(js_runtime, unsafe_node);
+        let node = unsafe {
+            from_untrusted_node_address(js_runtime, unsafe_node)
+        };
 
         let idx = self.transitioning_nodes
             .borrow()

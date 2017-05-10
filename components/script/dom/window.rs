@@ -1241,7 +1241,7 @@ impl Window {
             let id = image.id;
             let js_runtime = self.js_runtime.borrow();
             let js_runtime = js_runtime.as_ref().unwrap();
-            let node = from_untrusted_node_address(js_runtime.rt(), image.node);
+            let node = unsafe { from_untrusted_node_address(js_runtime.rt(), image.node) };
 
             if let PendingImageState::Unrequested(ref url) = image.state {
                 fetch_image_for_layout(url.clone(), &*node, id, self.image_cache.clone());
@@ -1261,7 +1261,9 @@ impl Window {
             }
         }
 
-        ScriptThread::note_newly_transitioning_nodes(complete.newly_transitioning_nodes);
+        unsafe {
+            ScriptThread::note_newly_transitioning_nodes(complete.newly_transitioning_nodes);
+        }
 
         true
     }
@@ -1457,6 +1459,7 @@ impl Window {
         DOMString::from(resolved)
     }
 
+    #[allow(unsafe_code)]
     pub fn offset_parent_query(&self, node: TrustedNodeAddress) -> (Option<Root<Element>>, Rect<Au>) {
         if !self.reflow(ReflowGoal::ForScriptQuery,
                         ReflowQueryType::OffsetParentQuery(node),
@@ -1468,7 +1471,7 @@ impl Window {
         let js_runtime = self.js_runtime.borrow();
         let js_runtime = js_runtime.as_ref().unwrap();
         let element = response.node_address.and_then(|parent_node_address| {
-            let node = from_untrusted_node_address(js_runtime.rt(), parent_node_address);
+            let node = unsafe { from_untrusted_node_address(js_runtime.rt(), parent_node_address) };
             Root::downcast(node)
         });
         (element, response.rect)

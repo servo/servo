@@ -927,20 +927,18 @@ fn first_node_not_in<I>(mut nodes: I, not_in: &[NodeOrString]) -> Option<Root<No
 /// If the given untrusted node address represents a valid DOM node in the given runtime,
 /// returns it.
 #[allow(unsafe_code)]
-pub fn from_untrusted_node_address(_runtime: *mut JSRuntime, candidate: UntrustedNodeAddress)
+pub unsafe fn from_untrusted_node_address(_runtime: *mut JSRuntime, candidate: UntrustedNodeAddress)
     -> Root<Node> {
-    unsafe {
-        // https://github.com/servo/servo/issues/6383
-        let candidate: uintptr_t = mem::transmute(candidate.0);
+    // https://github.com/servo/servo/issues/6383
+    let candidate: uintptr_t = mem::transmute(candidate.0);
 //        let object: *mut JSObject = jsfriendapi::bindgen::JS_GetAddressableObject(runtime,
 //                                                                                  candidate);
-        let object: *mut JSObject = mem::transmute(candidate);
-        if object.is_null() {
-            panic!("Attempted to create a `JS<Node>` from an invalid pointer!")
-        }
-        let boxed_node = conversions::private_from_object(object) as *const Node;
-        Root::from_ref(&*boxed_node)
+    let object: *mut JSObject = mem::transmute(candidate);
+    if object.is_null() {
+        panic!("Attempted to create a `JS<Node>` from an invalid pointer!")
     }
+    let boxed_node = conversions::private_from_object(object) as *const Node;
+    Root::from_ref(&*boxed_node)
 }
 
 #[allow(unsafe_code)]
