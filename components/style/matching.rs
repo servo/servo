@@ -196,7 +196,7 @@ fn element_matches_candidate<E: TElement>(element: &E,
     }
 
     let data = candidate_element.borrow_data().unwrap();
-    debug_assert!(data.has_current_styles());
+    debug_assert!(element.has_current_styles(&data));
     let current_styles = data.styles();
 
     debug!("Sharing style between {:?} and {:?}", element, candidate_element);
@@ -432,7 +432,8 @@ trait PrivateMatchMethods: TElement {
                     // construct a frame for some small piece of newly-added
                     // content in order to do something specific with that frame,
                     // but not wanting to flush all of layout).
-                    debug_assert!(cfg!(feature = "gecko") || d.has_current_styles());
+                    debug_assert!(cfg!(feature = "gecko") ||
+                                  parent_el.unwrap().has_current_styles(d));
                     d.styles().primary.values()
                 });
 

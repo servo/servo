@@ -13,7 +13,7 @@ use element_state::*;
 use gecko_bindings::structs::nsRestyleHint;
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
-use selector_parser::{AttrValue, NonTSPseudoClass, Snapshot, SelectorImpl};
+use selector_parser::{AttrValue, NonTSPseudoClass, SelectorImpl, Snapshot, SnapshotMap};
 use selectors::{Element, MatchAttr};
 use selectors::matching::{ElementSelectorFlags, StyleRelations};
 use selectors::matching::matches_selector;
@@ -22,6 +22,7 @@ use selectors::parser::{SelectorInner, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
 use smallvec::SmallVec;
 use std::borrow::Borrow;
+use std::cell::Cell;
 use std::clone::Clone;
 use stylist::SelectorMap;
 
@@ -126,6 +127,7 @@ impl RestyleHint {
 impl From<nsRestyleHint> for RestyleHint {
     fn from(raw: nsRestyleHint) -> Self {
         let raw_bits: u32 = raw.0;
+
         // FIXME(bholley): Finish aligning the binary representations here and
         // then .expect() the result of the checked version.
         if Self::from_bits(raw_bits).is_none() {
@@ -193,20 +195,38 @@ struct ElementWrapper<'a, E>
     where E: TElement,
 {
     element: E,
-    snapshot: Option<&'a Snapshot>,
+    cached_snapshot: Cell<Option<&'a Snapshot>>,
+    snapshot_map: &'a SnapshotMap,
 }
 
 impl<'a, E> ElementWrapper<'a, E>
     where E: TElement,
 {
-    /// Trivially constructs an `ElementWrapper` without a snapshot.
-    pub fn new(el: E) -> ElementWrapper<'a, E> {
-        ElementWrapper { element: el, snapshot: None }
+    /// Trivially constructs an `ElementWrapper`.
+    fn new(el: E, snapshot_map: &'a SnapshotMap) -> Self {
+        ElementWrapper {
+            element: el,
+            cached_snapshot: Cell::new(None),
+            snapshot_map: snapshot_map,
+        }
     }
 
-    /// Trivially constructs an `ElementWrapper` with a snapshot.
-    pub fn new_with_snapshot(el: E, snapshot: &'a Snapshot) -> ElementWrapper<'a, E> {
-        ElementWrapper { element: el, snapshot: Some(snapshot) }
+    /// Gets the snapshot associated with this element, if any.
+    fn snapshot(&self) -> Option<&'a Snapshot> {
+        if !self.element.has_snapshot() {
+            return None;
+        }
+
+        if let Some(s) = self.cached_snapshot.get() {
+            return Some(s);
+        }
+
+        let snapshot = self.snapshot_map.get(&self.element);
+        debug_assert!(snapshot.is_some(), "has_snapshot lied!");
+
+        self.cached_snapshot.set(snapshot);
+
+        snapshot
     }
 }
 
@@ -216,7 +236,7 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
     type Impl = SelectorImpl;
 
     fn match_attr_has(&self, attr: &AttrSelector<SelectorImpl>) -> bool {
-        match self.snapshot {
+        match self.snapshot() {
             Some(snapshot) if snapshot.has_attrs()
                 => snapshot.match_attr_has(attr),
             _   => self.element.match_attr_has(attr)
@@ -226,7 +246,7 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
     fn match_attr_equals(&self,
                          attr: &AttrSelector<SelectorImpl>,
                          value: &AttrValue) -> bool {
-        match self.snapshot {
+        match self.snapshot() {
             Some(snapshot) if snapshot.has_attrs()
                 => snapshot.match_attr_equals(attr, value),
             _   => self.element.match_attr_equals(attr, value)
@@ -236,7 +256,7 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
     fn match_attr_equals_ignore_ascii_case(&self,
                                            attr: &AttrSelector<SelectorImpl>,
                                            value: &AttrValue) -> bool {
-        match self.snapshot {
+        match self.snapshot() {
             Some(snapshot) if snapshot.has_attrs()
                 => snapshot.match_attr_equals_ignore_ascii_case(attr, value),
             _   => self.element.match_attr_equals_ignore_ascii_case(attr, value)
@@ -246,7 +266,7 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
     fn match_attr_includes(&self,
                            attr: &AttrSelector<SelectorImpl>,
                            value: &AttrValue) -> bool {
-        match self.snapshot {
+        match self.snapshot() {
             Some(snapshot) if snapshot.has_attrs()
                 => snapshot.match_attr_includes(attr, value),
             _   => self.element.match_attr_includes(attr, value)
@@ -256,7 +276,7 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
     fn match_attr_dash(&self,
                        attr: &AttrSelector<SelectorImpl>,
                        value: &AttrValue) -> bool {
-        match self.snapshot {
+        match self.snapshot() {
             Some(snapshot) if snapshot.has_attrs()
                 => snapshot.match_attr_dash(attr, value),
             _   => self.element.match_attr_dash(attr, value)
@@ -266,7 +286,7 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
     fn match_attr_prefix(&self,
                          attr: &AttrSelector<SelectorImpl>,
                          value: &AttrValue) -> bool {
-        match self.snapshot {
+        match self.snapshot() {
             Some(snapshot) if snapshot.has_attrs()
                 => snapshot.match_attr_prefix(attr, value),
             _   => self.element.match_attr_prefix(attr, value)
@@ -276,7 +296,7 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
     fn match_attr_substring(&self,
                             attr: &AttrSelector<SelectorImpl>,
                             value: &AttrValue) -> bool {
-        match self.snapshot {
+        match self.snapshot() {
             Some(snapshot) if snapshot.has_attrs()
                 => snapshot.match_attr_substring(attr, value),
             _   => self.element.match_attr_substring(attr, value)
@@ -286,7 +306,7 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
     fn match_attr_suffix(&self,
                          attr: &AttrSelector<SelectorImpl>,
                          value: &AttrValue) -> bool {
-        match self.snapshot {
+        match self.snapshot() {
             Some(snapshot) if snapshot.has_attrs()
                 => snapshot.match_attr_suffix(attr, value),
             _   => self.element.match_attr_suffix(attr, value)
@@ -322,7 +342,7 @@ impl<'a, E> Element for ElementWrapper<'a, E>
                                                           relations,
                                                           &mut |_, _| {})
         }
-        match self.snapshot.and_then(|s| s.state()) {
+        match self.snapshot().and_then(|s| s.state()) {
             Some(snapshot_state) => snapshot_state.contains(flag),
             None => {
                 self.element.match_non_ts_pseudo_class(pseudo_class,
@@ -333,23 +353,28 @@ impl<'a, E> Element for ElementWrapper<'a, E>
     }
 
     fn parent_element(&self) -> Option<Self> {
-        self.element.parent_element().map(ElementWrapper::new)
+        self.element.parent_element()
+            .map(|e| ElementWrapper::new(e, self.snapshot_map))
     }
 
     fn first_child_element(&self) -> Option<Self> {
-        self.element.first_child_element().map(ElementWrapper::new)
+        self.element.first_child_element()
+            .map(|e| ElementWrapper::new(e, self.snapshot_map))
     }
 
     fn last_child_element(&self) -> Option<Self> {
-        self.element.last_child_element().map(ElementWrapper::new)
+        self.element.last_child_element()
+            .map(|e| ElementWrapper::new(e, self.snapshot_map))
     }
 
     fn prev_sibling_element(&self) -> Option<Self> {
-        self.element.prev_sibling_element().map(ElementWrapper::new)
+        self.element.prev_sibling_element()
+            .map(|e| ElementWrapper::new(e, self.snapshot_map))
     }
 
     fn next_sibling_element(&self) -> Option<Self> {
-        self.element.next_sibling_element().map(ElementWrapper::new)
+        self.element.next_sibling_element()
+            .map(|e| ElementWrapper::new(e, self.snapshot_map))
     }
 
     fn is_html_element_in_html_document(&self) -> bool {
@@ -365,7 +390,7 @@ impl<'a, E> Element for ElementWrapper<'a, E>
     }
 
     fn get_id(&self) -> Option<Atom> {
-        match self.snapshot {
+        match self.snapshot() {
             Some(snapshot) if snapshot.has_attrs()
                 => snapshot.id_attr(),
             _   => self.element.get_id()
@@ -373,7 +398,7 @@ impl<'a, E> Element for ElementWrapper<'a, E>
     }
 
     fn has_class(&self, name: &Atom) -> bool {
-        match self.snapshot {
+        match self.snapshot() {
             Some(snapshot) if snapshot.has_attrs()
                 => snapshot.has_class(name),
             _   => self.element.has_class(name)
@@ -390,7 +415,7 @@ impl<'a, E> Element for ElementWrapper<'a, E>
 
     fn each_class<F>(&self, callback: F)
         where F: FnMut(&Atom) {
-        match self.snapshot {
+        match self.snapshot() {
             Some(snapshot) if snapshot.has_attrs()
                 => snapshot.each_class(callback),
             _   => self.element.each_class(callback)
@@ -606,13 +631,21 @@ impl DependencySet {
     /// explained in the rest of the documentation.
     pub fn compute_hint<E>(&self,
                            el: &E,
-                           snapshot: &Snapshot)
+                           snapshots: &SnapshotMap)
                            -> RestyleHint
         where E: TElement + Clone,
     {
+        debug_assert!(el.has_snapshot(), "Shouldn't be here!");
+        let snapshot_el = ElementWrapper::new(el.clone(), snapshots);
+
+        let snapshot =
+            snapshot_el.snapshot().expect("has_snapshot lied so badly");
+
         let current_state = el.get_state();
-        let state_changes = snapshot.state()
-                                    .map_or_else(ElementState::empty, |old_state| current_state ^ old_state);
+        let state_changes =
+            snapshot.state()
+                .map_or_else(ElementState::empty,
+                             |old_state| current_state ^ old_state);
         let attrs_changed = snapshot.has_attrs();
 
         if state_changes.is_empty() && !attrs_changed {
@@ -620,7 +653,6 @@ impl DependencySet {
         }
 
         let mut hint = RestyleHint::empty();
-        let snapshot_el = ElementWrapper::new_with_snapshot(el.clone(), snapshot);
 
         // Compute whether the snapshot has any different id or class attributes
         // from the element. If it does, we need to pass those to the lookup, so
@@ -637,12 +669,14 @@ impl DependencySet {
         }
 
         self.0.lookup_with_additional(*el, additional_id, &additional_classes, &mut |dep| {
-            if !dep.sensitivities.sensitive_to(attrs_changed, state_changes) || hint.contains(dep.hint) {
+            if !dep.sensitivities.sensitive_to(attrs_changed, state_changes) ||
+               hint.contains(dep.hint) {
                 return true;
             }
 
-            // We can ignore the selector flags, since they would have already been set during
-            // original matching for any element that might change its matching behavior here.
+            // We can ignore the selector flags, since they would have already
+            // been set during original matching for any element that might
+            // change its matching behavior here.
             let matched_then =
                 matches_selector(&dep.selector, &snapshot_el, None,
                                  &mut StyleRelations::empty(),
@@ -658,8 +692,8 @@ impl DependencySet {
             !hint.is_all()
         });
 
-        debug!("Calculated restyle hint: {:?}. (Element={:?}, State={:?}, Snapshot={:?}, {} Deps)",
-               hint, el, current_state, snapshot, self.len());
+        debug!("Calculated restyle hint: {:?} for {:?}. (State={:?}, {} Deps)",
+               hint, el, current_state, self.len());
         trace!("Deps: {:?}", self);
 
         hint

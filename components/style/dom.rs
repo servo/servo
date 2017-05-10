@@ -385,6 +385,26 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// the actual restyle traversal.
     fn has_dirty_descendants(&self) -> bool;
 
+    /// Returns whether state or attributes that may change style have changed
+    /// on the element, and thus whether the element has been snapshotted to do
+    /// restyle hint computation.
+    fn has_snapshot(&self) -> bool;
+
+    /// Returns whether the current snapshot if present has been handled.
+    fn handled_snapshot(&self) -> bool;
+
+    /// Flags this element as having handled already its snapshot.
+    unsafe fn set_handled_snapshot(&self);
+
+    /// Returns whether the element's styles are up-to-date.
+    fn has_current_styles(&self, data: &ElementData) -> bool {
+        if self.has_snapshot() && !self.handled_snapshot() {
+            return false;
+        }
+
+        data.has_styles() && !data.has_invalidations()
+    }
+
     /// Flags an element and its ancestors with a given `DescendantsBit`.
     ///
     /// TODO(emilio): We call this conservatively from restyle_element_internal

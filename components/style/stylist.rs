@@ -22,7 +22,7 @@ use properties::INHERIT_ALL;
 use properties::PropertyDeclarationBlock;
 use restyle_hints::{RestyleHint, DependencySet};
 use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
-use selector_parser::{SelectorImpl, PseudoElement, Snapshot};
+use selector_parser::{SelectorImpl, PseudoElement, SnapshotMap};
 use selectors::Element;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{AFFECTED_BY_STYLE_ATTRIBUTE, AFFECTED_BY_PRESENTATIONAL_HINTS};
@@ -894,16 +894,16 @@ impl Stylist {
         results
     }
 
-    /// Given an element, and a snapshot that represents a previous state of the
-    /// element, compute the appropriate restyle hint, that is, the kind of
+    /// Given an element, and a snapshot table that represents a previous state
+    /// of the tree, compute the appropriate restyle hint, that is, the kind of
     /// restyle we need to do.
     pub fn compute_restyle_hint<E>(&self,
                                    element: &E,
-                                   snapshot: &Snapshot)
+                                   snapshots: &SnapshotMap)
                                    -> RestyleHint
         where E: TElement,
     {
-        self.dependencies.compute_hint(element, snapshot)
+        self.dependencies.compute_hint(element, snapshots)
     }
 
     /// Computes styles for a given declaration with parent_style.

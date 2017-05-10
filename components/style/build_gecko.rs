@@ -305,6 +305,7 @@ mod bindings {
             .include(add_include("mozilla/ComputedTimingFunction.h"))
             .include(add_include("mozilla/Keyframe.h"))
             .include(add_include("mozilla/ServoElementSnapshot.h"))
+            .include(add_include("mozilla/ServoElementSnapshotTable.h"))
             .include(add_include("mozilla/dom/Element.h"))
             .include(add_include("mozilla/dom/NameSpaceConstants.h"))
             .include(add_include("mozilla/LookAndFeel.h"))
@@ -329,6 +330,7 @@ mod bindings {
             "NS_AUTHOR_SPECIFIED_.*",
             "NS_THEME_.*",
             "NODE_.*",
+            "ELEMENT_.*",
             "NS_FONT_.*",
             "NS_STYLE_.*",
             "NS_MATHML_.*",
@@ -670,6 +672,7 @@ mod bindings {
             "Keyframe",
             "ServoBundledURI",
             "ServoElementSnapshot",
+            "ServoElementSnapshotTable",
             "SheetParsingMode",
             "StyleBasicShape",
             "StyleBasicShapeType",

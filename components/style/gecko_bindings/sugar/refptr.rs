@@ -85,6 +85,7 @@ impl<T: RefCounted> RefPtr<T> {
     pub fn forget(self) -> structs::RefPtr<T> {
         let ret = structs::RefPtr {
             mRawPtr: self.ptr,
+            _phantom_0: PhantomData,
         };
         mem::forget(self);
         ret
