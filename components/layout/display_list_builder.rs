@@ -68,7 +68,7 @@ use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
 use webrender_helpers::{ToMixBlendMode, ToTransformStyle};
-use webrender_traits::{ColorF, ClipId, GradientStop, RepeatMode, ScrollPolicy, TransformStyle};
+use webrender_traits::{ColorF, ClipId, ExtendMode, GradientStop, RepeatMode, ScrollPolicy, TransformStyle};
 
 trait ResolvePercentage {
     fn resolve(&self, length: u32) -> u32;
@@ -1170,7 +1170,7 @@ impl FragmentDisplayListBuilding for Fragment {
             start_point: center - delta,
             end_point: center + delta,
             stops: stops,
-            repeating: repeating,
+            extend_mode: to_extend_mode(repeating),
         }
     }
 
@@ -1210,7 +1210,7 @@ impl FragmentDisplayListBuilding for Fragment {
             center: center,
             radius: radius,
             stops: stops,
-            repeating: repeating,
+            extend_mode: to_extend_mode(repeating),
         }
     }
 
@@ -2794,6 +2794,14 @@ fn position_to_offset(position: LengthOrPercentage, total_length: Au) -> f32 {
 fn shadow_bounds(content_rect: &Rect<Au>, blur_radius: Au, spread_radius: Au) -> Rect<Au> {
     let inflation = spread_radius + blur_radius * BLUR_INFLATION_FACTOR;
     content_rect.inflate(inflation, inflation)
+}
+
+fn to_extend_mode(repeating: bool) -> ExtendMode {
+    if !repeating {
+        ExtendMode::Clamp
+    } else {
+        ExtendMode::Repeat
+    }
 }
 
 /// Allows a CSS color to be converted into a graphics color.
