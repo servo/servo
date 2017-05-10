@@ -826,6 +826,7 @@ impl Document {
         }
     }
 
+    #[allow(unsafe_code)]
     pub fn handle_mouse_event(&self,
                               js_runtime: *mut JSRuntime,
                               button: MouseButton,
@@ -841,7 +842,9 @@ impl Document {
         let node = match self.window.hit_test_query(client_point, false) {
             Some(node_address) => {
                 debug!("node address is {:?}", node_address);
-                node::from_untrusted_node_address(js_runtime, node_address)
+                unsafe {
+                    node::from_untrusted_node_address(js_runtime, node_address)
+                }
             },
             None => return,
         };
@@ -988,13 +991,16 @@ impl Document {
         *self.last_click_info.borrow_mut() = Some((now, click_pos));
     }
 
+    #[allow(unsafe_code)]
     pub fn handle_touchpad_pressure_event(&self,
                                           js_runtime: *mut JSRuntime,
                                           client_point: Point2D<f32>,
                                           pressure: f32,
                                           phase_now: TouchpadPressurePhase) {
         let node = match self.window.hit_test_query(client_point, false) {
-            Some(node_address) => node::from_untrusted_node_address(js_runtime, node_address),
+            Some(node_address) => unsafe {
+                node::from_untrusted_node_address(js_runtime, node_address)
+            },
             None => return
         };
 
@@ -1089,6 +1095,7 @@ impl Document {
         event.fire(target);
     }
 
+    #[allow(unsafe_code)]
     pub fn handle_mouse_move_event(&self,
                                    js_runtime: *mut JSRuntime,
                                    client_point: Option<Point2D<f32>>,
@@ -1104,7 +1111,7 @@ impl Document {
         };
 
         let maybe_new_target = self.window.hit_test_query(client_point, true).and_then(|address| {
-            let node = node::from_untrusted_node_address(js_runtime, address);
+            let node = unsafe { node::from_untrusted_node_address(js_runtime, address) };
             node.inclusive_ancestors()
                 .filter_map(Root::downcast::<Element>)
                 .next()
@@ -1186,6 +1193,7 @@ impl Document {
                            ReflowReason::MouseEvent);
     }
 
+    #[allow(unsafe_code)]
     pub fn handle_touch_event(&self,
                               js_runtime: *mut JSRuntime,
                               event_type: TouchEventType,
@@ -1202,7 +1210,9 @@ impl Document {
         };
 
         let node = match self.window.hit_test_query(point, false) {
-            Some(node_address) => node::from_untrusted_node_address(js_runtime, node_address),
+            Some(node_address) => unsafe {
+                node::from_untrusted_node_address(js_runtime, node_address)
+            },
             None => return TouchEventResult::Processed(false),
         };
         let el = match node.downcast::<Element>() {
@@ -3480,7 +3490,9 @@ impl DocumentMethods for Document {
             Some(untrusted_node_address) => {
                 let js_runtime = unsafe { JS_GetRuntime(window.get_cx()) };
 
-                let node = node::from_untrusted_node_address(js_runtime, untrusted_node_address);
+                let node = unsafe {
+                    node::from_untrusted_node_address(js_runtime, untrusted_node_address)
+                };
                 let parent_node = node.GetParentNode().unwrap();
                 let element_ref = node.downcast::<Element>().unwrap_or_else(|| {
                     parent_node.downcast::<Element>().unwrap()
@@ -3515,7 +3527,9 @@ impl DocumentMethods for Document {
         // Step 1 and Step 3
         let mut elements: Vec<Root<Element>> = self.nodes_from_point(point).iter()
             .flat_map(|&untrusted_node_address| {
-                let node = node::from_untrusted_node_address(js_runtime, untrusted_node_address);
+                let node = unsafe {
+                    node::from_untrusted_node_address(js_runtime, untrusted_node_address)
+                };
                 Root::downcast::<Element>(node)
         }).collect();
 
