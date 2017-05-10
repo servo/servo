@@ -426,8 +426,8 @@ fn print_debug_usage(app: &str) -> ! {
     print_option("wr-stats", "Show WebRender profiler on screen.");
     print_option("msaa", "Use multisample antialiasing in WebRender.");
     print_option("full-backtraces", "Print full backtraces for all errors");
-    print_option("wr-debug", "Display webrender tile borders. Must be used with -w option.");
-    print_option("precache-shaders", "Compile all shaders during init. Must be used with -w option.");
+    print_option("wr-debug", "Display webrender tile borders.");
+    print_option("precache-shaders", "Compile all shaders during init.");
     print_option("signpost", "Emit native OS signposts for profile events (currently macOS only)");
 
     println!("");
