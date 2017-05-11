@@ -63,7 +63,7 @@ use style::values::computed::{LengthOrPercentageOrAuto, LengthOrKeyword, LengthO
 use style::values::computed::{NumberOrPercentage, Position};
 use style::values::computed::image::{EndingShape, SizeKeyword};
 use style::values::generics::image::{GradientItem as GenericGradientItem, Image};
-use style::values::specified::{HorizontalDirection, VerticalDirection};
+use style::values::specified::position::{X, Y};
 use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
@@ -1111,13 +1111,13 @@ impl FragmentDisplayListBuilding for Fragment {
                 let atan = (bounds.size.height.to_f32_px() /
                             bounds.size.width.to_f32_px()).atan();
                 match (horizontal, vertical) {
-                    (HorizontalDirection::Right, VerticalDirection::Bottom)
+                    (X::Right, Y::Bottom)
                         => f32::consts::PI - atan,
-                    (HorizontalDirection::Left, VerticalDirection::Bottom)
+                    (X::Left, Y::Bottom)
                         => f32::consts::PI + atan,
-                    (HorizontalDirection::Right, VerticalDirection::Top)
+                    (X::Right, Y::Top)
                         => atan,
-                    (HorizontalDirection::Left, VerticalDirection::Top)
+                    (X::Left, Y::Top)
                         => -atan,
                 }
             }

@@ -18,7 +18,7 @@ use values::generics::image::{CompatMode, ColorStop as GenericColorStop};
 use values::generics::image::{Gradient as GenericGradient, GradientItem as GenericGradientItem};
 use values::generics::image::{Image as GenericImage, ImageRect as GenericImageRect};
 use values::specified::{Angle, CSSColor, Length, LengthOrPercentage, NumberOrPercentage};
-use values::specified::position::Position;
+use values::specified::position::{Position, X, Y};
 use values::specified::url::SpecifiedUrl;
 
 /// Specified values for an image according to CSS-IMAGES.
@@ -222,11 +222,11 @@ impl GradientKind {
         } else {
             if input.try(|i| i.expect_ident_matching("to")).is_ok() {
                 let (horizontal, vertical) =
-                    if let Ok(value) = input.try(HorizontalDirection::parse) {
-                        (Some(value), input.try(VerticalDirection::parse).ok())
+                    if let Ok(value) = input.try(X::parse) {
+                        (Some(value), input.try(Y::parse).ok())
                     } else {
-                        let value = try!(VerticalDirection::parse(input));
-                        (input.try(HorizontalDirection::parse).ok(), Some(value))
+                        let value = try!(Y::parse(input));
+                        (input.try(X::parse).ok(), Some(value))
                     };
                 try!(input.expect_comma());
                 AngleOrCorner::Corner(horizontal, vertical)
@@ -241,11 +241,11 @@ impl GradientKind {
         let direction = if let Ok(angle) = input.try(|i| Angle::parse_with_unitless(context, i)) {
             AngleOrCorner::Angle(angle)
         } else {
-            if let Ok(value) = input.try(HorizontalDirection::parse) {
-                AngleOrCorner::Corner(Some(value), input.try(VerticalDirection::parse).ok())
+            if let Ok(value) = input.try(X::parse) {
+                AngleOrCorner::Corner(Some(value), input.try(Y::parse).ok())
             } else {
-                if let Ok(value) = input.try(VerticalDirection::parse) {
-                    AngleOrCorner::Corner(input.try(HorizontalDirection::parse).ok(), Some(value))
+                if let Ok(value) = input.try(Y::parse) {
+                    AngleOrCorner::Corner(input.try(X::parse).ok(), Some(value))
                 } else {
                     AngleOrCorner::None
                 }
@@ -408,7 +408,7 @@ fn parse_position(context: &ParserContext, input: &mut Parser) -> Result<Positio
 #[allow(missing_docs)]
 pub enum AngleOrCorner {
     Angle(Angle),
-    Corner(Option<HorizontalDirection>, Option<VerticalDirection>),
+    Corner(Option<X>, Option<Y>),
     None,
 }
 
@@ -437,9 +437,6 @@ impl AngleOrCorner {
         }
     }
 }
-
-define_css_keyword_enum!(HorizontalDirection: "left" => Left, "right" => Right);
-define_css_keyword_enum!(VerticalDirection: "top" => Top, "bottom" => Bottom);
 
 impl Parse for ColorStop {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {

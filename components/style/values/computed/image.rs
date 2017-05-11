@@ -16,7 +16,8 @@ use values::generics::image::{Gradient as GenericGradient, GradientItem as Gener
 use values::generics::image::{Image as GenericImage, ImageRect as GenericImageRect};
 use values::computed::{Angle, Context, Length, LengthOrPercentage, NumberOrPercentage, ToComputedValue};
 use values::computed::position::Position;
-use values::specified::{self, HorizontalDirection, VerticalDirection};
+use values::specified;
+use values::specified::position::{X, Y};
 
 pub use values::specified::SizeKeyword;
 
@@ -320,7 +321,7 @@ impl ToComputedValue for specified::LengthOrPercentageOrKeyword {
 #[allow(missing_docs)]
 pub enum AngleOrCorner {
     Angle(Angle),
-    Corner(HorizontalDirection, VerticalDirection)
+    Corner(X, Y)
 }
 
 impl ToComputedValue for specified::AngleOrCorner {
@@ -337,16 +338,16 @@ impl ToComputedValue for specified::AngleOrCorner {
             },
             specified::AngleOrCorner::Corner(horizontal, vertical) => {
                 match (horizontal, vertical) {
-                    (None, Some(VerticalDirection::Top)) => {
+                    (None, Some(Y::Top)) => {
                         AngleOrCorner::Angle(Angle::from_radians(0.0))
                     },
-                    (Some(HorizontalDirection::Right), None) => {
+                    (Some(X::Right), None) => {
                         AngleOrCorner::Angle(Angle::from_radians(PI * 0.5))
                     },
-                    (None, Some(VerticalDirection::Bottom)) => {
+                    (None, Some(Y::Bottom)) => {
                         AngleOrCorner::Angle(Angle::from_radians(PI))
                     },
-                    (Some(HorizontalDirection::Left), None) => {
+                    (Some(X::Left), None) => {
                         AngleOrCorner::Angle(Angle::from_radians(PI * 1.5))
                     },
                     (Some(horizontal), Some(vertical)) => {
