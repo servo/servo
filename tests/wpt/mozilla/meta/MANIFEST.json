@@ -19783,6 +19783,12 @@
      {}
     ]
    ],
+   "mozilla/scrollBy.html": [
+    [
+     "/_mozilla/mozilla/scrollBy.html",
+     {}
+    ]
+   ],
    "mozilla/scrollTo.html": [
     [
      "/_mozilla/mozilla/scrollTo.html",
@@ -31352,6 +31358,10 @@
   ],
   "mozilla/script_type.html": [
    "b247e3a0ba733c1a8b129ce2994b862d8ed3a423",
+   "testharness"
+  ],
+  "mozilla/scrollBy.html": [
+   "0243d584bc615a73ea1667fc35f5d73b5165d19f",
    "testharness"
   ],
   "mozilla/scrollTo.html": [
