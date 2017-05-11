@@ -52,7 +52,6 @@ pub mod position;
 pub mod url {
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
-use values::HasViewportPercentage;
 use values::computed::ComputedValueAsSpecified;
 
 #[cfg(feature = "servo")]
