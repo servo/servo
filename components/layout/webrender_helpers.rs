@@ -12,8 +12,8 @@ use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use gfx::display_list::{BorderDetails, BorderRadii, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayList, DisplayListTraversal, StackingContextType};
 use msg::constellation_msg::PipelineId;
-use style::computed_values::{image_rendering, mix_blend_mode};
 use style::computed_values::filter::{self, Filter};
+use style::computed_values::image_rendering;
 use webrender_traits::{self, DisplayListBuilder};
 use webrender_traits::{LayoutTransform, ClipId, ClipRegionToken};
 
@@ -106,33 +106,6 @@ impl ToBorderRadius for BorderRadii<Au> {
             top_right: self.top_right.to_sizef(),
             bottom_left: self.bottom_left.to_sizef(),
             bottom_right: self.bottom_right.to_sizef(),
-        }
-    }
-}
-
-trait ToBlendMode {
-    fn to_blend_mode(&self) -> webrender_traits::MixBlendMode;
-}
-
-impl ToBlendMode for mix_blend_mode::T {
-    fn to_blend_mode(&self) -> webrender_traits::MixBlendMode {
-        match *self {
-            mix_blend_mode::T::normal => webrender_traits::MixBlendMode::Normal,
-            mix_blend_mode::T::multiply => webrender_traits::MixBlendMode::Multiply,
-            mix_blend_mode::T::screen => webrender_traits::MixBlendMode::Screen,
-            mix_blend_mode::T::overlay => webrender_traits::MixBlendMode::Overlay,
-            mix_blend_mode::T::darken => webrender_traits::MixBlendMode::Darken,
-            mix_blend_mode::T::lighten => webrender_traits::MixBlendMode::Lighten,
-            mix_blend_mode::T::color_dodge => webrender_traits::MixBlendMode::ColorDodge,
-            mix_blend_mode::T::color_burn => webrender_traits::MixBlendMode::ColorBurn,
-            mix_blend_mode::T::hard_light => webrender_traits::MixBlendMode::HardLight,
-            mix_blend_mode::T::soft_light => webrender_traits::MixBlendMode::SoftLight,
-            mix_blend_mode::T::difference => webrender_traits::MixBlendMode::Difference,
-            mix_blend_mode::T::exclusion => webrender_traits::MixBlendMode::Exclusion,
-            mix_blend_mode::T::hue => webrender_traits::MixBlendMode::Hue,
-            mix_blend_mode::T::saturation => webrender_traits::MixBlendMode::Saturation,
-            mix_blend_mode::T::color => webrender_traits::MixBlendMode::Color,
-            mix_blend_mode::T::luminosity => webrender_traits::MixBlendMode::Luminosity,
         }
     }
 }
@@ -406,7 +379,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                               transform,
                                               webrender_traits::TransformStyle::Flat,
                                               perspective,
-                                              stacking_context.blend_mode.to_blend_mode(),
+                                              stacking_context.blend_mode,
                                               stacking_context.filters.to_filter_ops());
             }
             DisplayItem::PopStackingContext(_) => builder.pop_stacking_context(),

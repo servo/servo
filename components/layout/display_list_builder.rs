@@ -1916,7 +1916,7 @@ impl FragmentDisplayListBuilding for Fragment {
                              &overflow,
                              self.effective_z_index(),
                              filters,
-                             self.style().get_effects().mix_blend_mode,
+                             self.style().get_effects().mix_blend_mode.to_layout(),
                              self.transform_matrix(&border_box),
                              self.perspective_matrix(&border_box),
                              scroll_policy,
