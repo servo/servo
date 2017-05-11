@@ -891,9 +891,10 @@ ${helpers.single_keyword_system("font-variant-caps",
         }
     }
 
+    #[allow(unused_mut)]
     pub fn cascade_specified_font_size(context: &mut Context,
                                       specified_value: &SpecifiedValue,
-                                      computed: Au,
+                                      mut computed: Au,
                                       parent: &Font) {
         if let SpecifiedValue::Keyword(kw, fraction)
                             = *specified_value {
@@ -913,6 +914,22 @@ ${helpers.single_keyword_system("font-variant-caps",
         } else {
             context.mutate_style().font_size_keyword = None;
         }
+
+        // we could use clone_language and clone_font_family() here but that's
+        // expensive. Do it only in gecko mode for now.
+        % if product == "gecko":
+            use gecko_bindings::structs::nsIAtom;
+            // if the language or generic changed, we need to recalculate
+            // the font size from the stored font-size origin information.
+            if context.style().get_font().gecko().mLanguage.raw::<nsIAtom>() !=
+               context.inherited_style().get_font().gecko().mLanguage.raw::<nsIAtom>() ||
+               context.style().get_font().gecko().mGenericID !=
+               context.inherited_style().get_font().gecko().mGenericID {
+                if let Some((kw, ratio)) = context.style().font_size_keyword {
+                    computed = kw.to_computed_value(context).scale_by(ratio);
+                }
+            }
+        % endif
 
         let parent_unconstrained = context.mutate_style()
                                        .mutate_font()
