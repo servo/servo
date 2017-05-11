@@ -6,6 +6,7 @@
 
 use context::StyleSystemOptions;
 use gecko_bindings::bindings::{Gecko_RegisterProfilerThread, Gecko_UnregisterProfilerThread};
+use gecko_bindings::bindings::Gecko_SetJemallocThreadLocalArena;
 use num_cpus;
 use rayon;
 use shared_lock::SharedRwLock;
@@ -33,6 +34,9 @@ fn thread_name(index: usize) -> String {
 }
 
 fn thread_startup(index: usize) {
+    unsafe {
+        Gecko_SetJemallocThreadLocalArena(true);
+    }
     let name = thread_name(index);
     let name = CString::new(name).unwrap();
     unsafe {
@@ -44,6 +48,7 @@ fn thread_startup(index: usize) {
 fn thread_shutdown(_: usize) {
     unsafe {
         Gecko_UnregisterProfilerThread();
+        Gecko_SetJemallocThreadLocalArena(false);
     }
 }
 
