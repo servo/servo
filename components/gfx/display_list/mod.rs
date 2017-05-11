@@ -30,12 +30,11 @@ use std::cmp::{self, Ordering};
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
-use style::computed_values::image_rendering;
 use style_traits::cursor::Cursor;
 use text::TextRun;
 use text::glyph::ByteIndex;
-use webrender_traits::{self, BorderStyle, BoxShadowClipMode, ClipId, ColorF};
-use webrender_traits::{ExtendMode, FilterOp, GradientStop, MixBlendMode, ScrollPolicy, WebGLContextId};
+use webrender_traits::{self, BorderStyle, BoxShadowClipMode, ClipId, ColorF, ExtendMode, FilterOp};
+use webrender_traits::{GradientStop, ImageRendering, MixBlendMode, ScrollPolicy, WebGLContextId};
 
 pub use style::dom::OpaqueNode;
 
@@ -859,7 +858,7 @@ pub struct ImageDisplayItem {
 
     /// The algorithm we should use to stretch the image. See `image_rendering` in CSS-IMAGES-3 §
     /// 5.3.
-    pub image_rendering: image_rendering::T,
+    pub image_rendering: ImageRendering,
 }
 
 #[derive(Clone, Deserialize, Serialize)]

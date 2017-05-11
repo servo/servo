@@ -12,7 +12,6 @@ use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use gfx::display_list::{BorderDetails, BorderRadii, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayList, DisplayListTraversal, StackingContextType};
 use msg::constellation_msg::PipelineId;
-use style::computed_values::image_rendering;
 use webrender_traits::{self, DisplayListBuilder};
 use webrender_traits::{LayoutTransform, ClipId, ClipRegionToken};
 
@@ -109,20 +108,6 @@ impl ToBorderRadius for BorderRadii<Au> {
     }
 }
 
-trait ToImageRendering {
-    fn to_image_rendering(&self) -> webrender_traits::ImageRendering;
-}
-
-impl ToImageRendering for image_rendering::T {
-    fn to_image_rendering(&self) -> webrender_traits::ImageRendering {
-        match *self {
-            image_rendering::T::crisp_edges => webrender_traits::ImageRendering::CrispEdges,
-            image_rendering::T::auto => webrender_traits::ImageRendering::Auto,
-            image_rendering::T::pixelated => webrender_traits::ImageRendering::Pixelated,
-        }
-    }
-}
-
 impl WebRenderDisplayListConverter for DisplayList {
     fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder {
         let traversal = DisplayListTraversal::new(self);
@@ -205,7 +190,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                            clip,
                                            item.stretch_size.to_sizef(),
                                            item.tile_spacing.to_sizef(),
-                                           item.image_rendering.to_image_rendering(),
+                                           item.image_rendering,
                                            id);
                     }
                 }
