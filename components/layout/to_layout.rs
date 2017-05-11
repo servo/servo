@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use style::computed_values::mix_blend_mode;
+use style::computed_values::{filter, mix_blend_mode};
 use style::values::computed;
-use webrender_traits::{BorderStyle, MixBlendMode};
+use webrender_traits::{BorderStyle, FilterOp, MixBlendMode};
 
 pub trait ToLayout {
     type Type;
@@ -13,7 +13,7 @@ pub trait ToLayout {
 
 impl ToLayout for computed::BorderStyle {
     type Type = BorderStyle;
-    fn to_layout(&self) -> Self::Type {
+    fn to_layout(&self) -> BorderStyle {
         use webrender_traits::BorderStyle::*;
         match *self {
             computed::BorderStyle::none => None,
@@ -52,5 +52,28 @@ impl ToLayout for mix_blend_mode::T {
             mix_blend_mode::T::color => Color,
             mix_blend_mode::T::luminosity => Luminosity,
         }
+    }
+}
+
+impl ToLayout for filter::T {
+    type Type = Vec<FilterOp>;
+    fn to_layout(&self) -> Vec<FilterOp> {
+        use style::computed_values::filter::Filter;
+        use webrender_traits::FilterOp::*;
+        let mut result = Vec::with_capacity(self.filters.len());
+        for filter in self.filters.iter() {
+            result.push(match *filter {
+                Filter::Blur(radius) => Blur(radius),
+                Filter::Brightness(amount) => Brightness(amount),
+                Filter::Contrast(amount) => Contrast(amount),
+                Filter::Grayscale(amount) => Grayscale(amount),
+                Filter::HueRotate(angle) => HueRotate(angle.radians()),
+                Filter::Invert(amount) => Invert(amount),
+                Filter::Opacity(amount) => Opacity(amount.into()),
+                Filter::Saturate(amount) => Saturate(amount),
+                Filter::Sepia(amount) => Sepia(amount),
+            })
+        }
+        result
     }
 }
