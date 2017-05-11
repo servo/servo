@@ -241,7 +241,7 @@ dependencies = [
 
 [[package]]
 name = "blurdroid"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -616,7 +616,7 @@ name = "device"
 version = "0.0.1"
 source = "git+https://github.com/servo/devices#1bb5a200c7ae1f42ddf3c42b235b3db66226aabf"
 dependencies = [
- "blurdroid 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "blurdroid 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "blurmock 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "blurz 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -3390,7 +3390,7 @@ dependencies = [
 "checksum bitflags 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)" = "1370e9fc2a6ae53aea8b7a5110edbd08836ed87c88736dfabccade1c2b44bff4"
 "checksum bitreader 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "80b13e2ab064ff3aa0bdbf1eff533f9822dc37899821f5f98c67f263eab51707"
 "checksum block 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "0d8c1fef690941d3e7788d328517591fecc684c084084702d6ff1641e993699a"
-"checksum blurdroid 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "f4a86fbb3818e7f850410e026bfac7742fe86cbf4acf49f5752936b32d1f7eb8"
+"checksum blurdroid 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "9880ddea1a97824ae9fc176f718e2a029491cd7d10bac4061ba4063569f4bc64"
 "checksum blurmock 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "68dd72da3a3bb40f3d3bdd366c4cf8e2b1d208c366304f382c80cef8126ca8da"
 "checksum blurz 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "e73bda0f4c71c63a047351070097f3f507e6718e86b9ee525173371ef7b94b73"
 "checksum brotli 1.0.8 (registry+https://github.com/rust-lang/crates.io-index)" = "951f20a2cc403194b2746d9ac6f796292e3c0344e983c72c7d6bd6cff6c3d102"
