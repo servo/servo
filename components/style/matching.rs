@@ -13,7 +13,8 @@ use data::{ComputedStyle, ElementData, RestyleData};
 use dom::{TElement, TNode};
 use font_metrics::FontMetricsProvider;
 use log::LogLevel::Trace;
-use properties::{AnimationRules, CascadeFlags, ComputedValues, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
+use properties::{AnimationRules, CascadeFlags, ComputedValues};
+use properties::{SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, VISITED_DEPENDENT_ONLY, cascade};
 use properties::longhands::display::computed_value as display;
 use restyle_hints::{RESTYLE_CSS_ANIMATIONS, RESTYLE_CSS_TRANSITIONS, RestyleReplacements};
 use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RESTYLE_SMIL};
@@ -188,7 +189,7 @@ impl CascadeVisitedMode {
         *self == CascadeVisitedMode::Unvisited
     }
 
-    /// Returns whether animations should be processed based on the cascade 
+    /// Returns whether animations should be processed based on the cascade
     /// mode.  At the moment, it appears we don't need to support animating
     /// visited styles.
     fn should_process_animations(&self) -> bool {
@@ -201,6 +202,12 @@ impl CascadeVisitedMode {
     /// https://bugzilla.mozilla.org/show_bug.cgi?id=1364484.
     fn should_accumulate_damage(&self) -> bool {
         *self == CascadeVisitedMode::Unvisited
+    }
+
+    /// Returns whether the cascade should filter to only visited dependent
+    /// properties based on the cascade mode.
+    fn visited_dependent_only(&self) -> bool {
+        *self == CascadeVisitedMode::Visited
     }
 }
 
@@ -245,6 +252,9 @@ trait PrivateMatchMethods: TElement {
         let mut cascade_flags = CascadeFlags::empty();
         if self.skip_root_and_item_based_display_fixup() {
             cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP)
+        }
+        if cascade_visited.visited_dependent_only() {
+            cascade_flags.insert(VISITED_DEPENDENT_ONLY);
         }
 
         // Grab the inherited values.

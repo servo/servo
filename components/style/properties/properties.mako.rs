@@ -576,6 +576,57 @@ impl LonghandId {
             % endfor
         }
     }
+
+    /// Only a few properties are allowed to depend on the visited state of
+    /// links. When cascading visited styles, we can save time by only
+    /// processing these properties.
+    fn is_visited_dependent(&self) -> bool {
+        matches!(*self,
+            % if product == "gecko":
+            LonghandId::ColumnRuleColor |
+            LonghandId::TextEmphasisColor |
+            LonghandId::WebkitTextFillColor |
+            LonghandId::WebkitTextStrokeColor |
+            LonghandId::TextDecorationColor |
+            LonghandId::Fill |
+            LonghandId::Stroke |
+            LonghandId::CaretColor |
+            % endif
+            LonghandId::Color |
+            LonghandId::BackgroundColor |
+            LonghandId::BorderTopColor |
+            LonghandId::BorderRightColor |
+            LonghandId::BorderBottomColor |
+            LonghandId::BorderLeftColor |
+            LonghandId::OutlineColor
+        )
+    }
+
+    /// The computed value of some properties depends on the (sometimes
+    /// computed) value of *other* properties.
+    ///
+    /// So we classify properties into "early" and "other", such that the only
+    /// dependencies can be from "other" to "early".
+    ///
+    /// Unfortunately, it’s not easy to check that this classification is
+    /// correct.
+    fn is_early_property(&self) -> bool {
+        matches!(*self,
+            % if product == 'gecko':
+            LonghandId::TextOrientation |
+            LonghandId::AnimationName |
+            LonghandId::TransitionProperty |
+            LonghandId::XLang |
+            LonghandId::MozScriptLevel |
+            % endif
+            LonghandId::FontSize |
+            LonghandId::FontFamily |
+            LonghandId::Color |
+            LonghandId::TextDecorationLine |
+            LonghandId::WritingMode |
+            LonghandId::Direction
+        )
+    }
 }
 
 /// An identifier for a given shorthand property.
@@ -2403,6 +2454,8 @@ bitflags! {
         /// Whether to skip any root element and flex/grid item display style
         /// fixup.
         const SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP = 0x02,
+        /// Whether to only cascade properties that are visited dependent.
+        const VISITED_DEPENDENT_ONLY = 0x04,
     }
 }
 
@@ -2582,6 +2635,14 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                 PropertyDeclarationId::Custom(..) => continue,
             };
 
+            // Only a few properties are allowed to depend on the visited state
+            // of links.  When cascading visited styles, we can save time by
+            // only processing these properties.
+            if flags.contains(VISITED_DEPENDENT_ONLY) &&
+               !longhand_id.is_visited_dependent() {
+                continue
+            }
+
             // The computed value of some properties depends on the
             // (sometimes computed) value of *other* properties.
             //
@@ -2593,26 +2654,11 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
             //
             // Unfortunately, it’s not easy to check that this
             // classification is correct.
-            let is_early_property = matches!(longhand_id,
-                LonghandId::FontSize |
-                LonghandId::FontFamily |
-                LonghandId::Color |
-                LonghandId::TextDecorationLine |
-                LonghandId::WritingMode |
-                LonghandId::Direction
-                % if product == 'gecko':
-                    | LonghandId::TextOrientation
-                    | LonghandId::AnimationName
-                    | LonghandId::TransitionProperty
-                    | LonghandId::XLang
-                    | LonghandId::MozScriptLevel
-                % endif
-            );
             if
                 % if category_to_cascade_now == "early":
                     !
                 % endif
-                is_early_property
+                longhand_id.is_early_property()
             {
                 continue
             }
