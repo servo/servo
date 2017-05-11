@@ -432,6 +432,8 @@ impl HTMLImageElement {
                 if elem.has_attribute(&local_name!("src")) {
                     img.upcast::<EventTarget>().fire_event(atom!("error"));
                 }
+                img.abort_request(State::Broken, ImageRequestPhase::Current);
+                img.abort_request(State::Broken, ImageRequestPhase::Pending);
             }
         }
 
@@ -559,8 +561,6 @@ impl HTMLImageElement {
             },
             None => {
                 // Step 9
-                self.abort_request(State::Broken, ImageRequestPhase::Current);
-                self.abort_request(State::Broken, ImageRequestPhase::Pending);
                 self.set_current_request_url_to_none_fire_error();
             },
         }
