@@ -645,7 +645,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
              url.starts_with("http://web-platform.test:8000/_mozilla/css/canvas_over_area.html"));
 
     let url_opt = url_opt.and_then(|url_string| parse_url_or_filename(&cwd, url_string)
-                                   // If url parsing fails, print error and assign None
                                    .or_else(|error| {
                                        warn!("URL parsing failed ({:?}).", error);
                                        Err(error)
