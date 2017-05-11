@@ -34,8 +34,7 @@ use style::computed_values::{border_style, filter, image_rendering};
 use style_traits::cursor::Cursor;
 use text::TextRun;
 use text::glyph::ByteIndex;
-use webrender_traits::{self, ClipId, ColorF, ExtendMode, GradientStop, MixBlendMode, ScrollPolicy, TransformStyle, WebGLContextId};
-
+use webrender_traits::{self, BoxShadowClipMode, ClipId, ColorF, ExtendMode, GradientStop, MixBlendMode, ScrollPolicy, TransformStyle, WebGLContextId};
 pub use style::dom::OpaqueNode;
 
 /// The factor that we multiply the blur radius by in order to inflate the boundaries of display
@@ -1189,19 +1188,6 @@ pub struct DefineClipItem {
 
     /// The scroll root that this item starts.
     pub scroll_root: ScrollRoot,
-}
-
-/// How a box shadow should be clipped.
-#[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
-pub enum BoxShadowClipMode {
-    /// No special clipping should occur. This is used for (shadowed) text decorations.
-    None,
-    /// The area inside `box_bounds` should be clipped out. Corresponds to the normal CSS
-    /// `box-shadow`.
-    Outset,
-    /// The area outside `box_bounds` should be clipped out. Corresponds to the `inset` flag on CSS
-    /// `box-shadow`.
-    Inset,
 }
 
 impl DisplayItem {
