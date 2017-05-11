@@ -12,7 +12,7 @@ use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use gfx::display_list::{BorderDetails, BorderRadii, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayList, DisplayListTraversal, StackingContextType};
 use msg::constellation_msg::PipelineId;
-use style::computed_values::{image_rendering, transform_style};
+use style::computed_values::transform_style;
 use webrender_traits::{self, DisplayListBuilder};
 use webrender_traits::{LayoutTransform, ClipId, ClipRegionToken};
 
@@ -105,20 +105,6 @@ impl ToBorderRadius for BorderRadii<Au> {
             top_right: self.top_right.to_sizef(),
             bottom_left: self.bottom_left.to_sizef(),
             bottom_right: self.bottom_right.to_sizef(),
-        }
-    }
-}
-
-trait ToImageRendering {
-    fn to_image_rendering(&self) -> webrender_traits::ImageRendering;
-}
-
-impl ToImageRendering for image_rendering::T {
-    fn to_image_rendering(&self) -> webrender_traits::ImageRendering {
-        match *self {
-            image_rendering::T::crisp_edges => webrender_traits::ImageRendering::CrispEdges,
-            image_rendering::T::auto => webrender_traits::ImageRendering::Auto,
-            image_rendering::T::pixelated => webrender_traits::ImageRendering::Pixelated,
         }
     }
 }
@@ -219,7 +205,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                            clip,
                                            item.stretch_size.to_sizef(),
                                            item.tile_spacing.to_sizef(),
-                                           item.image_rendering.to_image_rendering(),
+                                           item.image_rendering,
                                            id);
                     }
                 }

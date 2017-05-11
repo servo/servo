@@ -48,7 +48,7 @@ use std::mem;
 use std::sync::Arc;
 use style::computed_values::{background_attachment, background_clip, background_origin};
 use style::computed_values::{background_repeat, background_size, border_style, cursor};
-use style::computed_values::{image_rendering, overflow_x, pointer_events, position, visibility};
+use style::computed_values::{overflow_x, pointer_events, position, visibility};
 use style::computed_values::filter::Filter;
 use style::computed_values::text_shadow::TextShadow;
 use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
@@ -70,7 +70,7 @@ use table_cell::CollapsedBordersForCell;
 use to_layout::ToLayout;
 use webrender_helpers::ToTransformStyle;
 use webrender_traits::{BorderStyle, BoxShadowClipMode, ColorF, ClipId};
-use webrender_traits::{ExtendMode, GradientStop, RepeatMode, ScrollPolicy, TransformStyle};
+use webrender_traits::{ExtendMode, GradientStop, ImageRendering, RepeatMode, ScrollPolicy, TransformStyle};
 
 trait ResolvePercentage {
     fn resolve(&self, length: u32) -> u32;
@@ -1105,7 +1105,7 @@ impl FragmentDisplayListBuilding for Fragment {
               image_data: None,
               stretch_size: stretch_size,
               tile_spacing: tile_spacing,
-              image_rendering: style.get_inheritedbox().image_rendering.clone(),
+              image_rendering: style.get_inheritedbox().image_rendering.to_layout(),
             }));
 
         }
@@ -1829,7 +1829,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         image_data: Some(Arc::new(image.bytes.clone())),
                         stretch_size: stacking_relative_content_box.size,
                         tile_spacing: Size2D::zero(),
-                        image_rendering: self.style.get_inheritedbox().image_rendering.clone(),
+                        image_rendering: self.style.get_inheritedbox().image_rendering.to_layout(),
                     }));
                 }
             }
@@ -1867,7 +1867,7 @@ impl FragmentDisplayListBuilding for Fragment {
                             image_data: None,
                             stretch_size: stacking_relative_content_box.size,
                             tile_spacing: Size2D::zero(),
-                            image_rendering: image_rendering::T::auto,
+                            image_rendering: ImageRendering::Auto,
                         })
                     }
                     CanvasData::WebGL(context_id) => {

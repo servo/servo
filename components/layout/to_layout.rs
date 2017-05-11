@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use style::computed_values::{filter, mix_blend_mode};
+use style::computed_values::{filter, image_rendering, mix_blend_mode};
 use style::values::computed;
-use webrender_traits::{BorderStyle, FilterOp, MixBlendMode};
+use webrender_traits::{BorderStyle, FilterOp, ImageRendering, MixBlendMode};
 
 pub trait ToLayout {
     type Type;
@@ -75,5 +75,17 @@ impl ToLayout for filter::T {
             })
         }
         result
+    }
+}
+
+impl ToLayout for image_rendering::T {
+    type Type = ImageRendering;
+    fn to_layout(&self) -> ImageRendering {
+        use webrender_traits::ImageRendering::*;
+        match *self {
+            image_rendering::T::crisp_edges => CrispEdges,
+            image_rendering::T::auto => Auto,
+            image_rendering::T::pixelated => Pixelated,
+        }
     }
 }
