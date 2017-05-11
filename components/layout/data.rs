@@ -6,6 +6,7 @@ use construct::ConstructionResult;
 use script_layout_interface::PartialPersistentLayoutData;
 
 /// Data that layout associates with a node.
+#[repr(C)]
 pub struct PersistentLayoutData {
     /// Data accessed by script_layout_interface. This must be first to allow
     /// casting between PersistentLayoutData and PartialPersistentLayoutData.
