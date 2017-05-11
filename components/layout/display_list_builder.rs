@@ -65,7 +65,9 @@ use style::values::specified::{HorizontalDirection, VerticalDirection};
 use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
-use webrender_traits::{BoxShadowClipMode, ColorF, ClipId, ExtendMode, GradientStop, RepeatMode, ScrollPolicy};
+use to_layout::ToLayout;
+use webrender_traits::{BorderStyle, BoxShadowClipMode, ColorF, ClipId};
+use webrender_traits::{ExtendMode, GradientStop, RepeatMode, ScrollPolicy};
 
 trait ResolvePercentage {
     fn resolve(&self, length: u32) -> u32;
@@ -1313,14 +1315,18 @@ impl FragmentDisplayListBuilding for Fragment {
                                             border_style_struct.border_right_color,
                                             border_style_struct.border_bottom_color,
                                             border_style_struct.border_left_color);
-        let mut border_style = SideOffsets2D::new(border_style_struct.border_top_style,
-                                                  border_style_struct.border_right_style,
-                                                  border_style_struct.border_bottom_style,
-                                                  border_style_struct.border_left_style);
+        let mut border_style = SideOffsets2D::new(border_style_struct.border_top_style.to_layout(),
+                                                  border_style_struct.border_right_style.to_layout(),
+                                                  border_style_struct.border_bottom_style.to_layout(),
+                                                  border_style_struct.border_left_style.to_layout());
         if let BorderPaintingMode::Collapse(collapsed_borders) = border_painting_mode {
-            collapsed_borders.adjust_border_colors_and_styles_for_painting(&mut colors,
-                                                                           &mut border_style,
-                                                                           style.writing_mode);
+            let computed = collapsed_borders.adjust_border_colors_and_styles_for_painting(
+                &mut colors,
+                style.writing_mode);
+            border_style = SideOffsets2D::new(computed.top.to_layout(),
+                                              computed.right.to_layout(),
+                                              computed.bottom.to_layout(),
+                                              computed.left.to_layout());
         }
 
         let colors = SideOffsets2D::new(style.resolve_color(colors.top),
@@ -1448,9 +1454,9 @@ impl FragmentDisplayListBuilding for Fragment {
         }
 
         let outline_style = match style.get_outline().outline_style {
-            Either::First(_auto) => border_style::T::solid,
+            Either::First(_auto) => BorderStyle::Solid,
             Either::Second(border_style::T::none) => return,
-            Either::Second(border_style) => border_style
+            Either::Second(border_style) => border_style.to_layout()
         };
 
         // Outlines are not accounted for in the dimensions of the border box, so adjust the
@@ -1498,7 +1504,7 @@ impl FragmentDisplayListBuilding for Fragment {
             border_widths: SideOffsets2D::new_all_same(Au::from_px(1)),
             details: BorderDetails::Normal(NormalBorder {
                 color: SideOffsets2D::new_all_same(ColorF::rgb(0, 0, 200)),
-                style: SideOffsets2D::new_all_same(border_style::T::solid),
+                style: SideOffsets2D::new_all_same(BorderStyle::Solid),
                 radius: Default::default(),
             }),
         }));
@@ -1519,7 +1525,7 @@ impl FragmentDisplayListBuilding for Fragment {
             border_widths: SideOffsets2D::new_all_same(Au::from_px(1)),
             details: BorderDetails::Normal(NormalBorder {
                 color: SideOffsets2D::new_all_same(ColorF::rgb(0, 0, 200)),
-                style: SideOffsets2D::new_all_same(border_style::T::solid),
+                style: SideOffsets2D::new_all_same(BorderStyle::Solid),
                 radius: Default::default(),
             }),
         }));
@@ -2715,7 +2721,7 @@ impl BaseFlowDisplayListBuilding for BaseFlow {
             border_widths: SideOffsets2D::new_all_same(Au::from_px(2)),
             details: BorderDetails::Normal(NormalBorder {
                 color: SideOffsets2D::new_all_same(color),
-                style: SideOffsets2D::new_all_same(border_style::T::solid),
+                style: SideOffsets2D::new_all_same(BorderStyle::Solid),
                 radius: BorderRadii::all_same(Au(0)),
             }),
         }));
