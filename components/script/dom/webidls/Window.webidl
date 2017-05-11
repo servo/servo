@@ -15,6 +15,8 @@
 
   [/*PutForwards=href, */Unforgeable] readonly attribute Location location;
   readonly attribute History history;
+  [Pref="dom.customelements.enabled"]
+  readonly attribute CustomElementRegistry customElements;
   //[Replaceable] readonly attribute BarProp locationbar;
   //[Replaceable] readonly attribute BarProp menubar;
   //[Replaceable] readonly attribute BarProp personalbar;
