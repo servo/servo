@@ -194,7 +194,8 @@ impl nsStyleImage {
         use gecko_bindings::structs::nsStyleCoord;
         use values::computed::{AngleOrCorner, GradientKind, GradientShape, LengthOrKeyword};
         use values::computed::LengthOrPercentageOrKeyword;
-        use values::specified::{HorizontalDirection, SizeKeyword, VerticalDirection};
+        use values::specified::SizeKeyword;
+        use values::specified::position::{X, Y};
 
         let stop_count = gradient.items.len();
         if stop_count >= ::std::u32::MAX as usize {
@@ -222,12 +223,12 @@ impl nsStyleImage {
                     },
                     AngleOrCorner::Corner(horiz, vert) => {
                         let percent_x = match horiz {
-                            HorizontalDirection::Left => 0.0,
-                            HorizontalDirection::Right => 1.0,
+                            X::Left => 0.0,
+                            X::Right => 1.0,
                         };
                         let percent_y = match vert {
-                            VerticalDirection::Top => 0.0,
-                            VerticalDirection::Bottom => 1.0,
+                            Y::Top => 0.0,
+                            Y::Bottom => 1.0,
                         };
 
                         unsafe {

@@ -25,8 +25,7 @@ use values::specified::calc::CalcNode;
 
 pub use values::specified::calc::CalcLengthOrPercentage;
 pub use super::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
-pub use super::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword, LengthOrPercentageOrKeyword};
-pub use super::image::{SizeKeyword, VerticalDirection};
+pub use super::image::{GradientKind, Image, LengthOrKeyword, LengthOrPercentageOrKeyword, SizeKeyword};
 
 /// Number of app units per pixel
 pub const AU_PER_PX: CSSFloat = 60.;
