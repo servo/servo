@@ -405,7 +405,12 @@ impl HTMLImageElement {
     fn update_source_set(&self) -> Vec<DOMString> {
         let elem = self.upcast::<Element>();
         // TODO: follow the algorithm
-        vec![elem.get_string_attribute(&local_name!("src"))]
+        let src = elem.get_string_attribute(&local_name!("src"));
+        if src.is_empty() {
+            return vec![]
+        }
+        vec![src]
+
     }
 
     /// https://html.spec.whatwg.org/multipage/#select-an-image-source
@@ -541,6 +546,7 @@ impl HTMLImageElement {
         // TODO: take pixel density into account
         match self.select_image_source() {
             Some(src) => {
+                println!("step 10");
                 // Step 10
                 self.dispatch_loadstart_progress_event();
                 // Step 11
@@ -548,10 +554,12 @@ impl HTMLImageElement {
                 let parsed_url = base_url.join(&src);
                 match parsed_url {
                     Ok(url) => {
+                        println!("step 12");
                          // Step 12
                         self.prepare_image_request(&url, &src);
                     },
                     Err(_) => {
+                        println!("step 11");
                         // Step 11.1-11.5
                         self.abort_request(State::Broken, ImageRequestPhase::Current);
                         self.abort_request(State::Broken, ImageRequestPhase::Pending);
@@ -560,6 +568,7 @@ impl HTMLImageElement {
                 }
             },
             None => {
+                println!("step 9");
                 // Step 9
                 self.set_current_request_url_to_none_fire_error();
             },
