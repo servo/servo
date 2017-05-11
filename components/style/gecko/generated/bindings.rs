@@ -4,7 +4,6 @@ pub use nsstring::{nsACString, nsAString, nsString};
 type nsACString_internal = nsACString;
 type nsAString_internal = nsAString;
 use gecko_bindings::structs::mozilla::css::GridTemplateAreasValue;
-#[allow(unused_imports)]
 use gecko_bindings::structs::mozilla::css::ImageValue;
 use gecko_bindings::structs::mozilla::css::URLValue;
 use gecko_bindings::structs::mozilla::Side;
@@ -1815,7 +1814,8 @@ extern "C" {
 extern "C" {
     pub fn Servo_ParseProperty(property: nsCSSPropertyID,
                                value: *const nsACString,
-                               data: *mut RawGeckoURLExtraData)
+                               data: *mut RawGeckoURLExtraData,
+                               length_parsing_mode: LengthParsingMode)
      -> RawServoDeclarationBlockStrong;
 }
 extern "C" {
