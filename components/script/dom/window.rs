@@ -1066,8 +1066,8 @@ impl Window {
                 let content_size = e.upcast::<Node>().bounding_content_box_or_zero();
                 let content_height = content_size.size.height.to_f64_px();
                 let content_width = content_size.size.width.to_f64_px();
-                (xfinite.max(0.0f64).min(content_width - width),
-                 yfinite.max(0.0f64).min(content_height - height))
+                (xfinite.min(content_width - width).max(0.0f64),
+                 yfinite.min(content_height - height).max(0.0f64))
             },
             None => {
                 (xfinite.max(0.0f64), yfinite.max(0.0f64))
