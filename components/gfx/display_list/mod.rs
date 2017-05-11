@@ -26,15 +26,15 @@ use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, PixelFormat};
 use range::Range;
 use servo_geometry::max_rect;
-use std::cmp::{self, Ordering};
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
 use style_traits::cursor::Cursor;
 use text::TextRun;
 use text::glyph::ByteIndex;
-use webrender_traits::{self, BorderStyle, BoxShadowClipMode, ClipId, ColorF, ExtendMode, FilterOp};
-use webrender_traits::{GradientStop, ImageRendering, MixBlendMode, ScrollPolicy, WebGLContextId};
+use webrender_traits::{self, BorderRadius, BoxShadowClipMode, ClipId, ColorF, ExtendMode, FilterOp};
+use webrender_traits::{GradientStop, ImageRendering, MixBlendMode, NormalBorder, ScrollPolicy, WebGLContextId};
 
 pub use style::dom::OpaqueNode;
 
@@ -622,7 +622,7 @@ pub struct ComplexClippingRegion {
     /// The boundaries of the rectangle.
     pub rect: Rect<Au>,
     /// Border radii of this rectangle.
-    pub radii: BorderRadii<Au>,
+    pub radii: BorderRadius,
 }
 
 impl ClippingRegion {
@@ -706,7 +706,7 @@ impl ClippingRegion {
 
     /// Intersects this clipping region with the given rounded rectangle.
     #[inline]
-    pub fn intersect_with_rounded_rect(&mut self, rect: &Rect<Au>, radii: &BorderRadii<Au>) {
+    pub fn intersect_with_rounded_rect(&mut self, rect: &Rect<Au>, radii: &BorderRadius) {
         let new_complex_region = ComplexClippingRegion {
             rect: *rect,
             radii: *radii,
@@ -772,10 +772,10 @@ impl ComplexClippingRegion {
     // TODO(pcwalton): This could be more aggressive by considering points that touch the inside of
     // the border radius ellipse.
     fn completely_encloses(&self, other: &ComplexClippingRegion) -> bool {
-        let left = cmp::max(self.radii.top_left.width, self.radii.bottom_left.width);
-        let top = cmp::max(self.radii.top_left.height, self.radii.top_right.height);
-        let right = cmp::max(self.radii.top_right.width, self.radii.bottom_right.width);
-        let bottom = cmp::max(self.radii.bottom_left.height, self.radii.bottom_right.height);
+        let left = Au::from_f32_px(self.radii.top_left.width.max(self.radii.bottom_left.width));
+        let top = Au::from_f32_px(self.radii.top_left.height.max(self.radii.top_right.height));
+        let right = Au::from_f32_px(self.radii.top_right.width.max(self.radii.bottom_right.width));
+        let bottom = Au::from_f32_px(self.radii.bottom_left.height.max(self.radii.bottom_right.height));
         let interior = Rect::new(Point2D::new(self.rect.origin.x + left, self.rect.origin.y + top),
                                  Size2D::new(self.rect.size.width - left - right,
                                              self.rect.size.height - top - bottom));
@@ -925,21 +925,6 @@ pub struct RadialGradientDisplayItem {
     pub gradient: RadialGradient,
 }
 
-/// A normal border, supporting CSS border styles.
-#[derive(Clone, Deserialize, Serialize)]
-pub struct NormalBorder {
-    /// Border colors.
-    pub color: SideOffsets2D<ColorF>,
-
-    /// Border styles.
-    pub style: SideOffsets2D<BorderStyle>,
-
-    /// Border radii.
-    ///
-    /// TODO(pcwalton): Elliptical radii.
-    pub radius: BorderRadii<Au>,
-}
-
 /// A border that is made of image segments.
 #[derive(Clone, Deserialize, Serialize)]
 pub struct ImageBorder {
@@ -1004,70 +989,6 @@ pub struct BorderDisplayItem {
     pub details: BorderDetails,
 }
 
-/// Information about the border radii.
-///
-/// TODO(pcwalton): Elliptical radii.
-#[derive(Clone, PartialEq, Debug, Copy, Deserialize, Serialize)]
-pub struct BorderRadii<T> {
-    pub top_left: Size2D<T>,
-    pub top_right: Size2D<T>,
-    pub bottom_right: Size2D<T>,
-    pub bottom_left: Size2D<T>,
-}
-
-impl<T> Default for BorderRadii<T> where T: Default, T: Clone {
-    fn default() -> Self {
-        let top_left = Size2D::new(Default::default(),
-                                   Default::default());
-        let top_right = Size2D::new(Default::default(),
-                                    Default::default());
-        let bottom_left = Size2D::new(Default::default(),
-                                      Default::default());
-        let bottom_right = Size2D::new(Default::default(),
-                                       Default::default());
-        BorderRadii { top_left: top_left,
-                      top_right: top_right,
-                      bottom_left: bottom_left,
-                      bottom_right: bottom_right }
-    }
-}
-
-impl BorderRadii<Au> {
-    // Scale the border radii by the specified factor
-    pub fn scale_by(&self, s: f32) -> BorderRadii<Au> {
-        BorderRadii { top_left: BorderRadii::scale_corner_by(self.top_left, s),
-                      top_right: BorderRadii::scale_corner_by(self.top_right, s),
-                      bottom_left: BorderRadii::scale_corner_by(self.bottom_left, s),
-                      bottom_right: BorderRadii::scale_corner_by(self.bottom_right, s) }
-    }
-
-    // Scale the border corner radius by the specified factor
-    pub fn scale_corner_by(corner: Size2D<Au>, s: f32) -> Size2D<Au> {
-        Size2D::new(corner.width.scale_by(s), corner.height.scale_by(s))
-    }
-}
-
-impl<T> BorderRadii<T> where T: PartialEq + Zero {
-    /// Returns true if all the radii are zero.
-    pub fn is_square(&self) -> bool {
-        let zero = Zero::zero();
-        self.top_left == zero && self.top_right == zero && self.bottom_right == zero &&
-            self.bottom_left == zero
-    }
-}
-
-impl<T> BorderRadii<T> where T: PartialEq + Zero + Clone {
-    /// Returns a set of border radii that all have the given value.
-    pub fn all_same(value: T) -> BorderRadii<T> {
-        BorderRadii {
-            top_left: Size2D::new(value.clone(), value.clone()),
-            top_right: Size2D::new(value.clone(), value.clone()),
-            bottom_right: Size2D::new(value.clone(), value.clone()),
-            bottom_left: Size2D::new(value.clone(), value.clone()),
-        }
-    }
-}
-
 /// Paints a box shadow per CSS-BACKGROUNDS.
 #[derive(Clone, Deserialize, Serialize)]
 pub struct BoxShadowDisplayItem {
@@ -1092,7 +1013,7 @@ pub struct BoxShadowDisplayItem {
     /// The border radius of this shadow.
     ///
     /// TODO(pcwalton): Elliptical radii; different radii for each corner.
-    pub border_radius: Au,
+    pub border_radius: f32,
 
     /// How we should clip the result.
     pub clip_mode: BoxShadowClipMode,

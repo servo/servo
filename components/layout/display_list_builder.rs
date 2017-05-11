@@ -22,8 +22,8 @@ use fragment::{CoordinateSystem, Fragment, ImageFragmentInfo, ScannedTextFragmen
 use fragment::{SpecificFragmentInfo, TruncatedFragmentInfo};
 use gfx::display_list;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDetails};
-use gfx::display_list::{BorderDisplayItem, ImageBorder, NormalBorder};
-use gfx::display_list::{BorderRadii, BoxShadowDisplayItem, ClippingRegion};
+use gfx::display_list::{BorderDisplayItem, ImageBorder};
+use gfx::display_list::{BoxShadowDisplayItem, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayItemMetadata, DisplayList, DisplayListSection};
 use gfx::display_list::{GradientDisplayItem, RadialGradientDisplayItem, IframeDisplayItem, ImageDisplayItem};
 use gfx::display_list::{OpaqueNode, SolidColorDisplayItem, ScrollRoot, StackingContext, StackingContextType};
@@ -41,9 +41,7 @@ use script_layout_interface::wrapper_traits::PseudoElementType;
 use servo_config::opts;
 use servo_geometry::max_rect;
 use servo_url::ServoUrl;
-use std::{cmp, f32};
 use std::collections::HashMap;
-use std::default::Default;
 use std::mem;
 use std::sync::Arc;
 use style::computed_values::{background_attachment, background_clip, background_origin};
@@ -66,8 +64,8 @@ use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
 use to_layout::ToLayout;
-use webrender_traits::{BorderStyle, BoxShadowClipMode, ColorF, ClipId};
-use webrender_traits::{ExtendMode, GradientStop, ImageRendering, RepeatMode, ScrollPolicy};
+use webrender_traits::{BorderRadius, BorderSide, BorderStyle, BoxShadowClipMode, ColorF, ClipId, ExtendMode};
+use webrender_traits::{GradientStop, ImageRendering, LayerSize, NormalBorder, RepeatMode, ScrollPolicy};
 
 trait ResolvePercentage {
     fn resolve(&self, length: u32) -> u32;
@@ -531,16 +529,16 @@ pub trait FragmentDisplayListBuilding {
     fn fragment_type(&self) -> FragmentType;
 }
 
-fn handle_overlapping_radii(size: &Size2D<Au>, radii: &BorderRadii<Au>) -> BorderRadii<Au> {
+fn handle_overlapping_radii(size: &Size2D<Au>, mut radii: BorderRadius) -> BorderRadius {
     // No two corners' border radii may add up to more than the length of the edge
     // between them. To prevent that, all radii are scaled down uniformly.
-    fn scale_factor(radius_a: Au, radius_b: Au, edge_length: Au) -> f32 {
+    fn scale_factor(radius_a: f32, radius_b: f32, edge_length: Au) -> f32 {
         let required = radius_a + radius_b;
 
-        if required <= edge_length {
+        if required <= edge_length.to_f32_px() {
             1.0
         } else {
-            edge_length.to_f32_px() / required.to_f32_px()
+            edge_length.to_f32_px() / required
         }
     }
 
@@ -550,20 +548,22 @@ fn handle_overlapping_radii(size: &Size2D<Au>, radii: &BorderRadii<Au>) -> Borde
     let right_factor = scale_factor(radii.top_right.height, radii.bottom_right.height, size.height);
     let min_factor = top_factor.min(bottom_factor).min(left_factor).min(right_factor);
     if min_factor < 1.0 {
-        radii.scale_by(min_factor)
-    } else {
-        *radii
+        radii.top_left = radii.top_left * min_factor;
+        radii.top_right = radii.top_right * min_factor;
+        radii.bottom_left = radii.bottom_left * min_factor;
+        radii.bottom_right = radii.bottom_right * min_factor;
     }
+    radii
 }
 
 fn build_border_radius(abs_bounds: &Rect<Au>,
                        border_style: &style_structs::Border)
-                       -> BorderRadii<Au> {
+                       -> BorderRadius {
     // TODO(cgaebel): Support border radii even in the case of multiple border widths.
     // This is an extension of supporting elliptical radii. For now, all percentage
     // radii will be relative to the width.
 
-    handle_overlapping_radii(&abs_bounds.size, &BorderRadii {
+    handle_overlapping_radii(&abs_bounds.size, BorderRadius {
         top_left:     model::specified_border_radius(border_style.border_top_left_radius,
                                                      abs_bounds.size),
         top_right:    model::specified_border_radius(border_style.border_top_right_radius,
@@ -579,9 +579,9 @@ fn build_border_radius(abs_bounds: &Rect<Au>,
 /// for building the clip for the content inside the border.
 fn build_border_radius_for_inner_rect(outer_rect: &Rect<Au>,
                                       style: &ServoComputedValues)
-                                      -> BorderRadii<Au> {
+                                      -> BorderRadius {
     let mut radii = build_border_radius(&outer_rect, style.get_border());
-    if radii.is_square() {
+    if is_square_border(radii) {
         return radii;
     }
 
@@ -589,17 +589,17 @@ fn build_border_radius_for_inner_rect(outer_rect: &Rect<Au>,
     // border width), we need to adjust to border radius so that we are smaller
     // rectangle with the same border curve.
     let border_widths = style.logical_border_width().to_physical(style.writing_mode);
-    radii.top_left.width = cmp::max(Au(0), radii.top_left.width - border_widths.left);
-    radii.bottom_left.width = cmp::max(Au(0), radii.bottom_left.width - border_widths.left);
+    radii.top_left.width = 0f32.max(radii.top_left.width - border_widths.left.to_f32_px());
+    radii.bottom_left.width = 0f32.max(radii.bottom_left.width - border_widths.left.to_f32_px());
 
-    radii.top_right.width = cmp::max(Au(0), radii.top_right.width - border_widths.right);
-    radii.bottom_right.width = cmp::max(Au(0), radii.bottom_right.width - border_widths.right);
+    radii.top_right.width = 0f32.max(radii.top_right.width - border_widths.right.to_f32_px());
+    radii.bottom_right.width = 0f32.max(radii.bottom_right.width - border_widths.right.to_f32_px());
 
-    radii.top_left.height = cmp::max(Au(0), radii.top_left.height - border_widths.top);
-    radii.top_right.height = cmp::max(Au(0), radii.top_right.height - border_widths.top);
+    radii.top_left.height = 0f32.max(radii.top_left.height - border_widths.top.to_f32_px());
+    radii.top_right.height = 0f32.max(radii.top_right.height - border_widths.top.to_f32_px());
 
-    radii.bottom_left.height = cmp::max(Au(0), radii.bottom_left.height - border_widths.bottom);
-    radii.bottom_right.height = cmp::max(Au(0), radii.bottom_right.height - border_widths.bottom);
+    radii.bottom_left.height = 0f32.max(radii.bottom_left.height - border_widths.bottom.to_f32_px());
+    radii.bottom_right.height = 0f32.max(radii.bottom_right.height - border_widths.bottom.to_f32_px());
     radii
 }
 
@@ -801,7 +801,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // Adjust the clipping region as necessary to account for `border-radius`.
         let border_radii = build_border_radius(absolute_bounds, style.get_border());
         let mut clip = ClippingRegion::max();
-        if !border_radii.is_square() {
+        if !is_square_border(border_radii) {
             clip.intersect_with_rounded_rect(absolute_bounds, &border_radii);
         };
         let background = style.get_background();
@@ -1112,9 +1112,9 @@ impl FragmentDisplayListBuilding for Fragment {
                             bounds.size.width.to_f32_px()).atan();
                 match (horizontal, vertical) {
                     (HorizontalDirection::Right, VerticalDirection::Bottom)
-                        => f32::consts::PI - atan,
+                        => ::std::f32::consts::PI - atan,
                     (HorizontalDirection::Left, VerticalDirection::Bottom)
-                        => f32::consts::PI + atan,
+                        => ::std::f32::consts::PI + atan,
                     (HorizontalDirection::Right, VerticalDirection::Top)
                         => atan,
                     (HorizontalDirection::Left, VerticalDirection::Top)
@@ -1353,11 +1353,22 @@ impl FragmentDisplayListBuilding for Fragment {
                     base: base,
                     border_widths: border.to_physical(style.writing_mode),
                     details: BorderDetails::Normal(NormalBorder {
-                        color: SideOffsets2D::new(colors.top.to_gfx_color(),
-                                                  colors.right.to_gfx_color(),
-                                                  colors.bottom.to_gfx_color(),
-                                                  colors.left.to_gfx_color()),
-                        style: border_style,
+                        left: BorderSide {
+                            color: colors.left.to_gfx_color(),
+                            style: border_style.left,
+                        },
+                        right: BorderSide {
+                            color: colors.right.to_gfx_color(),
+                            style: border_style.right,
+                        },
+                        top: BorderSide {
+                            color: colors.top.to_gfx_color(),
+                            style: border_style.top,
+                        },
+                        bottom: BorderSide {
+                            color: colors.bottom.to_gfx_color(),
+                            style: border_style.bottom,
+                        },
                         radius: build_border_radius(&bounds, border_style_struct),
                     }),
                 }));
@@ -1478,11 +1489,7 @@ impl FragmentDisplayListBuilding for Fragment {
         state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
             base: base,
             border_widths: SideOffsets2D::new_all_same(width),
-            details: BorderDetails::Normal(NormalBorder {
-                color: SideOffsets2D::new_all_same(color),
-                style: SideOffsets2D::new_all_same(outline_style),
-                radius: Default::default(),
-            }),
+            details: make_simple_border(color, outline_style),
         }));
     }
 
@@ -1502,11 +1509,7 @@ impl FragmentDisplayListBuilding for Fragment {
         state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
             base: base,
             border_widths: SideOffsets2D::new_all_same(Au::from_px(1)),
-            details: BorderDetails::Normal(NormalBorder {
-                color: SideOffsets2D::new_all_same(ColorF::rgb(0, 0, 200)),
-                style: SideOffsets2D::new_all_same(BorderStyle::Solid),
-                radius: Default::default(),
-            }),
+            details: make_simple_border(ColorF::rgb(0, 0, 200), BorderStyle::Solid),
         }));
     }
 
@@ -1523,11 +1526,7 @@ impl FragmentDisplayListBuilding for Fragment {
         state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
             base: base,
             border_widths: SideOffsets2D::new_all_same(Au::from_px(1)),
-            details: BorderDetails::Normal(NormalBorder {
-                color: SideOffsets2D::new_all_same(ColorF::rgb(0, 0, 200)),
-                style: SideOffsets2D::new_all_same(BorderStyle::Solid),
-                radius: Default::default(),
-            }),
+            details: make_simple_border(ColorF::rgb(0, 0, 200), BorderStyle::Solid),
         }));
     }
 
@@ -2054,7 +2053,7 @@ impl FragmentDisplayListBuilding for Fragment {
             offset: Point2D::zero(),
             blur_radius: blur_radius,
             spread_radius: Au(0),
-            border_radius: Au(0),
+            border_radius: 0f32,
             clip_mode: BoxShadowClipMode::None,
         }));
     }
@@ -2360,7 +2359,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 
         let border_radii = build_border_radius_for_inner_rect(&border_box,
                                                               &self.fragment.style);
-        if !border_radii.is_square() {
+        if !is_square_border(border_radii) {
             clip.intersect_with_rounded_rect(&clip_rect, &border_radii)
         }
 
@@ -2382,7 +2381,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         let clip_rect = Rect::new(Point2D::zero(), content_box.size);
         let mut clip = ClippingRegion::from_rect(&clip_rect);
         let radii = build_border_radius_for_inner_rect(&border_box, &self.fragment.style);
-        if !radii.is_square() {
+        if !is_square_border(radii) {
             clip.intersect_with_rounded_rect(&clip_rect, &radii)
         }
 
@@ -2719,11 +2718,7 @@ impl BaseFlowDisplayListBuilding for BaseFlow {
         state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
             base: base,
             border_widths: SideOffsets2D::new_all_same(Au::from_px(2)),
-            details: BorderDetails::Normal(NormalBorder {
-                color: SideOffsets2D::new_all_same(color),
-                style: SideOffsets2D::new_all_same(BorderStyle::Solid),
-                radius: BorderRadii::all_same(Au(0)),
-            }),
+            details: make_simple_border(color, BorderStyle::Solid),
         }));
     }
 }
@@ -2777,6 +2772,25 @@ fn to_extend_mode(repeating: bool) -> ExtendMode {
     } else {
         ExtendMode::Repeat
     }
+}
+
+fn make_simple_border(color: ColorF, style: BorderStyle) -> BorderDetails {
+    let side = BorderSide { color, style };
+    BorderDetails::Normal(NormalBorder {
+        left: side,
+        right: side,
+        top: side,
+        bottom: side,
+        radius: BorderRadius::zero(),
+    })
+}
+
+fn is_square_border(border: BorderRadius) -> bool {
+    let zero = LayerSize::zero();
+    border.top_left == zero &&
+    border.top_right == zero &&
+    border.bottom_right == zero &&
+    border.bottom_left == zero
 }
 
 /// Allows a CSS color to be converted into a graphics color.

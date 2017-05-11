@@ -9,7 +9,7 @@
 
 use app_units::Au;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
-use gfx::display_list::{BorderDetails, BorderRadii, ClippingRegion};
+use gfx::display_list::{BorderDetails, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayList, DisplayListTraversal, StackingContextType};
 use msg::constellation_msg::PipelineId;
 use webrender_traits::{self, DisplayListBuilder};
@@ -86,25 +86,10 @@ impl ToClipRegion for ClippingRegion {
                                 self.complex.iter().map(|complex_clipping_region| {
                                     webrender_traits::ComplexClipRegion::new(
                                         complex_clipping_region.rect.to_rectf(),
-                                        complex_clipping_region.radii.to_border_radius(),
+                                        complex_clipping_region.radii,
                                      )
                                 }),
                                 None)
-    }
-}
-
-trait ToBorderRadius {
-    fn to_border_radius(&self) -> webrender_traits::BorderRadius;
-}
-
-impl ToBorderRadius for BorderRadii<Au> {
-    fn to_border_radius(&self) -> webrender_traits::BorderRadius {
-        webrender_traits::BorderRadius {
-            top_left: self.top_left.to_sizef(),
-            top_right: self.top_right.to_sizef(),
-            bottom_left: self.bottom_left.to_sizef(),
-            bottom_right: self.bottom_right.to_sizef(),
-        }
     }
 }
 
@@ -206,30 +191,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
 
                 let details = match item.details {
                     BorderDetails::Normal(ref border) => {
-                        let left = webrender_traits::BorderSide {
-                            color: border.color.left,
-                            style: border.style.left,
-                        };
-                        let top = webrender_traits::BorderSide {
-                            color: border.color.top,
-                            style: border.style.top,
-                        };
-                        let right = webrender_traits::BorderSide {
-                            color: border.color.right,
-                            style: border.style.right,
-                        };
-                        let bottom = webrender_traits::BorderSide {
-                            color: border.color.bottom,
-                            style: border.style.bottom,
-                        };
-                        let radius = border.radius.to_border_radius();
-                        webrender_traits::BorderDetails::Normal(webrender_traits::NormalBorder {
-                            left: left,
-                            top: top,
-                            right: right,
-                            bottom: bottom,
-                            radius: radius,
-                        })
+                        webrender_traits::BorderDetails::Normal(border.clone())
                     }
                     BorderDetails::Image(ref image) => {
                         match image.image.key {
@@ -314,7 +276,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                         item.color,
                                         item.blur_radius.to_f32_px(),
                                         item.spread_radius.to_f32_px(),
-                                        item.border_radius.to_f32_px(),
+                                        item.border_radius,
                                         item.clip_mode);
             }
             DisplayItem::Iframe(ref item) => {
