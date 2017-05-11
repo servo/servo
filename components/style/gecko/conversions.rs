@@ -16,8 +16,9 @@ use gecko_bindings::structs::{nsCSSUnit, nsStyleCoord_CalcValue, nsStyleImage};
 use gecko_bindings::structs::{nsresult, SheetType};
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordDataMut};
 use stylesheets::{Origin, RulesMutateError};
-use values::computed::{Angle, CalcLengthOrPercentage, Gradient, GradientItem, Image};
+use values::computed::{Angle, CalcLengthOrPercentage, Gradient, Image};
 use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use values::generics::image::{GradientItem, Image as GenericImage};
 
 impl From<CalcLengthOrPercentage> for nsStyleCoord_CalcValue {
     fn from(other: CalcLengthOrPercentage) -> nsStyleCoord_CalcValue {
@@ -138,10 +139,10 @@ impl nsStyleImage {
     /// Set a given Servo `Image` value into this `nsStyleImage`.
     pub fn set(&mut self, image: Image, cacheable: &mut bool) {
         match image {
-            Image::Gradient(gradient) => {
+            GenericImage::Gradient(gradient) => {
                 self.set_gradient(gradient)
             },
-            Image::Url(ref url) => {
+            GenericImage::Url(ref url) => {
                 unsafe {
                     Gecko_SetUrlImageValue(self, url.for_ffi());
                     // We unfortunately must make any url() value uncacheable, since
@@ -154,7 +155,7 @@ impl nsStyleImage {
                     *cacheable = false;
                 }
             },
-            Image::ImageRect(ref image_rect) => {
+            GenericImage::Rect(ref image_rect) => {
                 unsafe {
                     Gecko_SetUrlImageValue(self, image_rect.url.for_ffi());
                     Gecko_InitializeImageCropRect(self);
@@ -176,7 +177,7 @@ impl nsStyleImage {
                     image_rect.left.to_gecko_style_coord(&mut rect.data_at_mut(3));
                 }
             }
-            Image::Element(ref element) => {
+            GenericImage::Element(ref element) => {
                 unsafe {
                     Gecko_SetImageElement(self, element.as_ptr());
                 }
@@ -201,7 +202,7 @@ impl nsStyleImage {
             return;
         }
 
-        let gecko_gradient = match gradient.gradient_kind {
+        let gecko_gradient = match gradient.kind {
             GradientKind::Linear(angle_or_corner) => {
                 let gecko_gradient = unsafe {
                     Gecko_CreateGradient(NS_STYLE_GRADIENT_SHAPE_LINEAR as u8,
