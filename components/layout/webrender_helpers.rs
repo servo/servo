@@ -14,7 +14,6 @@ use gfx::display_list::{DisplayItem, DisplayList, DisplayListTraversal, Stacking
 use msg::constellation_msg::PipelineId;
 use style::computed_values::{image_rendering, mix_blend_mode, transform_style};
 use style::computed_values::filter::{self, Filter};
-use style::values::computed::BorderStyle;
 use webrender_traits::{self, DisplayListBuilder};
 use webrender_traits::{LayoutTransform, ClipId, ClipRegionToken};
 
@@ -26,27 +25,6 @@ trait WebRenderDisplayItemConverter {
     fn convert_to_webrender(&self,
                             builder: &mut DisplayListBuilder,
                             current_scroll_root_id: &mut ClipId);
-}
-
-trait ToBorderStyle {
-    fn to_border_style(&self) -> webrender_traits::BorderStyle;
-}
-
-impl ToBorderStyle for BorderStyle {
-    fn to_border_style(&self) -> webrender_traits::BorderStyle {
-        match *self {
-            BorderStyle::none => webrender_traits::BorderStyle::None,
-            BorderStyle::solid => webrender_traits::BorderStyle::Solid,
-            BorderStyle::double => webrender_traits::BorderStyle::Double,
-            BorderStyle::dotted => webrender_traits::BorderStyle::Dotted,
-            BorderStyle::dashed => webrender_traits::BorderStyle::Dashed,
-            BorderStyle::hidden => webrender_traits::BorderStyle::Hidden,
-            BorderStyle::groove => webrender_traits::BorderStyle::Groove,
-            BorderStyle::ridge => webrender_traits::BorderStyle::Ridge,
-            BorderStyle::inset => webrender_traits::BorderStyle::Inset,
-            BorderStyle::outset => webrender_traits::BorderStyle::Outset,
-        }
-    }
 }
 
 trait ToBorderWidths {
@@ -311,19 +289,19 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     BorderDetails::Normal(ref border) => {
                         let left = webrender_traits::BorderSide {
                             color: border.color.left,
-                            style: border.style.left.to_border_style(),
+                            style: border.style.left,
                         };
                         let top = webrender_traits::BorderSide {
                             color: border.color.top,
-                            style: border.style.top.to_border_style(),
+                            style: border.style.top,
                         };
                         let right = webrender_traits::BorderSide {
                             color: border.color.right,
-                            style: border.style.right.to_border_style(),
+                            style: border.style.right,
                         };
                         let bottom = webrender_traits::BorderSide {
                             color: border.color.bottom,
-                            style: border.style.bottom.to_border_style(),
+                            style: border.style.bottom,
                         };
                         let radius = border.radius.to_border_radius();
                         webrender_traits::BorderDetails::Normal(webrender_traits::NormalBorder {

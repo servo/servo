@@ -30,11 +30,12 @@ use std::cmp::{self, Ordering};
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
-use style::computed_values::{border_style, filter, image_rendering};
+use style::computed_values::{filter, image_rendering, mix_blend_mode};
 use style_traits::cursor::Cursor;
 use text::TextRun;
 use text::glyph::ByteIndex;
-use webrender_traits::{self, BoxShadowClipMode, ClipId, ColorF, ExtendMode, GradientStop, MixBlendMode, ScrollPolicy, TransformStyle, WebGLContextId};
+use webrender_traits::{self, BorderStyle, BoxShadowClipMode, ClipId, ColorF, ExtendMode};
+use webrender_traits::{GradientStop, MixBlendMode, ScrollPolicy, TransformStyle, WebGLContextId};
 pub use style::dom::OpaqueNode;
 
 /// The factor that we multiply the blur radius by in order to inflate the boundaries of display
@@ -996,7 +997,7 @@ pub struct NormalBorder {
     pub color: SideOffsets2D<ColorF>,
 
     /// Border styles.
-    pub style: SideOffsets2D<border_style::T>,
+    pub style: SideOffsets2D<BorderStyle>,
 
     /// Border radii.
     ///

@@ -409,8 +409,7 @@ impl CollapsedBordersForCell {
     pub fn adjust_border_colors_and_styles_for_painting(
             &self,
             border_colors: &mut SideOffsets2D<Color>,
-            border_styles: &mut SideOffsets2D<border_top_style::T>,
-            writing_mode: WritingMode) {
+            writing_mode: WritingMode) -> SideOffsets2D<border_top_style::T> {
         let logical_border_colors = LogicalMargin::new(writing_mode,
                                                        self.block_start_border.color,
                                                        self.inline_end_border.color,
@@ -423,6 +422,6 @@ impl CollapsedBordersForCell {
                                                        self.inline_end_border.style,
                                                        self.block_end_border.style,
                                                        self.inline_start_border.style);
-        *border_styles = logical_border_styles.to_physical(writing_mode);
+        return logical_border_styles.to_physical(writing_mode);
     }
 }
