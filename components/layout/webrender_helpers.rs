@@ -13,7 +13,6 @@ use gfx::display_list::{BorderDetails, BorderRadii, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayList, DisplayListTraversal, StackingContextType};
 use msg::constellation_msg::PipelineId;
 use style::computed_values::{image_rendering, transform_style};
-use style::computed_values::filter::{self, Filter};
 use webrender_traits::{self, DisplayListBuilder};
 use webrender_traits::{LayoutTransform, ClipId, ClipRegionToken};
 
@@ -121,30 +120,6 @@ impl ToImageRendering for image_rendering::T {
             image_rendering::T::auto => webrender_traits::ImageRendering::Auto,
             image_rendering::T::pixelated => webrender_traits::ImageRendering::Pixelated,
         }
-    }
-}
-
-trait ToFilterOps {
-    fn to_filter_ops(&self) -> Vec<webrender_traits::FilterOp>;
-}
-
-impl ToFilterOps for filter::T {
-    fn to_filter_ops(&self) -> Vec<webrender_traits::FilterOp> {
-        let mut result = Vec::with_capacity(self.filters.len());
-        for filter in self.filters.iter() {
-            match *filter {
-                Filter::Blur(radius) => result.push(webrender_traits::FilterOp::Blur(radius)),
-                Filter::Brightness(amount) => result.push(webrender_traits::FilterOp::Brightness(amount)),
-                Filter::Contrast(amount) => result.push(webrender_traits::FilterOp::Contrast(amount)),
-                Filter::Grayscale(amount) => result.push(webrender_traits::FilterOp::Grayscale(amount)),
-                Filter::HueRotate(angle) => result.push(webrender_traits::FilterOp::HueRotate(angle.radians())),
-                Filter::Invert(amount) => result.push(webrender_traits::FilterOp::Invert(amount)),
-                Filter::Opacity(amount) => result.push(webrender_traits::FilterOp::Opacity(amount.into())),
-                Filter::Saturate(amount) => result.push(webrender_traits::FilterOp::Saturate(amount)),
-                Filter::Sepia(amount) => result.push(webrender_traits::FilterOp::Sepia(amount)),
-            }
-        }
-        result
     }
 }
 
@@ -394,7 +369,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                               stacking_context.transform_style,
                                               perspective,
                                               stacking_context.mix_blend_mode,
-                                              stacking_context.filters.to_filter_ops());
+                                              stacking_context.filters.clone());
             }
             DisplayItem::PopStackingContext(_) => builder.pop_stacking_context(),
             DisplayItem::DefineClip(ref item) => {

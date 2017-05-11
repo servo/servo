@@ -30,12 +30,12 @@ use std::cmp::{self, Ordering};
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
-use style::computed_values::{filter, image_rendering};
+use style::computed_values::image_rendering;
 use style_traits::cursor::Cursor;
 use text::TextRun;
 use text::glyph::ByteIndex;
-use webrender_traits::{self, BorderStyle, BoxShadowClipMode, ClipId, ColorF, ExtendMode};
-use webrender_traits::{GradientStop, MixBlendMode, ScrollPolicy, TransformStyle, WebGLContextId};
+use webrender_traits::{self, BorderStyle, BoxShadowClipMode, ClipId, ColorF};
+use webrender_traits::{ExtendMode, FilterOp, GradientStop, MixBlendMode, ScrollPolicy, TransformStyle, WebGLContextId};
 pub use style::dom::OpaqueNode;
 
 /// The factor that we multiply the blur radius by in order to inflate the boundaries of display
@@ -421,7 +421,7 @@ pub struct StackingContext {
     pub z_index: i32,
 
     /// CSS filters to be applied to this stacking context (including opacity).
-    pub filters: filter::T,
+    pub filters: Vec<FilterOp>,
 
     /// The blend mode with which this stacking context blends with its backdrop.
     pub mix_blend_mode: MixBlendMode,
@@ -450,7 +450,7 @@ impl StackingContext {
                bounds: &Rect<Au>,
                overflow: &Rect<Au>,
                z_index: i32,
-               filters: filter::T,
+               filters: Vec<FilterOp>,
                mix_blend_mode: MixBlendMode,
                transform: Option<Matrix4D<f32>>,
                transform_style: TransformStyle,
@@ -481,7 +481,7 @@ impl StackingContext {
                              &Rect::zero(),
                              &Rect::zero(),
                              0,
-                             filter::T::new(Vec::new()),
+                             Vec::new(),
                              MixBlendMode::Normal,
                              None,
                              TransformStyle::Flat,
