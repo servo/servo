@@ -16,7 +16,7 @@ fn test_rgba_color_interepolation_preserves_transparent() {
 fn test_rgba_color_interepolation_alpha() {
     assert_eq!(Color::RGBA(RGBA::new(200, 0, 0, 100))
                 .interpolate(&Color::RGBA(RGBA::new(0, 200, 0, 200)), 0.5).unwrap(),
-               Color::RGBA(RGBA::new(66, 133, 0, 150)));
+               Color::RGBA(RGBA::new(67, 133, 0, 150)));
 }
 
 #[test]
@@ -25,14 +25,14 @@ fn test_rgba_color_interepolation_out_of_range_1() {
     // Unclamped cases.
     assert_eq!(Color::RGBA(RGBA::from_floats(0.3, 0.0, 0.0, 0.4)).interpolate(
               &Color::RGBA(RGBA::from_floats(0.0, 1.0, 0.0, 0.6)), -0.5).unwrap(),
-               Color::RGBA(RGBA::new(152, 0, 0, 76)));
+               Color::RGBA(RGBA::new(154, 0, 0, 77)));
 }
 
 #[test]
 fn test_rgba_color_interepolation_out_of_range_2() {
     assert_eq!(Color::RGBA(RGBA::from_floats(1.0, 0.0, 0.0, 0.6)).interpolate(
               &Color::RGBA(RGBA::from_floats(0.0, 0.3, 0.0, 0.4)), 1.5).unwrap(),
-               Color::RGBA(RGBA::new(0, 152, 0, 76)));
+               Color::RGBA(RGBA::new(0, 154, 0, 77)));
 }
 
 #[test]
