@@ -68,7 +68,7 @@ use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
 use to_layout::ToLayout;
-use webrender_helpers::{ToMixBlendMode, ToTransformStyle};
+use webrender_helpers::ToTransformStyle;
 use webrender_traits::{BorderStyle, BoxShadowClipMode, ColorF, ClipId};
 use webrender_traits::{ExtendMode, GradientStop, RepeatMode, ScrollPolicy, TransformStyle};
 
@@ -1933,7 +1933,7 @@ impl FragmentDisplayListBuilding for Fragment {
                              &overflow,
                              self.effective_z_index(),
                              filters,
-                             self.style().get_effects().mix_blend_mode.to_mix_blend_mode(),
+                             self.style().get_effects().mix_blend_mode.to_layout(),
                              self.transform_matrix(&border_box),
                              self.style().get_used_transform_style().to_transform_style(),
                              self.perspective_matrix(&border_box),

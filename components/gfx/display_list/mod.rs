@@ -30,7 +30,7 @@ use std::cmp::{self, Ordering};
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
-use style::computed_values::{filter, image_rendering, mix_blend_mode};
+use style::computed_values::{filter, image_rendering};
 use style_traits::cursor::Cursor;
 use text::TextRun;
 use text::glyph::ByteIndex;
