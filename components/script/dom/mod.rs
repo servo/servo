@@ -255,6 +255,7 @@ pub mod cssstylerule;
 pub mod cssstylesheet;
 pub mod csssupportsrule;
 pub mod cssviewportrule;
+pub mod customelementregistry;
 pub mod customevent;
 pub mod dedicatedworkerglobalscope;
 pub mod dissimilaroriginlocation;
