@@ -799,7 +799,7 @@ mod shorthand_serialization {
         use style::properties::longhands::mask_position_y as position_y;
         use style::properties::longhands::mask_repeat as repeat;
         use style::properties::longhands::mask_size as size;
-        use style::values::specified::Image;
+        use style::values::generics::image::Image;
         use super::*;
 
         macro_rules! single_vec_value_typedef {

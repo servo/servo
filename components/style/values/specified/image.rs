@@ -8,68 +8,58 @@
 //! [image]: https://drafts.csswg.org/css-images/#image-values
 
 use Atom;
-use cssparser::{Parser, Token, serialize_identifier};
+use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
 #[cfg(feature = "servo")]
 use servo_url::ServoUrl;
 use std::fmt;
 use style_traits::ToCss;
+use values::generics::image::{CompatMode, ColorStop as GenericColorStop};
+use values::generics::image::{Gradient as GenericGradient, GradientItem as GenericGradientItem};
+use values::generics::image::{Image as GenericImage, ImageRect as GenericImageRect};
 use values::specified::{Angle, CSSColor, Length, LengthOrPercentage, NumberOrPercentage};
 use values::specified::position::Position;
 use values::specified::url::SpecifiedUrl;
 
 /// Specified values for an image according to CSS-IMAGES.
 /// https://drafts.csswg.org/css-images/#image-values
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum Image {
-    /// A `<url()>` image.
-    Url(SpecifiedUrl),
-    /// A `<gradient>` image.
-    Gradient(Gradient),
-    /// A `-moz-image-rect` image
-    ImageRect(ImageRect),
-    /// A `-moz-element(# <element-id>)`
-    Element(Atom),
-}
+pub type Image = GenericImage<Gradient, NumberOrPercentage>;
 
-impl ToCss for Image {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            Image::Url(ref url_value) => url_value.to_css(dest),
-            Image::Gradient(ref gradient) => gradient.to_css(dest),
-            Image::ImageRect(ref image_rect) => image_rect.to_css(dest),
-            Image::Element(ref selector) => {
-                dest.write_str("-moz-element(#")?;
-                // FIXME: We should get rid of these intermediate strings.
-                serialize_identifier(&*selector.to_string(), dest)?;
-                dest.write_str(")")
-            },
-        }
-    }
-}
+/// Specified values for a CSS gradient.
+/// https://drafts.csswg.org/css-images/#gradients
+pub type Gradient = GenericGradient<GradientKind, CSSColor, LengthOrPercentage>;
+
+/// A specified gradient item.
+pub type GradientItem = GenericGradientItem<CSSColor, LengthOrPercentage>;
+
+/// A computed color stop.
+pub type ColorStop = GenericColorStop<CSSColor, LengthOrPercentage>;
+
+/// Specified values for `moz-image-rect`
+/// -moz-image-rect(<uri>, top, right, bottom, left);
+pub type ImageRect = GenericImageRect<NumberOrPercentage>;
 
 impl Image {
     #[allow(missing_docs)]
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<Image, ()> {
         if let Ok(url) = input.try(|input| SpecifiedUrl::parse(context, input)) {
-            return Ok(Image::Url(url));
+            return Ok(GenericImage::Url(url));
         }
         if let Ok(gradient) = input.try(|input| Gradient::parse_function(context, input)) {
-            return Ok(Image::Gradient(gradient));
+            return Ok(GenericImage::Gradient(gradient));
         }
         if let Ok(image_rect) = input.try(|input| ImageRect::parse(context, input)) {
-            return Ok(Image::ImageRect(image_rect));
+            return Ok(GenericImage::Rect(image_rect));
         }
 
-        Ok(Image::Element(Image::parse_element(input)?))
+        Ok(GenericImage::Element(Image::parse_element(input)?))
     }
 
     /// Creates an already specified image value from an already resolved URL
     /// for insertion in the cascade.
     #[cfg(feature = "servo")]
     pub fn for_cascade(url: ServoUrl) -> Self {
-        Image::Url(SpecifiedUrl::for_cascade(url))
+        GenericImage::Url(SpecifiedUrl::for_cascade(url))
     }
 
     /// Parses a `-moz-element(# <element-id>)`.
@@ -87,21 +77,6 @@ impl Image {
     }
 }
 
-/// Specified values for a CSS gradient.
-/// https://drafts.csswg.org/css-images/#gradients
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct Gradient {
-    /// The color stops and interpolation hints.
-    pub items: Vec<GradientItem>,
-    /// True if this is a repeating gradient.
-    pub repeating: bool,
-    /// Gradients can be linear or radial.
-    pub gradient_kind: GradientKind,
-    /// Compatibility mode.
-    pub compat_mode: CompatMode,
-}
-
 impl ToCss for Gradient {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         if self.compat_mode == CompatMode::WebKit {
@@ -111,7 +86,7 @@ impl ToCss for Gradient {
             try!(dest.write_str("repeating-"));
         }
         let mut skipcomma = false;
-        match self.gradient_kind {
+        match self.kind {
             GradientKind::Linear(angle_or_corner) => {
                 try!(dest.write_str("linear-gradient("));
                 try!(angle_or_corner.to_css(dest, self.compat_mode));
@@ -198,7 +173,7 @@ impl Gradient {
         Ok(Gradient {
             items: items,
             repeating: repeating,
-            gradient_kind: gradient_kind,
+            kind: gradient_kind,
             compat_mode: compat_mode,
         })
     }
@@ -209,11 +184,11 @@ impl Gradient {
             if seen_stop {
                 if let Ok(hint) = input.try(|i| LengthOrPercentage::parse(context, i)) {
                     seen_stop = false;
-                    return Ok(GradientItem::InterpolationHint(hint));
+                    return Ok(GenericGradientItem::InterpolationHint(hint));
                 }
             }
             seen_stop = true;
-            ColorStop::parse(context, input).map(GradientItem::ColorStop)
+            ColorStop::parse(context, input).map(GenericGradientItem::ColorStop)
         }));
         if !seen_stop || items.len() < 2 {
             return Err(());
@@ -236,16 +211,6 @@ pub enum GradientKind {
     ///
     /// https://drafts.csswg.org/css-images/#radial-gradients
     Radial(EndingShape, Position),
-}
-
-#[derive(Clone, Copy, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-/// Whether we used the modern notation or the compatibility `-webkit` prefix.
-pub enum CompatMode {
-    /// Modern syntax.
-    Modern,
-    /// `-webkit` prefix.
-    WebKit,
 }
 
 impl GradientKind {
@@ -396,35 +361,6 @@ impl GradientKind {
     }
 }
 
-/// Specified values for `moz-image-rect`
-/// -moz-image-rect(<uri>, top, right, bottom, left);
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct ImageRect {
-    pub url: SpecifiedUrl,
-    pub top: NumberOrPercentage,
-    pub bottom: NumberOrPercentage,
-    pub right: NumberOrPercentage,
-    pub left: NumberOrPercentage,
-}
-
-impl ToCss for ImageRect {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        dest.write_str("-moz-image-rect(")?;
-        self.url.to_css(dest)?;
-        dest.write_str(", ")?;
-        self.top.to_css(dest)?;
-        dest.write_str(", ")?;
-        self.right.to_css(dest)?;
-        dest.write_str(", ")?;
-        self.bottom.to_css(dest)?;
-        dest.write_str(", ")?;
-        self.left.to_css(dest)?;
-        dest.write_str(")")
-    }
-}
-
 impl Parse for ImageRect {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         match_ignore_ascii_case! { &try!(input.expect_function()),
@@ -499,50 +435,6 @@ impl AngleOrCorner {
                 Ok(())
             }
         }
-    }
-}
-
-/// Specified values for color stops and interpolation hints.
-/// https://drafts.csswg.org/css-images-4/#color-stop-syntax
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum GradientItem {
-    /// A color stop.
-    ColorStop(ColorStop),
-    /// An interpolation hint.
-    InterpolationHint(LengthOrPercentage),
-}
-
-impl ToCss for GradientItem {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            GradientItem::ColorStop(ref stop) => stop.to_css(dest),
-            GradientItem::InterpolationHint(ref hint) => hint.to_css(dest),
-        }
-    }
-}
-
-/// Specified values for one color stop in a gradient.
-/// https://drafts.csswg.org/css-images/#typedef-color-stop-list
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct ColorStop {
-    /// The color of this stop.
-    pub color: CSSColor,
-
-    /// The position of this stop. If not specified, this stop is placed halfway between the
-    /// point that precedes it and the point that follows it.
-    pub position: Option<LengthOrPercentage>,
-}
-
-impl ToCss for ColorStop {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(self.color.to_css(dest));
-        if let Some(ref position) = self.position {
-            try!(dest.write_str(" "));
-            try!(position.to_css(dest));
-        }
-        Ok(())
     }
 }
 

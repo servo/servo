@@ -7,128 +7,35 @@
 //!
 //! [image]: https://drafts.csswg.org/css-images/#image-values
 
-use Atom;
-use cssparser::{Color as CSSColor, serialize_identifier};
+use cssparser::Color as CSSColor;
 use std::f32::consts::PI;
 use std::fmt;
 use style_traits::ToCss;
+use values::generics::image::{CompatMode, ColorStop as GenericColorStop};
+use values::generics::image::{Gradient as GenericGradient, GradientItem as GenericGradientItem};
+use values::generics::image::{Image as GenericImage, ImageRect as GenericImageRect};
 use values::computed::{Angle, Context, Length, LengthOrPercentage, NumberOrPercentage, ToComputedValue};
 use values::computed::position::Position;
 use values::specified::{self, HorizontalDirection, VerticalDirection};
-use values::specified::image::CompatMode;
-use values::specified::url::SpecifiedUrl;
 
 pub use values::specified::SizeKeyword;
 
-impl ToComputedValue for specified::Image {
-    type ComputedValue = Image;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> Image {
-        match *self {
-            specified::Image::Url(ref url_value) => {
-                Image::Url(url_value.clone())
-            },
-            specified::Image::Gradient(ref gradient) => {
-                Image::Gradient(gradient.to_computed_value(context))
-            },
-            specified::Image::ImageRect(ref image_rect) => {
-                Image::ImageRect(image_rect.to_computed_value(context))
-            },
-            specified::Image::Element(ref selector) => {
-                Image::Element(selector.clone())
-            }
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Image) -> Self {
-        match *computed {
-            Image::Url(ref url_value) => {
-                specified::Image::Url(url_value.clone())
-            },
-            Image::Gradient(ref linear_gradient) => {
-                specified::Image::Gradient(
-                    ToComputedValue::from_computed_value(linear_gradient)
-                )
-            },
-            Image::ImageRect(ref image_rect) => {
-                specified::Image::ImageRect(
-                    ToComputedValue::from_computed_value(image_rect)
-                )
-            },
-            Image::Element(ref selector) => {
-                specified::Image::Element(selector.clone())
-            },
-        }
-    }
-}
-
 /// Computed values for an image according to CSS-IMAGES.
 /// https://drafts.csswg.org/css-images/#image-values
-#[derive(Clone, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub enum Image {
-    Url(SpecifiedUrl),
-    Gradient(Gradient),
-    ImageRect(ImageRect),
-    Element(Atom),
-}
-
-impl fmt::Debug for Image {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Image::Url(ref url) => url.to_css(f),
-            Image::Gradient(ref grad) => {
-                if grad.repeating {
-                    let _ = write!(f, "repeating-");
-                }
-                match grad.gradient_kind {
-                    GradientKind::Linear(_) => write!(f, "linear-gradient({:?})", grad),
-                    GradientKind::Radial(_, _) => write!(f, "radial-gradient({:?})", grad),
-                }
-            },
-            Image::ImageRect(ref image_rect) => write!(f, "{:?}", image_rect),
-            Image::Element(ref selector) => {
-                f.write_str("-moz-element(#")?;
-                serialize_identifier(&*selector.to_string(), f)?;
-                f.write_str(")")
-            },
-        }
-    }
-}
-
-impl ToCss for Image {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            Image::Url(ref url) => url.to_css(dest),
-            Image::Gradient(ref gradient) => gradient.to_css(dest),
-            Image::ImageRect(ref image_rect) => image_rect.to_css(dest),
-            Image::Element(ref selector) => {
-                dest.write_str("-moz-element(#")?;
-                // FIXME: We should get rid of these intermediate strings.
-                serialize_identifier(&*selector.to_string(), dest)?;
-                dest.write_str(")")
-            },
-        }
-    }
-}
+pub type Image = GenericImage<Gradient, NumberOrPercentage>;
 
 /// Computed values for a CSS gradient.
 /// https://drafts.csswg.org/css-images/#gradients
-#[derive(Clone, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct Gradient {
-    /// The color stops.
-    pub items: Vec<GradientItem>,
-    /// True if this is a repeating gradient.
-    pub repeating: bool,
-    /// Gradient kind can be linear or radial.
-    pub gradient_kind: GradientKind,
-    /// Compatibility mode.
-    pub compat_mode: CompatMode,
-}
+pub type Gradient = GenericGradient<GradientKind, CSSColor, LengthOrPercentage>;
+
+/// A computed gradient item.
+pub type GradientItem = GenericGradientItem<CSSColor, LengthOrPercentage>;
+
+/// A computed color stop.
+pub type ColorStop = GenericColorStop<CSSColor, LengthOrPercentage>;
+
+/// Computed values for ImageRect.
+pub type ImageRect = GenericImageRect<NumberOrPercentage>;
 
 impl ToCss for Gradient {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -138,7 +45,7 @@ impl ToCss for Gradient {
         if self.repeating {
             try!(dest.write_str("repeating-"));
         }
-        match self.gradient_kind {
+        match self.kind {
             GradientKind::Linear(angle_or_corner) => {
                 try!(dest.write_str("linear-gradient("));
                 try!(angle_or_corner.to_css(dest, self.compat_mode));
@@ -161,7 +68,7 @@ impl ToCss for Gradient {
 
 impl fmt::Debug for Gradient {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self.gradient_kind {
+        match self.kind {
             GradientKind::Linear(angle_or_corner) => {
                 let _ = write!(f, "{:?}", angle_or_corner);
             },
@@ -174,42 +81,6 @@ impl fmt::Debug for Gradient {
             let _ = write!(f, ", {:?}", item);
         }
         Ok(())
-    }
-}
-
-impl ToComputedValue for specified::Gradient {
-    type ComputedValue = Gradient;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> Gradient {
-        let specified::Gradient {
-            ref items,
-            repeating,
-            ref gradient_kind,
-            compat_mode,
-        } = *self;
-        Gradient {
-            items: items.iter().map(|s| s.to_computed_value(context)).collect(),
-            repeating: repeating,
-            gradient_kind: gradient_kind.to_computed_value(context),
-            compat_mode: compat_mode,
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Gradient) -> Self {
-        let Gradient {
-            ref items,
-            repeating,
-            ref gradient_kind,
-            compat_mode,
-        } = *computed;
-        specified::Gradient {
-            items: items.iter().map(ToComputedValue::from_computed_value).collect(),
-            repeating: repeating,
-            gradient_kind: ToComputedValue::from_computed_value(gradient_kind),
-            compat_mode: compat_mode,
-        }
     }
 }
 
@@ -247,112 +118,6 @@ impl ToComputedValue for specified::GradientKind {
             GradientKind::Radial(ref shape, position) => {
                 specified::GradientKind::Radial(ToComputedValue::from_computed_value(shape),
                                                 ToComputedValue::from_computed_value(&position))
-            },
-        }
-    }
-}
-
-/// Specified values for color stops and interpolation hints.
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum GradientItem {
-    /// A color stop.
-    ColorStop(ColorStop),
-    /// An interpolation hint.
-    InterpolationHint(LengthOrPercentage),
-}
-
-impl ToCss for GradientItem {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            GradientItem::ColorStop(stop) => stop.to_css(dest),
-            GradientItem::InterpolationHint(hint) => hint.to_css(dest),
-        }
-    }
-}
-
-impl ToComputedValue for specified::GradientItem {
-    type ComputedValue = GradientItem;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> GradientItem {
-        match *self {
-            specified::GradientItem::ColorStop(ref stop) => {
-                GradientItem::ColorStop(stop.to_computed_value(context))
-            },
-            specified::GradientItem::InterpolationHint(ref hint) => {
-                GradientItem::InterpolationHint(hint.to_computed_value(context))
-            },
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &GradientItem) -> Self {
-        match *computed {
-            GradientItem::ColorStop(ref stop) => {
-                specified::GradientItem::ColorStop(ToComputedValue::from_computed_value(stop))
-            },
-            GradientItem::InterpolationHint(ref hint) => {
-                specified::GradientItem::InterpolationHint(ToComputedValue::from_computed_value(hint))
-            },
-        }
-    }
-}
-
-/// Computed values for one color stop in a linear gradient.
-/// https://drafts.csswg.org/css-images/#typedef-color-stop-list
-#[derive(Clone, PartialEq, Copy)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct ColorStop {
-    /// The color of this stop.
-    pub color: CSSColor,
-
-    /// The position of this stop. If not specified, this stop is placed halfway between the
-    /// point that precedes it and the point that follows it per CSS-IMAGES § 3.4.
-    pub position: Option<LengthOrPercentage>,
-}
-
-impl ToCss for ColorStop {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(self.color.to_css(dest));
-        if let Some(position) = self.position {
-            try!(dest.write_str(" "));
-            try!(position.to_css(dest));
-        }
-        Ok(())
-    }
-}
-
-impl fmt::Debug for ColorStop {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let _ = write!(f, "{:?}", self.color);
-        self.position.map(|pos| {
-            let _ = write!(f, " {:?}", pos);
-        });
-        Ok(())
-    }
-}
-
-impl ToComputedValue for specified::ColorStop {
-    type ComputedValue = ColorStop;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> ColorStop {
-        ColorStop {
-            color: self.color.to_computed_value(context),
-            position: match self.position {
-                None => None,
-                Some(ref value) => Some(value.to_computed_value(context)),
-            },
-        }
-    }
-    #[inline]
-    fn from_computed_value(computed: &ColorStop) -> Self {
-        specified::ColorStop {
-            color: ToComputedValue::from_computed_value(&computed.color),
-            position: match computed.position {
-                None => None,
-                Some(value) => Some(ToComputedValue::from_computed_value(&value)),
             },
         }
     }
@@ -421,59 +186,6 @@ impl ToComputedValue for specified::GradientEndingShape {
             EndingShape::Ellipse(ref length) => {
                 specified::GradientEndingShape::Ellipse(ToComputedValue::from_computed_value(length))
             },
-        }
-    }
-}
-
-/// Computed values for ImageRect
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct ImageRect {
-    pub url: SpecifiedUrl,
-    pub top: NumberOrPercentage,
-    pub bottom: NumberOrPercentage,
-    pub right: NumberOrPercentage,
-    pub left: NumberOrPercentage,
-}
-
-impl ToCss for ImageRect {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        dest.write_str("-moz-image-rect(")?;
-        self.url.to_css(dest)?;
-        dest.write_str(", ")?;
-        self.top.to_css(dest)?;
-        dest.write_str(", ")?;
-        self.right.to_css(dest)?;
-        dest.write_str(", ")?;
-        self.bottom.to_css(dest)?;
-        dest.write_str(", ")?;
-        self.left.to_css(dest)?;
-        dest.write_str(")")
-    }
-}
-
-impl ToComputedValue for specified::ImageRect {
-    type ComputedValue = ImageRect;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> ImageRect {
-        ImageRect {
-            url: self.url.to_computed_value(context),
-            top: self.top.to_computed_value(context),
-            right: self.right.to_computed_value(context),
-            bottom: self.bottom.to_computed_value(context),
-            left: self.left.to_computed_value(context),
-        }
-    }
-    #[inline]
-    fn from_computed_value(computed: &ImageRect) -> Self {
-        specified::ImageRect {
-            url: ToComputedValue::from_computed_value(&computed.url),
-            top: ToComputedValue::from_computed_value(&computed.top),
-            right: ToComputedValue::from_computed_value(&computed.right),
-            bottom: ToComputedValue::from_computed_value(&computed.bottom),
-            left: ToComputedValue::from_computed_value(&computed.left),
         }
     }
 }

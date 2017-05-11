@@ -1801,7 +1801,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetBackgroundImage(declarations:
     use style::properties::PropertyDeclaration;
     use style::properties::longhands::background_image::SpecifiedValue as BackgroundImage;
     use style::properties::longhands::background_image::single_value::SpecifiedValue as SingleBackgroundImage;
-    use style::values::specified::image::Image;
+    use style::values::generics::image::Image;
     use style::values::specified::url::SpecifiedUrl;
 
     let url_data = unsafe { RefPtr::from_ptr_ref(&raw_extra_data) };

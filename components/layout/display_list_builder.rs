@@ -57,11 +57,12 @@ use style::properties::{self, ServoComputedValues};
 use style::properties::longhands::border_image_repeat::computed_value::RepeatKeyword;
 use style::properties::style_structs;
 use style::servo::restyle_damage::REPAINT;
-use style::values::{Either, RGBA, computed};
+use style::values::{Either, RGBA};
 use style::values::computed::{AngleOrCorner, Gradient, GradientItem, GradientKind, LengthOrPercentage};
 use style::values::computed::{LengthOrPercentageOrAuto, LengthOrKeyword, LengthOrPercentageOrKeyword};
 use style::values::computed::{NumberOrPercentage, Position};
 use style::values::computed::image::{EndingShape, SizeKeyword};
+use style::values::generics::image::{GradientItem as GenericGradientItem, Image};
 use style::values::specified::{HorizontalDirection, VerticalDirection};
 use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
@@ -610,7 +611,7 @@ fn convert_gradient_stops(gradient_items: &[GradientItem],
     // Only keep the color stops, discard the color interpolation hints.
     let mut stop_items = gradient_items.iter().filter_map(|item| {
         match *item {
-            GradientItem::ColorStop(ref stop) => Some(*stop),
+            GenericGradientItem::ColorStop(ref stop) => Some(*stop),
             _ => None,
         }
     }).collect::<Vec<_>>();
@@ -855,7 +856,7 @@ impl FragmentDisplayListBuilding for Fragment {
         for (i, background_image) in background.background_image.0.iter().enumerate().rev() {
             match background_image.0 {
                 None => {}
-                Some(computed::Image::Gradient(ref gradient)) => {
+                Some(Image::Gradient(ref gradient)) => {
                     self.build_display_list_for_background_gradient(state,
                                                                     display_list_section,
                                                                     &absolute_bounds,
@@ -864,7 +865,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                     gradient,
                                                                     style);
                 }
-                Some(computed::Image::Url(ref image_url)) => {
+                Some(Image::Url(ref image_url)) => {
                     if let Some(url) = image_url.url() {
                         self.build_display_list_for_background_image(state,
                                                                      style,
@@ -875,10 +876,10 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                      i);
                     }
                 }
-                Some(computed::Image::ImageRect(_)) => {
+                Some(Image::Rect(_)) => {
                     // TODO: Implement `-moz-image-rect`
                 }
-                Some(computed::Image::Element(_)) => {
+                Some(Image::Element(_)) => {
                     // TODO: Implement `-moz-element`
                 }
             }
@@ -1221,7 +1222,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                   style.get_cursor(Cursor::Default),
                                                   display_list_section);
 
-        let display_item = match gradient.gradient_kind {
+        let display_item = match gradient.kind {
             GradientKind::Linear(ref angle_or_corner) => {
                 let gradient = self.convert_linear_gradient(&bounds,
                                                             &gradient.items[..],
@@ -1357,8 +1358,8 @@ impl FragmentDisplayListBuilding for Fragment {
                     }),
                 }));
             }
-            Some(computed::Image::Gradient(ref gradient)) => {
-                match gradient.gradient_kind {
+            Some(Image::Gradient(ref gradient)) => {
+                match gradient.kind {
                     GradientKind::Linear(angle_or_corner) => {
                         let grad = self.convert_linear_gradient(&bounds,
                                                                 &gradient.items[..],
@@ -1398,13 +1399,13 @@ impl FragmentDisplayListBuilding for Fragment {
                     }
                 }
             }
-            Some(computed::Image::ImageRect(..)) => {
+            Some(Image::Rect(..)) => {
                 // TODO: Handle border-image with `-moz-image-rect`.
             }
-            Some(computed::Image::Element(..)) => {
+            Some(Image::Element(..)) => {
                 // TODO: Handle border-image with `-moz-element`.
             }
-            Some(computed::Image::Url(ref image_url)) => {
+            Some(Image::Url(ref image_url)) => {
                 if let Some(url) = image_url.url() {
                     let webrender_image = state.layout_context
                                                .get_webrender_image_for_url(self.node,
