@@ -23,7 +23,7 @@ use fragment::{SpecificFragmentInfo, TruncatedFragmentInfo};
 use gfx::display_list;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDetails};
 use gfx::display_list::{BorderDisplayItem, ImageBorder, NormalBorder};
-use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClippingRegion};
+use gfx::display_list::{BorderRadii, BoxShadowDisplayItem, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayItemMetadata, DisplayList, DisplayListSection};
 use gfx::display_list::{GradientDisplayItem, RadialGradientDisplayItem, IframeDisplayItem, ImageDisplayItem};
 use gfx::display_list::{OpaqueNode, SolidColorDisplayItem, ScrollRoot, StackingContext, StackingContextType};
@@ -65,7 +65,7 @@ use style::values::specified::{HorizontalDirection, VerticalDirection};
 use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
-use webrender_traits::{ColorF, ClipId, ExtendMode, GradientStop, RepeatMode, ScrollPolicy};
+use webrender_traits::{BoxShadowClipMode, ColorF, ClipId, ExtendMode, GradientStop, RepeatMode, ScrollPolicy};
 
 trait ResolvePercentage {
     fn resolve(&self, length: u32) -> u32;

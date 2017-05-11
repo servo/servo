@@ -9,7 +9,7 @@
 
 use app_units::Au;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
-use gfx::display_list::{BorderDetails, BorderRadii, BoxShadowClipMode, ClippingRegion};
+use gfx::display_list::{BorderDetails, BorderRadii, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayList, DisplayListTraversal, StackingContextType};
 use msg::constellation_msg::PipelineId;
 use style::computed_values::{image_rendering, mix_blend_mode};
@@ -60,20 +60,6 @@ impl ToBorderWidths for SideOffsets2D<Au> {
             top: self.top.to_f32_px(),
             right: self.right.to_f32_px(),
             bottom: self.bottom.to_f32_px(),
-        }
-    }
-}
-
-trait ToBoxShadowClipMode {
-    fn to_clip_mode(&self) -> webrender_traits::BoxShadowClipMode;
-}
-
-impl ToBoxShadowClipMode for BoxShadowClipMode {
-    fn to_clip_mode(&self) -> webrender_traits::BoxShadowClipMode {
-        match *self {
-            BoxShadowClipMode::None => webrender_traits::BoxShadowClipMode::None,
-            BoxShadowClipMode::Inset => webrender_traits::BoxShadowClipMode::Inset,
-            BoxShadowClipMode::Outset => webrender_traits::BoxShadowClipMode::Outset,
         }
     }
 }
@@ -418,7 +404,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                         item.blur_radius.to_f32_px(),
                                         item.spread_radius.to_f32_px(),
                                         item.border_radius.to_f32_px(),
-                                        item.clip_mode.to_clip_mode());
+                                        item.clip_mode);
             }
             DisplayItem::Iframe(ref item) => {
                 let rect = item.base.bounds.to_rectf();
