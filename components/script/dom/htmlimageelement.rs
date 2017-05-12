@@ -333,6 +333,11 @@ impl HTMLImageElement {
             self.upcast::<EventTarget>().fire_event(atom!("loadend"));
         }
 
+        if trigger_image_load || trigger_image_error {
+            LoadBlocker::terminate(&mut self.current_request.borrow_mut().blocker);
+            LoadBlocker::terminate(&mut self.pending_request.borrow_mut().blocker);
+        }
+
         // Trigger reflow
         let window = window_from_node(self);
         window.add_pending_reflow();
@@ -366,6 +371,8 @@ impl HTMLImageElement {
                 }
                 img.upcast::<EventTarget>().fire_event(atom!("error"));
                 img.upcast::<EventTarget>().fire_event(atom!("loadend"));
+                img.abort_request(State::Broken, ImageRequestPhase::Current);
+                img.abort_request(State::Broken, ImageRequestPhase::Pending);
             }
         }
 
@@ -468,6 +475,8 @@ impl HTMLImageElement {
                 }
                 // TODO: restart animation, if set
                 img.upcast::<EventTarget>().fire_event(atom!("load"));
+                img.abort_request(State::Broken, ImageRequestPhase::Current);
+                img.abort_request(State::Broken, ImageRequestPhase::Pending);
             }
         }
         let runnable = box SetUrlToStringTask {
@@ -490,6 +499,7 @@ impl HTMLImageElement {
         request.image = None;
         request.metadata = None;
         let document = document_from_node(self);
+        LoadBlocker::terminate(&mut request.blocker);
         request.blocker = Some(LoadBlocker::new(&*document, LoadType::Image(url.clone())));
     }
 
@@ -542,8 +552,10 @@ impl HTMLImageElement {
     /// Step 8-12 of html.spec.whatwg.org/multipage/#update-the-image-data
     fn update_the_image_data_sync_steps(&self) {
         let document = document_from_node(self);
+        document.mut_loader().allow_events();
         // Step 8
         // TODO: take pixel density into account
+        println!("step 8");
         match self.select_image_source() {
             Some(src) => {
                 println!("step 10");
@@ -561,8 +573,6 @@ impl HTMLImageElement {
                     Err(_) => {
                         println!("step 11");
                         // Step 11.1-11.5
-                        self.abort_request(State::Broken, ImageRequestPhase::Current);
-                        self.abort_request(State::Broken, ImageRequestPhase::Pending);
                         self.set_current_request_url_to_selected_fire_error_and_loadend(src);
                     }
                 }
@@ -596,16 +606,15 @@ impl HTMLImageElement {
             // TODO: take pixel density into account
             if let Ok(img_url) = base_url.join(&src) {
                 // step 5, check the list of available images
+                println!("step 5");
                 let image_cache = window.image_cache();
                 let response = image_cache.find_image_or_metadata(img_url.clone().into(),
                                                                   UsePlaceholder::No,
                                                                   CanRequestImages::No);
                 if let Ok(ImageOrMetadataAvailable::ImageAvailable(image)) = response {
                     // Step 5.3
+                    println!("step 5.3");
                     let metadata = ImageMetadata { height: image.height, width: image.width };
-                    // Step 5.3.2 abort requests
-                    self.abort_request(State::CompletelyAvailable, ImageRequestPhase::Current);
-                    self.abort_request(State::CompletelyAvailable, ImageRequestPhase::Pending);
                     let mut current_request = self.current_request.borrow_mut();
                     current_request.image = Some(image.clone());
                     current_request.metadata = Some(metadata);
@@ -614,6 +623,8 @@ impl HTMLImageElement {
                 }
             }
         }
+        let document_loader = document.loader();
+        document_loader.inhibit_events();
         // step 6, await a stable state.
         struct StableStateUpdateImageDataTask {
             elem: Trusted<HTMLImageElement>,
@@ -634,6 +645,7 @@ impl HTMLImageElement {
             generation: self.generation.get(),
         };
         ScriptThread::await_stable_state(task);
+        println!("step 6");
     }
 
     fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLImageElement {

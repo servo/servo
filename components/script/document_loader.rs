@@ -142,6 +142,10 @@ impl DocumentLoader {
         self.events_inhibited = true;
     }
 
+    pub fn allow_events(&mut self) {
+        self.events_inhibited = false;
+    }
+
     pub fn events_inhibited(&self) -> bool {
         self.events_inhibited
     }
