@@ -153,6 +153,15 @@ mod bindings {
             }
             if cfg!(target_os = "linux") {
                 builder = builder.clang_arg("-DOS_LINUX=1");
+                // We may be cross-compiling with a clang that defaults to
+                // a different architecture, so we should explicitly specify
+                // the bitness being used here. Specifying --target instead
+                // leads to difficulties with LLVM search paths.
+                if cfg!(target_arch = "x86") {
+                    builder = builder.clang_arg("-m32")
+                } else if cfg!(target_arch = "x86_64") {
+                    builder = builder.clang_arg("-m64")
+                }
             } else if cfg!(target_os = "solaris") {
                 builder = builder.clang_arg("-DOS_SOLARIS=1");
             } else if cfg!(target_os = "dragonfly") {
