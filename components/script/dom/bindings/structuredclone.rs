@@ -108,6 +108,7 @@ unsafe fn read_blob(cx: *mut JSContext,
     let target_global = GlobalScope::from_context(cx);
     let blob = Blob::new(&target_global, BlobImpl::new_from_bytes(blob_buffer), type_str);
     return blob.reflector().get_jsobject().get()
+}
 
 unsafe fn write_blob(blob: Root<Blob>,
                      w: *mut JSStructuredCloneWriter)
