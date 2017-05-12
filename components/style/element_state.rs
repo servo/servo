@@ -115,5 +115,9 @@ bitflags! {
         const IN_HANDLER_VULNERABLE_NO_UPDATE_STATE = 1 << 42,
         /// https://drafts.csswg.org/selectors-4/#the-focus-within-pseudo
         const IN_FOCUS_WITHIN_STATE = 1 << 43,
+        /// Non-standard & undocumented.
+        const IN_AUTOFILL_STATE = 1 << 50,
+        /// Non-standard & undocumented.
+        const IN_AUTOFILL_PREVIEW_STATE = 1 << 51,
     }
 }

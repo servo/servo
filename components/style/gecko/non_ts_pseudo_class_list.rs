@@ -73,6 +73,8 @@ macro_rules! apply_non_ts_list {
                 ("-moz-broken", MozBroken, mozBroken, IN_BROKEN_STATE, _),
                 ("-moz-loading", MozLoading, mozLoading, IN_LOADING_STATE, _),
                 ("-moz-suppressed", MozSuppressed, mozSuppressed, IN_SUPPRESSED_STATE, PSEUDO_CLASS_INTERNAL),
+                ("-moz-autofill", MozAutofill, mozAutofill, IN_AUTOFILL_STATE, PSEUDO_CLASS_INTERNAL),
+                ("-moz-autofill-preview", MozAutofillPreview, mozAutofillPreview, IN_AUTOFILL_PREVIEW_STATE, PSEUDO_CLASS_INTERNAL),
 
                 ("-moz-handler-clicktoplay", MozHandlerClickToPlay, mozHandlerClickToPlay, IN_HANDLER_CLICK_TO_PLAY_STATE, PSEUDO_CLASS_INTERNAL),
                 ("-moz-handler-vulnerable-updatable", MozHandlerVulnerableUpdatable, mozHandlerVulnerableUpdatable, IN_HANDLER_VULNERABLE_UPDATABLE_STATE, PSEUDO_CLASS_INTERNAL),
