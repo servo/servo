@@ -226,11 +226,23 @@ class MachCommands(CommandBase):
             env=self.build_env())
 
     @Command('rustup',
-             description='Update the Rust version to latest master',
+             description='Update the Rust version to latest Nightly',
              category='devenv')
-    def rustup(self):
-        url = "https://api.github.com/repos/rust-lang/rust/git/refs/heads/master"
-        commit = json.load(urllib2.urlopen(url))["object"]["sha"]
+    @CommandArgument('--master',
+                     action='store_true',
+                     help='Use the latest commit of the "master" branch')
+    def rustup(self, master=False):
+        if master:
+            url = "https://api.github.com/repos/rust-lang/rust/git/refs/heads/master"
+            commit = json.load(urllib2.urlopen(url))["object"]["sha"]
+        else:
+            import toml
+            import re
+            url = "https://static.rust-lang.org/dist/channel-rust-nightly.toml"
+            version = toml.load(urllib2.urlopen(url))["pkg"]["rustc"]["version"]
+            short_commit = re.search("\(([0-9a-f]+) ", version).group(1)
+            url = "https://api.github.com/repos/rust-lang/rust/commits/" + short_commit
+            commit = json.load(urllib2.urlopen(url))["sha"]
         filename = path.join(self.context.topdir, "rust-commit-hash")
         with open(filename, "w") as f:
             f.write(commit + "\n")
