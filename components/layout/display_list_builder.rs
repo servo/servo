@@ -22,8 +22,7 @@ use fragment::{CoordinateSystem, Fragment, ImageFragmentInfo, ScannedTextFragmen
 use fragment::{SpecificFragmentInfo, TruncatedFragmentInfo};
 use gfx::display_list;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDetails};
-use gfx::display_list::{BorderDisplayItem, ImageBorder};
-use gfx::display_list::{BoxShadowDisplayItem, ClippingRegion};
+use gfx::display_list::{BorderDisplayItem, BoxShadowDisplayItem, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayItemMetadata, DisplayList, DisplayListSection};
 use gfx::display_list::{GradientDisplayItem, RadialGradientDisplayItem, IframeDisplayItem, ImageDisplayItem};
 use gfx::display_list::{OpaqueNode, SolidColorDisplayItem, ScrollRoot, StackingContext, StackingContextType};
@@ -66,8 +65,8 @@ use table_cell::CollapsedBordersForCell;
 use to_layout::ToLayout;
 use webrender_traits::{BorderRadius, BorderSide, BorderWidths, BorderStyle};
 use webrender_traits::{BoxShadowClipMode, ColorF, ClipId, ExtendMode};
-use webrender_traits::{GradientStop, ImageRendering, LayoutRect, LayoutPoint};
-use webrender_traits::{LayerSize, NormalBorder, RepeatMode, ScrollPolicy};
+use webrender_traits::{GradientStop, ImageBorder, ImageRendering, LayoutRect, LayoutPoint};
+use webrender_traits::{LayerSize, NormalBorder, NinePatchDescriptor, RepeatMode, ScrollPolicy};
 
 trait ResolvePercentage {
     fn resolve(&self, length: u32) -> u32;
@@ -1432,22 +1431,27 @@ impl FragmentDisplayListBuilding for Fragment {
                         // The corners array is guaranteed to be len=4 by the css parser.
                         let corners = &border_style_struct.border_image_slice.corners;
 
-                        state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
-                            base: base,
-                            border_widths: border.to_physical(style.writing_mode).to_layout(),
-                            details: BorderDetails::Image(ImageBorder {
-                                image: webrender_image,
-                                fill: border_style_struct.border_image_slice.fill,
-                                slice: SideOffsets2D::new(corners[0].resolve(webrender_image.height),
-                                                          corners[1].resolve(webrender_image.width),
-                                                          corners[2].resolve(webrender_image.height),
-                                                          corners[3].resolve(webrender_image.width)),
-                                // TODO(gw): Support border-image-outset
-                                outset: SideOffsets2D::zero(),
-                                repeat_horizontal: convert_repeat_mode(border_style_struct.border_image_repeat.0),
-                                repeat_vertical: convert_repeat_mode(border_style_struct.border_image_repeat.1),
-                            }),
-                        }));
+                        if let Some(key) = webrender_image.key {
+                            state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
+                                base: base,
+                                border_widths: border.to_physical(style.writing_mode).to_layout(),
+                                details: BorderDetails::Image(ImageBorder {
+                                    image_key: key,
+                                    patch: NinePatchDescriptor {
+                                        width: webrender_image.width,
+                                        height: webrender_image.height,
+                                        slice: SideOffsets2D::new(corners[0].resolve(webrender_image.height),
+                                                                  corners[1].resolve(webrender_image.width),
+                                                                  corners[2].resolve(webrender_image.height),
+                                                                  corners[3].resolve(webrender_image.width)),
+                                    },
+                                    // TODO(gw): Support border-image-outset
+                                    outset: SideOffsets2D::zero(),
+                                    repeat_horizontal: convert_repeat_mode(border_style_struct.border_image_repeat.0),
+                                    repeat_vertical: convert_repeat_mode(border_style_struct.border_image_repeat.1),
+                                }),
+                            }));
+                        }
                     }
                 }
             }

@@ -35,7 +35,7 @@ use text::TextRun;
 use text::glyph::ByteIndex;
 use webrender_traits::{self, BorderRadius, BorderWidths, BoxShadowClipMode, ClipId};
 use webrender_traits::{ColorF, ExtendMode, FilterOp, GradientStop};
-use webrender_traits::{ImageRendering, LayoutPoint, LayoutRect, LayoutSize, MixBlendMode};
+use webrender_traits::{ImageBorder, ImageRendering, LayoutPoint, LayoutRect, LayoutSize, MixBlendMode};
 use webrender_traits::{NormalBorder, ScrollPolicy, WebGLContextId};
 
 pub use style::dom::OpaqueNode;
@@ -923,28 +923,6 @@ pub struct RadialGradientDisplayItem {
 
     /// Contains all gradient data.
     pub gradient: RadialGradient,
-}
-
-/// A border that is made of image segments.
-#[derive(Clone, Deserialize, Serialize)]
-pub struct ImageBorder {
-    /// The image this border uses, border-image-source.
-    pub image: WebRenderImageInfo,
-
-    /// How to slice the image, as per border-image-slice.
-    pub slice: SideOffsets2D<u32>,
-
-    /// Outsets for the border, as per border-image-outset.
-    pub outset: SideOffsets2D<f32>,
-
-    /// If fill is true, draw the center patch of the image.
-    pub fill: bool,
-
-    /// How to repeat or stretch horizontal edges (border-image-repeat).
-    pub repeat_horizontal: webrender_traits::RepeatMode,
-
-    /// How to repeat or stretch vertical edges (border-image-repeat).
-    pub repeat_vertical: webrender_traits::RepeatMode,
 }
 
 /// A border that is made of linear gradient

@@ -140,31 +140,15 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 let details = match item.details {
                     BorderDetails::Normal(ref border) =>
                         webrender_traits::BorderDetails::Normal(border.clone()),
-                    BorderDetails::Image(ref image) => {
-                        match image.image.key {
-                            None => return,
-                            Some(key) => {
-                                webrender_traits::BorderDetails::Image(webrender_traits::ImageBorder {
-                                    image_key: key,
-                                    patch: webrender_traits::NinePatchDescriptor {
-                                        width: image.image.width,
-                                        height: image.image.height,
-                                        slice: image.slice,
-                                    },
-                                    outset: image.outset,
-                                    repeat_horizontal: image.repeat_horizontal,
-                                    repeat_vertical: image.repeat_vertical,
-                                })
-                            }
-                        }
-                    }
+                    BorderDetails::Image(ref image) =>
+                        webrender_traits::BorderDetails::Image(image.clone()),
                     BorderDetails::Gradient(ref gradient) => {
                         webrender_traits::BorderDetails::Gradient(webrender_traits::GradientBorder {
                             gradient: builder.create_gradient(
-                                          gradient.gradient.start_point,
-                                          gradient.gradient.end_point,
-                                          gradient.gradient.stops.clone(),
-                                          gradient.gradient.extend_mode),
+                                gradient.gradient.start_point,
+                                gradient.gradient.end_point,
+                                gradient.gradient.stops.clone(),
+                                gradient.gradient.extend_mode),
                             outset: gradient.outset,
                         })
                     }
