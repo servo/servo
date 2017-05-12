@@ -18,7 +18,7 @@ use std::fmt::Debug;
 use style::computed_values::display;
 use style::context::SharedStyleContext;
 use style::data::ElementData;
-use style::dom::{LayoutIterator, NodeInfo, PresentationalHintsSynthetizer, TNode};
+use style::dom::{LayoutIterator, NodeInfo, PresentationalHintsSynthesizer, TNode};
 use style::dom::OpaqueNode;
 use style::font_metrics::ServoMetricsProvider;
 use style::properties::{CascadeFlags, ServoComputedValues};
@@ -306,7 +306,7 @@ pub trait DangerousThreadSafeLayoutNode: ThreadSafeLayoutNode {
 pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
                                    ::selectors::Element<Impl=SelectorImpl> +
                                    GetLayoutData +
-                                   PresentationalHintsSynthetizer {
+                                   PresentationalHintsSynthesizer {
     type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<ConcreteThreadSafeLayoutElement = Self>;
 
     fn as_node(&self) -> Self::ConcreteThreadSafeLayoutNode;

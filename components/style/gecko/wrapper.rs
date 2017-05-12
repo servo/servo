@@ -19,7 +19,7 @@ use atomic_refcell::AtomicRefCell;
 use context::{QuirksMode, SharedStyleContext, UpdateAnimationsTasks};
 use data::ElementData;
 use dom::{self, AnimationRules, DescendantsBit, LayoutIterator, NodeInfo, TElement, TNode, UnsafeNode};
-use dom::{OpaqueNode, PresentationalHintsSynthetizer};
+use dom::{OpaqueNode, PresentationalHintsSynthesizer};
 use element_state::ElementState;
 use error_reporting::RustLogReporter;
 use font_metrics::{FontMetrics, FontMetricsProvider, FontMetricsQueryResult};
@@ -932,7 +932,7 @@ impl<'le> Hash for GeckoElement<'le> {
     }
 }
 
-impl<'le> PresentationalHintsSynthetizer for GeckoElement<'le> {
+impl<'le> PresentationalHintsSynthesizer for GeckoElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
         where V: Push<ApplicableDeclarationBlock>,
     {

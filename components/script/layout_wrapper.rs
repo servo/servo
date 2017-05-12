@@ -66,7 +66,7 @@ use style::computed_values::display;
 use style::context::{QuirksMode, SharedStyleContext};
 use style::data::ElementData;
 use style::dom::{DescendantsBit, DirtyDescendants, LayoutIterator, NodeInfo, OpaqueNode};
-use style::dom::{PresentationalHintsSynthetizer, TElement, TNode, UnsafeNode};
+use style::dom::{PresentationalHintsSynthesizer, TElement, TNode, UnsafeNode};
 use style::element_state::*;
 use style::font_metrics::ServoMetricsProvider;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
@@ -363,7 +363,7 @@ impl<'le> fmt::Debug for ServoLayoutElement<'le> {
     }
 }
 
-impl<'le> PresentationalHintsSynthetizer for ServoLayoutElement<'le> {
+impl<'le> PresentationalHintsSynthesizer for ServoLayoutElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
         where V: Push<ApplicableDeclarationBlock>
     {
@@ -1183,7 +1183,7 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
     }
 }
 
-impl<'le> PresentationalHintsSynthetizer for ServoThreadSafeLayoutElement<'le> {
+impl<'le> PresentationalHintsSynthesizer for ServoThreadSafeLayoutElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, _hints: &mut V)
         where V: Push<ApplicableDeclarationBlock> {}
 }
