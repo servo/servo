@@ -102,20 +102,17 @@ impl StructuredCloneReader {
 unsafe fn read_blob(cx: *mut JSContext,
                     r: *mut JSStructuredCloneReader)
                     -> *mut JSObject {
-
-    let structured_reader = StructuredCloneReader{ r: r };
+    let structured_reader = StructuredCloneReader { r: r };
     let blob_buffer = structured_reader.read_bytes();
     let type_str = structured_reader.read_str();
     let target_global = GlobalScope::from_context(cx);
     let blob = Blob::new(&target_global, BlobImpl::new_from_bytes(blob_buffer), type_str);
     return blob.reflector().get_jsobject().get()
-}
 
 unsafe fn write_blob(blob: Root<Blob>,
                      w: *mut JSStructuredCloneWriter)
                      -> Result<(), ()> {
-
-    let structured_writer = StructuredCloneWriter{ w: w };
+    let structured_writer = StructuredCloneWriter { w: w };
     let blob_vec = try!(blob.get_bytes());
     assert!(JS_WriteUint32Pair(w, StructuredCloneTags::DomBlob as u32, 0));
     structured_writer.write_slice(&blob_vec);
