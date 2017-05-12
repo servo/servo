@@ -495,6 +495,9 @@ impl Stylist {
 
     #[inline]
     fn note_attribute_and_state_dependencies(&mut self, selector: &Selector<SelectorImpl>) {
+        if let Some(ref pseudo_selector) = selector.pseudo_element {
+            self.state_dependencies.insert(pseudo_selector.state());
+        }
         selector.visit(&mut AttributeAndStateDependencyVisitor(self));
     }
 
