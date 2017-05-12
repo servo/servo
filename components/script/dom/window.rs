@@ -75,11 +75,11 @@ use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, Lay
 use script_layout_interface::rpc::{MarginStyleResponse, NodeScrollRootIdResponse};
 use script_layout_interface::rpc::{ResolvedStyleResponse, TextIndexResponse};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventCategory};
-use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable, RunnableWrapper};
-use script_thread::{SendableMainThreadScriptChan, ImageCacheMsg, ScriptThread};
-use script_traits::{ConstellationControlMsg, LoadData, MozBrowserEvent, UntrustedNodeAddress};
-use script_traits::{DocumentState, TimerEvent, TimerEventId};
-use script_traits::{ScriptMsg as ConstellationMsg, TimerSchedulerMsg, WindowSizeData, WindowSizeType};
+use script_thread::{ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg, Runnable};
+use script_thread::{RunnableWrapper, ScriptThread, SendableMainThreadScriptChan};
+use script_traits::{ConstellationControlMsg, DocumentState, LoadData, MozBrowserEvent};
+use script_traits::{ScriptMsg as ConstellationMsg, ScrollState, TimerEvent, TimerEventId};
+use script_traits::{TimerSchedulerMsg, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use servo_atoms::Atom;
 use servo_config::opts;
@@ -1111,6 +1111,11 @@ impl Window {
             ScrollBehavior::Smooth => true
         };
 
+        self.layout_chan.send(Msg::UpdateScrollStateFromScript(ScrollState {
+            scroll_root_id: scroll_root_id,
+            scroll_offset: Point2D::new(-x, -y),
+        })).unwrap();
+
         // TODO (farodin91): Raise an event to stop the current_viewport
         self.update_viewport_for_scroll(x, y);
 
@@ -1372,14 +1377,8 @@ impl Window {
                           client_point: Point2D<f32>,
                           update_cursor: bool)
                           -> Option<UntrustedNodeAddress> {
-        let translated_point =
-            Point2D::new(client_point.x + self.PageXOffset() as f32,
-                         client_point.y + self.PageYOffset() as f32);
-
         if !self.reflow(ReflowGoal::ForScriptQuery,
-                        ReflowQueryType::HitTestQuery(translated_point,
-                                                      client_point,
-                                                      update_cursor),
+                        ReflowQueryType::HitTestQuery(client_point, update_cursor),
                         ReflowReason::Query) {
             return None
         }

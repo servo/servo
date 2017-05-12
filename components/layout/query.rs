@@ -81,8 +81,8 @@ pub struct LayoutThreadData {
     /// A queued response for the offset parent/rect of a node.
     pub margin_style_response: MarginStyleResponse,
 
-    /// Scroll offsets of stacking contexts. This will only be populated if WebRender is in use.
-    pub stacking_context_scroll_offsets: ScrollOffsetMap,
+    /// Scroll offsets of scrolling regions.
+    pub scroll_offsets: ScrollOffsetMap,
 
     /// Index in a text fragment. We need this do determine the insertion point.
     pub text_index_response: TextIndexResponse,
