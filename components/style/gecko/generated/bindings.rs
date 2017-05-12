@@ -250,16 +250,16 @@ pub type RawServoSupportsRuleBorrowed<'a> = &'a RawServoSupportsRule;
 pub type RawServoSupportsRuleBorrowedOrNull<'a> = Option<&'a RawServoSupportsRule>;
 enum RawServoSupportsRuleVoid { }
 pub struct RawServoSupportsRule(RawServoSupportsRuleVoid);
-pub type RawServoRuleNodeStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoRuleNode>;
-pub type RawServoRuleNodeBorrowed<'a> = &'a RawServoRuleNode;
-pub type RawServoRuleNodeBorrowedOrNull<'a> = Option<&'a RawServoRuleNode>;
-enum RawServoRuleNodeVoid { }
-pub struct RawServoRuleNode(RawServoRuleNodeVoid);
 pub type RawServoDocumentRuleStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoDocumentRule>;
 pub type RawServoDocumentRuleBorrowed<'a> = &'a RawServoDocumentRule;
 pub type RawServoDocumentRuleBorrowedOrNull<'a> = Option<&'a RawServoDocumentRule>;
 enum RawServoDocumentRuleVoid { }
 pub struct RawServoDocumentRule(RawServoDocumentRuleVoid);
+pub type RawServoRuleNodeStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoRuleNode>;
+pub type RawServoRuleNodeBorrowed<'a> = &'a RawServoRuleNode;
+pub type RawServoRuleNodeBorrowedOrNull<'a> = Option<&'a RawServoRuleNode>;
+enum RawServoRuleNodeVoid { }
+pub struct RawServoRuleNode(RawServoRuleNodeVoid);
 pub type RawServoStyleSetOwned = ::gecko_bindings::sugar::ownership::Owned<RawServoStyleSet>;
 pub type RawServoStyleSetOwnedOrNull = ::gecko_bindings::sugar::ownership::OwnedOrNull<RawServoStyleSet>;
 pub type RawServoStyleSetBorrowed<'a> = &'a RawServoStyleSet;
@@ -422,16 +422,16 @@ extern "C" {
     pub fn Servo_SupportsRule_Release(ptr: RawServoSupportsRuleBorrowed);
 }
 extern "C" {
-    pub fn Servo_RuleNode_AddRef(ptr: RawServoRuleNodeBorrowed);
-}
-extern "C" {
-    pub fn Servo_RuleNode_Release(ptr: RawServoRuleNodeBorrowed);
-}
-extern "C" {
     pub fn Servo_DocumentRule_AddRef(ptr: RawServoDocumentRuleBorrowed);
 }
 extern "C" {
     pub fn Servo_DocumentRule_Release(ptr: RawServoDocumentRuleBorrowed);
+}
+extern "C" {
+    pub fn Servo_RuleNode_AddRef(ptr: RawServoRuleNodeBorrowed);
+}
+extern "C" {
+    pub fn Servo_RuleNode_Release(ptr: RawServoRuleNodeBorrowed);
 }
 extern "C" {
     pub fn Servo_StyleSet_Drop(ptr: RawServoStyleSetOwned);
@@ -1586,6 +1586,9 @@ extern "C" {
                                                  aURLMatchingFunction:
                                                      URLMatchingFunction)
      -> bool;
+}
+extern "C" {
+    pub fn Gecko_SetJemallocThreadLocalArena(enabled: bool);
 }
 extern "C" {
     pub fn Servo_Element_ClearData(node: RawGeckoElementBorrowed);
