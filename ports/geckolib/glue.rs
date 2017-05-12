@@ -2188,13 +2188,13 @@ pub extern "C" fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed) {
     assert_subtree_is_clean(root);
 }
 
-fn add_computed_property_value(keyframe: *mut structs::Keyframe,
-                               index: usize,
-                               style: &ComputedValues,
-                               property: &TransitionProperty,
-                               shared_lock: &SharedRwLock) {
+fn append_computed_property_value(keyframe: *mut structs::Keyframe,
+                                  style: &ComputedValues,
+                                  property: &TransitionProperty,
+                                  shared_lock: &SharedRwLock) {
     let block = style.to_declaration_block(property.clone().into());
     unsafe {
+        let index = (*keyframe).mPropertyValues.len();
         (*keyframe).mPropertyValues.set_len((index + 1) as u32);
         (*keyframe).mPropertyValues[index].mProperty = property.into();
         // FIXME. Bug 1360398: Do not set computed values once we handles
@@ -2234,15 +2234,12 @@ fn fill_in_missing_keyframe_values(all_properties:  &[TransitionProperty],
     };
 
     // Append properties that have not been set at this offset.
-    let mut index = unsafe { (*keyframe).mPropertyValues.len() };
     for ref property in all_properties.iter() {
         if !properties_set_at_offset.has_transition_property_bit(property) {
-            add_computed_property_value(keyframe,
-                                        index,
-                                        style,
-                                        property,
-                                        shared_lock);
-            index += 1;
+            append_computed_property_value(keyframe,
+                                           style,
+                                           property,
+                                           shared_lock);
         }
     }
 }
@@ -2306,9 +2303,11 @@ pub extern "C" fn Servo_StyleSet_GetKeyframesForName(raw_data: RawServoStyleSetB
                 // to represent that all properties animated by the keyframes
                 // animation should be set to the underlying computed value for
                 // that keyframe.
-                for (index, property) in animation.properties_changed.iter().enumerate() {
-                    add_computed_property_value(
-                        keyframe, index, style, property, &global_style_data.shared_lock);
+                for property in animation.properties_changed.iter() {
+                    append_computed_property_value(keyframe,
+                                                   style,
+                                                   property,
+                                                   &global_style_data.shared_lock);
                 }
                 if current_offset == 0.0 {
                     has_complete_initial_keyframe = true;
