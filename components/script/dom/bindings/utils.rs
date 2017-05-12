@@ -8,11 +8,13 @@ use dom::bindings::codegen::InterfaceObjectMap;
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::{MAX_PROTO_CHAIN_LENGTH, PROTO_OR_IFACE_LENGTH};
 use dom::bindings::conversions::{jsstring_to_str, private_from_proto_check};
-use dom::bindings::error::throw_invalid_this;
+use dom::bindings::error::{Error, throw_dom_exception, throw_invalid_this};
 use dom::bindings::inheritance::TopTypeId;
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::trace_object;
 use dom::browsingcontext;
+use dom::domexception::DOMException;
+use dom::globalscope::GlobalScope;
 use heapsize::HeapSizeOf;
 use js;
 use js::JS_CALLEE;
@@ -21,6 +23,7 @@ use js::glue::{GetCrossCompartmentWrapper, CreateCrossOriginWrapper, GetSecurity
 use js::glue::{GetPrincipalOrigin, CreateWrapperProxyHandler, UncheckedUnwrapObject};
 use js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT, RUST_JSID_IS_STRING};
 use js::glue::{RUST_JSID_TO_INT, RUST_JSID_TO_STRING, UnwrapObject};
+use js::glue::{SetThrowDOMExceptionCallback};
 use js::jsapi::{JS_GetClass, JS_GetCompartmentPrincipals, JSPrincipals};
 use js::jsapi::{CallArgs, DOMCallbacks, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{HandleId, HandleObject, HandleValue, Heap, JSAutoCompartment, JSContext};
@@ -41,6 +44,7 @@ use std::os::raw::{c_char, c_void};
 use std::ptr;
 use std::slice;
 use std::str;
+use dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionBinding::DOMExceptionMethods;
 
 /// Proxy handler for a WindowProxy.
 pub struct WindowProxyHandler(pub *const libc::c_void);
@@ -62,7 +66,6 @@ impl ServoJSPrincipal {
     }
 }
 
-// avadacatavra: destroy will need to retrieved the boxed origin pointer, turn it back into a box and allow it to be freed
 pub unsafe fn destroy_servo_jsprincipal(principal: &mut ServoJSPrincipal) {
     let origin = GetPrincipalOrigin(principal.0) as *mut Box<MutableOrigin>;
 }
@@ -82,11 +85,17 @@ enum CrossOriginObjectType {
 }
 
 unsafe fn identify_cross_origin_object(obj: HandleObject) -> CrossOriginObjectType {
-    println!("unchecked unwrap for identfy xoo");
     let obj = UncheckedUnwrapObject(obj.get(), /* stopAtWindowProxy = */ 0);
     let obj_class = JS_GetClass(obj);
     let name = str::from_utf8(CStr::from_ptr((*obj_class).name).to_bytes()).unwrap().to_owned();
     println!("{}, {:?}", name, obj);
+    //FIXME eeeek
+    if &*name == "DOMException" {
+        let mut ptr = JS_GetReservedSlot(obj, 0).to_private() as *mut DOMException;
+        let exception = &*ptr;
+        println!("DOMException: {:?}", exception.Message());
+        return CrossOriginObjectType::CrossOriginLocation;
+    }
     match &*name {
         "Location" => CrossOriginObjectType::CrossOriginLocation,
         "Window" => CrossOriginObjectType::CrossOriginWindow,
@@ -119,13 +128,11 @@ unsafe fn target_subsumes_obj(cx: *mut JSContext, obj: HandleObject) -> bool {
     //false
 }
 
-//TODO check what type of wrapper we should use to disallow any access
 unsafe fn get_opaque_wrapper() -> *const ::libc::c_void {
     //GetSecurityWrapper()
     GetOpaqueWrapper()
 }
 
-// FIXME use an actual XOW
 unsafe fn get_cross_origin_wrapper() -> *const ::libc::c_void {
     CreateCrossOriginWrapper()
 }
@@ -148,10 +155,10 @@ unsafe fn select_wrapper(cx: *mut JSContext, obj: HandleObject) -> *const libc::
 
     if identify_cross_origin_object(obj) != CrossOriginObjectType::CrossOriginOpaque {
         println!("XOW");
-        return get_cross_origin_wrapper()
+        return get_cross_origin_wrapper();
     };
 
-    println!("Opaque");
+    println!("opaque");
     get_opaque_wrapper()
 }
 
@@ -313,7 +320,6 @@ pub fn is_platform_object(obj: *mut JSObject) -> bool {
         }
         // Now for simplicity check for security wrappers before anything else
         if IsWrapper(obj) {
-            println!("unwrap obj for sec wrapper check");
             let unwrapped_obj = UnwrapObject(obj, /* stopAtWindowProxy = */ 0);
             if unwrapped_obj.is_null() {
                 return false;
@@ -489,11 +495,18 @@ unsafe extern "C" fn wrap(cx: *mut JSContext,
     WrapperNew(cx, obj, wrapper, ptr::null(), false)
 }
 
+unsafe extern "C" fn throw_dom_exception_callback(cx: *mut JSContext) {
+    //TODO it might not always be a SecurityError?
+    println!("throw dom exception callback");
+    throw_dom_exception(cx, &GlobalScope::from_context(cx), Error::Security);
+}
+
 unsafe extern "C" fn pre_wrap(cx: *mut JSContext,
                               _existing: HandleObject,
                               obj: HandleObject,
                               _object_passed_to_wrap: HandleObject)
                               -> *mut JSObject {
+    SetThrowDOMExceptionCallback(Some(throw_dom_exception_callback));
     let _ac = JSAutoCompartment::new(cx, obj.get());
     let obj = ToWindowProxyIfWindow(obj.get());
     assert!(!obj.is_null());
