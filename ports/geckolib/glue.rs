@@ -990,6 +990,8 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
         .into_strong()
 }
 
+// FIXME(emilio): Don't use pseudo_tag here, and pass the pseudo-element
+// directly.
 #[no_mangle]
 pub extern "C" fn Servo_ResolveRuleNode(element: RawGeckoElementBorrowed,
                                         pseudo_tag: *mut nsIAtom,
@@ -1045,6 +1047,8 @@ pub extern "C" fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
     let guard = global_style_data.shared_lock.read();
     match get_pseudo_style(&guard, element, pseudo_tag, data.styles(), doc_data) {
         Some(values) => values.into_strong(),
+        // FIXME(emilio): This looks pretty wrong! Shouldn't it be at least an
+        // empty style inheriting from the element?
         None if !is_probe => data.styles().primary.values().clone().into_strong(),
         None => Strong::null(),
     }
@@ -1081,7 +1085,12 @@ fn get_pseudo_rule_node(guard: &SharedRwLockReadGuard,
         PseudoElementCascadeType::Lazy => {
             let d = doc_data.borrow_mut();
             let guards = StylesheetGuards::same(guard);
-            d.stylist.lazy_pseudo_rules(&guards, &element, &pseudo)
+
+            // FIXME(emilio): We should get the pseudo state here!
+            d.stylist.lazy_pseudo_rules(&guards,
+                                        &element,
+                                        &pseudo,
+                                        ElementState::empty())
         },
     }
 }
@@ -1105,6 +1114,7 @@ fn get_pseudo_style(guard: &SharedRwLockReadGuard,
             d.stylist.lazily_compute_pseudo_element_style(&guards,
                                                           &element,
                                                           &pseudo,
+                                                          ElementState::empty(),
                                                           base,
                                                           &metrics)
                      .map(|s| s.values().clone())

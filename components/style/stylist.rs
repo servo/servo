@@ -602,15 +602,17 @@ impl Stylist {
                                                   guards: &StylesheetGuards,
                                                   element: &E,
                                                   pseudo: &PseudoElement,
+                                                  pseudo_state: ElementState,
                                                   parent: &Arc<ComputedValues>,
                                                   font_metrics: &FontMetricsProvider)
                                                   -> Option<ComputedStyle>
         where E: TElement,
     {
-        let rule_node = match self.lazy_pseudo_rules(guards, element, pseudo) {
-            Some(rule_node) => rule_node,
-            None => return None
-        };
+        let rule_node =
+            match self.lazy_pseudo_rules(guards, element, pseudo, pseudo_state) {
+                Some(rule_node) => rule_node,
+                None => return None
+            };
 
         // Read the comment on `precomputed_values_for_pseudo` to see why it's
         // difficult to assert that display: contents nodes never arrive here
@@ -638,7 +640,8 @@ impl Stylist {
     pub fn lazy_pseudo_rules<E>(&self,
                                 guards: &StylesheetGuards,
                                 element: &E,
-                                pseudo: &PseudoElement)
+                                pseudo: &PseudoElement,
+                                pseudo_state: ElementState)
                                 -> Option<StrongRuleNode>
         where E: TElement
     {
@@ -678,7 +681,7 @@ impl Stylist {
                                           None,
                                           None,
                                           AnimationRules(None, None),
-                                          Some(pseudo),
+                                          Some((pseudo, pseudo_state)),
                                           &mut declarations,
                                           &mut set_selector_flags);
         if declarations.is_empty() {
@@ -807,7 +810,7 @@ impl Stylist {
                                         style_attribute: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
                                         smil_override: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
                                         animation_rules: AnimationRules,
-                                        pseudo_element: Option<&PseudoElement>,
+                                        pseudo_element: Option<(&PseudoElement, ElementState)>,
                                         applicable_declarations: &mut V,
                                         flags_setter: &mut F)
                                         -> StyleRelations
@@ -821,18 +824,21 @@ impl Stylist {
         debug_assert!(cfg!(feature = "gecko") ||
                       style_attribute.is_none() || pseudo_element.is_none(),
                       "Style attributes do not apply to pseudo-elements");
-        debug_assert!(pseudo_element.as_ref().map_or(true, |p| !p.is_precomputed()));
+        debug_assert!(pseudo_element.as_ref().map_or(true, |p| !p.0.is_precomputed()));
 
         let map = match pseudo_element {
-            Some(ref pseudo) => self.pseudos_map.get(pseudo).unwrap(),
+            Some((ref pseudo, _)) => self.pseudos_map.get(pseudo).unwrap(),
             None => &self.element_map,
         };
 
         let mut relations = StyleRelations::empty();
 
-        debug!("Determining if style is shareable: pseudo: {}", pseudo_element.is_some());
+        debug!("Determining if style is shareable: pseudo: {}",
+               pseudo_element.is_some());
+
         // Step 1: Normal user-agent rules.
         map.user_agent.get_all_matching_rules(element,
+                                              pseudo_element,
                                               parent_bf,
                                               applicable_declarations,
                                               &mut relations,
@@ -859,6 +865,7 @@ impl Stylist {
         if element.matches_user_and_author_rules() {
             // Step 3: User and author normal rules.
             map.user.get_all_matching_rules(element,
+                                            pseudo_element,
                                             parent_bf,
                                             applicable_declarations,
                                             &mut relations,
@@ -866,6 +873,7 @@ impl Stylist {
                                             CascadeLevel::UserNormal);
             debug!("user normal: {:?}", relations);
             map.author.get_all_matching_rules(element,
+                                              pseudo_element,
                                               parent_bf,
                                               applicable_declarations,
                                               &mut relations,
@@ -1249,6 +1257,7 @@ impl SelectorMap<Rule> {
     /// Sort the Rules at the end to maintain cascading order.
     pub fn get_all_matching_rules<E, V, F>(&self,
                                            element: &E,
+                                           pseudo_element: Option<(&PseudoElement, ElementState)>,
                                            parent_bf: Option<&BloomFilter>,
                                            matching_rules_list: &mut V,
                                            relations: &mut StyleRelations,
@@ -1266,6 +1275,7 @@ impl SelectorMap<Rule> {
         let init_len = matching_rules_list.len();
         if let Some(id) = element.get_id() {
             SelectorMap::get_matching_rules_from_hash(element,
+                                                      pseudo_element,
                                                       parent_bf,
                                                       &self.id_hash,
                                                       &id,
@@ -1277,6 +1287,7 @@ impl SelectorMap<Rule> {
 
         element.each_class(|class| {
             SelectorMap::get_matching_rules_from_hash(element,
+                                                      pseudo_element,
                                                       parent_bf,
                                                       &self.class_hash,
                                                       class,
@@ -1287,6 +1298,7 @@ impl SelectorMap<Rule> {
         });
 
         SelectorMap::get_matching_rules_from_hash(element,
+                                                  pseudo_element,
                                                   parent_bf,
                                                   &self.local_name_hash,
                                                   element.get_local_name(),
@@ -1296,6 +1308,7 @@ impl SelectorMap<Rule> {
                                                   cascade_level);
 
         SelectorMap::get_matching_rules(element,
+                                        pseudo_element,
                                         parent_bf,
                                         &self.other,
                                         matching_rules_list,
@@ -1333,6 +1346,7 @@ impl SelectorMap<Rule> {
 
     fn get_matching_rules_from_hash<E, Str, BorrowedStr: ?Sized, Vector, F>(
         element: &E,
+        pseudo_element: Option<(&PseudoElement, ElementState)>,
         parent_bf: Option<&BloomFilter>,
         hash: &FnvHashMap<Str, Vec<Rule>>,
         key: &BorrowedStr,
@@ -1348,6 +1362,7 @@ impl SelectorMap<Rule> {
     {
         if let Some(rules) = hash.get(key) {
             SelectorMap::get_matching_rules(element,
+                                            pseudo_element,
                                             parent_bf,
                                             rules,
                                             matching_rules,
@@ -1359,6 +1374,7 @@ impl SelectorMap<Rule> {
 
     /// Adds rules in `rules` that match `element` to the `matching_rules` list.
     fn get_matching_rules<E, V, F>(element: &E,
+                                   pseudo_element: Option<(&PseudoElement, ElementState)>,
                                    parent_bf: Option<&BloomFilter>,
                                    rules: &[Rule],
                                    matching_rules: &mut V,
@@ -1370,6 +1386,27 @@ impl SelectorMap<Rule> {
               F: FnMut(&E, ElementSelectorFlags),
     {
         for rule in rules.iter() {
+            debug_assert_eq!(rule.selector.pseudo_element.is_some(),
+                             pseudo_element.is_some(),
+                             "Testing pseudo-elements against the wrong map");
+
+            if let Some((pseudo, pseudo_state)) = pseudo_element {
+                let pseudo_selector =
+                    rule.selector.pseudo_element.as_ref().unwrap();
+
+                debug_assert_eq!(pseudo_selector.pseudo_element(), pseudo,
+                                 "Testing pseudo-element against the wrong entry");
+
+                let state = pseudo_selector.state();
+
+                // NB: We only allow a subset of the flags here, so using
+                // contains for them is fine, (and it's necessary, to handle
+                // multiple state flags properly).
+                if !state.is_empty() && !pseudo_state.contains(state) {
+                    continue;
+                }
+            }
+
             if matches_selector(&rule.selector.inner,
                                 element,
                                 parent_bf,

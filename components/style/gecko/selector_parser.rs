@@ -401,6 +401,11 @@ impl PseudoElementSelector {
     pub fn pseudo_element(&self) -> &PseudoElement {
         &self.pseudo
     }
+
+    /// Returns the pseudo-element selector state.
+    pub fn state(&self) -> ElementState {
+        self.state
+    }
 }
 
 impl ToCss for PseudoElementSelector {
