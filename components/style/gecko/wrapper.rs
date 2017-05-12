@@ -526,6 +526,32 @@ impl<'le> TElement for GeckoElement<'le> {
     type ConcreteNode = GeckoNode<'le>;
     type FontMetricsProvider = GeckoFontMetricsProvider;
 
+    fn inheritance_parent(&self) -> Option<Self> {
+        if self.is_native_anonymous() {
+            return self.closest_non_native_anonymous_ancestor();
+        }
+        return self.parent_element();
+    }
+
+    fn closest_non_native_anonymous_ancestor(&self) -> Option<Self> {
+        debug_assert!(self.is_native_anonymous());
+        let mut parent = match self.parent_element() {
+            Some(e) => e,
+            None => return None,
+        };
+
+        loop {
+            if !parent.is_native_anonymous() {
+                return Some(parent);
+            }
+
+            parent = match parent.parent_element() {
+                Some(p) => p,
+                None => return None,
+            };
+        }
+    }
+
     fn as_node(&self) -> Self::ConcreteNode {
         unsafe { GeckoNode(&*(self.0 as *const _ as *const RawGeckoNode)) }
     }
