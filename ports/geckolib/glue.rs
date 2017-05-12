@@ -2186,13 +2186,28 @@ pub extern "C" fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed) {
     assert_subtree_is_clean(root);
 }
 
+fn add_computed_property_value(keyframe: *mut structs::Keyframe,
+                               index: usize,
+                               style: &ComputedValues,
+                               property: &TransitionProperty,
+                               shared_lock: &SharedRwLock) {
+    let block = style.to_declaration_block(property.clone().into());
+    unsafe {
+        (*keyframe).mPropertyValues.set_len((index + 1) as u32);
+        (*keyframe).mPropertyValues[index].mProperty = property.into();
+        // FIXME. Bug 1360398: Do not set computed values once we handles
+        // missing keyframes with additive composition.
+        (*keyframe).mPropertyValues[index].mServoDeclarationBlock.set_arc_leaky(
+            Arc::new(shared_lock.wrap(block)));
+    }
+}
+
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSetBorrowed,
                                                       name: *const nsACString,
                                                       timing_function: nsTimingFunctionBorrowed,
                                                       style: ServoComputedValuesBorrowed,
                                                       keyframes: RawGeckoKeyframeListBorrowedMut) -> bool {
-    use style::gecko_bindings::structs::Keyframe;
     use style::properties::LonghandIdSet;
 
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
@@ -2231,22 +2246,6 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
                                              step.start_percentage.0 as f32,
                                              &timing_function)
         };
-
-        fn add_computed_property_value(keyframe: *mut Keyframe,
-                                       index: usize,
-                                       style: &ComputedValues,
-                                       property: &TransitionProperty,
-                                       shared_lock: &SharedRwLock) {
-            let block = style.to_declaration_block(property.clone().into());
-            unsafe {
-                (*keyframe).mPropertyValues.set_len((index + 1) as u32);
-                (*keyframe).mPropertyValues[index].mProperty = property.into();
-                // FIXME. Do not set computed values once we handles missing keyframes
-                // with additive composition.
-                (*keyframe).mPropertyValues[index].mServoDeclarationBlock.set_arc_leaky(
-                    Arc::new(shared_lock.wrap(block)));
-            }
-        }
 
         match step.value {
             KeyframesStepValue::ComputedValues => {
