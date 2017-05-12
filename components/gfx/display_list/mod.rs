@@ -33,7 +33,7 @@ use std::sync::Arc;
 use style_traits::cursor::Cursor;
 use text::TextRun;
 use text::glyph::ByteIndex;
-use webrender_traits::{self, BorderRadius, BoxShadowClipMode, ClipId};
+use webrender_traits::{self, BorderRadius, BorderWidths, BoxShadowClipMode, ClipId};
 use webrender_traits::{ColorF, ExtendMode, FilterOp, GradientStop};
 use webrender_traits::{ImageRendering, LayoutPoint, LayoutSize, MixBlendMode};
 use webrender_traits::{NormalBorder, ScrollPolicy, WebGLContextId};
@@ -985,7 +985,7 @@ pub struct BorderDisplayItem {
     pub base: BaseDisplayItem,
 
     /// Border widths.
-    pub border_widths: SideOffsets2D<Au>,
+    pub border_widths: BorderWidths,
 
     /// Details for specific border type
     pub details: BorderDetails,
@@ -1115,15 +1115,15 @@ impl DisplayItem {
                 let interior_rect =
                     Rect::new(
                         Point2D::new(border.base.bounds.origin.x +
-                                     border.border_widths.left,
+                                     Au::from_f32_px(border.border_widths.left),
                                      border.base.bounds.origin.y +
-                                     border.border_widths.top),
+                                     Au::from_f32_px(border.border_widths.top)),
                         Size2D::new(border.base.bounds.size.width -
-                                    (border.border_widths.left +
-                                     border.border_widths.right),
+                                    (Au::from_f32_px(border.border_widths.left) +
+                                     Au::from_f32_px(border.border_widths.right)),
                                     border.base.bounds.size.height -
-                                    (border.border_widths.top +
-                                     border.border_widths.bottom)));
+                                    (Au::from_f32_px(border.border_widths.top) +
+                                     Au::from_f32_px(border.border_widths.bottom))));
                 if interior_rect.contains(&point) {
                     return None;
                 }

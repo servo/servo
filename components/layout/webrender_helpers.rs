@@ -8,7 +8,7 @@
 //           completely converting layout to directly generate WebRender display lists, for example.
 
 use app_units::Au;
-use euclid::{Point2D, Rect, SideOffsets2D};
+use euclid::{Point2D, Rect};
 use gfx::display_list::{BorderDetails, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayList, DisplayListTraversal, StackingContextType};
 use msg::constellation_msg::PipelineId;
@@ -23,21 +23,6 @@ trait WebRenderDisplayItemConverter {
     fn convert_to_webrender(&self,
                             builder: &mut DisplayListBuilder,
                             current_scroll_root_id: &mut ClipId);
-}
-
-trait ToBorderWidths {
-    fn to_border_widths(&self) -> webrender_traits::BorderWidths;
-}
-
-impl ToBorderWidths for SideOffsets2D<Au> {
-    fn to_border_widths(&self) -> webrender_traits::BorderWidths {
-        webrender_traits::BorderWidths {
-            left: self.left.to_f32_px(),
-            top: self.top.to_f32_px(),
-            right: self.right.to_f32_px(),
-            bottom: self.bottom.to_f32_px(),
-        }
-    }
 }
 
 trait ToRectF {
@@ -166,7 +151,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             }
             DisplayItem::Border(ref item) => {
                 let rect = item.base.bounds.to_rectf();
-                let widths = item.border_widths.to_border_widths();
+                let widths = item.border_widths;
                 let clip = item.base.clip.push_clip_region(builder);
 
                 let details = match item.details {

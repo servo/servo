@@ -64,7 +64,7 @@ use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
 use to_layout::ToLayout;
-use webrender_traits::{BorderRadius, BorderSide, BorderStyle, BoxShadowClipMode, ColorF, ClipId, ExtendMode};
+use webrender_traits::{BorderRadius, BorderSide, BorderWidths, BorderStyle, BoxShadowClipMode, ColorF, ClipId, ExtendMode};
 use webrender_traits::{GradientStop, ImageRendering, LayerSize, NormalBorder, RepeatMode, ScrollPolicy};
 
 trait ResolvePercentage {
@@ -1351,7 +1351,7 @@ impl FragmentDisplayListBuilding for Fragment {
             None => {
                 state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
                     base: base,
-                    border_widths: border.to_physical(style.writing_mode),
+                    border_widths: border.to_physical(style.writing_mode).to_layout(),
                     details: BorderDetails::Normal(NormalBorder {
                         left: BorderSide {
                             color: colors.left.to_gfx_color(),
@@ -1384,7 +1384,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
                         state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
                             base: base,
-                            border_widths: border.to_physical(style.writing_mode),
+                            border_widths: border.to_physical(style.writing_mode).to_layout(),
                             details: BorderDetails::Gradient(display_list::GradientBorder {
                                 gradient: grad,
 
@@ -1402,7 +1402,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                 style);
                         state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
                             base: base,
-                            border_widths: border.to_physical(style.writing_mode),
+                            border_widths: border.to_physical(style.writing_mode).to_layout(),
                             details: BorderDetails::RadialGradient(
                                 display_list::RadialGradientBorder {
                                     gradient: grad,
@@ -1432,7 +1432,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
                         state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
                             base: base,
-                            border_widths: border.to_physical(style.writing_mode),
+                            border_widths: border.to_physical(style.writing_mode).to_layout(),
                             details: BorderDetails::Image(ImageBorder {
                                 image: webrender_image,
                                 fill: border_style_struct.border_image_slice.fill,
@@ -1488,7 +1488,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                   DisplayListSection::Outlines);
         state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
             base: base,
-            border_widths: SideOffsets2D::new_all_same(width),
+            border_widths: make_simple_border_width(width.to_f32_px()),
             details: make_simple_border(color, outline_style),
         }));
     }
@@ -1508,7 +1508,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                   DisplayListSection::Content);
         state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
             base: base,
-            border_widths: SideOffsets2D::new_all_same(Au::from_px(1)),
+            border_widths: make_simple_border_width(1.0),
             details: make_simple_border(ColorF::rgb(0, 0, 200), BorderStyle::Solid),
         }));
     }
@@ -1525,7 +1525,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                   DisplayListSection::Content);
         state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
             base: base,
-            border_widths: SideOffsets2D::new_all_same(Au::from_px(1)),
+            border_widths: make_simple_border_width(1.0),
             details: make_simple_border(ColorF::rgb(0, 0, 200), BorderStyle::Solid),
         }));
     }
@@ -2717,7 +2717,7 @@ impl BaseFlowDisplayListBuilding for BaseFlow {
             DisplayListSection::Content);
         state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
             base: base,
-            border_widths: SideOffsets2D::new_all_same(Au::from_px(2)),
+            border_widths: make_simple_border_width(2.0),
             details: make_simple_border(color, BorderStyle::Solid),
         }));
     }
@@ -2783,6 +2783,15 @@ fn make_simple_border(color: ColorF, style: BorderStyle) -> BorderDetails {
         bottom: side,
         radius: BorderRadius::zero(),
     })
+}
+
+fn make_simple_border_width(width: f32) -> BorderWidths {
+    BorderWidths {
+        left: width,
+        top: width,
+        right: width,
+        bottom: width,
+    }
 }
 
 fn is_square_border(border: BorderRadius) -> bool {
