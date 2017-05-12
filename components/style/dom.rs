@@ -325,6 +325,21 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
         }
     }
 
+    /// Returns the parent element we should inherit from.
+    ///
+    /// This is pretty much always the parent element itself, except in the case
+    /// of Gecko's Native Anonymous Content, which may need to find the closest
+    /// non-NAC ancestor.
+    fn inheritance_parent(&self) -> Option<Self> {
+        self.parent_element()
+    }
+
+    /// For a given NAC element, return the closest non-NAC ancestor, which is
+    /// guaranteed to exist.
+    fn closest_non_native_anonymous_ancestor(&self) -> Option<Self> {
+        unreachable!("Servo doesn't know about NAC");
+    }
+
     /// Get this element's style attribute.
     fn style_attribute(&self) -> Option<&Arc<Locked<PropertyDeclarationBlock>>>;
 
