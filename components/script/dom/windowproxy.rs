@@ -28,7 +28,7 @@ use js::jsapi::{MutableHandle, MutableHandleObject, MutableHandleValue};
 use js::jsapi::{ObjectOpResult, PropertyDescriptor};
 use js::jsval::{UndefinedValue, PrivateValue};
 use js::rust::get_object_class;
-use msg::constellation_msg::FrameId;
+use msg::constellation_msg::BrowsingContextId;
 use msg::constellation_msg::PipelineId;
 use std::cell::Cell;
 use std::ptr;
@@ -45,10 +45,10 @@ pub struct WindowProxy {
     /// changes Window.
     reflector: Reflector,
 
-    /// The frame id of the browsing context.
-    /// In the case that this is a nested browsing context, this is the frame id
+    /// The id of the browsing context.
+    /// In the case that this is a nested browsing context, this is the id
     /// of the container.
-    frame_id: FrameId,
+    browsing_context_id: BrowsingContextId,
 
     /// The pipeline id of the currently active document.
     /// May be None, when the currently active document is in another script thread.
@@ -68,7 +68,7 @@ pub struct WindowProxy {
 }
 
 impl WindowProxy {
-    pub fn new_inherited(frame_id: FrameId,
+    pub fn new_inherited(browsing_context_id: BrowsingContextId,
                          currently_active: Option<PipelineId>,
                          frame_element: Option<&Element>,
                          parent: Option<&WindowProxy>)
@@ -76,7 +76,7 @@ impl WindowProxy {
     {
         WindowProxy {
             reflector: Reflector::new(),
-            frame_id: frame_id,
+            browsing_context_id: browsing_context_id,
             currently_active: Cell::new(currently_active),
             discarded: Cell::new(false),
             frame_element: frame_element.map(JS::from_ref),
@@ -86,7 +86,7 @@ impl WindowProxy {
 
     #[allow(unsafe_code)]
     pub fn new(window: &Window,
-               frame_id: FrameId,
+               browsing_context_id: BrowsingContextId,
                frame_element: Option<&Element>,
                parent: Option<&WindowProxy>)
                -> Root<WindowProxy>
@@ -107,7 +107,7 @@ impl WindowProxy {
 
             // Create a new browsing context.
             let current = Some(window.global().pipeline_id());
-            let mut window_proxy = box WindowProxy::new_inherited(frame_id, current, frame_element, parent);
+            let mut window_proxy = box WindowProxy::new_inherited(browsing_context_id, current, frame_element, parent);
 
             // The window proxy owns the browsing context.
             // When we finalize the window proxy, it drops the browsing context it owns.
@@ -125,7 +125,7 @@ impl WindowProxy {
 
     #[allow(unsafe_code)]
     pub fn new_dissimilar_origin(global_to_clone_from: &GlobalScope,
-                                 frame_id: FrameId,
+                                 browsing_context_id: BrowsingContextId,
                                  parent: Option<&WindowProxy>)
                                  -> Root<WindowProxy>
     {
@@ -136,7 +136,7 @@ impl WindowProxy {
             let cx = global_to_clone_from.get_cx();
 
             // Create a new browsing context.
-            let mut window_proxy = box WindowProxy::new_inherited(frame_id, None, None, parent);
+            let mut window_proxy = box WindowProxy::new_inherited(browsing_context_id, None, None, parent);
 
             // Create a new dissimilar-origin window.
             let window = DissimilarOriginWindow::new(global_to_clone_from, &*window_proxy);
@@ -171,8 +171,8 @@ impl WindowProxy {
         self.discarded.get()
     }
 
-    pub fn frame_id(&self) -> FrameId {
-        self.frame_id
+    pub fn browsing_context_id(&self) -> BrowsingContextId {
+        self.browsing_context_id
     }
 
     pub fn frame_element(&self) -> Option<&Element> {

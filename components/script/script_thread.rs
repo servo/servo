@@ -71,7 +71,7 @@ use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use mem::heap_size_of_self_and_children;
 use microtask::{MicrotaskQueue, Microtask};
-use msg::constellation_msg::{FrameId, FrameType, PipelineId, PipelineNamespace};
+use msg::constellation_msg::{BrowsingContextId, FrameType, PipelineId, PipelineNamespace};
 use net_traits::{CoreResourceMsg, FetchMetadata, FetchResponseListener};
 use net_traits::{IpcSend, Metadata, ReferrerPolicy, ResourceThreads};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
@@ -142,7 +142,7 @@ struct InProgressLoad {
     /// The pipeline which requested this load.
     pipeline_id: PipelineId,
     /// The frame being loaded into.
-    frame_id: FrameId,
+    browsing_context_id: BrowsingContextId,
     /// The parent pipeline and frame type associated with this load, if any.
     parent_info: Option<(PipelineId, FrameType)>,
     /// The current window size associated with this pipeline.
@@ -162,7 +162,7 @@ struct InProgressLoad {
 impl InProgressLoad {
     /// Create a new InProgressLoad object.
     fn new(id: PipelineId,
-           frame_id: FrameId,
+           browsing_context_id: BrowsingContextId,
            parent_info: Option<(PipelineId, FrameType)>,
            layout_chan: Sender<message::Msg>,
            window_size: Option<WindowSizeData>,
@@ -170,7 +170,7 @@ impl InProgressLoad {
            origin: MutableOrigin) -> InProgressLoad {
         InProgressLoad {
             pipeline_id: id,
-            frame_id: frame_id,
+            browsing_context_id: browsing_context_id,
             parent_info: parent_info,
             layout_chan: layout_chan,
             window_size: window_size,
@@ -368,8 +368,10 @@ impl Documents {
         self.find_window(pipeline_id).map(|window| Root::from_ref(window.upcast()))
     }
 
-    pub fn find_iframe(&self, pipeline_id: PipelineId, frame_id: FrameId) -> Option<Root<HTMLIFrameElement>> {
-        self.find_document(pipeline_id).and_then(|doc| doc.find_iframe(frame_id))
+    pub fn find_iframe(&self, pipeline_id: PipelineId, browsing_context_id: BrowsingContextId)
+                       -> Option<Root<HTMLIFrameElement>>
+    {
+        self.find_document(pipeline_id).and_then(|doc| doc.find_iframe(browsing_context_id))
     }
 
     pub fn iter<'a>(&'a self) -> DocumentsIter<'a> {
@@ -400,7 +402,7 @@ pub struct ScriptThread {
     documents: DOMRefCell<Documents>,
     /// The window proxies known by this thread
     /// TODO: this map grows, but never shrinks. Issue #15258.
-    window_proxies: DOMRefCell<HashMap<FrameId, JS<WindowProxy>>>,
+    window_proxies: DOMRefCell<HashMap<BrowsingContextId, JS<WindowProxy>>>,
     /// A list of data pertaining to loads that have not yet received a network response
     incomplete_loads: DOMRefCell<Vec<InProgressLoad>>,
     /// A map to store service worker registrations for a given origin
@@ -538,11 +540,11 @@ impl ScriptThreadFactory for ScriptThread {
         thread::Builder::new().name(format!("ScriptThread {:?}", state.id)).spawn(move || {
             thread_state::initialize(thread_state::SCRIPT);
             PipelineNamespace::install(state.pipeline_namespace_id);
-            FrameId::install(state.top_level_frame_id);
+            BrowsingContextId::install(state.top_level_browsing_context_id);
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
             let id = state.id;
-            let frame_id = state.frame_id;
+            let browsing_context_id = state.browsing_context_id;
             let parent_info = state.parent_info;
             let mem_profiler_chan = state.mem_profiler_chan.clone();
             let window_size = state.window_size;
@@ -557,7 +559,7 @@ impl ScriptThreadFactory for ScriptThread {
             let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
 
             let origin = MutableOrigin::new(load_data.url.origin());
-            let new_load = InProgressLoad::new(id, frame_id, parent_info,
+            let new_load = InProgressLoad::new(id, browsing_context_id, parent_info,
                                                layout_chan, window_size, load_data.url.clone(), origin);
             script_thread.start_page_load(new_load, load_data);
 
@@ -669,7 +671,7 @@ impl ScriptThread {
         }))
     }
 
-    pub fn find_window_proxy(id: FrameId) -> Option<Root<WindowProxy>> {
+    pub fn find_window_proxy(id: BrowsingContextId) -> Option<Root<WindowProxy>> {
         SCRIPT_THREAD_ROOT.with(|root| root.get().and_then(|script_thread| {
             let script_thread = unsafe { &*script_thread };
             script_thread.window_proxies.borrow().get(&id)
@@ -1049,8 +1051,8 @@ impl ScriptThread {
 
     fn handle_msg_from_constellation(&self, msg: ConstellationControlMsg) {
         match msg {
-            ConstellationControlMsg::Navigate(parent_pipeline_id, frame_id, load_data, replace) =>
-                self.handle_navigate(parent_pipeline_id, Some(frame_id), load_data, replace),
+            ConstellationControlMsg::Navigate(parent_pipeline_id, browsing_context_id, load_data, replace) =>
+                self.handle_navigate(parent_pipeline_id, Some(browsing_context_id), load_data, replace),
             ConstellationControlMsg::SendEvent(id, event) =>
                 self.handle_event(id, event),
             ConstellationControlMsg::ResizeInactive(id, new_size) =>
@@ -1061,22 +1063,22 @@ impl ScriptThread {
                 self.handle_set_document_activity_msg(pipeline_id, activity),
             ConstellationControlMsg::ChangeFrameVisibilityStatus(pipeline_id, visible) =>
                 self.handle_visibility_change_msg(pipeline_id, visible),
-            ConstellationControlMsg::NotifyVisibilityChange(parent_pipeline_id, frame_id, visible) =>
-                self.handle_visibility_change_complete_msg(parent_pipeline_id, frame_id, visible),
+            ConstellationControlMsg::NotifyVisibilityChange(parent_pipeline_id, browsing_context_id, visible) =>
+                self.handle_visibility_change_complete_msg(parent_pipeline_id, browsing_context_id, visible),
             ConstellationControlMsg::PostMessage(pipeline_id, origin, data) =>
                 self.handle_post_message_msg(pipeline_id, origin, data),
             ConstellationControlMsg::MozBrowserEvent(parent_pipeline_id,
-                                                     frame_id,
+                                                     browsing_context_id,
                                                      event) =>
                 self.handle_mozbrowser_event_msg(parent_pipeline_id,
-                                                 frame_id,
+                                                 browsing_context_id,
                                                  event),
             ConstellationControlMsg::UpdatePipelineId(parent_pipeline_id,
-                                                      frame_id,
+                                                      browsing_context_id,
                                                       new_pipeline_id,
                                                       reason) =>
                 self.handle_update_pipeline_id(parent_pipeline_id,
-                                               frame_id,
+                                               browsing_context_id,
                                                new_pipeline_id,
                                                reason),
             ConstellationControlMsg::FocusIFrame(parent_pipeline_id, frame_id) =>
@@ -1089,9 +1091,9 @@ impl ScriptThread {
                 self.handle_transition_event(unsafe_node, name, duration),
             ConstellationControlMsg::WebFontLoaded(pipeline_id) =>
                 self.handle_web_font_loaded(pipeline_id),
-            ConstellationControlMsg::DispatchFrameLoadEvent {
-                target: frame_id, parent: parent_id, child: child_id } =>
-                self.handle_frame_load_event(parent_id, frame_id, child_id),
+            ConstellationControlMsg::DispatchIFrameLoadEvent {
+                target: browsing_context_id, parent: parent_id, child: child_id } =>
+                self.handle_iframe_load_event(parent_id, browsing_context_id, child_id),
             ConstellationControlMsg::DispatchStorageEvent(pipeline_id, storage, url, key, old_value, new_value) =>
                 self.handle_storage_event(pipeline_id, storage, url, key, old_value, new_value),
             ConstellationControlMsg::ReportCSSError(pipeline_id, filename, line, column, msg) =>
@@ -1224,8 +1226,8 @@ impl ScriptThread {
                 webdriver_handlers::handle_get_rect(&*documents, pipeline_id, node_id, reply),
             WebDriverScriptCommand::GetElementText(node_id, reply) =>
                 webdriver_handlers::handle_get_text(&*documents, pipeline_id, node_id, reply),
-            WebDriverScriptCommand::GetFrameId(frame_id, reply) =>
-                webdriver_handlers::handle_get_frame_id(&*documents, pipeline_id, frame_id, reply),
+            WebDriverScriptCommand::GetPipelineId(browsing_context_id, reply) =>
+                webdriver_handlers::handle_get_pipeline_id(&*documents, pipeline_id, browsing_context_id, reply),
             WebDriverScriptCommand::GetUrl(reply) =>
                 webdriver_handlers::handle_get_url(&*documents, pipeline_id, reply),
             WebDriverScriptCommand::IsEnabled(element_id, reply) =>
@@ -1292,7 +1294,7 @@ impl ScriptThread {
         let NewLayoutInfo {
             parent_info,
             new_pipeline_id,
-            frame_id,
+            browsing_context_id,
             load_data,
             window_size,
             pipeline_port,
@@ -1328,7 +1330,7 @@ impl ScriptThread {
         };
 
         // Kick off the fetch for the new resource.
-        let new_load = InProgressLoad::new(new_pipeline_id, frame_id, parent_info,
+        let new_load = InProgressLoad::new(new_pipeline_id, browsing_context_id, parent_info,
                                            layout_chan, window_size,
                                            load_data.url.clone(), origin);
         if load_data.url.as_str() == "about:blank" {
@@ -1369,8 +1371,12 @@ impl ScriptThread {
     }
 
     /// Updates iframe element after a change in visibility
-    fn handle_visibility_change_complete_msg(&self, parent_pipeline_id: PipelineId, id: FrameId, visible: bool) {
-        let iframe = self.documents.borrow().find_iframe(parent_pipeline_id, id);
+    fn handle_visibility_change_complete_msg(&self,
+                                             parent_pipeline_id: PipelineId,
+                                             browsing_context_id: BrowsingContextId,
+                                             visible: bool)
+    {
+        let iframe = self.documents.borrow().find_iframe(parent_pipeline_id, browsing_context_id);
         if let Some(iframe) = iframe {
             iframe.change_visibility_status(visible);
         }
@@ -1418,9 +1424,9 @@ impl ScriptThread {
 
     fn handle_focus_iframe_msg(&self,
                                parent_pipeline_id: PipelineId,
-                               frame_id: FrameId) {
+                               browsing_context_id: BrowsingContextId) {
         let doc = self.documents.borrow().find_document(parent_pipeline_id).unwrap();
-        let frame_element = doc.find_iframe(frame_id);
+        let frame_element = doc.find_iframe(browsing_context_id);
 
         if let Some(ref frame_element) = frame_element {
             doc.begin_focus_transaction();
@@ -1440,17 +1446,17 @@ impl ScriptThread {
     /// https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadstart
     fn handle_mozbrowser_event_msg(&self,
                                    parent_pipeline_id: PipelineId,
-                                   frame_id: Option<FrameId>,
+                                   browsing_context_id: Option<BrowsingContextId>,
                                    event: MozBrowserEvent) {
         let doc = match { self.documents.borrow().find_document(parent_pipeline_id) } {
-            None => return warn!("Mozbrowser event after pipeline {:?} closed.", parent_pipeline_id),
+            None => return warn!("Mozbrowser event after pipeline {} closed.", parent_pipeline_id),
             Some(doc) => doc,
         };
 
-        match frame_id {
+        match browsing_context_id {
             None => doc.window().dispatch_mozbrowser_event(event),
-            Some(frame_id) => match doc.find_iframe(frame_id) {
-                None => warn!("Mozbrowser event after iframe {:?}/{:?} closed.", parent_pipeline_id, frame_id),
+            Some(browsing_context_id) => match doc.find_iframe(browsing_context_id) {
+                None => warn!("Mozbrowser event after iframe {}/{} closed.", parent_pipeline_id, browsing_context_id),
                 Some(frame_element) => frame_element.dispatch_mozbrowser_event(event),
             },
         }
@@ -1458,10 +1464,10 @@ impl ScriptThread {
 
     fn handle_update_pipeline_id(&self,
                                  parent_pipeline_id: PipelineId,
-                                 frame_id: FrameId,
+                                 browsing_context_id: BrowsingContextId,
                                  new_pipeline_id: PipelineId,
                                  reason: UpdatePipelineIdReason) {
-        let frame_element = self.documents.borrow().find_iframe(parent_pipeline_id, frame_id);
+        let frame_element = self.documents.borrow().find_iframe(parent_pipeline_id, browsing_context_id);
         if let Some(frame_element) = frame_element {
             frame_element.update_pipeline_id(new_pipeline_id, reason);
         }
@@ -1690,18 +1696,22 @@ impl ScriptThread {
         storage.queue_storage_event(url, key, old_value, new_value);
     }
 
-    /// Notify the containing document of a child frame that has completed loading.
-    fn handle_frame_load_event(&self, parent_id: PipelineId, frame_id: FrameId, child_id: PipelineId) {
-        let iframe = self.documents.borrow().find_iframe(parent_id, frame_id);
+    /// Notify the containing document of a child iframe that has completed loading.
+    fn handle_iframe_load_event(&self,
+                                parent_id: PipelineId,
+                                browsing_context_id: BrowsingContextId,
+                                child_id: PipelineId)
+    {
+        let iframe = self.documents.borrow().find_iframe(parent_id, browsing_context_id);
         match iframe {
             Some(iframe) => iframe.iframe_load_event_steps(child_id),
             None => warn!("Message sent to closed pipeline {}.", parent_id),
         }
     }
 
-    fn ask_constellation_for_frame_id(&self, pipeline_id: PipelineId) -> Option<FrameId> {
+    fn ask_constellation_for_browsing_context_id(&self, pipeline_id: PipelineId) -> Option<BrowsingContextId> {
         let (result_sender, result_receiver) = ipc::channel().unwrap();
-        let msg = ConstellationMsg::GetFrameId(pipeline_id, result_sender);
+        let msg = ConstellationMsg::GetBrowsingContextId(pipeline_id, result_sender);
         self.constellation_chan.send(msg).expect("Failed to send to constellation.");
         result_receiver.recv().expect("Failed to get frame id from constellation.")
     }
@@ -1724,19 +1734,19 @@ impl ScriptThread {
                                pipeline_id: PipelineId)
                                -> Option<Root<WindowProxy>>
     {
-        let frame_id = match self.ask_constellation_for_frame_id(pipeline_id) {
-            Some(frame_id) => frame_id,
+        let browsing_context_id = match self.ask_constellation_for_browsing_context_id(pipeline_id) {
+            Some(browsing_context_id) => browsing_context_id,
             None => return None,
         };
-        if let Some(window_proxy) = self.window_proxies.borrow().get(&frame_id) {
+        if let Some(window_proxy) = self.window_proxies.borrow().get(&browsing_context_id) {
             return Some(Root::from_ref(window_proxy));
         }
         let parent = match self.ask_constellation_for_parent_info(pipeline_id) {
             Some((parent_id, FrameType::IFrame)) => self.remote_window_proxy(global_to_clone, parent_id),
             _ => None,
         };
-        let window_proxy = WindowProxy::new_dissimilar_origin(global_to_clone, frame_id, parent.r());
-        self.window_proxies.borrow_mut().insert(frame_id, JS::from_ref(&*window_proxy));
+        let window_proxy = WindowProxy::new_dissimilar_origin(global_to_clone, browsing_context_id, parent.r());
+        self.window_proxies.borrow_mut().insert(browsing_context_id, JS::from_ref(&*window_proxy));
         Some(window_proxy)
     }
 
@@ -1748,16 +1758,16 @@ impl ScriptThread {
     // to the `window_proxies` map, and return it.
     fn local_window_proxy(&self,
                               window: &Window,
-                              frame_id: FrameId,
+                              browsing_context_id: BrowsingContextId,
                               parent_info: Option<(PipelineId, FrameType)>)
                               -> Root<WindowProxy>
     {
-        if let Some(window_proxy) = self.window_proxies.borrow().get(&frame_id) {
+        if let Some(window_proxy) = self.window_proxies.borrow().get(&browsing_context_id) {
             window_proxy.set_currently_active(&*window);
             return Root::from_ref(window_proxy);
         }
         let iframe = match parent_info {
-            Some((parent_id, FrameType::IFrame)) => self.documents.borrow().find_iframe(parent_id, frame_id),
+            Some((parent_id, FrameType::IFrame)) => self.documents.borrow().find_iframe(parent_id, browsing_context_id),
             _ => None,
         };
         let parent = match (parent_info, iframe.as_ref()) {
@@ -1765,8 +1775,8 @@ impl ScriptThread {
             (Some((parent_id, FrameType::IFrame)), _) => self.remote_window_proxy(window.upcast(), parent_id),
             _ => None,
         };
-        let window_proxy = WindowProxy::new(&window, frame_id, iframe.r().map(Castable::upcast), parent.r());
-        self.window_proxies.borrow_mut().insert(frame_id, JS::from_ref(&*window_proxy));
+        let window_proxy = WindowProxy::new(&window, browsing_context_id, iframe.r().map(Castable::upcast), parent.r());
+        self.window_proxies.borrow_mut().insert(browsing_context_id, JS::from_ref(&*window_proxy));
         window_proxy
     }
 
@@ -1823,7 +1833,7 @@ impl ScriptThread {
                                  self.webvr_thread.clone());
 
         // Initialize the browsing context for the window.
-        let window_proxy = self.local_window_proxy(&window, incomplete.frame_id, incomplete.parent_info);
+        let window_proxy = self.local_window_proxy(&window, incomplete.browsing_context_id, incomplete.parent_info);
         window.init_window_proxy(&window_proxy);
 
         let last_modified = metadata.headers.as_ref().and_then(|headers| {
@@ -2093,12 +2103,12 @@ impl ScriptThread {
     /// The entry point for content to notify that a new load has been requested
     /// for the given pipeline (specifically the "navigate" algorithm).
     fn handle_navigate(&self, parent_pipeline_id: PipelineId,
-                              frame_id: Option<FrameId>,
+                              browsing_context_id: Option<BrowsingContextId>,
                               load_data: LoadData,
                               replace: bool) {
-        match frame_id {
-            Some(frame_id) => {
-                let iframe = self.documents.borrow().find_iframe(parent_pipeline_id, frame_id);
+        match browsing_context_id {
+            Some(browsing_context_id) => {
+                let iframe = self.documents.borrow().find_iframe(parent_pipeline_id, browsing_context_id);
                 if let Some(iframe) = iframe {
                     iframe.navigate_or_reload_child_browsing_context(Some(load_data), NavigationType::Regular, replace);
                 }

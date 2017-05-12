@@ -207,10 +207,10 @@ impl PipelineNamespace {
         }
     }
 
-    fn next_frame_id(&mut self) -> FrameId {
-        FrameId {
+    fn next_browsing_context_id(&mut self) -> BrowsingContextId {
+        BrowsingContextId {
             namespace_id: self.id,
-            index: FrameIndex(self.next_index()),
+            index: BrowsingContextIndex(self.next_index()),
         }
     }
 }
@@ -258,42 +258,41 @@ impl fmt::Display for PipelineId {
     }
 }
 
-thread_local!(pub static TOP_LEVEL_FRAME_ID: Cell<Option<FrameId>> = Cell::new(None));
+thread_local!(pub static TOP_LEVEL_BROWSING_CONTEXT_ID: Cell<Option<BrowsingContextId>> = Cell::new(None));
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
-pub struct FrameIndex(pub u32);
+pub struct BrowsingContextIndex(pub u32);
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
-pub struct FrameId {
+pub struct BrowsingContextId {
     pub namespace_id: PipelineNamespaceId,
-    pub index: FrameIndex
+    pub index: BrowsingContextIndex
 }
 
-impl FrameId {
-    pub fn new() -> FrameId {
+impl BrowsingContextId {
+    pub fn new() -> BrowsingContextId {
         PIPELINE_NAMESPACE.with(|tls| {
             let mut namespace = tls.get().expect("No namespace set for this thread!");
-            let new_frame_id = namespace.next_frame_id();
+            let new_browsing_context_id = namespace.next_browsing_context_id();
             tls.set(Some(namespace));
-            new_frame_id
+            new_browsing_context_id
         })
     }
-
-    /// Each script and layout thread should have the top-level frame id installed,
+    /// Each script and layout thread should have the top-level browsing context id installed,
     /// since it is used by crash reporting.
-    pub fn install(id: FrameId) {
-        TOP_LEVEL_FRAME_ID.with(|tls| tls.set(Some(id)))
+    pub fn install(id: BrowsingContextId) {
+        TOP_LEVEL_BROWSING_CONTEXT_ID.with(|tls| tls.set(Some(id)))
     }
 
-    pub fn installed() -> Option<FrameId> {
-        TOP_LEVEL_FRAME_ID.with(|tls| tls.get())
+    pub fn installed() -> Option<BrowsingContextId> {
+        TOP_LEVEL_BROWSING_CONTEXT_ID.with(|tls| tls.get())
     }
 }
 
-impl fmt::Display for FrameId {
+impl fmt::Display for BrowsingContextId {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         let PipelineNamespaceId(namespace_id) = self.namespace_id;
-        let FrameIndex(index) = self.index;
+        let BrowsingContextIndex(index) = self.index;
         write!(fmt, "({},{})", namespace_id, index)
     }
 }
@@ -302,8 +301,9 @@ impl fmt::Display for FrameId {
 pub const TEST_NAMESPACE: PipelineNamespaceId = PipelineNamespaceId(1234);
 pub const TEST_PIPELINE_INDEX: PipelineIndex = PipelineIndex(5678);
 pub const TEST_PIPELINE_ID: PipelineId = PipelineId { namespace_id: TEST_NAMESPACE, index: TEST_PIPELINE_INDEX };
-pub const TEST_FRAME_INDEX: FrameIndex = FrameIndex(8765);
-pub const TEST_FRAME_ID: FrameId = FrameId { namespace_id: TEST_NAMESPACE, index: TEST_FRAME_INDEX };
+pub const TEST_BROWSING_CONTEXT_INDEX: BrowsingContextIndex = BrowsingContextIndex(8765);
+pub const TEST_BROWSING_CONTEXT_ID: BrowsingContextId =
+    BrowsingContextId { namespace_id: TEST_NAMESPACE, index: TEST_BROWSING_CONTEXT_INDEX };
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub enum FrameType {

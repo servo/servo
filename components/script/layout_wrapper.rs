@@ -44,7 +44,7 @@ use dom::node::{LayoutNodeHelpers, Node};
 use dom::text::Text;
 use gfx_traits::ByteIndex;
 use html5ever::{LocalName, Namespace};
-use msg::constellation_msg::{FrameId, PipelineId};
+use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use range::Range;
 use script_layout_interface::{HTMLCanvasData, LayoutNodeType, SVGSVGData, TrustedNodeAddress};
 use script_layout_interface::{OpaqueStyleAndLayoutData, PartialPersistentLayoutData};
@@ -908,9 +908,9 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         this.svg_data()
     }
 
-    fn iframe_frame_id(&self) -> FrameId {
+    fn iframe_browsing_context_id(&self) -> BrowsingContextId {
         let this = unsafe { self.get_jsmanaged() };
-        this.iframe_frame_id()
+        this.iframe_browsing_context_id()
     }
 
     fn iframe_pipeline_id(&self) -> PipelineId {

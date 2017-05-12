@@ -184,7 +184,9 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
 
 impl DissimilarOriginWindow {
     pub fn post_message(&self, origin: Option<ImmutableOrigin>, data: StructuredCloneData) {
-        let msg = ConstellationMsg::PostMessage(self.window_proxy.frame_id(), origin, data.move_to_arraybuffer());
+        let msg = ConstellationMsg::PostMessage(self.window_proxy.browsing_context_id(),
+                                                origin,
+                                                data.move_to_arraybuffer());
         let _ = self.upcast::<GlobalScope>().constellation_chan().send(msg);
     }
 }

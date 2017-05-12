@@ -31,7 +31,7 @@ pub enum WebDriverScriptCommand {
     GetElementRect(String, IpcSender<Result<Rect<f64>, ()>>),
     GetElementTagName(String, IpcSender<Result<String, ()>>),
     GetElementText(String, IpcSender<Result<String, ()>>),
-    GetFrameId(WebDriverFrameId, IpcSender<Result<Option<PipelineId>, ()>>),
+    GetPipelineId(WebDriverFrameId, IpcSender<Result<Option<PipelineId>, ()>>),
     GetUrl(IpcSender<ServoUrl>),
     IsEnabled(String, IpcSender<Result<bool, ()>>),
     IsSelected(String, IpcSender<Result<bool, ()>>),

@@ -53,7 +53,7 @@ use hyper::header::Headers;
 use hyper::method::Method;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
-use msg::constellation_msg::{FrameId, FrameType, Key, KeyModifiers, KeyState};
+use msg::constellation_msg::{BrowsingContextId, FrameType, Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineId, PipelineNamespaceId, TraversalDirection};
 use net_traits::{ReferrerPolicy, ResourceThreads};
 use net_traits::image::base::Image;
@@ -179,8 +179,8 @@ pub struct NewLayoutInfo {
     pub parent_info: Option<(PipelineId, FrameType)>,
     /// Id of the newly-created pipeline.
     pub new_pipeline_id: PipelineId,
-    /// Id of the frame associated with this pipeline.
-    pub frame_id: FrameId,
+    /// Id of the browsing context associated with this pipeline.
+    pub browsing_context_id: BrowsingContextId,
     /// Network request data which will be initiated by the script thread.
     pub load_data: LoadData,
     /// Information about the initial window size.
@@ -253,22 +253,22 @@ pub enum ConstellationControlMsg {
     /// Notifies script thread whether frame is visible
     ChangeFrameVisibilityStatus(PipelineId, bool),
     /// Notifies script thread that frame visibility change is complete
-    /// PipelineId is for the parent, FrameId is for the actual frame.
-    NotifyVisibilityChange(PipelineId, FrameId, bool),
+    /// PipelineId is for the parent, BrowsingContextId is for the nested browsing context
+    NotifyVisibilityChange(PipelineId, BrowsingContextId, bool),
     /// Notifies script thread that a url should be loaded in this iframe.
-    /// PipelineId is for the parent, FrameId is for the actual frame.
-    Navigate(PipelineId, FrameId, LoadData, bool),
+    /// PipelineId is for the parent, BrowsingContextId is for the nested browsing context
+    Navigate(PipelineId, BrowsingContextId, LoadData, bool),
     /// Post a message to a given window.
     PostMessage(PipelineId, Option<ImmutableOrigin>, Vec<u8>),
     /// Requests the script thread forward a mozbrowser event to an iframe it owns,
-    /// or to the window if no child frame id is provided.
-    MozBrowserEvent(PipelineId, Option<FrameId>, MozBrowserEvent),
+    /// or to the window if no browsing context id is provided.
+    MozBrowserEvent(PipelineId, Option<BrowsingContextId>, MozBrowserEvent),
     /// Updates the current pipeline ID of a given iframe.
     /// First PipelineId is for the parent, second is the new PipelineId for the frame.
-    UpdatePipelineId(PipelineId, FrameId, PipelineId, UpdatePipelineIdReason),
+    UpdatePipelineId(PipelineId, BrowsingContextId, PipelineId, UpdatePipelineIdReason),
     /// Set an iframe to be focused. Used when an element in an iframe gains focus.
-    /// PipelineId is for the parent, FrameId is for the actual frame.
-    FocusIFrame(PipelineId, FrameId),
+    /// PipelineId is for the parent, BrowsingContextId is for the nested browsing context
+    FocusIFrame(PipelineId, BrowsingContextId),
     /// Passes a webdriver command to the script thread for execution
     WebDriverScriptCommand(PipelineId, WebDriverScriptCommand),
     /// Notifies script thread that all animations are done
@@ -278,10 +278,10 @@ pub enum ConstellationControlMsg {
     /// Notifies the script thread that a new Web font has been loaded, and thus the page should be
     /// reflowed.
     WebFontLoaded(PipelineId),
-    /// Cause a `load` event to be dispatched at the appropriate frame element.
-    DispatchFrameLoadEvent {
+    /// Cause a `load` event to be dispatched at the appropriate iframe element.
+    DispatchIFrameLoadEvent {
         /// The frame that has been marked as loaded.
-        target: FrameId,
+        target: BrowsingContextId,
         /// The pipeline that contains a frame loading the target pipeline.
         parent: PipelineId,
         /// The pipeline that has completed loading.
@@ -323,7 +323,7 @@ impl fmt::Debug for ConstellationControlMsg {
             TickAllAnimations(..) => "TickAllAnimations",
             TransitionEnd(..) => "TransitionEnd",
             WebFontLoaded(..) => "WebFontLoaded",
-            DispatchFrameLoadEvent { .. } => "DispatchFrameLoadEvent",
+            DispatchIFrameLoadEvent { .. } => "DispatchIFrameLoadEvent",
             DispatchStorageEvent(..) => "DispatchStorageEvent",
             ReportCSSError(..) => "ReportCSSError",
             Reload(..) => "Reload",
@@ -489,9 +489,9 @@ pub struct InitialScriptState {
     /// If `None`, this is the root.
     pub parent_info: Option<(PipelineId, FrameType)>,
     /// The ID of the frame this script is part of.
-    pub frame_id: FrameId,
+    pub browsing_context_id: BrowsingContextId,
     /// The ID of the top-level frame this script is part of.
-    pub top_level_frame_id: FrameId,
+    pub top_level_browsing_context_id: BrowsingContextId,
     /// A channel with which messages can be sent to us (the script thread).
     pub control_chan: IpcSender<ConstellationControlMsg>,
     /// A port on which messages sent by the constellation to script can be received.
@@ -549,7 +549,7 @@ pub struct IFrameLoadInfo {
     /// Pipeline ID of the parent of this iframe
     pub parent_pipeline_id: PipelineId,
     /// The ID for this iframe.
-    pub frame_id: FrameId,
+    pub browsing_context_id: BrowsingContextId,
     /// The new pipeline ID that the iframe has generated.
     pub new_pipeline_id: PipelineId,
     ///  Whether this iframe should be considered private
@@ -732,13 +732,13 @@ pub enum WebDriverCommandMsg {
 pub enum ConstellationMsg {
     /// Exit the constellation.
     Exit,
-    /// Request that the constellation send the FrameId corresponding to the document
+    /// Request that the constellation send the BrowsingContextId corresponding to the document
     /// with the provided pipeline id
-    GetFrame(PipelineId, IpcSender<Option<FrameId>>),
+    GetBrowsingContext(PipelineId, IpcSender<Option<BrowsingContextId>>),
     /// Request that the constellation send the current pipeline id for the provided frame
     /// id, or for the root frame if this is None, over a provided channel.
     /// Also returns a boolean saying whether the document has finished loading or not.
-    GetPipeline(Option<FrameId>, IpcSender<Option<PipelineId>>),
+    GetPipeline(Option<BrowsingContextId>, IpcSender<Option<PipelineId>>),
     /// Requests that the constellation inform the compositor of the title of the pipeline
     /// immediately.
     GetPipelineTitle(PipelineId),
@@ -760,8 +760,8 @@ pub enum ConstellationMsg {
     WebDriverCommand(WebDriverCommandMsg),
     /// Reload the current page.
     Reload,
-    /// A log entry, with the top-level frame id and thread name
-    LogEntry(Option<FrameId>, Option<String>, LogEntry),
+    /// A log entry, with the top-level browsing context id and thread name
+    LogEntry(Option<BrowsingContextId>, Option<String>, LogEntry),
     /// Set the WebVR thread channel.
     SetWebVRThread(IpcSender<WebVRMsg>),
     /// Dispatch WebVR events to the subscribed script threads.
