@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Initial about:blank should be replaced when navigated from</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<iframe id="iframe"></iframe>
+</body>
+<script>
+async_test(function(t) {
+    var iframe = document.getElementById("iframe");
+    var history_length = window.history.length;
+    iframe.onload = t.step_func(function() {
+        assert_equals(history_length, window.history.length);
+        t.done();
+    });
+    iframe.src = "support/blank.htm";
+});
+</script>
