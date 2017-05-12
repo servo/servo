@@ -134,6 +134,8 @@ pub enum LayoutControlMsg {
 pub struct LoadData {
     /// The URL.
     pub url: ServoUrl,
+    /// The creator pipeline id if this is an about:blank load.
+    pub creator_pipeline_id: Option<PipelineId>,
     /// The method.
     #[serde(deserialize_with = "::hyper_serde::deserialize",
             serialize_with = "::hyper_serde::serialize")]
@@ -152,9 +154,14 @@ pub struct LoadData {
 
 impl LoadData {
     /// Create a new `LoadData` object.
-    pub fn new(url: ServoUrl, referrer_policy: Option<ReferrerPolicy>, referrer_url: Option<ServoUrl>) -> LoadData {
+    pub fn new(url: ServoUrl,
+               creator_pipeline_id: Option<PipelineId>,
+               referrer_policy: Option<ReferrerPolicy>,
+               referrer_url: Option<ServoUrl>)
+               -> LoadData {
         LoadData {
             url: url,
+            creator_pipeline_id: creator_pipeline_id,
             method: Method::Get,
             headers: Headers::new(),
             data: None,
@@ -211,6 +218,15 @@ pub enum DocumentActivity {
     FullyActive,
 }
 
+/// The reason why the pipeline id of an iframe is being updated.
+#[derive(Copy, Clone, PartialEq, Eq, Hash, HeapSizeOf, Debug, Deserialize, Serialize)]
+pub enum UpdatePipelineIdReason {
+    /// The pipeline id is being updated due to a navigation.
+    Navigation,
+    /// The pipeline id is being updated due to a history traversal.
+    Traversal,
+}
+
 /// Messages sent from the constellation or layout to the script thread.
 #[derive(Deserialize, Serialize)]
 pub enum ConstellationControlMsg {
@@ -249,7 +265,7 @@ pub enum ConstellationControlMsg {
     MozBrowserEvent(PipelineId, Option<FrameId>, MozBrowserEvent),
     /// Updates the current pipeline ID of a given iframe.
     /// First PipelineId is for the parent, second is the new PipelineId for the frame.
-    UpdatePipelineId(PipelineId, FrameId, PipelineId),
+    UpdatePipelineId(PipelineId, FrameId, PipelineId, UpdatePipelineIdReason),
     /// Set an iframe to be focused. Used when an element in an iframe gains focus.
     /// PipelineId is for the parent, FrameId is for the actual frame.
     FocusIFrame(PipelineId, FrameId),
@@ -274,9 +290,6 @@ pub enum ConstellationControlMsg {
     /// Cause a `storage` event to be dispatched at the appropriate window.
     /// The strings are key, old value and new value.
     DispatchStorageEvent(PipelineId, StorageType, ServoUrl, Option<String>, Option<String>, Option<String>),
-    /// Notifies a parent pipeline that one of its child frames is now active.
-    /// PipelineId is for the parent, FrameId is the child frame.
-    FramedContentChanged(PipelineId, FrameId),
     /// Report an error from a CSS parser for the given pipeline
     ReportCSSError(PipelineId, String, usize, usize, String),
     /// Reload the given page.
@@ -312,7 +325,6 @@ impl fmt::Debug for ConstellationControlMsg {
             WebFontLoaded(..) => "WebFontLoaded",
             DispatchFrameLoadEvent { .. } => "DispatchFrameLoadEvent",
             DispatchStorageEvent(..) => "DispatchStorageEvent",
-            FramedContentChanged(..) => "FramedContentChanged",
             ReportCSSError(..) => "ReportCSSError",
             Reload(..) => "Reload",
             WebVREvents(..) => "WebVREvents",

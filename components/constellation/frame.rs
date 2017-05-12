@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use euclid::size::TypedSize2D;
 use msg::constellation_msg::{FrameId, PipelineId};
 use pipeline::Pipeline;
 use script_traits::LoadData;
@@ -9,6 +10,7 @@ use std::collections::HashMap;
 use std::iter::once;
 use std::mem::replace;
 use std::time::Instant;
+use style_traits::CSSPixel;
 
 /// A frame in the frame tree.
 /// Each frame is the constellation's view of a browsing context.
@@ -22,13 +24,16 @@ pub struct Frame {
     /// The frame id.
     pub id: FrameId,
 
-    /// The timestamp for the current session history entry
+    /// The size of the frame.
+    pub size: Option<TypedSize2D<f32, CSSPixel>>,
+
+    /// The timestamp for the current session history entry.
     pub instant: Instant,
 
-    /// The pipeline for the current session history entry
+    /// The pipeline for the current session history entry.
     pub pipeline_id: PipelineId,
 
-    /// The load data for the current session history entry
+    /// The load data for the current session history entry.
     pub load_data: LoadData,
 
     /// The past session history, ordered chronologically.
@@ -44,6 +49,7 @@ impl Frame {
     pub fn new(id: FrameId, pipeline_id: PipelineId, load_data: LoadData) -> Frame {
         Frame {
             id: id,
+            size: None,
             pipeline_id: pipeline_id,
             instant: Instant::now(),
             load_data: load_data,
