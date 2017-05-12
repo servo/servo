@@ -5638,7 +5638,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::weakref::DOM_WEAK_SLOT',
         'dom::bindings::weakref::WeakBox',
         'dom::bindings::weakref::WeakReferenceable',
-        'dom::browsingcontext::BrowsingContext',
+        'dom::windowproxy::WindowProxy',
         'dom::globalscope::GlobalScope',
         'mem::heap_size_of_raw_self_and_children',
         'libc',

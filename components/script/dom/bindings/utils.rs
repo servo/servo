@@ -12,7 +12,7 @@ use dom::bindings::error::throw_invalid_this;
 use dom::bindings::inheritance::TopTypeId;
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::trace_object;
-use dom::browsingcontext;
+use dom::windowproxy;
 use heapsize::HeapSizeOf;
 use js;
 use js::JS_CALLEE;
@@ -58,7 +58,7 @@ impl GlobalStaticData {
     /// Creates a new GlobalStaticData.
     pub fn new() -> GlobalStaticData {
         GlobalStaticData {
-            windowproxy_handler: browsingcontext::new_window_proxy_handler(),
+            windowproxy_handler: windowproxy::new_window_proxy_handler(),
         }
     }
 }
