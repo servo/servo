@@ -458,10 +458,9 @@ impl Stylist {
             self.element_map.borrow_for_origin(&stylesheet.origin)
         };
 
-        map.insert(Rule::new(selector.inner.clone(),
+        map.insert(Rule::new(selector.clone(),
                              rule.clone(),
-                             self.rules_source_order,
-                             selector.specificity));
+                             self.rules_source_order));
     }
 
     #[inline]
@@ -1321,7 +1320,7 @@ impl SelectorMap<Rule> {
 
         let mut rules_list = vec![];
         for rule in self.other.iter() {
-            if rule.selector.complex.iter_raw().next().is_none() {
+            if rule.selector.inner.complex.iter_raw().next().is_none() {
                 rules_list.push(rule.to_applicable_declaration_block(cascade_level));
             }
         }
@@ -1371,8 +1370,11 @@ impl SelectorMap<Rule> {
               F: FnMut(&E, ElementSelectorFlags),
     {
         for rule in rules.iter() {
-            if matches_selector(&rule.selector, element, parent_bf,
-                                relations, flags_setter) {
+            if matches_selector(&rule.selector.inner,
+                                element,
+                                parent_bf,
+                                relations,
+                                flags_setter) {
                 matching_rules.push(
                     rule.to_applicable_declaration_block(cascade_level));
             }
@@ -1579,29 +1581,24 @@ pub struct Rule {
     /// pointer-chasing when gathering applicable declarations, which
     /// can ruin performance when there are a lot of rules.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    pub selector: SelectorInner<SelectorImpl>,
+    pub selector: Selector<SelectorImpl>,
     /// The actual style rule.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     pub style_rule: Arc<Locked<StyleRule>>,
     /// The source order this style rule appears in.
     pub source_order: usize,
-    /// The specificity of the rule this selector represents.
-    ///
-    /// Note: The top two bits of this are unused, and could be used to store
-    /// flags.
-    specificity: u32,
 }
 
 impl Borrow<SelectorInner<SelectorImpl>> for Rule {
     fn borrow(&self) -> &SelectorInner<SelectorImpl> {
-        &self.selector
+        &self.selector.inner
     }
 }
 
 impl Rule {
     /// Returns the specificity of the rule.
     pub fn specificity(&self) -> u32 {
-        self.specificity
+        self.selector.specificity
     }
 
     fn to_applicable_declaration_block(&self, level: CascadeLevel) -> ApplicableDeclarationBlock {
@@ -1614,17 +1611,15 @@ impl Rule {
     }
 
     /// Creates a new Rule.
-    pub fn new(selector: SelectorInner<SelectorImpl>,
+    pub fn new(selector: Selector<SelectorImpl>,
                style_rule: Arc<Locked<StyleRule>>,
-               source_order: usize,
-               specificity: u32)
+               source_order: usize)
                -> Self
     {
         Rule {
             selector: selector,
             style_rule: style_rule,
             source_order: source_order,
-            specificity: specificity,
         }
     }
 }
