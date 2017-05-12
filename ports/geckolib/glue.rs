@@ -2195,98 +2195,100 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
     use style::gecko_bindings::structs::Keyframe;
     use style::properties::LonghandIdSet;
 
-
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     let name = unsafe { Atom::from(name.as_ref().unwrap().as_str_unchecked()) };
+
+    let animation = match data.stylist.animations().get(&name) {
+        Some(animation) => animation,
+        None => return false,
+    };
+
     let style = ComputedValues::as_arc(&style);
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
 
-    if let Some(ref animation) = data.stylist.animations().get(&name) {
-        let global_style_data = &*GLOBAL_STYLE_DATA;
-        let guard = global_style_data.shared_lock.read();
-        for step in &animation.steps {
-            // Override timing_function if the keyframe has animation-timing-function.
-            let timing_function = if let Some(val) = step.get_animation_timing_function(&guard) {
-                val.into()
-            } else {
-                *timing_function
-            };
+    for step in &animation.steps {
+        // Override timing_function if the keyframe has animation-timing-function.
+        let timing_function = if let Some(val) = step.get_animation_timing_function(&guard) {
+            val.into()
+        } else {
+            *timing_function
+        };
 
-            let keyframe = unsafe {
-                Gecko_AnimationAppendKeyframe(keyframes,
-                                              step.start_percentage.0 as f32,
-                                              &timing_function)
-            };
+        let keyframe = unsafe {
+            Gecko_AnimationAppendKeyframe(keyframes,
+                                          step.start_percentage.0 as f32,
+                                          &timing_function)
+        };
 
-            fn add_computed_property_value(keyframe: *mut Keyframe,
-                                           index: usize,
-                                           style: &ComputedValues,
-                                           property: &TransitionProperty,
-                                           shared_lock: &SharedRwLock) {
-                let block = style.to_declaration_block(property.clone().into());
-                unsafe {
-                    (*keyframe).mPropertyValues.set_len((index + 1) as u32);
-                    (*keyframe).mPropertyValues[index].mProperty = property.into();
-                    // FIXME. Do not set computed values once we handles missing keyframes
-                    // with additive composition.
-                    (*keyframe).mPropertyValues[index].mServoDeclarationBlock.set_arc_leaky(
-                        Arc::new(shared_lock.wrap(block)));
-                }
-            }
-
-            match step.value {
-                KeyframesStepValue::ComputedValues => {
-                    for (index, property) in animation.properties_changed.iter().enumerate() {
-                        add_computed_property_value(
-                            keyframe, index, style, property, &global_style_data.shared_lock);
-                    }
-                },
-                KeyframesStepValue::Declarations { ref block } => {
-                    let guard = block.read_with(&guard);
-                    // Filter out non-animatable properties.
-                    let animatable =
-                        guard.declarations()
-                             .iter()
-                             .filter(|&&(ref declaration, _)| {
-                                 declaration.is_animatable()
-                             });
-
-                    let mut seen = LonghandIdSet::new();
-
-                    for (index, &(ref declaration, _)) in animatable.enumerate() {
-                        unsafe {
-                            let property = TransitionProperty::from_declaration(declaration).unwrap();
-                            (*keyframe).mPropertyValues.set_len((index + 1) as u32);
-                            (*keyframe).mPropertyValues[index].mProperty = (&property).into();
-                            (*keyframe).mPropertyValues[index].mServoDeclarationBlock.set_arc_leaky(
-                                Arc::new(global_style_data.shared_lock.wrap(
-                                  PropertyDeclarationBlock::with_one(
-                                      declaration.clone(), Importance::Normal
-                                ))));
-                            if step.start_percentage.0 == 0. ||
-                               step.start_percentage.0 == 1. {
-                                seen.set_transition_property_bit(&property);
-                            }
-                        }
-                    }
-
-                    // Append missing property values in the initial or the finial keyframes.
-                    if step.start_percentage.0 == 0. ||
-                       step.start_percentage.0 == 1. {
-                        let mut index = unsafe { (*keyframe).mPropertyValues.len() };
-                        for property in animation.properties_changed.iter() {
-                            if !seen.has_transition_property_bit(&property) {
-                                add_computed_property_value(
-                                    keyframe, index, style, property, &global_style_data.shared_lock);
-                                index += 1;
-                            }
-                        }
-                    }
-                },
+        fn add_computed_property_value(keyframe: *mut Keyframe,
+                                       index: usize,
+                                       style: &ComputedValues,
+                                       property: &TransitionProperty,
+                                       shared_lock: &SharedRwLock) {
+            let block = style.to_declaration_block(property.clone().into());
+            unsafe {
+                (*keyframe).mPropertyValues.set_len((index + 1) as u32);
+                (*keyframe).mPropertyValues[index].mProperty = property.into();
+                // FIXME. Do not set computed values once we handles missing keyframes
+                // with additive composition.
+                (*keyframe).mPropertyValues[index].mServoDeclarationBlock.set_arc_leaky(
+                    Arc::new(shared_lock.wrap(block)));
             }
         }
-        return true
+
+        match step.value {
+            KeyframesStepValue::ComputedValues => {
+                for (index, property) in animation.properties_changed.iter().enumerate() {
+                    add_computed_property_value(
+                        keyframe, index, style, property, &global_style_data.shared_lock);
+                }
+            },
+            KeyframesStepValue::Declarations { ref block } => {
+                let guard = block.read_with(&guard);
+                // Filter out non-animatable properties.
+                let animatable =
+                    guard.declarations()
+                         .iter()
+                         .filter(|&&(ref declaration, _)| {
+                             declaration.is_animatable()
+                         });
+
+                let mut seen = LonghandIdSet::new();
+
+                for (index, &(ref declaration, _)) in animatable.enumerate() {
+                    unsafe {
+                        let property = TransitionProperty::from_declaration(declaration).unwrap();
+                        (*keyframe).mPropertyValues.set_len((index + 1) as u32);
+                        (*keyframe).mPropertyValues[index].mProperty = (&property).into();
+                        (*keyframe).mPropertyValues[index].mServoDeclarationBlock.set_arc_leaky(
+                            Arc::new(global_style_data.shared_lock.wrap(
+                              PropertyDeclarationBlock::with_one(
+                                  declaration.clone(), Importance::Normal
+                            ))));
+                        if step.start_percentage.0 == 0. ||
+                           step.start_percentage.0 == 1. {
+                            seen.set_transition_property_bit(&property);
+                        }
+                    }
+                }
+
+                // Append missing property values in the initial or the finial keyframes.
+                if step.start_percentage.0 == 0. ||
+                   step.start_percentage.0 == 1. {
+                    let mut index = unsafe { (*keyframe).mPropertyValues.len() };
+                    for property in animation.properties_changed.iter() {
+                        if !seen.has_transition_property_bit(&property) {
+                            add_computed_property_value(
+                                keyframe, index, style, property, &global_style_data.shared_lock);
+                            index += 1;
+                        }
+                    }
+                }
+            },
+        }
     }
-    false
+    true
 }
 
 #[no_mangle]
