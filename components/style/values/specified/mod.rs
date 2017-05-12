@@ -539,6 +539,28 @@ impl Time {
             was_calc: true,
         }
     }
+
+    fn parse_with_clamping_mode(context: &ParserContext,
+                                input: &mut Parser,
+                                clamping_mode: AllowedNumericType) -> Result<Self, ()> {
+        match input.next() {
+            Ok(Token::Dimension(ref value, ref unit)) if clamping_mode.is_ok(value.value) => {
+                Time::parse_dimension(value.value, &unit, /* from_calc = */ false)
+            }
+            Ok(Token::Function(ref name)) if name.eq_ignore_ascii_case("calc") => {
+                match input.parse_nested_block(|i| CalcNode::parse_time(context, i)) {
+                    Ok(time) if clamping_mode.is_ok(time.seconds) => Ok(time),
+                    _ => Err(()),
+                }
+            }
+            _ => Err(())
+        }
+    }
+
+    /// Parse <time> that values are non-negative.
+    pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        Self::parse_with_clamping_mode(context, input, AllowedNumericType::NonNegative)
+    }
 }
 
 impl ToComputedValue for Time {
@@ -558,15 +580,7 @@ impl ToComputedValue for Time {
 
 impl Parse for Time {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        match input.next() {
-            Ok(Token::Dimension(ref value, ref unit)) => {
-                Time::parse_dimension(value.value, &unit, /* from_calc = */ false)
-            }
-            Ok(Token::Function(ref name)) if name.eq_ignore_ascii_case("calc") => {
-                input.parse_nested_block(|i| CalcNode::parse_time(context, i))
-            }
-            _ => Err(())
-        }
+        Self::parse_with_clamping_mode(context, input, AllowedNumericType::All)
     }
 }
 
