@@ -2275,7 +2275,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
             if let Some((parent_pipeline_id, _)) = pipeline.parent_info {
                 if let Some(parent_pipeline) = self.pipelines.get(&parent_pipeline_id) {
-                    let msg = ConstellationControlMsg::FramedContentChanged(parent_pipeline_id, pipeline.frame_id);
+                    let msg = ConstellationControlMsg::UpdatePipelineId(parent_pipeline_id,
+                        pipeline.frame_id, pipeline_id);
                     let _ = parent_pipeline.event_loop.send(msg);
                 }
             }
