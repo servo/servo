@@ -350,6 +350,7 @@ impl HTMLImageElement {
             ImageRequestPhase::Pending => self.pending_request.borrow_mut(),
         };
         LoadBlocker::terminate(&mut request.blocker);
+        println!("allowing window load");
         request.state = state;
         request.image = None;
         request.metadata = None;
@@ -363,7 +364,7 @@ impl HTMLImageElement {
         }
         impl Runnable for Task {
             fn handler(self: Box<Self>) {
-                // Step 9.2
+                println!("step 11.4");
                 let img = self.img.root();
                 {
                     let mut current_request = img.current_request.borrow_mut();
@@ -434,6 +435,7 @@ impl HTMLImageElement {
         impl Runnable for SetUrlToNoneTask {
             fn handler(self: Box<Self>) {
                 // Step 9.2
+                println!("step 9.2");
                 let img = self.img.root();
                 {
                     let mut current_request = img.current_request.borrow_mut();
@@ -467,6 +469,7 @@ impl HTMLImageElement {
         }
         impl Runnable for SetUrlToStringTask {
             fn handler(self: Box<Self>) {
+                println!("step 5.3.7");
                 let img = self.img.root();
                 {
                     let mut current_request = img.current_request.borrow_mut();
@@ -552,7 +555,7 @@ impl HTMLImageElement {
     /// Step 8-12 of html.spec.whatwg.org/multipage/#update-the-image-data
     fn update_the_image_data_sync_steps(&self) {
         let document = document_from_node(self);
-        document.mut_loader().allow_events();
+        self.abort_request(State::Unavailable, ImageRequestPhase::Current);
         // Step 8
         // TODO: take pixel density into account
         println!("step 8");
@@ -623,8 +626,16 @@ impl HTMLImageElement {
                 }
             }
         }
-        let document_loader = document.loader();
-        document_loader.inhibit_events();
+        //document.mut_loader().inhibit_events();
+        let document_needs_block = {
+            self.current_request.borrow().blocker.is_none()
+        };
+        if document_needs_block {
+            println!("adding new blocker");
+            self.current_request.borrow_mut().blocker = Some(LoadBlocker::new(&*document,
+                                                                              LoadType::Image(base_url.clone())));
+        }
+        println!("already have a blocker in place");
         // step 6, await a stable state.
         struct StableStateUpdateImageDataTask {
             elem: Trusted<HTMLImageElement>,
