@@ -87,6 +87,7 @@ pub struct HTMLIFrameElement {
     frame_id: FrameId,
     pipeline_id: Cell<Option<PipelineId>>,
     pending_pipeline_id: Cell<Option<PipelineId>>,
+    inital_about_blank: Cell<Option<PipelineId>>,
     sandbox: MutNullableJS<DOMTokenList>,
     sandbox_allowance: Cell<Option<SandboxAllowance>>,
     load_blocker: DOMRefCell<Option<LoadBlocker>>,
@@ -179,6 +180,7 @@ impl HTMLIFrameElement {
                     layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
                 };
 
+                self.inital_about_blank.set(Some(new_pipeline_id));
                 self.pipeline_id.set(Some(new_pipeline_id));
                 ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
             },
@@ -220,15 +222,15 @@ impl HTMLIFrameElement {
 
         // TODO: check ancestor browsing contexts for same URL
 
-        let creator_pipeline_id = if url.as_str() == "about:blank" {
-            Some(window.upcast::<GlobalScope>().pipeline_id())
-        } else {
-            None
-        };
+        let creator_pipeline_id = Some(window.upcast::<GlobalScope>().pipeline_id());
+
+        // If we are navigating from the initial about:blank document, replacement must be enabled.
+        let initial_about_blank = self.inital_about_blank.get();
+        let replace = initial_about_blank.is_some() && initial_about_blank == self.pipeline_id.get();
 
         let document = document_from_node(self);
         let load_data = LoadData::new(url, creator_pipeline_id, document.get_referrer_policy(), Some(document.url()));
-        self.navigate_or_reload_child_browsing_context(Some(load_data), NavigationType::Regular, false);
+        self.navigate_or_reload_child_browsing_context(Some(load_data), NavigationType::Regular, replace);
     }
 
     #[allow(unsafe_code)]
@@ -280,6 +282,7 @@ impl HTMLIFrameElement {
             frame_id: FrameId::new(),
             pipeline_id: Cell::new(None),
             pending_pipeline_id: Cell::new(None),
+            inital_about_blank: Cell::new(None),
             sandbox: Default::default(),
             sandbox_allowance: Cell::new(None),
             load_blocker: DOMRefCell::new(None),
@@ -783,6 +786,7 @@ impl VirtualMethods for HTMLIFrameElement {
         // confused.
         self.pipeline_id.set(None);
         self.pending_pipeline_id.set(None);
+        self.inital_about_blank.set(None);
     }
 }
 
