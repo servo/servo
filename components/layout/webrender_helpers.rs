@@ -127,7 +127,8 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                       item.text_run.font_key,
                                       item.text_color,
                                       item.text_run.actual_pt_size,
-                                      item.blur_radius,
+                                      // FIXME: push_text should take blur_radius as f32.
+                                      Au::from_f32_px(item.blur_radius),
                                       None);
                 }
             }
@@ -239,8 +240,8 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                         box_bounds,
                                         item.offset,
                                         item.color,
-                                        item.blur_radius.to_f32_px(),
-                                        item.spread_radius.to_f32_px(),
+                                        item.blur_radius,
+                                        item.spread_radius,
                                         item.border_radius,
                                         item.clip_mode);
             }

@@ -830,7 +830,7 @@ pub struct TextDisplayItem {
     pub orientation: TextOrientation,
 
     /// The blur radius for this text. If zero, this text is not blurred.
-    pub blur_radius: Au,
+    pub blur_radius: f32,
 }
 
 #[derive(Clone, Eq, PartialEq, Deserialize, Serialize)]
@@ -1007,10 +1007,10 @@ pub struct BoxShadowDisplayItem {
     pub color: ColorF,
 
     /// The blur radius for this shadow.
-    pub blur_radius: Au,
+    pub blur_radius: f32,
 
     /// The spread radius of this shadow.
-    pub spread_radius: Au,
+    pub spread_radius: f32,
 
     /// The border radius of this shadow.
     ///
