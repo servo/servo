@@ -12,8 +12,7 @@ use super::{Number, ToComputedValue, Context};
 use values::{Auto, CSSFloat, Either, ExtremumLength, None_, Normal, specified};
 use values::specified::length::{AbsoluteLength, FontBaseSize, FontRelativeLength, ViewportPercentageLength};
 
-pub use super::image::{EndingShape as GradientShape, Gradient, GradientKind, Image};
-pub use super::image::{LengthOrKeyword, LengthOrPercentageOrKeyword};
+pub use super::image::Image;
 pub use values::specified::{Angle, BorderStyle, Time, UrlOrNone};
 
 impl ToComputedValue for specified::NoCalcLength {
