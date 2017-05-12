@@ -1955,12 +1955,8 @@ impl Document {
     }
 
     pub fn nodes_from_point(&self, client_point: &Point2D<f32>) -> Vec<UntrustedNodeAddress> {
-        let page_point =
-            Point2D::new(client_point.x + self.window.PageXOffset() as f32,
-                         client_point.y + self.window.PageYOffset() as f32);
-
         if !self.window.reflow(ReflowGoal::ForScriptQuery,
-                               ReflowQueryType::NodesFromPoint(page_point, *client_point),
+                               ReflowQueryType::NodesFromPoint(*client_point),
                                ReflowReason::Query) {
             return vec!();
         };

@@ -88,7 +88,7 @@ use script_layout_interface::rpc::{LayoutRPC, MarginStyleResponse, NodeOverflowR
 use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::wrapper_traits::LayoutNode;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
-use script_traits::{StackingContextScrollState, UntrustedNodeAddress};
+use script_traits::{ScrollState, UntrustedNodeAddress};
 use selectors::Element;
 use servo_config::opts;
 use servo_config::prefs::PREFS;
@@ -506,7 +506,7 @@ impl LayoutThread {
                     resolved_style_response: String::new(),
                     offset_parent_response: OffsetParentResponse::empty(),
                     margin_style_response: MarginStyleResponse::empty(),
-                    stacking_context_scroll_offsets: HashMap::new(),
+                    scroll_offsets: HashMap::new(),
                     text_index_response: TextIndexResponse(None),
                     nodes_from_point_response: vec![],
                 })),
@@ -600,9 +600,8 @@ impl LayoutThread {
         };
 
         match request {
-            Request::FromPipeline(LayoutControlMsg::SetStackingContextScrollStates(
-                    new_scroll_states)) => {
-                self.handle_request_helper(Msg::SetStackingContextScrollStates(new_scroll_states),
+            Request::FromPipeline(LayoutControlMsg::SetScrollStates(new_scroll_states)) => {
+                self.handle_request_helper(Msg::SetScrollStates(new_scroll_states),
                                            possibly_locked_rw_data)
             },
             Request::FromPipeline(LayoutControlMsg::TickAnimations) => {
@@ -653,9 +652,12 @@ impl LayoutThread {
                         || self.handle_reflow(&mut data, possibly_locked_rw_data));
             },
             Msg::TickAnimations => self.tick_all_animations(possibly_locked_rw_data),
-            Msg::SetStackingContextScrollStates(new_scroll_states) => {
-                self.set_stacking_context_scroll_states(new_scroll_states,
-                                                        possibly_locked_rw_data);
+            Msg::SetScrollStates(new_scroll_states) => {
+                self.set_scroll_states(new_scroll_states, possibly_locked_rw_data);
+            }
+            Msg::UpdateScrollStateFromScript(state) => {
+                let mut rw_data = possibly_locked_rw_data.lock();
+                rw_data.scroll_offsets.insert(state.scroll_root_id, state.scroll_offset);
             }
             Msg::ReapStyleAndLayoutData(dead_data) => {
                 unsafe {
@@ -1306,19 +1308,13 @@ impl LayoutThread {
                 let node = unsafe { ServoLayoutNode::new(&node) };
                 rw_data.content_boxes_response = process_content_boxes_request(node, root_flow);
             },
-            ReflowQueryType::HitTestQuery(translated_point, client_point, update_cursor) => {
-                let mut translated_point = Point2D::new(Au::from_f32_px(translated_point.x),
-                                                    Au::from_f32_px(translated_point.y));
-
-                let client_point = Point2D::new(Au::from_f32_px(client_point.x),
-                                                Au::from_f32_px(client_point.y));
-
+            ReflowQueryType::HitTestQuery(client_point, update_cursor) => {
+                let point = Point2D::new(Au::from_f32_px(client_point.x),
+                                         Au::from_f32_px(client_point.y));
                 let result = rw_data.display_list
                                     .as_ref()
                                     .expect("Tried to hit test with no display list")
-                                    .hit_test(&mut translated_point,
-                                              &client_point,
-                                              &rw_data.stacking_context_scroll_offsets);
+                                    .hit_test(&point, &rw_data.scroll_offsets);
                 rw_data.hit_test_response = (result.last().cloned(), update_cursor);
             },
             ReflowQueryType::TextIndexQuery(node, mouse_x, mouse_y) => {
@@ -1332,7 +1328,7 @@ impl LayoutThread {
                                       .expect("Tried to hit test with no display list")
                                       .text_index(opaque_node,
                                                   &client_point,
-                                                  &rw_data.stacking_context_scroll_offsets));
+                                                  &rw_data.scroll_offsets));
             },
             ReflowQueryType::NodeGeometryQuery(node) => {
                 let node = unsafe { ServoLayoutNode::new(&node) };
@@ -1368,18 +1364,14 @@ impl LayoutThread {
                 let node = unsafe { ServoLayoutNode::new(&node) };
                 rw_data.margin_style_response = process_margin_style_query(node);
             },
-            ReflowQueryType::NodesFromPoint(page_point, client_point) => {
-                let page_point = Point2D::new(Au::from_f32_px(page_point.x),
-                                              Au::from_f32_px(page_point.y));
+            ReflowQueryType::NodesFromPoint(client_point) => {
                 let client_point = Point2D::new(Au::from_f32_px(client_point.x),
                                                 Au::from_f32_px(client_point.y));
                 let nodes_from_point_list = {
                     let result = match rw_data.display_list {
                         None => panic!("Tried to hit test without a DisplayList"),
                         Some(ref display_list) => {
-                            display_list.hit_test(&page_point,
-                                                  &client_point,
-                                                  &rw_data.stacking_context_scroll_offsets)
+                            display_list.hit_test(&client_point, &rw_data.scroll_offsets)
                         }
                     };
 
@@ -1395,10 +1387,9 @@ impl LayoutThread {
         }
     }
 
-    fn set_stacking_context_scroll_states<'a, 'b>(
-            &mut self,
-            new_scroll_states: Vec<StackingContextScrollState>,
-            possibly_locked_rw_data: &mut RwData<'a, 'b>) {
+    fn set_scroll_states<'a, 'b>(&mut self,
+                                 new_scroll_states: Vec<ScrollState>,
+                                 possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         let mut rw_data = possibly_locked_rw_data.lock();
         let mut script_scroll_states = vec![];
         let mut layout_scroll_states = HashMap::new();
@@ -1416,7 +1407,7 @@ impl LayoutThread {
         }
         let _ = self.script_chan
                     .send(ConstellationControlMsg::SetScrollState(self.id, script_scroll_states));
-        rw_data.stacking_context_scroll_offsets = layout_scroll_states
+        rw_data.scroll_offsets = layout_scroll_states
     }
 
     fn tick_all_animations<'a, 'b>(&mut self, possibly_locked_rw_data: &mut RwData<'a, 'b>) {
