@@ -50,6 +50,7 @@ use servo_url::ServoUrl;
 use std::sync::atomic::AtomicIsize;
 use style::data::ElementData;
 
+#[repr(C)]
 pub struct PartialPersistentLayoutData {
     /// Data that the style system associates with a node. When the
     /// style system is being used standalone, this is all that hangs
@@ -59,6 +60,9 @@ pub struct PartialPersistentLayoutData {
 
     /// Information needed during parallel traversals.
     pub parallel: DomParallelInfo,
+
+    // Required alignment for safe transmutes between PersistentLayoutData and PartialPersistentLayoutData.
+    _align: [u64; 0]
 }
 
 impl PartialPersistentLayoutData {
@@ -66,6 +70,7 @@ impl PartialPersistentLayoutData {
         PartialPersistentLayoutData {
             style_data: ElementData::new(None),
             parallel: DomParallelInfo::new(),
+            _align: [],
         }
     }
 }
