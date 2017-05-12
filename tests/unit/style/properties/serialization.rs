@@ -653,7 +653,8 @@ mod shorthand_serialization {
                               font-kerning: auto; \
                               font-variant-caps: normal; \
                               font-variant-position: normal; \
-                              font-language-override: normal;";
+                              font-language-override: normal; \
+                              font-feature-settings: normal;";
 
             let block = parse(|c, i| Ok(parse_property_declaration_list(c, i)), block_text).unwrap();
 
