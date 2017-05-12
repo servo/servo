@@ -15,7 +15,7 @@
 //! low-level drawing primitives.
 
 use app_units::Au;
-use euclid::{Matrix4D, Point2D, Rect, Size2D};
+use euclid::{Matrix4D, Point2D, Rect};
 use euclid::num::{One, Zero};
 use euclid::rect::TypedRect;
 use euclid::side_offsets::SideOffsets2D;
@@ -25,7 +25,7 @@ use ipc_channel::ipc::IpcSharedMemory;
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, PixelFormat};
 use range::Range;
-use servo_geometry::max_rect;
+use servo_geometry::{au_rect_to_f32_rect, max_rect};
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt;
@@ -35,7 +35,7 @@ use text::TextRun;
 use text::glyph::ByteIndex;
 use webrender_traits::{self, BorderRadius, BorderWidths, BoxShadowClipMode, ClipId};
 use webrender_traits::{ColorF, ExtendMode, FilterOp, GradientStop};
-use webrender_traits::{ImageRendering, LayoutPoint, LayoutSize, MixBlendMode};
+use webrender_traits::{ImageRendering, LayoutPoint, LayoutRect, LayoutSize, MixBlendMode};
 use webrender_traits::{NormalBorder, ScrollPolicy, WebGLContextId};
 
 pub use style::dom::OpaqueNode;
@@ -53,7 +53,7 @@ impl DisplayList {
     // Returns the text index within a node for the point of interest.
     pub fn text_index(&self,
                       node: OpaqueNode,
-                      client_point: &Point2D<Au>,
+                      client_point: &LayoutPoint,
                       scroll_offsets: &ScrollOffsetMap)
                       -> Option<usize> {
         let mut result = Vec::new();
@@ -70,8 +70,8 @@ impl DisplayList {
     pub fn text_index_contents<'a>(&self,
                                    node: OpaqueNode,
                                    traversal: &mut DisplayListTraversal<'a>,
-                                   translated_point: &Point2D<Au>,
-                                   client_point: &Point2D<Au>,
+                                   translated_point: &LayoutPoint,
+                                   client_point: &LayoutPoint,
                                    scroll_offsets: &ScrollOffsetMap,
                                    result: &mut Vec<usize>) {
         while let Some(item) = traversal.next() {
@@ -106,7 +106,7 @@ impl DisplayList {
                     let base = item.base();
                     if base.metadata.node == node {
                         let offset = *translated_point - text.baseline_origin;
-                        let index = text.text_run.range_index_of_advance(&text.range, offset.x);
+                        let index = text.text_run.range_index_of_advance(&text.range, Au::from_f32_px(offset.x));
                         result.push(index);
                     }
                 },
@@ -118,8 +118,8 @@ impl DisplayList {
     // Return all nodes containing the point of interest, bottommost first, and
     // respecting the `pointer-events` CSS property.
     pub fn hit_test(&self,
-                    translated_point: &Point2D<Au>,
-                    client_point: &Point2D<Au>,
+                    translated_point: &LayoutPoint,
+                    client_point: &LayoutPoint,
                     scroll_offsets: &ScrollOffsetMap)
                     -> Vec<DisplayItemMetadata> {
         let mut result = Vec::new();
@@ -134,8 +134,8 @@ impl DisplayList {
 
     pub fn hit_test_contents<'a>(&self,
                                  traversal: &mut DisplayListTraversal<'a>,
-                                 translated_point: &Point2D<Au>,
-                                 client_point: &Point2D<Au>,
+                                 translated_point: &LayoutPoint,
+                                 client_point: &LayoutPoint,
                                  scroll_offsets: &ScrollOffsetMap,
                                  result: &mut Vec<DisplayItemMetadata>) {
         while let Some(item) = traversal.next() {
@@ -174,8 +174,8 @@ impl DisplayList {
 
     #[inline]
     fn translate_point<'a>(stacking_context: &StackingContext,
-                           translated_point: &mut Point2D<Au>,
-                           client_point: &Point2D<Au>) {
+                           translated_point: &mut LayoutPoint,
+                           client_point: &LayoutPoint) {
         // Convert the parent translated point into stacking context local transform space if the
         // stacking context isn't fixed.  If it's fixed, we need to use the client point anyway.
         debug_assert!(stacking_context.context_type == StackingContextType::Real);
@@ -195,9 +195,7 @@ impl DisplayList {
                             return;
                         }
                     };
-                    let frac_point = inv_transform.transform_point(&Point2D::new(point.x.to_f32_px(),
-                                                                                 point.y.to_f32_px()));
-                    Point2D::new(Au::from_f32_px(frac_point.x), Au::from_f32_px(frac_point.y))
+                    LayoutPoint::from_untyped(&inv_transform.transform_point(&Point2D::new(point.x, point.y)))
                 }
                 None => {
                     point
@@ -208,7 +206,7 @@ impl DisplayList {
 
     #[inline]
     fn scroll_root<'a>(scroll_root: &ScrollRoot,
-                       translated_point: &mut Point2D<Au>,
+                       translated_point: &mut LayoutPoint,
                        scroll_offsets: &ScrollOffsetMap) {
         // Adjust the translated point to account for the scroll offset if necessary.
         //
@@ -216,8 +214,8 @@ impl DisplayList {
         // the DOM-side code has already translated the point for us (e.g. in
         // `Window::hit_test_query()`) by now.
         if let Some(scroll_offset) = scroll_offsets.get(&scroll_root.id) {
-            translated_point.x -= Au::from_f32_px(scroll_offset.x);
-            translated_point.y -= Au::from_f32_px(scroll_offset.y);
+            translated_point.x -= scroll_offset.x;
+            translated_point.y -= scroll_offset.y;
         }
     }
 
@@ -355,7 +353,7 @@ pub struct StackingContext {
     pub context_type: StackingContextType,
 
     /// The position and size of this stacking context.
-    pub bounds: Rect<Au>,
+    pub bounds: LayoutRect,
 
     /// The overflow rect for this stacking context in its coordinate system.
     pub overflow: Rect<Au>,
@@ -387,7 +385,7 @@ impl StackingContext {
     #[inline]
     pub fn new(id: StackingContextId,
                context_type: StackingContextType,
-               bounds: &Rect<Au>,
+               bounds: &LayoutRect,
                overflow: &Rect<Au>,
                z_index: i32,
                filters: Vec<FilterOp>,
@@ -416,7 +414,7 @@ impl StackingContext {
     pub fn root(pipeline_id: PipelineId) -> StackingContext {
         StackingContext::new(StackingContextId::root(),
                              StackingContextType::Real,
-                             &Rect::zero(),
+                             &LayoutRect::zero(),
                              &Rect::zero(),
                              0,
                              Vec::new(),
@@ -508,7 +506,7 @@ pub struct ScrollRoot {
     pub clip: ClippingRegion,
 
     /// The rect of the contents that can be scrolled inside of the scroll root.
-    pub content_rect: Rect<Au>,
+    pub content_rect: LayoutRect,
 }
 
 impl ScrollRoot {
@@ -542,7 +540,7 @@ pub enum DisplayItem {
 #[derive(Clone, Deserialize, Serialize)]
 pub struct BaseDisplayItem {
     /// The boundaries of the display item, in layer coordinates.
-    pub bounds: Rect<Au>,
+    pub bounds: LayoutRect,
 
     /// Metadata attached to this display item.
     pub metadata: DisplayItemMetadata,
@@ -562,7 +560,7 @@ pub struct BaseDisplayItem {
 
 impl BaseDisplayItem {
     #[inline(always)]
-    pub fn new(bounds: &Rect<Au>,
+    pub fn new(bounds: &LayoutRect,
                metadata: DisplayItemMetadata,
                clip: &ClippingRegion,
                section: DisplayListSection,
@@ -575,7 +573,7 @@ impl BaseDisplayItem {
         BaseDisplayItem {
             bounds: *bounds,
             metadata: metadata,
-            clip: if clip.does_not_clip_rect(&bounds) {
+            clip: if clip.does_not_clip_rect(bounds) {
                 ClippingRegion::max()
             } else {
                 (*clip).clone()
@@ -608,7 +606,7 @@ impl BaseDisplayItem {
 #[derive(Clone, PartialEq, Deserialize, Serialize)]
 pub struct ClippingRegion {
     /// The main rectangular region. This does not include any corners.
-    pub main: Rect<Au>,
+    pub main: LayoutRect,
     /// Any complex regions.
     ///
     /// TODO(pcwalton): Atomically reference count these? Not sure if it's worth the trouble.
@@ -622,7 +620,7 @@ pub struct ClippingRegion {
 #[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
 pub struct ComplexClippingRegion {
     /// The boundaries of the rectangle.
-    pub rect: Rect<Au>,
+    pub rect: LayoutRect,
     /// Border radii of this rectangle.
     pub radii: BorderRadius,
 }
@@ -632,7 +630,7 @@ impl ClippingRegion {
     #[inline]
     pub fn empty() -> ClippingRegion {
         ClippingRegion {
-            main: Rect::zero(),
+            main: LayoutRect::zero(),
             complex: Vec::new(),
         }
     }
@@ -641,16 +639,16 @@ impl ClippingRegion {
     #[inline]
     pub fn max() -> ClippingRegion {
         ClippingRegion {
-            main: max_rect(),
+            main: max_layout_rect(),
             complex: Vec::new(),
         }
     }
 
     /// Returns a clipping region that represents the given rectangle.
     #[inline]
-    pub fn from_rect(rect: &Rect<Au>) -> ClippingRegion {
+    pub fn from_rect(rect: LayoutRect) -> ClippingRegion {
         ClippingRegion {
-            main: *rect,
+            main: rect,
             complex: Vec::new(),
         }
     }
@@ -660,8 +658,8 @@ impl ClippingRegion {
     /// TODO(pcwalton): This could more eagerly eliminate complex clipping regions, at the cost of
     /// complexity.
     #[inline]
-    pub fn intersect_rect(&mut self, rect: &Rect<Au>) {
-        self.main = self.main.intersection(rect).unwrap_or(Rect::zero())
+    pub fn intersect_rect(&mut self, rect: &LayoutRect) {
+        self.main = self.main.intersection(rect).unwrap_or(LayoutRect::zero())
     }
 
     /// Returns true if this clipping region might be nonempty. This can return false positives,
@@ -674,7 +672,7 @@ impl ClippingRegion {
     /// Returns true if this clipping region might contain the given point and false otherwise.
     /// This is a quick, not a precise, test; it can yield false positives.
     #[inline]
-    pub fn might_intersect_point(&self, point: &Point2D<Au>) -> bool {
+    pub fn might_intersect_point(&self, point: &LayoutPoint) -> bool {
         self.main.contains(point) &&
             self.complex.iter().all(|complex| complex.rect.contains(point))
     }
@@ -682,14 +680,14 @@ impl ClippingRegion {
     /// Returns true if this clipping region might intersect the given rectangle and false
     /// otherwise. This is a quick, not a precise, test; it can yield false positives.
     #[inline]
-    pub fn might_intersect_rect(&self, rect: &Rect<Au>) -> bool {
+    pub fn might_intersect_rect(&self, rect: &LayoutRect) -> bool {
         self.main.intersects(rect) &&
             self.complex.iter().all(|complex| complex.rect.intersects(rect))
     }
 
     /// Returns true if this clipping region completely surrounds the given rect.
     #[inline]
-    pub fn does_not_clip_rect(&self, rect: &Rect<Au>) -> bool {
+    pub fn does_not_clip_rect(&self, rect: &LayoutRect) -> bool {
         self.main.contains(&rect.origin) && self.main.contains(&rect.bottom_right()) &&
             self.complex.iter().all(|complex| {
                 complex.rect.contains(&rect.origin) && complex.rect.contains(&rect.bottom_right())
@@ -698,7 +696,7 @@ impl ClippingRegion {
 
     /// Returns a bounding rect that surrounds this entire clipping region.
     #[inline]
-    pub fn bounding_rect(&self) -> Rect<Au> {
+    pub fn bounding_rect(&self) -> LayoutRect {
         let mut rect = self.main;
         for complex in &*self.complex {
             rect = rect.union(&complex.rect)
@@ -708,7 +706,7 @@ impl ClippingRegion {
 
     /// Intersects this clipping region with the given rounded rectangle.
     #[inline]
-    pub fn intersect_with_rounded_rect(&mut self, rect: &Rect<Au>, radii: &BorderRadius) {
+    pub fn intersect_with_rounded_rect(&mut self, rect: &LayoutRect, radii: &BorderRadius) {
         let new_complex_region = ComplexClippingRegion {
             rect: *rect,
             radii: *radii,
@@ -738,7 +736,7 @@ impl ClippingRegion {
 
     /// Translates this clipping region by the given vector.
     #[inline]
-    pub fn translate(&self, delta: &Point2D<Au>) -> ClippingRegion {
+    pub fn translate(&self, delta: &LayoutPoint) -> ClippingRegion {
         ClippingRegion {
             main: self.main.translate(delta),
             complex: self.complex.iter().map(|complex| {
@@ -752,7 +750,7 @@ impl ClippingRegion {
 
     #[inline]
     pub fn is_max(&self) -> bool {
-        self.main == max_rect() && self.complex.is_empty()
+        self.main == max_layout_rect() && self.complex.is_empty()
     }
 }
 
@@ -762,7 +760,7 @@ impl fmt::Debug for ClippingRegion {
             write!(f, "ClippingRegion::Max")
         } else if *self == ClippingRegion::empty() {
             write!(f, "ClippingRegion::Empty")
-        } else if self.main == max_rect() {
+        } else if self.main == max_layout_rect() {
             write!(f, "ClippingRegion(Complex={:?})", self.complex)
         } else {
             write!(f, "ClippingRegion(Rect={:?}, Complex={:?})", self.main, self.complex)
@@ -774,13 +772,13 @@ impl ComplexClippingRegion {
     // TODO(pcwalton): This could be more aggressive by considering points that touch the inside of
     // the border radius ellipse.
     fn completely_encloses(&self, other: &ComplexClippingRegion) -> bool {
-        let left = Au::from_f32_px(self.radii.top_left.width.max(self.radii.bottom_left.width));
-        let top = Au::from_f32_px(self.radii.top_left.height.max(self.radii.top_right.height));
-        let right = Au::from_f32_px(self.radii.top_right.width.max(self.radii.bottom_right.width));
-        let bottom = Au::from_f32_px(self.radii.bottom_left.height.max(self.radii.bottom_right.height));
-        let interior = Rect::new(Point2D::new(self.rect.origin.x + left, self.rect.origin.y + top),
-                                 Size2D::new(self.rect.size.width - left - right,
-                                             self.rect.size.height - top - bottom));
+        let left = self.radii.top_left.width.max(self.radii.bottom_left.width);
+        let top = self.radii.top_left.height.max(self.radii.top_right.height);
+        let right = self.radii.top_right.width.max(self.radii.bottom_right.width);
+        let bottom = self.radii.bottom_left.height.max(self.radii.bottom_right.height);
+        let interior = LayoutRect::new(LayoutPoint::new(self.rect.origin.x + left, self.rect.origin.y + top),
+                                       LayoutSize::new(self.rect.size.width - left - right,
+                                                       self.rect.size.height - top - bottom));
         interior.origin.x <= other.rect.origin.x && interior.origin.y <= other.rect.origin.y &&
             interior.max_x() >= other.rect.max_x() && interior.max_y() >= other.rect.max_y()
     }
@@ -824,7 +822,7 @@ pub struct TextDisplayItem {
     pub text_color: ColorF,
 
     /// The position of the start of the baseline of this text.
-    pub baseline_origin: Point2D<Au>,
+    pub baseline_origin: LayoutPoint,
 
     /// The orientation of the text: upright or sideways left/right.
     pub orientation: TextOrientation,
@@ -998,7 +996,7 @@ pub struct BoxShadowDisplayItem {
     pub base: BaseDisplayItem,
 
     /// The dimensions of the box that we're placing a shadow around.
-    pub box_bounds: Rect<Au>,
+    pub box_bounds: LayoutRect,
 
     /// The offset of this shadow from the box.
     pub offset: LayoutPoint,
@@ -1079,7 +1077,7 @@ impl DisplayItem {
         self.base().section
     }
 
-    pub fn bounds(&self) -> Rect<Au> {
+    pub fn bounds(&self) -> LayoutRect {
         self.base().bounds
     }
 
@@ -1091,7 +1089,7 @@ impl DisplayItem {
         println!("{}+ {:?}", indent, self);
     }
 
-    fn hit_test(&self, point: Point2D<Au>) -> Option<DisplayItemMetadata> {
+    fn hit_test(&self, point: LayoutPoint) -> Option<DisplayItemMetadata> {
         // TODO(pcwalton): Use a precise algorithm here. This will allow us to properly hit
         // test elements with `border-radius`, for example.
         let base_item = self.base();
@@ -1113,17 +1111,17 @@ impl DisplayItem {
             DisplayItem::Border(ref border) => {
                 // If the point is inside the border, it didn't hit the border!
                 let interior_rect =
-                    Rect::new(
-                        Point2D::new(border.base.bounds.origin.x +
-                                     Au::from_f32_px(border.border_widths.left),
-                                     border.base.bounds.origin.y +
-                                     Au::from_f32_px(border.border_widths.top)),
-                        Size2D::new(border.base.bounds.size.width -
-                                    (Au::from_f32_px(border.border_widths.left) +
-                                     Au::from_f32_px(border.border_widths.right)),
-                                    border.base.bounds.size.height -
-                                    (Au::from_f32_px(border.border_widths.top) +
-                                     Au::from_f32_px(border.border_widths.bottom))));
+                    LayoutRect::new(
+                        LayoutPoint::new(border.base.bounds.origin.x +
+                                         border.border_widths.left,
+                                         border.base.bounds.origin.y +
+                                         border.border_widths.top),
+                        LayoutSize::new(border.base.bounds.size.width -
+                                        (border.border_widths.left +
+                                         border.border_widths.right),
+                                         border.base.bounds.size.height -
+                                        (border.border_widths.top +
+                                         border.border_widths.bottom)));
                 if interior_rect.contains(&point) {
                     return None;
                 }
@@ -1220,4 +1218,8 @@ impl SimpleMatrixDetection for Matrix4D<f32> {
         self.m31 == _0 && self.m32 == _0 && self.m33 == _1 && self.m34 == _0 &&
         self.m44 == _1
     }
+}
+
+fn max_layout_rect() -> LayoutRect {
+    LayoutRect::from_untyped(&au_rect_to_f32_rect(max_rect()))
 }

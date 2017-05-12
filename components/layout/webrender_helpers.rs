@@ -8,7 +8,7 @@
 //           completely converting layout to directly generate WebRender display lists, for example.
 
 use app_units::Au;
-use euclid::{Point2D, Rect};
+use euclid::Point2D;
 use gfx::display_list::{BorderDetails, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayList, DisplayListTraversal, StackingContextType};
 use msg::constellation_msg::PipelineId;
@@ -25,32 +25,16 @@ trait WebRenderDisplayItemConverter {
                             current_scroll_root_id: &mut ClipId);
 }
 
-trait ToRectF {
-    fn to_rectf(&self) -> webrender_traits::LayoutRect;
-}
-
-impl ToRectF for Rect<Au> {
-    fn to_rectf(&self) -> webrender_traits::LayoutRect {
-        let x = self.origin.x.to_f32_px();
-        let y = self.origin.y.to_f32_px();
-        let w = self.size.width.to_f32_px();
-        let h = self.size.height.to_f32_px();
-        let point = webrender_traits::LayoutPoint::new(x, y);
-        let size = webrender_traits::LayoutSize::new(w, h);
-        webrender_traits::LayoutRect::new(point, size)
-    }
-}
-
 trait ToClipRegion {
     fn push_clip_region(&self, builder: &mut DisplayListBuilder) -> ClipRegionToken;
 }
 
 impl ToClipRegion for ClippingRegion {
     fn push_clip_region(&self, builder: &mut DisplayListBuilder) -> ClipRegionToken {
-        builder.push_clip_region(&self.main.to_rectf(),
+        builder.push_clip_region(&self.main,
                                 self.complex.iter().map(|complex_clipping_region| {
                                     webrender_traits::ComplexClipRegion::new(
-                                        complex_clipping_region.rect.to_rectf(),
+                                        complex_clipping_region.rect,
                                         complex_clipping_region.radii,
                                      )
                                 }),
@@ -90,7 +74,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 let color = item.color;
                 if color.a > 0.0 {
                     let clip = item.base.clip.push_clip_region(builder);
-                    builder.push_rect(item.base.bounds.to_rectf(), clip, color);
+                    builder.push_rect(item.base.bounds, clip, color);
                 }
             }
             DisplayItem::Text(ref item) => {
@@ -106,8 +90,8 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                         };
                         if !slice.glyphs.is_whitespace() {
                             let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
-                            let x = (origin.x + glyph_offset.x).to_f32_px();
-                            let y = (origin.y + glyph_offset.y).to_f32_px();
+                            let x = origin.x + glyph_offset.x.to_f32_px();
+                            let y = origin.y + glyph_offset.y.to_f32_px();
                             let point = webrender_traits::LayoutPoint::new(x, y);
                             let glyph = webrender_traits::GlyphInstance {
                                 index: glyph.id(),
@@ -115,13 +99,13 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                             };
                             glyphs.push(glyph);
                         }
-                        origin.x = origin.x + glyph_advance;
+                        origin.x = origin.x + glyph_advance.to_f32_px();
                     };
                 }
 
                 if glyphs.len() > 0 {
                     let clip = item.base.clip.push_clip_region(builder);
-                    builder.push_text(item.base.bounds.to_rectf(),
+                    builder.push_text(item.base.bounds,
                                       clip,
                                       &glyphs,
                                       item.text_run.font_key,
@@ -137,7 +121,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     if item.stretch_size.width > 0.0 &&
                        item.stretch_size.height > 0.0 {
                         let clip = item.base.clip.push_clip_region(builder);
-                        builder.push_image(item.base.bounds.to_rectf(),
+                        builder.push_image(item.base.bounds,
                                            clip,
                                            item.stretch_size,
                                            item.tile_spacing,
@@ -148,10 +132,10 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             }
             DisplayItem::WebGL(ref item) => {
                 let clip = item.base.clip.push_clip_region(builder);
-                builder.push_webgl_canvas(item.base.bounds.to_rectf(), clip, item.context_id);
+                builder.push_webgl_canvas(item.base.bounds, clip, item.context_id);
             }
             DisplayItem::Border(ref item) => {
-                let rect = item.base.bounds.to_rectf();
+                let rect = item.base.bounds;
                 let widths = item.border_widths;
                 let clip = item.base.clip.push_clip_region(builder);
 
@@ -202,7 +186,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 builder.push_border(rect, clip, widths, details);
             }
             DisplayItem::Gradient(ref item) => {
-                let rect = item.base.bounds.to_rectf();
+                let rect = item.base.bounds;
                 let start_point = item.gradient.start_point;
                 let end_point = item.gradient.end_point;
                 let clip = item.base.clip.push_clip_region(builder);
@@ -217,7 +201,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                       webrender_traits::LayoutSize::zero());
             }
             DisplayItem::RadialGradient(ref item) => {
-                let rect = item.base.bounds.to_rectf();
+                let rect = item.base.bounds;
                 let center = item.gradient.center;
                 let radius = item.gradient.radius;
                 let clip = item.base.clip.push_clip_region(builder);
@@ -232,8 +216,8 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                              webrender_traits::LayoutSize::zero());
             }
             DisplayItem::BoxShadow(ref item) => {
-                let rect = item.base.bounds.to_rectf();
-                let box_bounds = item.box_bounds.to_rectf();
+                let rect = item.base.bounds;
+                let box_bounds = item.box_bounds;
                 let clip = item.base.clip.push_clip_region(builder);
                 builder.push_box_shadow(rect,
                                         clip,
@@ -246,7 +230,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                         item.clip_mode);
             }
             DisplayItem::Iframe(ref item) => {
-                let rect = item.base.bounds.to_rectf();
+                let rect = item.base.bounds;
                 let pipeline_id = item.iframe.to_webrender();
                 let clip = item.base.clip.push_clip_region(builder);
                 builder.push_iframe(rect, clip, pipeline_id);
@@ -263,7 +247,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 });
 
                 builder.push_stacking_context(stacking_context.scroll_policy,
-                                              stacking_context.bounds.to_rectf(),
+                                              stacking_context.bounds,
                                               transform,
                                               webrender_traits::TransformStyle::Flat,
                                               perspective,
@@ -276,7 +260,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
 
                 let our_id = item.scroll_root.id;
                 let clip = item.scroll_root.clip.push_clip_region(builder);
-                let content_rect = item.scroll_root.content_rect.to_rectf();
+                let content_rect = item.scroll_root.content_rect;
                 let webrender_id = builder.define_clip(content_rect, clip, Some(our_id));
                 debug_assert!(our_id == webrender_id);
 

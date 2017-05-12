@@ -69,6 +69,7 @@ use layout::query::{process_margin_style_query, process_node_overflow_request, p
 use layout::query::{process_node_geometry_request, process_node_scroll_area_request};
 use layout::query::{process_node_scroll_root_id_request, process_offset_parent_query};
 use layout::sequential;
+use layout::to_layout::ToLayout;
 use layout::traversal::{ComputeAbsolutePositions, RecalcStyleAndConstructFlows};
 use layout::webrender_helpers::WebRenderDisplayListConverter;
 use layout::wrapper::LayoutNodeLayoutData;
@@ -123,6 +124,7 @@ use style::stylist::{ExtraStyleData, Stylist};
 use style::thread_state;
 use style::timer::Timer;
 use style::traversal::{DomTraversal, TraversalDriver, TraversalFlags};
+use webrender_traits::LayoutPoint;
 
 /// Information needed by the layout thread.
 pub struct LayoutThread {
@@ -887,8 +889,8 @@ impl LayoutThread {
                             }
                         };
 
-                        let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size);
-                        build_state.root_stacking_context.bounds = origin;
+                        let origin = Rect::new(Point2D::zero(), root_size);
+                        build_state.root_stacking_context.bounds = origin.to_layout();
                         build_state.root_stacking_context.overflow = origin;
 
                         if !build_state.iframe_sizes.is_empty() {
@@ -1266,11 +1268,11 @@ impl LayoutThread {
                 rw_data.content_boxes_response = process_content_boxes_request(node, root_flow);
             },
             ReflowQueryType::HitTestQuery(translated_point, client_point, update_cursor) => {
-                let mut translated_point = Point2D::new(Au::from_f32_px(translated_point.x),
-                                                    Au::from_f32_px(translated_point.y));
+                let mut translated_point = LayoutPoint::new(translated_point.x,
+                                                            translated_point.y);
 
-                let client_point = Point2D::new(Au::from_f32_px(client_point.x),
-                                                Au::from_f32_px(client_point.y));
+                let client_point = LayoutPoint::new(client_point.x,
+                                                    client_point.y);
 
                 let result = rw_data.display_list
                                     .as_ref()
@@ -1283,8 +1285,8 @@ impl LayoutThread {
             ReflowQueryType::TextIndexQuery(node, mouse_x, mouse_y) => {
                 let node = unsafe { ServoLayoutNode::new(&node) };
                 let opaque_node = node.opaque();
-                let client_point = Point2D::new(Au::from_px(mouse_x),
-                                                Au::from_px(mouse_y));
+                let client_point = LayoutPoint::new(mouse_x as f32,
+                                                    mouse_y as f32);
                 rw_data.text_index_response =
                     TextIndexResponse(rw_data.display_list
                                       .as_ref()
@@ -1328,10 +1330,10 @@ impl LayoutThread {
                 rw_data.margin_style_response = process_margin_style_query(node);
             },
             ReflowQueryType::NodesFromPoint(page_point, client_point) => {
-                let page_point = Point2D::new(Au::from_f32_px(page_point.x),
-                                              Au::from_f32_px(page_point.y));
-                let client_point = Point2D::new(Au::from_f32_px(client_point.x),
-                                                Au::from_f32_px(client_point.y));
+                let page_point = LayoutPoint::new(page_point.x,
+                                                  page_point.y);
+                let client_point = LayoutPoint::new(client_point.x,
+                                                    client_point.y);
                 let nodes_from_point_list = {
                     let result = match rw_data.display_list {
                         None => panic!("Tried to hit test without a DisplayList"),

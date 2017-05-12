@@ -86,7 +86,7 @@ mod table_row;
 mod table_rowgroup;
 mod table_wrapper;
 mod text;
-mod to_layout;
+pub mod to_layout;
 pub mod traversal;
 pub mod webrender_helpers;
 pub mod wrapper;
