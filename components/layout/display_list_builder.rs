@@ -1293,8 +1293,8 @@ impl FragmentDisplayListBuilding for Fragment {
                 box_bounds: *absolute_bounds,
                 color: style.resolve_color(box_shadow.color).to_gfx_color(),
                 offset: Point2D::new(box_shadow.offset_x, box_shadow.offset_y).to_layout(),
-                blur_radius: box_shadow.blur_radius,
-                spread_radius: box_shadow.spread_radius,
+                blur_radius: box_shadow.blur_radius.to_f32_px(),
+                spread_radius: box_shadow.spread_radius.to_f32_px(),
                 border_radius: model::specified_border_radius(style.get_border()
                                                                    .border_top_left_radius,
                                                               absolute_bounds.size).width,
@@ -1993,7 +1993,7 @@ impl FragmentDisplayListBuilding for Fragment {
             text_color: text_color.to_gfx_color(),
             orientation: orientation,
             baseline_origin: baseline_origin,
-            blur_radius: shadow_blur_radius,
+            blur_radius: shadow_blur_radius.to_f32_px(),
         }));
 
         // Create display items for text decorations.
@@ -2069,8 +2069,8 @@ impl FragmentDisplayListBuilding for Fragment {
             box_bounds: stacking_relative_box,
             color: color.to_gfx_color(),
             offset: ::webrender_traits::LayoutPoint::zero(),
-            blur_radius: blur_radius,
-            spread_radius: Au(0),
+            blur_radius: blur_radius.to_f32_px(),
+            spread_radius: 0f32,
             border_radius: 0f32,
             clip_mode: BoxShadowClipMode::None,
         }));

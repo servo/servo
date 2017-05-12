@@ -6,7 +6,8 @@ use app_units::Au;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use style::computed_values::{filter, image_rendering, mix_blend_mode};
 use style::values::computed;
-use webrender_traits::{BorderStyle, BorderWidths, FilterOp, ImageRendering, LayoutPoint, LayoutRect, LayoutSize, MixBlendMode};
+use webrender_traits::{BorderStyle, BorderWidths, FilterOp, ImageRendering};
+use webrender_traits::{LayoutPoint, LayoutRect, LayoutSize, MixBlendMode};
 
 pub trait ToLayout {
     type Type;
