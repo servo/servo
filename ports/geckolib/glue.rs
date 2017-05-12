@@ -2209,10 +2209,9 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
 
     for step in &animation.steps {
         // Override timing_function if the keyframe has animation-timing-function.
-        let timing_function = if let Some(val) = step.get_animation_timing_function(&guard) {
-            val.into()
-        } else {
-            *timing_function
+        let timing_function = match step.get_animation_timing_function(&guard) {
+            Some(val) => val.into(),
+            None => *timing_function,
         };
 
         let keyframe = unsafe {
