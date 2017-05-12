@@ -135,14 +135,11 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 builder.push_webgl_canvas(item.base.bounds, clip, item.context_id);
             }
             DisplayItem::Border(ref item) => {
-                let rect = item.base.bounds;
-                let widths = item.border_widths;
                 let clip = item.base.clip.push_clip_region(builder);
 
                 let details = match item.details {
-                    BorderDetails::Normal(ref border) => {
-                        webrender_traits::BorderDetails::Normal(border.clone())
-                    }
+                    BorderDetails::Normal(ref border) =>
+                        webrender_traits::BorderDetails::Normal(border.clone()),
                     BorderDetails::Image(ref image) => {
                         match image.image.key {
                             None => return,
@@ -183,45 +180,37 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     }
                 };
 
-                builder.push_border(rect, clip, widths, details);
+                builder.push_border(item.base.bounds, clip, item.border_widths, details);
             }
             DisplayItem::Gradient(ref item) => {
-                let rect = item.base.bounds;
-                let start_point = item.gradient.start_point;
-                let end_point = item.gradient.end_point;
                 let clip = item.base.clip.push_clip_region(builder);
-                let gradient = builder.create_gradient(start_point,
-                                                       end_point,
+                let gradient = builder.create_gradient(item.gradient.start_point,
+                                                       item.gradient.end_point,
                                                        item.gradient.stops.clone(),
                                                        item.gradient.extend_mode);
-                builder.push_gradient(rect,
+                builder.push_gradient(item.base.bounds,
                                       clip,
                                       gradient,
-                                      rect.size,
+                                      item.base.bounds.size,
                                       webrender_traits::LayoutSize::zero());
             }
             DisplayItem::RadialGradient(ref item) => {
-                let rect = item.base.bounds;
-                let center = item.gradient.center;
-                let radius = item.gradient.radius;
                 let clip = item.base.clip.push_clip_region(builder);
-                let gradient = builder.create_radial_gradient(center,
-                                                              radius,
+                let gradient = builder.create_radial_gradient(item.gradient.center,
+                                                              item.gradient.radius,
                                                               item.gradient.stops.clone(),
                                                               item.gradient.extend_mode);
-                builder.push_radial_gradient(rect,
+                builder.push_radial_gradient(item.base.bounds,
                                              clip,
                                              gradient,
-                                             rect.size,
+                                             item.base.bounds.size,
                                              webrender_traits::LayoutSize::zero());
             }
             DisplayItem::BoxShadow(ref item) => {
-                let rect = item.base.bounds;
-                let box_bounds = item.box_bounds;
                 let clip = item.base.clip.push_clip_region(builder);
-                builder.push_box_shadow(rect,
+                builder.push_box_shadow(item.base.bounds,
                                         clip,
-                                        box_bounds,
+                                        item.box_bounds,
                                         item.offset,
                                         item.color,
                                         item.blur_radius,
@@ -230,10 +219,9 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                         item.clip_mode);
             }
             DisplayItem::Iframe(ref item) => {
-                let rect = item.base.bounds;
                 let pipeline_id = item.iframe.to_webrender();
                 let clip = item.base.clip.push_clip_region(builder);
-                builder.push_iframe(rect, clip, pipeline_id);
+                builder.push_iframe(item.base.bounds, clip, pipeline_id);
             }
             DisplayItem::PushStackingContext(ref item) => {
                 let stacking_context = &item.stacking_context;
