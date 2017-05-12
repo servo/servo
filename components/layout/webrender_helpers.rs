@@ -8,7 +8,7 @@
 //           completely converting layout to directly generate WebRender display lists, for example.
 
 use app_units::Au;
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
+use euclid::{Point2D, Rect, SideOffsets2D};
 use gfx::display_list::{BorderDetails, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayList, DisplayListTraversal, StackingContextType};
 use msg::constellation_msg::PipelineId;
@@ -38,26 +38,6 @@ impl ToBorderWidths for SideOffsets2D<Au> {
             right: self.right.to_f32_px(),
             bottom: self.bottom.to_f32_px(),
         }
-    }
-}
-
-trait ToSizeF {
-    fn to_sizef(&self) -> webrender_traits::LayoutSize;
-}
-
-trait ToPointF {
-    fn to_pointf(&self) -> webrender_traits::LayoutPoint;
-}
-
-impl ToPointF for Point2D<Au> {
-    fn to_pointf(&self) -> webrender_traits::LayoutPoint {
-        webrender_traits::LayoutPoint::new(self.x.to_f32_px(), self.y.to_f32_px())
-    }
-}
-
-impl ToSizeF for Size2D<Au> {
-    fn to_sizef(&self) -> webrender_traits::LayoutSize {
-        webrender_traits::LayoutSize::new(self.width.to_f32_px(), self.height.to_f32_px())
     }
 }
 
@@ -111,8 +91,12 @@ impl WebRenderDisplayListConverter for DisplayList {
     fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder {
         let traversal = DisplayListTraversal::new(self);
         let webrender_pipeline_id = pipeline_id.to_webrender();
+        let exact_bounds_size = self.bounds().size;
+        let bounds_size = webrender_traits::LayoutSize::new(
+            exact_bounds_size.width.to_f32_px(),
+            exact_bounds_size.height.to_f32_px());
         let mut builder = DisplayListBuilder::new(webrender_pipeline_id,
-                                                  self.bounds().size.to_sizef());
+                                                  bounds_size);
 
         let mut current_scroll_root_id = ClipId::root_scroll_node(webrender_pipeline_id);
         builder.push_clip_id(current_scroll_root_id);
@@ -183,13 +167,13 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             }
             DisplayItem::Image(ref item) => {
                 if let Some(id) = item.webrender_image.key {
-                    if item.stretch_size.width > Au(0) &&
-                       item.stretch_size.height > Au(0) {
+                    if item.stretch_size.width > 0.0 &&
+                       item.stretch_size.height > 0.0 {
                         let clip = item.base.clip.push_clip_region(builder);
                         builder.push_image(item.base.bounds.to_rectf(),
                                            clip,
-                                           item.stretch_size.to_sizef(),
-                                           item.tile_spacing.to_sizef(),
+                                           item.stretch_size,
+                                           item.tile_spacing,
                                            item.image_rendering,
                                            id);
                     }
@@ -229,8 +213,8 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     BorderDetails::Gradient(ref gradient) => {
                         webrender_traits::BorderDetails::Gradient(webrender_traits::GradientBorder {
                             gradient: builder.create_gradient(
-                                          gradient.gradient.start_point.to_pointf(),
-                                          gradient.gradient.end_point.to_pointf(),
+                                          gradient.gradient.start_point,
+                                          gradient.gradient.end_point,
                                           gradient.gradient.stops.clone(),
                                           gradient.gradient.extend_mode),
                             outset: gradient.outset,
@@ -239,8 +223,8 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     BorderDetails::RadialGradient(ref gradient) => {
                        webrender_traits::BorderDetails::RadialGradient(webrender_traits::RadialGradientBorder {
                            gradient: builder.create_radial_gradient(
-                               gradient.gradient.center.to_pointf(),
-                               gradient.gradient.radius.to_sizef(),
+                               gradient.gradient.center,
+                               gradient.gradient.radius,
                                gradient.gradient.stops.clone(),
                                gradient.gradient.extend_mode),
                            outset: gradient.outset,
@@ -252,8 +236,8 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             }
             DisplayItem::Gradient(ref item) => {
                 let rect = item.base.bounds.to_rectf();
-                let start_point = item.gradient.start_point.to_pointf();
-                let end_point = item.gradient.end_point.to_pointf();
+                let start_point = item.gradient.start_point;
+                let end_point = item.gradient.end_point;
                 let clip = item.base.clip.push_clip_region(builder);
                 let gradient = builder.create_gradient(start_point,
                                                        end_point,
@@ -267,8 +251,8 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             }
             DisplayItem::RadialGradient(ref item) => {
                 let rect = item.base.bounds.to_rectf();
-                let center = item.gradient.center.to_pointf();
-                let radius = item.gradient.radius.to_sizef();
+                let center = item.gradient.center;
+                let radius = item.gradient.radius;
                 let clip = item.base.clip.push_clip_region(builder);
                 let gradient = builder.create_radial_gradient(center,
                                                               radius,
@@ -287,7 +271,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 builder.push_box_shadow(rect,
                                         clip,
                                         box_bounds,
-                                        item.offset.to_pointf(),
+                                        item.offset,
                                         item.color,
                                         item.blur_radius.to_f32_px(),
                                         item.spread_radius.to_f32_px(),

@@ -33,8 +33,10 @@ use std::sync::Arc;
 use style_traits::cursor::Cursor;
 use text::TextRun;
 use text::glyph::ByteIndex;
-use webrender_traits::{self, BorderRadius, BoxShadowClipMode, ClipId, ColorF, ExtendMode, FilterOp, GradientStop};
-use webrender_traits::{ImageRendering, MixBlendMode, NormalBorder, ScrollPolicy, TransformStyle, WebGLContextId};
+use webrender_traits::{self, BorderRadius, BoxShadowClipMode, ClipId};
+use webrender_traits::{ColorF, ExtendMode, FilterOp, GradientStop};
+use webrender_traits::{ImageRendering, LayoutPoint, LayoutSize, MixBlendMode};
+use webrender_traits::{NormalBorder, ScrollPolicy, TransformStyle, WebGLContextId};
 pub use style::dom::OpaqueNode;
 
 /// The factor that we multiply the blur radius by in order to inflate the boundaries of display
@@ -914,11 +916,11 @@ pub struct ImageDisplayItem {
     /// The dimensions to which the image display item should be stretched. If this is smaller than
     /// the bounds of this display item, then the image will be repeated in the appropriate
     /// direction to tile the entire bounds.
-    pub stretch_size: Size2D<Au>,
+    pub stretch_size: LayoutSize,
 
     /// The amount of space to add to the right and bottom part of each tile, when the image
     /// is tiled.
-    pub tile_spacing: Size2D<Au>,
+    pub tile_spacing: LayoutSize,
 
     /// The algorithm we should use to stretch the image. See `image_rendering` in CSS-IMAGES-3 §
     /// 5.3.
@@ -943,10 +945,10 @@ pub struct IframeDisplayItem {
 #[derive(Clone, Deserialize, Serialize)]
 pub struct Gradient {
     /// The start point of the gradient (computed during display list construction).
-    pub start_point: Point2D<Au>,
+    pub start_point: LayoutPoint,
 
     /// The end point of the gradient (computed during display list construction).
-    pub end_point: Point2D<Au>,
+    pub end_point: LayoutPoint,
 
     /// A list of color stops.
     pub stops: Vec<GradientStop>,
@@ -968,10 +970,10 @@ pub struct GradientDisplayItem {
 #[derive(Clone, Deserialize, Serialize)]
 pub struct RadialGradient {
     /// The center point of the gradient.
-    pub center: Point2D<Au>,
+    pub center: LayoutPoint,
 
     /// The radius of the gradient with an x and an y component.
-    pub radius: Size2D<Au>,
+    pub radius: LayoutSize,
 
     /// A list of color stops.
     pub stops: Vec<GradientStop>,
@@ -1063,7 +1065,7 @@ pub struct BoxShadowDisplayItem {
     pub box_bounds: Rect<Au>,
 
     /// The offset of this shadow from the box.
-    pub offset: Point2D<Au>,
+    pub offset: LayoutPoint,
 
     /// The color of this shadow.
     pub color: ColorF,
