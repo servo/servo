@@ -22,7 +22,7 @@ use super::specified::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as G
 
 pub use app_units::Au;
 pub use cssparser::Color as CSSColor;
-pub use self::image::{Gradient, GradientItem, LayerImage, LineDirection, Image, ImageRect};
+pub use self::image::{Gradient, GradientItem, ImageLayer, LineDirection, Image, ImageRect};
 pub use super::{Auto, Either, None_};
 #[cfg(feature = "gecko")]
 pub use super::specified::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
