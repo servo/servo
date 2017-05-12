@@ -40,6 +40,8 @@ use style::gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedVal
 use style::gecko_bindings::bindings::{RawServoSupportsRule, RawServoSupportsRuleBorrowed};
 use style::gecko_bindings::bindings::{ServoCssRulesBorrowed, ServoCssRulesStrong};
 use style::gecko_bindings::bindings::{nsACString, nsAString};
+use style::gecko_bindings::bindings::Gecko_GetOrCreateFinalKeyframe;
+use style::gecko_bindings::bindings::Gecko_GetOrCreateInitialKeyframe;
 use style::gecko_bindings::bindings::Gecko_GetOrCreateKeyframeAtStart;
 use style::gecko_bindings::bindings::RawGeckoAnimationPropertySegmentBorrowed;
 use style::gecko_bindings::bindings::RawGeckoComputedKeyframeValuesListBorrowedMut;
@@ -75,7 +77,7 @@ use style::media_queries::{MediaList, parse_media_query_list};
 use style::parallel;
 use style::parser::{LengthParsingMode, ParserContext};
 use style::properties::{CascadeFlags, ComputedValues, Importance, ParsedDeclaration, StyleBuilder};
-use style::properties::{PropertyDeclarationBlock, PropertyId};
+use style::properties::{LonghandIdSet, PropertyDeclarationBlock, PropertyId};
 use style::properties::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
 use style::properties::animated_properties::{Animatable, AnimationValue, TransitionProperty};
 use style::properties::parse_one_declaration;
@@ -2202,13 +2204,57 @@ fn add_computed_property_value(keyframe: *mut structs::Keyframe,
     }
 }
 
+fn fill_in_missing_keyframe_values(all_properties:  &Vec<TransitionProperty>,
+                                   timing_function: nsTimingFunctionBorrowed,
+                                   style: &ComputedValues,
+                                   properties_set_at_offset: &LonghandIdSet,
+                                   offset: f32,
+                                   keyframes: RawGeckoKeyframeListBorrowedMut,
+                                   shared_lock: &SharedRwLock) {
+    debug_assert!(offset == 0. || offset == 1.,
+                  "offset should be 0. or 1.");
+
+    let needs_filling = all_properties.iter().any(|ref property| {
+        !properties_set_at_offset.has_transition_property_bit(property)
+    });
+
+    // Return earli if all animated properties are already set.
+    if !needs_filling {
+        return;
+    }
+
+    let keyframe = match offset {
+        0. => unsafe {
+            Gecko_GetOrCreateInitialKeyframe(keyframes, timing_function)
+        },
+        1. => unsafe {
+            Gecko_GetOrCreateFinalKeyframe(keyframes, timing_function)
+        },
+        _ => unreachable!("offset should be 0. or 1."),
+    };
+
+    // Append properties that have not been set at this offset.
+    let mut index = unsafe { (*keyframe).mPropertyValues.len() };
+    for ref property in all_properties.iter() {
+        if !properties_set_at_offset.has_transition_property_bit(property) {
+            add_computed_property_value(keyframe,
+                                        index,
+                                        style,
+                                        property,
+                                        shared_lock);
+            index += 1;
+        }
+    }
+}
+
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSetBorrowed,
                                                       name: *const nsACString,
-                                                      timing_function: nsTimingFunctionBorrowed,
+                                                      inherited_timing_function: nsTimingFunctionBorrowed,
                                                       style: ServoComputedValuesBorrowed,
                                                       keyframes: RawGeckoKeyframeListBorrowedMut) -> bool {
-    use style::properties::LonghandIdSet;
+    debug_assert!(keyframes.len() == 0,
+                  "keyframes should be initially empty");
 
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     let name = unsafe { Atom::from(name.as_ref().unwrap().as_str_unchecked()) };
@@ -2223,19 +2269,25 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
     let guard = global_style_data.shared_lock.read();
 
     let mut properties_set_at_current_offset = LonghandIdSet::new();
+    let mut properties_set_at_start = LonghandIdSet::new();
+    let mut properties_set_at_end = LonghandIdSet::new();
+    let mut has_complete_initial_keyframe = false;
+    let mut has_complete_final_keyframe = false;
     let mut current_offset = -1.;
 
-    // Walk backwards through the keyframes and drop overridden properties.
+    // Iterate over the keyframe rules backwards so we can drop overridden
+    // properties (since declarations in later rules override those in earlier
+    // ones).
     for step in animation.steps.iter().rev() {
         if step.start_percentage.0 != current_offset {
             properties_set_at_current_offset.clear();
             current_offset = step.start_percentage.0;
         }
 
-        // Override timing_function if the keyframe has animation-timing-function.
+        // Override timing_function if the keyframe has an animation-timing-function.
         let timing_function = match step.get_animation_timing_function(&guard) {
             Some(val) => val.into(),
-            None => *timing_function,
+            None => *inherited_timing_function,
         };
 
         // Look for an existing keyframe with the same offset and timing
@@ -2249,9 +2301,19 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
 
         match step.value {
             KeyframesStepValue::ComputedValues => {
+                // In KeyframesAnimation::from_keyframes if there is no 0% or
+                // 100% keyframe at all, we will create a 'ComputedValues' step
+                // to represent that all properties animated by the keyframes
+                // animation should be set to the underlying computed value for
+                // that keyframe.
                 for (index, property) in animation.properties_changed.iter().enumerate() {
                     add_computed_property_value(
                         keyframe, index, style, property, &global_style_data.shared_lock);
+                }
+                if current_offset == 0.0 {
+                    has_complete_initial_keyframe = true;
+                } else if current_offset == 1.0 {
+                    has_complete_final_keyframe = true;
                 }
             },
             KeyframesStepValue::Declarations { ref block } => {
@@ -2269,6 +2331,11 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
                     let property = TransitionProperty::from_declaration(declaration).unwrap();
                     if !properties_set_at_current_offset.has_transition_property_bit(&property) {
                         properties_set_at_current_offset.set_transition_property_bit(&property);
+                        if current_offset == 0.0 {
+                            properties_set_at_start.set_transition_property_bit(&property);
+                        } else if current_offset == 1.0 {
+                            properties_set_at_end.set_transition_property_bit(&property);
+                        }
 
                         unsafe {
                             let property = TransitionProperty::from_declaration(declaration).unwrap();
@@ -2283,21 +2350,28 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
                         index += 1;
                     }
                 }
-
-                // Append missing property values in the initial or the finial keyframes.
-                if step.start_percentage.0 == 0. ||
-                   step.start_percentage.0 == 1. {
-                    let mut index = unsafe { (*keyframe).mPropertyValues.len() };
-                    for property in animation.properties_changed.iter() {
-                        if !properties_set_at_current_offset.has_transition_property_bit(&property) {
-                            add_computed_property_value(
-                                keyframe, index, style, property, &global_style_data.shared_lock);
-                            index += 1;
-                        }
-                    }
-                }
             },
         }
+    }
+
+    // Append property values that are missing in the initial or the final keyframes.
+    if !has_complete_initial_keyframe {
+        fill_in_missing_keyframe_values(&animation.properties_changed,
+                                        inherited_timing_function,
+                                        style,
+                                        &properties_set_at_start,
+                                        0.,
+                                        keyframes,
+                                        &global_style_data.shared_lock);
+    }
+    if !has_complete_final_keyframe {
+        fill_in_missing_keyframe_values(&animation.properties_changed,
+                                        inherited_timing_function,
+                                        style,
+                                        &properties_set_at_end,
+                                        1.,
+                                        keyframes,
+                                        &global_style_data.shared_lock);
     }
     true
 }
