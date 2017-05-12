@@ -1087,8 +1087,8 @@ impl FragmentDisplayListBuilding for Fragment {
               base: base,
               webrender_image: webrender_image,
               image_data: None,
-              stretch_size: stretch_size,
-              tile_spacing: tile_spacing,
+              stretch_size: stretch_size.to_layout(),
+              tile_spacing: tile_spacing.to_layout(),
               image_rendering: style.get_inheritedbox().image_rendering.to_layout(),
             }));
 
@@ -1153,8 +1153,8 @@ impl FragmentDisplayListBuilding for Fragment {
         let center = Point2D::new(bounds.size.width / 2, bounds.size.height / 2);
 
         display_list::Gradient {
-            start_point: center - delta,
-            end_point: center + delta,
+            start_point: (center - delta).to_layout(),
+            end_point: (center + delta).to_layout(),
             stops: stops,
             extend_mode: to_extend_mode(repeating),
         }
@@ -1191,8 +1191,8 @@ impl FragmentDisplayListBuilding for Fragment {
         }
 
         display_list::RadialGradient {
-            center: center,
-            radius: radius,
+            center: center.to_layout(),
+            radius: radius.to_layout(),
             stops: stops,
             extend_mode: to_extend_mode(repeating),
         }
@@ -1274,7 +1274,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 base: base,
                 box_bounds: *absolute_bounds,
                 color: style.resolve_color(box_shadow.color).to_gfx_color(),
-                offset: Point2D::new(box_shadow.offset_x, box_shadow.offset_y),
+                offset: Point2D::new(box_shadow.offset_x, box_shadow.offset_y).to_layout(),
                 blur_radius: box_shadow.blur_radius,
                 spread_radius: box_shadow.spread_radius,
                 border_radius: model::specified_border_radius(style.get_border()
@@ -1809,8 +1809,8 @@ impl FragmentDisplayListBuilding for Fragment {
                         base: base,
                         webrender_image: WebRenderImageInfo::from_image(image),
                         image_data: Some(Arc::new(image.bytes.clone())),
-                        stretch_size: stacking_relative_content_box.size,
-                        tile_spacing: Size2D::zero(),
+                        stretch_size: stacking_relative_content_box.size.to_layout(),
+                        tile_spacing: Size2D::zero().to_layout(),
                         image_rendering: self.style.get_inheritedbox().image_rendering.to_layout(),
                     }));
                 }
@@ -1847,8 +1847,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                 key: Some(canvas_data.image_key),
                             },
                             image_data: None,
-                            stretch_size: stacking_relative_content_box.size,
-                            tile_spacing: Size2D::zero(),
+                            stretch_size: stacking_relative_content_box.size.to_layout(),
+                            tile_spacing: Size2D::zero().to_layout(),
                             image_rendering: ImageRendering::Auto,
                         })
                     }
@@ -2050,7 +2050,7 @@ impl FragmentDisplayListBuilding for Fragment {
             base: base,
             box_bounds: stacking_relative_box,
             color: color.to_gfx_color(),
-            offset: Point2D::zero(),
+            offset: ::webrender_traits::LayoutPoint::zero(),
             blur_radius: blur_radius,
             spread_radius: Au(0),
             border_radius: 0f32,

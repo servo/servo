@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
+use euclid::{Point2D, Rect, Size2D};
 use style::computed_values::{filter, image_rendering, mix_blend_mode};
 use style::values::computed;
-use webrender_traits::{BorderStyle, FilterOp, ImageRendering, MixBlendMode};
+use webrender_traits::{BorderStyle, FilterOp, ImageRendering, LayoutPoint, LayoutRect, LayoutSize, MixBlendMode};
 
 pub trait ToLayout {
     type Type;
@@ -87,5 +89,26 @@ impl ToLayout for image_rendering::T {
             image_rendering::T::auto => Auto,
             image_rendering::T::pixelated => Pixelated,
         }
+    }
+}
+
+impl ToLayout for Point2D<Au> {
+    type Type = LayoutPoint;
+    fn to_layout(&self) -> LayoutPoint {
+        LayoutPoint::new(self.x.to_f32_px(), self.y.to_f32_px())
+    }
+}
+
+impl ToLayout for Size2D<Au> {
+    type Type = LayoutSize;
+    fn to_layout(&self) -> LayoutSize {
+        LayoutSize::new(self.width.to_f32_px(), self.height.to_f32_px())
+    }
+}
+
+impl ToLayout for Rect<Au> {
+    type Type = LayoutRect;
+    fn to_layout(&self) -> LayoutRect {
+        LayoutRect::new(self.origin.to_layout(), self.size.to_layout())
     }
 }
