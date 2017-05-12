@@ -1240,7 +1240,8 @@ extern "C" {
      -> *const ::std::os::raw::c_char;
 }
 extern "C" {
-    pub fn Gecko_CSSFontFaceRule_Create() -> *mut nsCSSFontFaceRule;
+    pub fn Gecko_CSSFontFaceRule_Create(line: u32, column: u32)
+     -> *mut nsCSSFontFaceRule;
 }
 extern "C" {
     pub fn Gecko_CSSFontFaceRule_GetCssText(rule: *const nsCSSFontFaceRule,
@@ -1603,7 +1604,8 @@ extern "C" {
                                           media_list:
                                               *const RawServoMediaList,
                                           extra_data:
-                                              *mut RawGeckoURLExtraData)
+                                              *mut RawGeckoURLExtraData,
+                                          line_number_offset: u32)
      -> RawServoStyleSheetStrong;
 }
 extern "C" {
@@ -1618,7 +1620,8 @@ extern "C" {
                                                *mut ServoStyleSheet,
                                            data: *const nsACString,
                                            extra_data:
-                                               *mut RawGeckoURLExtraData);
+                                                *mut RawGeckoURLExtraData,
+                                           line_number_offset: u32);
 }
 extern "C" {
     pub fn Servo_StyleSheet_HasRules(sheet: RawServoStyleSheetBorrowed)
@@ -1708,7 +1711,8 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_CssRules_GetStyleRuleAt(rules: ServoCssRulesBorrowed,
-                                         index: u32)
+                                         index: u32, line: *mut u32,
+                                         column: *mut u32)
      -> RawServoStyleRuleStrong;
 }
 extern "C" {
@@ -1721,7 +1725,8 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_CssRules_GetMediaRuleAt(rules: ServoCssRulesBorrowed,
-                                         index: u32)
+                                         index: u32, line: *mut u32,
+                                         column: *mut u32)
      -> RawServoMediaRuleStrong;
 }
 extern "C" {
@@ -1738,7 +1743,8 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_CssRules_GetNamespaceRuleAt(rules: ServoCssRulesBorrowed,
-                                             index: u32)
+                                             index: u32, line: *mut u32,
+                                             column: *mut u32)
      -> RawServoNamespaceRuleStrong;
 }
 extern "C" {
@@ -1751,7 +1757,9 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_CssRules_GetPageRuleAt(rules: ServoCssRulesBorrowed,
-                                        index: u32) -> RawServoPageRuleStrong;
+                                        index: u32, line: *mut u32,
+                                        column: *mut u32)
+     -> RawServoPageRuleStrong;
 }
 extern "C" {
     pub fn Servo_PageRule_Debug(rule: RawServoPageRuleBorrowed,
@@ -1763,7 +1771,8 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_CssRules_GetSupportsRuleAt(rules: ServoCssRulesBorrowed,
-                                            index: u32)
+                                            index: u32, line: *mut u32,
+                                            column: *mut u32)
      -> RawServoSupportsRuleStrong;
 }
 extern "C" {
@@ -1780,7 +1789,8 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_CssRules_GetDocumentRuleAt(rules: ServoCssRulesBorrowed,
-                                            index: u32)
+                                            index: u32, line: *mut u32,
+                                            column: *mut u32)
      -> RawServoDocumentRuleStrong;
 }
 extern "C" {

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cssparser::SourceLocation;
 use html5ever::LocalName;
 use selectors::parser::LocalName as LocalNameSelector;
 use selectors::parser::Selector;
@@ -32,6 +33,10 @@ fn get_mock_rules(css_selectors: &[&str]) -> (Vec<Vec<Rule>>, SharedRwLock) {
                     longhands::display::SpecifiedValue::block),
                 Importance::Normal
             ))),
+            source_location: SourceLocation {
+                line: 0,
+                column: 0,
+            },
         }));
 
         let guard = shared_lock.read();
