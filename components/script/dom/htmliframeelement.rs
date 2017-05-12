@@ -43,8 +43,9 @@ use js::jsval::{NullValue, UndefinedValue};
 use msg::constellation_msg::{FrameType, FrameId, PipelineId, TraversalDirection};
 use net_traits::response::HttpsState;
 use script_layout_interface::message::ReflowQueryType;
-use script_thread::{ScriptThread, Runnable};
-use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, LoadData};
+use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
+use script_thread::{MainThreadScriptMsg, ScriptThread, Runnable};
+use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, LoadData, DocumentType};
 use script_traits::{MozBrowserEvent, NewLayoutInfo, ScriptMsg as ConstellationMsg};
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use servo_atoms::Atom;
@@ -67,6 +68,12 @@ bitflags! {
         const ALLOW_POINTER_LOCK = 0x10,
         const ALLOW_POPUPS = 0x20
     }
+}
+
+#[derive(PartialEq)]
+pub enum TerminateLoadBlocker {
+    Yes,
+    No,
 }
 
 #[derive(PartialEq)]
@@ -105,15 +112,9 @@ impl HTMLIFrameElement {
         }).unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap())
     }
 
-    pub fn generate_new_pipeline_id(&self) -> (Option<PipelineId>, PipelineId) {
-        let old_pipeline_id = self.pipeline_id.get();
-        let new_pipeline_id = PipelineId::new();
-        self.pipeline_id.set(Some(new_pipeline_id));
-        debug!("Frame {} created pipeline {}.", self.frame_id, new_pipeline_id);
-        (old_pipeline_id, new_pipeline_id)
-    }
-
-    pub fn navigate_or_reload_child_browsing_context(&self, load_data: Option<LoadData>, replace: bool) {
+    pub fn navigate_or_reload_child_browsing_context(&self, load_data: Option<LoadData>,
+                                                     doc_type: DocumentType,
+                                                     replace: bool) {
         let sandboxed = if self.is_sandboxed() {
             IFrameSandboxed
         } else {
@@ -135,7 +136,9 @@ impl HTMLIFrameElement {
         }
 
         let window = window_from_node(self);
-        let (old_pipeline_id, new_pipeline_id) = self.generate_new_pipeline_id();
+        let old_pipeline_id = self.pipeline_id.get();
+        let new_pipeline_id = PipelineId::new();
+        debug!("Frame {} created pipeline {}.", self.frame_id, new_pipeline_id);
         let private_iframe = self.privatebrowsing();
         let frame_type = if self.Mozbrowser() { FrameType::MozBrowserIFrame } else { FrameType::IFrame };
 
@@ -149,13 +152,14 @@ impl HTMLIFrameElement {
             replace: replace,
         };
 
-        if load_data.as_ref().map_or(false, |d| d.url.as_str() == "about:blank") {
+        if doc_type == DocumentType::InitialAboutBlank ||
+            load_data.as_ref().map_or(false, |d| d.url.as_str() == "about:blank") {
             let (pipeline_sender, pipeline_receiver) = ipc::channel().unwrap();
 
             global_scope
-                  .constellation_chan()
-                  .send(ConstellationMsg::ScriptLoadedAboutBlankInIFrame(load_info, pipeline_sender))
-                  .unwrap();
+                .constellation_chan()
+                .send(ConstellationMsg::ScriptLoadedAboutBlankInIFrame(load_info, doc_type, pipeline_sender))
+                .unwrap();
 
             let new_layout_info = NewLayoutInfo {
                 parent_info: Some((global_scope.pipeline_id(), frame_type)),
@@ -168,7 +172,19 @@ impl HTMLIFrameElement {
                 layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
             };
 
-            ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
+            // Only the initial about:blank load is synchronous.
+            if doc_type == DocumentType::InitialAboutBlank {
+                self.pipeline_id.set(Some(new_pipeline_id));
+                ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
+            } else {
+                let runnable = NewLayoutThreadRunnable::new(new_layout_info, self);
+                let script_msg = CommonScriptMsg::RunnableMsg(ScriptThreadEventCategory::AttachLayout, box runnable);
+                let msg = MainThreadScriptMsg::Common(script_msg);
+                let window = window_from_node(self);
+                if let Err(e) = window.main_thread_script_chan().send(msg) {
+                    warn!("Failed to send attach new layout runnable {}", e);
+                }
+            }
         } else {
             let load_info = IFrameLoadInfoWithData {
                 info: load_info,
@@ -177,9 +193,9 @@ impl HTMLIFrameElement {
                 sandbox: sandboxed,
             };
             global_scope
-                  .constellation_chan()
-                  .send(ConstellationMsg::ScriptLoadedURLInIFrame(load_info))
-                  .unwrap();
+                .constellation_chan()
+                .send(ConstellationMsg::ScriptLoadedURLInIFrame(load_info))
+                .unwrap();
         }
 
         if PREFS.is_mozbrowser_enabled() {
@@ -206,8 +222,8 @@ impl HTMLIFrameElement {
         // TODO: check ancestor browsing contexts for same URL
 
         let document = document_from_node(self);
-        self.navigate_or_reload_child_browsing_context(
-            Some(LoadData::new(url, document.get_referrer_policy(), Some(document.url()))), false);
+        self.navigate_or_reload_child_browsing_context(Some(LoadData::new(
+            url, document.get_referrer_policy(), Some(document.url()))), DocumentType::Normal, false);
     }
 
     #[allow(unsafe_code)]
@@ -228,14 +244,16 @@ impl HTMLIFrameElement {
         let load_data = LoadData::new(url,
                                       document.get_referrer_policy(),
                                       Some(document.url().clone()));
-        self.navigate_or_reload_child_browsing_context(Some(load_data), false);
+        self.navigate_or_reload_child_browsing_context(Some(load_data), DocumentType::InitialAboutBlank, false);
     }
 
-    pub fn update_pipeline_id(&self, new_pipeline_id: PipelineId) {
+    pub fn update_pipeline_id(&self, new_pipeline_id: PipelineId, terminate: TerminateLoadBlocker) {
         self.pipeline_id.set(Some(new_pipeline_id));
 
-        let mut blocker = self.load_blocker.borrow_mut();
-        LoadBlocker::terminate(&mut blocker);
+        if terminate == TerminateLoadBlocker::Yes {
+            let mut blocker = self.load_blocker.borrow_mut();
+            LoadBlocker::terminate(&mut blocker);
+        }
 
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
@@ -563,7 +581,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     fn Reload(&self, _hard_reload: bool) -> ErrorResult {
         if self.Mozbrowser() {
             if self.upcast::<Node>().is_in_doc_with_browsing_context() {
-                self.navigate_or_reload_child_browsing_context(None, true);
+                self.navigate_or_reload_child_browsing_context(None, DocumentType::Normal, true);
             }
             Ok(())
         } else {
@@ -760,5 +778,28 @@ impl Runnable for IFrameLoadEventSteps {
     fn handler(self: Box<IFrameLoadEventSteps>) {
         let this = self.frame_element.root();
         this.iframe_load_event_steps(self.pipeline_id);
+    }
+}
+
+struct NewLayoutThreadRunnable {
+    layout_info: NewLayoutInfo,
+    frame_element: Trusted<HTMLIFrameElement>,
+}
+
+impl NewLayoutThreadRunnable {
+    fn new(layout_info: NewLayoutInfo, frame_element: &HTMLIFrameElement) -> NewLayoutThreadRunnable {
+        NewLayoutThreadRunnable {
+            layout_info: layout_info,
+            frame_element: Trusted::new(frame_element),
+        }
+    }
+}
+
+impl Runnable for NewLayoutThreadRunnable {
+    fn name(&self) -> &'static str { "NewLayoutThreadRunnable" }
+
+    fn handler(self: Box<NewLayoutThreadRunnable>) {
+        let document = document_from_node(&*self.frame_element.root());
+        ScriptThread::process_attach_layout(self.layout_info, document.origin().clone());
     }
 }

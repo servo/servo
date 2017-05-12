@@ -96,7 +96,7 @@ use profile_traits::mem;
 use profile_traits::time;
 use script_traits::{AnimationState, AnimationTickType, CompositorEvent};
 use script_traits::{ConstellationControlMsg, ConstellationMsg as FromCompositorMsg, DiscardBrowsingContext};
-use script_traits::{DocumentActivity, DocumentState, LayoutControlMsg, LoadData};
+use script_traits::{DocumentActivity, DocumentState, LayoutControlMsg, LoadData, DocumentType};
 use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, TimerSchedulerMsg};
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
 use script_traits::{LogEntry, ServiceWorkerMsg, webdriver_msg};
@@ -915,11 +915,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                        load_info.info.new_pipeline_id);
                 self.handle_script_loaded_url_in_iframe_msg(load_info);
             }
-            FromScriptMsg::ScriptLoadedAboutBlankInIFrame(load_info, lc) => {
+            FromScriptMsg::ScriptLoadedAboutBlankInIFrame(load_info, doc_type, lc) => {
                 debug!("constellation got loaded `about:blank` in iframe message {:?} {:?}",
                        load_info.parent_pipeline_id,
                        load_info.new_pipeline_id);
-                self.handle_script_loaded_about_blank_in_iframe_msg(load_info, lc);
+                self.handle_script_loaded_about_blank_in_iframe_msg(load_info, doc_type, lc);
             }
             FromScriptMsg::ChangeRunningAnimationsState(pipeline_id, animation_state) => {
                 self.handle_change_running_animations_state(pipeline_id, animation_state)
@@ -950,6 +950,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::ActivateDocument(pipeline_id) => {
                 debug!("constellation got activate document message");
                 self.handle_activate_document_msg(pipeline_id);
+            }
+            // Notifies constellation to synchronously update an iframe's current PipelineId
+            FromScriptMsg::UpdateIframePipelineId(pipeline_id, sender) => {
+                debug!("constellation got update iframe pipeline id message");
+                self.handle_update_iframe_pipeline_id(pipeline_id, sender);
             }
             // Update pipeline url after redirections
             FromScriptMsg::SetFinalUrl(pipeline_id, final_url) => {
@@ -1381,9 +1386,20 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     fn handle_subframe_loaded(&mut self, pipeline_id: PipelineId) {
         let (frame_id, parent_id) = match self.pipelines.get(&pipeline_id) {
-            Some(pipeline) => match pipeline.parent_info {
-                Some((parent_id, _)) => (pipeline.frame_id, parent_id),
-                None => return warn!("Pipeline {} has no parent.", pipeline_id),
+            Some(pipeline) => {
+                if pipeline.is_initial_about_blank {
+                    return;
+                }
+                match self.frames.get(&pipeline.frame_id) {
+                    Some(frame) => if frame.pipeline_id != pipeline_id {
+                        return warn!("Non-active pipeline {} attempted to trigger load event.", pipeline_id)
+                    },
+                    None => return warn!("Pipeline {} loaded after frame {} closed.", pipeline_id, pipeline.frame_id),
+                }
+                match pipeline.parent_info {
+                    Some((parent_id, _)) => (pipeline.frame_id, parent_id),
+                    None => return warn!("Pipeline {} has no parent.", pipeline_id),
+                }
             },
             None => return warn!("Pipeline {} loaded after closure.", pipeline_id),
         };
@@ -1406,6 +1422,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     // parent_pipeline_id's frame tree's children. This message is never the result of a
     // page navigation.
     fn handle_script_loaded_url_in_iframe_msg(&mut self, load_info: IFrameLoadInfoWithData) {
+        // Cancel any in progress loads for this frame
+        // https://html.spec.whatwg.org/multipage/#navigate step 6
+        self.clear_pending_loads_for_frame(load_info.info.frame_id);
+
         let (load_data, window_size, is_private) = {
             let old_pipeline = load_info.old_pipeline_id
                 .and_then(|old_pipeline_id| self.pipelines.get(&old_pipeline_id));
@@ -1458,6 +1478,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     fn handle_script_loaded_about_blank_in_iframe_msg(&mut self,
                                                       load_info: IFrameLoadInfo,
+                                                      doc_type: DocumentType,
                                                       layout_sender: IpcSender<LayoutControlMsg>) {
         let IFrameLoadInfo {
             parent_pipeline_id,
@@ -1487,7 +1508,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                           is_private || parent_pipeline.is_private,
                           url.clone(),
                           None,
-                          parent_pipeline.visible)
+                          parent_pipeline.visible,
+                          doc_type == DocumentType::InitialAboutBlank)
         };
 
         // TODO: Referrer?
@@ -1618,15 +1640,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 Some(source_id)
             }
             None => {
-                let root_frame_id = self.root_frame_id;
+                // Cancel any in progress loads for this frame
+                // https://html.spec.whatwg.org/multipage/#navigate step 6
+                self.clear_pending_loads_for_frame(frame_id);
 
-                // Make sure no pending page would be overridden.
-                for frame_change in &self.pending_frames {
-                    if frame_change.frame_id == root_frame_id {
-                        // id that sent load msg is being changed already; abort
-                        return None;
-                    }
-                }
+                let root_frame_id = self.root_frame_id;
 
                 if !self.pipeline_is_in_current_frame(source_id) {
                     // Disregard this load if the navigating pipeline is not actually
@@ -2101,7 +2119,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // Update the owning iframe to point to the new pipeline id.
         // This makes things like contentDocument work correctly.
         if let Some((parent_pipeline_id, _)) = parent_info {
-            let msg = ConstellationControlMsg::UpdatePipelineId(parent_pipeline_id, frame_id, pipeline_id);
+            let msg = ConstellationControlMsg::UpdatePipelineId(parent_pipeline_id,
+                                                                frame_id,
+                                                                pipeline_id,
+                                                                None);
             let result = match self.pipelines.get(&parent_pipeline_id) {
                 None => return warn!("Pipeline {:?} child traversed after closure.", parent_pipeline_id),
                 Some(pipeline) => pipeline.event_loop.send(msg),
@@ -2216,7 +2237,25 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.focus_pipeline_id = Some(frame_change.new_pipeline_id);
         }
 
-        let (evicted_id, new_frame, navigated, location_changed) = if let Some(instant) = frame_change.replace_instant {
+        // If the pipeline was the initial about:blank load, this new load must
+        // have replacement enabled.
+        // https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes
+        let replace_instant = match frame_change.replace_instant {
+            Some(replace) => Some(replace),
+            None => {
+                self.frames.get(&frame_change.frame_id).and_then(|frame| {
+                    self.pipelines.get(&frame.pipeline_id).and_then(|pipeline| {
+                        if pipeline.is_initial_about_blank {
+                            Some(frame.instant)
+                        } else {
+                            None
+                        }
+                    })
+                })
+            },
+        };
+
+        let (evicted_id, new_frame, navigated, location_changed) = if let Some(instant) = replace_instant {
             debug!("Replacing pipeline in existing frame with timestamp {:?}.", instant);
             let entry = FrameState {
                 frame_id: frame_change.frame_id,
@@ -2241,7 +2280,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         };
 
         if let Some(evicted_id) = evicted_id {
-            self.close_pipeline(evicted_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
+            // Do not evict an `about:blank` pipeline as it will not be reloaded in the
+            // same event loop as the parent pipeline and it will not share the same mutable
+            // origin.
+            if self.pipelines.get(&evicted_id).map_or(true, |pipeline| !pipeline.is_about_blank()) {
+                self.close_pipeline(evicted_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
+            }
         }
 
         if new_frame {
@@ -2275,7 +2319,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
             if let Some((parent_pipeline_id, _)) = pipeline.parent_info {
                 if let Some(parent_pipeline) = self.pipelines.get(&parent_pipeline_id) {
-                    let msg = ConstellationControlMsg::FramedContentChanged(parent_pipeline_id, pipeline.frame_id);
+                    let msg = ConstellationControlMsg::FramedContentChanged(pipeline_id,
+                        parent_pipeline_id, pipeline.frame_id);
                     let _ = parent_pipeline.event_loop.send(msg);
                 }
             }
@@ -2292,6 +2337,24 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             let frame_change = self.pending_frames.swap_remove(pending_index);
             self.add_or_replace_pipeline_in_frame_tree(frame_change);
         }
+    }
+
+    fn handle_update_iframe_pipeline_id(&mut self, pipeline_id: PipelineId, sender: IpcSender<()>) {
+        if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
+            if let Some((parent_pipeline_id, _)) = pipeline.parent_info {
+                if let Some(parent_pipeline) = self.pipelines.get(&parent_pipeline_id) {
+                    let msg = ConstellationControlMsg::UpdatePipelineId(parent_pipeline_id,
+                                                                        pipeline.frame_id,
+                                                                        pipeline_id,
+                                                                        Some(sender));
+                    let _ = parent_pipeline.event_loop.send(msg);
+                    return;
+                }
+            }
+        }
+        // If no parent was found, make to send a message back so the script thread is not blocked
+        // forever.
+        let _ = sender.send(());
     }
 
     /// Called when the window is resized.
@@ -2507,6 +2570,17 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     /// Update the current activity of a pipeline.
     fn update_activity(&self, pipeline_id: PipelineId) {
         self.set_activity(pipeline_id, self.get_activity(pipeline_id));
+    }
+
+    fn clear_pending_loads_for_frame(&mut self, frame_id: FrameId) {
+        let pending_pipelines = self.pending_frames.iter()
+            .filter(|frame_change| frame_change.frame_id == frame_id)
+            .map(|frame_change| frame_change.new_pipeline_id)
+            .collect::<Vec<_>>();
+
+        for pipeline_id in pending_pipelines.into_iter() {
+            self.close_pipeline(pipeline_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
+        }
     }
 
     fn clear_joint_session_future(&mut self, frame_id: FrameId) {

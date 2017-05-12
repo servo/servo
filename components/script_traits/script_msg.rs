@@ -5,6 +5,7 @@
 use AnimationState;
 use CompositorEvent;
 use DocumentState;
+use DocumentType;
 use IFrameLoadInfo;
 use IFrameLoadInfoWithData;
 use LayoutControlMsg;
@@ -121,11 +122,13 @@ pub enum ScriptMsg {
     /// A load has been requested in an IFrame.
     ScriptLoadedURLInIFrame(IFrameLoadInfoWithData),
     /// A load of `about:blank` has been completed in an IFrame.
-    ScriptLoadedAboutBlankInIFrame(IFrameLoadInfo, IpcSender<LayoutControlMsg>),
+    ScriptLoadedAboutBlankInIFrame(IFrameLoadInfo, DocumentType, IpcSender<LayoutControlMsg>),
     /// Requests that the constellation set the contents of the clipboard
     SetClipboardContents(String),
     /// Mark a new document as active
     ActivateDocument(PipelineId),
+    /// Notifies constellation to synchronously update an iframe's current PipelineId
+    UpdateIframePipelineId(PipelineId, IpcSender<()>),
     /// Set the document state for a pipeline (used by screenshot / reftests)
     SetDocumentState(PipelineId, DocumentState),
     /// Update the pipeline Url, which can change after redirections.
