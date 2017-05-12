@@ -73,9 +73,8 @@ pub type ColorStop = GenericColorStop<CSSColor, LengthOrPercentage>;
 /// -moz-image-rect(<uri>, top, right, bottom, left);
 pub type ImageRect = GenericImageRect<NumberOrPercentage>;
 
-impl Image {
-    #[allow(missing_docs)]
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<Image, ()> {
+impl Parse for Image {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Image, ()> {
         if let Ok(url) = input.try(|input| SpecifiedUrl::parse(context, input)) {
             return Ok(GenericImage::Url(url));
         }
@@ -88,7 +87,9 @@ impl Image {
 
         Ok(GenericImage::Element(Image::parse_element(input)?))
     }
+}
 
+impl Image {
     /// Creates an already specified image value from an already resolved URL
     /// for insertion in the cascade.
     #[cfg(feature = "servo")]
@@ -98,16 +99,13 @@ impl Image {
 
     /// Parses a `-moz-element(# <element-id>)`.
     fn parse_element(input: &mut Parser) -> Result<Atom, ()> {
-        if input.try(|i| i.expect_function_matching("-moz-element")).is_ok() {
-            input.parse_nested_block(|i| {
-                match i.next()? {
-                    Token::IDHash(id) => Ok(Atom::from(id)),
-                    _ => Err(()),
-                }
-            })
-        } else {
-            Err(())
-        }
+        input.try(|i| i.expect_function_matching("-moz-element"))?;
+        input.parse_nested_block(|i| {
+            match i.next()? {
+                Token::IDHash(id) => Ok(Atom::from(id)),
+                _ => Err(()),
+            }
+        })
     }
 }
 
