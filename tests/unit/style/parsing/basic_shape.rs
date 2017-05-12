@@ -124,7 +124,7 @@ fn test_circle() {
     assert_roundtrip_basicshape!(Circle::parse, "circle(at right 5% bottom 0px)",
                                                 "circle(at 95% 100%)");
     assert_roundtrip_basicshape!(Circle::parse, "circle(at right 5% bottom 1px)",
-                                                "circle(at right 5% bottom 1px)");
+                                                "circle(at left 95% bottom 1px)");
 
     assert!(parse(Circle::parse, "circle(at 5% bottom 1px)").is_err());
     assert!(parse(Circle::parse, "circle(at top 40%)").is_err());

@@ -9,7 +9,9 @@
 use {Atom, Prefix, Namespace, LocalName};
 use attr::{AttrIdentifier, AttrValue};
 use cssparser::{Parser as CssParser, ToCss, serialize_identifier};
+use dom::{OpaqueNode, TElement, TNode};
 use element_state::ElementState;
+use fnv::FnvHashMap;
 use restyle_hints::ElementSnapshot;
 use selector_parser::{ElementExt, PseudoElementCascadeType, SelectorParser};
 use selectors::{Element, MatchAttrGeneric};
@@ -20,6 +22,7 @@ use std::borrow::Cow;
 use std::fmt;
 use std::fmt::Debug;
 use std::mem;
+use std::ops::{Deref, DerefMut};
 
 /// A pseudo-element, both public and private.
 ///
@@ -445,6 +448,36 @@ impl SelectorImpl {
     #[inline]
     pub fn pseudo_class_state_flag(pc: &NonTSPseudoClass) -> ElementState {
         pc.state_flag()
+    }
+}
+
+/// A map from elements to snapshots for the Servo style back-end.
+#[derive(Debug)]
+pub struct SnapshotMap(FnvHashMap<OpaqueNode, ServoElementSnapshot>);
+
+impl SnapshotMap {
+    /// Create a new empty `SnapshotMap`.
+    pub fn new() -> Self {
+        SnapshotMap(FnvHashMap::default())
+    }
+
+    /// Get a snapshot given an element.
+    pub fn get<T: TElement>(&self, el: &T) -> Option<&ServoElementSnapshot> {
+        self.0.get(&el.as_node().opaque())
+    }
+}
+
+impl Deref for SnapshotMap {
+    type Target = FnvHashMap<OpaqueNode, ServoElementSnapshot>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for SnapshotMap {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 

@@ -12,7 +12,6 @@ use parser::{Parse, ParserContext};
 use std::ascii::AsciiExt;
 use std::fmt;
 use style_traits::ToCss;
-use values::HasViewportPercentage;
 
 bitflags! {
     /// Constants shared by multiple CSS Box Alignment properties

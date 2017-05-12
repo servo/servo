@@ -14,14 +14,14 @@ fn image_orientation_longhand_should_parse_properly() {
     assert_eq!(from_image, SpecifiedValue { angle: None, flipped: false });
 
     let flip = parse_longhand!(image_orientation, "flip");
-    assert_eq!(flip, SpecifiedValue { angle: Some(Angle::from_degrees(0.0)), flipped: true });
+    assert_eq!(flip, SpecifiedValue { angle: Some(Angle::zero()), flipped: true });
 
     let zero = parse_longhand!(image_orientation, "0deg");
-    assert_eq!(zero, SpecifiedValue { angle: Some(Angle::from_degrees(0.0)), flipped: false });
+    assert_eq!(zero, SpecifiedValue { angle: Some(Angle::zero()), flipped: false });
 
     let negative_rad = parse_longhand!(image_orientation, "-1rad");
-    assert_eq!(negative_rad, SpecifiedValue { angle: Some(Angle::from_radians(-1.0)), flipped: false });
+    assert_eq!(negative_rad, SpecifiedValue { angle: Some(Angle::from_radians(-1.0, false)), flipped: false });
 
     let flip_with_180 = parse_longhand!(image_orientation, "180deg flip");
-    assert_eq!(flip_with_180, SpecifiedValue { angle: Some(Angle::from_degrees(180.0)), flipped: true });
+    assert_eq!(flip_with_180, SpecifiedValue { angle: Some(Angle::from_degrees(180.0, false)), flipped: true });
 }

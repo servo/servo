@@ -72,7 +72,7 @@
                         dest.write_str(")")
                     }
                     ContentItem::Counters(ref s, ref separator, ref list_style_type) => {
-                        try!(dest.write_str("counter("));
+                        try!(dest.write_str("counters("));
                         try!(cssparser::serialize_identifier(&**s, dest));
                         try!(dest.write_str(", "));
                         try!(cssparser::serialize_string(&**separator, dest));

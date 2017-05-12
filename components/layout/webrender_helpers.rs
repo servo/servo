@@ -353,14 +353,34 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                         }
                     }
                     BorderDetails::Gradient(ref gradient) => {
+                        let extend_mode = if gradient.gradient.repeating {
+                            ExtendMode::Repeat
+                        } else {
+                            ExtendMode::Clamp
+                        };
                         webrender_traits::BorderDetails::Gradient(webrender_traits::GradientBorder {
                             gradient: builder.create_gradient(
                                           gradient.gradient.start_point.to_pointf(),
                                           gradient.gradient.end_point.to_pointf(),
                                           gradient.gradient.stops.clone(),
-                                          ExtendMode::Clamp),
+                                          extend_mode),
                             outset: gradient.outset,
                         })
+                    }
+                    BorderDetails::RadialGradient(ref gradient) => {
+                        let extend_mode = if gradient.gradient.repeating {
+                            ExtendMode::Repeat
+                        } else {
+                            ExtendMode::Clamp
+                        };
+                       webrender_traits::BorderDetails::RadialGradient(webrender_traits::RadialGradientBorder {
+                           gradient: builder.create_radial_gradient(
+                               gradient.gradient.center.to_pointf(),
+                               gradient.gradient.radius.to_sizef(),
+                               gradient.gradient.stops.clone(),
+                               extend_mode),
+                           outset: gradient.outset,
+                       })
                     }
                 };
 
@@ -449,7 +469,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                               stacking_context.filters.to_filter_ops());
             }
             DisplayItem::PopStackingContext(_) => builder.pop_stacking_context(),
-            DisplayItem::PushScrollRoot(ref item) => {
+            DisplayItem::DefineClip(ref item) => {
                 builder.push_clip_id(item.scroll_root.parent_id);
 
                 let our_id = item.scroll_root.id;
@@ -460,7 +480,6 @@ impl WebRenderDisplayItemConverter for DisplayItem {
 
                 builder.pop_clip_id();
             }
-            DisplayItem::PopScrollRoot(_) => {} //builder.pop_scroll_layer(),
         }
     }
 }

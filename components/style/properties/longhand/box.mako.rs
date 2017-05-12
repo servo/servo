@@ -2143,11 +2143,11 @@ ${helpers.predefined_type("perspective",
                           animation_value_type="ComputedValue")}
 
 ${helpers.predefined_type("perspective-origin",
-                          "position::OriginPosition",
-                          "computed::position::OriginPosition::center()",
+                          "position::Position",
+                          "computed::position::Position::center()",
                           boxed="True",
                           extra_prefixes="moz webkit",
-                          spec="https://drafts.csswg.org/css-transforms/#perspective-origin-property",
+                          spec="https://drafts.csswg.org/css-transforms-2/#perspective-origin-property",
                           animation_value_type="ComputedValue")}
 
 ${helpers.single_keyword("backface-visibility",
@@ -2181,7 +2181,7 @@ ${helpers.single_keyword("transform-style",
     use values::specified::{NoCalcLength, LengthOrPercentage, Percentage};
 
     pub mod computed_value {
-        use properties::animated_properties::{ComputeDistance, Interpolate};
+        use properties::animated_properties::Animatable;
         use values::computed::{Length, LengthOrPercentage};
 
         #[derive(Clone, Copy, Debug, PartialEq)]
@@ -2192,7 +2192,7 @@ ${helpers.single_keyword("transform-style",
             pub depth: Length,
         }
 
-        impl Interpolate for T {
+        impl Animatable for T {
             #[inline]
             fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
                 Ok(T {
@@ -2201,9 +2201,7 @@ ${helpers.single_keyword("transform-style",
                     depth: try!(self.depth.interpolate(&other.depth, time)),
                 })
             }
-        }
 
-        impl ComputeDistance for T {
             #[inline]
             fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
                 self.compute_squared_distance(other).map(|sd| sd.sqrt())

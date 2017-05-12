@@ -671,7 +671,6 @@ impl SizeKeyword {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct LayerImage(pub Option<Image>);
-use values::HasViewportPercentage;
 no_viewport_percentage!(LayerImage);
 
 impl ToCss for LayerImage {

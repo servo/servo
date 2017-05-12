@@ -11,7 +11,7 @@
     use properties::longhands::{mask_mode, mask_repeat, mask_clip, mask_origin, mask_composite, mask_position_x,
                                 mask_position_y};
     use properties::longhands::{mask_size, mask_image};
-    use values::specified::position::Position;
+    use values::specified::{Position, PositionComponent};
     use parser::Parse;
 
     impl From<mask_origin::single_value::SpecifiedValue> for mask_clip::single_value::SpecifiedValue {
@@ -41,7 +41,7 @@
         % endfor
 
         try!(input.parse_comma_separated(|input| {
-            % for name in "image mode position_x position_y size repeat origin clip composite".split():
+            % for name in "image mode position size repeat origin clip composite".split():
                 let mut ${name} = None;
             % endfor
             loop {
@@ -52,10 +52,9 @@
                         continue
                     }
                 }
-                if position_x.is_none() && position_y.is_none() {
+                if position.is_none() {
                     if let Ok(value) = input.try(|input| Position::parse(context, input)) {
-                        position_x = Some(value.horizontal);
-                        position_y = Some(value.vertical);
+                        position = Some(value);
 
                         // Parse mask size, if applicable.
                         size = input.try(|input| {
@@ -83,21 +82,16 @@
                 }
             }
             let mut any = false;
-            % for name in "image mode position_x position_y size repeat origin clip composite".split():
+            % for name in "image mode position size repeat origin clip composite".split():
                 any = any || ${name}.is_some();
             % endfor
             if any {
-                if position_x.is_some() || position_y.is_some() {
-                    % for name in "position_x position_y".split():
-                        if let Some(bg_${name}) = ${name} {
-                            mask_${name}.0.push(bg_${name});
-                        }
-                    % endfor
+                if let Some(position) = position {
+                    mask_position_x.0.push(position.horizontal);
+                    mask_position_y.0.push(position.vertical);
                 } else {
-                    % for name in "position_x position_y".split():
-                        mask_${name}.0.push(mask_${name}::single_value
-                                            ::get_initial_position_value());
-                    % endfor
+                    mask_position_x.0.push(PositionComponent::zero());
+                    mask_position_y.0.push(PositionComponent::zero());
                 }
                 % for name in "image mode size repeat origin clip composite".split():
                     if let Some(m_${name}) = ${name} {
@@ -191,18 +185,13 @@
         let mut position_y = mask_position_y::SpecifiedValue(Vec::new());
         let mut any = false;
 
-        try!(input.parse_comma_separated(|input| {
-            loop {
-                if let Ok(value) = input.try(|input| Position::parse(context, input)) {
-                    position_x.0.push(value.horizontal);
-                    position_y.0.push(value.vertical);
-                    any = true;
-                    continue
-                }
-                break
-            }
+        input.parse_comma_separated(|input| {
+            let value = Position::parse(context, input)?;
+            position_x.0.push(value.horizontal);
+            position_y.0.push(value.vertical);
+            any = true;
             Ok(())
-        }));
+        })?;
         if any == false {
             return Err(());
         }

@@ -695,7 +695,7 @@ ${helpers.single_keyword_system("font-variant-caps",
             #[inline]
             fn to_computed_value(&self, cx: &Context) -> computed_value::T {
                 use gecko_bindings::bindings::Gecko_GetBaseSize;
-                use gecko_bindings::structs;
+                use gecko_bindings::structs::{self, nsIAtom};
                 use values::specified::length::au_to_int_px;
                 // Data from nsRuleNode.cpp in Gecko
                 // Mapping from base size and HTML size to pixels
@@ -721,7 +721,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                 // XXXManishearth handle quirks mode
 
                 let ref gecko_font = cx.style().get_font().gecko();
-                let base_size = unsafe { Atom::with(gecko_font.mLanguage.raw(), &mut |atom| {
+                let base_size = unsafe { Atom::with(gecko_font.mLanguage.raw::<nsIAtom>(), &mut |atom| {
                     cx.font_metrics_provider.get_size(atom, gecko_font.mGenericID).0
                 }) };
 
@@ -740,6 +740,10 @@ ${helpers.single_keyword_system("font-variant-caps",
             }
         }
     % endif
+
+    /// This is the ratio applied for font-size: larger
+    /// and smaller by both Firefox and Chrome
+    const LARGER_FONT_SIZE_RATIO: f32 = 1.2;
 
     impl SpecifiedValue {
         /// https://html.spec.whatwg.org/multipage/#rules-for-parsing-a-legacy-font-size
@@ -768,6 +772,10 @@ ${helpers.single_keyword_system("font-variant-caps",
                         return Some(em)
                     }
                 }
+            } else if let SpecifiedValue::Larger = *self {
+                return Some(LARGER_FONT_SIZE_RATIO)
+            } else if let SpecifiedValue::Smaller = *self {
+                return Some(1. / LARGER_FONT_SIZE_RATIO)
             }
             None
         }
@@ -799,11 +807,11 @@ ${helpers.single_keyword_system("font-variant-caps",
                     key.to_computed_value(context).scale_by(fraction)
                 }
                 SpecifiedValue::Smaller => {
-                    FontRelativeLength::Em(0.85)
+                    FontRelativeLength::Em(1. / LARGER_FONT_SIZE_RATIO)
                         .to_computed_value(context, base_size)
                 }
                 SpecifiedValue::Larger => {
-                    FontRelativeLength::Em(1.2)
+                    FontRelativeLength::Em(LARGER_FONT_SIZE_RATIO)
                         .to_computed_value(context, base_size)
                 }
 
@@ -1014,7 +1022,7 @@ ${helpers.single_keyword_system("font-variant-caps",
     }
 
     pub mod computed_value {
-        use properties::animated_properties::{ComputeDistance, Interpolate};
+        use properties::animated_properties::Animatable;
         use std::fmt;
         use style_traits::ToCss;
         use values::CSSFloat;
@@ -1046,7 +1054,7 @@ ${helpers.single_keyword_system("font-variant-caps",
             }
         }
 
-        impl Interpolate for T {
+        impl Animatable for T {
             fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
                 match (*self, *other) {
                     (T::Number(ref number), T::Number(ref other)) =>
@@ -1054,9 +1062,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                     _ => Err(()),
                 }
             }
-        }
 
-        impl ComputeDistance for T {
             #[inline]
             fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
                 match (*self, *other) {
@@ -1807,10 +1813,10 @@ ${helpers.single_keyword_system("font-variant-position",
         impl ToCss for FeatureTagValue {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 use std::str;
-                use byteorder::{WriteBytesExt, NativeEndian};
+                use byteorder::{WriteBytesExt, BigEndian};
 
                 let mut raw: Vec<u8> = vec!();
-                raw.write_u32::<NativeEndian>(self.tag).unwrap();
+                raw.write_u32::<BigEndian>(self.tag).unwrap();
                 let str_print = str::from_utf8(&raw).unwrap_or_default();
 
                 match self.value {
@@ -1828,7 +1834,7 @@ ${helpers.single_keyword_system("font-variant-position",
                 use std::io::Cursor;
                 use std::str;
                 use std::ops::Deref;
-                use byteorder::{ReadBytesExt, NativeEndian};
+                use byteorder::{ReadBytesExt, BigEndian};
 
                 let tag = try!(input.expect_string());
 
@@ -1840,7 +1846,7 @@ ${helpers.single_keyword_system("font-variant-position",
                 }
 
                 let mut raw = Cursor::new(tag.as_bytes());
-                let u_tag = raw.read_u32::<NativeEndian>().unwrap();
+                let u_tag = raw.read_u32::<BigEndian>().unwrap();
 
                 if let Ok(value) = input.try(|input| input.expect_integer()) {
                     // handle integer, throw if it is negative
@@ -2073,7 +2079,7 @@ ${helpers.single_keyword_system("font-variant-position",
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        ::gecko_bindings::structs::NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER
+        ::gecko_bindings::structs::NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER as f32
     }
 
     pub fn parse(_context: &ParserContext, _input: &mut Parser) -> Result<SpecifiedValue, ()> {
@@ -2429,3 +2435,12 @@ ${helpers.single_keyword("-moz-math-variant",
         }
     }
 % endif
+
+${helpers.single_keyword("-moz-osx-font-smoothing",
+                         "auto grayscale",
+                         gecko_constant_prefix="NS_FONT_SMOOTHING",
+                         gecko_ffi_name="mFont.smoothing",
+                         products="gecko",
+                         spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/font-smooth)",
+                         animation_value_type="none",
+                         need_clone=True)}

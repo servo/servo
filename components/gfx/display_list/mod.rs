@@ -86,7 +86,7 @@ impl DisplayList {
                                              scroll_offsets,
                                              result);
                 }
-                &DisplayItem::PushScrollRoot(ref item) => {
+                &DisplayItem::DefineClip(ref item) => {
                     let mut point = *translated_point;
                     DisplayList::scroll_root(&item.scroll_root,
                                              &mut point,
@@ -149,7 +149,7 @@ impl DisplayList {
                                            scroll_offsets,
                                            result);
                 }
-                &DisplayItem::PushScrollRoot(ref item) => {
+                &DisplayItem::DefineClip(ref item) => {
                     let mut point = *translated_point;
                     DisplayList::scroll_root(&item.scroll_root,
                                              &mut point,
@@ -160,7 +160,7 @@ impl DisplayList {
                                            scroll_offsets,
                                            result);
                 }
-                &DisplayItem::PopStackingContext(_) | &DisplayItem::PopScrollRoot(_) => return,
+                &DisplayItem::PopStackingContext(_) => return,
                 _ => {
                     if let Some(meta) = item.hit_test(*translated_point) {
                         result.push(meta);
@@ -510,8 +510,8 @@ pub struct ScrollRoot {
 }
 
 impl ScrollRoot {
-    pub fn to_push(&self, pipeline_id: PipelineId) -> DisplayItem {
-        DisplayItem::PushScrollRoot(box PushScrollRootItem {
+    pub fn to_define_item(&self, pipeline_id: PipelineId) -> DisplayItem {
+        DisplayItem::DefineClip(box DefineClipItem {
             base: BaseDisplayItem::empty(pipeline_id),
             scroll_root: self.clone(),
         })
@@ -534,8 +534,7 @@ pub enum DisplayItem {
     Iframe(Box<IframeDisplayItem>),
     PushStackingContext(Box<PushStackingContextItem>),
     PopStackingContext(Box<PopStackingContextItem>),
-    PushScrollRoot(Box<PushScrollRootItem>),
-    PopScrollRoot(Box<BaseDisplayItem>),
+    DefineClip(Box<DefineClipItem>),
 }
 
 /// Information common to all display items.
@@ -976,12 +975,23 @@ pub struct GradientBorder {
     pub outset: SideOffsets2D<f32>,
 }
 
+/// A border that is made of radial gradient
+#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+pub struct RadialGradientBorder {
+    /// The gradient info that this border uses, border-image-source.
+    pub gradient: RadialGradient,
+
+    /// Outsets for the border, as per border-image-outset.
+    pub outset: SideOffsets2D<f32>,
+}
+
 /// Specifies the type of border
 #[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
 pub enum BorderDetails {
     Normal(NormalBorder),
     Image(ImageBorder),
     Gradient(GradientBorder),
+    RadialGradient(RadialGradientBorder),
 }
 
 /// Paints a border.
@@ -1123,7 +1133,7 @@ pub struct PopStackingContextItem {
 
 /// Starts a group of items inside a particular scroll root.
 #[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
-pub struct PushScrollRootItem {
+pub struct DefineClipItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
 
@@ -1159,8 +1169,7 @@ impl DisplayItem {
             DisplayItem::Iframe(ref iframe) => &iframe.base,
             DisplayItem::PushStackingContext(ref stacking_context) => &stacking_context.base,
             DisplayItem::PopStackingContext(ref item) => &item.base,
-            DisplayItem::PushScrollRoot(ref item) => &item.base,
-            DisplayItem::PopScrollRoot(ref base) => &base,
+            DisplayItem::DefineClip(ref item) => &item.base,
         }
     }
 
@@ -1246,12 +1255,8 @@ impl fmt::Debug for DisplayItem {
             return write!(f, "PopStackingContext({:?}", item.stacking_context_id);
         }
 
-        if let DisplayItem::PushScrollRoot(ref item) = *self {
-            return write!(f, "PushScrollRoot({:?}", item.scroll_root);
-        }
-
-        if let DisplayItem::PopScrollRoot(_) = *self {
-            return write!(f, "PopScrollRoot");
+        if let DisplayItem::DefineClip(ref item) = *self {
+            return write!(f, "DefineClip({:?}", item.scroll_root);
         }
 
         write!(f, "{} @ {:?} {:?}",
@@ -1277,8 +1282,7 @@ impl fmt::Debug for DisplayItem {
                 DisplayItem::Iframe(_) => "Iframe".to_owned(),
                 DisplayItem::PushStackingContext(_) |
                 DisplayItem::PopStackingContext(_) |
-                DisplayItem::PushScrollRoot(_) |
-                DisplayItem::PopScrollRoot(_) => "".to_owned(),
+                DisplayItem::DefineClip(_) => "".to_owned(),
             },
             self.bounds(),
             self.base().clip

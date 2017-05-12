@@ -39,6 +39,7 @@ use dom::characterdata::LayoutCharacterDataHelpers;
 use dom::document::{Document, LayoutDocumentHelpers, PendingRestyle};
 use dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
 use dom::node::{CAN_BE_FRAGMENTED, DIRTY_ON_VIEWPORT_SIZE_CHANGE, HAS_DIRTY_DESCENDANTS, IS_IN_DOC};
+use dom::node::{HANDLED_SNAPSHOT, HAS_SNAPSHOT};
 use dom::node::{LayoutNodeHelpers, Node};
 use dom::text::Text;
 use gfx_traits::ByteIndex;
@@ -413,6 +414,18 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         unsafe { self.as_node().node.get_flag(HAS_DIRTY_DESCENDANTS) }
     }
 
+    fn has_snapshot(&self) -> bool {
+        unsafe { self.as_node().node.get_flag(HAS_SNAPSHOT) }
+    }
+
+    fn handled_snapshot(&self) -> bool {
+        unsafe { self.as_node().node.get_flag(HANDLED_SNAPSHOT) }
+    }
+
+    unsafe fn set_handled_snapshot(&self) {
+        self.as_node().node.set_flag(HANDLED_SNAPSHOT, true);
+    }
+
     unsafe fn note_descendants<B: DescendantsBit<Self>>(&self) {
         debug_assert!(self.get_data().is_some());
         style::dom::raw_note_descendants::<Self, B>(*self);
@@ -442,7 +455,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     fn get_data(&self) -> Option<&AtomicRefCell<ElementData>> {
         unsafe {
             self.get_style_and_layout_data().map(|d| {
-                let ppld: &AtomicRefCell<PartialPersistentLayoutData> = &**d.ptr;
+                let ppld: &AtomicRefCell<PartialPersistentLayoutData> = &*d.ptr.get();
                 let psd: &AtomicRefCell<ElementData> = transmute(ppld);
                 psd
             })
@@ -505,8 +518,16 @@ impl<'le> ServoLayoutElement<'le> {
 
     fn get_partial_layout_data(&self) -> Option<&AtomicRefCell<PartialPersistentLayoutData>> {
         unsafe {
-            self.get_style_and_layout_data().map(|d| &**d.ptr)
+            self.get_style_and_layout_data().map(|d| &*d.ptr.get())
         }
+    }
+
+    pub unsafe fn unset_snapshot_flags(&self) {
+        self.as_node().node.set_flag(HAS_SNAPSHOT | HANDLED_SNAPSHOT, false);
+    }
+
+    pub unsafe fn set_has_snapshot(&self) {
+        self.as_node().node.set_flag(HAS_SNAPSHOT, true);
     }
 
     // FIXME(bholley): This should be merged with TElement::note_descendants,

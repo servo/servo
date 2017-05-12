@@ -74,20 +74,20 @@ ${helpers.predefined_type(
     spec="https://www.w3.org/TR/SVG2/painting.html#StrokeWidth")}
 
 ${helpers.single_keyword("stroke-linecap", "butt round square",
-                         products="gecko", animation_value_type="none",
+                         products="gecko", animation_value_type="discrete",
                          spec="https://www.w3.org/TR/SVG11/painting.html#StrokeLinecapProperty")}
 
 ${helpers.single_keyword("stroke-linejoin", "miter round bevel",
-                         products="gecko", animation_value_type="none",
+                         products="gecko", animation_value_type="discrete",
                          spec="https://www.w3.org/TR/SVG11/painting.html#StrokeLinejoinProperty")}
 
 ${helpers.predefined_type("stroke-miterlimit", "Number", "4.0",
                           "parse_at_least_one", products="gecko",
-                          animation_value_type="none",
+                          animation_value_type="ComputedValue",
                           spec="https://www.w3.org/TR/SVG11/painting.html#StrokeMiterlimitProperty")}
 
 ${helpers.predefined_type("stroke-opacity", "Opacity", "1.0",
-                          products="gecko", animation_value_type="none",
+                          products="gecko", animation_value_type="ComputedValue",
                           spec="https://www.w3.org/TR/SVG11/painting.html#StrokeOpacityProperty")}
 
 ${helpers.predefined_type("stroke-dasharray",
@@ -95,9 +95,10 @@ ${helpers.predefined_type("stroke-dasharray",
                           "Either::First(0.0)",
                           "parse_non_negative",
                           vector="True",
+                          delegate_animate="True",
                           allow_empty="True",
                           products="gecko",
-                          animation_value_type="none",
+                          animation_value_type="ComputedValue",
                           space_separated_allowed="True",
                           spec="https://www.w3.org/TR/SVG2/painting.html#StrokeDashing")}
 

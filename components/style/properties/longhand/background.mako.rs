@@ -20,38 +20,13 @@ ${helpers.predefined_type("background-image", "LayerImage",
     animation_value_type="none",
     has_uncacheable_values="True" if product == "gecko" else "False")}
 
-<%helpers:predefined_type name="background-position-x" type="position::HorizontalPosition"
-                          initial_value="computed::position::HorizontalPosition::zero()"
-                          initial_specified_value="specified::position::HorizontalPosition::left()"
-                          spec="https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-x"
-                          animation_value_type="ComputedValue" vector="True" delegate_animate="True">
-    #[inline]
-    /// Get the initial value for horizontal position.
-    pub fn get_initial_position_value() -> SpecifiedValue {
-        use values::generics::position::{HorizontalPosition, PositionValue};
-        use values::specified::{LengthOrPercentage, Percentage};
-        HorizontalPosition(PositionValue {
-            keyword: None,
-            position: Some(LengthOrPercentage::Percentage(Percentage(0.0))),
-        })
-    }
-</%helpers:predefined_type>
-
-<%helpers:predefined_type name="background-position-y" type="position::VerticalPosition"
-                          initial_value="computed::position::VerticalPosition::zero()"
-                          initial_specified_value="specified::position::VerticalPosition::top()"
-                          spec="https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-y"
-                          animation_value_type="ComputedValue" vector="True" delegate_animate="True">
-    /// Get the initial value for vertical position.
-    pub fn get_initial_position_value() -> SpecifiedValue {
-        use values::generics::position::{VerticalPosition, PositionValue};
-        use values::specified::{LengthOrPercentage, Percentage};
-        VerticalPosition(PositionValue {
-            keyword: None,
-            position: Some(LengthOrPercentage::Percentage(Percentage(0.0))),
-        })
-    }
-</%helpers:predefined_type>
+% for (axis, direction, initial) in [("x", "Horizontal", "left"), ("y", "Vertical", "top")]:
+    ${helpers.predefined_type("background-position-" + axis, "position::" + direction + "Position",
+                              initial_value="computed::LengthOrPercentage::zero()",
+                              initial_specified_value="SpecifiedValue::initial_specified_value()",
+                              spec="https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-" + axis,
+                              animation_value_type="ComputedValue", vector=True, delegate_animate=True)}
+% endfor
 
 <%helpers:vector_longhand name="background-repeat" animation_value_type="none"
                           spec="https://drafts.csswg.org/css-backgrounds/#the-background-repeat">
@@ -195,7 +170,7 @@ ${helpers.single_keyword("background-origin",
     #[allow(missing_docs)]
     pub mod computed_value {
         use values::computed::LengthOrPercentageOrAuto;
-        use properties::animated_properties::{ComputeDistance, Interpolate, RepeatableListInterpolate};
+        use properties::animated_properties::{Animatable, RepeatableListAnimatable};
 
         #[derive(PartialEq, Clone, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -212,9 +187,9 @@ ${helpers.single_keyword("background-origin",
             Contain,
         }
 
-        impl RepeatableListInterpolate for T {}
+        impl RepeatableListAnimatable for T {}
 
-        impl Interpolate for T {
+        impl Animatable for T {
             fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
                 use properties::longhands::background_size::single_value::computed_value::ExplicitSize;
                 match (self, other) {
@@ -227,9 +202,7 @@ ${helpers.single_keyword("background-origin",
                     _ => Err(()),
                 }
             }
-        }
 
-        impl ComputeDistance for T {
             #[inline]
             fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
                 self.compute_squared_distance(other).map(|sd| sd.sqrt())

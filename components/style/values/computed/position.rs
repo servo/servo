@@ -10,39 +10,28 @@
 use std::fmt;
 use style_traits::ToCss;
 use values::computed::LengthOrPercentage;
-use values::generics::position::{Position as GenericPosition, PositionWithKeyword};
-use values::generics::position::HorizontalPosition as GenericHorizontalPosition;
-use values::generics::position::VerticalPosition as GenericVerticalPosition;
+use values::generics::position::Position as GenericPosition;
 
 /// The computed value of a CSS `<position>`
-pub type Position = PositionWithKeyword<LengthOrPercentage>;
+pub type Position = GenericPosition<HorizontalPosition, VerticalPosition>;
 
-impl Copy for Position {}
+/// The computed value of a CSS horizontal position.
+pub type HorizontalPosition = LengthOrPercentage;
 
-/// The computed value for `<position>` values without a keyword.
-pub type OriginPosition = GenericPosition<LengthOrPercentage, LengthOrPercentage>;
-
-impl Copy for OriginPosition {}
-
-impl OriginPosition {
-    #[inline]
-    /// The initial value for `perspective-origin`
-    pub fn center() -> OriginPosition {
-        GenericPosition {
-            horizontal: LengthOrPercentage::Percentage(0.5),
-            vertical: LengthOrPercentage::Percentage(0.5),
-        }
-    }
-}
+/// The computed value of a CSS vertical position.
+pub type VerticalPosition = LengthOrPercentage;
 
 impl Position {
+    /// `50% 50%`
     #[inline]
-    /// Construct a position at (0, 0)
+    pub fn center() -> Self {
+        Self::new(LengthOrPercentage::Percentage(0.5), LengthOrPercentage::Percentage(0.5))
+    }
+
+    /// `0% 0%`
+    #[inline]
     pub fn zero() -> Self {
-        Position {
-            horizontal: GenericHorizontalPosition(LengthOrPercentage::zero()),
-            vertical: GenericVerticalPosition(LengthOrPercentage::zero()),
-        }
+        Self::new(LengthOrPercentage::zero(), LengthOrPercentage::zero())
     }
 }
 
@@ -51,31 +40,5 @@ impl ToCss for Position {
         self.horizontal.to_css(dest)?;
         dest.write_str(" ")?;
         self.vertical.to_css(dest)
-    }
-}
-
-/// The computed value of a horizontal `<position>`
-pub type HorizontalPosition = GenericHorizontalPosition<LengthOrPercentage>;
-
-impl Copy for HorizontalPosition {}
-
-impl HorizontalPosition {
-    #[inline]
-    /// Create a zero position value.
-    pub fn zero() -> HorizontalPosition {
-        GenericHorizontalPosition(LengthOrPercentage::Percentage(0.0))
-    }
-}
-
-/// The computed value of a vertical `<position>`
-pub type VerticalPosition = GenericVerticalPosition<LengthOrPercentage>;
-
-impl Copy for VerticalPosition {}
-
-impl VerticalPosition {
-    #[inline]
-    /// Create a zero position value.
-    pub fn zero() -> VerticalPosition {
-        GenericVerticalPosition(LengthOrPercentage::Percentage(0.0))
     }
 }

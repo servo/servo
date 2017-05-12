@@ -19783,6 +19783,12 @@
      {}
     ]
    ],
+   "mozilla/scrollBy.html": [
+    [
+     "/_mozilla/mozilla/scrollBy.html",
+     {}
+    ]
+   ],
    "mozilla/scrollTo.html": [
     [
      "/_mozilla/mozilla/scrollTo.html",
@@ -21375,11 +21381,11 @@
    "support"
   ],
   "css/font_size.html": [
-   "1647905b6a68c9bb577afcbcca203208de524a88",
+   "7c944acb4f7d909083888a355e6d664c23081b99",
    "reftest"
   ],
   "css/font_size_ref.html": [
-   "b0b486eb2cbc8537edae3a7c76b08c8ecc9a0ef3",
+   "cc34cbb1aae8e0d3738476bb09264f0fade78ba6",
    "support"
   ],
   "css/font_style.html": [
@@ -25371,7 +25377,7 @@
    "testharness"
   ],
   "mozilla/calc.html": [
-   "028fc71bdc9a99d552ba552036d38fb4eef11bc1",
+   "47507adabc0d3642154b3ed4b1ab64d726fa682d",
    "testharness"
   ],
   "mozilla/canvas.initial.reset.2dstate.html": [
@@ -31352,6 +31358,10 @@
   ],
   "mozilla/script_type.html": [
    "b247e3a0ba733c1a8b129ce2994b862d8ed3a423",
+   "testharness"
+  ],
+  "mozilla/scrollBy.html": [
+   "0243d584bc615a73ea1667fc35f5d73b5165d19f",
    "testharness"
   ],
   "mozilla/scrollTo.html": [

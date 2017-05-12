@@ -28,14 +28,14 @@ angle = {git = "https://github.com/servo/angle", branch = "servo"}
 app_units = "0.4"
 audio-video-metadata = "0.1.2"
 atomic_refcell = "0.1"
-base64 = "0.4.1"
+base64 = "0.4.2"
 bitflags = "0.7"
 bluetooth_traits = {path = "../bluetooth_traits"}
 byteorder = "1.0"
 canvas_traits = {path = "../canvas_traits"}
 caseless = "0.1.0"
 cookie = "0.6"
-cssparser = "0.13"
+cssparser = "0.13.3"
 deny_public_fields = {path = "../deny_public_fields"}
 devtools_traits = {path = "../devtools_traits"}
 dom_struct = {path = "../dom_struct"}

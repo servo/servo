@@ -26,6 +26,7 @@ use selector_parser::{PseudoElement, RestyleDamage, SelectorImpl};
 use selectors::bloom::BloomFilter;
 use selectors::matching::{ElementSelectorFlags, StyleRelations};
 use selectors::matching::AFFECTED_BY_PSEUDO_ELEMENTS;
+use shared_lock::StylesheetGuards;
 use sink::ForgetfulSink;
 <<<<<<< HEAD
 use std::sync::Arc;
@@ -200,7 +201,7 @@ fn element_matches_candidate<E: TElement>(element: &E,
     }
 
     let data = candidate_element.borrow_data().unwrap();
-    debug_assert!(data.has_current_styles());
+    debug_assert!(element.has_current_styles(&data));
     let current_styles = data.styles();
 
     debug!("Sharing style between {:?} and {:?}", element, candidate_element);
@@ -436,7 +437,8 @@ trait PrivateMatchMethods: TElement {
                     // construct a frame for some small piece of newly-added
                     // content in order to do something specific with that frame,
                     // but not wanting to flush all of layout).
-                    debug_assert!(cfg!(feature = "gecko") || d.has_current_styles());
+                    debug_assert!(cfg!(feature = "gecko") ||
+                                  parent_el.unwrap().has_current_styles(d));
                     d.styles().primary.values()
                 });
 
@@ -861,11 +863,12 @@ trait PrivateMatchMethods: TElement {
 }
 
 fn compute_rule_node<E: TElement>(rule_tree: &RuleTree,
-                                  applicable_declarations: &mut Vec<ApplicableDeclarationBlock>)
+                                  applicable_declarations: &mut Vec<ApplicableDeclarationBlock>,
+                                  guards: &StylesheetGuards)
                                   -> StrongRuleNode
 {
     let rules = applicable_declarations.drain(..).map(|d| (d.source, d.level));
-    let rule_node = rule_tree.insert_ordered_rules(rules);
+    let rule_node = rule_tree.insert_ordered_rules_with_important(rules, guards);
     rule_node
 }
 
@@ -1010,12 +1013,13 @@ pub trait MatchMethods : TElement {
                                                           smil_override,
                                                           animation_rules,
                                                           implemented_pseudo.as_ref(),
-                                                          &context.shared.guards,
                                                           &mut applicable_declarations,
                                                           &mut set_selector_flags);
 
         let primary_rule_node =
-            compute_rule_node::<Self>(&stylist.rule_tree, &mut applicable_declarations);
+            compute_rule_node::<Self>(&stylist.rule_tree,
+                                      &mut applicable_declarations,
+                                      &context.shared.guards);
 
         return data.set_primary_rules(primary_rule_node);
     }
@@ -1072,13 +1076,14 @@ pub trait MatchMethods : TElement {
                                                  None,
                                                  AnimationRules(None, None),
                                                  Some(&pseudo),
-                                                 &guards,
                                                  &mut applicable_declarations,
                                                  &mut set_selector_flags);
 
             if !applicable_declarations.is_empty() {
                 let new_rules =
-                    compute_rule_node::<Self>(rule_tree, &mut applicable_declarations);
+                    compute_rule_node::<Self>(rule_tree,
+                                              &mut applicable_declarations,
+                                              &guards);
                 if pseudos.has(&pseudo) {
                     rule_nodes_changed = pseudos.set_rules(&pseudo, new_rules);
                 } else {
