@@ -2248,11 +2248,11 @@ fn fill_in_missing_keyframe_values(all_properties:  &Vec<TransitionProperty>,
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSetBorrowed,
-                                                      name: *const nsACString,
-                                                      inherited_timing_function: nsTimingFunctionBorrowed,
-                                                      style: ServoComputedValuesBorrowed,
-                                                      keyframes: RawGeckoKeyframeListBorrowedMut) -> bool {
+pub extern "C" fn Servo_StyleSet_GetKeyframesForName(raw_data: RawServoStyleSetBorrowed,
+                                                     name: *const nsACString,
+                                                     inherited_timing_function: nsTimingFunctionBorrowed,
+                                                     style: ServoComputedValuesBorrowed,
+                                                     keyframes: RawGeckoKeyframeListBorrowedMut) -> bool {
     debug_assert!(keyframes.len() == 0,
                   "keyframes should be initially empty");
 
