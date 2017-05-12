@@ -444,7 +444,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     }
 
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-        Time::parse(context, input)
+        Time::parse_non_negative(context, input)
     }
 </%helpers:vector_longhand>
 
@@ -824,7 +824,11 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     pub use properties::longhands::transition_duration::single_value::SpecifiedValue;
     pub use properties::longhands::transition_duration::single_value::computed_value;
     pub use properties::longhands::transition_duration::single_value::{get_initial_value, get_initial_specified_value};
-    pub use properties::longhands::transition_duration::single_value::parse;
+
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        use values::specified::Time;
+        Time::parse(context, input)
+    }
 </%helpers:vector_longhand>
 
 <%helpers:vector_longhand name="animation-name"
@@ -1031,10 +1035,10 @@ ${helpers.single_keyword("animation-fill-mode",
                           extra_prefixes="moz webkit",
                           spec="https://drafts.csswg.org/css-animations/#propdef-animation-delay",
                           allowed_in_keyframe_block="False">
-    pub use properties::longhands::transition_duration::single_value::computed_value;
-    pub use properties::longhands::transition_duration::single_value::get_initial_specified_value;
-    pub use properties::longhands::transition_duration::single_value::{get_initial_value, parse};
-    pub use properties::longhands::transition_duration::single_value::SpecifiedValue;
+    pub use properties::longhands::transition_delay::single_value::computed_value;
+    pub use properties::longhands::transition_delay::single_value::get_initial_specified_value;
+    pub use properties::longhands::transition_delay::single_value::{get_initial_value, parse};
+    pub use properties::longhands::transition_delay::single_value::SpecifiedValue;
 </%helpers:vector_longhand>
 
 <%helpers:longhand products="gecko" name="scroll-snap-points-y" animation_value_type="none"
