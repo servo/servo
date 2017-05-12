@@ -8,7 +8,6 @@
 #![deny(missing_docs)]
 
 use Atom;
-use animation::{self, Animation, PropertyAnimation};
 use atomic_refcell::AtomicRefMut;
 use bit_vec::BitVec;
 use cache::{LRUCache, LRUCacheMutIterator};
@@ -721,6 +720,8 @@ trait PrivateMatchMethods: TElement {
                           old_values: &mut Option<Arc<ComputedValues>>,
                           new_values: &mut Arc<ComputedValues>,
                           _primary_style: &ComputedStyle) {
+        use animation;
+
         let possibly_expired_animations =
             &mut context.thread_local.current_element_info.as_mut().unwrap()
                         .possibly_expired_animations;
@@ -806,11 +807,14 @@ trait PrivateMatchMethods: TElement {
         }
     }
 
+    #[cfg(feature = "servo")]
     fn update_animations_for_cascade(&self,
                                      context: &SharedStyleContext,
                                      style: &mut Arc<ComputedValues>,
-                                     possibly_expired_animations: &mut Vec<PropertyAnimation>,
+                                     possibly_expired_animations: &mut Vec<::animation::PropertyAnimation>,
                                      font_metrics: &FontMetricsProvider) {
+        use animation::{self, Animation};
+
         // Finish any expired transitions.
         let this_opaque = self.as_node().opaque();
         animation::complete_expired_transitions(this_opaque, style, context);

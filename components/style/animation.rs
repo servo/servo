@@ -399,6 +399,7 @@ impl PropertyAnimation {
 //
 // TODO(emilio): Take rid of this mutex splitting SharedLayoutContex into a
 // cloneable part and a non-cloneable part..
+#[cfg(feature = "servo")]
 pub fn start_transitions_if_applicable(new_animations_sender: &Sender<Animation>,
                                        opaque_node: OpaqueNode,
                                        unsafe_node: UnsafeNode,
@@ -755,6 +756,7 @@ pub fn update_style_for_animation(context: &SharedStyleContext,
 }
 
 /// Update the style in the node when it finishes.
+#[cfg(feature = "servo")]
 pub fn complete_expired_transitions(node: OpaqueNode, style: &mut Arc<ComputedValues>,
                                     context: &SharedStyleContext) -> bool {
     let had_animations_to_expire;

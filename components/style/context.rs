@@ -4,7 +4,8 @@
 
 //! The context within which style is calculated.
 
-use animation::{Animation, PropertyAnimation};
+#[cfg(feature = "servo")] use animation::Animation;
+use animation::PropertyAnimation;
 use app_units::Au;
 use bit_vec::BitVec;
 use bloom::StyleBloom;
@@ -17,18 +18,18 @@ use fnv::FnvHashMap;
 use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")] use gecko_bindings::structs;
 use matching::StyleSharingCandidateCache;
-use parking_lot::RwLock;
+#[cfg(feature = "servo")] use parking_lot::RwLock;
 #[cfg(feature = "gecko")] use properties::ComputedValues;
 use selector_parser::SnapshotMap;
 use selectors::matching::ElementSelectorFlags;
 #[cfg(feature = "servo")] use servo_config::opts;
 use shared_lock::StylesheetGuards;
-use std::collections::HashMap;
-#[cfg(not(feature = "servo"))] use std::env;
+#[cfg(feature = "servo")] use std::collections::HashMap;
+#[cfg(feature = "gecko")] use std::env;
 use std::fmt;
 use std::ops::Add;
-use std::sync::Mutex;
-use std::sync::mpsc::Sender;
+#[cfg(feature = "servo")] use std::sync::Mutex;
+#[cfg(feature = "servo")] use std::sync::mpsc::Sender;
 use stylearc::Arc;
 use stylist::Stylist;
 use thread_state;
@@ -37,10 +38,12 @@ use timer::Timer;
 use traversal::{DomTraversal, TraversalFlags};
 
 /// This structure is used to create a local style context from a shared one.
+#[cfg(feature = "servo")]
 pub struct ThreadLocalStyleContextCreationInfo {
     new_animations_sender: Sender<Animation>,
 }
 
+#[cfg(feature = "servo")]
 impl ThreadLocalStyleContextCreationInfo {
     /// Trivially constructs a `ThreadLocalStyleContextCreationInfo`.
     pub fn new(animations_sender: Sender<Animation>) -> Self {
@@ -106,7 +109,7 @@ impl Default for StyleSystemOptions {
 /// shared among the worker threads.
 pub struct SharedStyleContext<'a> {
     /// The CSS selector stylist.
-    pub stylist: Arc<Stylist>,
+    pub stylist: &'a Stylist,
 
     /// Configuration options.
     pub options: StyleSystemOptions,
@@ -114,17 +117,8 @@ pub struct SharedStyleContext<'a> {
     /// Guards for pre-acquired locks
     pub guards: StylesheetGuards<'a>,
 
-    /// The animations that are currently running.
-    pub running_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
-
-    /// The list of animations that have expired since the last style recalculation.
-    pub expired_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
-
     ///The CSS error reporter for all CSS loaded in this layout thread
-    pub error_reporter: Box<ParseErrorReporter>,
-
-    /// Data needed to create the thread-local style context from the shared one.
-    pub local_context_creation_data: Mutex<ThreadLocalStyleContextCreationInfo>,
+    pub error_reporter: &'a ParseErrorReporter,
 
     /// The current timer for transitions and animations. This is needed to test
     /// them.
@@ -138,6 +132,19 @@ pub struct SharedStyleContext<'a> {
 
     /// A map with our snapshots in order to handle restyle hints.
     pub snapshot_map: &'a SnapshotMap,
+
+    /// The animations that are currently running.
+    #[cfg(feature = "servo")]
+    pub running_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
+
+    /// The list of animations that have expired since the last style recalculation.
+    #[cfg(feature = "servo")]
+    pub expired_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
+
+    /// Data needed to create the thread-local style context from the shared one.
+    #[cfg(feature = "servo")]
+    pub local_context_creation_data: Mutex<ThreadLocalStyleContextCreationInfo>,
+
 }
 
 impl<'a> SharedStyleContext<'a> {
@@ -400,6 +407,7 @@ pub struct ThreadLocalStyleContext<E: TElement> {
     pub bloom_filter: StyleBloom<E>,
     /// A channel on which new animations that have been triggered by style
     /// recalculation can be sent.
+    #[cfg(feature = "servo")]
     pub new_animations_sender: Sender<Animation>,
     /// A set of tasks to be run (on the parent thread) in sequential mode after
     /// the rest of the styling is complete. This is useful for infrequently-needed
@@ -421,11 +429,26 @@ pub struct ThreadLocalStyleContext<E: TElement> {
 
 impl<E: TElement> ThreadLocalStyleContext<E> {
     /// Creates a new `ThreadLocalStyleContext` from a shared one.
+    #[cfg(feature = "servo")]
     pub fn new(shared: &SharedStyleContext) -> Self {
         ThreadLocalStyleContext {
             style_sharing_candidate_cache: StyleSharingCandidateCache::new(),
             bloom_filter: StyleBloom::new(),
             new_animations_sender: shared.local_context_creation_data.lock().unwrap().new_animations_sender.clone(),
+            tasks: Vec::new(),
+            selector_flags: SelectorFlagsMap::new(),
+            statistics: TraversalStatistics::default(),
+            current_element_info: None,
+            font_metrics_provider: E::FontMetricsProvider::create_from(shared),
+        }
+    }
+
+    #[cfg(feature = "gecko")]
+    /// Creates a new `ThreadLocalStyleContext` from a shared one.
+    pub fn new(shared: &SharedStyleContext) -> Self {
+        ThreadLocalStyleContext {
+            style_sharing_candidate_cache: StyleSharingCandidateCache::new(),
+            bloom_filter: StyleBloom::new(),
             tasks: Vec::new(),
             selector_flags: SelectorFlagsMap::new(),
             statistics: TraversalStatistics::default(),
