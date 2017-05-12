@@ -19,7 +19,7 @@ use atomic_refcell::AtomicRefCell;
 use context::{QuirksMode, SharedStyleContext, UpdateAnimationsTasks};
 use data::ElementData;
 use dom::{self, AnimationRules, DescendantsBit, LayoutIterator, NodeInfo, TElement, TNode, UnsafeNode};
-use dom::{OpaqueNode, PresentationalHintsSynthetizer};
+use dom::{OpaqueNode, PresentationalHintsSynthesizer};
 use element_state::ElementState;
 use error_reporting::RustLogReporter;
 use font_metrics::{FontMetrics, FontMetricsProvider, FontMetricsQueryResult};
@@ -406,6 +406,12 @@ impl<'le> GeckoElement<'le> {
             },
         }
     }
+
+    fn may_have_animations(&self) -> bool {
+        use gecko_bindings::structs::nsINode_BooleanFlag;
+        self.as_node().bool_flags() &
+            (1u32 << nsINode_BooleanFlag::ElementHasAnimations as u32) != 0
+    }
 }
 
 /// Converts flags from the layout used by rust-selectors to the layout used
@@ -525,6 +531,32 @@ impl structs::FontSizePrefs {
 impl<'le> TElement for GeckoElement<'le> {
     type ConcreteNode = GeckoNode<'le>;
     type FontMetricsProvider = GeckoFontMetricsProvider;
+
+    fn inheritance_parent(&self) -> Option<Self> {
+        if self.is_native_anonymous() {
+            return self.closest_non_native_anonymous_ancestor();
+        }
+        return self.parent_element();
+    }
+
+    fn closest_non_native_anonymous_ancestor(&self) -> Option<Self> {
+        debug_assert!(self.is_native_anonymous());
+        let mut parent = match self.parent_element() {
+            Some(e) => e,
+            None => return None,
+        };
+
+        loop {
+            if !parent.is_native_anonymous() {
+                return Some(parent);
+            }
+
+            parent = match parent.parent_element() {
+                Some(p) => p,
+                None => return None,
+            };
+        }
+    }
 
     fn as_node(&self) -> Self::ConcreteNode {
         unsafe { GeckoNode(&*(self.0 as *const _ as *const RawGeckoNode)) }
@@ -738,15 +770,15 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn has_animations(&self) -> bool {
-        unsafe { Gecko_ElementHasAnimations(self.0) }
+        self.may_have_animations() && unsafe { Gecko_ElementHasAnimations(self.0) }
     }
 
     fn has_css_animations(&self) -> bool {
-        unsafe { Gecko_ElementHasCSSAnimations(self.0) }
+        self.may_have_animations() && unsafe { Gecko_ElementHasCSSAnimations(self.0) }
     }
 
     fn has_css_transitions(&self) -> bool {
-        unsafe { Gecko_ElementHasCSSTransitions(self.0) }
+        self.may_have_animations() && unsafe { Gecko_ElementHasCSSTransitions(self.0) }
     }
 
     fn get_css_transitions_info(&self)
@@ -932,7 +964,7 @@ impl<'le> Hash for GeckoElement<'le> {
     }
 }
 
-impl<'le> PresentationalHintsSynthetizer for GeckoElement<'le> {
+impl<'le> PresentationalHintsSynthesizer for GeckoElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
         where V: Push<ApplicableDeclarationBlock>,
     {

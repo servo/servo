@@ -267,7 +267,7 @@ pub unsafe fn raw_note_descendants<E, B>(element: E) -> bool
 }
 
 /// A trait used to synthesize presentational hints for HTML element attributes.
-pub trait PresentationalHintsSynthetizer {
+pub trait PresentationalHintsSynthesizer {
     /// Generate the proper applicable declarations due to presentational hints,
     /// and insert them into `hints`.
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
@@ -290,7 +290,7 @@ impl AnimationRules {
 
 /// The element trait, the main abstraction the style crate acts over.
 pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
-                     ElementExt + PresentationalHintsSynthetizer {
+                     ElementExt + PresentationalHintsSynthesizer {
     /// The concrete node type.
     type ConcreteNode: TNode<ConcreteElement = Self>;
 
@@ -323,6 +323,21 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
         } else {
             self.parent_element()
         }
+    }
+
+    /// Returns the parent element we should inherit from.
+    ///
+    /// This is pretty much always the parent element itself, except in the case
+    /// of Gecko's Native Anonymous Content, which may need to find the closest
+    /// non-NAC ancestor.
+    fn inheritance_parent(&self) -> Option<Self> {
+        self.parent_element()
+    }
+
+    /// For a given NAC element, return the closest non-NAC ancestor, which is
+    /// guaranteed to exist.
+    fn closest_non_native_anonymous_ancestor(&self) -> Option<Self> {
+        unreachable!("Servo doesn't know about NAC");
     }
 
     /// Get this element's style attribute.

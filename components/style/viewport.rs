@@ -26,6 +26,7 @@ use std::iter::Enumerate;
 use std::str::Chars;
 use style_traits::{PinchZoomFactor, ToCss};
 use style_traits::viewport::{Orientation, UserZoom, ViewportConstraints, Zoom};
+use stylearc::Arc;
 use stylesheets::{Stylesheet, Origin};
 use values::computed::{Context, ToComputedValue};
 use values::specified::{NoCalcLength, LengthOrPercentageOrAuto, ViewportPercentageLength};
@@ -329,7 +330,6 @@ fn is_whitespace_separator_or_equals(c: &char) -> bool {
 }
 
 impl Parse for ViewportRule {
-    #[allow(missing_docs)]
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         let parser = ViewportRuleParser { context: context };
 
@@ -545,14 +545,15 @@ impl Cascade {
         }
     }
 
-    pub fn from_stylesheets<'a, I>(stylesheets: I, guard: &SharedRwLockReadGuard,
-                                   device: &Device) -> Self
-        where I: IntoIterator,
-              I::Item: AsRef<Stylesheet>,
+    pub fn from_stylesheets<'a, I>(stylesheets: I,
+                                   guard: &SharedRwLockReadGuard,
+                                   device: &Device)
+                                   -> Self
+        where I: Iterator<Item = &'a Arc<Stylesheet>>,
     {
         let mut cascade = Self::new();
         for stylesheet in stylesheets {
-            stylesheet.as_ref().effective_viewport_rules(device, guard, |rule| {
+            stylesheet.effective_viewport_rules(device, guard, |rule| {
                 for declaration in &rule.declarations {
                     cascade.add(Cow::Borrowed(declaration))
                 }

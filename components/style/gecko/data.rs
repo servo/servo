@@ -18,14 +18,14 @@ use std::collections::HashMap;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use stylearc::Arc;
 use stylesheet_set::StylesheetSet;
-use stylesheets::{FontFaceRule, Origin, Stylesheet};
+use stylesheets::{FontFaceRule, Origin};
 use stylist::{ExtraStyleData, Stylist};
 
 /// The container for data that a Servo-backed Gecko document needs to style
 /// itself.
 pub struct PerDocumentStyleDataImpl {
     /// Rule processor.
-    pub stylist: Arc<Stylist>,
+    pub stylist: Stylist,
 
     /// List of stylesheets, mirrored from Gecko.
     pub stylesheets: StylesheetSet,
@@ -60,7 +60,7 @@ impl PerDocumentStyleData {
         let (new_anims_sender, new_anims_receiver) = channel();
 
         PerDocumentStyleData(AtomicRefCell::new(PerDocumentStyleDataImpl {
-            stylist: Arc::new(Stylist::new(device)),
+            stylist: Stylist::new(device),
             stylesheets: StylesheetSet::new(),
             new_animations_sender: new_anims_sender,
             new_animations_receiver: new_anims_receiver,
@@ -86,10 +86,7 @@ impl PerDocumentStyleDataImpl {
     ///
     /// Implies also a stylesheet flush.
     pub fn reset_device(&mut self, guard: &SharedRwLockReadGuard) {
-        {
-            let mut stylist = Arc::get_mut(&mut self.stylist).unwrap();
-            Arc::get_mut(&mut stylist.device).unwrap().reset();
-        }
+        Arc::get_mut(&mut self.stylist.device).unwrap().reset();
         self.stylesheets.force_dirty();
         self.flush_stylesheets(guard);
     }
@@ -100,21 +97,18 @@ impl PerDocumentStyleDataImpl {
             return;
         }
 
-        let mut stylist = Arc::get_mut(&mut self.stylist).unwrap();
         let mut extra_data = ExtraStyleData {
             font_faces: &mut self.font_faces,
         };
 
         let author_style_disabled = self.stylesheets.author_style_disabled();
-        let mut stylesheets = Vec::<Arc<Stylesheet>>::new();
-        self.stylesheets.flush(&mut stylesheets);
-        stylist.clear();
-        stylist.rebuild(stylesheets.as_slice(),
-                        &StylesheetGuards::same(guard),
-                        /* ua_sheets = */ None,
-                        /* stylesheets_changed = */ true,
-                        author_style_disabled,
-                        &mut extra_data);
+        self.stylist.clear();
+        self.stylist.rebuild(self.stylesheets.flush(),
+                             &StylesheetGuards::same(guard),
+                             /* ua_sheets = */ None,
+                             /* stylesheets_changed = */ true,
+                             author_style_disabled,
+                             &mut extra_data);
     }
 
     /// Get the default computed values for this document.
@@ -125,8 +119,7 @@ impl PerDocumentStyleDataImpl {
     /// Clear the stylist.  This will be a no-op if the stylist is
     /// already cleared; the stylist handles that.
     pub fn clear_stylist(&mut self) {
-        let mut stylist = Arc::get_mut(&mut self.stylist).unwrap();
-        stylist.clear();
+        self.stylist.clear();
     }
 }
 

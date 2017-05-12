@@ -26,7 +26,7 @@ use ipc_channel::ipc::IpcSender;
 use layout_debug;
 use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, SizeConstraint};
 use model::{style_length, ToGfxMatrix};
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{FrameId, PipelineId};
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use range::*;
@@ -467,19 +467,23 @@ impl ImageFragmentInfo {
     }
 }
 
-/// A fragment that represents an inline frame (iframe). This stores the pipeline ID so that the
+/// A fragment that represents an inline frame (iframe). This stores the frame ID so that the
 /// size of this iframe can be communicated via the constellation to the iframe's own layout thread.
 #[derive(Clone)]
 pub struct IframeFragmentInfo {
-    /// The pipeline ID of this iframe.
+    /// The frame ID of this iframe.
+    pub frame_id: FrameId,
+    /// The pipelineID of this iframe.
     pub pipeline_id: PipelineId,
 }
 
 impl IframeFragmentInfo {
     /// Creates the information specific to an iframe fragment.
     pub fn new<N: ThreadSafeLayoutNode>(node: &N) -> IframeFragmentInfo {
+        let frame_id = node.iframe_frame_id();
         let pipeline_id = node.iframe_pipeline_id();
         IframeFragmentInfo {
+            frame_id: frame_id,
             pipeline_id: pipeline_id,
         }
     }

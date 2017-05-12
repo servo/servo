@@ -903,7 +903,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         match ServoUrl::parse(&url_string) {
             Ok(url) => {
                 let msg = match self.root_pipeline {
-                    Some(ref pipeline) => ConstellationMsg::LoadUrl(pipeline.id, LoadData::new(url, None, None)),
+                    Some(ref pipeline) =>
+                        ConstellationMsg::LoadUrl(pipeline.id, LoadData::new(url, Some(pipeline.id), None, None)),
                     None => ConstellationMsg::InitLoadUrl(url)
                 };
                 if let Err(e) = self.constellation_chan.send(msg) {

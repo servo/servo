@@ -44,7 +44,7 @@ use dom::node::{LayoutNodeHelpers, Node};
 use dom::text::Text;
 use gfx_traits::ByteIndex;
 use html5ever::{LocalName, Namespace};
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{FrameId, PipelineId};
 use range::Range;
 use script_layout_interface::{HTMLCanvasData, LayoutNodeType, SVGSVGData, TrustedNodeAddress};
 use script_layout_interface::{OpaqueStyleAndLayoutData, PartialPersistentLayoutData};
@@ -66,7 +66,7 @@ use style::computed_values::display;
 use style::context::{QuirksMode, SharedStyleContext};
 use style::data::ElementData;
 use style::dom::{DescendantsBit, DirtyDescendants, LayoutIterator, NodeInfo, OpaqueNode};
-use style::dom::{PresentationalHintsSynthetizer, TElement, TNode, UnsafeNode};
+use style::dom::{PresentationalHintsSynthesizer, TElement, TNode, UnsafeNode};
 use style::element_state::*;
 use style::font_metrics::ServoMetricsProvider;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
@@ -363,7 +363,7 @@ impl<'le> fmt::Debug for ServoLayoutElement<'le> {
     }
 }
 
-impl<'le> PresentationalHintsSynthetizer for ServoLayoutElement<'le> {
+impl<'le> PresentationalHintsSynthesizer for ServoLayoutElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
         where V: Push<ApplicableDeclarationBlock>
     {
@@ -908,6 +908,11 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         this.svg_data()
     }
 
+    fn iframe_frame_id(&self) -> FrameId {
+        let this = unsafe { self.get_jsmanaged() };
+        this.iframe_frame_id()
+    }
+
     fn iframe_pipeline_id(&self) -> PipelineId {
         let this = unsafe { self.get_jsmanaged() };
         this.iframe_pipeline_id()
@@ -1183,7 +1188,7 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
     }
 }
 
-impl<'le> PresentationalHintsSynthetizer for ServoThreadSafeLayoutElement<'le> {
+impl<'le> PresentationalHintsSynthesizer for ServoThreadSafeLayoutElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, _hints: &mut V)
         where V: Push<ApplicableDeclarationBlock> {}
 }

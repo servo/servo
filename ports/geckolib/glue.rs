@@ -11,12 +11,12 @@ use std::borrow::Cow;
 use std::env;
 use std::fmt::Write;
 use std::ptr;
-use std::sync::Mutex;
 use style::context::{QuirksMode, SharedStyleContext, StyleContext};
-use style::context::{ThreadLocalStyleContext, ThreadLocalStyleContextCreationInfo};
+use style::context::ThreadLocalStyleContext;
 use style::data::{ElementData, ElementStyles, RestyleData};
 use style::dom::{AnimationOnlyDirtyDescendants, DirtyDescendants};
 use style::dom::{ShowSubtreeData, TElement, TNode};
+use style::element_state::ElementState;
 use style::error_reporting::RustLogReporter;
 use style::font_metrics::get_metrics_provider_for_product;
 use style::gecko::data::{PerDocumentStyleData, PerDocumentStyleDataImpl};
@@ -148,24 +148,19 @@ unsafe fn dummy_url_data() -> &'static RefPtr<URLExtraData> {
     RefPtr::from_ptr_ref(&DUMMY_URL_DATA)
 }
 
+static DEFAULT_ERROR_REPORTER: RustLogReporter = RustLogReporter;
+
 fn create_shared_context<'a>(global_style_data: &GlobalStyleData,
                              guard: &'a SharedRwLockReadGuard,
-                             per_doc_data: &PerDocumentStyleDataImpl,
+                             per_doc_data: &'a PerDocumentStyleDataImpl,
                              traversal_flags: TraversalFlags,
                              snapshot_map: &'a ServoElementSnapshotTable)
                              -> SharedStyleContext<'a> {
-    let local_context_data =
-        ThreadLocalStyleContextCreationInfo::new(per_doc_data.new_animations_sender.clone());
-
     SharedStyleContext {
-        stylist: per_doc_data.stylist.clone(),
+        stylist: &per_doc_data.stylist,
         options: global_style_data.options.clone(),
         guards: StylesheetGuards::same(guard),
-        running_animations: per_doc_data.running_animations.clone(),
-        expired_animations: per_doc_data.expired_animations.clone(),
-        // FIXME(emilio): Stop boxing here.
-        error_reporter: Box::new(RustLogReporter),
-        local_context_creation_data: Mutex::new(local_context_data),
+        error_reporter: &DEFAULT_ERROR_REPORTER,
         timer: Timer::new(),
         // FIXME Find the real QuirksMode information for this document
         quirks_mode: QuirksMode::NoQuirks,
@@ -2024,9 +2019,10 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
     }
 
     // We don't have the style ready. Go ahead and compute it as necessary.
+    let data = doc_data.borrow();
     let shared = create_shared_context(&global_style_data,
                                        &guard,
-                                       &mut doc_data.borrow_mut(),
+                                       &data,
                                        TraversalFlags::empty(),
                                        unsafe { &*snapshots });
     let mut tlc = ThreadLocalStyleContext::new(&shared);
@@ -2330,4 +2326,18 @@ pub extern "C" fn Servo_StyleSet_ResolveForDeclarations(raw_data: RawServoStyleS
     doc_data.stylist.compute_for_declarations(&guards,
                                               parent_style,
                                               declarations.clone()).into_strong()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleSet_MightHaveAttributeDependency(raw_data: RawServoStyleSetBorrowed,
+                                                              local_name: *mut nsIAtom) -> bool {
+    let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
+    unsafe { Atom::with(local_name, &mut |atom| data.stylist.might_have_attribute_dependency(atom)) }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleSet_HasStateDependency(raw_data: RawServoStyleSetBorrowed,
+                                                    state: u64) -> bool {
+    let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
+    data.stylist.has_state_dependency(ElementState::from_bits_truncate(state))
 }

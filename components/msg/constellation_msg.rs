@@ -310,3 +310,4 @@ pub enum FrameType {
     IFrame,
     MozBrowserIFrame,
 }
+

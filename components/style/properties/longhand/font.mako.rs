@@ -337,14 +337,14 @@ ${helpers.single_keyword_system("font-style",
 
 
 <% font_variant_caps_custom_consts= { "small-caps": "SMALLCAPS",
-                                      "all-small": "ALLSMALL",
+                                      "all-small-caps": "ALLSMALL",
                                       "petite-caps": "PETITECAPS",
-                                      "all-petite": "ALLPETITE",
+                                      "all-petite-caps": "ALLPETITE",
                                       "titling-caps": "TITLING" } %>
 
 ${helpers.single_keyword_system("font-variant-caps",
                                "normal small-caps",
-                               extra_gecko_values="all-small petite-caps unicase titling-caps",
+                               extra_gecko_values="all-small-caps petite-caps all-petite-caps unicase titling-caps",
                                gecko_constant_prefix="NS_FONT_VARIANT_CAPS",
                                gecko_ffi_name="mFont.variantCaps",
                                spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-caps",

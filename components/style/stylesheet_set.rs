@@ -4,6 +4,7 @@
 
 //! A centralized set of stylesheets for a document.
 
+use std::slice;
 use stylearc::Arc;
 use stylesheets::Stylesheet;
 
@@ -12,6 +13,17 @@ use stylesheets::Stylesheet;
 pub struct StylesheetSetEntry {
     unique_id: u32,
     sheet: Arc<Stylesheet>,
+}
+
+/// A iterator over the stylesheets of a list of entries in the StylesheetSet.
+#[derive(Clone)]
+pub struct StylesheetIterator<'a>(slice::Iter<'a, StylesheetSetEntry>);
+
+impl<'a> Iterator for StylesheetIterator<'a> {
+    type Item = &'a Arc<Stylesheet>;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next().map(|entry| &entry.sheet)
+    }
 }
 
 /// The set of stylesheets effective for a given document.
@@ -108,12 +120,11 @@ impl StylesheetSet {
         self.dirty
     }
 
-    /// Flush the current set, unmarking it as dirty.
-    pub fn flush(&mut self, sheets: &mut Vec<Arc<Stylesheet>>) {
+    /// Flush the current set, unmarking it as dirty, and returns an iterator
+    /// over the new stylesheet list.
+    pub fn flush(&mut self) -> StylesheetIterator {
         self.dirty = false;
-        for entry in &self.entries {
-            sheets.push(entry.sheet.clone())
-        }
+        StylesheetIterator(self.entries.iter())
     }
 
     /// Mark the stylesheets as dirty, because something external may have

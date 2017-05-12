@@ -8,7 +8,6 @@
 #![deny(missing_docs)]
 
 use Atom;
-use animation::{self, Animation, PropertyAnimation};
 use atomic_refcell::AtomicRefMut;
 use bit_vec::BitVec;
 use cache::{LRUCache, LRUCacheMutIterator};
@@ -37,8 +36,10 @@ use stylist::ApplicableDeclarationBlock;
 
 /// The way a style should be inherited.
 enum InheritMode {
-    /// Inherit from the parent element, as normal CSS dictates.
-    FromParentElement,
+    /// Inherit from the parent element, as normal CSS dictates, _or_ from the
+    /// closest non-Native Anonymous element in case this is Native Anonymous
+    /// Content.
+    Normal,
     /// Inherit from the primary style, this is used while computing eager
     /// pseudos, like ::before and ::after when we're traversing the parent.
     FromPrimaryStyle,
@@ -427,8 +428,8 @@ trait PrivateMatchMethods: TElement {
         let parent_el;
         let parent_data;
         let style_to_inherit_from = match inherit_mode {
-            InheritMode::FromParentElement => {
-                parent_el = self.parent_element();
+            InheritMode::Normal => {
+                parent_el = self.inheritance_parent();
                 parent_data = parent_el.as_ref().and_then(|e| e.borrow_data());
                 let parent_values = parent_data.as_ref().map(|d| {
                     // Sometimes Gecko eagerly styles things without processing
@@ -504,7 +505,7 @@ trait PrivateMatchMethods: TElement {
         let inherit_mode = if eager_pseudo_style.is_some() {
             InheritMode::FromPrimaryStyle
         } else {
-            InheritMode::FromParentElement
+            InheritMode::Normal
         };
 
         self.cascade_with_rules(context.shared,
@@ -627,7 +628,7 @@ trait PrivateMatchMethods: TElement {
                                      &context.thread_local.font_metrics_provider,
                                      &without_transition_rules,
                                      primary_style,
-                                     InheritMode::FromParentElement))
+                                     InheritMode::Normal))
     }
 
     #[cfg(feature = "gecko")]
@@ -723,6 +724,8 @@ trait PrivateMatchMethods: TElement {
                           old_values: &mut Option<Arc<ComputedValues>>,
                           new_values: &mut Arc<ComputedValues>,
                           _primary_style: &ComputedStyle) {
+        use animation;
+
         let possibly_expired_animations =
             &mut context.thread_local.current_element_info.as_mut().unwrap()
                         .possibly_expired_animations;
@@ -808,11 +811,14 @@ trait PrivateMatchMethods: TElement {
         }
     }
 
+    #[cfg(feature = "servo")]
     fn update_animations_for_cascade(&self,
                                      context: &SharedStyleContext,
                                      style: &mut Arc<ComputedValues>,
-                                     possibly_expired_animations: &mut Vec<PropertyAnimation>,
+                                     possibly_expired_animations: &mut Vec<::animation::PropertyAnimation>,
                                      font_metrics: &FontMetricsProvider) {
+        use animation::{self, Animation};
+
         // Finish any expired transitions.
         let this_opaque = self.as_node().opaque();
         animation::complete_expired_transitions(this_opaque, style, context);
@@ -1006,8 +1012,16 @@ pub trait MatchMethods : TElement {
             self.apply_selector_flags(map, element, flags);
         };
 
+        let selector_matching_target = match implemented_pseudo {
+            Some(..) => {
+                self.closest_non_native_anonymous_ancestor()
+                    .expect("Pseudo-element without non-NAC parent?")
+            },
+            None => *self,
+        };
+
         // Compute the primary rule node.
-        *relations = stylist.push_applicable_declarations(self,
+        *relations = stylist.push_applicable_declarations(&selector_matching_target,
                                                           Some(bloom),
                                                           style_attribute,
                                                           smil_override,
@@ -1492,7 +1506,7 @@ pub trait MatchMethods : TElement {
                                 font_metrics_provider,
                                 &without_animation_rules,
                                 primary_style,
-                                InheritMode::FromParentElement)
+                                InheritMode::Normal)
     }
 
 }

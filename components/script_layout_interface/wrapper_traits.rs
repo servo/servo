@@ -11,14 +11,14 @@ use SVGSVGData;
 use atomic_refcell::AtomicRefCell;
 use gfx_traits::{ByteIndex, FragmentType, combine_id_with_fragment_type};
 use html5ever::{Namespace, LocalName};
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{FrameId, PipelineId};
 use range::Range;
 use servo_url::ServoUrl;
 use std::fmt::Debug;
 use style::computed_values::display;
 use style::context::SharedStyleContext;
 use style::data::ElementData;
-use style::dom::{LayoutIterator, NodeInfo, PresentationalHintsSynthetizer, TNode};
+use style::dom::{LayoutIterator, NodeInfo, PresentationalHintsSynthesizer, TNode};
 use style::dom::OpaqueNode;
 use style::font_metrics::ServoMetricsProvider;
 use style::properties::{CascadeFlags, ServoComputedValues};
@@ -271,6 +271,10 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
 
     fn svg_data(&self) -> Option<SVGSVGData>;
 
+    /// If this node is an iframe element, returns its frame ID. If this node is
+    /// not an iframe element, fails.
+    fn iframe_frame_id(&self) -> FrameId;
+
     /// If this node is an iframe element, returns its pipeline ID. If this node is
     /// not an iframe element, fails.
     fn iframe_pipeline_id(&self) -> PipelineId;
@@ -306,7 +310,7 @@ pub trait DangerousThreadSafeLayoutNode: ThreadSafeLayoutNode {
 pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
                                    ::selectors::Element<Impl=SelectorImpl> +
                                    GetLayoutData +
-                                   PresentationalHintsSynthetizer {
+                                   PresentationalHintsSynthesizer {
     type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<ConcreteThreadSafeLayoutElement = Self>;
 
     fn as_node(&self) -> Self::ConcreteThreadSafeLayoutNode;
