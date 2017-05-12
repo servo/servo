@@ -58,11 +58,12 @@ use style::properties::longhands::border_image_repeat::computed_value::RepeatKey
 use style::properties::style_structs;
 use style::servo::restyle_damage::REPAINT;
 use style::values::{Either, RGBA};
-use style::values::computed::{AngleOrCorner, Gradient, GradientItem, GradientKind, LengthOrPercentage};
-use style::values::computed::{LengthOrPercentageOrAuto, LengthOrKeyword, LengthOrPercentageOrKeyword};
-use style::values::computed::{NumberOrPercentage, Position};
-use style::values::computed::image::{EndingShape, SizeKeyword};
-use style::values::generics::image::{GradientItem as GenericGradientItem, Image};
+use style::values::computed::{Gradient, GradientItem, LengthOrPercentage};
+use style::values::computed::{LengthOrPercentageOrAuto, NumberOrPercentage, Position};
+use style::values::computed::image::{EndingShape, LineDirection};
+use style::values::generics::image::{Circle, Ellipse, EndingShape as GenericEndingShape};
+use style::values::generics::image::{GradientItem as GenericGradientItem, GradientKind};
+use style::values::generics::image::{Image, ShapeExtent};
 use style::values::specified::position::{X, Y};
 use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
@@ -391,7 +392,7 @@ pub trait FragmentDisplayListBuilding {
     fn convert_linear_gradient(&self,
                                bounds: &Rect<Au>,
                                stops: &[GradientItem],
-                               angle_or_corner: &AngleOrCorner,
+                               direction: &LineDirection,
                                repeating: bool,
                                style: &ServoComputedValues)
                                -> display_list::Gradient;
@@ -759,36 +760,46 @@ fn get_ellipse_radius<F>(size: &Size2D<Au>, center: &Point2D<Au>, cmp: F) -> Siz
 
 /// Determines the radius of a circle if it was not explictly provided.
 /// https://drafts.csswg.org/css-images-3/#typedef-size
-fn convert_circle_size_keyword(keyword: SizeKeyword,
+fn convert_circle_size_keyword(keyword: ShapeExtent,
                                size: &Size2D<Au>,
                                center: &Point2D<Au>) -> Size2D<Au> {
-    use style::values::computed::image::SizeKeyword::*;
     let radius = match keyword {
-        ClosestSide | Contain => {
+        ShapeExtent::ClosestSide | ShapeExtent::Contain => {
             let dist = get_distance_to_sides(size, center, ::std::cmp::min);
             ::std::cmp::min(dist.width, dist.height)
         }
-        FarthestSide => {
+        ShapeExtent::FarthestSide => {
             let dist = get_distance_to_sides(size, center, ::std::cmp::max);
             ::std::cmp::max(dist.width, dist.height)
         }
-        ClosestCorner => get_distance_to_corner(size, center, ::std::cmp::min),
-        FarthestCorner | Cover => get_distance_to_corner(size, center, ::std::cmp::max),
+        ShapeExtent::ClosestCorner => {
+            get_distance_to_corner(size, center, ::std::cmp::min)
+        },
+        ShapeExtent::FarthestCorner | ShapeExtent::Cover => {
+            get_distance_to_corner(size, center, ::std::cmp::max)
+        },
     };
     Size2D::new(radius, radius)
 }
 
 /// Determines the radius of an ellipse if it was not explictly provided.
 /// https://drafts.csswg.org/css-images-3/#typedef-size
-fn convert_ellipse_size_keyword(keyword: SizeKeyword,
+fn convert_ellipse_size_keyword(keyword: ShapeExtent,
                                 size: &Size2D<Au>,
                                 center: &Point2D<Au>) -> Size2D<Au> {
-    use style::values::computed::image::SizeKeyword::*;
     match keyword {
-        ClosestSide | Contain => get_distance_to_sides(size, center, ::std::cmp::min),
-        FarthestSide => get_distance_to_sides(size, center, ::std::cmp::max),
-        ClosestCorner => get_ellipse_radius(size, center, ::std::cmp::min),
-        FarthestCorner | Cover => get_ellipse_radius(size, center, ::std::cmp::max),
+        ShapeExtent::ClosestSide | ShapeExtent::Contain => {
+            get_distance_to_sides(size, center, ::std::cmp::min)
+        },
+        ShapeExtent::FarthestSide => {
+            get_distance_to_sides(size, center, ::std::cmp::max)
+        },
+        ShapeExtent::ClosestCorner => {
+            get_ellipse_radius(size, center, ::std::cmp::min)
+        },
+        ShapeExtent::FarthestCorner | ShapeExtent::Cover => {
+            get_ellipse_radius(size, center, ::std::cmp::max)
+        },
     }
 }
 
@@ -1098,13 +1109,13 @@ impl FragmentDisplayListBuilding for Fragment {
     fn convert_linear_gradient(&self,
                                bounds: &Rect<Au>,
                                stops: &[GradientItem],
-                               angle_or_corner: &AngleOrCorner,
+                               direction: &LineDirection,
                                repeating: bool,
                                style: &ServoComputedValues)
                                -> display_list::Gradient {
-        let angle = match *angle_or_corner {
-            AngleOrCorner::Angle(angle) => angle.radians(),
-            AngleOrCorner::Corner(horizontal, vertical) => {
+        let angle = match *direction {
+            LineDirection::Angle(angle) => angle.radians(),
+            LineDirection::Corner(horizontal, vertical) => {
                 // This the angle for one of the diagonals of the box. Our angle
                 // will either be this one, this one + PI, or one of the other
                 // two perpendicular angles.
@@ -1171,16 +1182,18 @@ impl FragmentDisplayListBuilding for Fragment {
         let center = Point2D::new(specified(center.horizontal, bounds.size.width),
                                   specified(center.vertical, bounds.size.height));
         let radius = match *shape {
-            EndingShape::Circle(LengthOrKeyword::Length(length))
-                => Size2D::new(length, length),
-            EndingShape::Circle(LengthOrKeyword::Keyword(word))
-                => convert_circle_size_keyword(word, &bounds.size, &center),
-            EndingShape::Ellipse(LengthOrPercentageOrKeyword::LengthOrPercentage(horizontal,
-                                                                                    vertical))
-                    => Size2D::new(specified(horizontal, bounds.size.width),
-                                specified(vertical, bounds.size.height)),
-            EndingShape::Ellipse(LengthOrPercentageOrKeyword::Keyword(word))
-                => convert_ellipse_size_keyword(word, &bounds.size, &center),
+            GenericEndingShape::Circle(Circle::Radius(length)) => {
+                Size2D::new(length, length)
+            },
+            GenericEndingShape::Circle(Circle::Extent(extent)) => {
+                convert_circle_size_keyword(extent, &bounds.size, &center)
+            },
+            GenericEndingShape::Ellipse(Ellipse::Radii(x, y)) => {
+                Size2D::new(specified(x, bounds.size.width), specified(y, bounds.size.height))
+            },
+            GenericEndingShape::Ellipse(Ellipse::Extent(extent)) => {
+                convert_ellipse_size_keyword(extent, &bounds.size, &center)
+            },
         };
 
         let mut stops = convert_gradient_stops(stops, radius.width, style);

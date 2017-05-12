@@ -19,13 +19,13 @@ use values::specified::url::SpecifiedUrl;
 /// [image]: https://drafts.csswg.org/css-images/#image-values
 #[derive(Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum Image<G, N> {
+pub enum Image<Gradient, ImageRect> {
     /// A `<url()>` image.
     Url(SpecifiedUrl),
     /// A `<gradient>` image.
-    Gradient(G),
+    Gradient(Gradient),
     /// A `-moz-image-rect` image
-    Rect(ImageRect<N>),
+    Rect(ImageRect),
     /// A `-moz-element(# <element-id>)`
     Element(Atom),
 }
@@ -34,11 +34,11 @@ pub enum Image<G, N> {
 /// https://drafts.csswg.org/css-images/#gradients
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct Gradient<K, C, L> {
+pub struct Gradient<LineDirection, Length, LengthOrPercentage, Position, Color> {
     /// Gradients can be linear or radial.
-    pub kind: K,
+    pub kind: GradientKind<LineDirection, Length, LengthOrPercentage, Position>,
     /// The color stops and interpolation hints.
-    pub items: Vec<GradientItem<C, L>>,
+    pub items: Vec<GradientItem<Color, LengthOrPercentage>>,
     /// True if this is a repeating gradient.
     pub repeating: bool,
     /// Compatibility mode.
@@ -55,26 +55,76 @@ pub enum CompatMode {
     WebKit,
 }
 
+/// A gradient kind.
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum GradientKind<LineDirection, Length, LengthOrPercentage, Position> {
+    /// A linear gradient.
+    Linear(LineDirection),
+    /// A radial gradient.
+    Radial(EndingShape<Length, LengthOrPercentage>, Position),
+}
+
+/// A radial gradient's ending shape.
+#[derive(Clone, Copy, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum EndingShape<Length, LengthOrPercentage> {
+    /// A circular gradient.
+    Circle(Circle<Length>),
+    /// An elliptic gradient.
+    Ellipse(Ellipse<LengthOrPercentage>),
+}
+
+/// A circle shape.
+#[derive(Clone, Copy, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum Circle<Length> {
+    /// A circle radius.
+    Radius(Length),
+    /// A circle extent.
+    Extent(ShapeExtent),
+}
+
+/// An ellipse shape.
+#[derive(Clone, Copy, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum Ellipse<LengthOrPercentage> {
+    /// An ellipse pair of radii.
+    Radii(LengthOrPercentage, LengthOrPercentage),
+    /// An ellipse extent.
+    Extent(ShapeExtent),
+}
+
+/// https://drafts.csswg.org/css-images/#typedef-extent-keyword
+define_css_keyword_enum!(ShapeExtent:
+    "closest-side" => ClosestSide,
+    "farthest-side" => FarthestSide,
+    "closest-corner" => ClosestCorner,
+    "farthest-corner" => FarthestCorner,
+    "contain" => Contain,
+    "cover" => Cover
+);
+
 /// A gradient item.
 /// https://drafts.csswg.org/css-images-4/#color-stop-syntax
 #[derive(Clone, Copy, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum GradientItem<C, L> {
+pub enum GradientItem<Color, LengthOrPercentage> {
     /// A color stop.
-    ColorStop(ColorStop<C, L>),
+    ColorStop(ColorStop<Color, LengthOrPercentage>),
     /// An interpolation hint.
-    InterpolationHint(L),
+    InterpolationHint(LengthOrPercentage),
 }
 
 /// A color stop.
 /// https://drafts.csswg.org/css-images/#typedef-color-stop-list
 #[derive(Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct ColorStop<C, L> {
+pub struct ColorStop<Color, LengthOrPercentage> {
     /// The color of this stop.
-    pub color: C,
+    pub color: Color,
     /// The position of this stop.
-    pub position: Option<L>,
+    pub position: Option<LengthOrPercentage>,
 }
 
 /// Values for `moz-image-rect`.
@@ -83,16 +133,16 @@ pub struct ColorStop<C, L> {
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
-pub struct ImageRect<C> {
+pub struct ImageRect<NumberOrPercentage> {
     pub url: SpecifiedUrl,
-    pub top: C,
-    pub bottom: C,
-    pub right: C,
-    pub left: C,
+    pub top: NumberOrPercentage,
+    pub bottom: NumberOrPercentage,
+    pub right: NumberOrPercentage,
+    pub left: NumberOrPercentage,
 }
 
-impl<G, N> fmt::Debug for Image<G, N>
-    where G: fmt::Debug, N: fmt::Debug,
+impl<G, R> fmt::Debug for Image<G, R>
+    where G: fmt::Debug, R: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
@@ -108,8 +158,8 @@ impl<G, N> fmt::Debug for Image<G, N>
     }
 }
 
-impl<G, N> ToCss for Image<G, N>
-    where G: ToCss, N: ToCss,
+impl<G, R> ToCss for Image<G, R>
+    where G: ToCss, R: ToCss,
 {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
@@ -125,7 +175,7 @@ impl<G, N> ToCss for Image<G, N>
     }
 }
 
-impl<G, N> HasViewportPercentage for Image<G, N>
+impl<G, R> HasViewportPercentage for Image<G, R>
     where G: HasViewportPercentage
 {
     fn has_viewport_percentage(&self) -> bool {
@@ -137,11 +187,11 @@ impl<G, N> HasViewportPercentage for Image<G, N>
     }
 }
 
-impl<G, N> ToComputedValue for Image<G, N>
-    where G: ToComputedValue, N: ToComputedValue,
+impl<G, R> ToComputedValue for Image<G, R>
+    where G: ToComputedValue, R: ToComputedValue,
 {
     type ComputedValue = Image<<G as ToComputedValue>::ComputedValue,
-                               <N as ToComputedValue>::ComputedValue>;
+                               <R as ToComputedValue>::ComputedValue>;
 
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
@@ -178,8 +228,64 @@ impl<G, N> ToComputedValue for Image<G, N>
     }
 }
 
-impl<K, C, L> HasViewportPercentage for Gradient<K, C, L>
-    where K: HasViewportPercentage, L: HasViewportPercentage,
+impl<D, L, LoP, P, C> ToCss for Gradient<D, L, LoP, P, C>
+    where D: LineDirection, L: ToCss, LoP: ToCss, P: ToCss, C: ToCss,
+{
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        if self.compat_mode == CompatMode::WebKit {
+            dest.write_str("-webkit-")?;
+        }
+        if self.repeating {
+            dest.write_str("repeating-")?;
+        }
+        dest.write_str(self.kind.label())?;
+        dest.write_str("-gradient(")?;
+        let mut skip_comma = match self.kind {
+            GradientKind::Linear(ref direction) if direction.points_downwards() => true,
+            GradientKind::Linear(ref direction) => {
+                direction.to_css(dest, self.compat_mode)?;
+                false
+            },
+            GradientKind::Radial(ref shape, ref position) => {
+                let omit_shape = match *shape {
+                    EndingShape::Ellipse(Ellipse::Extent(ShapeExtent::Cover)) |
+                    EndingShape::Ellipse(Ellipse::Extent(ShapeExtent::FarthestCorner)) => {
+                        true
+                    },
+                    _ => false,
+                };
+                if self.compat_mode == CompatMode::Modern {
+                    if !omit_shape {
+                        shape.to_css(dest)?;
+                        dest.write_str(" ")?;
+                    }
+                    dest.write_str("at ")?;
+                    position.to_css(dest)?;
+                } else {
+                    position.to_css(dest)?;
+                    if !omit_shape {
+                        dest.write_str(", ")?;
+                        shape.to_css(dest)?;
+                    }
+                }
+                false
+            },
+        };
+        for item in &self.items {
+            if !skip_comma {
+                try!(dest.write_str(", "));
+            }
+            skip_comma = false;
+            try!(item.to_css(dest));
+        }
+        dest.write_str(")")
+    }
+}
+
+impl<D, L, LoP, P, C> HasViewportPercentage for Gradient<D, L, LoP, P, C>
+    where L: HasViewportPercentage,
+          LoP: HasViewportPercentage,
+          P: HasViewportPercentage,
 {
     fn has_viewport_percentage(&self) -> bool {
         self.kind.has_viewport_percentage() ||
@@ -187,12 +293,18 @@ impl<K, C, L> HasViewportPercentage for Gradient<K, C, L>
     }
 }
 
-impl<K, C, L> ToComputedValue for Gradient<K, C, L>
-    where K: ToComputedValue, C: ToComputedValue, L: ToComputedValue,
+impl<D, L, LoP, P, C> ToComputedValue for Gradient<D, L, LoP, P, C>
+    where D: ToComputedValue,
+          L: ToComputedValue,
+          LoP: ToComputedValue,
+          P: ToComputedValue,
+          C: ToComputedValue,
 {
-    type ComputedValue = Gradient<<K as ToComputedValue>::ComputedValue,
-                                  <C as ToComputedValue>::ComputedValue,
-                                  <L as ToComputedValue>::ComputedValue>;
+    type ComputedValue = Gradient<<D as ToComputedValue>::ComputedValue,
+                                  <L as ToComputedValue>::ComputedValue,
+                                  <LoP as ToComputedValue>::ComputedValue,
+                                  <P as ToComputedValue>::ComputedValue,
+                                  <C as ToComputedValue>::ComputedValue>;
 
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         Gradient {
@@ -209,6 +321,168 @@ impl<K, C, L> ToComputedValue for Gradient<K, C, L>
             items: computed.items.iter().map(ToComputedValue::from_computed_value).collect(),
             repeating: computed.repeating,
             compat_mode: computed.compat_mode,
+        }
+    }
+}
+
+impl<D, L, LoP, P> GradientKind<D, L, LoP, P> {
+    fn label(&self) -> &str {
+        match *self {
+            GradientKind::Linear(..) => "linear",
+            GradientKind::Radial(..) => "radial",
+        }
+    }
+}
+
+impl<D, L, LoP, P> HasViewportPercentage for GradientKind<D, L, LoP, P>
+    where L: HasViewportPercentage,
+          LoP: HasViewportPercentage,
+          P: HasViewportPercentage
+{
+    fn has_viewport_percentage(&self) -> bool {
+        match *self {
+            GradientKind::Linear(_) => false,
+            GradientKind::Radial(ref shape, ref position) => {
+                shape.has_viewport_percentage() || position.has_viewport_percentage()
+            },
+        }
+    }
+}
+
+impl<D, L, LoP, P> ToComputedValue for GradientKind<D, L, LoP, P>
+    where D: ToComputedValue,
+          L: ToComputedValue,
+          LoP: ToComputedValue,
+          P: ToComputedValue,
+{
+    type ComputedValue = GradientKind<<D as ToComputedValue>::ComputedValue,
+                                      <L as ToComputedValue>::ComputedValue,
+                                      <LoP as ToComputedValue>::ComputedValue,
+                                      <P as ToComputedValue>::ComputedValue>;
+
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        match *self {
+            GradientKind::Linear(ref direction) => {
+                GradientKind::Linear(direction.to_computed_value(context))
+            },
+            GradientKind::Radial(ref shape, ref position) => {
+                GradientKind::Radial(shape.to_computed_value(context), position.to_computed_value(context))
+            },
+        }
+    }
+
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        match *computed {
+            GradientKind::Linear(ref direction) => {
+                GradientKind::Linear(ToComputedValue::from_computed_value(direction))
+            },
+            GradientKind::Radial(ref shape, ref position) => {
+                GradientKind::Radial(
+                    ToComputedValue::from_computed_value(shape),
+                    ToComputedValue::from_computed_value(position),
+                )
+            }
+        }
+    }
+}
+
+/// The direction of a linear gradient.
+pub trait LineDirection {
+    /// Whether this direction points towards, and thus can be omitted.
+    fn points_downwards(&self) -> bool;
+
+    /// Serialises this direction according to the compatibility mode.
+    fn to_css<W>(&self, dest: &mut W, compat_mode: CompatMode) -> fmt::Result
+        where W: fmt::Write;
+}
+
+impl<L, LoP> ToCss for EndingShape<L, LoP>
+    where L: ToCss, LoP: ToCss,
+{
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            EndingShape::Circle(Circle::Extent(ShapeExtent::FarthestCorner)) |
+            EndingShape::Circle(Circle::Extent(ShapeExtent::Cover)) => {
+                dest.write_str("circle")
+            },
+            EndingShape::Circle(Circle::Extent(keyword)) => {
+                dest.write_str("circle ")?;
+                keyword.to_css(dest)
+            },
+            EndingShape::Circle(Circle::Radius(ref length)) => {
+                length.to_css(dest)
+            },
+            EndingShape::Ellipse(Ellipse::Extent(keyword)) => {
+                keyword.to_css(dest)
+            },
+            EndingShape::Ellipse(Ellipse::Radii(ref x, ref y)) => {
+                x.to_css(dest)?;
+                dest.write_str(" ")?;
+                y.to_css(dest)
+            },
+        }
+    }
+}
+
+impl<L, LoP> HasViewportPercentage for EndingShape<L, LoP>
+    where L: HasViewportPercentage, LoP: HasViewportPercentage,
+{
+    fn has_viewport_percentage(&self) -> bool {
+        match *self {
+            EndingShape::Circle(Circle::Radius(ref length)) => {
+                length.has_viewport_percentage()
+            },
+            EndingShape::Ellipse(Ellipse::Radii(ref x, ref y)) => {
+                x.has_viewport_percentage() || y.has_viewport_percentage()
+            },
+            _ => false,
+        }
+    }
+}
+
+impl<L, LoP> ToComputedValue for EndingShape<L, LoP>
+    where L: ToComputedValue, LoP: ToComputedValue,
+{
+    type ComputedValue = EndingShape<<L as ToComputedValue>::ComputedValue,
+                                     <LoP as ToComputedValue>::ComputedValue>;
+
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        match *self {
+            EndingShape::Circle(Circle::Radius(ref length)) => {
+                EndingShape::Circle(Circle::Radius(length.to_computed_value(context)))
+            },
+            EndingShape::Circle(Circle::Extent(extent)) => {
+                EndingShape::Circle(Circle::Extent(extent))
+            },
+            EndingShape::Ellipse(Ellipse::Radii(ref x, ref y)) => {
+                EndingShape::Ellipse(Ellipse::Radii(
+                    x.to_computed_value(context),
+                    y.to_computed_value(context),
+                ))
+            },
+            EndingShape::Ellipse(Ellipse::Extent(extent)) => {
+                EndingShape::Ellipse(Ellipse::Extent(extent))
+            },
+        }
+    }
+
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        match *computed {
+            EndingShape::Circle(Circle::Radius(ref length)) => {
+                EndingShape::Circle(Circle::Radius(ToComputedValue::from_computed_value(length)))
+            },
+            EndingShape::Circle(Circle::Extent(extent)) => {
+                EndingShape::Circle(Circle::Extent(extent))
+            },
+            EndingShape::Ellipse(Ellipse::Radii(ref x, ref y)) => {
+                EndingShape::Ellipse(Ellipse::Radii(
+                    ToComputedValue::from_computed_value(x),
+                    ToComputedValue::from_computed_value(y),
+                ))
+            },
+            EndingShape::Ellipse(Ellipse::Extent(extent)) => {
+                EndingShape::Ellipse(Ellipse::Extent(extent))
+            },
         }
     }
 }
@@ -343,7 +617,7 @@ impl<C> ToComputedValue for ImageRect<C>
 
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         ImageRect {
-            url: self.url.clone(),
+            url: self.url.to_computed_value(context),
             top: self.top.to_computed_value(context),
             right: self.right.to_computed_value(context),
             bottom: self.bottom.to_computed_value(context),
@@ -353,7 +627,7 @@ impl<C> ToComputedValue for ImageRect<C>
 
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         ImageRect {
-            url: computed.url.clone(),
+            url: ToComputedValue::from_computed_value(&computed.url),
             top: ToComputedValue::from_computed_value(&computed.top),
             right: ToComputedValue::from_computed_value(&computed.right),
             bottom: ToComputedValue::from_computed_value(&computed.bottom),
