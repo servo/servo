@@ -3,10 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use euclid::{Point2D, Rect, Size2D};
+use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use style::computed_values::{filter, image_rendering, mix_blend_mode};
 use style::values::computed;
-use webrender_traits::{BorderStyle, FilterOp, ImageRendering, LayoutPoint, LayoutRect, LayoutSize, MixBlendMode};
+use webrender_traits::{BorderStyle, BorderWidths, FilterOp, ImageRendering, LayoutPoint, LayoutRect, LayoutSize, MixBlendMode};
 
 pub trait ToLayout {
     type Type;
@@ -110,5 +110,17 @@ impl ToLayout for Rect<Au> {
     type Type = LayoutRect;
     fn to_layout(&self) -> LayoutRect {
         LayoutRect::new(self.origin.to_layout(), self.size.to_layout())
+    }
+}
+
+impl ToLayout for SideOffsets2D<Au> {
+    type Type = BorderWidths;
+    fn to_layout(&self) -> BorderWidths {
+        BorderWidths {
+            left: self.left.to_f32_px(),
+            top: self.top.to_f32_px(),
+            right: self.right.to_f32_px(),
+            bottom: self.bottom.to_f32_px(),
+        }
     }
 }
