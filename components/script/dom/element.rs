@@ -109,7 +109,7 @@ use style::sink::Push;
 use style::stylearc::Arc;
 use style::stylist::ApplicableDeclarationBlock;
 use style::thread_state;
-use style::values::CSSFloat;
+use style::values::{CSSFloat, Either};
 use style::values::specified::{self, CSSColor};
 use stylesheet_loader::StylesheetOwner;
 
@@ -427,9 +427,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
                 shared_lock,
                 PropertyDeclaration::BackgroundImage(
                     background_image::SpecifiedValue(vec![
-                        background_image::single_value::SpecifiedValue(Some(
-                            specified::Image::for_cascade(url.into())
-                        ))
+                        Either::Second(specified::Image::for_cascade(url.into()))
                     ]))));
         }
 

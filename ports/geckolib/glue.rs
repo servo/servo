@@ -1800,7 +1800,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetBackgroundImage(declarations:
                                                             raw_extra_data: *mut URLExtraData) {
     use style::properties::PropertyDeclaration;
     use style::properties::longhands::background_image::SpecifiedValue as BackgroundImage;
-    use style::properties::longhands::background_image::single_value::SpecifiedValue as SingleBackgroundImage;
+    use style::values::Either;
     use style::values::generics::image::Image;
     use style::values::specified::url::SpecifiedUrl;
 
@@ -1812,9 +1812,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetBackgroundImage(declarations:
                                      QuirksMode::NoQuirks);
     if let Ok(url) = SpecifiedUrl::parse_from_string(string.into(), &context) {
         let decl = PropertyDeclaration::BackgroundImage(BackgroundImage(
-            vec![SingleBackgroundImage(
-                Some(Image::Url(url))
-            )]
+            vec![Either::Second(Image::Url(url))]
         ));
         write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
             decls.push(decl, Importance::Normal);

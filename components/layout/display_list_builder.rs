@@ -865,9 +865,9 @@ impl FragmentDisplayListBuilding for Fragment {
         // http://www.w3.org/TR/CSS21/colors.html#background
         let background = style.get_background();
         for (i, background_image) in background.background_image.0.iter().enumerate().rev() {
-            match background_image.0 {
-                None => {}
-                Some(Image::Gradient(ref gradient)) => {
+            match *background_image {
+                Either::First(_) => {}
+                Either::Second(Image::Gradient(ref gradient)) => {
                     self.build_display_list_for_background_gradient(state,
                                                                     display_list_section,
                                                                     &absolute_bounds,
@@ -876,7 +876,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                     gradient,
                                                                     style);
                 }
-                Some(Image::Url(ref image_url)) => {
+                Either::Second(Image::Url(ref image_url)) => {
                     if let Some(url) = image_url.url() {
                         self.build_display_list_for_background_image(state,
                                                                      style,
@@ -887,10 +887,10 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                      i);
                     }
                 }
-                Some(Image::Rect(_)) => {
+                Either::Second(Image::Rect(_)) => {
                     // TODO: Implement `-moz-image-rect`
                 }
-                Some(Image::Element(_)) => {
+                Either::Second(Image::Element(_)) => {
                     // TODO: Implement `-moz-element`
                 }
             }
@@ -1356,8 +1356,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                                   style.get_cursor(Cursor::Default),
                                                   display_list_section);
 
-        match border_style_struct.border_image_source.0 {
-            None => {
+        match border_style_struct.border_image_source {
+            Either::First(_) => {
                 state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
                     base: base,
                     border_widths: border.to_physical(style.writing_mode),
@@ -1371,7 +1371,7 @@ impl FragmentDisplayListBuilding for Fragment {
                     }),
                 }));
             }
-            Some(Image::Gradient(ref gradient)) => {
+            Either::Second(Image::Gradient(ref gradient)) => {
                 match gradient.kind {
                     GradientKind::Linear(angle_or_corner) => {
                         let grad = self.convert_linear_gradient(&bounds,
@@ -1412,13 +1412,13 @@ impl FragmentDisplayListBuilding for Fragment {
                     }
                 }
             }
-            Some(Image::Rect(..)) => {
+            Either::Second(Image::Rect(..)) => {
                 // TODO: Handle border-image with `-moz-image-rect`.
             }
-            Some(Image::Element(..)) => {
+            Either::Second(Image::Element(..)) => {
                 // TODO: Handle border-image with `-moz-element`.
             }
-            Some(Image::Url(ref image_url)) => {
+            Either::Second(Image::Url(ref image_url)) => {
                 if let Some(url) = image_url.url() {
                     let webrender_image = state.layout_context
                                                .get_webrender_image_for_url(self.node,

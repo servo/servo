@@ -190,9 +190,9 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-float-edge)",
                          animation_value_type="none")}
 
-${helpers.predefined_type("border-image-source", "LayerImage",
-    initial_value="computed_value::T(None)",
-    initial_specified_value="SpecifiedValue(None)",
+${helpers.predefined_type("border-image-source", "ImageLayer",
+    initial_value="Either::First(None_)",
+    initial_specified_value="Either::First(None_)",
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-image",
     vector=False,
     animation_value_type="none",

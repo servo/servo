@@ -15,6 +15,7 @@ use servo_url::ServoUrl;
 use std::f32::consts::PI;
 use std::fmt;
 use style_traits::ToCss;
+use values::{Either, None_};
 use values::generics::image::{Circle, CompatMode, Ellipse, ColorStop as GenericColorStop};
 use values::generics::image::{EndingShape as GenericEndingShape, Gradient as GenericGradient};
 use values::generics::image::{GradientItem as GenericGradientItem, GradientKind as GenericGradientKind};
@@ -23,6 +24,9 @@ use values::generics::image::{LineDirection as GenericsLineDirection, ShapeExten
 use values::specified::{Angle, CSSColor, Length, LengthOrPercentage, NumberOrPercentage, Percentage};
 use values::specified::position::{Position, X, Y};
 use values::specified::url::SpecifiedUrl;
+
+/// A specified image layer.
+pub type ImageLayer = Either<None_, Image>;
 
 /// Specified values for an image according to CSS-IMAGES.
 /// https://drafts.csswg.org/css-images/#image-values
@@ -422,53 +426,5 @@ impl Parse for ColorStop {
             color: try!(CSSColor::parse(context, input)),
             position: input.try(|i| LengthOrPercentage::parse(context, i)).ok(),
         })
-    }
-}
-
-/// Specified values for none | <image> | <mask-source>.
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct LayerImage(pub Option<Image>);
-no_viewport_percentage!(LayerImage);
-
-impl ToCss for LayerImage {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            LayerImage(Some(ref image)) => image.to_css(dest),
-            LayerImage(None) => dest.write_str("none"),
-        }
-    }
-}
-
-use super::computed::{ToComputedValue, Context};
-impl ToComputedValue for LayerImage {
-    type ComputedValue = super::computed::LayerImage;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        match *self {
-            LayerImage(None) => super::computed::LayerImage(None),
-            LayerImage(Some(ref image)) =>
-                super::computed::LayerImage(Some(image.to_computed_value(context))),
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        match *computed {
-            super::computed::LayerImage(None) => LayerImage(None),
-            super::computed::LayerImage(Some(ref image)) =>
-                LayerImage(Some(ToComputedValue::from_computed_value(image))),
-        }
-    }
-}
-
-impl Parse for LayerImage {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            Ok(LayerImage(None))
-        } else {
-            Ok(LayerImage(Some(try!(Image::parse(context, input)))))
-        }
     }
 }

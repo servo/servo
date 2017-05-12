@@ -12,9 +12,9 @@ ${helpers.predefined_type("background-color", "CSSColor",
     spec="https://drafts.csswg.org/css-backgrounds/#background-color",
     animation_value_type="IntermediateColor", complex_color=True)}
 
-${helpers.predefined_type("background-image", "LayerImage",
-    initial_value="computed_value::T(None)",
-    initial_specified_value="SpecifiedValue(None)",
+${helpers.predefined_type("background-image", "ImageLayer",
+    initial_value="Either::First(None_)",
+    initial_specified_value="Either::First(None_)",
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-image",
     vector="True",
     animation_value_type="none",

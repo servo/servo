@@ -11,6 +11,7 @@ use cssparser::Color as CSSColor;
 use std::f32::consts::PI;
 use std::fmt;
 use style_traits::ToCss;
+use values::{Either, None_};
 use values::computed::{Angle, Context, Length, LengthOrPercentage, NumberOrPercentage, ToComputedValue};
 use values::computed::position::Position;
 use values::generics::image::{CompatMode, ColorStop as GenericColorStop, EndingShape as GenericEndingShape};
@@ -19,6 +20,9 @@ use values::generics::image::{Image as GenericImage, GradientKind as GenericGrad
 use values::generics::image::{ImageRect as GenericImageRect, LineDirection as GenericLineDirection};
 use values::specified::image::LineDirection as SpecifiedLineDirection;
 use values::specified::position::{X, Y};
+
+/// A computed image layer.
+pub type ImageLayer = Either<None_, Image>;
 
 /// Computed values for an image according to CSS-IMAGES.
 /// https://drafts.csswg.org/css-images/#image-values
@@ -123,20 +127,6 @@ impl ToComputedValue for SpecifiedLineDirection {
             LineDirection::Corner(x, y) => {
                 SpecifiedLineDirection::Corner(x, y)
             },
-        }
-    }
-}
-
-/// Computed values for none | <image> | <mask-source>.
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct LayerImage(pub Option<Image>);
-
-impl ToCss for LayerImage {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match self.0 {
-            None => dest.write_str("none"),
-            Some(ref image) => image.to_css(dest),
         }
     }
 }
