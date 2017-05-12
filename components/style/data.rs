@@ -85,6 +85,11 @@ impl ComputedStyle {
         self.visited_rules.as_ref()
     }
 
+    /// Gets a mutable reference to the visited rule node, if any.
+    pub fn get_visited_rules_mut(&mut self) -> Option<&mut StrongRuleNode> {
+        self.visited_rules.as_mut()
+    }
+
     /// Gets a reference to the visited rule node. Panic if the element does not
     /// have visited rule node.
     pub fn visited_rules(&self) -> &StrongRuleNode {

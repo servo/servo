@@ -145,6 +145,14 @@ impl CascadeVisitedMode {
         }
     }
 
+    /// Returns a mutable rules node based on the cascade mode, if any.
+    fn get_rules_mut<'a>(&self, style: &'a mut ComputedStyle) -> Option<&'a mut StrongRuleNode> {
+        match *self {
+            CascadeVisitedMode::Unvisited => Some(&mut style.rules),
+            CascadeVisitedMode::Visited => style.get_visited_rules_mut(),
+        }
+    }
+
     /// Returns the computed values based on the cascade mode.  In visited mode,
     /// visited values are only returned if they already exist.  If they don't,
     /// we fallback to the regular, unvisited styles.
@@ -1186,17 +1194,40 @@ pub trait MatchMethods : TElement {
     }
 
     /// Updates the rule nodes without re-running selector matching, using just
-    /// the rule tree. Returns true if an !important rule was replaced.
+    /// the rule tree.
+    ///
+    /// Returns true if an !important rule was replaced.
     fn replace_rules(&self,
                      replacements: RestyleReplacements,
                      context: &StyleContext<Self>,
                      data: &mut ElementData)
                      -> bool {
+        let mut result = false;
+        result |= self.replace_rules_internal(replacements, context, data,
+                                              CascadeVisitedMode::Unvisited);
+        result |= self.replace_rules_internal(replacements, context, data,
+                                              CascadeVisitedMode::Visited);
+        result
+    }
+
+    /// Updates the rule nodes without re-running selector matching, using just
+    /// the rule tree, for a specific visited mode.
+    ///
+    /// Returns true if an !important rule was replaced.
+    fn replace_rules_internal(&self,
+                              replacements: RestyleReplacements,
+                              context: &StyleContext<Self>,
+                              data: &mut ElementData,
+                              cascade_visited: CascadeVisitedMode)
+                              -> bool {
         use properties::PropertyDeclarationBlock;
         use shared_lock::Locked;
 
         let element_styles = &mut data.styles_mut();
-        let primary_rules = &mut element_styles.primary.rules;
+        let primary_rules = match cascade_visited.get_rules_mut(&mut element_styles.primary) {
+            Some(r) => r,
+            None => return false,
+        };
 
         let replace_rule_node = |level: CascadeLevel,
                                  pdb: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
