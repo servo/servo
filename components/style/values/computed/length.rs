@@ -221,8 +221,9 @@ impl LengthOrPercentage {
     pub fn is_definitely_zero(&self) -> bool {
         use self::LengthOrPercentage::*;
         match *self {
-            Length(Au(0)) | Percentage(0.0) => true,
-            Length(_) | Percentage(_) | Calc(_) => false
+            Length(Au(0)) => true,
+            Percentage(p) => p == 0.0,
+            Length(_) | Calc(_) => false
         }
     }
 
@@ -312,8 +313,9 @@ impl LengthOrPercentageOrAuto {
     pub fn is_definitely_zero(&self) -> bool {
         use self::LengthOrPercentageOrAuto::*;
         match *self {
-            Length(Au(0)) | Percentage(0.0) => true,
-            Length(_) | Percentage(_) | Calc(_) | Auto => false
+            Length(Au(0)) => true,
+            Percentage(p) => p == 0.0,
+            Length(_) | Calc(_) | Auto => false
         }
     }
 }

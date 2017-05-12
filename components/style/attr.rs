@@ -375,7 +375,7 @@ impl ::std::ops::Deref for AttrValue {
 pub fn parse_nonzero_length(value: &str) -> LengthOrPercentageOrAuto {
     match parse_length(value) {
         LengthOrPercentageOrAuto::Length(x) if x == Au::zero() => LengthOrPercentageOrAuto::Auto,
-        LengthOrPercentageOrAuto::Percentage(0.) => LengthOrPercentageOrAuto::Auto,
+        LengthOrPercentageOrAuto::Percentage(x) if x == 0. => LengthOrPercentageOrAuto::Auto,
         x => x,
     }
 }
