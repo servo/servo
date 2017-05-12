@@ -5,6 +5,7 @@
 //! Gecko-specific bits for selector-parsing.
 
 use cssparser::{Parser, ToCss};
+use element_state::{IN_ACTIVE_STATE, IN_FOCUS_STATE, IN_HOVER_STATE};
 use element_state::ElementState;
 use gecko_bindings::structs::CSSPseudoClassType;
 use gecko_bindings::structs::nsIAtom;
@@ -325,6 +326,15 @@ impl NonTSPseudoClass {
         apply_non_ts_list!(pseudo_class_check_internal)
     }
 
+    /// https://drafts.csswg.org/selectors-4/#useraction-pseudos
+    ///
+    /// We intentionally skip the link-related ones.
+    fn is_safe_user_action_state(&self) -> bool {
+        matches!(*self, NonTSPseudoClass::Hover |
+                        NonTSPseudoClass::Active |
+                        NonTSPseudoClass::Focus)
+    }
+
     /// Get the state flag associated with a pseudo-class, if any.
     pub fn state_flag(&self) -> ElementState {
         macro_rules! flag {
@@ -375,6 +385,53 @@ impl NonTSPseudoClass {
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SelectorImpl;
 
+/// Some subset of pseudo-elements in Gecko are sensitive to some state
+/// selectors.
+///
+/// We store the sensitive states in this struct in order to properly handle
+/// these.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct PseudoElementSelector {
+    pseudo: PseudoElement,
+    state: ElementState,
+}
+
+impl PseudoElementSelector {
+    /// Returns the pseudo-element this selector represents.
+    pub fn pseudo_element(&self) -> &PseudoElement {
+        &self.pseudo
+    }
+}
+
+impl ToCss for PseudoElementSelector {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: fmt::Write,
+    {
+        if cfg!(debug_assertions) {
+            let mut state = self.state;
+            state.remove(IN_HOVER_STATE | IN_ACTIVE_STATE | IN_FOCUS_STATE);
+            assert_eq!(state, ElementState::empty(),
+                       "Unhandled pseudo-element state selector?");
+        }
+
+        self.pseudo.to_css(dest)?;
+
+        if self.state.contains(IN_HOVER_STATE) {
+            dest.write_str(":hover")?
+        }
+
+        if self.state.contains(IN_ACTIVE_STATE) {
+            dest.write_str(":active")?
+        }
+
+        if self.state.contains(IN_FOCUS_STATE) {
+            dest.write_str(":focus")?
+        }
+
+        Ok(())
+    }
+}
+
 impl ::selectors::SelectorImpl for SelectorImpl {
     type AttrValue = Atom;
     type Identifier = Atom;
@@ -385,7 +442,7 @@ impl ::selectors::SelectorImpl for SelectorImpl {
     type BorrowedNamespaceUrl = WeakNamespace;
     type BorrowedLocalName = WeakAtom;
 
-    type PseudoElement = PseudoElement;
+    type PseudoElementSelector = PseudoElementSelector;
     type NonTSPseudoClass = NonTSPseudoClass;
 }
 
@@ -447,11 +504,34 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
         }
     }
 
-    fn parse_pseudo_element(&self, name: Cow<str>) -> Result<PseudoElement, ()> {
-        match PseudoElement::from_slice(&name, self.in_user_agent_stylesheet()) {
-            Some(pseudo) => Ok(pseudo),
-            None => Err(()),
-        }
+    fn parse_pseudo_element(&self, name: Cow<str>, input: &mut Parser) -> Result<PseudoElementSelector, ()> {
+        let pseudo =
+            match PseudoElement::from_slice(&name, self.in_user_agent_stylesheet()) {
+                Some(pseudo) => pseudo,
+                None => return Err(()),
+            };
+
+        let state = input.try(|input| {
+            let mut state = ElementState::empty();
+
+            while !input.is_exhausted() {
+                input.expect_colon()?;
+                let ident = input.expect_ident()?;
+                let pseudo_class = self.parse_non_ts_pseudo_class(ident)?;
+
+                if !pseudo_class.is_safe_user_action_state() {
+                    return Err(())
+                }
+                state.insert(pseudo_class.state_flag());
+            }
+
+            Ok(state)
+        });
+
+        Ok(PseudoElementSelector {
+            pseudo: pseudo,
+            state: state.unwrap_or(ElementState::empty()),
+        })
     }
 
     fn default_namespace(&self) -> Option<Namespace> {

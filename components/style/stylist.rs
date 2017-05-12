@@ -449,9 +449,9 @@ impl Stylist {
                        rule: &Arc<Locked<StyleRule>>,
                        stylesheet: &Stylesheet)
     {
-        let map = if let Some(ref pseudo) = selector.pseudo_element {
+        let map = if let Some(ref pseudo_selector) = selector.pseudo_element {
             self.pseudos_map
-                .entry(pseudo.clone())
+                .entry(pseudo_selector.pseudo_element().clone())
                 .or_insert_with(PerPseudoElementSelectorMap::new)
                 .borrow_for_origin(&stylesheet.origin)
         } else {

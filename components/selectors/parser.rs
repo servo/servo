@@ -61,7 +61,7 @@ macro_rules! with_all_bounds {
             type NonTSPseudoClass: $($CommonBounds)* + Sized + ToCss + SelectorMethods<Impl = Self>;
 
             /// pseudo-elements
-            type PseudoElement: $($CommonBounds)* + Sized + ToCss;
+            type PseudoElementSelector: $($CommonBounds)* + Sized + ToCss;
         }
     }
 }
@@ -98,8 +98,8 @@ pub trait Parser {
         Err(())
     }
 
-    fn parse_pseudo_element(&self, _name: Cow<str>)
-                            -> Result<<Self::Impl as SelectorImpl>::PseudoElement, ()> {
+    fn parse_pseudo_element(&self, _name: Cow<str>, _input: &mut CssParser)
+                            -> Result<<Self::Impl as SelectorImpl>::PseudoElementSelector, ()> {
         Err(())
     }
 
@@ -179,7 +179,7 @@ impl<Impl: SelectorImpl> SelectorInner<Impl> {
 #[derive(PartialEq, Eq, Hash, Clone)]
 pub struct Selector<Impl: SelectorImpl> {
     pub inner: SelectorInner<Impl>,
-    pub pseudo_element: Option<Impl::PseudoElement>,
+    pub pseudo_element: Option<Impl::PseudoElementSelector>,
     pub specificity: u32,
 }
 
@@ -816,7 +816,7 @@ impl From<Specificity> for u32 {
 }
 
 fn specificity<Impl>(complex_selector: &ComplexSelector<Impl>,
-                     pseudo_element: Option<&Impl::PseudoElement>)
+                     pseudo_element: Option<&Impl::PseudoElementSelector>)
                      -> u32
                      where Impl: SelectorImpl {
     let mut specificity = complex_selector_specificity(complex_selector);
@@ -916,7 +916,7 @@ type ParseVec<Impl> = SmallVec<[Component<Impl>; 8]>;
 fn parse_complex_selector_and_pseudo_element<P, Impl>(
         parser: &P,
         input: &mut CssParser)
-        -> Result<(ComplexSelector<Impl>, Option<Impl::PseudoElement>), ()>
+        -> Result<(ComplexSelector<Impl>, Option<Impl::PseudoElementSelector>), ()>
     where P: Parser<Impl=Impl>, Impl: SelectorImpl
 {
     let mut sequence = ParseVec::new();
@@ -1014,7 +1014,7 @@ fn parse_type_selector<P, Impl>(parser: &P, input: &mut CssParser, sequence: &mu
 #[derive(Debug)]
 enum SimpleSelectorParseResult<Impl: SelectorImpl> {
     SimpleSelector(Component<Impl>),
-    PseudoElement(Impl::PseudoElement),
+    PseudoElement(Impl::PseudoElementSelector),
 }
 
 /// * `Err(())`: Invalid selector, abort
@@ -1210,7 +1210,7 @@ fn parse_compound_selector<P, Impl>(
     input: &mut CssParser,
     mut sequence: &mut ParseVec<Impl>,
     inside_negation: bool)
-    -> Result<Option<Impl::PseudoElement>, ()>
+    -> Result<Option<Impl::PseudoElementSelector>, ()>
     where P: Parser<Impl=Impl>, Impl: SelectorImpl
 {
     // Consume any leading whitespace.
@@ -1335,7 +1335,7 @@ fn parse_one_simple_selector<P, Impl>(parser: &P,
                        name.eq_ignore_ascii_case("after") ||
                        name.eq_ignore_ascii_case("first-line") ||
                        name.eq_ignore_ascii_case("first-letter") {
-                        let pseudo_element = P::parse_pseudo_element(parser, name)?;
+                        let pseudo_element = P::parse_pseudo_element(parser, name, input)?;
                         Ok(Some(SimpleSelectorParseResult::PseudoElement(pseudo_element)))
                     } else {
                         let pseudo_class = parse_simple_pseudo_class(parser, name)?;
@@ -1351,7 +1351,7 @@ fn parse_one_simple_selector<P, Impl>(parser: &P,
                 Ok(Token::Colon) => {
                     match input.next_including_whitespace() {
                         Ok(Token::Ident(name)) => {
-                            let pseudo = P::parse_pseudo_element(parser, name)?;
+                            let pseudo = P::parse_pseudo_element(parser, name, input)?;
                             Ok(Some(SimpleSelectorParseResult::PseudoElement(pseudo)))
                         }
                         _ => Err(())
@@ -1455,7 +1455,7 @@ pub mod tests {
         type BorrowedLocalName = DummyAtom;
         type BorrowedNamespaceUrl = DummyAtom;
         type NonTSPseudoClass = PseudoClass;
-        type PseudoElement = PseudoElement;
+        type PseudoElementSelector = PseudoElement;
     }
 
     #[derive(Default, Debug, Hash, Clone, PartialEq, Eq)]
@@ -1505,7 +1505,7 @@ pub mod tests {
             }
         }
 
-        fn parse_pseudo_element(&self, name: Cow<str>)
+        fn parse_pseudo_element(&self, name: Cow<str>, input: &mut CssParser)
                                 -> Result<PseudoElement, ()> {
             match_ignore_ascii_case! { &name,
                 "before" => Ok(PseudoElement::Before),
