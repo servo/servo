@@ -1626,7 +1626,7 @@ impl Document {
     // https://html.spec.whatwg.org/multipage/#delay-the-load-event
     pub fn finish_load(&self, load: LoadType) {
         // This does not delay the load event anymore.
-        println!("Document got finish_load: {:?}", load);
+        println!("{:?} got finish_load: {:?}", self.base_url(), load);
         self.loader.borrow_mut().finish_load(&load);
 
         match load {
@@ -1664,12 +1664,13 @@ impl Document {
         // asap_in_order_script_loaded.
 
         let loader = self.loader.borrow();
+        println!("{:?} loader inhibiting events: {:?}", self.base_url(), loader.events_inhibited());
         if loader.is_blocked() || loader.events_inhibited() {
-            println!("document is blocked");
+            println!("{:?} document is blocked", self.base_url());
             // Step 6.
             return;
         }
-        println!("document is not blocked");
+        println!("{:?} document is not blocked", self.base_url());
         ScriptThread::mark_document_with_no_blocked_loads(self);
     }
 
@@ -1677,13 +1678,13 @@ impl Document {
     pub fn maybe_queue_document_completion(&self) {
         if self.loader.borrow().is_blocked() {
             // Step 6.
-            println!("document has blocking load");
+            println!("{:?} document has blocking load", self.base_url());
             return;
         }
 
         assert!(!self.loader.borrow().events_inhibited());
         self.loader.borrow_mut().inhibit_events();
-        println!("document loads are complete");
+        println!(" {:?} document loads are complete", self.base_url());
         // The rest will ever run only once per document.
         // Step 7.
         debug!("Document loads are complete.");

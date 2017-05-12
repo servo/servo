@@ -106,7 +106,7 @@ impl DocumentLoader {
 
     /// Add a load to the list of blocking loads.
     fn add_blocking_load(&mut self, load: LoadType) {
-        debug!("Adding blocking load {:?} ({}).", load, self.blocking_loads.len());
+        println!("Adding blocking load {:?} ({}).", load, self.blocking_loads.len());
         self.blocking_loads.push(load);
     }
 
@@ -140,10 +140,6 @@ impl DocumentLoader {
 
     pub fn inhibit_events(&mut self) {
         self.events_inhibited = true;
-    }
-
-    pub fn allow_events(&mut self) {
-        self.events_inhibited = false;
     }
 
     pub fn events_inhibited(&self) -> bool {

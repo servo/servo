@@ -84,6 +84,7 @@ struct ImageRequest {
 pub struct HTMLImageElement {
     htmlelement: HTMLElement,
     image_request: Cell<ImageRequestPhase>,
+    blocking_request: DOMRefCell<ImageRequest>,
     current_request: DOMRefCell<ImageRequest>,
     pending_request: DOMRefCell<ImageRequest>,
     form_owner: MutNullableJS<HTMLFormElement>,
@@ -280,6 +281,7 @@ impl HTMLImageElement {
                 self.current_request.borrow_mut().image = Some(image);
                 self.current_request.borrow_mut().state = State::CompletelyAvailable;
                 LoadBlocker::terminate(&mut self.current_request.borrow_mut().blocker);
+                println!("step 14 - current");
                 // Mark the node dirty
                 self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                 (true, false)
@@ -295,6 +297,7 @@ impl HTMLImageElement {
                 self.current_request.borrow_mut().image = Some(image);
                 self.current_request.borrow_mut().state = State::CompletelyAvailable;
                 LoadBlocker::terminate(&mut self.current_request.borrow_mut().blocker);
+                println!("step 14 - pending");
                 // Mark the node dirty
                 self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                 (true, false)
@@ -302,17 +305,21 @@ impl HTMLImageElement {
             (ImageResponse::MetadataLoaded(meta), ImageRequestPhase::Current) => {
                 self.current_request.borrow_mut().state = State::PartiallyAvailable;
                 self.current_request.borrow_mut().metadata = Some(meta);
+                println!("step 14 - current - partial");
                 (false, false)
             },
             (ImageResponse::MetadataLoaded(_), ImageRequestPhase::Pending) => {
+                println!("step 14 - pending partial");
                 self.pending_request.borrow_mut().state = State::PartiallyAvailable;
                 (false, false)
             },
             (ImageResponse::None, ImageRequestPhase::Current) => {
+                println!("step 14 - current - broken");
                 self.abort_request(State::Broken, ImageRequestPhase::Current);
                 (false, true)
             },
             (ImageResponse::None, ImageRequestPhase::Pending) => {
+                println!("step 14 - pending - broken");
                 self.abort_request(State::Broken, ImageRequestPhase::Current);
                 self.abort_request(State::Broken, ImageRequestPhase::Pending);
                 self.image_request.set(ImageRequestPhase::Current);
@@ -333,9 +340,10 @@ impl HTMLImageElement {
             self.upcast::<EventTarget>().fire_event(atom!("loadend"));
         }
 
-        if trigger_image_load || trigger_image_error {
+        if trigger_image_error || trigger_image_load {
             LoadBlocker::terminate(&mut self.current_request.borrow_mut().blocker);
             LoadBlocker::terminate(&mut self.pending_request.borrow_mut().blocker);
+            LoadBlocker::terminate(&mut self.blocking_request.borrow_mut().blocker);
         }
 
         // Trigger reflow
@@ -374,6 +382,7 @@ impl HTMLImageElement {
                 img.upcast::<EventTarget>().fire_event(atom!("loadend"));
                 img.abort_request(State::Broken, ImageRequestPhase::Current);
                 img.abort_request(State::Broken, ImageRequestPhase::Pending);
+                LoadBlocker::terminate(&mut img.blocking_request.borrow_mut().blocker);
             }
         }
 
@@ -448,6 +457,7 @@ impl HTMLImageElement {
                 }
                 img.abort_request(State::Broken, ImageRequestPhase::Current);
                 img.abort_request(State::Broken, ImageRequestPhase::Pending);
+                LoadBlocker::terminate(&mut img.blocking_request.borrow_mut().blocker);
             }
         }
 
@@ -480,6 +490,7 @@ impl HTMLImageElement {
                 img.upcast::<EventTarget>().fire_event(atom!("load"));
                 img.abort_request(State::Broken, ImageRequestPhase::Current);
                 img.abort_request(State::Broken, ImageRequestPhase::Pending);
+                LoadBlocker::terminate(&mut img.blocking_request.borrow_mut().blocker);
             }
         }
         let runnable = box SetUrlToStringTask {
@@ -502,7 +513,6 @@ impl HTMLImageElement {
         request.image = None;
         request.metadata = None;
         let document = document_from_node(self);
-        LoadBlocker::terminate(&mut request.blocker);
         request.blocker = Some(LoadBlocker::new(&*document, LoadType::Image(url.clone())));
     }
 
@@ -512,6 +522,7 @@ impl HTMLImageElement {
             ImageRequestPhase::Pending => {
                 if let Some(pending_url) = self.pending_request.borrow().parsed_url.clone() {
                     // Step 12.1
+                    println!("step 12.1");
                     if pending_url == *url {
                         return
                     }
@@ -529,6 +540,7 @@ impl HTMLImageElement {
                             pending_request.image = None;
                             pending_request.parsed_url = None;
                             LoadBlocker::terminate(&mut pending_request.blocker);
+                            println!("step 12.3");
                             // TODO: queue a task to restart animation, if restart-animation is set
                             return
                         }
@@ -538,11 +550,13 @@ impl HTMLImageElement {
                     },
                     (_, State::Broken) | (_, State::Unavailable) => {
                         // Step 12.5
+                        println!("step 12.5");
                         self.init_image_request(&mut current_request, &url, &src);
                         self.fetch_image(&url);
                     },
                     (_, _) => {
                         // step 12.6
+                        println!("step 12.6");
                         self.image_request.set(ImageRequestPhase::Pending);
                         self.init_image_request(&mut pending_request, &url, &src);
                         self.fetch_image(&url);
@@ -555,7 +569,6 @@ impl HTMLImageElement {
     /// Step 8-12 of html.spec.whatwg.org/multipage/#update-the-image-data
     fn update_the_image_data_sync_steps(&self) {
         let document = document_from_node(self);
-        self.abort_request(State::Unavailable, ImageRequestPhase::Current);
         // Step 8
         // TODO: take pixel density into account
         println!("step 8");
@@ -626,16 +639,18 @@ impl HTMLImageElement {
                 }
             }
         }
-        //document.mut_loader().inhibit_events();
         let document_needs_block = {
-            self.current_request.borrow().blocker.is_none()
+            self.blocking_request.borrow().blocker.is_none()
         };
         if document_needs_block {
-            println!("adding new blocker");
-            self.current_request.borrow_mut().blocker = Some(LoadBlocker::new(&*document,
+            println!("adding new blocker to {:?}", document.base_url());
+            self.blocking_request.borrow_mut().blocker = Some(LoadBlocker::new(&*document,
+                                                                              LoadType::Image(base_url.clone())));
+        } else {
+            println!("nevertheless adding new blocker to {:?}", document.base_url());
+            self.pending_request.borrow_mut().blocker = Some(LoadBlocker::new(&*document,
                                                                               LoadType::Image(base_url.clone())));
         }
-        println!("already have a blocker in place");
         // step 6, await a stable state.
         struct StableStateUpdateImageDataTask {
             elem: Trusted<HTMLImageElement>,
@@ -663,6 +678,14 @@ impl HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             image_request: Cell::new(ImageRequestPhase::Current),
+            blocking_request: DOMRefCell::new(ImageRequest {
+                state: State::Unavailable,
+                parsed_url: None,
+                source_url: None,
+                image: None,
+                metadata: None,
+                blocker: None,
+            }),
             current_request: DOMRefCell::new(ImageRequest {
                 state: State::Unavailable,
                 parsed_url: None,
