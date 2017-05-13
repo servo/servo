@@ -38,7 +38,9 @@
  * possible.
  *
  * $gecko_type can be either "_" or an ident in Gecko's CSSPseudoClassType.
- * $state can be either "_" or an expression of type ElementState.
+ * $state can be either "_" or an expression of type ElementState.  If present,
+ *        the semantics are that the pseudo-class matches if any of the bits in
+ *        $state are set on the element.
  * $flags can be either "_" or an expression of type NonTSPseudoClassFlag,
  * see selector_parser.rs for more details.
  */

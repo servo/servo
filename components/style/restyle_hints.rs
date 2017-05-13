@@ -343,7 +343,7 @@ impl<'a, E> Element for ElementWrapper<'a, E>
                                                           &mut |_, _| {})
         }
         match self.snapshot().and_then(|s| s.state()) {
-            Some(snapshot_state) => snapshot_state.contains(flag),
+            Some(snapshot_state) => snapshot_state.intersects(flag),
             None => {
                 self.element.match_non_ts_pseudo_class(pseudo_class,
                                                        relations,
