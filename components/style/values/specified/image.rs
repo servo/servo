@@ -391,40 +391,37 @@ impl ShapeExtent {
     }
 }
 
-impl Parse for ImageRect {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        match_ignore_ascii_case! { &try!(input.expect_function()),
-            "-moz-image-rect" => {
-                input.parse_nested_block(|input| {
-                    let url = SpecifiedUrl::parse(context, input)?;
-                    input.expect_comma()?;
-                    let top = NumberOrPercentage::parse(context, input)?;
-                    input.expect_comma()?;
-                    let right = NumberOrPercentage::parse(context, input)?;
-                    input.expect_comma()?;
-                    let bottom = NumberOrPercentage::parse(context, input)?;
-                    input.expect_comma()?;
-                    let left = NumberOrPercentage::parse(context, input)?;
-
-                    Ok(ImageRect {
-                        url: url,
-                        top: top,
-                        right: right,
-                        bottom: bottom,
-                        left: left,
-                    })
-                })
-            }
-            _ => Err(())
-        }
-    }
-}
-
 impl Parse for ColorStop {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         Ok(ColorStop {
             color: try!(CSSColor::parse(context, input)),
             position: input.try(|i| LengthOrPercentage::parse(context, i)).ok(),
+        })
+    }
+}
+
+impl Parse for ImageRect {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        input.try(|i| i.expect_function_matching("-moz-image-rect"))?;
+        input.parse_nested_block(|i| {
+            let string = i.expect_url_or_string()?;
+            let url = SpecifiedUrl::parse_from_string(string, context)?;
+            i.expect_comma()?;
+            let top = NumberOrPercentage::parse(context, i)?;
+            i.expect_comma()?;
+            let right = NumberOrPercentage::parse(context, i)?;
+            i.expect_comma()?;
+            let bottom = NumberOrPercentage::parse(context, i)?;
+            i.expect_comma()?;
+            let left = NumberOrPercentage::parse(context, i)?;
+
+            Ok(ImageRect {
+                url: url,
+                top: top,
+                right: right,
+                bottom: bottom,
+                left: left,
+            })
         })
     }
 }
