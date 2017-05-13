@@ -221,11 +221,14 @@ class MachCommands(CommandBase):
             opts += ["-j", jobs]
         if verbose:
             opts += ["-v"]
+
         if android:
             target = self.config["android"]["target"]
 
         if target:
             opts += ["--target", target]
+            if not android:
+                android = self.handle_android_target(target)
 
         self.ensure_bootstrapped(target=target)
         self.ensure_clobbered()
@@ -278,10 +281,15 @@ class MachCommands(CommandBase):
             elif cpu_type in ["x86_64", "x86-64", "x64", "amd64"]:
                 host_suffix = "x86_64"
             host = os_type + "-" + host_suffix
+
+            android_platform = self.config["android"]["platform"]
+            android_toolchain = self.config["android"]["toolchain_name"]
+            android_arch = "arch-" + self.config["android"]["arch"]
+
             env['PATH'] = path.join(
-                env['ANDROID_NDK'], "toolchains", "arm-linux-androideabi-4.9", "prebuilt", host, "bin"
+                env['ANDROID_NDK'], "toolchains", android_toolchain, "prebuilt", host, "bin"
             ) + ':' + env['PATH']
-            env['ANDROID_SYSROOT'] = path.join(env['ANDROID_NDK'], "platforms", "android-18", "arch-arm")
+            env['ANDROID_SYSROOT'] = path.join(env['ANDROID_NDK'], "platforms", android_platform, android_arch)
             support_include = path.join(env['ANDROID_NDK'], "sources", "android", "support", "include")
             cxx_include = path.join(
                 env['ANDROID_NDK'], "sources", "cxx-stl", "llvm-libc++", "libcxx", "include")
@@ -295,6 +303,7 @@ class MachCommands(CommandBase):
                 "-I" + support_include,
                 "-I" + cxx_include,
                 "-I" + cxxabi_include])
+            env["NDK_ANDROID_VERSION"] = android_platform.replace("android-", "")
 
         cargo_binary = "cargo" + BIN_SUFFIX
 

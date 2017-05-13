@@ -32,13 +32,11 @@ fn android_main() {
         _ => panic!("Unknown support android cross-compile host: {}", host)
     };
 
-    let toolchain_path = ndk_path.join("toolchains").join("arm-linux-androideabi-4.9").join("prebuilt").
-        join(google_host);
-    println!("toolchain path is: {}", toolchain_path.to_str().unwrap());
-
     let target = env::var("TARGET").unwrap();
     let arch = if target.contains("arm") {
         "arch-arm"
+    } else if target.contains("aarch64") {
+        "arch-arm64"
     } else if target.contains("x86") {
         "arch-x86"
     } else if target.contains("mips") {
@@ -47,16 +45,32 @@ fn android_main() {
         panic!("Invalid target architecture {}", target);
     };
 
+    let platform = if target.contains("aarch64") {
+        "android-21"
+    } else {
+        "android-18"
+    };
+
+    let toolchain = if target.contains("armv7") {
+        "arm-linux-androideabi".into()
+    } else {
+        target
+    };
+
+    let toolchain_path = ndk_path.join("toolchains").join(format!("{}-4.9", toolchain)).join("prebuilt").
+        join(google_host);
+    println!("toolchain path is: {}", toolchain_path.to_str().unwrap());
+
     // Get the output directory.
     let out_dir = env::var("OUT_DIR").ok().expect("Cargo should have set the OUT_DIR environment variable");
     let directory = Path::new(&out_dir);
 
     // compiling android_native_app_glue.c
-    if Command::new(toolchain_path.join("bin").join("arm-linux-androideabi-gcc"))
+    if Command::new(toolchain_path.join("bin").join(format!("{}-gcc", toolchain)))
         .arg(ndk_path.join("sources").join("android").join("native_app_glue").join("android_native_app_glue.c"))
         .arg("-c")
         .arg("-o").arg(directory.join("android_native_app_glue.o"))
-        .arg("--sysroot").arg(ndk_path.join("platforms").join("android-18").join(arch))
+        .arg("--sysroot").arg(ndk_path.join("platforms").join(platform).join(arch))
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
         .status().unwrap().code().unwrap() != 0
