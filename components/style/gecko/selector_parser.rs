@@ -56,6 +56,8 @@ pub const EAGER_PSEUDO_COUNT: usize = 2;
 
 
 impl PseudoElement {
+<<<<<<< HEAD
+=======
     /// Returns the kind of cascade type that a given pseudo is going to use.
     ///
     /// In Gecko we only compute ::before and ::after eagerly. We save the rules
@@ -76,6 +78,7 @@ impl PseudoElement {
         PseudoElementCascadeType::Lazy
     }
 
+>>>>>>> 896a920ff53f683cdaac8bc6b2f796633a436a7f
     /// Gets the canonical index of this eagerly-cascaded pseudo-element.
     #[inline]
     pub fn eager_index(&self) -> usize {
@@ -467,8 +470,15 @@ impl SelectorImpl {
     #[inline]
     /// Legacy alias for PseudoElement::cascade_type.
     pub fn pseudo_element_cascade_type(pseudo: &PseudoElement) -> PseudoElementCascadeType {
+<<<<<<< HEAD
+        if pseudo.is_eager() {
+            debug_assert!(!pseudo.is_anon_box());
+            return PseudoElementCascadeType::Eager
+        }
+=======
         pseudo.cascade_type()
     }
+>>>>>>> 896a920ff53f683cdaac8bc6b2f796633a436a7f
 
     /// A helper to traverse each eagerly cascaded pseudo-element, executing
     /// `fun` on it.
@@ -482,6 +492,21 @@ impl SelectorImpl {
         each_eager_pseudo!(case, atom);
     }
 
+<<<<<<< HEAD
+    /// A helper to traverse each eagerly cascaded pseudo-element, executing
+    /// `fun` on it.
+    #[inline]
+    pub fn each_eagerly_cascaded_pseudo_element<F>(mut fun: F)
+        where F: FnMut(PseudoElement),
+    {
+        macro_rules! case {
+            ($atom:expr, $idx:expr) => { fun(PseudoElement($atom, false)); }
+        }
+        each_eager_pseudo!(case, atom);
+    }
+
+=======
+>>>>>>> 896a920ff53f683cdaac8bc6b2f796633a436a7f
 
     #[inline]
     /// Executes a function for each pseudo-element.

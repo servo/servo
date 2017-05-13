@@ -27,7 +27,11 @@ use selectors::matching::{ElementSelectorFlags, StyleRelations};
 use selectors::matching::AFFECTED_BY_PSEUDO_ELEMENTS;
 use shared_lock::StylesheetGuards;
 use sink::ForgetfulSink;
+<<<<<<< HEAD
+use std::sync::Arc;
+=======
 use stylearc::Arc;
+>>>>>>> 896a920ff53f683cdaac8bc6b2f796633a436a7f
 use stylist::ApplicableDeclarationBlock;
 
 /// The way a style should be inherited.
@@ -1070,8 +1074,16 @@ pub trait MatchMethods : TElement {
         SelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
             let mut pseudos = &mut data.styles_mut().pseudos;
             debug_assert!(applicable_declarations.is_empty());
+<<<<<<< HEAD
+            let pseudo_animation_rules = if pseudo.is_before_or_after() {
+                self.get_animation_rules(Some(&pseudo))
+            } else {
+                AnimationRules(None, None)
+            };
+=======
             // NB: We handle animation rules for ::before and ::after when
             // traversing them.
+>>>>>>> 896a920ff53f683cdaac8bc6b2f796633a436a7f
             stylist.push_applicable_declarations(self,
                                                  Some(bloom_filter),
                                                  None,
@@ -1106,6 +1118,11 @@ pub trait MatchMethods : TElement {
             }
         }
 
+<<<<<<< HEAD
+        // If we have any pseudo elements, indicate so in the primary StyleRelations.
+        if data.styles().pseudos.is_empty() {
+            primary_relations |= AFFECTED_BY_PSEUDO_ELEMENTS;
+=======
         rule_nodes_changed
     }
 
@@ -1154,6 +1171,7 @@ pub trait MatchMethods : TElement {
                     map.insert_flags(*element, self_flags);
                 }
             }
+>>>>>>> 896a920ff53f683cdaac8bc6b2f796633a436a7f
         }
 
         // Handle flags that apply to the parent.
@@ -1207,10 +1225,18 @@ pub trait MatchMethods : TElement {
                                       primary_rules);
                 }
 
+<<<<<<< HEAD
+                let pseudos = &mut element_styles.pseudos;
+                for pseudo in pseudos.keys().iter().filter(|p| p.is_before_or_after()) {
+                    let animation_rule = self.get_animation_rule(Some(&pseudo));
+                    let pseudo_rules = &mut pseudos.get_mut(&pseudo).unwrap().rules;
+                    replace_rule_node(CascadeLevel::Animations,
+=======
                 let mut replace_rule_node_for_animation = |level: CascadeLevel,
                                                            primary_rules: &mut StrongRuleNode| {
                     let animation_rule = self.get_animation_rule_by_cascade(level);
                     replace_rule_node(level,
+>>>>>>> 896a920ff53f683cdaac8bc6b2f796633a436a7f
                                       animation_rule.as_ref(),
                                       primary_rules);
                 };
@@ -1431,16 +1457,33 @@ pub trait MatchMethods : TElement {
                        mut data: &mut ElementData)
     {
         // Note that we've already set up the map of matching pseudo-elements
+<<<<<<< HEAD
+        // in match_element (and handled the damage implications of changing
+        // which pseudos match), so now we can just iterate what we have. This
+        // does mean collecting owned pseudos, so that the borrow checker will
+        // let us pass the mutable |data| to the inner cascade function.
+=======
         // in match_pseudos (and handled the damage implications of changing
         // which pseudos match), so now we can just iterate what we have. This
         // does mean collecting owned pseudos, so that the borrow checker will
         // let us pass the mutable |data| to the cascade function.
+>>>>>>> 896a920ff53f683cdaac8bc6b2f796633a436a7f
         let matched_pseudos = data.styles().pseudos.keys();
         for pseudo in matched_pseudos {
             self.cascade_primary_or_pseudo(context, data, Some(&pseudo));
         }
     }
 
+<<<<<<< HEAD
+            // Only ::before and ::after are animatable.
+            let animate = pseudo.is_before_or_after();
+            self.cascade_primary_or_pseudo(context, data, Some(&pseudo),
+                                           &mut possibly_expired_animations,
+                                           CascadeBooleans {
+                                               shareable: false,
+                                               animate: animate,
+                                           });
+=======
     /// Returns computed values without animation and transition rules.
     fn get_base_style(&self,
                       shared_context: &SharedStyleContext,
@@ -1456,6 +1499,7 @@ pub trait MatchMethods : TElement {
             // Note that unwrapping here is fine, because the style is
             // only incomplete during the styling process.
             return relevant_style.values.as_ref().unwrap().clone();
+>>>>>>> 896a920ff53f683cdaac8bc6b2f796633a436a7f
         }
 
         self.cascade_with_rules(shared_context,
