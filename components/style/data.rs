@@ -16,7 +16,18 @@ use selector_parser::{EAGER_PSEUDO_COUNT, PseudoElement, RestyleDamage};
 #[cfg(feature = "servo")] use std::collections::HashMap;
 use std::fmt;
 #[cfg(feature = "servo")] use std::hash::BuildHasherDefault;
+<<<<<<< HEAD
+use std::ops::Deref;
+<<<<<<< HEAD
+use std::sync::Arc;
+=======
 use stylearc::Arc;
+>>>>>>> 896a920ff53f683cdaac8bc6b2f796633a436a7f
+use stylist::Stylist;
+use thread_state;
+=======
+use stylearc::Arc;
+>>>>>>> 37d173a4d6df3b140afdaf174f12d49e77f07c86
 use traversal::TraversalFlags;
 
 /// The structure that represents the result of style computation. This is
@@ -79,7 +90,11 @@ pub struct EagerPseudoStyles(Option<Box<[Option<ComputedStyle>]>>);
 impl EagerPseudoStyles {
     /// Returns whether there are any pseudo styles.
     pub fn is_empty(&self) -> bool {
+<<<<<<< HEAD
+        self.0.is_some()
+=======
         self.0.is_none()
+>>>>>>> 896a920ff53f683cdaac8bc6b2f796633a436a7f
     }
 
     /// Returns a reference to the style for a given eager pseudo, if it exists.
@@ -93,6 +108,7 @@ impl EagerPseudoStyles {
         debug_assert!(pseudo.is_eager());
         self.0.as_mut().and_then(|p| p[pseudo.eager_index()].as_mut())
     }
+<<<<<<< HEAD
 
     /// Returns true if the EagerPseudoStyles has a ComputedStyle for |pseudo|.
     pub fn has(&self, pseudo: &PseudoElement) -> bool {
@@ -134,6 +150,49 @@ impl EagerPseudoStyles {
         v
     }
 
+=======
+
+    /// Returns true if the EagerPseudoStyles has a ComputedStyle for |pseudo|.
+    pub fn has(&self, pseudo: &PseudoElement) -> bool {
+        self.get(pseudo).is_some()
+    }
+
+    /// Inserts a pseudo-element. The pseudo-element must not already exist.
+    pub fn insert(&mut self, pseudo: &PseudoElement, style: ComputedStyle) {
+        debug_assert!(!self.has(pseudo));
+        if self.0.is_none() {
+            self.0 = Some(vec![None; EAGER_PSEUDO_COUNT].into_boxed_slice());
+        }
+        self.0.as_mut().unwrap()[pseudo.eager_index()] = Some(style);
+    }
+
+    /// Removes a pseudo-element style if it exists, and returns it.
+    pub fn take(&mut self, pseudo: &PseudoElement) -> Option<ComputedStyle> {
+        let result = match self.0.as_mut() {
+            None => return None,
+            Some(arr) => arr[pseudo.eager_index()].take(),
+        };
+        let empty = self.0.as_ref().unwrap().iter().all(|x| x.is_none());
+        if empty {
+            self.0 = None;
+        }
+        result
+    }
+
+    /// Returns a list of the pseudo-elements.
+    pub fn keys(&self) -> Vec<PseudoElement> {
+        let mut v = Vec::new();
+        if let Some(ref arr) = self.0 {
+            for i in 0..EAGER_PSEUDO_COUNT {
+                if arr[i].is_some() {
+                    v.push(PseudoElement::from_eager_index(i));
+                }
+            }
+        }
+        v
+    }
+
+>>>>>>> 896a920ff53f683cdaac8bc6b2f796633a436a7f
     /// Sets the rule node for a given pseudo-element, which must already have an entry.
     ///
     /// Returns true if the rule node changed.

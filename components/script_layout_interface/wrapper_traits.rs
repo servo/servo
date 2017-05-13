@@ -418,8 +418,12 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
                                     &context.guards,
                                     &style_pseudo,
                                     Some(data.styles().primary.values()),
+<<<<<<< HEAD
+                                    CascadeFlags::empty());
+=======
                                     CascadeFlags::empty(),
                                     &ServoMetricsProvider);
+>>>>>>> 896a920ff53f683cdaac8bc6b2f796633a436a7f
                             data.styles_mut().cached_pseudos
                                 .insert(style_pseudo.clone(), new_style);
                         }
@@ -434,8 +438,12 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
                                            &context.guards,
                                            unsafe { &self.unsafe_get() },
                                            &style_pseudo,
+<<<<<<< HEAD
+                                           data.styles().primary.values());
+=======
                                            data.styles().primary.values(),
                                            &ServoMetricsProvider);
+>>>>>>> 896a920ff53f683cdaac8bc6b2f796633a436a7f
                             data.styles_mut().cached_pseudos
                                 .insert(style_pseudo.clone(), new_style.unwrap());
                         }

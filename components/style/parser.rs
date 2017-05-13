@@ -74,6 +74,9 @@ impl<'a> ParserContext<'a> {
                          length_parsing_mode: LengthParsingMode,
                          quirks_mode: QuirksMode)
                          -> ParserContext<'a> {
+<<<<<<< HEAD
+        Self::new(Origin::Author, url_data, error_reporter)
+=======
         Self::new(Origin::Author, url_data, error_reporter, rule_type, length_parsing_mode, quirks_mode)
     }
 
@@ -114,6 +117,7 @@ impl<'a> ParserContext<'a> {
     /// Get the rule type, which assumes that one is available.
     pub fn rule_type(&self) -> CssRuleType {
         self.rule_type.expect("Rule type expected, but none was found.")
+>>>>>>> 896a920ff53f683cdaac8bc6b2f796633a436a7f
     }
 }
 
