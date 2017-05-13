@@ -40,7 +40,6 @@ use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::WRAP_CALLBACKS;
-use dom::browsingcontext::BrowsingContext;
 use dom::document::{Document, DocumentSource, FocusType, HasBrowsingContext, IsHTMLDocument, TouchEventResult};
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -55,6 +54,7 @@ use dom::servoparser::{ParserContext, ServoParser};
 use dom::transitionevent::TransitionEvent;
 use dom::uievent::UIEvent;
 use dom::window::{ReflowReason, Window};
+use dom::windowproxy::WindowProxy;
 use dom::worker::TrustedWorkerAddress;
 use euclid::Rect;
 use euclid::point::Point2D;
@@ -400,9 +400,9 @@ impl<'a> Iterator for DocumentsIter<'a> {
 pub struct ScriptThread {
     /// The documents for pipelines managed by this thread
     documents: DOMRefCell<Documents>,
-    /// The browsing contexts known by this thread
+    /// The window proxies known by this thread
     /// TODO: this map grows, but never shrinks. Issue #15258.
-    browsing_contexts: DOMRefCell<HashMap<FrameId, JS<BrowsingContext>>>,
+    window_proxies: DOMRefCell<HashMap<FrameId, JS<WindowProxy>>>,
     /// A list of data pertaining to loads that have not yet received a network response
     incomplete_loads: DOMRefCell<Vec<InProgressLoad>>,
     /// A map to store service worker registrations for a given origin
@@ -656,10 +656,10 @@ impl ScriptThread {
         }))
     }
 
-    pub fn find_browsing_context(id: FrameId) -> Option<Root<BrowsingContext>> {
+    pub fn find_window_proxy(id: FrameId) -> Option<Root<WindowProxy>> {
         SCRIPT_THREAD_ROOT.with(|root| root.get().and_then(|script_thread| {
             let script_thread = unsafe { &*script_thread };
-            script_thread.browsing_contexts.borrow().get(&id)
+            script_thread.window_proxies.borrow().get(&id)
                 .map(|context| Root::from_ref(&**context))
         }))
     }
@@ -692,7 +692,7 @@ impl ScriptThread {
 
         ScriptThread {
             documents: DOMRefCell::new(Documents::new()),
-            browsing_contexts: DOMRefCell::new(HashMap::new()),
+            window_proxies: DOMRefCell::new(HashMap::new()),
             incomplete_loads: DOMRefCell::new(vec!()),
             registration_map: DOMRefCell::new(HashMap::new()),
             job_queue_map: Rc::new(JobQueue::new()),
@@ -1559,7 +1559,7 @@ impl ScriptThread {
         } else if let Some(document) = self.documents.borrow_mut().remove(id) {
             let window = document.window();
             if discard_bc == DiscardBrowsingContext::Yes {
-                window.browsing_context().discard();
+                window.window_proxy().discard_browsing_context();
             }
             window.clear_js_runtime();
             window.layout_chan().clone()
@@ -1682,59 +1682,59 @@ impl ScriptThread {
 
     // Get the browsing context for a pipeline that may exist in another
     // script thread.  If the browsing context already exists in the
-    // `browsing_contexts` map, we return it, otherwise we recursively
+    // `window_proxies` map, we return it, otherwise we recursively
     // get the browsing context for the parent if there is one,
     // construct a new dissimilar-origin browsing context, add it
-    // to the `browsing_contexts` map, and return it.
-    fn remote_browsing_context(&self,
+    // to the `window_proxies` map, and return it.
+    fn remote_window_proxy(&self,
                                global_to_clone: &GlobalScope,
                                pipeline_id: PipelineId)
-                               -> Option<Root<BrowsingContext>>
+                               -> Option<Root<WindowProxy>>
     {
         let frame_id = match self.ask_constellation_for_frame_id(pipeline_id) {
             Some(frame_id) => frame_id,
             None => return None,
         };
-        if let Some(browsing_context) = self.browsing_contexts.borrow().get(&frame_id) {
-            return Some(Root::from_ref(browsing_context));
+        if let Some(window_proxy) = self.window_proxies.borrow().get(&frame_id) {
+            return Some(Root::from_ref(window_proxy));
         }
         let parent = match self.ask_constellation_for_parent_info(pipeline_id) {
-            Some((parent_id, FrameType::IFrame)) => self.remote_browsing_context(global_to_clone, parent_id),
+            Some((parent_id, FrameType::IFrame)) => self.remote_window_proxy(global_to_clone, parent_id),
             _ => None,
         };
-        let browsing_context = BrowsingContext::new_dissimilar_origin(global_to_clone, frame_id, parent.r());
-        self.browsing_contexts.borrow_mut().insert(frame_id, JS::from_ref(&*browsing_context));
-        Some(browsing_context)
+        let window_proxy = WindowProxy::new_dissimilar_origin(global_to_clone, frame_id, parent.r());
+        self.window_proxies.borrow_mut().insert(frame_id, JS::from_ref(&*window_proxy));
+        Some(window_proxy)
     }
 
     // Get the browsing context for a pipeline that exists in this
     // script thread.  If the browsing context already exists in the
-    // `browsing_contexts` map, we return it, otherwise we recursively
+    // `window_proxies` map, we return it, otherwise we recursively
     // get the browsing context for the parent if there is one,
     // construct a new similar-origin browsing context, add it
-    // to the `browsing_contexts` map, and return it.
-    fn local_browsing_context(&self,
+    // to the `window_proxies` map, and return it.
+    fn local_window_proxy(&self,
                               window: &Window,
                               frame_id: FrameId,
                               parent_info: Option<(PipelineId, FrameType)>)
-                              -> Root<BrowsingContext>
+                              -> Root<WindowProxy>
     {
-        if let Some(browsing_context) = self.browsing_contexts.borrow().get(&frame_id) {
-            browsing_context.set_currently_active(&*window);
-            return Root::from_ref(browsing_context);
+        if let Some(window_proxy) = self.window_proxies.borrow().get(&frame_id) {
+            window_proxy.set_currently_active(&*window);
+            return Root::from_ref(window_proxy);
         }
         let iframe = match parent_info {
             Some((parent_id, FrameType::IFrame)) => self.documents.borrow().find_iframe(parent_id, frame_id),
             _ => None,
         };
         let parent = match (parent_info, iframe.as_ref()) {
-            (_, Some(iframe)) => Some(window_from_node(&**iframe).browsing_context()),
-            (Some((parent_id, FrameType::IFrame)), _) => self.remote_browsing_context(window.upcast(), parent_id),
+            (_, Some(iframe)) => Some(window_from_node(&**iframe).window_proxy()),
+            (Some((parent_id, FrameType::IFrame)), _) => self.remote_window_proxy(window.upcast(), parent_id),
             _ => None,
         };
-        let browsing_context = BrowsingContext::new(&window, frame_id, iframe.r().map(Castable::upcast), parent.r());
-        self.browsing_contexts.borrow_mut().insert(frame_id, JS::from_ref(&*browsing_context));
-        browsing_context
+        let window_proxy = WindowProxy::new(&window, frame_id, iframe.r().map(Castable::upcast), parent.r());
+        self.window_proxies.borrow_mut().insert(frame_id, JS::from_ref(&*window_proxy));
+        window_proxy
     }
 
     /// The entry point to document loading. Defines bindings, sets up the window and document
@@ -1790,8 +1790,8 @@ impl ScriptThread {
                                  self.webvr_thread.clone());
 
         // Initialize the browsing context for the window.
-        let browsing_context = self.local_browsing_context(&window, incomplete.frame_id, incomplete.parent_info);
-        window.init_browsing_context(&browsing_context);
+        let window_proxy = self.local_window_proxy(&window, incomplete.frame_id, incomplete.parent_info);
+        window.init_window_proxy(&window_proxy);
 
         let last_modified = metadata.headers.as_ref().and_then(|headers| {
             headers.get().map(|&LastModified(HttpDate(ref tm))| dom_last_modified(tm))

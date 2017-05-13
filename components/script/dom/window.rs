@@ -30,7 +30,6 @@ use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::RootedTraceableBox;
 use dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
 use dom::bluetooth::BluetoothExtraPermissionData;
-use dom::browsingcontext::BrowsingContext;
 use dom::crypto::Crypto;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use dom::document::{AnimationFrameCallback, Document};
@@ -49,6 +48,7 @@ use dom::promise::Promise;
 use dom::screen::Screen;
 use dom::storage::Storage;
 use dom::testrunner::TestRunner;
+use dom::windowproxy::WindowProxy;
 use dom_struct::dom_struct;
 use euclid::{Point2D, Rect, Size2D};
 use fetch;
@@ -175,7 +175,7 @@ pub struct Window {
     image_cache: Arc<ImageCache>,
     #[ignore_heap_size_of = "channels are hard"]
     image_cache_chan: Sender<ImageCacheMsg>,
-    browsing_context: MutNullableJS<BrowsingContext>,
+    window_proxy: MutNullableJS<WindowProxy>,
     document: MutNullableJS<Document>,
     history: MutNullableJS<History>,
     performance: MutNullableJS<Performance>,
@@ -280,7 +280,7 @@ impl Window {
     pub fn clear_js_runtime_for_script_deallocation(&self) {
         unsafe {
             *self.js_runtime.borrow_for_script_deallocation() = None;
-            self.browsing_context.set(None);
+            self.window_proxy.set(None);
             self.current_state.set(WindowState::Zombie);
             self.ignore_further_async_events.borrow().store(true, Ordering::Relaxed);
         }
@@ -332,12 +332,12 @@ impl Window {
     }
 
     /// This can panic if it is called after the browsing context has been discarded
-    pub fn browsing_context(&self) -> Root<BrowsingContext> {
-        self.browsing_context.get().unwrap()
+    pub fn window_proxy(&self) -> Root<WindowProxy> {
+        self.window_proxy.get().unwrap()
     }
 
-    pub fn maybe_browsing_context(&self) -> Option<Root<BrowsingContext>> {
-        self.browsing_context.get()
+    pub fn maybe_window_proxy(&self) -> Option<Root<WindowProxy>> {
+        self.window_proxy.get()
     }
 
     pub fn bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
@@ -545,12 +545,12 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-frameelement
     fn GetFrameElement(&self) -> Option<Root<Element>> {
         // Steps 1-3.
-        let context = match self.browsing_context.get() {
+        let window_proxy = match self.window_proxy.get() {
             None => return None,
-            Some(context) => context,
+            Some(window_proxy) => window_proxy,
         };
         // Step 4-5.
-        let container = match context.frame_element() {
+        let container = match window_proxy.frame_element() {
             None => return None,
             Some(container) => container,
         };
@@ -624,50 +624,50 @@ impl WindowMethods for Window {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window
-    fn Window(&self) -> Root<BrowsingContext> {
-        self.browsing_context()
+    fn Window(&self) -> Root<WindowProxy> {
+        self.window_proxy()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-self
-    fn Self_(&self) -> Root<BrowsingContext> {
-        self.browsing_context()
+    fn Self_(&self) -> Root<WindowProxy> {
+        self.window_proxy()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-frames
-    fn Frames(&self) -> Root<BrowsingContext> {
-        self.browsing_context()
+    fn Frames(&self) -> Root<WindowProxy> {
+        self.window_proxy()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-parent
-    fn GetParent(&self) -> Option<Root<BrowsingContext>> {
+    fn GetParent(&self) -> Option<Root<WindowProxy>> {
         // Steps 1-3.
-        let context = match self.maybe_browsing_context() {
-            Some(context) => context,
+        let window_proxy = match self.maybe_window_proxy() {
+            Some(window_proxy) => window_proxy,
             None => return None,
         };
-        if context.is_discarded() {
+        if window_proxy.is_browsing_context_discarded() {
             return None;
         }
         // Step 4.
-        if let Some(parent) = context.parent() {
+        if let Some(parent) = window_proxy.parent() {
             return Some(Root::from_ref(parent));
         }
         // Step 5.
-        Some(context)
+        Some(window_proxy)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-top
-    fn GetTop(&self) -> Option<Root<BrowsingContext>> {
+    fn GetTop(&self) -> Option<Root<WindowProxy>> {
         // Steps 1-3.
-        let context = match self.maybe_browsing_context() {
-            Some(context) => context,
+        let window_proxy = match self.maybe_window_proxy() {
+            Some(window_proxy) => window_proxy,
             None => return None,
         };
-        if context.is_discarded() {
+        if window_proxy.is_browsing_context_discarded() {
             return None;
         }
         // Steps 4-5.
-        Some(Root::from_ref(context.top()))
+        Some(Root::from_ref(window_proxy.top()))
     }
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
@@ -1036,7 +1036,7 @@ impl Window {
 
         self.current_state.set(WindowState::Zombie);
         *self.js_runtime.borrow_mut() = None;
-        self.browsing_context.set(None);
+        self.window_proxy.set(None);
         self.ignore_further_async_events.borrow().store(true, Ordering::SeqCst);
     }
 
@@ -1491,9 +1491,9 @@ impl Window {
     }
 
     #[allow(unsafe_code)]
-    pub fn init_browsing_context(&self, browsing_context: &BrowsingContext) {
-        assert!(self.browsing_context.get().is_none());
-        self.browsing_context.set(Some(&browsing_context));
+    pub fn init_window_proxy(&self, window_proxy: &WindowProxy) {
+        assert!(self.window_proxy.get().is_none());
+        self.window_proxy.set(Some(&window_proxy));
     }
 
     #[allow(unsafe_code)]
@@ -1625,8 +1625,8 @@ impl Window {
         self.upcast::<GlobalScope>().suspend();
 
         // Set the window proxy to be a cross-origin window.
-        if self.browsing_context().currently_active() == Some(self.global().pipeline_id()) {
-            self.browsing_context().unset_currently_active();
+        if self.window_proxy().currently_active() == Some(self.global().pipeline_id()) {
+            self.window_proxy().unset_currently_active();
         }
 
         // A hint to the JS runtime that now would be a good time to
@@ -1641,7 +1641,7 @@ impl Window {
         self.upcast::<GlobalScope>().resume();
 
         // Set the window proxy to be this object.
-        self.browsing_context().set_currently_active(self);
+        self.window_proxy().set_currently_active(self);
 
         // Push the document title to the compositor since we are
         // activating this document due to a navigation.
@@ -1790,7 +1790,7 @@ impl Window {
             image_cache: image_cache.clone(),
             navigator: Default::default(),
             history: Default::default(),
-            browsing_context: Default::default(),
+            window_proxy: Default::default(),
             document: Default::default(),
             performance: Default::default(),
             navigation_start: (current_time.sec * 1000 + current_time.nsec as i64 / 1000000) as u64,

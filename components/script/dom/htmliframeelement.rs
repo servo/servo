@@ -23,7 +23,6 @@ use dom::bindings::js::{LayoutJS, MutNullableJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
-use dom::browsingcontext::BrowsingContext;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
@@ -35,6 +34,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeDamage, UnbindContext, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::{ReflowReason, Window};
+use dom::windowproxy::WindowProxy;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
@@ -540,8 +540,8 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentwindow
-    fn GetContentWindow(&self) -> Option<Root<BrowsingContext>> {
-        self.pipeline_id.get().and_then(|_| ScriptThread::find_browsing_context(self.frame_id))
+    fn GetContentWindow(&self) -> Option<Root<WindowProxy>> {
+        self.pipeline_id.get().and_then(|_| ScriptThread::find_window_proxy(self.frame_id))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentdocument
@@ -769,7 +769,7 @@ impl VirtualMethods for HTMLIFrameElement {
         // when the `PipelineExit` message arrives.
         for exited_pipeline_id in exited_pipeline_ids {
             if let Some(exited_document) = ScriptThread::find_document(exited_pipeline_id) {
-                exited_document.window().browsing_context().discard();
+                exited_document.window().window_proxy().discard_browsing_context();
                 for exited_iframe in exited_document.iter_iframes() {
                     exited_iframe.pipeline_id.set(None);
                 }
