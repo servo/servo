@@ -12,115 +12,21 @@ ${helpers.predefined_type("background-color", "CSSColor",
     spec="https://drafts.csswg.org/css-backgrounds/#background-color",
     animation_value_type="IntermediateColor", complex_color=True)}
 
-<%helpers:vector_longhand name="background-image" animation_value_type="none"
-                          spec="https://drafts.csswg.org/css-backgrounds/#the-background-image"
-                          has_uncacheable_values="${product == 'gecko'}">
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::HasViewportPercentage;
-    use values::specified::Image;
+${helpers.predefined_type("background-image", "LayerImage",
+    initial_value="computed_value::T(None)",
+    initial_specified_value="SpecifiedValue(None)",
+    spec="https://drafts.csswg.org/css-backgrounds/#the-background-image",
+    vector="True",
+    animation_value_type="none",
+    has_uncacheable_values="True" if product == "gecko" else "False")}
 
-    pub mod computed_value {
-        use values::computed;
-        #[derive(Debug, Clone, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Option<computed::Image>);
-    }
-
-    impl ToCss for computed_value::T {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match self.0 {
-                None => dest.write_str("none"),
-                Some(ref image) => image.to_css(dest),
-            }
-        }
-    }
-
-    no_viewport_percentage!(SpecifiedValue);
-
-    #[derive(Debug, Clone, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedValue(pub Option<Image>);
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                SpecifiedValue(Some(ref image)) => image.to_css(dest),
-                SpecifiedValue(None) => dest.write_str("none"),
-            }
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(None)
-    }
-    #[inline]
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue(None)
-    }
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            Ok(SpecifiedValue(None))
-        } else {
-            Ok(SpecifiedValue(Some(try!(Image::parse(context, input)))))
-        }
-    }
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            match *self {
-                SpecifiedValue(None) => computed_value::T(None),
-                SpecifiedValue(Some(ref image)) =>
-                    computed_value::T(Some(image.to_computed_value(context))),
-            }
-        }
-
-        #[inline]
-        fn from_computed_value(computed: &computed_value::T) -> Self {
-            match *computed {
-                computed_value::T(None) => SpecifiedValue(None),
-                computed_value::T(Some(ref image)) =>
-                    SpecifiedValue(Some(ToComputedValue::from_computed_value(image))),
-            }
-        }
-    }
-</%helpers:vector_longhand>
-
-<%helpers:predefined_type name="background-position-x" type="position::HorizontalPosition"
-                          initial_value="computed::position::HorizontalPosition::zero()"
-                          initial_specified_value="specified::position::HorizontalPosition::left()"
-                          spec="https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-x"
-                          animation_value_type="ComputedValue" vector="True" delegate_animate="True">
-    #[inline]
-    /// Get the initial value for horizontal position.
-    pub fn get_initial_position_value() -> SpecifiedValue {
-        use values::generics::position::{HorizontalPosition, PositionValue};
-        use values::specified::{LengthOrPercentage, Percentage};
-        HorizontalPosition(PositionValue {
-            keyword: None,
-            position: Some(LengthOrPercentage::Percentage(Percentage(0.0))),
-        })
-    }
-</%helpers:predefined_type>
-
-<%helpers:predefined_type name="background-position-y" type="position::VerticalPosition"
-                          initial_value="computed::position::VerticalPosition::zero()"
-                          initial_specified_value="specified::position::VerticalPosition::top()"
-                          spec="https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-y"
-                          animation_value_type="ComputedValue" vector="True" delegate_animate="True">
-    /// Get the initial value for vertical position.
-    pub fn get_initial_position_value() -> SpecifiedValue {
-        use values::generics::position::{VerticalPosition, PositionValue};
-        use values::specified::{LengthOrPercentage, Percentage};
-        VerticalPosition(PositionValue {
-            keyword: None,
-            position: Some(LengthOrPercentage::Percentage(Percentage(0.0))),
-        })
-    }
-</%helpers:predefined_type>
+% for (axis, direction, initial) in [("x", "Horizontal", "left"), ("y", "Vertical", "top")]:
+    ${helpers.predefined_type("background-position-" + axis, "position::" + direction + "Position",
+                              initial_value="computed::LengthOrPercentage::zero()",
+                              initial_specified_value="SpecifiedValue::initial_specified_value()",
+                              spec="https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-" + axis,
+                              animation_value_type="ComputedValue", vector=True, delegate_animate=True)}
+% endfor
 
 <%helpers:vector_longhand name="background-repeat" animation_value_type="none"
                           spec="https://drafts.csswg.org/css-backgrounds/#the-background-repeat">
@@ -264,7 +170,7 @@ ${helpers.single_keyword("background-origin",
     #[allow(missing_docs)]
     pub mod computed_value {
         use values::computed::LengthOrPercentageOrAuto;
-        use properties::animated_properties::{ComputeDistance, Interpolate, RepeatableListInterpolate};
+        use properties::animated_properties::{Animatable, RepeatableListAnimatable};
 
         #[derive(PartialEq, Clone, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -281,9 +187,9 @@ ${helpers.single_keyword("background-origin",
             Contain,
         }
 
-        impl RepeatableListInterpolate for T {}
+        impl RepeatableListAnimatable for T {}
 
-        impl Interpolate for T {
+        impl Animatable for T {
             fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
                 use properties::longhands::background_size::single_value::computed_value::ExplicitSize;
                 match (self, other) {
@@ -296,9 +202,7 @@ ${helpers.single_keyword("background-origin",
                     _ => Err(()),
                 }
             }
-        }
 
-        impl ComputeDistance for T {
             #[inline]
             fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
                 self.compute_squared_distance(other).map(|sd| sd.sqrt())

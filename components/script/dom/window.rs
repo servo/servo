@@ -1066,8 +1066,8 @@ impl Window {
                 let content_size = e.upcast::<Node>().bounding_content_box_or_zero();
                 let content_height = content_size.size.height.to_f64_px();
                 let content_width = content_size.size.width.to_f64_px();
-                (xfinite.max(0.0f64).min(content_width - width),
-                 yfinite.max(0.0f64).min(content_height - height))
+                (xfinite.min(content_width - width).max(0.0f64),
+                 yfinite.min(content_height - height).max(0.0f64))
             },
             None => {
                 (xfinite.max(0.0f64), yfinite.max(0.0f64))
@@ -1537,10 +1537,10 @@ impl Window {
                 }
         }
 
+        let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
         self.main_thread_script_chan().send(
-            MainThreadScriptMsg::Navigate(self.upcast::<GlobalScope>().pipeline_id(),
-                LoadData::new(url, referrer_policy, Some(doc.url())),
-                replace)).unwrap();
+            MainThreadScriptMsg::Navigate(pipeline_id,
+                LoadData::new(url, Some(pipeline_id), referrer_policy, Some(doc.url())), replace)).unwrap();
     }
 
     pub fn handle_fire_timer(&self, timer_id: TimerEventId) {

@@ -8,7 +8,6 @@
 #![deny(missing_docs)]
 
 use Atom;
-use animation::{self, Animation, PropertyAnimation};
 use atomic_refcell::AtomicRefMut;
 use bit_vec::BitVec;
 use cache::{LRUCache, LRUCacheMutIterator};
@@ -26,14 +25,17 @@ use selector_parser::{PseudoElement, RestyleDamage, SelectorImpl};
 use selectors::bloom::BloomFilter;
 use selectors::matching::{ElementSelectorFlags, StyleRelations};
 use selectors::matching::AFFECTED_BY_PSEUDO_ELEMENTS;
+use shared_lock::StylesheetGuards;
 use sink::ForgetfulSink;
 use stylearc::Arc;
 use stylist::ApplicableDeclarationBlock;
 
 /// The way a style should be inherited.
 enum InheritMode {
-    /// Inherit from the parent element, as normal CSS dictates.
-    FromParentElement,
+    /// Inherit from the parent element, as normal CSS dictates, _or_ from the
+    /// closest non-Native Anonymous element in case this is Native Anonymous
+    /// Content.
+    Normal,
     /// Inherit from the primary style, this is used while computing eager
     /// pseudos, like ::before and ::after when we're traversing the parent.
     FromPrimaryStyle,
@@ -196,7 +198,7 @@ fn element_matches_candidate<E: TElement>(element: &E,
     }
 
     let data = candidate_element.borrow_data().unwrap();
-    debug_assert!(data.has_current_styles());
+    debug_assert!(element.has_current_styles(&data));
     let current_styles = data.styles();
 
     debug!("Sharing style between {:?} and {:?}", element, candidate_element);
@@ -422,8 +424,8 @@ trait PrivateMatchMethods: TElement {
         let parent_el;
         let parent_data;
         let style_to_inherit_from = match inherit_mode {
-            InheritMode::FromParentElement => {
-                parent_el = self.parent_element();
+            InheritMode::Normal => {
+                parent_el = self.inheritance_parent();
                 parent_data = parent_el.as_ref().and_then(|e| e.borrow_data());
                 let parent_values = parent_data.as_ref().map(|d| {
                     // Sometimes Gecko eagerly styles things without processing
@@ -432,7 +434,8 @@ trait PrivateMatchMethods: TElement {
                     // construct a frame for some small piece of newly-added
                     // content in order to do something specific with that frame,
                     // but not wanting to flush all of layout).
-                    debug_assert!(cfg!(feature = "gecko") || d.has_current_styles());
+                    debug_assert!(cfg!(feature = "gecko") ||
+                                  parent_el.unwrap().has_current_styles(d));
                     d.styles().primary.values()
                 });
 
@@ -498,7 +501,7 @@ trait PrivateMatchMethods: TElement {
         let inherit_mode = if eager_pseudo_style.is_some() {
             InheritMode::FromPrimaryStyle
         } else {
-            InheritMode::FromParentElement
+            InheritMode::Normal
         };
 
         self.cascade_with_rules(context.shared,
@@ -621,7 +624,7 @@ trait PrivateMatchMethods: TElement {
                                      &context.thread_local.font_metrics_provider,
                                      &without_transition_rules,
                                      primary_style,
-                                     InheritMode::FromParentElement))
+                                     InheritMode::Normal))
     }
 
     #[cfg(feature = "gecko")]
@@ -717,6 +720,8 @@ trait PrivateMatchMethods: TElement {
                           old_values: &mut Option<Arc<ComputedValues>>,
                           new_values: &mut Arc<ComputedValues>,
                           _primary_style: &ComputedStyle) {
+        use animation;
+
         let possibly_expired_animations =
             &mut context.thread_local.current_element_info.as_mut().unwrap()
                         .possibly_expired_animations;
@@ -802,11 +807,14 @@ trait PrivateMatchMethods: TElement {
         }
     }
 
+    #[cfg(feature = "servo")]
     fn update_animations_for_cascade(&self,
                                      context: &SharedStyleContext,
                                      style: &mut Arc<ComputedValues>,
-                                     possibly_expired_animations: &mut Vec<PropertyAnimation>,
+                                     possibly_expired_animations: &mut Vec<::animation::PropertyAnimation>,
                                      font_metrics: &FontMetricsProvider) {
+        use animation::{self, Animation};
+
         // Finish any expired transitions.
         let this_opaque = self.as_node().opaque();
         animation::complete_expired_transitions(this_opaque, style, context);
@@ -857,11 +865,12 @@ trait PrivateMatchMethods: TElement {
 }
 
 fn compute_rule_node<E: TElement>(rule_tree: &RuleTree,
-                                  applicable_declarations: &mut Vec<ApplicableDeclarationBlock>)
+                                  applicable_declarations: &mut Vec<ApplicableDeclarationBlock>,
+                                  guards: &StylesheetGuards)
                                   -> StrongRuleNode
 {
     let rules = applicable_declarations.drain(..).map(|d| (d.source, d.level));
-    let rule_node = rule_tree.insert_ordered_rules(rules);
+    let rule_node = rule_tree.insert_ordered_rules_with_important(rules, guards);
     rule_node
 }
 
@@ -999,19 +1008,28 @@ pub trait MatchMethods : TElement {
             self.apply_selector_flags(map, element, flags);
         };
 
+        let selector_matching_target = match implemented_pseudo {
+            Some(..) => {
+                self.closest_non_native_anonymous_ancestor()
+                    .expect("Pseudo-element without non-NAC parent?")
+            },
+            None => *self,
+        };
+
         // Compute the primary rule node.
-        *relations = stylist.push_applicable_declarations(self,
+        *relations = stylist.push_applicable_declarations(&selector_matching_target,
                                                           Some(bloom),
                                                           style_attribute,
                                                           smil_override,
                                                           animation_rules,
                                                           implemented_pseudo.as_ref(),
-                                                          &context.shared.guards,
                                                           &mut applicable_declarations,
                                                           &mut set_selector_flags);
 
         let primary_rule_node =
-            compute_rule_node::<Self>(&stylist.rule_tree, &mut applicable_declarations);
+            compute_rule_node::<Self>(&stylist.rule_tree,
+                                      &mut applicable_declarations,
+                                      &context.shared.guards);
 
         return data.set_primary_rules(primary_rule_node);
     }
@@ -1060,13 +1078,14 @@ pub trait MatchMethods : TElement {
                                                  None,
                                                  AnimationRules(None, None),
                                                  Some(&pseudo),
-                                                 &guards,
                                                  &mut applicable_declarations,
                                                  &mut set_selector_flags);
 
             if !applicable_declarations.is_empty() {
                 let new_rules =
-                    compute_rule_node::<Self>(rule_tree, &mut applicable_declarations);
+                    compute_rule_node::<Self>(rule_tree,
+                                              &mut applicable_declarations,
+                                              &guards);
                 if pseudos.has(&pseudo) {
                     rule_nodes_changed = pseudos.set_rules(&pseudo, new_rules);
                 } else {
@@ -1443,7 +1462,7 @@ pub trait MatchMethods : TElement {
                                 font_metrics_provider,
                                 &without_animation_rules,
                                 primary_style,
-                                InheritMode::FromParentElement)
+                                InheritMode::Normal)
     }
 
 }

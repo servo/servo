@@ -267,7 +267,7 @@ pub unsafe fn raw_note_descendants<E, B>(element: E) -> bool
 }
 
 /// A trait used to synthesize presentational hints for HTML element attributes.
-pub trait PresentationalHintsSynthetizer {
+pub trait PresentationalHintsSynthesizer {
     /// Generate the proper applicable declarations due to presentational hints,
     /// and insert them into `hints`.
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
@@ -290,7 +290,7 @@ impl AnimationRules {
 
 /// The element trait, the main abstraction the style crate acts over.
 pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
-                     ElementExt + PresentationalHintsSynthetizer {
+                     ElementExt + PresentationalHintsSynthesizer {
     /// The concrete node type.
     type ConcreteNode: TNode<ConcreteElement = Self>;
 
@@ -323,6 +323,21 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
         } else {
             self.parent_element()
         }
+    }
+
+    /// Returns the parent element we should inherit from.
+    ///
+    /// This is pretty much always the parent element itself, except in the case
+    /// of Gecko's Native Anonymous Content, which may need to find the closest
+    /// non-NAC ancestor.
+    fn inheritance_parent(&self) -> Option<Self> {
+        self.parent_element()
+    }
+
+    /// For a given NAC element, return the closest non-NAC ancestor, which is
+    /// guaranteed to exist.
+    fn closest_non_native_anonymous_ancestor(&self) -> Option<Self> {
+        unreachable!("Servo doesn't know about NAC");
     }
 
     /// Get this element's style attribute.
@@ -384,6 +399,26 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// it may have been removed from the DOM between marking it for restyle and
     /// the actual restyle traversal.
     fn has_dirty_descendants(&self) -> bool;
+
+    /// Returns whether state or attributes that may change style have changed
+    /// on the element, and thus whether the element has been snapshotted to do
+    /// restyle hint computation.
+    fn has_snapshot(&self) -> bool;
+
+    /// Returns whether the current snapshot if present has been handled.
+    fn handled_snapshot(&self) -> bool;
+
+    /// Flags this element as having handled already its snapshot.
+    unsafe fn set_handled_snapshot(&self);
+
+    /// Returns whether the element's styles are up-to-date.
+    fn has_current_styles(&self, data: &ElementData) -> bool {
+        if self.has_snapshot() && !self.handled_snapshot() {
+            return false;
+        }
+
+        data.has_styles() && !data.has_invalidations()
+    }
 
     /// Flags an element and its ancestors with a given `DescendantsBit`.
     ///

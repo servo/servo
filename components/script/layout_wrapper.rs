@@ -39,11 +39,12 @@ use dom::characterdata::LayoutCharacterDataHelpers;
 use dom::document::{Document, LayoutDocumentHelpers, PendingRestyle};
 use dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
 use dom::node::{CAN_BE_FRAGMENTED, DIRTY_ON_VIEWPORT_SIZE_CHANGE, HAS_DIRTY_DESCENDANTS, IS_IN_DOC};
+use dom::node::{HANDLED_SNAPSHOT, HAS_SNAPSHOT};
 use dom::node::{LayoutNodeHelpers, Node};
 use dom::text::Text;
 use gfx_traits::ByteIndex;
 use html5ever::{LocalName, Namespace};
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{FrameId, PipelineId};
 use range::Range;
 use script_layout_interface::{HTMLCanvasData, LayoutNodeType, SVGSVGData, TrustedNodeAddress};
 use script_layout_interface::{OpaqueStyleAndLayoutData, PartialPersistentLayoutData};
@@ -65,7 +66,7 @@ use style::computed_values::display;
 use style::context::{QuirksMode, SharedStyleContext};
 use style::data::ElementData;
 use style::dom::{DescendantsBit, DirtyDescendants, LayoutIterator, NodeInfo, OpaqueNode};
-use style::dom::{PresentationalHintsSynthetizer, TElement, TNode, UnsafeNode};
+use style::dom::{PresentationalHintsSynthesizer, TElement, TNode, UnsafeNode};
 use style::element_state::*;
 use style::font_metrics::ServoMetricsProvider;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
@@ -362,7 +363,7 @@ impl<'le> fmt::Debug for ServoLayoutElement<'le> {
     }
 }
 
-impl<'le> PresentationalHintsSynthetizer for ServoLayoutElement<'le> {
+impl<'le> PresentationalHintsSynthesizer for ServoLayoutElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
         where V: Push<ApplicableDeclarationBlock>
     {
@@ -413,6 +414,18 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         unsafe { self.as_node().node.get_flag(HAS_DIRTY_DESCENDANTS) }
     }
 
+    fn has_snapshot(&self) -> bool {
+        unsafe { self.as_node().node.get_flag(HAS_SNAPSHOT) }
+    }
+
+    fn handled_snapshot(&self) -> bool {
+        unsafe { self.as_node().node.get_flag(HANDLED_SNAPSHOT) }
+    }
+
+    unsafe fn set_handled_snapshot(&self) {
+        self.as_node().node.set_flag(HANDLED_SNAPSHOT, true);
+    }
+
     unsafe fn note_descendants<B: DescendantsBit<Self>>(&self) {
         debug_assert!(self.get_data().is_some());
         style::dom::raw_note_descendants::<Self, B>(*self);
@@ -442,7 +455,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     fn get_data(&self) -> Option<&AtomicRefCell<ElementData>> {
         unsafe {
             self.get_style_and_layout_data().map(|d| {
-                let ppld: &AtomicRefCell<PartialPersistentLayoutData> = &**d.ptr;
+                let ppld: &AtomicRefCell<PartialPersistentLayoutData> = &*d.ptr.get();
                 let psd: &AtomicRefCell<ElementData> = transmute(ppld);
                 psd
             })
@@ -505,8 +518,16 @@ impl<'le> ServoLayoutElement<'le> {
 
     fn get_partial_layout_data(&self) -> Option<&AtomicRefCell<PartialPersistentLayoutData>> {
         unsafe {
-            self.get_style_and_layout_data().map(|d| &**d.ptr)
+            self.get_style_and_layout_data().map(|d| &*d.ptr.get())
         }
+    }
+
+    pub unsafe fn unset_snapshot_flags(&self) {
+        self.as_node().node.set_flag(HAS_SNAPSHOT | HANDLED_SNAPSHOT, false);
+    }
+
+    pub unsafe fn set_has_snapshot(&self) {
+        self.as_node().node.set_flag(HAS_SNAPSHOT, true);
     }
 
     // FIXME(bholley): This should be merged with TElement::note_descendants,
@@ -887,6 +908,11 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         this.svg_data()
     }
 
+    fn iframe_frame_id(&self) -> FrameId {
+        let this = unsafe { self.get_jsmanaged() };
+        this.iframe_frame_id()
+    }
+
     fn iframe_pipeline_id(&self) -> PipelineId {
         let this = unsafe { self.get_jsmanaged() };
         this.iframe_pipeline_id()
@@ -1162,7 +1188,7 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
     }
 }
 
-impl<'le> PresentationalHintsSynthetizer for ServoThreadSafeLayoutElement<'le> {
+impl<'le> PresentationalHintsSynthesizer for ServoThreadSafeLayoutElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, _hints: &mut V)
         where V: Push<ApplicableDeclarationBlock> {}
 }

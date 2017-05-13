@@ -406,3 +406,173 @@ ${helpers.predefined_type("object-position",
         }
     }
 </%helpers:longhand>
+
+<%helpers:longhand name="grid-template-areas"
+        spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-areas"
+        products="gecko"
+        animation_value_type="none"
+        disable_when_testing="True"
+        boxed="True">
+    use cssparser::serialize_string;
+    use std::collections::HashMap;
+    use std::fmt;
+    use std::ops::Range;
+    use str::HTML_SPACE_CHARACTERS;
+    use style_traits::ToCss;
+    use style_traits::values::Css;
+    use values::HasViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+
+    pub mod computed_value {
+        pub use super::SpecifiedValue as T;
+    }
+
+    pub type SpecifiedValue = Either<TemplateAreas, None_>;
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        Either::Second(None_)
+    }
+
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        SpecifiedValue::parse(context, input)
+    }
+
+    #[derive(Clone, PartialEq)]
+    pub struct TemplateAreas {
+        pub areas: Box<[NamedArea]>,
+        pub strings: Box<[Box<str>]>,
+        pub width: u32,
+    }
+
+    #[derive(Clone, PartialEq)]
+    pub struct NamedArea {
+        pub name: Box<str>,
+        pub rows: Range<u32>,
+        pub columns: Range<u32>,
+    }
+
+    no_viewport_percentage!(TemplateAreas);
+    impl ComputedValueAsSpecified for TemplateAreas {}
+
+    impl Parse for TemplateAreas {
+        fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+            let mut strings = vec![];
+            while let Ok(string) = input.try(Parser::expect_string) {
+                strings.push(string.into_owned().into_boxed_str());
+            }
+            if strings.is_empty() {
+                return Err(());
+            }
+            let mut areas: Vec<NamedArea> = vec![];
+            let mut width = 0;
+            {
+                let mut row = 0u32;
+                let mut area_indices = HashMap::<(&str), usize>::new();
+                for string in &strings {
+                    let mut current_area_index: Option<usize> = None;
+                    row += 1;
+                    let mut column = 0u32;
+                    for token in Tokenizer(string) {
+                        column += 1;
+                        let token = if let Some(token) = token? {
+                            token
+                        } else {
+                            if let Some(index) = current_area_index.take() {
+                                if areas[index].columns.end != column {
+                                    return Err(());
+                                }
+                            }
+                            continue;
+                        };
+                        if let Some(index) = current_area_index {
+                            if &*areas[index].name == token {
+                                if areas[index].rows.start == row {
+                                    areas[index].columns.end += 1;
+                                }
+                                continue;
+                            }
+                            if areas[index].columns.end != column {
+                                return Err(());
+                            }
+                        }
+                        if let Some(index) = area_indices.get(token).cloned() {
+                            if areas[index].columns.start != column || areas[index].rows.end != row {
+                                return Err(());
+                            }
+                            areas[index].rows.end += 1;
+                            current_area_index = Some(index);
+                            continue;
+                        }
+                        let index = areas.len();
+                        areas.push(NamedArea {
+                            name: token.to_owned().into_boxed_str(),
+                            columns: column..(column + 1),
+                            rows: row..(row + 1),
+                        });
+                        assert!(area_indices.insert(token, index).is_none());
+                        current_area_index = Some(index);
+                    }
+                    if let Some(index) = current_area_index {
+                        if areas[index].columns.end != column + 1 {
+                            assert!(areas[index].rows.start != row);
+                            return Err(());
+                        }
+                    }
+                    if row == 1 {
+                        width = column;
+                    } else if width != column {
+                        return Err(());
+                    }
+                }
+            }
+            Ok(TemplateAreas {
+                areas: areas.into_boxed_slice(),
+                strings: strings.into_boxed_slice(),
+                width: width,
+            })
+        }
+    }
+
+    impl ToCss for TemplateAreas {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            for (i, string) in self.strings.iter().enumerate() {
+                if i != 0 {
+                    dest.write_str(" ")?;
+                }
+                serialize_string(string, dest)?;
+            }
+            Ok(())
+        }
+    }
+
+    struct Tokenizer<'a>(&'a str);
+
+    impl<'a> Iterator for Tokenizer<'a> {
+        type Item = Result<Option<(&'a str)>, ()>;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            let rest = self.0.trim_left_matches(HTML_SPACE_CHARACTERS);
+            if rest.is_empty() {
+                return None;
+            }
+            if rest.starts_with('.') {
+                self.0 = &rest[rest.find(|c| c != '.').unwrap_or(rest.len())..];
+                return Some(Ok(None));
+            }
+            if !rest.starts_with(is_name_code_point) {
+                return Some(Err(()));
+            }
+            let token_len = rest.find(|c| !is_name_code_point(c)).unwrap_or(rest.len());
+            let token = &rest[..token_len];
+            self.0 = &rest[token_len..];
+            Some(Ok(Some(token)))
+        }
+    }
+
+    fn is_name_code_point(c: char) -> bool {
+        c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' ||
+        c >= '\u{80}' || c == '_' ||
+        c >= '0' && c <= '9' || c == '-'
+    }
+</%helpers:longhand>

@@ -20,7 +20,6 @@ use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSContext, JSObject};
 use js::typedarray::{Float64Array, CreateWith};
 use std::cell::Cell;
-use std::ptr;
 use webvr_traits::{WebVRGamepadData, WebVRGamepadHand, WebVRGamepadState};
 
 #[dom_struct]
@@ -47,7 +46,6 @@ impl Gamepad {
                      connected: bool,
                      timestamp: f64,
                      mapping_type: String,
-                     axes: *mut JSObject,
                      buttons: &GamepadButtonList,
                      pose: Option<&VRPose>,
                      hand: WebVRGamepadHand,
@@ -60,7 +58,7 @@ impl Gamepad {
             connected: Cell::new(connected),
             timestamp: Cell::new(timestamp),
             mapping_type: mapping_type,
-            axes: Heap::new(axes),
+            axes: Heap::default(),
             buttons: JS::from_ref(buttons),
             pose: pose.map(JS::from_ref),
             hand: hand,
@@ -75,28 +73,24 @@ impl Gamepad {
                        state: &WebVRGamepadState) -> Root<Gamepad> {
         let buttons = GamepadButtonList::new_from_vr(&global, &state.buttons);
         let pose = VRPose::new(&global, &state.pose);
-        let cx = global.get_cx();
-        rooted!(in (cx) let mut axes = ptr::null_mut());
+
+        let gamepad = reflect_dom_object(box Gamepad::new_inherited(state.gamepad_id,
+                                                                    data.name.clone(),
+                                                                    index,
+                                                                    state.connected,
+                                                                    state.timestamp,
+                                                                    "".into(),
+                                                                    &buttons,
+                                                                    Some(&pose),
+                                                                    data.hand.clone(),
+                                                                    data.display_id),
+                                         global,
+                                         GamepadBinding::Wrap);
         unsafe {
-            let _ = Float64Array::create(cx,
-                                         CreateWith::Slice(&state.axes),
-                                         axes.handle_mut());
+           let _ = Float64Array::create(global.get_cx(), CreateWith::Slice(&state.axes), gamepad.axes.handle_mut());
         }
 
-        reflect_dom_object(box Gamepad::new_inherited(state.gamepad_id,
-                                                      data.name.clone(),
-                                                      index,
-                                                      state.connected,
-                                                      state.timestamp,
-                                                      "".into(),
-                                                      axes.get(),
-                                                      &buttons,
-                                                      Some(&pose),
-                                                      data.hand.clone(),
-                                                      data.display_id),
-                           global,
-                           GamepadBinding::Wrap)
-
+        gamepad
     }
 }
 

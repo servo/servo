@@ -58,7 +58,7 @@ bitflags! {
         /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-suppressed
         const IN_SUPPRESSED_STATE = 1 << 16,
         /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-loading
-        const IN_LOADING_STATE = 1 << 18,
+        const IN_LOADING_STATE = 1 << 17,
         /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-handler-blocked
         const IN_HANDLER_BLOCKED_STATE = 1 << 18,
         /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-handler-disabled
@@ -115,5 +115,9 @@ bitflags! {
         const IN_HANDLER_VULNERABLE_NO_UPDATE_STATE = 1 << 42,
         /// https://drafts.csswg.org/selectors-4/#the-focus-within-pseudo
         const IN_FOCUS_WITHIN_STATE = 1 << 43,
+        /// Non-standard & undocumented.
+        const IN_AUTOFILL_STATE = 1 << 50,
+        /// Non-standard & undocumented.
+        const IN_AUTOFILL_PREVIEW_STATE = 1 << 51,
     }
 }

@@ -25,7 +25,10 @@ use std::slice;
 
 #[macro_use]
 #[allow(improper_ctypes, non_camel_case_types, missing_docs)]
-pub mod atom_macro;
+pub mod atom_macro {
+    include!(concat!(env!("OUT_DIR"), "/gecko/atom_macro.rs"));
+}
+
 #[macro_use]
 pub mod namespace;
 
@@ -224,6 +227,14 @@ impl Atom {
         unsafe {
             Atom(WeakAtom::new(ptr))
         }
+    }
+
+    /// Convert this atom into an addrefed nsIAtom pointer.
+    #[inline]
+    pub fn into_addrefed(self) -> *mut nsIAtom {
+        let ptr = self.as_ptr();
+        mem::forget(self);
+        ptr
     }
 
     /// Return whether two atoms are ASCII-case-insensitive matches

@@ -14,7 +14,7 @@ use std::borrow::Cow;
 use std::collections::HashSet;
 use std::fmt;
 use std::ops::Deref;
-use stylearc::Arc;
+use stylearc::{Arc, UniqueArc};
 
 use app_units::Au;
 #[cfg(feature = "servo")] use cssparser::{Color as CSSParserColor, RGBA};
@@ -484,8 +484,8 @@ bitflags! {
         /// This property has values that can establish a containing block for
         /// absolutely positioned elements.
         const ABSPOS_CB = 1 << 2,
-        /// This property(shorthand) is an alias of another property.
-        const ALIAS_PROPERTY = 1 << 3,
+        /// This shorthand property is an alias of another property.
+        const SHORTHAND_ALIAS_PROPERTY = 1 << 3,
     }
 }
 
@@ -1262,8 +1262,14 @@ impl ToCss for PropertyDeclaration {
             PropertyDeclaration::CSSWideKeyword(_, keyword) => keyword.to_css(dest),
             PropertyDeclaration::WithVariables(_, ref with_variables) => {
                 // https://drafts.csswg.org/css-variables/#variables-in-shorthands
-                if with_variables.from_shorthand.is_none() {
-                    dest.write_str(&*with_variables.css)?
+                match with_variables.from_shorthand {
+                    // Normally, we shouldn't be printing variables here if they came from
+                    // shorthands. But we should allow properties that came from shorthand
+                    // aliases. That also matches with the Gecko behavior.
+                    Some(shorthand) if shorthand.flags().contains(SHORTHAND_ALIAS_PROPERTY) =>
+                        dest.write_str(&*with_variables.css)?,
+                    None => dest.write_str(&*with_variables.css)?,
+                    _ => {},
                 }
                 Ok(())
             },
@@ -1341,7 +1347,16 @@ impl PropertyDeclaration {
                     if s == shorthand {
                         Some(&*with_variables.css)
                     } else { None }
-                } else { None }
+                } else {
+                    // Normally, longhand property that doesn't come from a shorthand
+                    // should return None here. But we return Some to longhands if they
+                    // came from a shorthand alias. Because for example, we should be able to
+                    // get -moz-transform's value from transform.
+                    if shorthand.flags().contains(SHORTHAND_ALIAS_PROPERTY) {
+                        return Some(&*with_variables.css);
+                    }
+                    None
+                }
             },
             _ => None,
         }
@@ -1509,12 +1524,26 @@ pub mod style_structs {
                 % if longhand.logical:
                     ${helpers.logical_setter(name=longhand.name)}
                 % else:
-                    /// Set ${longhand.name}.
-                    #[allow(non_snake_case)]
-                    #[inline]
-                    pub fn set_${longhand.ident}(&mut self, v: longhands::${longhand.ident}::computed_value::T) {
-                        self.${longhand.ident} = v;
-                    }
+                    % if longhand.is_vector:
+                        /// Set ${longhand.name}.
+                        #[allow(non_snake_case)]
+                        #[inline]
+                        pub fn set_${longhand.ident}<I>(&mut self, v: I)
+                            where I: IntoIterator<Item = longhands::${longhand.ident}
+                                                                  ::computed_value::single_value::T>,
+                                  I::IntoIter: ExactSizeIterator
+                        {
+                            self.${longhand.ident} = longhands::${longhand.ident}::computed_value
+                                                              ::T(v.into_iter().collect());
+                        }
+                    % else:
+                        /// Set ${longhand.name}.
+                        #[allow(non_snake_case)]
+                        #[inline]
+                        pub fn set_${longhand.ident}(&mut self, v: longhands::${longhand.ident}::computed_value::T) {
+                            self.${longhand.ident} = v;
+                        }
+                    % endif
                     /// Set ${longhand.name} from other struct.
                     #[allow(non_snake_case)]
                     #[inline]
@@ -2057,7 +2086,9 @@ pub enum StyleStructRef<'a, T: 'a> {
     /// A borrowed struct from the parent, for example, for inheriting style.
     Borrowed(&'a Arc<T>),
     /// An owned struct, that we've already mutated.
-    Owned(Arc<T>),
+    Owned(UniqueArc<T>),
+    /// Temporarily vacated, will panic if accessed
+    Vacated,
 }
 
 impl<'a, T: 'a> StyleStructRef<'a, T>
@@ -2067,21 +2098,45 @@ impl<'a, T: 'a> StyleStructRef<'a, T>
     /// borrowed value, or returning the owned one.
     pub fn mutate(&mut self) -> &mut T {
         if let StyleStructRef::Borrowed(v) = *self {
-            *self = StyleStructRef::Owned(Arc::new((**v).clone()));
+            *self = StyleStructRef::Owned(UniqueArc::new((**v).clone()));
         }
 
         match *self {
-            StyleStructRef::Owned(ref mut v) => Arc::get_mut(v).unwrap(),
+            StyleStructRef::Owned(ref mut v) => v,
             StyleStructRef::Borrowed(..) => unreachable!(),
+            StyleStructRef::Vacated => panic!("Accessed vacated style struct")
         }
+    }
+
+    /// Extract a unique Arc from this struct, vacating it.
+    ///
+    /// The vacated state is a transient one, please put the Arc back
+    /// when done via `put()`. This function is to be used to separate
+    /// the struct being mutated from the computed context
+    pub fn take(&mut self) -> UniqueArc<T> {
+        use std::mem::replace;
+        let inner = replace(self, StyleStructRef::Vacated);
+
+        match inner {
+            StyleStructRef::Owned(arc) => arc,
+            StyleStructRef::Borrowed(arc) => UniqueArc::new((**arc).clone()),
+            StyleStructRef::Vacated => panic!("Accessed vacated style struct"),
+        }
+    }
+
+    /// Replace vacated ref with an arc
+    pub fn put(&mut self, arc: UniqueArc<T>) {
+        debug_assert!(matches!(*self, StyleStructRef::Vacated));
+        *self = StyleStructRef::Owned(arc);
     }
 
     /// Get a mutable reference to the owned struct, or `None` if the struct
     /// hasn't been mutated.
     pub fn get_if_mutated(&mut self) -> Option<<&mut T> {
         match *self {
-            StyleStructRef::Owned(ref mut v) => Some(Arc::get_mut(v).unwrap()),
+            StyleStructRef::Owned(ref mut v) => Some(v),
             StyleStructRef::Borrowed(..) => None,
+            StyleStructRef::Vacated => panic!("Accessed vacated style struct")
         }
     }
 
@@ -2089,8 +2144,9 @@ impl<'a, T: 'a> StyleStructRef<'a, T>
     /// appropriate.
     pub fn build(self) -> Arc<T> {
         match self {
-            StyleStructRef::Owned(v) => v,
+            StyleStructRef::Owned(v) => v.shareable(),
             StyleStructRef::Borrowed(v) => v.clone(),
+            StyleStructRef::Vacated => panic!("Accessed vacated style struct")
         }
     }
 }
@@ -2102,6 +2158,7 @@ impl<'a, T: 'a> Deref for StyleStructRef<'a, T> {
         match *self {
             StyleStructRef::Owned(ref v) => &**v,
             StyleStructRef::Borrowed(v) => &**v,
+            StyleStructRef::Vacated => panic!("Accessed vacated style struct")
         }
     }
 }
@@ -2181,6 +2238,16 @@ impl<'a> StyleBuilder<'a> {
         /// Gets a mutable view of the current `${style_struct.name}` style.
         pub fn mutate_${style_struct.name_lower}(&mut self) -> &mut style_structs::${style_struct.name} {
             self.${style_struct.ident}.mutate()
+        }
+
+        /// Gets a mutable view of the current `${style_struct.name}` style.
+        pub fn take_${style_struct.name_lower}(&mut self) -> UniqueArc<style_structs::${style_struct.name}> {
+            self.${style_struct.ident}.take()
+        }
+
+        /// Gets a mutable view of the current `${style_struct.name}` style.
+        pub fn put_${style_struct.name_lower}(&mut self, s: UniqueArc<style_structs::${style_struct.name}>) {
+            self.${style_struct.ident}.put(s)
         }
 
         /// Gets a mutable view of the current `${style_struct.name}` style,
@@ -2557,7 +2624,11 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                                                  &mut cacheable,
                                                  &mut cascade_info,
                                                  error_reporter);
+                % if product == "gecko":
+                    context.style.mutate_font().fixup_none_generic(context.device);
+                % endif
             }
+
             if let Some(declaration) = font_size {
                 let discriminant = LonghandId::FontSize as usize;
                 (CASCADE_PROPERTY[discriminant])(declaration,

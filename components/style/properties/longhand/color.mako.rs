@@ -14,7 +14,6 @@
     use cssparser::RGBA;
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
     use values::specified::{Color, CSSColor, CSSRGBA};
 
     impl ToComputedValue for SpecifiedValue {

@@ -16,9 +16,11 @@ use style_traits::ToCss;
 #[test]
 fn test_calc() {
     assert!(parse(Length::parse, "calc(1px+ 2px)").is_err());
+    assert!(parse(Length::parse, "calc(calc(1px) + calc(1px + 4px))").is_ok());
     assert!(parse(Length::parse, "calc( 1px + 2px )").is_ok());
     assert!(parse(Length::parse, "calc(1px + 2px )").is_ok());
     assert!(parse(Length::parse, "calc( 1px + 2px)").is_ok());
+    assert!(parse(Length::parse, "calc( 1px + 2px / ( 1 + 2 - 1))").is_ok());
 }
 
 #[test]

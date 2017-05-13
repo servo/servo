@@ -32,11 +32,6 @@ pub struct Opts {
     /// The initial URL to load.
     pub url: Option<ServoUrl>,
 
-    /// How many threads to use for CPU painting (`-t`).
-    ///
-    /// Note that painting is sequentialized when using GPU painting.
-    pub paint_threads: usize,
-
     /// The maximum size of each tile in pixels (`-s`).
     pub tile_size: usize,
 
@@ -90,22 +85,15 @@ pub struct Opts {
     /// (`--show-debug-fragment-borders`).
     pub show_debug_fragment_borders: bool,
 
-    /// True if we should paint tiles with overlays based on which thread painted them.
-    pub show_debug_parallel_paint: bool,
-
     /// True if we should paint borders around flows based on which thread painted them.
     pub show_debug_parallel_layout: bool,
-
-    /// True if we should paint tiles a random color whenever they're repainted. Useful for
-    /// debugging invalidation.
-    pub paint_flashing: bool,
 
     /// If set with --disable-text-aa, disable antialiasing on fonts. This is primarily useful for reftests
     /// where pixel perfect results are required when using fonts such as the Ahem
     /// font for layout tests.
     pub enable_text_antialiasing: bool,
 
-    /// If set with --enable-subpixel, use subpixel antialiasing for glyphs. In the future
+    /// If set with --disable-subpixel, use subpixel antialiasing for glyphs. In the future
     /// this will likely become the default, but for now it's opt-in while we work
     /// out any bugs and improve the implementation.
     pub enable_subpixel_text_antialiasing: bool,
@@ -171,9 +159,6 @@ pub struct Opts {
 
     /// Dumps the display list in JSON form after a layout.
     pub dump_display_list_json: bool,
-
-    /// Dumps the layer tree when it changes.
-    pub dump_layer_tree: bool,
 
     /// Emits notifications when there is a relayout.
     pub relayout_event: bool,
@@ -251,8 +236,8 @@ pub struct DebugOptions {
     /// Disable antialiasing of rendered text.
     pub disable_text_aa: bool,
 
-    /// Enable subpixel antialiasing of rendered text.
-    pub enable_subpixel_aa: bool,
+    /// Disable subpixel antialiasing of rendered text.
+    pub disable_subpixel_aa: bool,
 
     /// Disable antialiasing of rendered text on the HTML canvas element.
     pub disable_canvas_aa: bool,
@@ -272,9 +257,6 @@ pub struct DebugOptions {
     /// Print the display list in JSON form.
     pub dump_display_list_json: bool,
 
-    /// Print the layer tree whenever it changes.
-    pub dump_layer_tree: bool,
-
     /// Print notifications when there is a relayout.
     pub relayout_event: bool,
 
@@ -287,14 +269,8 @@ pub struct DebugOptions {
     /// Paint borders along fragment boundaries.
     pub show_fragment_borders: bool,
 
-    /// Overlay tiles with colors showing which thread painted them.
-    pub show_parallel_paint: bool,
-
     /// Mark which thread laid each flow out with colors.
     pub show_parallel_layout: bool,
-
-    /// Overlay repainted areas with a random color.
-    pub paint_flashing: bool,
 
     /// Write layout trace to an external file for debugging.
     pub trace_layout: bool,
@@ -354,21 +330,18 @@ impl DebugOptions {
                 "help" => self.help = true,
                 "bubble-widths" => self.bubble_widths = true,
                 "disable-text-aa" => self.disable_text_aa = true,
-                "enable-subpixel-aa" => self.enable_subpixel_aa = true,
+                "disable-subpixel-aa" => self.disable_subpixel_aa = true,
                 "disable-canvas-aa" => self.disable_text_aa = true,
                 "dump-style-tree" => self.dump_style_tree = true,
                 "dump-rule-tree" => self.dump_rule_tree = true,
                 "dump-flow-tree" => self.dump_flow_tree = true,
                 "dump-display-list" => self.dump_display_list = true,
                 "dump-display-list-json" => self.dump_display_list_json = true,
-                "dump-layer-tree" => self.dump_layer_tree = true,
                 "relayout-event" => self.relayout_event = true,
                 "profile-script-events" => self.profile_script_events = true,
                 "profile-heartbeats" => self.profile_heartbeats = true,
                 "show-fragment-borders" => self.show_fragment_borders = true,
-                "show-parallel-paint" => self.show_parallel_paint = true,
                 "show-parallel-layout" => self.show_parallel_layout = true,
-                "paint-flashing" => self.paint_flashing = true,
                 "trace-layout" => self.trace_layout = true,
                 "disable-share-style-cache" => self.disable_share_style_cache = true,
                 "style-sharing-stats" => self.style_sharing_stats = true,
@@ -407,15 +380,11 @@ fn print_debug_usage(app: &str) -> ! {
     print_option("dump-flow-tree", "Print the flow tree after each layout.");
     print_option("dump-display-list", "Print the display list after each layout.");
     print_option("dump-display-list-json", "Print the display list in JSON form.");
-    print_option("dump-layer-tree", "Print the layer tree whenever it changes.");
     print_option("relayout-event", "Print notifications when there is a relayout.");
     print_option("profile-script-events", "Enable profiling of script-related events.");
     print_option("profile-heartbeats", "Enable heartbeats for all thread categories.");
-    print_option("show-compositor-borders", "Paint borders along layer and tile boundaries.");
     print_option("show-fragment-borders", "Paint borders along fragment boundaries.");
-    print_option("show-parallel-paint", "Overlay tiles with colors showing which thread painted them.");
     print_option("show-parallel-layout", "Mark which thread laid each flow out with colors.");
-    print_option("paint-flashing", "Overlay repainted areas with a random color.");
     print_option("trace-layout", "Write layout trace to an external file for debugging.");
     print_option("disable-share-style-cache",
                  "Disable the style sharing cache.");
@@ -431,8 +400,8 @@ fn print_debug_usage(app: &str) -> ! {
     print_option("wr-stats", "Show WebRender profiler on screen.");
     print_option("msaa", "Use multisample antialiasing in WebRender.");
     print_option("full-backtraces", "Print full backtraces for all errors");
-    print_option("wr-debug", "Display webrender tile borders. Must be used with -w option.");
-    print_option("precache-shaders", "Compile all shaders during init. Must be used with -w option.");
+    print_option("wr-debug", "Display webrender tile borders.");
+    print_option("precache-shaders", "Compile all shaders during init.");
     print_option("signpost", "Emit native OS signposts for profile events (currently macOS only)");
 
     println!("");
@@ -504,7 +473,6 @@ pub fn default_opts() -> Opts {
     Opts {
         is_running_problem_test: false,
         url: Some(ServoUrl::parse("about:blank").unwrap()),
-        paint_threads: 1,
         tile_size: 512,
         device_pixels_per_px: None,
         time_profiling: None,
@@ -521,9 +489,7 @@ pub fn default_opts() -> Opts {
         hard_fail: true,
         bubble_inline_sizes_separately: false,
         show_debug_fragment_borders: false,
-        show_debug_parallel_paint: false,
         show_debug_parallel_layout: false,
-        paint_flashing: false,
         enable_text_antialiasing: false,
         enable_subpixel_text_antialiasing: false,
         enable_canvas_antialiasing: false,
@@ -542,7 +508,6 @@ pub fn default_opts() -> Opts {
         dump_flow_tree: false,
         dump_display_list: false,
         dump_display_list_json: false,
-        dump_layer_tree: false,
         relayout_event: false,
         profile_script_events: false,
         profile_heartbeats: false,
@@ -693,12 +658,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
             .unwrap_or_else(|err| args_fail(&format!("Error parsing option: --device-pixel-ratio ({})", err)))
     );
 
-    let mut paint_threads: usize = match opt_match.opt_str("t") {
-        Some(paint_threads_str) => paint_threads_str.parse()
-            .unwrap_or_else(|err| args_fail(&format!("Error parsing option: -t ({})", err))),
-        None => cmp::max(num_cpus::get() * 3 / 4, 1),
-    };
-
     // If only the flag is present, default to a 5 second period for both profilers
     let time_profiling = if opt_match.opt_present("p") {
         match opt_match.opt_str("p") {
@@ -748,7 +707,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
 
     let mut bubble_inline_sizes_separately = debug_options.bubble_widths;
     if debug_options.trace_layout {
-        paint_threads = 1;
         layout_threads = Some(1);
         bubble_inline_sizes_separately = true;
     }
@@ -809,7 +767,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     let opts = Opts {
         is_running_problem_test: is_running_problem_test,
         url: Some(url),
-        paint_threads: paint_threads,
         tile_size: tile_size,
         device_pixels_per_px: device_pixels_per_px,
         time_profiling: time_profiling,
@@ -838,18 +795,15 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         random_pipeline_closure_probability: random_pipeline_closure_probability,
         random_pipeline_closure_seed: random_pipeline_closure_seed,
         show_debug_fragment_borders: debug_options.show_fragment_borders,
-        show_debug_parallel_paint: debug_options.show_parallel_paint,
         show_debug_parallel_layout: debug_options.show_parallel_layout,
-        paint_flashing: debug_options.paint_flashing,
         enable_text_antialiasing: !debug_options.disable_text_aa,
-        enable_subpixel_text_antialiasing: debug_options.enable_subpixel_aa,
+        enable_subpixel_text_antialiasing: !debug_options.disable_subpixel_aa,
         enable_canvas_antialiasing: !debug_options.disable_canvas_aa,
         dump_style_tree: debug_options.dump_style_tree,
         dump_rule_tree: debug_options.dump_rule_tree,
         dump_flow_tree: debug_options.dump_flow_tree,
         dump_display_list: debug_options.dump_display_list,
         dump_display_list_json: debug_options.dump_display_list_json,
-        dump_layer_tree: debug_options.dump_layer_tree,
         relayout_event: debug_options.relayout_event,
         disable_share_style_cache: debug_options.disable_share_style_cache,
         style_sharing_stats: debug_options.style_sharing_stats,

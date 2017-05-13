@@ -327,7 +327,7 @@ macro_rules! try_parse_one {
 
 <%helpers:shorthand name="-moz-transform" products="gecko"
                     sub_properties="transform"
-                    flags="ALIAS_PROPERTY"
+                    flags="SHORTHAND_ALIAS_PROPERTY"
                     spec="Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/transform">
     use properties::longhands::transform;
 

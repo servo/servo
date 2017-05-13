@@ -18,6 +18,7 @@ import shutil
 import subprocess
 import sys
 import urllib2
+import glob
 
 from mach.decorators import (
     CommandArgument,
@@ -26,7 +27,7 @@ from mach.decorators import (
 )
 
 import servo.bootstrap as bootstrap
-from servo.command_base import CommandBase, BIN_SUFFIX
+from servo.command_base import CommandBase, BIN_SUFFIX, cd
 from servo.util import delete, download_bytes, download_file, extract, host_triple
 
 
@@ -346,3 +347,175 @@ class MachCommands(CommandBase):
         elif not force:
             print("Nothing done. "
                   "Run `./mach clean-nightlies -f` to actually remove.")
+
+    @Command('clean-cargo-cache',
+             description='Clean unused Cargo packages',
+             category='bootstrap')
+    @CommandArgument('--force', '-f',
+                     action='store_true',
+                     help='Actually remove stuff')
+    @CommandArgument('--show-size', '-s',
+                     action='store_true',
+                     help='Show packages size')
+    @CommandArgument('--keep',
+                     default='1',
+                     help='Keep up to this many most recent dependencies')
+    @CommandArgument('--custom-path', '-c',
+                     action='store_true',
+                     help='Get Cargo path from CARGO_HOME environment variable')
+    def clean_cargo_cache(self, force=False, show_size=False, keep=None, custom_path=False):
+        def get_size(path):
+            if os.path.isfile(path):
+                return os.path.getsize(path) / (1024 * 1024.0)
+            total_size = 0
+            for dirpath, dirnames, filenames in os.walk(path):
+                for f in filenames:
+                    fp = os.path.join(dirpath, f)
+                    total_size += os.path.getsize(fp)
+            return total_size / (1024 * 1024.0)
+
+        removing_anything = False
+        packages = {
+            'crates': {},
+            'git': {},
+        }
+        import toml
+        if os.environ.get("CARGO_HOME", "") and custom_path:
+            cargo_dir = os.environ.get("CARGO_HOME")
+        else:
+            cargo_dir = path.join(self.context.topdir, ".cargo")
+        cargo_file = open(path.join(self.context.topdir, "Cargo.lock"))
+        content = toml.load(cargo_file)
+
+        for package in content.get("package", []):
+            source = package.get("source", "")
+            version = package["version"]
+            if source == u"registry+https://github.com/rust-lang/crates.io-index":
+                crate_name = "{}-{}".format(package["name"], version)
+                if not packages["crates"].get(crate_name, False):
+                    packages["crates"][package["name"]] = {
+                        "current": [],
+                        "exist": [],
+                    }
+                packages["crates"][package["name"]]["current"].append(crate_name)
+            elif source.startswith("git+"):
+                name = source.split("#")[0].split("/")[-1].replace(".git", "")
+                branch = ""
+                crate_name = "{}-{}".format(package["name"], source.split("#")[1])
+                crate_branch = name.split("?")
+                if len(crate_branch) > 1:
+                    branch = crate_branch[1].replace("branch=", "")
+                    name = crate_branch[0]
+
+                if not packages["git"].get(name, False):
+                    packages["git"][name] = {
+                        "current": [],
+                        "exist": [],
+                    }
+                packages["git"][name]["current"].append(source.split("#")[1][:7])
+                if branch:
+                    packages["git"][name]["current"].append(branch)
+
+        crates_dir = path.join(cargo_dir, "registry")
+        crates_cache_dir = ""
+        crates_src_dir = ""
+        if os.path.isdir(path.join(crates_dir, "cache")):
+            for p in os.listdir(path.join(crates_dir, "cache")):
+                crates_cache_dir = path.join(crates_dir, "cache", p)
+                crates_src_dir = path.join(crates_dir, "src", p)
+
+        git_dir = path.join(cargo_dir, "git")
+        git_db_dir = path.join(git_dir, "db")
+        git_checkout_dir = path.join(git_dir, "checkouts")
+        git_db_list = filter(lambda f: not f.startswith('.'), os.listdir(git_db_dir))
+        git_checkout_list = os.listdir(git_checkout_dir)
+
+        for d in list(set(git_db_list + git_checkout_list)):
+            crate_name = d.replace("-{}".format(d.split("-")[-1]), "")
+            if not packages["git"].get(crate_name, False):
+                packages["git"][crate_name] = {
+                    "current": [],
+                    "exist": [],
+                }
+            if os.path.isdir(path.join(git_checkout_dir, d)):
+                for d2 in os.listdir(path.join(git_checkout_dir, d)):
+                    dep_path = path.join(git_checkout_dir, d, d2)
+                    if os.path.isdir(dep_path):
+                        packages["git"][crate_name]["exist"].append((path.getmtime(dep_path), d, d2))
+            elif os.path.isdir(path.join(git_db_dir, d)):
+                packages["git"][crate_name]["exist"].append(("db", d, ""))
+
+        for d in os.listdir(crates_src_dir):
+            crate_name = re.sub(r"\-\d+(\.\d+){1,3}.+", "", d)
+            if not packages["crates"].get(crate_name, False):
+                packages["crates"][crate_name] = {
+                    "current": [],
+                    "exist": [],
+                }
+            packages["crates"][crate_name]["exist"].append(d)
+
+        total_size = 0
+        for packages_type in ["git", "crates"]:
+            sorted_packages = sorted(packages[packages_type])
+            for crate_name in sorted_packages:
+                crate_count = 0
+                existed_crates = packages[packages_type][crate_name]["exist"]
+                for exist in sorted(existed_crates, reverse=True):
+                    current_crate = packages[packages_type][crate_name]["current"]
+                    size = 0
+                    exist_name = exist
+                    exist_item = exist[2] if packages_type == "git" else exist
+                    if exist_item not in current_crate:
+                        crate_count += 1
+                        removing_anything = True
+                        if int(crate_count) >= int(keep) or not current_crate:
+                            crate_paths = []
+                            if packages_type == "git":
+                                exist_checkout_path = path.join(git_checkout_dir, exist[1])
+                                exist_db_path = path.join(git_db_dir, exist[1])
+                                exist_name = path.join(exist[1], exist[2])
+                                exist_path = path.join(git_checkout_dir, exist_name)
+
+                                if exist[0] == "db":
+                                    crate_paths.append(exist_db_path)
+                                    crate_count += -1
+                                else:
+                                    crate_paths.append(exist_path)
+
+                                    # remove crate from checkout if doesn't exist in db directory
+                                    if not os.path.isdir(exist_db_path):
+                                        crate_count += -1
+
+                                    with cd(path.join(exist_path, ".git", "objects", "pack")):
+                                        for pack in glob.glob("*"):
+                                            pack_path = path.join(exist_db_path, "objects", "pack", pack)
+                                            if os.path.exists(pack_path):
+                                                crate_paths.append(pack_path)
+
+                                    if len(os.listdir(exist_checkout_path)) <= 1:
+                                        crate_paths.append(exist_checkout_path)
+                                        if os.path.isdir(exist_db_path):
+                                            crate_paths.append(exist_db_path)
+                            else:
+                                crate_paths.append(path.join(crates_cache_dir, "{}.crate".format(exist)))
+                                crate_paths.append(path.join(crates_src_dir, exist))
+
+                            size = sum(get_size(p) for p in crate_paths) if show_size else 0
+                            total_size += size
+                            print_msg = (exist_name, " ({}MB)".format(round(size, 2)) if show_size else "", cargo_dir)
+                            if force:
+                                print("Removing `{}`{} package from {}".format(*print_msg))
+                                for crate_path in crate_paths:
+                                    if os.path.exists(crate_path):
+                                        delete(crate_path)
+                            else:
+                                print("Would remove `{}`{} package from {}".format(*print_msg))
+
+        if removing_anything and show_size:
+            print("\nTotal size of {} MB".format(round(total_size, 2)))
+
+        if not removing_anything:
+            print("Nothing to remove.")
+        elif not force:
+            print("\nNothing done. "
+                  "Run `./mach clean-cargo-cache -f` to actually remove.")

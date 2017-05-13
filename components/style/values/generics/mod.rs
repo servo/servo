@@ -26,6 +26,12 @@ impl<L> HasViewportPercentage for BorderRadiusSize<L> {
     fn has_viewport_percentage(&self) -> bool { false }
 }
 
+impl<L: Clone> From<L> for BorderRadiusSize<L> {
+    fn from(other: L) -> Self {
+        Self::new(other.clone(), other)
+    }
+}
+
 impl<L> BorderRadiusSize<L> {
     #[inline]
     /// Create a new `BorderRadiusSize` for an area of given width and height.

@@ -20,6 +20,7 @@ rand = [
   "parking_lot_core",
   "phf_generator",
   "rayon",
+  "rayon-core",
   "servo_rand",
   "servo-websocket",
   "tempdir",
@@ -31,16 +32,19 @@ num = []
 
 [ignore]
 # Ignored packages with duplicated versions
-packages = []
+packages = [
+  "bitflags",
+  "libloading", # Conflicting version is only used at build-time by geckolib.
+]
 # Files that are ignored for all tidy and lint checks.
 files = [
   # Helper macro where actually a pseudo-element per line makes sense.
   "./components/style/gecko/non_ts_pseudo_class_list.rs",
   # Generated and upstream code combined with our own. Could use cleanup
-  "./components/style/gecko_bindings/bindings.rs",
-  "./components/style/gecko_bindings/structs_debug.rs",
-  "./components/style/gecko_bindings/structs_release.rs",
-  "./components/style/gecko_string_cache/atom_macro.rs",
+  "./components/style/gecko/generated/bindings.rs",
+  "./components/style/gecko/generated/structs_debug.rs",
+  "./components/style/gecko/generated/structs_release.rs",
+  "./components/style/gecko/generated/atom_macro.rs",
   "./resources/hsts_preload.json",
   "./tests/wpt/metadata/MANIFEST.json",
   "./tests/wpt/metadata-css/MANIFEST.json",

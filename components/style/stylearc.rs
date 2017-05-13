@@ -31,7 +31,7 @@ use std::convert::From;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::mem;
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 use std::sync::atomic;
 use std::sync::atomic::Ordering::{Acquire, Relaxed, Release};
 
@@ -69,6 +69,40 @@ pub struct Arc<T: ?Sized> {
     //
     // https://github.com/rust-lang/rust/issues/27730
     ptr: *mut ArcInner<T>,
+}
+
+/// An Arc that is known to be uniquely owned
+///
+/// This lets us build arcs that we can mutate before
+/// freezing, without needing to change the allocation
+pub struct UniqueArc<T: ?Sized>(Arc<T>);
+
+impl<T> UniqueArc<T> {
+    #[inline]
+    /// Construct a new UniqueArc
+    pub fn new(data: T) -> Self {
+        UniqueArc(Arc::new(data))
+    }
+
+    #[inline]
+    /// Convert to a shareable Arc<T> once we're done using it
+    pub fn shareable(self) -> Arc<T> {
+        self.0
+    }
+}
+
+impl<T> Deref for UniqueArc<T> {
+    type Target = T;
+    fn deref(&self) -> &T {
+        &*self.0
+    }
+}
+
+impl<T> DerefMut for UniqueArc<T> {
+    fn deref_mut(&mut self) -> &mut T {
+        // We know this to be uniquely owned
+        unsafe { &mut (*self.0.ptr).data }
+    }
 }
 
 unsafe impl<T: ?Sized + Sync + Send> Send for Arc<T> {}

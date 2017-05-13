@@ -2143,11 +2143,11 @@ ${helpers.predefined_type("perspective",
                           animation_value_type="ComputedValue")}
 
 ${helpers.predefined_type("perspective-origin",
-                          "position::OriginPosition",
-                          "computed::position::OriginPosition::center()",
+                          "position::Position",
+                          "computed::position::Position::center()",
                           boxed="True",
                           extra_prefixes="moz webkit",
-                          spec="https://drafts.csswg.org/css-transforms/#perspective-origin-property",
+                          spec="https://drafts.csswg.org/css-transforms-2/#perspective-origin-property",
                           animation_value_type="ComputedValue")}
 
 ${helpers.single_keyword("backface-visibility",
@@ -2181,7 +2181,7 @@ ${helpers.single_keyword("transform-style",
     use values::specified::{NoCalcLength, LengthOrPercentage, Percentage};
 
     pub mod computed_value {
-        use properties::animated_properties::{ComputeDistance, Interpolate};
+        use properties::animated_properties::Animatable;
         use values::computed::{Length, LengthOrPercentage};
 
         #[derive(Clone, Copy, Debug, PartialEq)]
@@ -2192,7 +2192,7 @@ ${helpers.single_keyword("transform-style",
             pub depth: Length,
         }
 
-        impl Interpolate for T {
+        impl Animatable for T {
             #[inline]
             fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
                 Ok(T {
@@ -2201,9 +2201,7 @@ ${helpers.single_keyword("transform-style",
                     depth: try!(self.depth.interpolate(&other.depth, time)),
                 })
             }
-        }
 
-        impl ComputeDistance for T {
             #[inline]
             fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
                 self.compute_squared_distance(other).map(|sd| sd.sqrt())
@@ -2404,20 +2402,24 @@ ${helpers.single_keyword("appearance",
 ${helpers.single_keyword("-moz-appearance",
                          """none button button-arrow-down button-arrow-next button-arrow-previous button-arrow-up
                             button-bevel button-focus caret checkbox checkbox-container checkbox-label checkmenuitem
-                            dualbutton groupbox listbox listitem menuarrow menubar menucheckbox menuimage menuitem
-                            menuitemtext menulist menulist-button menulist-text menulist-textfield menupopup menuradio
-                            menuseparator meterbar meterchunk number-input progressbar progressbar-vertical
-                            progresschunk
-                            progresschunk-vertical radio radio-container radio-label radiomenuitem range range-thumb
-                            resizer resizerpanel scale-horizontal scalethumbend scalethumb-horizontal scalethumbstart
-                            scalethumbtick scalethumb-vertical scale-vertical scrollbarbutton-down scrollbarbutton-left
-                            scrollbarbutton-right scrollbarbutton-up scrollbarthumb-horizontal scrollbarthumb-vertical
-                            scrollbartrack-horizontal scrollbartrack-vertical searchfield separator spinner
-                            spinner-downbutton spinner-textfield spinner-upbutton splitter statusbar statusbarpanel tab
-                            tabpanel tabpanels tab-scroll-arrow-back tab-scroll-arrow-forward textfield
-                            textfield-multiline toolbar toolbarbutton toolbarbutton-dropdown toolbargripper toolbox
-                            tooltip treeheader treeheadercell treeheadersortarrow treeitem treeline treetwisty
-                            treetwistyopen treeview -moz-win-borderless-glass -moz-win-browsertabbar-toolbox
+                            dialog dualbutton groupbox listbox listitem menuarrow menubar menucheckbox menuimage
+                            menuitem menuitemtext menulist menulist-button menulist-text menulist-textfield menupopup
+                            menuradio menuseparator meterbar meterchunk number-input progressbar progressbar-vertical
+                            progresschunk progresschunk-vertical radio radio-container radio-label radiomenuitem range
+                            range-thumb resizer resizerpanel scale-horizontal scalethumbend scalethumb-horizontal
+                            scalethumbstart scalethumbtick scalethumb-vertical scale-vertical scrollbar
+                            scrollbar-horizontal scrollbar-small scrollbar-vertical scrollbarbutton-down
+                            scrollbarbutton-left scrollbarbutton-right scrollbarbutton-up scrollbarthumb-horizontal
+                            scrollbarthumb-vertical scrollbartrack-horizontal scrollbartrack-vertical searchfield
+                            separator spinner spinner-downbutton spinner-textfield spinner-upbutton splitter statusbar
+                            statusbarpanel tab tabpanel tabpanels tab-scroll-arrow-back tab-scroll-arrow-forward
+                            textfield textfield-multiline toolbar toolbarbutton toolbarbutton-dropdown toolbargripper
+                            toolbox tooltip treeheader treeheadercell treeheadersortarrow treeitem treeline treetwisty
+                            treetwistyopen treeview window
+                            -moz-gtk-info-bar -moz-mac-active-source-list-selection -moz-mac-disclosure-button-closed
+                            -moz-mac-disclosure-button-open -moz-mac-fullscreen-button -moz-mac-help-button
+                            -moz-mac-source-list -moz-mac-source-list-selection -moz-mac-vibrancy-dark
+                            -moz-mac-vibrancy-light -moz-win-borderless-glass -moz-win-browsertabbar-toolbox
                             -moz-win-communications-toolbox -moz-win-exclude-glass -moz-win-glass -moz-win-media-toolbox
                             -moz-window-button-box -moz-window-button-box-maximized -moz-window-button-close
                             -moz-window-button-maximize -moz-window-button-minimize -moz-window-button-restore

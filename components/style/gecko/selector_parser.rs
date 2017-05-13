@@ -16,6 +16,8 @@ use std::fmt;
 use std::ptr;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 
+pub use gecko::snapshot::SnapshotMap;
+
 /// A representation of a CSS pseudo-element.
 ///
 /// In Gecko, we represent pseudo-elements as plain `Atom`s.
@@ -165,7 +167,7 @@ impl PseudoElement {
             }}
         }
 
-        include!("generated/gecko_pseudo_element_helper.rs");
+        include!(concat!(env!("OUT_DIR"), "/gecko/pseudo_element_helper.rs"));
 
         None
     }
@@ -190,7 +192,7 @@ impl PseudoElement {
             }}
         }
 
-        include!("generated/gecko_pseudo_element_helper.rs");
+        include!(concat!(env!("OUT_DIR"), "/gecko/pseudo_element_helper.rs"));
 
         None
     }
@@ -492,7 +494,7 @@ impl SelectorImpl {
             }}
         }
 
-        include!("generated/gecko_pseudo_element_helper.rs")
+        include!(concat!(env!("OUT_DIR"), "/gecko/pseudo_element_helper.rs"));
     }
 
     #[inline]

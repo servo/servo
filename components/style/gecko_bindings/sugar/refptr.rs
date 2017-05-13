@@ -85,6 +85,7 @@ impl<T: RefCounted> RefPtr<T> {
     pub fn forget(self) -> structs::RefPtr<T> {
         let ret = structs::RefPtr {
             mRawPtr: self.ptr,
+            _phantom_0: PhantomData,
         };
         mem::forget(self);
         ret
@@ -277,3 +278,10 @@ impl_threadsafe_refcount!(::gecko_bindings::structs::nsCSSValueSharedList,
 impl_threadsafe_refcount!(::gecko_bindings::structs::mozilla::css::URLValue,
                           Gecko_AddRefCSSURLValueArbitraryThread,
                           Gecko_ReleaseCSSURLValueArbitraryThread);
+impl_threadsafe_refcount!(::gecko_bindings::structs::mozilla::css::GridTemplateAreasValue,
+                          Gecko_AddRefGridTemplateAreasValueArbitraryThread,
+                          Gecko_ReleaseGridTemplateAreasValueArbitraryThread);
+impl_threadsafe_refcount!(::gecko_bindings::structs::ImageValue,
+                          Gecko_AddRefImageValueArbitraryThread,
+                          Gecko_ReleaseImageValueArbitraryThread);
+

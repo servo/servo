@@ -478,10 +478,22 @@ pub fn specified(length: LengthOrPercentage, containing_length: Au) -> Au {
     }
 }
 
-pub fn specified_border_radius(radius: BorderRadiusSize, containing_length: Au) -> Size2D<Au> {
+/// Computes a border radius size against the containing size.
+///
+/// Note that percentages in `border-radius` are resolved against the relevant
+/// box dimension instead of only against the width per [1]:
+///
+/// > Percentages: Refer to corresponding dimension of the border box.
+///
+/// [1]: https://drafts.csswg.org/css-backgrounds-3/#border-radius
+pub fn specified_border_radius(
+    radius: BorderRadiusSize,
+    containing_size: Size2D<Au>)
+    -> Size2D<Au>
+{
     let generics::BorderRadiusSize(size) = radius;
-    let w = specified(size.width, containing_length);
-    let h = specified(size.height, containing_length);
+    let w = specified(size.width, containing_size.width);
+    let h = specified(size.height, containing_size.height);
     Size2D::new(w, h)
 }
 

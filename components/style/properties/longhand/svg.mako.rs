@@ -90,63 +90,14 @@ ${helpers.single_keyword("mask-mode",
     }
 </%helpers:vector_longhand>
 
-<%helpers:vector_longhand name="mask-position-x" products="gecko"
-                          animation_value_type="ComputedValue" extra_prefixes="webkit"
-                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-position">
-    pub use properties::longhands::background_position_x::single_value::get_initial_value;
-    pub use properties::longhands::background_position_x::single_value::get_initial_position_value;
-    pub use properties::longhands::background_position_x::single_value::get_initial_specified_value;
-    pub use properties::longhands::background_position_x::single_value::parse;
-    pub use properties::longhands::background_position_x::single_value::SpecifiedValue;
-    pub use properties::longhands::background_position_x::single_value::computed_value;
-    use properties::animated_properties::{ComputeDistance, Interpolate, RepeatableListInterpolate};
-    use properties::longhands::mask_position_x::computed_value::T as MaskPositionX;
-
-    impl Interpolate for MaskPositionX {
-        #[inline]
-        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-            Ok(MaskPositionX(try!(self.0.interpolate(&other.0, progress))))
-        }
-    }
-
-    impl RepeatableListInterpolate for MaskPositionX {}
-
-    impl ComputeDistance for MaskPositionX {
-        #[inline]
-        fn compute_distance(&self, _other: &Self) -> Result<f64, ()> {
-            Err(())
-        }
-    }
-</%helpers:vector_longhand>
-
-<%helpers:vector_longhand name="mask-position-y" products="gecko"
-                          animation_value_type="ComputedValue" extra_prefixes="webkit"
-                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-position">
-    pub use properties::longhands::background_position_y::single_value::get_initial_value;
-    pub use properties::longhands::background_position_y::single_value::get_initial_position_value;
-    pub use properties::longhands::background_position_y::single_value::get_initial_specified_value;
-    pub use properties::longhands::background_position_y::single_value::parse;
-    pub use properties::longhands::background_position_y::single_value::SpecifiedValue;
-    pub use properties::longhands::background_position_y::single_value::computed_value;
-    use properties::animated_properties::{ComputeDistance, Interpolate, RepeatableListInterpolate};
-    use properties::longhands::mask_position_y::computed_value::T as MaskPositionY;
-
-    impl Interpolate for MaskPositionY {
-        #[inline]
-        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-            Ok(MaskPositionY(try!(self.0.interpolate(&other.0, progress))))
-        }
-    }
-
-    impl RepeatableListInterpolate for MaskPositionY {}
-
-    impl ComputeDistance for MaskPositionY {
-        #[inline]
-        fn compute_distance(&self, _other: &Self) -> Result<f64, ()> {
-            Err(())
-        }
-    }
-</%helpers:vector_longhand>
+% for (axis, direction) in [("x", "Horizontal"), ("y", "Vertical")]:
+    ${helpers.predefined_type("mask-position-" + axis, "position::" + direction + "Position",
+                              products="gecko", extra_prefixes="webkit",
+                              initial_value="computed::LengthOrPercentage::zero()",
+                              initial_specified_value="specified::PositionComponent::Center",
+                              spec="https://drafts.fxtf.org/css-masking/#propdef-mask-position",
+                              animation_value_type="ComputedValue", vector=True, delegate_animate=True)}
+% endfor
 
 ${helpers.single_keyword("mask-clip",
                          "border-box content-box padding-box",
@@ -190,98 +141,13 @@ ${helpers.single_keyword("mask-composite",
                          extra_prefixes="webkit",
                          animation_value_type="none",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-composite")}
-
-<%helpers:vector_longhand name="mask-image" products="gecko" animation_value_type="none" extra_prefixes="webkit"
-                          has_uncacheable_values="${product == 'gecko'}"
-                          flags="CREATES_STACKING_CONTEXT",
-                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-image">
-    use std::fmt;
-    use style_traits::ToCss;
-    use stylearc::Arc;
-    use values::specified::Image;
-    use values::specified::url::SpecifiedUrl;
-    use values::HasViewportPercentage;
-
-    pub mod computed_value {
-        use std::fmt;
-        use style_traits::ToCss;
-        use values::computed;
-        use values::specified::url::SpecifiedUrl;
-        #[derive(Debug, Clone, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub enum T {
-            Image(computed::Image),
-            None
-        }
-
-        impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                match *self {
-                    T::None => dest.write_str("none"),
-                    T::Image(ref image) => image.to_css(dest),
-                }
-            }
-        }
-    }
-
-    no_viewport_percentage!(SpecifiedValue);
-
-    #[derive(Debug, Clone, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub enum SpecifiedValue {
-        Image(Image),
-        None
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                SpecifiedValue::Image(ref image) => image.to_css(dest),
-                SpecifiedValue::None => dest.write_str("none"),
-            }
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::None
-    }
-    #[inline]
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue::None
-    }
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            Ok(SpecifiedValue::None)
-        } else {
-            let image = try!(Image::parse(context, input));
-            match image {
-                Image::Url(url_value) => {
-                    Ok(SpecifiedValue::Image(Image::Url(url_value)))
-                }
-                image => Ok(SpecifiedValue::Image(image))
-            }
-        }
-    }
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            match *self {
-                SpecifiedValue::None => computed_value::T::None,
-                SpecifiedValue::Image(ref image) =>
-                    computed_value::T::Image(image.to_computed_value(context)),
-            }
-        }
-
-        #[inline]
-        fn from_computed_value(computed: &computed_value::T) -> Self {
-            match *computed {
-                computed_value::T::None => SpecifiedValue::None,
-                computed_value::T::Image(ref image) =>
-                    SpecifiedValue::Image(ToComputedValue::from_computed_value(image)),
-            }
-        }
-    }
-</%helpers:vector_longhand>
+${helpers.predefined_type("mask-image", "LayerImage",
+    initial_value="computed_value::T(None)",
+    initial_specified_value="SpecifiedValue(None)",
+    spec="https://drafts.fxtf.org/css-masking/#propdef-mask-image",
+    vector=True,
+    products="gecko",
+    extra_prefixes="webkit",
+    animation_value_type="none",
+    flags="CREATES_STACKING_CONTEXT",
+    has_uncacheable_values="True" if product == "gecko" else "False")}

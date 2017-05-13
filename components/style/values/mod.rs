@@ -11,7 +11,7 @@
 use Atom;
 pub use cssparser::{RGBA, Token, Parser, serialize_identifier, serialize_string};
 use parser::{Parse, ParserContext};
-use properties::animated_properties::{ComputeDistance, Interpolate};
+use properties::animated_properties::Animatable;
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::fmt::{self, Debug};
@@ -56,7 +56,7 @@ macro_rules! define_numbered_css_keyword_enum {
 /// for a given type that may never contain viewport units.
 macro_rules! no_viewport_percentage {
     ($name: ident) => {
-        impl HasViewportPercentage for $name {
+        impl $crate::values::HasViewportPercentage for $name {
             #[inline]
             fn has_viewport_percentage(&self) -> bool {
                 false
@@ -127,17 +127,10 @@ macro_rules! define_keyword_type {
             }
         }
 
-        impl Interpolate for $name {
+        impl Animatable for $name {
             #[inline]
             fn interpolate(&self, _other: &Self, _progress: f64) -> Result<Self, ()> {
                 Ok($name)
-            }
-        }
-
-        impl ComputeDistance for $name {
-            #[inline]
-            fn compute_distance(&self, _other: &Self) -> Result<f64, ()> {
-                Err(())
             }
         }
 

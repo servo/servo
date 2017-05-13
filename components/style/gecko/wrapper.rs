@@ -19,10 +19,10 @@ use atomic_refcell::AtomicRefCell;
 use context::{QuirksMode, SharedStyleContext, UpdateAnimationsTasks};
 use data::ElementData;
 use dom::{self, AnimationRules, DescendantsBit, LayoutIterator, NodeInfo, TElement, TNode, UnsafeNode};
-use dom::{OpaqueNode, PresentationalHintsSynthetizer};
+use dom::{OpaqueNode, PresentationalHintsSynthesizer};
 use element_state::ElementState;
 use error_reporting::RustLogReporter;
-use font_metrics::{FontMetricsProvider, FontMetricsQueryResult};
+use font_metrics::{FontMetrics, FontMetricsProvider, FontMetricsQueryResult};
 use gecko::global_style_data::GLOBAL_STYLE_DATA;
 use gecko::selector_parser::{SelectorImpl, NonTSPseudoClass, PseudoElement};
 use gecko::snapshot_helpers;
@@ -47,9 +47,11 @@ use gecko_bindings::bindings::Gecko_UpdateAnimations;
 use gecko_bindings::structs;
 use gecko_bindings::structs::{RawGeckoElement, RawGeckoNode};
 use gecko_bindings::structs::{nsIAtom, nsIContent, nsStyleContext};
+use gecko_bindings::structs::ELEMENT_HANDLED_SNAPSHOT;
+use gecko_bindings::structs::ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO;
+use gecko_bindings::structs::ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO;
+use gecko_bindings::structs::ELEMENT_HAS_SNAPSHOT;
 use gecko_bindings::structs::EffectCompositor_CascadeLevel as CascadeLevel;
-use gecko_bindings::structs::NODE_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO;
-use gecko_bindings::structs::NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO;
 use gecko_bindings::structs::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
 use gecko_bindings::structs::NODE_IS_NATIVE_ANONYMOUS;
 use gecko_bindings::sugar::ownership::HasArcFFI;
@@ -60,7 +62,7 @@ use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use properties::animated_properties::{AnimationValue, AnimationValueMap, TransitionProperty};
 use properties::style_structs::Font;
 use rule_tree::CascadeLevel as ServoCascadeLevel;
-use selector_parser::{ElementExt, Snapshot};
+use selector_parser::ElementExt;
 use selectors::Element;
 use selectors::matching::{ElementSelectorFlags, StyleRelations};
 use selectors::parser::{AttrSelector, NamespaceConstraint};
@@ -113,6 +115,17 @@ impl<'ln> GeckoNode<'ln> {
     fn node_info(&self) -> &structs::NodeInfo {
         debug_assert!(!self.0.mNodeInfo.mRawPtr.is_null());
         unsafe { &*self.0.mNodeInfo.mRawPtr }
+    }
+
+    // These live in different locations depending on processor architecture.
+    #[cfg(target_pointer_width = "64")]
+    fn bool_flags(&self) -> u32 {
+        (self.0)._base._base_1.mBoolFlags
+    }
+
+    #[cfg(target_pointer_width = "32")]
+    fn bool_flags(&self) -> u32 {
+        (self.0).mBoolFlags
     }
 
     fn owner_doc(&self) -> &structs::nsIDocument {
@@ -175,7 +188,7 @@ impl<'ln> GeckoNode<'ln> {
 impl<'ln> NodeInfo for GeckoNode<'ln> {
     fn is_element(&self) -> bool {
         use gecko_bindings::structs::nsINode_BooleanFlag;
-        self.0.mBoolFlags & (1u32 << nsINode_BooleanFlag::NodeIsElement as u32) != 0
+        self.bool_flags() & (1u32 << nsINode_BooleanFlag::NodeIsElement as u32) != 0
     }
 
     fn is_text_node(&self) -> bool {
@@ -361,6 +374,10 @@ impl<'le> GeckoElement<'le> {
     /// Clear the element data for a given element.
     pub fn clear_data(&self) {
         let ptr = self.0.mServoData.get();
+        unsafe {
+            self.unset_flags(ELEMENT_HAS_SNAPSHOT as u32 |
+                             ELEMENT_HANDLED_SNAPSHOT as u32);
+        }
         if !ptr.is_null() {
             debug!("Dropping ElementData for {:?}", self);
             let data = unsafe { Box::from_raw(self.0.mServoData.get()) };
@@ -390,9 +407,10 @@ impl<'le> GeckoElement<'le> {
         }
     }
 
-    /// Creates a blank snapshot for this element.
-    pub fn create_snapshot(&self) -> Snapshot {
-        Snapshot::new(*self)
+    fn may_have_animations(&self) -> bool {
+        use gecko_bindings::structs::nsINode_BooleanFlag;
+        self.as_node().bool_flags() &
+            (1u32 << nsINode_BooleanFlag::ElementHasAnimations as u32) != 0
     }
 }
 
@@ -476,25 +494,22 @@ impl FontMetricsProvider for GeckoFontMetricsProvider {
         sizes.size_for_generic(font_family)
     }
 
-    fn query(&self, _font: &Font, _font_size: Au, _wm: WritingMode,
-             _in_media_query: bool, _device: &Device) -> FontMetricsQueryResult {
-        // Disabled until we can make font metrics thread safe (bug 1356105)
-        //
-        // use gecko_bindings::bindings::Gecko_GetFontMetrics;
-        // let gecko_metrics = unsafe {
-        //     Gecko_GetFontMetrics(&*device.pres_context,
-        //                          wm.is_vertical() && !wm.is_sideways(),
-        //                          font.gecko(),
-        //                          font_size.0,
-        //                          // we don't use the user font set in a media query
-        //                          !in_media_query)
-        // };
-        // let metrics = FontMetrics {
-        //     x_height: Au(gecko_metrics.mXSize),
-        //     zero_advance_measure: Au(gecko_metrics.mChSize),
-        // };
-        // FontMetricsQueryResult::Available(metrics)
-        FontMetricsQueryResult::NotAvailable
+    fn query(&self, font: &Font, font_size: Au, wm: WritingMode,
+             in_media_query: bool, device: &Device) -> FontMetricsQueryResult {
+        use gecko_bindings::bindings::Gecko_GetFontMetrics;
+        let gecko_metrics = unsafe {
+            Gecko_GetFontMetrics(&*device.pres_context,
+                                 wm.is_vertical() && !wm.is_sideways(),
+                                 font.gecko(),
+                                 font_size.0,
+                                 // we don't use the user font set in a media query
+                                 !in_media_query)
+        };
+        let metrics = FontMetrics {
+            x_height: Au(gecko_metrics.mXSize),
+            zero_advance_measure: Au(gecko_metrics.mChSize),
+        };
+        FontMetricsQueryResult::Available(metrics)
     }
 }
 
@@ -516,6 +531,32 @@ impl structs::FontSizePrefs {
 impl<'le> TElement for GeckoElement<'le> {
     type ConcreteNode = GeckoNode<'le>;
     type FontMetricsProvider = GeckoFontMetricsProvider;
+
+    fn inheritance_parent(&self) -> Option<Self> {
+        if self.is_native_anonymous() {
+            return self.closest_non_native_anonymous_ancestor();
+        }
+        return self.parent_element();
+    }
+
+    fn closest_non_native_anonymous_ancestor(&self) -> Option<Self> {
+        debug_assert!(self.is_native_anonymous());
+        let mut parent = match self.parent_element() {
+            Some(e) => e,
+            None => return None,
+        };
+
+        loop {
+            if !parent.is_native_anonymous() {
+                return Some(parent);
+            }
+
+            parent = match parent.parent_element() {
+                Some(p) => p,
+                None => return None,
+            };
+        }
+    }
 
     fn as_node(&self) -> Self::ConcreteNode {
         unsafe { GeckoNode(&*(self.0 as *const _ as *const RawGeckoNode)) }
@@ -592,14 +633,27 @@ impl<'le> TElement for GeckoElement<'le> {
         }
     }
 
+    fn has_snapshot(&self) -> bool {
+        self.flags() & (ELEMENT_HAS_SNAPSHOT as u32) != 0
+    }
+
+    fn handled_snapshot(&self) -> bool {
+        self.flags() & (ELEMENT_HANDLED_SNAPSHOT as u32) != 0
+    }
+
+    unsafe fn set_handled_snapshot(&self) {
+        debug_assert!(self.get_data().is_some());
+        self.set_flags(ELEMENT_HANDLED_SNAPSHOT as u32)
+    }
+
     fn has_dirty_descendants(&self) -> bool {
-        self.flags() & (NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32) != 0
+        self.flags() & (ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32) != 0
     }
 
     unsafe fn set_dirty_descendants(&self) {
         debug_assert!(self.get_data().is_some());
         debug!("Setting dirty descendants: {:?}", self);
-        self.set_flags(NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32)
+        self.set_flags(ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32)
     }
 
     unsafe fn note_descendants<B: DescendantsBit<Self>>(&self) {
@@ -620,19 +674,19 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     unsafe fn unset_dirty_descendants(&self) {
-        self.unset_flags(NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32)
+        self.unset_flags(ELEMENT_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32)
     }
 
     fn has_animation_only_dirty_descendants(&self) -> bool {
-        self.flags() & (NODE_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32) != 0
+        self.flags() & (ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32) != 0
     }
 
     unsafe fn set_animation_only_dirty_descendants(&self) {
-        self.set_flags(NODE_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32)
+        self.set_flags(ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32)
     }
 
     unsafe fn unset_animation_only_dirty_descendants(&self) {
-        self.unset_flags(NODE_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32)
+        self.unset_flags(ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO as u32)
     }
 
     fn is_native_anonymous(&self) -> bool {
@@ -716,15 +770,15 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn has_animations(&self) -> bool {
-        unsafe { Gecko_ElementHasAnimations(self.0) }
+        self.may_have_animations() && unsafe { Gecko_ElementHasAnimations(self.0) }
     }
 
     fn has_css_animations(&self) -> bool {
-        unsafe { Gecko_ElementHasCSSAnimations(self.0) }
+        self.may_have_animations() && unsafe { Gecko_ElementHasCSSAnimations(self.0) }
     }
 
     fn has_css_transitions(&self) -> bool {
-        unsafe { Gecko_ElementHasCSSTransitions(self.0) }
+        self.may_have_animations() && unsafe { Gecko_ElementHasCSSTransitions(self.0) }
     }
 
     fn get_css_transitions_info(&self)
@@ -910,7 +964,7 @@ impl<'le> Hash for GeckoElement<'le> {
     }
 }
 
-impl<'le> PresentationalHintsSynthetizer for GeckoElement<'le> {
+impl<'le> PresentationalHintsSynthesizer for GeckoElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
         where V: Push<ApplicableDeclarationBlock>,
     {
@@ -1063,7 +1117,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
 
     fn get_local_name(&self) -> &WeakAtom {
         unsafe {
-            WeakAtom::new(self.as_node().node_info().mInner.mName.raw())
+            WeakAtom::new(self.as_node().node_info().mInner.mName.raw::<nsIAtom>())
         }
     }
 
@@ -1126,7 +1180,9 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozUIInvalid |
             NonTSPseudoClass::MozMeterOptimum |
             NonTSPseudoClass::MozMeterSubOptimum |
-            NonTSPseudoClass::MozMeterSubSubOptimum => {
+            NonTSPseudoClass::MozMeterSubSubOptimum |
+            NonTSPseudoClass::MozAutofill |
+            NonTSPseudoClass::MozAutofillPreview => {
                 // NB: It's important to use `intersect` instead of `contains`
                 // here, to handle `:any-link` correctly.
                 self.get_state().intersects(pseudo_class.state_flag())

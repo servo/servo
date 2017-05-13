@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::HistoryBinding;
 use dom::bindings::codegen::Bindings::HistoryBinding::HistoryMethods;
 use dom::bindings::codegen::Bindings::LocationBinding::LocationBinding::LocationMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::error::Fallible;
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -40,27 +40,34 @@ impl History {
 }
 
 impl History {
-    fn traverse_history(&self, direction: TraversalDirection) {
+    fn traverse_history(&self, direction: TraversalDirection) -> ErrorResult {
+        if !self.window.Document().is_fully_active() {
+            return Err(Error::Security);
+        }
         let global_scope = self.window.upcast::<GlobalScope>();
         let pipeline = global_scope.pipeline_id();
         let msg = ConstellationMsg::TraverseHistory(Some(pipeline), direction);
         let _ = global_scope.constellation_chan().send(msg);
+        Ok(())
     }
 }
 
 impl HistoryMethods for History {
     // https://html.spec.whatwg.org/multipage/#dom-history-length
-    fn Length(&self) -> u32 {
+    fn GetLength(&self) -> Fallible<u32> {
+        if !self.window.Document().is_fully_active() {
+            return Err(Error::Security);
+        }
         let global_scope = self.window.upcast::<GlobalScope>();
         let pipeline = global_scope.pipeline_id();
         let (sender, recv) = ipc::channel().expect("Failed to create channel to send jsh length.");
         let msg = ConstellationMsg::JointSessionHistoryLength(pipeline, sender);
         let _ = global_scope.constellation_chan().send(msg);
-        recv.recv().unwrap()
+        Ok(recv.recv().unwrap())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-go
-    fn Go(&self, delta: i32) -> Fallible<()> {
+    fn Go(&self, delta: i32) -> ErrorResult {
         let direction = if delta > 0 {
             TraversalDirection::Forward(delta as usize)
         } else if delta < 0 {
@@ -69,17 +76,16 @@ impl HistoryMethods for History {
             return self.window.Location().Reload();
         };
 
-        self.traverse_history(direction);
-        Ok(())
+        self.traverse_history(direction)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-back
-    fn Back(&self) {
-        self.traverse_history(TraversalDirection::Back(1));
+    fn Back(&self) -> ErrorResult {
+        self.traverse_history(TraversalDirection::Back(1))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-forward
-    fn Forward(&self) {
-        self.traverse_history(TraversalDirection::Forward(1));
+    fn Forward(&self) -> ErrorResult {
+        self.traverse_history(TraversalDirection::Forward(1))
     }
 }
