@@ -30,7 +30,7 @@ use script_runtime::{CommonScriptMsg, StackRootTLS, get_reports, new_rt_and_cx, 
 use script_traits::{TimerEvent, WorkerGlobalScopeInit, ScopeThings, ServiceWorkerMsg, WorkerScriptLoadOrigin};
 use servo_config::prefs::PREFS;
 use servo_rand::random;
-use servo_url::ServoUrl;
+use servo_url::{MutableOrigin, ServoUrl};
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
 use std::thread;
 use std::time::Duration;
@@ -136,6 +136,10 @@ impl ServiceWorkerGlobalScope {
         unsafe {
             ServiceWorkerGlobalScopeBinding::Wrap(cx, scope)
         }
+    }
+
+    pub fn origin(&self) -> MutableOrigin {
+        MutableOrigin::new(self.scope_url.origin())
     }
 
     #[allow(unsafe_code)]

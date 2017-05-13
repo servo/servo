@@ -34,7 +34,7 @@ use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, StackRootTLS, get_
 use script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use script_traits::{TimerEvent, TimerSource, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use servo_rand::random;
-use servo_url::ServoUrl;
+use servo_url::{MutableOrigin, ServoUrl};
 use std::mem::replace;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::AtomicBool;
@@ -144,6 +144,10 @@ impl DedicatedWorkerGlobalScope {
         unsafe {
             DedicatedWorkerGlobalScopeBinding::Wrap(cx, scope)
         }
+    }
+
+    pub fn origin(&self) -> MutableOrigin {
+        MutableOrigin::new(self.workerglobalscope.get_url().origin())
     }
 
     #[allow(unsafe_code)]

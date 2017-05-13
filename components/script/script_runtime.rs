@@ -10,7 +10,7 @@ use dom::bindings::js::{RootCollection, RootCollectionPtr, trace_roots};
 use dom::bindings::refcounted::{LiveDOMReferences, trace_refcounted_objects};
 use dom::bindings::settings_stack;
 use dom::bindings::trace::{JSTraceable, trace_traceables};
-use dom::bindings::utils::DOM_CALLBACKS;
+use dom::bindings::utils::{self, DOM_CALLBACKS};
 use dom::globalscope::GlobalScope;
 use js::glue::CollectServoSizes;
 use js::jsapi::{DisableIncrementalGC, GCDescription, GCProgress, HandleObject};
@@ -19,6 +19,7 @@ use js::jsapi::{JSGCInvocationKind, JSGCStatus, JS_AddExtraGCRootsTracer, JS_Set
 use js::jsapi::{JSGCMode, JSGCParamKey, JS_SetGCParameter, JS_SetGlobalJitCompilerOption};
 use js::jsapi::{JSJitCompilerOption, JS_SetOffthreadIonCompilationEnabled, JS_SetParallelParsingEnabled};
 use js::jsapi::{JSObject, RuntimeOptionsRef, SetPreserveWrapperCallback, SetEnqueuePromiseJobCallback};
+use js::jsapi::{JSSecurityCallbacks, JS_SetSecurityCallbacks};
 use js::panic::wrap_panic;
 use js::rust::Runtime;
 use microtask::{EnqueuedPromiseCallback, Microtask};
@@ -35,6 +36,12 @@ use std::panic::AssertUnwindSafe;
 use std::ptr;
 use style::thread_state;
 use time::{Tm, now};
+
+//TODO contentsecuritypolicy
+static SECURITY_CALLBACKS:  JSSecurityCallbacks = JSSecurityCallbacks {
+    contentSecurityPolicyAllows: None,
+    subsumes: Some(utils::subsumes)}
+;
 
 /// Common messages used to control the event loops in both the script and the worker
 pub enum CommonScriptMsg {
@@ -130,6 +137,8 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
 
     JS_AddExtraGCRootsTracer(runtime.rt(), Some(trace_rust_roots), ptr::null_mut());
     JS_AddExtraGCRootsTracer(runtime.rt(), Some(trace_refcounted_objects), ptr::null_mut());
+
+    JS_SetSecurityCallbacks(runtime.rt(), &SECURITY_CALLBACKS);
 
     // Needed for debug assertions about whether GC is running.
     if cfg!(debug_assertions) {

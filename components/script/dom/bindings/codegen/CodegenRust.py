@@ -2597,6 +2597,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
         values["members"] = "\n".join(members)
 
         return CGGeneric("""\
+let origin = object.origin().clone();
 let raw = Box::into_raw(object);
 let _rt = RootedTraceable::new(&*raw);
 
@@ -2606,7 +2607,8 @@ create_global_object(
     &Class.base,
     raw as *const libc::c_void,
     _trace,
-    obj.handle_mut());
+    obj.handle_mut(),
+    &origin);
 assert!(!obj.is_null());
 
 (*raw).init_reflector(obj.get());

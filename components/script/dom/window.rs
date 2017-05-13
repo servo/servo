@@ -85,7 +85,7 @@ use servo_atoms::Atom;
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_geometry::{f32_rect_to_au_rect, max_rect};
-use servo_url::{Host, MutableOrigin, ImmutableOrigin, ServoUrl};
+use servo_url::{Host, ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -635,6 +635,7 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-frames
     fn Frames(&self) -> Root<BrowsingContext> {
+        println!("frames!");
         self.browsing_context()
     }
 
@@ -1813,7 +1814,6 @@ impl Window {
             suppress_reflow: Cell::new(true),
             pending_reflow_count: Cell::new(0),
             current_state: Cell::new(WindowState::Alive),
-
             devtools_marker_sender: DOMRefCell::new(None),
             devtools_markers: DOMRefCell::new(HashSet::new()),
             webdriver_script_chan: DOMRefCell::new(None),
