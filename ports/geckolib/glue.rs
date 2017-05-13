@@ -617,7 +617,7 @@ pub extern "C" fn Servo_StyleSheet_ClearAndUpdate(stylesheet: RawServoStyleSheet
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_AppendStyleSheet(raw_data: RawServoStyleSetBorrowed,
                                                   raw_sheet: RawServoStyleSheetBorrowed,
-                                                  unique_id: u32) {
+                                                  unique_id: u64) {
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let sheet = HasArcFFI::as_arc(&raw_sheet);
     data.stylesheets.append_stylesheet(sheet, unique_id);
@@ -627,7 +627,7 @@ pub extern "C" fn Servo_StyleSet_AppendStyleSheet(raw_data: RawServoStyleSetBorr
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_PrependStyleSheet(raw_data: RawServoStyleSetBorrowed,
                                                    raw_sheet: RawServoStyleSheetBorrowed,
-                                                   unique_id: u32) {
+                                                   unique_id: u64) {
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let sheet = HasArcFFI::as_arc(&raw_sheet);
     data.stylesheets.prepend_stylesheet(sheet, unique_id);
@@ -637,8 +637,8 @@ pub extern "C" fn Servo_StyleSet_PrependStyleSheet(raw_data: RawServoStyleSetBor
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_InsertStyleSheetBefore(raw_data: RawServoStyleSetBorrowed,
                                                         raw_sheet: RawServoStyleSheetBorrowed,
-                                                        unique_id: u32,
-                                                        before_unique_id: u32) {
+                                                        unique_id: u64,
+                                                        before_unique_id: u64) {
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let sheet = HasArcFFI::as_arc(&raw_sheet);
     data.stylesheets.insert_stylesheet_before(sheet, unique_id, before_unique_id);
@@ -647,7 +647,7 @@ pub extern "C" fn Servo_StyleSet_InsertStyleSheetBefore(raw_data: RawServoStyleS
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_RemoveStyleSheet(raw_data: RawServoStyleSetBorrowed,
-                                                  unique_id: u32) {
+                                                  unique_id: u64) {
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     data.stylesheets.remove_stylesheet(unique_id);
     data.clear_stylist();
