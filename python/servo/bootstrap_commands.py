@@ -321,7 +321,7 @@ class MachCommands(CommandBase):
                     )
                     stdout, _ = cmd.communicate()
                     for line in stdout.splitlines():
-                        if line.startswith("+") and not line.startswith("+++"):
+                        if line.startswith(b"+") and not line.startswith(b"+++"):
                             to_keep[tool].add(line[1:])
 
         removing_anything = False
