@@ -6,7 +6,7 @@ use cssparser::Parser;
 use media_queries::CSSErrorReporterTest;
 use parsing::parse;
 use style::context::QuirksMode;
-use style::parser::{ParsingMode, Parse, ParserContext};
+use style::parser::{PARSING_MODE_ALLOW_UNITLESS_LENGTH, Parse, ParserContext};
 use style::stylesheets::{CssRuleType, Origin};
 use style::values::Either;
 use style::values::specified::{LengthOrPercentageOrNumber, Number};
@@ -43,7 +43,7 @@ fn test_parsing_modes() {
     let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
     let context = ParserContext::new(Origin::Author, &url, &reporter,
-                                     Some(CssRuleType::Style), ParsingMode::AllowUnitlessLength,
+                                     Some(CssRuleType::Style), PARSING_MODE_ALLOW_UNITLESS_LENGTH,
                                      QuirksMode::NoQuirks);
     let mut parser = Parser::new("1");
     let result = Length::parse(&context, &mut parser);

@@ -334,6 +334,7 @@ mod bindings {
             .bitfield_enum("nsChangeHint")
             .bitfield_enum("nsRestyleHint")
             .constified_enum("UpdateAnimationsTasks")
+            .constified_enum("ParsingMode")
             .parse_callbacks(Box::new(Callbacks));
         let whitelist_vars = [
             "NS_AUTHOR_SPECIFIED_.*",

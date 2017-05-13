@@ -10,7 +10,7 @@ use context::QuirksMode;
 use cssparser::{DeclarationListParser, parse_important};
 use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter};
 use error_reporting::ParseErrorReporter;
-use parser::{ParsingMode, ParserContext, log_css_error};
+use parser::{PARSING_MODE_DEFAULT, ParsingMode, ParserContext, log_css_error};
 use std::fmt;
 use style_traits::ToCss;
 use stylesheets::{CssRuleType, Origin, UrlExtraData};
@@ -649,7 +649,7 @@ pub fn parse_style_attribute(input: &str,
                                      url_data,
                                      error_reporter,
                                      Some(CssRuleType::Style),
-                                     ParsingMode::Default,
+                                     PARSING_MODE_DEFAULT,
                                      quirks_mode);
     parse_property_declaration_list(&context, &mut Parser::new(input))
 }

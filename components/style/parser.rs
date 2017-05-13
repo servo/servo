@@ -10,21 +10,48 @@ use error_reporting::ParseErrorReporter;
 use style_traits::OneOrMoreCommaSeparated;
 use stylesheets::{CssRuleType, Origin, UrlExtraData};
 
-/// The mode to use when parsing lengths.
-#[derive(PartialEq, Eq, Copy, Clone)]
-pub enum ParsingMode {
-    /// In CSS, lengths must have units, except for zero values, where the unit can be omitted.
-    /// https://www.w3.org/TR/css3-values/#lengths
-    Default,
-    /// In SVG, a coordinate or length value without a unit identifier (e.g., "25") is assumed to be in user units (px).
-    /// https://www.w3.org/TR/SVG/coords.html#Units
-    AllowUnitlessLength,
+bitflags! {
+    /// The mode to use when parsing values.
+    pub flags ParsingMode: u8 {
+        /// In CSS, lengths must have units, except for zero values, where the unit can be omitted.
+        /// https://www.w3.org/TR/css3-values/#lengths
+        const PARSING_MODE_DEFAULT = 0x00,
+        /// In SVG, a coordinate or length value without a unit identifier (e.g., "25") is assumed
+        /// to be in user units (px).
+        /// https://www.w3.org/TR/SVG/coords.html#Units
+        const PARSING_MODE_ALLOW_UNITLESS_LENGTH = 0x01,
+    }
 }
 
 impl ParsingMode {
     /// Whether the parsing mode allows unitless lengths for non-zero values to be intpreted as px.
     pub fn allows_unitless_lengths(&self) -> bool {
-        *self == ParsingMode::AllowUnitlessLength
+        self.intersects(PARSING_MODE_ALLOW_UNITLESS_LENGTH)
+    }
+}
+
+/// Asserts that all ParsingMode flags have a matching ParsingMode value in gecko.
+#[cfg(feature = "gecko")]
+#[inline]
+pub fn assert_parsing_mode_match() {
+    use gecko_bindings::structs;
+
+    macro_rules! check_parsing_modes {
+        ( $( $a:ident => $b:ident ),*, ) => {
+            if cfg!(debug_assertions) {
+                let mut hints = ParsingMode::all();
+                $(
+                    assert_eq!(structs::$a as usize, $b.bits() as usize, stringify!($b));
+                    hints.remove($b);
+                )*
+                assert_eq!(hints, ParsingMode::empty(), "all ParsingMode bits should have an assertion");
+            }
+        }
+    }
+
+    check_parsing_modes! {
+        ParsingMode_Default => PARSING_MODE_DEFAULT,
+        ParsingMode_AllowUnitlessLength => PARSING_MODE_ALLOW_UNITLESS_LENGTH,
     }
 }
 
