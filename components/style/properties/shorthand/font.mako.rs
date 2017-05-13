@@ -15,7 +15,8 @@
                                     ${'font-variant-ligatures' if product == 'gecko' or data.testing else ''}
                                     ${'font-variant-numeric' if product == 'gecko' or data.testing else ''}
                                     ${'font-variant-position' if product == 'gecko' or data.testing else ''}
-                                    ${'font-language-override' if product == 'gecko' or data.testing else ''}"
+                                    ${'font-language-override' if product == 'gecko' or data.testing else ''}
+                                    ${'font-feature-settings' if product == 'gecko' or data.testing else ''}"
                     spec="https://drafts.csswg.org/css-fonts-3/#propdef-font">
     use properties::longhands::{font_family, font_style, font_weight, font_stretch};
     use properties::longhands::{font_size, line_height, font_variant_caps};
@@ -25,7 +26,7 @@
         gecko_sub_properties = "kerning language_override size_adjust \
                                 variant_alternates variant_east_asian \
                                 variant_ligatures variant_numeric \
-                                variant_position".split()
+                                variant_position feature_settings".split()
     %>
     % if product == "gecko" or data.testing:
         % for prop in gecko_sub_properties:

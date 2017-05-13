@@ -4,6 +4,7 @@
 
 use parsing::parse;
 use style::properties::longhands::{font_feature_settings, font_weight};
+use style::properties::longhands::font_feature_settings::SpecifiedValue;
 use style::properties::longhands::font_feature_settings::computed_value;
 use style::properties::longhands::font_feature_settings::computed_value::FeatureTagValue;
 use style_traits::ToCss;
@@ -14,7 +15,7 @@ fn font_feature_settings_should_parse_properly() {
     use std::io::Cursor;
 
     let normal = parse_longhand!(font_feature_settings, "normal");
-    let normal_computed = computed_value::T::Normal;
+    let normal_computed = SpecifiedValue::Value(computed_value::T::Normal);
     assert_eq!(normal, normal_computed);
 
     let mut a_d_bytes = Cursor::new(b"abcd");
@@ -24,34 +25,34 @@ fn font_feature_settings_should_parse_properly() {
     let efgh = e_h_bytes.read_u32::<BigEndian>().unwrap();
 
     let on = parse_longhand!(font_feature_settings, "\"abcd\" on");
-    let on_computed = computed_value::T::Tag(vec![
+    let on_computed = SpecifiedValue::Value(computed_value::T::Tag(vec![
         FeatureTagValue { tag: abcd, value: 1 }
-    ]);
+    ]));
     assert_eq!(on, on_computed);
 
     let off = parse_longhand!(font_feature_settings, "\"abcd\" off");
-    let off_computed = computed_value::T::Tag(vec![
+    let off_computed = SpecifiedValue::Value(computed_value::T::Tag(vec![
         FeatureTagValue { tag: abcd, value: 0 }
-    ]);
+    ]));
     assert_eq!(off, off_computed);
 
     let no_value = parse_longhand!(font_feature_settings, "\"abcd\"");
-    let no_value_computed = computed_value::T::Tag(vec![
+    let no_value_computed = SpecifiedValue::Value(computed_value::T::Tag(vec![
         FeatureTagValue { tag: abcd, value: 1 }
-    ]);
+    ]));
     assert_eq!(no_value, no_value_computed);
 
     let pos_integer = parse_longhand!(font_feature_settings, "\"abcd\" 100");
-    let pos_integer_computed = computed_value::T::Tag(vec![
+    let pos_integer_computed = SpecifiedValue::Value(computed_value::T::Tag(vec![
         FeatureTagValue { tag: abcd, value: 100 }
-    ]);
+    ]));
     assert_eq!(pos_integer, pos_integer_computed);
 
     let multiple = parse_longhand!(font_feature_settings, "\"abcd\" off, \"efgh\"");
-    let multiple_computed = computed_value::T::Tag(vec![
+    let multiple_computed = SpecifiedValue::Value(computed_value::T::Tag(vec![
         FeatureTagValue { tag: abcd, value: 0 },
         FeatureTagValue { tag: efgh, value: 1 }
-    ]);
+    ]));
     assert_eq!(multiple, multiple_computed);
 }
 

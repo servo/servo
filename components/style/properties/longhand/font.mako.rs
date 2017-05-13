@@ -22,7 +22,7 @@
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
-                SpecifiedValue::Value(v) => v.to_css(dest),
+                SpecifiedValue::Value(ref v) => v.to_css(dest),
                 SpecifiedValue::System(_) => Ok(())
             }
         }
@@ -47,17 +47,17 @@
 
         fn to_computed_value(&self, _context: &Context) -> computed_value::T {
             match *self {
-                SpecifiedValue::Value(v) => v,
+                SpecifiedValue::Value(ref v) => v.clone(),
                 SpecifiedValue::System(_) => {
                     <%self:nongecko_unreachable>
-                        _context.cached_system_font.as_ref().unwrap().${name}
+                        _context.cached_system_font.as_ref().unwrap().${name}.clone()
                     </%self:nongecko_unreachable>
                 }
             }
         }
 
         fn from_computed_value(other: &computed_value::T) -> Self {
-            SpecifiedValue::Value(*other)
+            SpecifiedValue::Value(other.clone())
         }
     }
 </%def>
@@ -1777,16 +1777,23 @@ ${helpers.single_keyword_system("font-variant-position",
                                 spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-position",
                                 animation_value_type="none")}
 
-<%helpers:longhand name="font-feature-settings" products="gecko" animation_value_type="none" extra_prefixes="moz"
+<%helpers:longhand name="font-feature-settings" products="gecko" animation_value_type="none"
+                   extra_prefixes="moz" boxed="True"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-feature-settings">
+    use properties::longhands::system_font::SystemFont;
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
-    pub use self::computed_value::T as SpecifiedValue;
 
-    impl ComputedValueAsSpecified for SpecifiedValue {}
+    #[derive(Debug, Clone, PartialEq)]
+    pub enum SpecifiedValue {
+        Value(computed_value::T),
+        System(SystemFont)
+    }
     no_viewport_percentage!(SpecifiedValue);
+
+    <%self:simple_system_boilerplate name="font_feature_settings"></%self:simple_system_boilerplate>
 
     pub mod computed_value {
         use cssparser::Parser;
@@ -1891,13 +1898,18 @@ ${helpers.single_keyword_system("font-variant-position",
         computed_value::T::Normal
     }
 
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue::Value(computed_value::T::Normal)
+    }
+
     /// normal | <feature-tag-value>#
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
-            Ok(computed_value::T::Normal)
+            Ok(SpecifiedValue::Value(computed_value::T::Normal))
         } else {
             input.parse_comma_separated(|i| computed_value::FeatureTagValue::parse(context, i))
-                 .map(computed_value::T::Tag)
+                 .map(computed_value::T::Tag).map(SpecifiedValue::Value)
         }
     }
 </%helpers:longhand>
@@ -2390,6 +2402,7 @@ ${helpers.single_keyword("-moz-math-variant",
                     % endfor
                     font_language_override: longhands::font_language_override::computed_value
                                                      ::T(system.languageOverride),
+                    font_feature_settings: longhands::font_feature_settings::get_initial_value(),
                     system_font: *self,
                 };
                 unsafe { bindings::Gecko_nsFont_Destroy(&mut system); }

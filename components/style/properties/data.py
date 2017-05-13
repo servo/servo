@@ -18,7 +18,8 @@ SYSTEM_FONT_LONGHANDS = """font_family font_size font_style
                            font_variant_position font_weight
                            font_size_adjust font_variant_alternates
                            font_variant_ligatures font_variant_east_asian
-                           font_variant_numeric font_language_override""".split()
+                           font_variant_numeric font_language_override
+                           font_feature_settings""".split()
 
 
 def maybe_moz_logical_alias(product, side, prop):
