@@ -143,16 +143,19 @@ impl MarginCollapseInfo {
                 may_collapse_through = may_collapse_through &&
                     match fragment.style().content_block_size() {
                         LengthOrPercentageOrAuto::Auto => true,
-                        LengthOrPercentageOrAuto::Length(Au(0)) => true,
-                        LengthOrPercentageOrAuto::Percentage(0.) => true,
-                        LengthOrPercentageOrAuto::Percentage(_) if
-                            containing_block_size.is_none() => true,
-                        _ => false,
+                        LengthOrPercentageOrAuto::Length(Au(v)) => v == 0,
+                        LengthOrPercentageOrAuto::Percentage(v) => {
+                            v == 0. || containing_block_size.is_none()
+                        }
+                        LengthOrPercentageOrAuto::Calc(_) => false,
                     };
 
                 if may_collapse_through {
                     match fragment.style().min_block_size() {
-                        LengthOrPercentage::Length(Au(0)) | LengthOrPercentage::Percentage(0.) => {
+                        LengthOrPercentage::Length(Au(0)) => {
+                            FinalMarginState::MarginsCollapseThrough
+                        },
+                        LengthOrPercentage::Percentage(v) if v == 0. => {
                             FinalMarginState::MarginsCollapseThrough
                         },
                         _ => {

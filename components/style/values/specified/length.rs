@@ -266,14 +266,13 @@ pub enum AbsoluteLength {
 impl AbsoluteLength {
     fn is_zero(&self) -> bool {
         match *self {
-            AbsoluteLength::Px(0.)
-            | AbsoluteLength::In(0.)
-            | AbsoluteLength::Cm(0.)
-            | AbsoluteLength::Mm(0.)
-            | AbsoluteLength::Q(0.)
-            | AbsoluteLength::Pt(0.)
-            | AbsoluteLength::Pc(0.) => true,
-            _ => false,
+            AbsoluteLength::Px(v)
+            | AbsoluteLength::In(v)
+            | AbsoluteLength::Cm(v)
+            | AbsoluteLength::Mm(v)
+            | AbsoluteLength::Q(v)
+            | AbsoluteLength::Pt(v)
+            | AbsoluteLength::Pc(v) => v == 0.,
         }
     }
 }
