@@ -717,7 +717,7 @@ ${helpers.predefined_type("border-image-source", "ImageLayer",
 
         let mut values = vec![];
         for _ in 0..4 {
-            let value = input.try(|input| NumberOrPercentage::parse(context, input));
+            let value = input.try(|input| NumberOrPercentage::parse_non_negative(context, input));
             match value {
                 Ok(val) => values.push(val),
                 Err(_) => break,
