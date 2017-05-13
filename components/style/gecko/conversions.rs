@@ -18,7 +18,7 @@ use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordDataMut};
 use stylesheets::{Origin, RulesMutateError};
 use values::computed::{Angle, CalcLengthOrPercentage, Gradient, Image};
 use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
-use values::generics::image::{GradientItem, Image as GenericImage};
+use values::generics::image::{CompatMode, Image as GenericImage, GradientItem};
 
 impl From<CalcLengthOrPercentage> for nsStyleCoord_CalcValue {
     fn from(other: CalcLengthOrPercentage) -> nsStyleCoord_CalcValue {
@@ -208,7 +208,7 @@ impl nsStyleImage {
                     Gecko_CreateGradient(NS_STYLE_GRADIENT_SHAPE_LINEAR as u8,
                                          NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER as u8,
                                          gradient.repeating,
-                                         /* legacy_syntax = */ false,
+                                         gradient.compat_mode == CompatMode::WebKit,
                                          stop_count as u32)
                 };
 
@@ -277,7 +277,7 @@ impl nsStyleImage {
                     Gecko_CreateGradient(gecko_shape,
                                          gecko_size,
                                          gradient.repeating,
-                                         /* legacy_syntax = */ false,
+                                         gradient.compat_mode == CompatMode::WebKit,
                                          stop_count as u32)
                 };
 
