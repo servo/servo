@@ -488,7 +488,7 @@ mod bindings {
             "mozilla::DefaultDelete",
             "mozilla::Side",
             "mozilla::binding_danger::AssertAndSuppressCleanupPolicy",
-            "mozilla::LengthParsingMode",
+            "mozilla::ParsingMode",
             "mozilla::InheritTarget",
         ];
         let opaque_types = [
@@ -751,7 +751,7 @@ mod bindings {
             "ServoStyleSheet",
             "EffectCompositor_CascadeLevel",
             "UpdateAnimationsTasks",
-            "LengthParsingMode",
+            "ParsingMode",
             "InheritTarget",
             "URLMatchingFunction",
         ];

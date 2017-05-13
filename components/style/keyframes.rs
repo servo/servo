@@ -9,7 +9,7 @@
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, RuleListParser};
 use cssparser::{DeclarationListParser, DeclarationParser, parse_one_rule};
 use error_reporting::NullReporter;
-use parser::{LengthParsingMode, ParserContext, log_css_error};
+use parser::{ParsingMode, ParserContext, log_css_error};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
 use properties::{PropertyDeclarationId, LonghandId, ParsedDeclaration};
 use properties::LonghandIdSet;
@@ -131,7 +131,7 @@ impl Keyframe {
                                          &parent_stylesheet.url_data,
                                          &error_reporter,
                                          Some(CssRuleType::Keyframe),
-                                         LengthParsingMode::Default,
+                                         ParsingMode::Default,
                                          parent_stylesheet.quirks_mode);
         let mut input = Parser::new(css);
 

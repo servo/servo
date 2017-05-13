@@ -6218,7 +6218,7 @@ pub mod root {
         pub type UpdateAnimationsTasks = u8;
         #[repr(i32)]
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-        pub enum LengthParsingMode { Default = 0, SVG = 1, }
+        pub enum ParsingMode { Default = 0, SVG = 1, }
         #[repr(i32)]
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
         pub enum InheritTarget {

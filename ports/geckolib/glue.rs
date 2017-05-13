@@ -75,7 +75,7 @@ use style::gecko_properties::{self, style_structs};
 use style::keyframes::KeyframesStepValue;
 use style::media_queries::{MediaList, parse_media_query_list};
 use style::parallel;
-use style::parser::{LengthParsingMode, ParserContext};
+use style::parser::{ParsingMode, ParserContext};
 use style::properties::{CascadeFlags, ComputedValues, Importance, ParsedDeclaration, StyleBuilder};
 use style::properties::{LonghandIdSet, PropertyDeclarationBlock, PropertyId};
 use style::properties::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
@@ -1133,30 +1133,30 @@ pub extern "C" fn Servo_StyleSet_Drop(data: RawServoStyleSetOwned) {
 fn parse_property(property_id: PropertyId,
                   value: *const nsACString,
                   data: *mut URLExtraData,
-                  length_parsing_mode: structs::LengthParsingMode) -> Result<ParsedDeclaration, ()> {
+                  parsing_mode: structs::ParsingMode) -> Result<ParsedDeclaration, ()> {
     let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
     let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
-    let length_parsing_mode = match length_parsing_mode {
-        structs::LengthParsingMode::Default => LengthParsingMode::Default,
-        structs::LengthParsingMode::SVG => LengthParsingMode::SVG,
+    let parsing_mode = match parsing_mode {
+        structs::ParsingMode::Default => ParsingMode::Default,
+        structs::ParsingMode::AllowUnitlessLength => ParsingMode::AllowUnitlessLength,
     };
 
     parse_one_declaration(property_id,
                           value,
                           url_data,
                           &RustLogReporter,
-                          length_parsing_mode,
+                          parsing_mode,
                           QuirksMode::NoQuirks)
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_ParseProperty(property: nsCSSPropertyID, value: *const nsACString,
                                       data: *mut URLExtraData,
-                                      length_parsing_mode: structs::LengthParsingMode)
+                                      parsing_mode: structs::ParsingMode)
                                       -> RawServoDeclarationBlockStrong {
     let id = get_property_id_from_nscsspropertyid!(property,
                                                    RawServoDeclarationBlockStrong::null());
-    match parse_property(id, value, data, length_parsing_mode) {
+    match parse_property(id, value, data, parsing_mode) {
         Ok(parsed) => {
             let global_style_data = &*GLOBAL_STYLE_DATA;
             let mut block = PropertyDeclarationBlock::new();
@@ -1180,7 +1180,7 @@ pub extern "C" fn Servo_ParseEasing(easing: *const nsAString,
                                      url_data,
                                      &reporter,
                                      Some(CssRuleType::Style),
-                                     LengthParsingMode::Default,
+                                     ParsingMode::Default,
                                      QuirksMode::NoQuirks);
     let easing = unsafe { (*easing).to_string() };
     match transition_timing_function::single_value::parse(&context, &mut Parser::new(&easing)) {
@@ -1314,8 +1314,8 @@ pub extern "C" fn Servo_DeclarationBlock_GetPropertyIsImportant(declarations: Ra
 
 fn set_property(declarations: RawServoDeclarationBlockBorrowed, property_id: PropertyId,
                 value: *const nsACString, is_important: bool, data: *mut URLExtraData,
-                length_parsing_mode: structs::LengthParsingMode) -> bool {
-    match parse_property(property_id, value, data, length_parsing_mode) {
+                parsing_mode: structs::ParsingMode) -> bool {
+    match parse_property(property_id, value, data, parsing_mode) {
         Ok(parsed) => {
             let importance = if is_important { Importance::Important } else { Importance::Normal };
             write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
@@ -1330,18 +1330,18 @@ fn set_property(declarations: RawServoDeclarationBlockBorrowed, property_id: Pro
 pub extern "C" fn Servo_DeclarationBlock_SetProperty(declarations: RawServoDeclarationBlockBorrowed,
                                                      property: *const nsACString, value: *const nsACString,
                                                      is_important: bool, data: *mut URLExtraData,
-                                                     length_parsing_mode: structs::LengthParsingMode) -> bool {
+                                                     parsing_mode: structs::ParsingMode) -> bool {
     set_property(declarations, get_property_id_from_property!(property, false),
-                 value, is_important, data, length_parsing_mode)
+                 value, is_important, data, parsing_mode)
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_SetPropertyById(declarations: RawServoDeclarationBlockBorrowed,
                                                          property: nsCSSPropertyID, value: *const nsACString,
                                                          is_important: bool, data: *mut URLExtraData,
-                                                         length_parsing_mode: structs::LengthParsingMode) -> bool {
+                                                         parsing_mode: structs::ParsingMode) -> bool {
     set_property(declarations, get_property_id_from_nscsspropertyid!(property, false),
-                 value, is_important, data, length_parsing_mode)
+                 value, is_important, data, parsing_mode)
 }
 
 fn remove_property(declarations: RawServoDeclarationBlockBorrowed, property_id: PropertyId) {
@@ -1410,7 +1410,7 @@ pub extern "C" fn Servo_MediaList_SetText(list: RawServoMediaListBorrowed, text:
     let url_data = unsafe { dummy_url_data() };
     let reporter = RustLogReporter;
     let context = ParserContext::new_for_cssom(url_data, &reporter, Some(CssRuleType::Media),
-                                               LengthParsingMode::Default,
+                                               ParsingMode::Default,
                                                QuirksMode::NoQuirks);
      write_locked_arc(list, |list: &mut MediaList| {
         *list = parse_media_query_list(&context, &mut parser);
@@ -1442,7 +1442,7 @@ pub extern "C" fn Servo_MediaList_AppendMedium(list: RawServoMediaListBorrowed,
     let url_data = unsafe { dummy_url_data() };
     let reporter = RustLogReporter;
     let context = ParserContext::new_for_cssom(url_data, &reporter, Some(CssRuleType::Media),
-                                               LengthParsingMode::Default,
+                                               ParsingMode::Default,
                                                QuirksMode::NoQuirks);
     write_locked_arc(list, |list: &mut MediaList| {
         list.append_medium(&context, new_medium);
@@ -1456,7 +1456,7 @@ pub extern "C" fn Servo_MediaList_DeleteMedium(list: RawServoMediaListBorrowed,
     let url_data = unsafe { dummy_url_data() };
     let reporter = RustLogReporter;
     let context = ParserContext::new_for_cssom(url_data, &reporter, Some(CssRuleType::Media),
-                                               LengthParsingMode::Default,
+                                               ParsingMode::Default,
                                                QuirksMode::NoQuirks);
     write_locked_arc(list, |list: &mut MediaList| list.delete_medium(&context, old_medium))
 }
@@ -1810,7 +1810,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetBackgroundImage(declarations:
     let string = unsafe { (*value).to_string() };
     let error_reporter = RustLogReporter;
     let context = ParserContext::new(Origin::Author, url_data, &error_reporter,
-                                     Some(CssRuleType::Style), LengthParsingMode::Default,
+                                     Some(CssRuleType::Style), ParsingMode::Default,
                                      QuirksMode::NoQuirks);
     if let Ok(url) = SpecifiedUrl::parse_from_string(string.into(), &context) {
         let decl = PropertyDeclaration::BackgroundImage(BackgroundImage(
@@ -1842,7 +1842,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetTextDecorationColorOverride(declarat
 pub extern "C" fn Servo_CSSSupports2(property: *const nsACString, value: *const nsACString) -> bool {
     let id = get_property_id_from_property!(property, false);
 
-    parse_property(id, value, unsafe { DUMMY_URL_DATA }, structs::LengthParsingMode::Default).is_ok()
+    parse_property(id, value, unsafe { DUMMY_URL_DATA }, structs::ParsingMode::Default).is_ok()
 }
 
 #[no_mangle]
@@ -1854,7 +1854,7 @@ pub extern "C" fn Servo_CSSSupports(cond: *const nsACString) -> bool {
         let url_data = unsafe { dummy_url_data() };
         let reporter = RustLogReporter;
         let context = ParserContext::new_for_cssom(url_data, &reporter, Some(CssRuleType::Style),
-                                                   LengthParsingMode::Default,
+                                                   ParsingMode::Default,
                                                    QuirksMode::NoQuirks);
         cond.eval(&context)
     } else {
