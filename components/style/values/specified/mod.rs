@@ -632,12 +632,20 @@ impl Number {
 
     #[allow(missing_docs)]
     pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<Number, ()> {
-        parse_number_with_clamping_mode(context, input, AllowedNumericType::NonNegative)
+        if context.parsing_mode.allows_all_numeric_values() {
+            parse_number(context, input)
+        } else {
+            parse_number_with_clamping_mode(context, input, AllowedNumericType::NonNegative)
+        }
     }
 
     #[allow(missing_docs)]
     pub fn parse_at_least_one(context: &ParserContext, input: &mut Parser) -> Result<Number, ()> {
-        parse_number_with_clamping_mode(context, input, AllowedNumericType::AtLeastOne)
+        if context.parsing_mode.allows_all_numeric_values() {
+            parse_number(context, input)
+        } else {
+            parse_number_with_clamping_mode(context, input, AllowedNumericType::AtLeastOne)
+        }
     }
 }
 

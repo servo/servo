@@ -20,6 +20,9 @@ bitflags! {
         /// to be in user units (px).
         /// https://www.w3.org/TR/SVG/coords.html#Units
         const PARSING_MODE_ALLOW_UNITLESS_LENGTH = 0x01,
+        /// In SVG, out-of-range values are not treated as an error in parsing.
+        /// https://www.w3.org/TR/SVG/implnote.html#RangeClamping
+        const PARSING_MODE_ALLOW_ALL_NUMERIC_VALUES = 0x02,
     }
 }
 
@@ -27,6 +30,11 @@ impl ParsingMode {
     /// Whether the parsing mode allows unitless lengths for non-zero values to be intpreted as px.
     pub fn allows_unitless_lengths(&self) -> bool {
         self.intersects(PARSING_MODE_ALLOW_UNITLESS_LENGTH)
+    }
+
+    /// Whether the parsing mode allows all numeric values.
+    pub fn allows_all_numeric_values(&self) -> bool {
+      self.intersects(PARSING_MODE_ALLOW_ALL_NUMERIC_VALUES)
     }
 }
 
@@ -39,12 +47,12 @@ pub fn assert_parsing_mode_match() {
     macro_rules! check_parsing_modes {
         ( $( $a:ident => $b:ident ),*, ) => {
             if cfg!(debug_assertions) {
-                let mut hints = ParsingMode::all();
+                let mut modes = ParsingMode::all();
                 $(
                     assert_eq!(structs::$a as usize, $b.bits() as usize, stringify!($b));
-                    hints.remove($b);
+                    modes.remove($b);
                 )*
-                assert_eq!(hints, ParsingMode::empty(), "all ParsingMode bits should have an assertion");
+                assert_eq!(modes, ParsingMode::empty(), "all ParsingMode bits should have an assertion");
             }
         }
     }
@@ -52,6 +60,7 @@ pub fn assert_parsing_mode_match() {
     check_parsing_modes! {
         ParsingMode_Default => PARSING_MODE_DEFAULT,
         ParsingMode_AllowUnitlessLength => PARSING_MODE_ALLOW_UNITLESS_LENGTH,
+        ParsingMode_AllowAllNumericValues => PARSING_MODE_ALLOW_ALL_NUMERIC_VALUES,
     }
 }
 
