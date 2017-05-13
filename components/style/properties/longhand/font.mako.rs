@@ -1064,9 +1064,10 @@ ${helpers.single_keyword_system("font-variant-caps",
 
         impl T {
             pub fn from_gecko_adjust(gecko: f32) -> Self {
-                match gecko {
-                    -1.0 => T::None,
-                    _ => T::Number(gecko),
+                if gecko == -1.0 {
+                    T::None
+                } else {
+                    T::Number(gecko)
                 }
             }
         }
