@@ -82,7 +82,7 @@ impl Parse for Image {
         if let Ok(url) = input.try(|input| SpecifiedUrl::parse(context, input)) {
             return Ok(GenericImage::Url(url));
         }
-        if let Ok(gradient) = input.try(|input| Gradient::parse_function(context, input)) {
+        if let Ok(gradient) = input.try(|i| Gradient::parse(context, i)) {
             return Ok(GenericImage::Gradient(gradient));
         }
         if let Ok(image_rect) = input.try(|input| ImageRect::parse(context, input)) {
@@ -113,9 +113,8 @@ impl Image {
     }
 }
 
-impl Gradient {
-    /// Parses a gradient from the given arguments.
-    pub fn parse_function(context: &ParserContext, input: &mut Parser) -> Result<Gradient, ()> {
+impl Parse for Gradient {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         enum Shape {
             Linear,
             Radial,
@@ -154,7 +153,7 @@ impl Gradient {
                 Shape::Linear => GradientKind::parse_linear(context, i, compat_mode)?,
                 Shape::Radial => GradientKind::parse_radial(context, i, compat_mode)?,
             };
-            let items = Gradient::parse_items(context, i)?;
+            let items = GradientItem::parse_comma_separated(context, i)?;
             Ok((shape, items))
         })?;
 
@@ -168,24 +167,6 @@ impl Gradient {
             kind: kind,
             compat_mode: compat_mode,
         })
-    }
-
-    fn parse_items(context: &ParserContext, input: &mut Parser) -> Result<Vec<GradientItem>, ()> {
-        let mut seen_stop = false;
-        let items = try!(input.parse_comma_separated(|input| {
-            if seen_stop {
-                if let Ok(hint) = input.try(|i| LengthOrPercentage::parse(context, i)) {
-                    seen_stop = false;
-                    return Ok(GenericGradientItem::InterpolationHint(hint));
-                }
-            }
-            seen_stop = true;
-            ColorStop::parse(context, input).map(GenericGradientItem::ColorStop)
-        }));
-        if !seen_stop || items.len() < 2 {
-            return Err(());
-        }
-        Ok(items)
     }
 }
 
@@ -388,6 +369,26 @@ impl ShapeExtent {
             ShapeExtent::Contain | ShapeExtent::Cover if compat_mode == CompatMode::Modern => Err(()),
             keyword => Ok(keyword),
         }
+    }
+}
+
+impl GradientItem {
+    fn parse_comma_separated(context: &ParserContext, input: &mut Parser) -> Result<Vec<Self>, ()> {
+        let mut seen_stop = false;
+        let items = try!(input.parse_comma_separated(|input| {
+            if seen_stop {
+                if let Ok(hint) = input.try(|i| LengthOrPercentage::parse(context, i)) {
+                    seen_stop = false;
+                    return Ok(GenericGradientItem::InterpolationHint(hint));
+                }
+            }
+            seen_stop = true;
+            ColorStop::parse(context, input).map(GenericGradientItem::ColorStop)
+        }));
+        if !seen_stop || items.len() < 2 {
+            return Err(());
+        }
+        Ok(items)
     }
 }
 
