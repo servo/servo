@@ -123,9 +123,9 @@ impl<'a> Serialize for &'a Node {
         if traversal_scope == ChildrenOnly {
             roots.next().unwrap();
         }
-        'traversal: for root in roots {
+        for root in roots {
             let node = root.r();
-            match  node.type_id() {
+            match node.type_id() {
                 NodeTypeId::Element(..) => {
                     let elem = node.downcast::<Element>().unwrap();
                     let name = QualName::new(None, elem.namespace().clone(),
@@ -191,7 +191,7 @@ impl<'a> Serialize for &'a Node {
         if stack.is_empty() {
             Ok(())
         } else {
-            Err(io::Error::new(io::ErrorKind::Other, "Stack is not empty!!!!"))
+            panic!("Stack is not empty!!!!")
         }
     }
 }
