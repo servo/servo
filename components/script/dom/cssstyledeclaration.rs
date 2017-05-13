@@ -17,7 +17,7 @@ use dom_struct::dom_struct;
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use style::attr::AttrValue;
-use style::parser::LengthParsingMode;
+use style::parser::PARSING_MODE_DEFAULT;
 use style::properties::{Importance, PropertyDeclarationBlock, PropertyId, LonghandId, ShorthandId};
 use style::properties::{parse_one_declaration, parse_style_attribute};
 use style::selector_parser::PseudoElement;
@@ -260,7 +260,7 @@ impl CSSStyleDeclaration {
             let result =
                 parse_one_declaration(id, &value, &self.owner.base_url(),
                                       window.css_error_reporter(),
-                                      LengthParsingMode::Default,
+                                      PARSING_MODE_DEFAULT,
                                       quirks_mode);
 
             // Step 7

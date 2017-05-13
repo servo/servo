@@ -29,7 +29,7 @@ use font_metrics::FontMetricsProvider;
 #[cfg(feature = "servo")] use logical_geometry::{LogicalMargin, PhysicalSide};
 use logical_geometry::WritingMode;
 use media_queries::Device;
-use parser::{LengthParsingMode, Parse, ParserContext};
+use parser::{PARSING_MODE_DEFAULT, Parse, ParserContext};
 use properties::animated_properties::TransitionProperty;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
 use shared_lock::StylesheetGuards;
@@ -387,7 +387,7 @@ impl PropertyDeclarationIdSet {
                                                      url_data,
                                                      error_reporter,
                                                      None,
-                                                     LengthParsingMode::Default,
+                                                     PARSING_MODE_DEFAULT,
                                                      quirks_mode);
                     Parser::new(&css).parse_entirely(|input| {
                         match from_shorthand {

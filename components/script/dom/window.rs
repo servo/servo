@@ -104,7 +104,7 @@ use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use style::context::ReflowGoal;
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries;
-use style::parser::{LengthParsingMode, ParserContext as CssParserContext};
+use style::parser::{PARSING_MODE_DEFAULT, ParserContext as CssParserContext};
 use style::properties::PropertyId;
 use style::properties::longhands::overflow_x;
 use style::selector_parser::PseudoElement;
@@ -978,7 +978,7 @@ impl WindowMethods for Window {
         let url = self.get_url();
         let quirks_mode = self.Document().quirks_mode();
         let context = CssParserContext::new_for_cssom(&url, self.css_error_reporter(), Some(CssRuleType::Media),
-                                                      LengthParsingMode::Default,
+                                                      PARSING_MODE_DEFAULT,
                                                       quirks_mode);
         let media_query_list = media_queries::parse_media_query_list(&context, &mut parser);
         let document = self.Document();

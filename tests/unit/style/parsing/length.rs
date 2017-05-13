@@ -6,7 +6,7 @@ use cssparser::Parser;
 use media_queries::CSSErrorReporterTest;
 use parsing::parse;
 use style::context::QuirksMode;
-use style::parser::{LengthParsingMode, Parse, ParserContext};
+use style::parser::{PARSING_MODE_ALLOW_UNITLESS_LENGTH, Parse, ParserContext};
 use style::stylesheets::{CssRuleType, Origin};
 use style::values::Either;
 use style::values::specified::{LengthOrPercentageOrNumber, Number};
@@ -35,7 +35,7 @@ fn test_length_literals() {
 }
 
 #[test]
-fn test_length_parsing_modes() {
+fn test_parsing_modes() {
     // In default length mode, non-zero lengths must have a unit.
     assert!(parse(Length::parse, "1").is_err());
 
@@ -43,7 +43,7 @@ fn test_length_parsing_modes() {
     let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
     let context = ParserContext::new(Origin::Author, &url, &reporter,
-                                     Some(CssRuleType::Style), LengthParsingMode::SVG,
+                                     Some(CssRuleType::Style), PARSING_MODE_ALLOW_UNITLESS_LENGTH,
                                      QuirksMode::NoQuirks);
     let mut parser = Parser::new("1");
     let result = Length::parse(&context, &mut parser);

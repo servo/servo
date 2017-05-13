@@ -23,7 +23,7 @@ use net_traits::ReferrerPolicy;
 use script_layout_interface::message::Msg;
 use std::cell::Cell;
 use style::media_queries::parse_media_query_list;
-use style::parser::{LengthParsingMode, ParserContext as CssParserContext};
+use style::parser::{PARSING_MODE_DEFAULT, ParserContext as CssParserContext};
 use style::stylearc::Arc;
 use style::stylesheets::{CssRuleType, Stylesheet, Origin};
 use stylesheet_loader::{StylesheetLoader, StylesheetOwner};
@@ -88,7 +88,7 @@ impl HTMLStyleElement {
         let context = CssParserContext::new_for_cssom(&url,
                                                       win.css_error_reporter(),
                                                       Some(CssRuleType::Media),
-                                                      LengthParsingMode::Default,
+                                                      PARSING_MODE_DEFAULT,
                                                       doc.quirks_mode());
         let shared_lock = node.owner_doc().style_shared_lock().clone();
         let mq = Arc::new(shared_lock.wrap(

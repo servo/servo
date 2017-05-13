@@ -14,7 +14,7 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use style::media_queries::{MediaQuery, parse_media_query_list};
 use style::media_queries::MediaList as StyleMediaList;
-use style::parser::{LengthParsingMode, ParserContext};
+use style::parser::{PARSING_MODE_DEFAULT, ParserContext};
 use style::shared_lock::{SharedRwLock, Locked};
 use style::stylearc::Arc;
 use style::stylesheets::CssRuleType;
@@ -77,7 +77,7 @@ impl MediaListMethods for MediaList {
         let url = win.get_url();
         let quirks_mode = win.Document().quirks_mode();
         let context = ParserContext::new_for_cssom(&url, win.css_error_reporter(), Some(CssRuleType::Media),
-                                                   LengthParsingMode::Default,
+                                                   PARSING_MODE_DEFAULT,
                                                    quirks_mode);
         *media_queries = parse_media_query_list(&context, &mut parser);
     }
@@ -113,7 +113,7 @@ impl MediaListMethods for MediaList {
         let url = win.get_url();
         let quirks_mode = win.Document().quirks_mode();
         let context = ParserContext::new_for_cssom(&url, win.css_error_reporter(), Some(CssRuleType::Media),
-                                                   LengthParsingMode::Default,
+                                                   PARSING_MODE_DEFAULT,
                                                    quirks_mode);
         let m = MediaQuery::parse(&context, &mut parser);
         // Step 2
@@ -141,7 +141,7 @@ impl MediaListMethods for MediaList {
         let url = win.get_url();
         let quirks_mode = win.Document().quirks_mode();
         let context = ParserContext::new_for_cssom(&url, win.css_error_reporter(), Some(CssRuleType::Media),
-                                                   LengthParsingMode::Default,
+                                                   PARSING_MODE_DEFAULT,
                                                    quirks_mode);
         let m = MediaQuery::parse(&context, &mut parser);
         // Step 2

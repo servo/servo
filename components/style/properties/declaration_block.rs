@@ -10,7 +10,7 @@ use context::QuirksMode;
 use cssparser::{DeclarationListParser, parse_important};
 use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter};
 use error_reporting::ParseErrorReporter;
-use parser::{LengthParsingMode, ParserContext, log_css_error};
+use parser::{PARSING_MODE_DEFAULT, ParsingMode, ParserContext, log_css_error};
 use std::fmt;
 use style_traits::ToCss;
 use stylesheets::{CssRuleType, Origin, UrlExtraData};
@@ -649,7 +649,7 @@ pub fn parse_style_attribute(input: &str,
                                      url_data,
                                      error_reporter,
                                      Some(CssRuleType::Style),
-                                     LengthParsingMode::Default,
+                                     PARSING_MODE_DEFAULT,
                                      quirks_mode);
     parse_property_declaration_list(&context, &mut Parser::new(input))
 }
@@ -663,14 +663,14 @@ pub fn parse_one_declaration(id: PropertyId,
                              input: &str,
                              url_data: &UrlExtraData,
                              error_reporter: &ParseErrorReporter,
-                             length_parsing_mode: LengthParsingMode,
+                             parsing_mode: ParsingMode,
                              quirks_mode: QuirksMode)
                              -> Result<ParsedDeclaration, ()> {
     let context = ParserContext::new(Origin::Author,
                                      url_data,
                                      error_reporter,
                                      Some(CssRuleType::Style),
-                                     length_parsing_mode,
+                                     parsing_mode,
                                      quirks_mode);
     Parser::new(input).parse_entirely(|parser| {
         ParsedDeclaration::parse(id, &context, parser)

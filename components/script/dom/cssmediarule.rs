@@ -16,7 +16,7 @@ use dom::medialist::MediaList;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use style::media_queries::parse_media_query_list;
-use style::parser::{LengthParsingMode, ParserContext};
+use style::parser::{PARSING_MODE_DEFAULT, ParserContext};
 use style::shared_lock::{Locked, ToCssWithGuard};
 use style::stylearc::Arc;
 use style::stylesheets::{CssRuleType, MediaRule};
@@ -75,7 +75,7 @@ impl CSSMediaRule {
         let url = win.get_url();
         let quirks_mode = win.Document().quirks_mode();
         let context = ParserContext::new_for_cssom(&url, win.css_error_reporter(), Some(CssRuleType::Media),
-                                                   LengthParsingMode::Default,
+                                                   PARSING_MODE_DEFAULT,
                                                    quirks_mode);
         let new_medialist = parse_media_query_list(&context, &mut input);
         let mut guard = self.cssconditionrule.shared_lock().write();

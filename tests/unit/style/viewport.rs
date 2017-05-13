@@ -9,7 +9,7 @@ use servo_config::prefs::{PREFS, PrefValue};
 use servo_url::ServoUrl;
 use style::context::QuirksMode;
 use style::media_queries::{Device, MediaList, MediaType};
-use style::parser::{LengthParsingMode, Parse, ParserContext};
+use style::parser::{PARSING_MODE_DEFAULT, Parse, ParserContext};
 use style::shared_lock::SharedRwLock;
 use style::stylearc::Arc;
 use style::stylesheets::{CssRuleType, Stylesheet, Origin};
@@ -295,7 +295,7 @@ fn constrain_viewport() {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let reporter = CSSErrorReporterTest;
     let context = ParserContext::new(Origin::Author, &url, &reporter, Some(CssRuleType::Viewport),
-                                     LengthParsingMode::Default,
+                                     PARSING_MODE_DEFAULT,
                                      QuirksMode::NoQuirks);
 
     macro_rules! from_css {

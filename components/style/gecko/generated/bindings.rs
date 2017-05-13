@@ -192,7 +192,7 @@ use gecko_bindings::structs::Loader;
 use gecko_bindings::structs::ServoStyleSheet;
 use gecko_bindings::structs::EffectCompositor_CascadeLevel;
 use gecko_bindings::structs::UpdateAnimationsTasks;
-use gecko_bindings::structs::LengthParsingMode;
+use gecko_bindings::structs::ParsingMode;
 use gecko_bindings::structs::InheritTarget;
 use gecko_bindings::structs::URLMatchingFunction;
 pub type nsTArrayBorrowed_uintptr_t<'a> = &'a mut ::gecko_bindings::structs::nsTArray<usize>;
@@ -1865,7 +1865,7 @@ extern "C" {
     pub fn Servo_ParseProperty(property: nsCSSPropertyID,
                                value: *const nsACString,
                                data: *mut RawGeckoURLExtraData,
-                               length_parsing_mode: LengthParsingMode)
+                               parsing_mode: ParsingMode)
      -> RawServoDeclarationBlockStrong;
 }
 extern "C" {
@@ -2034,8 +2034,8 @@ extern "C" {
                                               value: *const nsACString,
                                               is_important: bool,
                                               data: *mut RawGeckoURLExtraData,
-                                              length_parsing_mode:
-                                                  LengthParsingMode) -> bool;
+                                              parsing_mode: ParsingMode)
+     -> bool;
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_SetPropertyById(declarations:
@@ -2045,8 +2045,7 @@ extern "C" {
                                                   is_important: bool,
                                                   data:
                                                       *mut RawGeckoURLExtraData,
-                                                  length_parsing_mode:
-                                                      LengthParsingMode)
+                                                  parsing_mode: ParsingMode)
      -> bool;
 }
 extern "C" {

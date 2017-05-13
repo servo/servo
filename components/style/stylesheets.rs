@@ -26,7 +26,7 @@ use gecko_bindings::sugar::refptr::RefPtr;
 use keyframes::{Keyframe, parse_keyframe_list};
 use media_queries::{Device, MediaList, parse_media_query_list};
 use parking_lot::RwLock;
-use parser::{LengthParsingMode, Parse, ParserContext, log_css_error};
+use parser::{PARSING_MODE_DEFAULT, Parse, ParserContext, log_css_error};
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
 use selector_parser::{SelectorImpl, SelectorParser};
 use selectors::parser::SelectorList;
@@ -442,7 +442,7 @@ impl CssRule {
                                          &parent_stylesheet.url_data,
                                          &error_reporter,
                                          None,
-                                         LengthParsingMode::Default,
+                                         PARSING_MODE_DEFAULT,
                                          parent_stylesheet.quirks_mode);
         let mut input = Parser::new(css);
 
@@ -744,7 +744,7 @@ impl Stylesheet {
             shared_lock: shared_lock,
             loader: stylesheet_loader,
             context: ParserContext::new_with_line_number_offset(origin, url_data, error_reporter,
-                                                                line_number_offset, LengthParsingMode::Default,
+                                                                line_number_offset, PARSING_MODE_DEFAULT,
                                                                 quirks_mode),
             state: Cell::new(State::Start),
         };
