@@ -1660,11 +1660,7 @@ fn static_assert() {
 
     pub fn clone_font_size_adjust(&self) -> longhands::font_size_adjust::computed_value::T {
         use properties::longhands::font_size_adjust::computed_value::T;
-
-        match self.gecko.mFont.sizeAdjust {
-            -1.0 => T::None,
-            _ => T::Number(self.gecko.mFont.sizeAdjust),
-        }
+        T::from_gecko_adjust(self.gecko.mFont.sizeAdjust)
     }
 
     #[allow(non_snake_case)]
