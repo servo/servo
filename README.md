@@ -133,7 +133,6 @@ Mach tools to orchestrate the build and other tasks.
 
 ### Normal build
 
-
 To build Servo in development mode.  This is useful for development, but
 the resulting binary is very slow.
 
@@ -158,6 +157,20 @@ real-world use, add the `--release` flag to create an optimized build:
 ./mach build --release
 ./mach run --release tests/html/about-mozilla.html
 ```
+
+### Checking for build errors, without building
+
+If you’re making changes to one crate that cause build errors in another crate,
+consider this instead of a full build:
+
+```sh
+./mach check
+```
+
+It will run `cargo check`, which runs the analysis phase of the compiler
+(and so shows build errors if any) but skips the code generation phase.
+This can be a lot faster than a full build,
+though of course it doesn’t produce a binary you can run.
 
 ### Building for Android target
 
