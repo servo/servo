@@ -251,6 +251,14 @@ impl LonghandIdSet {
         self.storage[bit / 32] &= !(1 << (bit % 32));
     }
 
+    /// Clear all bits
+    #[inline]
+    pub fn clear(&mut self) {
+        for cell in &mut self.storage {
+            *cell = 0
+        }
+    }
+
     /// Set the corresponding bit of TransitionProperty.
     /// This function will panic if TransitionProperty::All is given.
     pub fn set_transition_property_bit(&mut self, property: &TransitionProperty) {

@@ -991,11 +991,25 @@ extern "C" {
                                     src: *mut nsStyleDisplay);
 }
 extern "C" {
-    pub fn Gecko_AnimationAppendKeyframe(keyframes:
-                                             RawGeckoKeyframeListBorrowedMut,
-                                         offset: f32,
-                                         timingFunction:
-                                             *const nsTimingFunction)
+    pub fn Gecko_GetOrCreateKeyframeAtStart(keyframes:
+                                                RawGeckoKeyframeListBorrowedMut,
+                                            offset: f32,
+                                            timingFunction:
+                                                *const nsTimingFunction)
+     -> *mut Keyframe;
+}
+extern "C" {
+    pub fn Gecko_GetOrCreateInitialKeyframe(keyframes:
+                                                RawGeckoKeyframeListBorrowedMut,
+                                            timingFunction:
+                                                *const nsTimingFunction)
+     -> *mut Keyframe;
+}
+extern "C" {
+    pub fn Gecko_GetOrCreateFinalKeyframe(keyframes:
+                                              RawGeckoKeyframeListBorrowedMut,
+                                          timingFunction:
+                                              *const nsTimingFunction)
      -> *mut Keyframe;
 }
 extern "C" {
@@ -1669,14 +1683,14 @@ extern "C" {
                                                  author_style_disabled: bool);
 }
 extern "C" {
-    pub fn Servo_StyleSet_FillKeyframesForName(set: RawServoStyleSetBorrowed,
-                                               property: *const nsACString,
-                                               timing_function:
-                                                   nsTimingFunctionBorrowed,
-                                               computed_values:
-                                                   ServoComputedValuesBorrowed,
-                                               keyframe_list:
-                                                   RawGeckoKeyframeListBorrowedMut)
+    pub fn Servo_StyleSet_GetKeyframesForName(set: RawServoStyleSetBorrowed,
+                                              property: *const nsACString,
+                                              timing_function:
+                                                  nsTimingFunctionBorrowed,
+                                              computed_values:
+                                                  ServoComputedValuesBorrowed,
+                                              keyframe_list:
+                                                  RawGeckoKeyframeListBorrowedMut)
      -> bool;
 }
 extern "C" {
