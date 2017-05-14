@@ -20,7 +20,9 @@
                               "::cssparser::Color::CurrentColor",
                               alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-color"),
                               spec=maybe_logical_spec(side, "color"),
-                              animation_value_type="IntermediateColor", logical = side[1])}
+                              animation_value_type="IntermediateColor",
+                              logical=side[1],
+                              allow_quirks=not side[1])}
 
     ${helpers.predefined_type("border-%s-style" % side[0], "BorderStyle",
                               "specified::BorderStyle::none",

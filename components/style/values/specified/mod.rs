@@ -26,7 +26,7 @@ use values::specified::calc::CalcNode;
 
 #[cfg(feature = "gecko")]
 pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
-pub use self::color::Color;
+pub use self::color::{Color, ColorExt};
 pub use self::grid::{GridLine, TrackKeyword};
 pub use self::image::{ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use self::image::{GradientItem, GradientKind, Image, ImageRect, ImageLayer};
@@ -94,6 +94,34 @@ impl Parse for CSSColor {
         Ok(CSSColor {
             parsed: try!(Parse::parse(context, input)),
             authored: authored,
+        })
+    }
+}
+
+impl CSSColor {
+    /// Parse a color, with quirks.
+    pub fn parse_quirky(context: &ParserContext,
+                        input: &mut Parser,
+                        allow_quirks: AllowQuirks)
+                        -> Result<Self, ()> {
+        let start_position = input.position();
+        let authored = match input.next() {
+            Ok(Token::Ident(s)) => Some(s.into_owned().into_boxed_str()),
+            _ => None,
+        };
+        input.reset(start_position);
+        if let Ok(parsed) = input.try(|i| Parse::parse(context, i)) {
+            return Ok(CSSColor {
+                parsed: parsed,
+                authored: authored,
+            });
+        }
+        if !allow_quirks.allowed(context.quirks_mode) {
+            return Err(());
+        }
+        Ok(CSSColor {
+            parsed: Color::parse_quirky(context, input, allow_quirks)?,
+            authored: None,
         })
     }
 }
