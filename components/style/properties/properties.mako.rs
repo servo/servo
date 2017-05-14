@@ -2612,6 +2612,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
         % if category_to_cascade_now == "early":
             let writing_mode = get_writing_mode(context.style.get_inheritedbox());
             context.style.writing_mode = writing_mode;
+
             // It is important that font_size is computed before
             // the late properties (for em units), but after font-family
             // (for the base-font-size dependence for default and keyword font-sizes)
@@ -2665,6 +2666,11 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                                                  error_reporter);
             % endif
             }
+
+            if is_root_element {
+                let s = context.style.get_font().clone_font_size();
+                context.style.root_font_size = s;
+            }
         % endif
     % endfor
 
@@ -2685,11 +2691,6 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
             svg.fill_arrays();
         }
     % endif
-
-    if is_root_element {
-        let s = style.get_font().clone_font_size();
-        style.root_font_size = s;
-    }
 
     % if product == "servo":
         if seen.contains(LonghandId::FontStyle) ||
