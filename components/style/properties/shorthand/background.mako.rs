@@ -10,12 +10,12 @@
                                     background-attachment background-image background-size background-origin
                                     background-clip"
                     spec="https://drafts.csswg.org/css-backgrounds/#the-background">
-    use properties::longhands::{background_color, background_position_x, background_position_y, background_repeat};
+    use properties::longhands::{background_position_x, background_position_y, background_repeat};
     use properties::longhands::{background_attachment, background_image, background_size, background_origin};
     use properties::longhands::background_clip;
     use properties::longhands::background_clip::single_value::computed_value::T as Clip;
     use properties::longhands::background_origin::single_value::computed_value::T as Origin;
-    use values::specified::{Position, PositionComponent};
+    use values::specified::{CSSColor, Position, PositionComponent};
     use parser::Parse;
 
     impl From<background_origin::single_value::SpecifiedValue> for background_clip::single_value::SpecifiedValue {
@@ -43,7 +43,7 @@
                 let mut ${name} = None;
             % endfor
             loop {
-                if let Ok(value) = input.try(|input| background_color::parse(context, input)) {
+                if let Ok(value) = input.try(|i| CSSColor::parse(context, i)) {
                     if background_color.is_none() {
                         background_color = Some(value);
                         continue
@@ -109,7 +109,7 @@
         }));
 
         Ok(Longhands {
-             background_color: unwrap_or_initial!(background_color),
+             background_color: background_color.unwrap_or(CSSColor::transparent()),
              background_image: background_image,
              background_position_x: background_position_x,
              background_position_y: background_position_y,

@@ -10,12 +10,14 @@ use app_units::Au;
 use context::QuirksMode;
 use cssparser::{self, Parser, Token};
 use euclid::size::Size2D;
+use itoa;
 use parser::{ParserContext, Parse};
 use self::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
 use self::url::SpecifiedUrl;
 use std::ascii::AsciiExt;
 use std::f32;
 use std::fmt;
+use std::io::Write;
 use style_traits::ToCss;
 use style_traits::values::specified::AllowedNumericType;
 use super::{Auto, CSSFloat, CSSInteger, HasViewportPercentage, Either, None_};
@@ -85,15 +87,89 @@ pub struct CSSColor {
 
 impl Parse for CSSColor {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        Self::parse_quirky(context, input, AllowQuirks::No)
+    }
+}
+
+impl CSSColor {
+    /// Parse a color, with quirks.
+    ///
+    /// https://quirks.spec.whatwg.org/#the-hashless-hex-color-quirk
+    pub fn parse_quirky(context: &ParserContext,
+                        input: &mut Parser,
+                        allow_quirks: AllowQuirks)
+                        -> Result<Self, ()> {
         let start_position = input.position();
         let authored = match input.next() {
             Ok(Token::Ident(s)) => Some(s.into_owned().into_boxed_str()),
             _ => None,
         };
         input.reset(start_position);
+        if let Ok(parsed) = input.try(|i| Parse::parse(context, i)) {
+            return Ok(CSSColor {
+                parsed: parsed,
+                authored: authored,
+            });
+        }
+        if !allow_quirks.allowed(context.quirks_mode) {
+            return Err(());
+        }
+        let (number, dimension) = match input.next()? {
+            Token::Number(number) => {
+                (number, None)
+            },
+            Token::Dimension(number, dimension) => {
+                (number, Some(dimension))
+            },
+            Token::Ident(ident) => {
+                if ident.len() != 3 && ident.len() != 6 {
+                    return Err(());
+                }
+                return cssparser::Color::parse_hash(ident.as_bytes()).map(|color| {
+                    Self {
+                        parsed: color.into(),
+                        authored: None
+                    }
+                });
+            }
+            _ => {
+                return Err(());
+            },
+        };
+        let value = number.int_value.ok_or(())?;
+        if value < 0 {
+            return Err(());
+        }
+        let length = if value <= 9 {
+            1
+        } else if value <= 99 {
+            2
+        } else if value <= 999 {
+            3
+        } else if value <= 9999 {
+            4
+        } else if value <= 99999 {
+            5
+        } else if value <= 999999 {
+            6
+        } else {
+            return Err(())
+        };
+        let total = length + dimension.as_ref().map_or(0, |d| d.len());
+        if total > 6 {
+            return Err(());
+        }
+        let mut serialization = [b'0'; 6];
+        let space_padding = 6 - total;
+        let mut written = space_padding;
+        written += itoa::write(&mut serialization[written..], value).unwrap();
+        if let Some(dimension) = dimension {
+            written += (&mut serialization[written..]).write(dimension.as_bytes()).unwrap();
+        }
+        debug_assert!(written == 6);
         Ok(CSSColor {
-            parsed: try!(Parse::parse(context, input)),
-            authored: authored,
+            parsed: cssparser::Color::parse_hash(&serialization).map(From::from)?,
+            authored: None,
         })
     }
 }
