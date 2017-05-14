@@ -83,6 +83,7 @@ ${helpers.predefined_type("clip",
                           "computed::ClipRectOrAuto::auto()",
                           animation_value_type="ComputedValue",
                           boxed="True",
+                          allow_quirks=True,
                           spec="https://drafts.fxtf.org/css-masking/#clip-property")}
 
 // FIXME: This prop should be animatable
