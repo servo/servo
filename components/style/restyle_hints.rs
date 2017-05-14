@@ -27,32 +27,38 @@ use std::cell::Cell;
 use std::clone::Clone;
 use stylist::SelectorMap;
 
+/// When the ElementState of an element (like IN_HOVER_STATE) changes,
+/// certain pseudo-classes (like :hover) may require us to restyle that
+/// element, its siblings, and/or its descendants. Similarly, when various
+/// attributes of an element change, we may also need to restyle things with
+/// id, class, and attribute selectors. Doing this conservatively is
+/// expensive, and so we use RestyleHints to short-circuit work we know is
+/// unnecessary.
+#[derive(Debug, Clone, PartialEq)]
+pub struct RestyleHint {
+    /// Rerun selector matching on the element.
+    match_self: bool,
+
+    /// Rerun selector matching on all of the element's descendants.
+    match_descendants: bool,
+
+    /// Rerun selector matching on all later siblings of the element and all
+    /// of their descendants.
+    match_later_siblings: bool,
+
+    /// Levels of the cascade whose rule nodes should be recomputed and
+    /// replaced.
+    pub replacements: RestyleReplacements,
+}
+
 bitflags! {
-    /// When the ElementState of an element (like IN_HOVER_STATE) changes,
-    /// certain pseudo-classes (like :hover) may require us to restyle that
-    /// element, its siblings, and/or its descendants. Similarly, when various
-    /// attributes of an element change, we may also need to restyle things with
-    /// id, class, and attribute selectors. Doing this conservatively is
-    /// expensive, and so we use RestyleHints to short-circuit work we know is
-    /// unnecessary.
+    /// Cascade levels that can be updated for an element by simply replacing
+    /// their rule node.
     ///
     /// Note that the bit values here must be kept in sync with the Gecko
     /// nsRestyleHint values.  If you add more bits with matching values,
     /// please add assertions to assert_restyle_hints_match below.
-    pub flags RestyleHint: u32 {
-        /// Rerun selector matching on the element.
-        const RESTYLE_SELF = 0x01,
-
-        /// Rerun selector matching on all of the element's descendants.
-        ///
-        /// NB: In Gecko, we have RESTYLE_SUBTREE which is inclusive of self,
-        /// but heycam isn't aware of a good reason for that.
-        const RESTYLE_DESCENDANTS = 0x04,
-
-        /// Rerun selector matching on all later siblings of the element and all
-        /// of their descendants.
-        const RESTYLE_LATER_SIBLINGS = 0x08,
-
+    pub flags RestyleReplacements: u8 {
         /// Replace the style data coming from CSS transitions without updating
         /// any other style data. This hint is only processed in animation-only
         /// traversal which is prior to normal traversal.
@@ -75,7 +81,7 @@ bitflags! {
     }
 }
 
-/// Asserts that all RestyleHint flags have a matching nsRestyleHint value.
+/// Asserts that all RestyleReplacements have a matching nsRestyleHint value.
 #[cfg(feature = "gecko")]
 #[inline]
 pub fn assert_restyle_hints_match() {
@@ -84,24 +90,18 @@ pub fn assert_restyle_hints_match() {
     macro_rules! check_restyle_hints {
         ( $( $a:ident => $b:ident ),*, ) => {
             if cfg!(debug_assertions) {
-                let mut hints = RestyleHint::all();
+                let mut replacements = RestyleReplacements::all();
                 $(
                     assert_eq!(structs::$a.0 as usize, $b.bits() as usize, stringify!($b));
-                    hints.remove($b);
+                    replacements.remove($b);
                 )*
-                assert_eq!(hints, RestyleHint::empty(), "all RestyleHint bits should have an assertion");
+                assert_eq!(replacements, RestyleReplacements::empty(),
+                           "all RestyleReplacements bits should have an assertion");
             }
         }
     }
 
     check_restyle_hints! {
-        nsRestyleHint_eRestyle_Self => RESTYLE_SELF,
-        // Note that eRestyle_Subtree means "self and descendants", while
-        // RESTYLE_DESCENDANTS means descendants only.  The From impl
-        // below handles converting eRestyle_Subtree into
-        // (RESTYLE_SELF | RESTYLE_DESCENDANTS).
-        nsRestyleHint_eRestyle_Subtree => RESTYLE_DESCENDANTS,
-        nsRestyleHint_eRestyle_LaterSiblings => RESTYLE_LATER_SIBLINGS,
         nsRestyleHint_eRestyle_CSSTransitions => RESTYLE_CSS_TRANSITIONS,
         nsRestyleHint_eRestyle_CSSAnimations => RESTYLE_CSS_ANIMATIONS,
         nsRestyleHint_eRestyle_StyleAttribute => RESTYLE_STYLE_ATTRIBUTE,
@@ -110,14 +110,181 @@ pub fn assert_restyle_hints_match() {
 }
 
 impl RestyleHint {
-    /// The subset hints that affect the styling of a single element during the
-    /// traversal.
+    /// Creates a new, empty `RestyleHint`, which represents no restyling work
+    /// needs to be done.
     #[inline]
-    pub fn for_self() -> Self {
-        RESTYLE_SELF | RESTYLE_STYLE_ATTRIBUTE | Self::for_animations()
+    pub fn empty() -> Self {
+        RestyleHint {
+            match_self: false,
+            match_descendants: false,
+            match_later_siblings: false,
+            replacements: RestyleReplacements::empty(),
+        }
     }
 
-    /// The subset hints that are used for animation restyle.
+    /// Creates a new `RestyleHint` that indicates selector matching must be
+    /// re-run on the element.
+    #[inline]
+    pub fn for_self() -> Self {
+        RestyleHint {
+            match_self: true,
+            match_descendants: false,
+            match_later_siblings: false,
+            replacements: RestyleReplacements::empty(),
+        }
+    }
+
+    /// Creates a new `RestyleHint` that indicates selector matching must be
+    /// re-run on all of the element's descendants.
+    #[inline]
+    pub fn descendants() -> Self {
+        RestyleHint {
+            match_self: false,
+            match_descendants: true,
+            match_later_siblings: false,
+            replacements: RestyleReplacements::empty(),
+        }
+    }
+
+    /// Creates a new `RestyleHint` that indicates selector matching must be
+    /// re-run on all of the element's later siblings and their descendants.
+    #[inline]
+    pub fn later_siblings() -> Self {
+        RestyleHint {
+            match_self: false,
+            match_descendants: false,
+            match_later_siblings: true,
+            replacements: RestyleReplacements::empty(),
+        }
+    }
+
+    /// Creates a new `RestyleHint` that indicates selector matching must be
+    /// re-run on the element and all of its descendants.
+    #[inline]
+    pub fn subtree() -> Self {
+        RestyleHint {
+            match_self: true,
+            match_descendants: true,
+            match_later_siblings: false,
+            replacements: RestyleReplacements::empty(),
+        }
+    }
+
+    /// Creates a new `RestyleHint` that indicates selector matching must be
+    /// re-run on the element, its descendants, its later siblings, and
+    /// their descendants.
+    #[inline]
+    pub fn subtree_and_later_siblings() -> Self {
+        RestyleHint {
+            match_self: true,
+            match_descendants: true,
+            match_later_siblings: true,
+            replacements: RestyleReplacements::empty(),
+        }
+    }
+
+    /// Returns whether this `RestyleHint` represents no needed restyle work.
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        *self == RestyleHint::empty()
+    }
+
+    /// Returns whether this `RestyleHint` represents the maximum possible
+    /// restyle work, and thus any `insert()` calls will have no effect.
+    #[inline]
+    pub fn is_maximum(&self) -> bool {
+        self.match_self && self.match_descendants && self.match_later_siblings && self.replacements.is_all()
+    }
+
+    /// Returns whether the hint specifies that some work must be performed on
+    /// the current element.
+    #[inline]
+    pub fn affects_self(&self) -> bool {
+        self.match_self || !self.replacements.is_empty()
+    }
+
+    /// Returns whether the hint specifies that later siblings must be restyled.
+    #[inline]
+    pub fn affects_later_siblings(&self) -> bool {
+        self.match_later_siblings
+    }
+
+    /// Returns whether the hint specifies that an animation cascade level must
+    /// be replaced.
+    #[inline]
+    pub fn has_animation_hint(&self) -> bool {
+        self.replacements.intersects(RestyleReplacements::for_animations())
+    }
+
+    /// Returns whether the hint specifies some restyle work other than an
+    /// animation cascade level replacement.
+    #[inline]
+    pub fn has_non_animation_hint(&self) -> bool {
+        self.match_self || self.match_descendants || self.match_later_siblings ||
+            self.replacements.contains(RESTYLE_STYLE_ATTRIBUTE)
+    }
+
+    /// Returns whether the hint specifies that selector matching must be re-run
+    /// for the element.
+    #[inline]
+    pub fn match_self(&self) -> bool {
+        self.match_self
+    }
+
+    /// Returns a new `RestyleHint` appropriate for children of the current
+    /// element.
+    #[inline]
+    pub fn propagate_for_non_animation_restyle(&self) -> Self {
+        if self.match_descendants {
+            Self::subtree()
+        } else {
+            Self::empty()
+        }
+    }
+
+    /// Removes all of the animation-related hints.
+    #[inline]
+    pub fn remove_animation_hints(&mut self) {
+        self.replacements.remove(RestyleReplacements::for_animations());
+    }
+
+    /// Removes the later siblings hint, and returns whether it was present.
+    pub fn remove_later_siblings_hint(&mut self) -> bool {
+        let later_siblings = self.match_later_siblings;
+        self.match_later_siblings = false;
+        later_siblings
+    }
+
+    /// Unions the specified `RestyleHint` into this one.
+    #[inline]
+    pub fn insert_from(&mut self, other: &Self) {
+        self.match_self |= other.match_self;
+        self.match_descendants |= other.match_descendants;
+        self.match_later_siblings |= other.match_later_siblings;
+        self.replacements.insert(other.replacements);
+    }
+
+    /// Unions the specified `RestyleHint` into this one.
+    #[inline]
+    pub fn insert(&mut self, other: Self) {
+        // A later patch should make it worthwhile to have an insert() function
+        // that consumes its argument.
+        self.insert_from(&other)
+    }
+
+    /// Returns whether this `RestyleHint` represents at least as much restyle
+    /// work as the specified one.
+    #[inline]
+    pub fn contains(&mut self, other: &Self) -> bool {
+        !(other.match_self && !self.match_self) &&
+        !(other.match_descendants && !self.match_descendants) &&
+        !(other.match_later_siblings && !self.match_later_siblings) &&
+        self.replacements.contains(other.replacements)
+    }
+}
+
+impl RestyleReplacements {
+    /// The replacements for the animation cascade levels.
     #[inline]
     pub fn for_animations() -> Self {
         RESTYLE_SMIL | RESTYLE_CSS_ANIMATIONS | RESTYLE_CSS_TRANSITIONS
@@ -125,24 +292,26 @@ impl RestyleHint {
 }
 
 #[cfg(feature = "gecko")]
+impl From<nsRestyleHint> for RestyleReplacements {
+    fn from(raw: nsRestyleHint) -> Self {
+        Self::from_bits_truncate(raw.0 as u8)
+    }
+}
+
+#[cfg(feature = "gecko")]
 impl From<nsRestyleHint> for RestyleHint {
     fn from(raw: nsRestyleHint) -> Self {
-        let raw_bits: u32 = raw.0;
+        use gecko_bindings::structs::nsRestyleHint_eRestyle_Self as eRestyle_Self;
+        use gecko_bindings::structs::nsRestyleHint_eRestyle_Subtree as eRestyle_Subtree;
+        use gecko_bindings::structs::nsRestyleHint_eRestyle_SomeDescendants as eRestyle_SomeDescendants;
+        use gecko_bindings::structs::nsRestyleHint_eRestyle_LaterSiblings as eRestyle_LaterSiblings;
 
-        // FIXME(bholley): Finish aligning the binary representations here and
-        // then .expect() the result of the checked version.
-        if Self::from_bits(raw_bits).is_none() {
-            warn!("stylo: dropping unsupported restyle hint bits");
+        RestyleHint {
+            match_self: (raw.0 & (eRestyle_Self.0 | eRestyle_Subtree.0)) != 0,
+            match_descendants: (raw.0 & (eRestyle_Subtree.0 | eRestyle_SomeDescendants.0)) != 0,
+            match_later_siblings: (raw.0 & eRestyle_LaterSiblings.0) != 0,
+            replacements: raw.into(),
         }
-
-        let mut bits = Self::from_bits_truncate(raw_bits);
-
-        // eRestyle_Subtree converts to (RESTYLE_SELF | RESTYLE_DESCENDANTS).
-        if bits.contains(RESTYLE_DESCENDANTS) {
-            bits |= RESTYLE_SELF;
-        }
-
-        bits
     }
 }
 
@@ -505,12 +674,12 @@ fn is_attr_selector(sel: &Component<SelectorImpl>) -> bool {
 
 fn combinator_to_restyle_hint(combinator: Option<Combinator>) -> RestyleHint {
     match combinator {
-        None => RESTYLE_SELF,
+        None => RestyleHint::for_self(),
         Some(c) => match c {
-            Combinator::Child => RESTYLE_DESCENDANTS,
-            Combinator::Descendant => RESTYLE_DESCENDANTS,
-            Combinator::NextSibling => RESTYLE_LATER_SIBLINGS,
-            Combinator::LaterSibling => RESTYLE_LATER_SIBLINGS,
+            Combinator::Child => RestyleHint::descendants(),
+            Combinator::Descendant => RestyleHint::descendants(),
+            Combinator::NextSibling => RestyleHint::later_siblings(),
+            Combinator::LaterSibling => RestyleHint::later_siblings(),
         }
     }
 }
@@ -694,7 +863,7 @@ impl DependencySet {
                     // comment in `PseudoElementDependency` about how could this
                     // be modified in order to be more efficient and restyle
                     // less.
-                    hint |= RESTYLE_DESCENDANTS;
+                    hint.insert(RestyleHint::descendants());
                 }
 
                 let dep_selector = if sequence_start == 0 {
@@ -789,7 +958,7 @@ impl DependencySet {
             debug_assert!(!pseudo_selector.state().is_empty());
 
             if pseudo_selector.state().intersects(pseudo_state_changes) {
-                hint = RESTYLE_SELF;
+                hint = RestyleHint::for_self();
                 return false;
             }
 
@@ -847,12 +1016,12 @@ impl DependencySet {
                 return true;
             }
 
-            if hint.contains(dep.hint) {
+            if hint.contains(&dep.hint) {
                 trace!(" > hint was already there");
                 return true;
             }
 
-            // We can ignore the selector flags, since they would have already
+            // We can ignore the selector replacements, since they would have already
             // been set during original matching for any element that might
             // change its matching behavior here.
             let matched_then =
@@ -864,10 +1033,10 @@ impl DependencySet {
                                  &mut MatchingContext::default(),
                                  &mut |_, _| {});
             if matched_then != matches_now {
-                hint.insert(dep.hint);
+                hint.insert_from(&dep.hint);
             }
 
-            !hint.is_all()
+            !hint.is_maximum()
         });
 
         debug!("Calculated restyle hint: {:?} for {:?}. (State={:?}, {} Deps)",

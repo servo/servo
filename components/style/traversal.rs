@@ -9,7 +9,7 @@ use context::{SharedStyleContext, StyleContext, ThreadLocalStyleContext};
 use data::{ElementData, ElementStyles, StoredRestyleHint};
 use dom::{DirtyDescendants, NodeInfo, OpaqueNode, TElement, TNode};
 use matching::{MatchMethods, StyleSharingBehavior};
-use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_SELF};
+use restyle_hints::RestyleHint;
 use selector_parser::RestyleDamage;
 #[cfg(feature = "servo")] use servo_config::opts;
 use std::borrow::BorrowMut;
@@ -232,7 +232,7 @@ pub trait DomTraversal<E: TElement> : Sync {
                 if let Some(next) = root.next_sibling_element() {
                     if let Some(mut next_data) = next.mutate_data() {
                         let hint = StoredRestyleHint::subtree_and_later_siblings();
-                        next_data.ensure_restyle().hint.insert(&hint);
+                        next_data.ensure_restyle().hint.insert(hint);
                     }
                 }
             }
@@ -746,9 +746,9 @@ fn compute_style<E, D>(_traversal: &D,
             // Perform the matching and cascading.
             element.match_and_cascade(context, &mut data, StyleSharingBehavior::Allow);
         }
-        CascadeWithReplacements(hint) => {
+        CascadeWithReplacements(flags) => {
             let _rule_nodes_changed =
-                element.replace_rules(hint, context, &mut data);
+                element.replace_rules(flags, context, &mut data);
             element.cascade_primary_and_pseudos(context, &mut data);
         }
         CascadeOnly => {
@@ -806,11 +806,11 @@ fn preprocess_children<E, D>(traversal: &D,
 
         // Propagate the parent and sibling restyle hint.
         if !propagated_hint.is_empty() {
-            restyle_data.hint.insert(&propagated_hint);
+            restyle_data.hint.insert_from(&propagated_hint);
         }
 
         if later_siblings {
-            propagated_hint.insert(&(RESTYLE_SELF | RESTYLE_DESCENDANTS).into());
+            propagated_hint.insert(RestyleHint::subtree().into());
         }
 
         // Store the damage already handled by ancestors.
