@@ -1839,15 +1839,16 @@ ${helpers.single_keyword_system("font-variant-position",
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 use std::str;
                 use byteorder::{WriteBytesExt, BigEndian};
+                use cssparser::serialize_string;
 
                 let mut raw: Vec<u8> = vec!();
                 raw.write_u32::<BigEndian>(self.tag).unwrap();
-                let str_print = str::from_utf8(&raw).unwrap_or_default();
+                serialize_string(str::from_utf8(&raw).unwrap_or_default(), dest)?;
 
                 match self.value {
-                    1 => write!(dest, "\"{}\"", str_print),
-                    0 => write!(dest, "\"{}\" off",str_print),
-                    x => write!(dest, "\"{}\" {}", str_print, x)
+                    1 => Ok(()),
+                    0 => dest.write_str(" off"),
+                    x => write!(dest, " {}", x)
                 }
             }
         }
