@@ -28,9 +28,11 @@ use dom::mediaerror::MediaError;
 use dom::node::{window_from_node, document_from_node, Node, UnbindContext};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
+use heapsize::HeapSizeOf;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
+use microtask::{Microtask, MicrotaskRunnable};
 use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError};
 use net_traits::request::{CredentialsMode, Destination, RequestInit, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
@@ -429,7 +431,11 @@ impl HTMLMediaElement {
 
         // Step 4
         let doc = document_from_node(self);
-        ScriptThread::await_stable_state(ResourceSelectionTask::new(self, doc.base_url()));
+        let task = MediaElementMicrotask::ResourceSelectionTask {
+            elem: Trusted::new(self),
+            base_url: doc.base_url()
+        };
+        ScriptThread::await_stable_state(Microtask::MediaElement(task));
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm
@@ -781,7 +787,43 @@ impl VirtualMethods for HTMLMediaElement {
         self.super_type().unwrap().unbind_from_tree(context);
 
         if context.tree_in_doc {
-            ScriptThread::await_stable_state(PauseIfNotInDocumentTask::new(self));
+            let task = MediaElementMicrotask::PauseIfNotInDocumentTask {
+                elem: Trusted::new(self)
+            };
+            ScriptThread::await_stable_state(Microtask::MediaElement(task));
+        }
+    }
+}
+
+#[derive(JSTraceable, HeapSizeOf)]
+pub enum MediaElementMicrotask {
+    ResourceSelectionTask {
+        elem: Trusted<HTMLMediaElement>,
+        base_url: ServoUrl
+    },
+    PauseIfNotInDocumentTask {
+        elem: Trusted<HTMLMediaElement>,
+    }
+}
+
+impl HeapSizeOf for Trusted<HTMLMediaElement> {
+    fn heap_size_of_children(&self) -> usize {
+        self.root().heap_size_of_children()
+    }
+}
+
+impl MicrotaskRunnable for MediaElementMicrotask {
+    fn handler(&self) {
+        match self {
+            &MediaElementMicrotask::ResourceSelectionTask { ref elem, ref base_url } => {
+                elem.root().resource_selection_algorithm_sync(base_url.clone());
+            },
+            &MediaElementMicrotask::PauseIfNotInDocumentTask { ref elem } => {
+                let elem = elem.root();
+                if !elem.upcast::<Node>().is_in_doc() {
+                    elem.internal_pause_steps();
+                }
+            },
         }
     }
 }
@@ -809,28 +851,6 @@ impl Runnable for FireSimpleEventTask {
     }
 }
 
-struct ResourceSelectionTask {
-    elem: Trusted<HTMLMediaElement>,
-    base_url: ServoUrl,
-}
-
-impl ResourceSelectionTask {
-    fn new(elem: &HTMLMediaElement, url: ServoUrl) -> ResourceSelectionTask {
-        ResourceSelectionTask {
-            elem: Trusted::new(elem),
-            base_url: url,
-        }
-    }
-}
-
-impl Runnable for ResourceSelectionTask {
-    fn name(&self) -> &'static str { "ResourceSelectionTask" }
-
-    fn handler(self: Box<ResourceSelectionTask>) {
-        self.elem.root().resource_selection_algorithm_sync(self.base_url);
-    }
-}
-
 struct DedicatedMediaSourceFailureTask {
     elem: Trusted<HTMLMediaElement>,
 }
@@ -848,29 +868,6 @@ impl Runnable for DedicatedMediaSourceFailureTask {
 
     fn handler(self: Box<DedicatedMediaSourceFailureTask>) {
         self.elem.root().dedicated_media_source_failure();
-    }
-}
-
-struct PauseIfNotInDocumentTask {
-    elem: Trusted<HTMLMediaElement>,
-}
-
-impl PauseIfNotInDocumentTask {
-    fn new(elem: &HTMLMediaElement) -> PauseIfNotInDocumentTask {
-        PauseIfNotInDocumentTask {
-            elem: Trusted::new(elem),
-        }
-    }
-}
-
-impl Runnable for PauseIfNotInDocumentTask {
-    fn name(&self) -> &'static str { "PauseIfNotInDocumentTask" }
-
-    fn handler(self: Box<PauseIfNotInDocumentTask>) {
-        let elem = self.elem.root();
-        if !elem.upcast::<Node>().is_in_doc() {
-            elem.internal_pause_steps();
-        }
     }
 }
 
