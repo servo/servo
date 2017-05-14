@@ -118,6 +118,7 @@ ${helpers.predefined_type("list-style-image", "UrlOrNone", "Either::Second(None_
 ${helpers.predefined_type("-moz-image-region",
                           "ClipRectOrAuto",
                           "computed::ClipRectOrAuto::auto()",
+                          parse_method="parse_non_quirky",
                           animation_value_type="none",
                           products="gecko",
                           boxed="True",
