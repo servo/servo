@@ -96,7 +96,7 @@ sudo emerge net-misc/curl media-libs/freeglut \
 ```
 #### On Windows (MSVC)
 
-1. Install Python for Windows (https://www.python.org/downloads/release/python-2711/). The windows x86-64 MSI installer is fine.
+1. Install Python for Windows (https://www.python.org/downloads/release/python-2711/). The Windows x86-64 MSI installer is fine.
 You should change the installation to install the "Add python.exe to Path" feature.
 
 2. Install virtualenv.
@@ -128,7 +128,7 @@ If you'd like to know which nightly build of Rust we use, see
 
 ## Building
 
-Servo is built with Cargo, the Rust package manager. We also use Mozilla's
+Servo is built with [Cargo](https://crates.io/), the Rust package manager. We also use Mozilla's
 Mach tools to orchestrate the build and other tasks.
 
 ### Normal build
