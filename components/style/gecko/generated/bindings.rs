@@ -53,6 +53,7 @@ use gecko_bindings::structs::nsChangeHint;
 use gecko_bindings::structs::nsCursorImage;
 use gecko_bindings::structs::nsFont;
 use gecko_bindings::structs::nsIAtom;
+use gecko_bindings::structs::nsCompatibility;
 use gecko_bindings::structs::nsMediaFeature;
 use gecko_bindings::structs::nsRestyleHint;
 use gecko_bindings::structs::nsStyleBackground;
@@ -1966,7 +1967,8 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_ParseStyleAttribute(data: *const nsACString,
-                                     extra_data: *mut RawGeckoURLExtraData)
+                                     extra_data: *mut RawGeckoURLExtraData,
+                                     quirks_mode: nsCompatibility)
      -> RawServoDeclarationBlockStrong;
 }
 extern "C" {

@@ -189,16 +189,17 @@ impl<'a> ExtraStyleData<'a> {
 }
 
 impl Stylist {
-    /// Construct a new `Stylist`, using a given `Device`.  If more members are
-    /// added here, think about whether they should be reset in clear().
+    /// Construct a new `Stylist`, using given `Device` and `QuirksMode`.
+    /// If more members are added here, think about whether they should
+    /// be reset in clear().
     #[inline]
-    pub fn new(device: Device) -> Self {
+    pub fn new(device: Device, quirks_mode: QuirksMode) -> Self {
         let mut stylist = Stylist {
             viewport_constraints: None,
             device: Arc::new(device),
             is_device_dirty: true,
             is_cleared: true,
-            quirks_mode: QuirksMode::NoQuirks,
+            quirks_mode: quirks_mode,
 
             element_map: PerPseudoElementSelectorMap::new(),
             pseudos_map: Default::default(),
@@ -776,6 +777,11 @@ impl Stylist {
     /// a @viewport rule.
     pub fn viewport_constraints(&self) -> Option<&ViewportConstraints> {
         self.viewport_constraints.as_ref()
+    }
+
+    /// Returns the Quirks Mode of the document.
+    pub fn quirks_mode(&self) -> QuirksMode {
+        self.quirks_mode
     }
 
     /// Sets the quirks mode of the document.

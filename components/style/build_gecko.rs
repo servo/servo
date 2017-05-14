@@ -699,6 +699,7 @@ mod bindings {
             "nsCursorImage",
             "nsFont",
             "nsIAtom",
+            "nsCompatibility",
             "nsMediaFeature",
             "nsRestyleHint",
             "nsStyleBackground",

@@ -67,6 +67,7 @@ use style::gecko_bindings::structs::RawGeckoPresContextOwned;
 use style::gecko_bindings::structs::ServoElementSnapshotTable;
 use style::gecko_bindings::structs::URLExtraData;
 use style::gecko_bindings::structs::nsCSSValueSharedList;
+use style::gecko_bindings::structs::nsCompatibility;
 use style::gecko_bindings::structs::nsresult;
 use style::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasFFI, HasArcFFI, HasBoxFFI};
 use style::gecko_bindings::sugar::ownership::{HasSimpleFFI, Strong};
@@ -167,8 +168,7 @@ fn create_shared_context<'a>(global_style_data: &GlobalStyleData,
         guards: StylesheetGuards::same(guard),
         error_reporter: &DEFAULT_ERROR_REPORTER,
         timer: Timer::new(),
-        // FIXME Find the real QuirksMode information for this document
-        quirks_mode: QuirksMode::NoQuirks,
+        quirks_mode: per_doc_data.stylist.quirks_mode(),
         traversal_flags: traversal_flags,
         snapshot_map: snapshot_map,
     }
@@ -1196,13 +1196,14 @@ pub extern "C" fn Servo_ParseEasing(easing: *const nsAString,
 
 #[no_mangle]
 pub extern "C" fn Servo_ParseStyleAttribute(data: *const nsACString,
-                                            raw_extra_data: *mut URLExtraData)
+                                            raw_extra_data: *mut URLExtraData,
+                                            quirks_mode: nsCompatibility)
                                             -> RawServoDeclarationBlockStrong {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let value = unsafe { data.as_ref().unwrap().as_str_unchecked() };
     let url_data = unsafe { RefPtr::from_ptr_ref(&raw_extra_data) };
     Arc::new(global_style_data.shared_lock.wrap(
-        GeckoElement::parse_style_attribute(value, url_data))).into_strong()
+        GeckoElement::parse_style_attribute(value, url_data, quirks_mode.into()))).into_strong()
 }
 
 #[no_mangle]
@@ -2075,7 +2076,7 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
         font_metrics_provider: &metrics,
         cached_system_font: None,
         in_media_query: false,
-        quirks_mode: QuirksMode::NoQuirks,
+        quirks_mode: data.stylist.quirks_mode(),
     };
 
     for (index, keyframe) in keyframes.iter().enumerate() {

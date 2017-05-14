@@ -336,8 +336,9 @@ impl<'le> fmt::Debug for GeckoElement<'le> {
 impl<'le> GeckoElement<'le> {
     /// Parse the style attribute of an element.
     pub fn parse_style_attribute(value: &str,
-                                 url_data: &UrlExtraData) -> PropertyDeclarationBlock {
-        parse_style_attribute(value, url_data, &RustLogReporter, QuirksMode::NoQuirks)
+                                 url_data: &UrlExtraData,
+                                 quirks_mode: QuirksMode) -> PropertyDeclarationBlock {
+        parse_style_attribute(value, url_data, &RustLogReporter, quirks_mode)
     }
 
     fn flags(&self) -> u32 {

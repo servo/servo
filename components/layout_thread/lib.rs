@@ -418,7 +418,7 @@ impl LayoutThread {
         let font_cache_receiver =
             ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_font_cache_receiver);
 
-        let stylist = Stylist::new(device);
+        let stylist = Stylist::new(device, QuirksMode::NoQuirks);
         let outstanding_web_fonts_counter = Arc::new(AtomicUsize::new(0));
         let ua_stylesheets = &*UA_STYLESHEETS;
         let guard = ua_stylesheets.shared_lock.read();
