@@ -1219,13 +1219,22 @@ impl ToComputedValue for ClipRect {
 
 impl Parse for ClipRect {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        use values::specified::{AllowQuirks, Length};
+        Self::parse_quirky(context, input, AllowQuirks::No)
+    }
+}
 
-        fn parse_argument(context: &ParserContext, input: &mut Parser) -> Result<Option<Length>, ()> {
+impl ClipRect {
+    /// Parses a rect(<top>, <left>, <bottom>, <right>), allowing quirks.
+    pub fn parse_quirky(context: &ParserContext, input: &mut Parser,
+                    allow_quirks: AllowQuirks) -> Result<Self, ()> {
+        use values::specified::Length;
+
+        fn parse_argument(context: &ParserContext, input: &mut Parser,
+                          allow_quirks: AllowQuirks) -> Result<Option<Length>, ()> {
             if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
                 Ok(None)
             } else {
-                Length::parse_quirky(context, input, AllowQuirks::Yes).map(Some)
+                Length::parse_quirky(context, input, allow_quirks).map(Some)
             }
         }
 
@@ -1234,21 +1243,21 @@ impl Parse for ClipRect {
         }
 
         input.parse_nested_block(|input| {
-            let top = try!(parse_argument(context, input));
+            let top = try!(parse_argument(context, input, allow_quirks));
             let right;
             let bottom;
             let left;
 
             if input.try(|input| input.expect_comma()).is_ok() {
-                right = try!(parse_argument(context, input));
+                right = try!(parse_argument(context, input, allow_quirks));
                 try!(input.expect_comma());
-                bottom = try!(parse_argument(context, input));
+                bottom = try!(parse_argument(context, input, allow_quirks));
                 try!(input.expect_comma());
-                left = try!(parse_argument(context, input));
+                left = try!(parse_argument(context, input, allow_quirks));
             } else {
-                right = try!(parse_argument(context, input));
-                bottom = try!(parse_argument(context, input));
-                left = try!(parse_argument(context, input));
+                right = try!(parse_argument(context, input, allow_quirks));
+                bottom = try!(parse_argument(context, input, allow_quirks));
+                left = try!(parse_argument(context, input, allow_quirks));
             }
             Ok(ClipRect {
                 top: top,
@@ -1262,6 +1271,18 @@ impl Parse for ClipRect {
 
 /// rect(...) | auto
 pub type ClipRectOrAuto = Either<ClipRect, Auto>;
+
+impl ClipRectOrAuto {
+    /// Parses a ClipRect or Auto, allowing quirks.
+    pub fn parse_quirky(context: &ParserContext, input: &mut Parser,
+                        allow_quirks: AllowQuirks) -> Result<Self, ()> {
+        if let Ok(v) = input.try(|i| ClipRect::parse_quirky(context, i, allow_quirks)) {
+            Ok(Either::First(v))
+        } else {
+            Auto::parse(context, input).map(Either::Second)
+        }
+    }
+}
 
 /// <color> | auto
 pub type ColorOrAuto = Either<CSSColor, Auto>;
