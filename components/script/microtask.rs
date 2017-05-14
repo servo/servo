@@ -11,6 +11,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use dom::bindings::js::Root;
 use dom::globalscope::GlobalScope;
+use dom::htmlmediaelement::MediaElementMicrotask;
 use dom::mutationobserver::MutationObserver;
 use msg::constellation_msg::PipelineId;
 use std::cell::Cell;
@@ -29,7 +30,12 @@ pub struct MicrotaskQueue {
 #[derive(JSTraceable, HeapSizeOf)]
 pub enum Microtask {
     Promise(EnqueuedPromiseCallback),
+    MediaElement(MediaElementMicrotask),
     NotifyMutationObservers,
+}
+
+pub trait MicrotaskRunnable {
+    fn handler(&self) {}
 }
 
 /// A promise callback scheduled to run during the next microtask checkpoint (#4283).
@@ -72,6 +78,9 @@ impl MicrotaskQueue {
                         if let Some(target) = target_provider(job.pipeline) {
                             let _ = job.callback.Call_(&*target, ExceptionHandling::Report);
                         }
+                    },
+                    Microtask::MediaElement(ref task) => {
+                        task.handler();
                     }
                     Microtask::NotifyMutationObservers => {
                         MutationObserver::notify_mutation_observers();
