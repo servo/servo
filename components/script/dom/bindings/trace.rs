@@ -74,6 +74,7 @@ use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_layout_interface::OpaqueStyleAndLayoutData;
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::LayoutRPC;
+use script_thread::Runnable;
 use script_traits::{DocumentActivity, TimerEventId, TimerSource, TouchpadPressurePhase};
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use selectors::matching::ElementSelectorFlags;
@@ -414,6 +415,13 @@ unsafe impl<T> JSTraceable for IpcSender<T> where T: Deserialize + Serialize {
 
 // Safe thanks to the Send bound.
 unsafe impl JSTraceable for Box<LayoutRPC + Send + 'static> {
+    #[inline]
+    unsafe fn trace(&self, _: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl JSTraceable for Box<Runnable + Send + 'static> {
     #[inline]
     unsafe fn trace(&self, _: *mut JSTracer) {
         // Do nothing

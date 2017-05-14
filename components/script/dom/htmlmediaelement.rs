@@ -826,8 +826,8 @@ impl ResourceSelectionTask {
 impl Runnable for ResourceSelectionTask {
     fn name(&self) -> &'static str { "ResourceSelectionTask" }
 
-    fn handler(self: Box<ResourceSelectionTask>) {
-        self.elem.root().resource_selection_algorithm_sync(self.base_url);
+    fn ref_handler(&self) {
+        self.elem.root().resource_selection_algorithm_sync(self.base_url.clone());
     }
 }
 
@@ -866,7 +866,7 @@ impl PauseIfNotInDocumentTask {
 impl Runnable for PauseIfNotInDocumentTask {
     fn name(&self) -> &'static str { "PauseIfNotInDocumentTask" }
 
-    fn handler(self: Box<PauseIfNotInDocumentTask>) {
+    fn ref_handler(&self) {
         let elem = self.elem.root();
         if !elem.upcast::<Node>().is_in_doc() {
             elem.internal_pause_steps();

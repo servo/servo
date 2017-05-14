@@ -226,6 +226,7 @@ pub trait Runnable {
     fn is_cancelled(&self) -> bool { false }
     fn name(&self) -> &'static str { "generic runnable" }
     fn handler(self: Box<Self>) {}
+    fn ref_handler(&self) {}
     fn main_thread_handler(self: Box<Self>, _script_thread: &ScriptThread) { self.handler(); }
 }
 
@@ -631,9 +632,8 @@ impl ScriptThread {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
-                let _ = script_thread.chan.send(CommonScriptMsg::RunnableMsg(
-                    ScriptThreadEventCategory::DomEvent,
-                    box task));
+                let job = Microtask::AwaitStableState(box task);
+                script_thread.microtask_queue.enqueue(job);
             }
         });
     }
