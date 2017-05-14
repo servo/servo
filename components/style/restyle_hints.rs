@@ -25,6 +25,7 @@ use smallvec::SmallVec;
 use std::borrow::Borrow;
 use std::cell::Cell;
 use std::clone::Clone;
+use std::cmp;
 use stylist::SelectorMap;
 
 /// When the ElementState of an element (like IN_HOVER_STATE) changes,
@@ -141,6 +142,19 @@ impl RestyleHint {
     pub fn descendants() -> Self {
         RestyleHint {
             match_self: 0xfe,
+            match_later_siblings: false,
+            replacements: RestyleReplacements::empty(),
+        }
+    }
+
+    /// Creates a new `RestyleHint` that indicates selector matching must be
+    /// re-run on the descendants of element at the specified depth, where 0
+    /// indicates the element itself, 1 is its children, 2 its grandchildren,
+    /// etc.
+    #[inline]
+    pub fn descendants_at_depth(depth: u32) -> Self {
+        RestyleHint {
+            match_self: 1u8 << cmp::min(depth, 7),
             match_later_siblings: false,
             replacements: RestyleReplacements::empty(),
         }
@@ -669,18 +683,6 @@ fn is_attr_selector(sel: &Component<SelectorImpl>) -> bool {
     }
 }
 
-fn combinator_to_restyle_hint(combinator: Option<Combinator>) -> RestyleHint {
-    match combinator {
-        None => RestyleHint::for_self(),
-        Some(c) => match c {
-            Combinator::Child => RestyleHint::descendants(),
-            Combinator::Descendant => RestyleHint::descendants(),
-            Combinator::NextSibling => RestyleHint::later_siblings(),
-            Combinator::LaterSibling => RestyleHint::later_siblings(),
-        }
-    }
-}
-
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// The aspects of an selector which are sensitive.
@@ -817,6 +819,8 @@ impl DependencySet {
         let mut combinator = None;
         let mut iter = selector.inner.complex.iter();
         let mut index = 0;
+        let mut child_count = 0;
+        let mut descendants = false;
 
         loop {
             let sequence_start = index;
@@ -834,7 +838,6 @@ impl DependencySet {
                 index += 1; // Account for the simple selector.
             }
 
-
             let pseudo_selector_is_state_dependent =
                 sequence_start == 0 &&
                 selector.pseudo_element.as_ref().map_or(false, |pseudo_selector| {
@@ -851,9 +854,28 @@ impl DependencySet {
                     });
             }
 
+            // Keep track of how many child combinators we've encountered,
+            // and whether we've encountered a descendant combinator at all.
+            match combinator {
+                Some(Combinator::Child) => child_count += 1,
+                Some(Combinator::Descendant) => descendants = true,
+                _ => {}
+            }
+
             // If we found a sensitivity, add an entry in the dependency set.
             if !visitor.sensitivities.is_empty() {
-                let mut hint = combinator_to_restyle_hint(combinator);
+                // Compute a RestyleHint given the current combinator and the
+                // tracked number of child combinators and presence of a
+                // descendant combinator.
+                let mut hint = match combinator {
+                    Some(Combinator::Child)
+                        if !descendants => RestyleHint::descendants_at_depth(child_count),
+                    Some(Combinator::Child) => RestyleHint::descendants(),
+                    Some(Combinator::Descendant) => RestyleHint::descendants(),
+                    Some(Combinator::NextSibling) => RestyleHint::later_siblings(),
+                    Some(Combinator::LaterSibling) => RestyleHint::later_siblings(),
+                    None => RestyleHint::for_self(),
+                };
 
                 if sequence_start == 0 && selector.pseudo_element.is_some() {
                     // FIXME(emilio): Be more granular about this. See the
