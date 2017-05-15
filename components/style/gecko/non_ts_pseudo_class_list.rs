@@ -26,8 +26,6 @@
  * Pending pseudo-classes:
  *
  *  :-moz-is-html -> Used only in UA sheets, should be easy to support.
- *  :-moz-native-anonymous -> For devtools, seems easy-ish?
- *  :-moz-bound-element -> Seems unused, should be easy to remove.
  *
  *  :-moz-lwtheme, :-moz-lwtheme-brighttext, :-moz-lwtheme-darktext,
  *  :-moz-window-inactive.
@@ -109,7 +107,7 @@ macro_rules! apply_non_ts_list {
                 ("-moz-first-node", MozFirstNode, firstNode, _, _),
                 ("-moz-last-node", MozLastNode, lastNode, _, _),
                 ("-moz-only-whitespace", MozOnlyWhitespace, mozOnlyWhitespace, _, _),
-
+                ("-moz-native-anonymous", MozNativeAnonymous, mozNativeAnonymous, _, PSEUDO_CLASS_INTERNAL),
             ],
             string: [
                 ("-moz-system-metric", MozSystemMetric, mozSystemMetric, _, PSEUDO_CLASS_INTERNAL),
