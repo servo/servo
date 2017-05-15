@@ -12,8 +12,8 @@ fn size_of_selectors_dummy_types() {
     assert_eq!(size_of::<dummies::PseudoClass>(), size_of::<real::NonTSPseudoClass>());
     assert_eq!(align_of::<dummies::PseudoClass>(), align_of::<real::NonTSPseudoClass>());
 
-    assert_eq!(size_of::<dummies::PseudoElementSelector>(), size_of::<real::PseudoElementSelector>());
-    assert_eq!(align_of::<dummies::PseudoElementSelector>(), align_of::<real::PseudoElementSelector>());
+    assert_eq!(size_of::<dummies::PseudoElement>(), size_of::<real::PseudoElement>());
+    assert_eq!(align_of::<dummies::PseudoElement>(), align_of::<real::PseudoElement>());
 
     assert_eq!(size_of::<dummies::Atom>(), size_of::<style::Atom>());
     assert_eq!(align_of::<dummies::Atom>(), align_of::<style::Atom>());

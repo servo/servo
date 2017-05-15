@@ -10,11 +10,23 @@
 
 use cssparser::ToCss;
 use gecko_bindings::structs::{self, CSSPseudoElementType};
-use selector_parser::PseudoElementCascadeType;
+use selector_parser::{NonTSPseudoClass, PseudoElementCascadeType, SelectorImpl};
 use std::fmt;
 use string_cache::Atom;
 
 include!(concat!(env!("OUT_DIR"), "/gecko/pseudo_element_definition.rs"));
+
+impl ::selectors::parser::PseudoElement for PseudoElement {
+    type Impl = SelectorImpl;
+
+    fn supports_pseudo_class(&self, pseudo_class: &NonTSPseudoClass) -> bool {
+        if !self.supports_user_action_state() {
+            return false;
+        }
+
+        return pseudo_class.is_safe_user_action_state();
+    }
+}
 
 impl PseudoElement {
     /// Returns the kind of cascade type that a given pseudo is going to use.

@@ -15,7 +15,6 @@ use cascade_info::CascadeInfo;
 use context::{CurrentElementInfo, SelectorFlagsMap, SharedStyleContext, StyleContext};
 use data::{ComputedStyle, ElementData, ElementStyles, RestyleData};
 use dom::{AnimationRules, SendElement, TElement, TNode};
-use element_state::ElementState;
 use font_metrics::FontMetricsProvider;
 use properties::{CascadeFlags, ComputedValues, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
 use properties::longhands::display::computed_value as display;
@@ -24,7 +23,7 @@ use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RESTYLE_SMIL};
 use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode};
 use selector_parser::{PseudoElement, RestyleDamage, SelectorImpl};
 use selectors::bloom::BloomFilter;
-use selectors::matching::{ElementSelectorFlags, MatchingContext, StyleRelations};
+use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode, StyleRelations};
 use selectors::matching::AFFECTED_BY_PSEUDO_ELEMENTS;
 use shared_lock::StylesheetGuards;
 use sink::ForgetfulSink;
@@ -895,10 +894,10 @@ pub trait MatchMethods : TElement {
                          sharing: StyleSharingBehavior)
     {
         // Perform selector matching for the primary style.
-        let mut primary_matching_context = MatchingContext::default();
+        let mut relations = StyleRelations::empty();
         let _rule_node_changed = self.match_primary(context,
                                                     data,
-                                                    &mut primary_matching_context);
+                                                    &mut relations);
 
         // Cascade properties and compute primary values.
         self.cascade_primary(context, data);
@@ -912,7 +911,7 @@ pub trait MatchMethods : TElement {
 
         // If we have any pseudo elements, indicate so in the primary StyleRelations.
         if !data.styles().pseudos.is_empty() {
-            primary_matching_context.relations |= AFFECTED_BY_PSEUDO_ELEMENTS;
+            relations |= AFFECTED_BY_PSEUDO_ELEMENTS;
         }
 
         // If the style is shareable, add it to the LRU cache.
@@ -932,7 +931,7 @@ pub trait MatchMethods : TElement {
                    .style_sharing_candidate_cache
                    .insert_if_possible(self,
                                        data.styles().primary.values(),
-                                       primary_matching_context.relations,
+                                       relations,
                                        revalidation_match_results);
         }
     }
@@ -952,7 +951,7 @@ pub trait MatchMethods : TElement {
     fn match_primary(&self,
                      context: &mut StyleContext<Self>,
                      data: &mut ElementData,
-                     matching_context: &mut MatchingContext)
+                     relations: &mut StyleRelations)
                      -> bool
     {
         let implemented_pseudo = self.implemented_pseudo_element();
@@ -1004,34 +1003,26 @@ pub trait MatchMethods : TElement {
         let animation_rules = self.get_animation_rules();
         let bloom = context.thread_local.bloom_filter.filter();
 
+
         let map = &mut context.thread_local.selector_flags;
         let mut set_selector_flags = |element: &Self, flags: ElementSelectorFlags| {
             self.apply_selector_flags(map, element, flags);
         };
 
-        let selector_matching_target = match implemented_pseudo {
-            Some(..) => {
-                self.closest_non_native_anonymous_ancestor()
-                    .expect("Pseudo-element without non-NAC parent?")
-            },
-            None => *self,
-        };
-
-        let pseudo_and_state = match implemented_pseudo {
-            Some(ref pseudo) => Some((pseudo, self.get_state())),
-            None => None,
-        };
+        let mut matching_context =
+            MatchingContext::new(MatchingMode::Normal, Some(bloom));
 
         // Compute the primary rule node.
-        stylist.push_applicable_declarations(&selector_matching_target,
-                                             Some(bloom),
+        stylist.push_applicable_declarations(self,
+                                             implemented_pseudo.as_ref(),
                                              style_attribute,
                                              smil_override,
                                              animation_rules,
-                                             pseudo_and_state,
                                              &mut applicable_declarations,
-                                             matching_context,
+                                             &mut matching_context,
                                              &mut set_selector_flags);
+
+        *relations = matching_context.relations;
 
         let primary_rule_node =
             compute_rule_node::<Self>(&stylist.rule_tree,
@@ -1041,8 +1032,8 @@ pub trait MatchMethods : TElement {
         return data.set_primary_rules(primary_rule_node);
     }
 
-    /// Runs selector matching to (re)compute eager pseudo-element rule nodes for this
-    /// element.
+    /// Runs selector matching to (re)compute eager pseudo-element rule nodes
+    /// for this element.
     ///
     /// Returns whether any of the pseudo rule nodes changed (including, but not
     /// limited to, cases where we match different pseudos altogether).
@@ -1070,6 +1061,10 @@ pub trait MatchMethods : TElement {
         let rule_tree = &stylist.rule_tree;
         let bloom_filter = context.thread_local.bloom_filter.filter();
 
+        let mut matching_context =
+            MatchingContext::new(MatchingMode::ForStatelessPseudoElement,
+                                 Some(bloom_filter));
+
         // Compute rule nodes for eagerly-cascaded pseudo-elements.
         let mut matches_different_pseudos = false;
         let mut rule_nodes_changed = false;
@@ -1079,13 +1074,12 @@ pub trait MatchMethods : TElement {
             // NB: We handle animation rules for ::before and ::after when
             // traversing them.
             stylist.push_applicable_declarations(self,
-                                                 Some(bloom_filter),
+                                                 Some(&pseudo),
                                                  None,
                                                  None,
                                                  AnimationRules(None, None),
-                                                 Some((&pseudo, ElementState::empty())),
                                                  &mut applicable_declarations,
-                                                 &mut MatchingContext::default(),
+                                                 &mut matching_context,
                                                  &mut set_selector_flags);
 
             if !applicable_declarations.is_empty() {

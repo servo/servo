@@ -15,7 +15,7 @@ use fnv::FnvHashMap;
 use restyle_hints::ElementSnapshot;
 use selector_parser::{ElementExt, PseudoElementCascadeType, SelectorParser};
 use selectors::{Element, MatchAttrGeneric};
-use selectors::matching::MatchingContext;
+use selectors::matching::{MatchingContext, MatchingMode};
 use selectors::parser::{AttrSelector, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
 use std::borrow::Cow;
@@ -51,6 +51,14 @@ pub enum PseudoElement {
     ServoInlineAbsolute,
 }
 
+impl ::selectors::parser::PseudoElement for PseudoElement {
+    type Impl = SelectorImpl;
+
+    fn supports_pseudo_class(&self, _: &NonTSPseudoClass) -> bool {
+        false
+    }
+}
+
 impl ToCss for PseudoElement {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         use self::PseudoElement::*;
@@ -78,18 +86,6 @@ impl ToCss for PseudoElement {
 pub const EAGER_PSEUDO_COUNT: usize = 3;
 
 impl PseudoElement {
-    /// The pseudo-element, used for compatibility with Gecko's
-    /// `PseudoElementSelector`.
-    pub fn pseudo_element(&self) -> &Self {
-        self
-    }
-
-    /// The pseudo-element selector's state, used for compatibility with Gecko's
-    /// `PseudoElementSelector`.
-    pub fn state(&self) -> ElementState {
-        ElementState::empty()
-    }
-
     /// Gets the canonical index of this eagerly-cascaded pseudo-element.
     #[inline]
     pub fn eager_index(&self) -> usize {
@@ -264,7 +260,7 @@ impl NonTSPseudoClass {
 pub struct SelectorImpl;
 
 impl ::selectors::SelectorImpl for SelectorImpl {
-    type PseudoElementSelector = PseudoElement;
+    type PseudoElement = PseudoElement;
     type NonTSPseudoClass = NonTSPseudoClass;
 
     type AttrValue = String;
@@ -323,9 +319,7 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
         Ok(pseudo_class)
     }
 
-    fn parse_pseudo_element(&self,
-                            name: Cow<str>,
-                            _input: &mut CssParser)
+    fn parse_pseudo_element(&self, name: Cow<str>)
                             -> Result<PseudoElement, ()> {
         use self::PseudoElement::*;
         let pseudo_element = match_ignore_ascii_case! { &name,
@@ -579,8 +573,9 @@ impl MatchAttrGeneric for ServoElementSnapshot {
 
 impl<E: Element<Impl=SelectorImpl> + Debug> ElementExt for E {
     fn is_link(&self) -> bool {
+        let mut context = MatchingContext::new(MatchingMode::Normal, None);
         self.match_non_ts_pseudo_class(&NonTSPseudoClass::AnyLink,
-                                       &mut MatchingContext::default(),
+                                       &mut context,
                                        &mut |_, _| {})
     }
 
