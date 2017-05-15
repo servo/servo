@@ -129,7 +129,8 @@ macro_rules! define_keyword_type {
 
         impl Animatable for $name {
             #[inline]
-            fn interpolate(&self, _other: &Self, _progress: f64) -> Result<Self, ()> {
+            fn add_weighted(&self, _other: &Self, _self_progress: f64, _other_progress: f64)
+                -> Result<Self, ()> {
                 Ok($name)
             }
         }

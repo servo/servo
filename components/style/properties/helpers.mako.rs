@@ -113,8 +113,13 @@
                 % if delegate_animate:
                     use properties::animated_properties::Animatable;
                     impl Animatable for T {
-                        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-                            self.0.interpolate(&other.0, progress).map(T)
+                        fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
+                            -> Result<Self, ()> {
+                            self.0.add_weighted(&other.0, self_portion, other_portion).map(T)
+                        }
+
+                        fn add(&self, other: &Self) -> Result<Self, ()> {
+                            self.0.add(&other.0).map(T)
                         }
 
                         #[inline]
@@ -976,16 +981,17 @@
 <%def name="impl_animatable_for_option_tuple(value_for_none)">
     impl Animatable for T {
         #[inline]
-        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+        fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
+            -> Result<Self, ()> {
             match (self, other) {
                 (&T(Some(ref this)), &T(Some(ref other))) => {
-                    Ok(T(this.interpolate(other, progress).ok()))
+                    Ok(T(this.add_weighted(other, self_portion, other_portion).ok()))
                 },
                 (&T(Some(ref this)), &T(None)) => {
-                    Ok(T(this.interpolate(&${value_for_none}, progress).ok()))
+                    Ok(T(this.add_weighted(&${value_for_none}, self_portion, other_portion).ok()))
                 },
                 (&T(None), &T(Some(ref other))) => {
-                    Ok(T(${value_for_none}.interpolate(other, progress).ok()))
+                    Ok(T(${value_for_none}.add_weighted(other, self_portion, other_portion).ok()))
                 },
                 (&T(None), &T(None)) => {
                     Ok(T(None))

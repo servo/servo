@@ -42,10 +42,13 @@ ${helpers.single_keyword("caption-side", "top bottom",
         /// https://drafts.csswg.org/css-transitions/#animtype-simple-list
         impl Animatable for T {
             #[inline]
-            fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+            fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
+                -> Result<Self, ()> {
                 Ok(T {
-                    horizontal: try!(self.horizontal.interpolate(&other.horizontal, time)),
-                    vertical: try!(self.vertical.interpolate(&other.vertical, time)),
+                    horizontal: try!(self.horizontal.add_weighted(&other.horizontal,
+                                                                  self_portion, other_portion)),
+                    vertical: try!(self.vertical.add_weighted(&other.vertical,
+                                                              self_portion, other_portion)),
                 })
             }
 
