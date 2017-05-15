@@ -314,6 +314,22 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
     }
 }
 
+#[cfg(feature = "gecko")]
+fn dir_selector_to_state(s: &[u16]) -> ElementState {
+    // Jump through some hoops to deal with our Box<[u16]> thing.
+    const LTR: [u16; 4] = [b'l' as u16, b't' as u16, b'r' as u16, 0];
+    const RTL: [u16; 4] = [b'r' as u16, b't' as u16, b'l' as u16, 0];
+    if LTR == *s {
+        IN_LTR_STATE
+    } else if RTL == *s {
+        IN_RTL_STATE
+    } else {
+        // :dir(something-random) is a valid selector, but shouldn't
+        // match anything.
+        ElementState::empty()
+    }
+}
+
 impl<'a, E> Element for ElementWrapper<'a, E>
     where E: TElement,
 {
@@ -333,6 +349,31 @@ impl<'a, E> Element for ElementWrapper<'a, E>
                 return selectors.iter().any(|s| {
                     matches_complex_selector(s, self, relations, _setter)
                 })
+            }
+        }
+
+        // :dir needs special handling.  It's implemented in terms of state
+        // flags, but which state flag it maps to depends on the argument to
+        // :dir.  That means we can't just add its state flags to the
+        // NonTSPseudoClass, because if we added all of them there, and tested
+        // via intersects() here, we'd get incorrect behavior for :not(:dir())
+        // cases.
+        //
+        // FIXME(bz): How can I set this up so once Servo adds :dir() support we
+        // don't forget to update this code?
+        #[cfg(feature = "gecko")]
+        {
+            if let NonTSPseudoClass::Dir(ref s) = *pseudo_class {
+                let selector_flag = dir_selector_to_state(s);
+                if selector_flag.is_empty() {
+                    // :dir() with some random argument; does not match.
+                    return false;
+                }
+                let state = match self.snapshot().and_then(|s| s.state()) {
+                    Some(snapshot_state) => snapshot_state,
+                    None => self.element.get_state(),
+                };
+                return state.contains(selector_flag);
             }
         }
 
@@ -425,6 +466,10 @@ impl<'a, E> Element for ElementWrapper<'a, E>
 
 fn selector_to_state(sel: &Component<SelectorImpl>) -> ElementState {
     match *sel {
+        // FIXME(bz): How can I set this up so once Servo adds :dir() support we
+        // don't forget to update this code?
+        #[cfg(feature = "gecko")]
+        Component::NonTSPseudoClass(NonTSPseudoClass::Dir(ref s)) => dir_selector_to_state(s),
         Component::NonTSPseudoClass(ref pc) => pc.state_flag(),
         _ => ElementState::empty(),
     }
