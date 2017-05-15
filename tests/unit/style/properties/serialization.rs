@@ -495,6 +495,7 @@ mod shorthand_serialization {
     mod list_style {
         use style::properties::longhands::list_style_position::SpecifiedValue as ListStylePosition;
         use style::properties::longhands::list_style_type::SpecifiedValue as ListStyleType;
+        use style::properties::longhands::list_style_image as ListStyleImage;
         use style::values::Either;
         use super::*;
 
@@ -503,8 +504,9 @@ mod shorthand_serialization {
             let mut properties = Vec::new();
 
             let position = ListStylePosition::inside;
-            let image = Either::First(
-                SpecifiedUrl::new_for_testing("http://servo/test.png"));
+            let image =
+                ListStyleImage::SpecifiedValue(
+                    Either::First(SpecifiedUrl::new_for_testing("http://servo/test.png")));
             let style_type = ListStyleType::disc;
 
             properties.push(PropertyDeclaration::ListStylePosition(position));
