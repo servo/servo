@@ -37,8 +37,8 @@ use gecko_bindings::bindings::Gecko_StyleTransition_SetUnsupportedProperty;
 use gecko_bindings::bindings::Gecko_NewCSSShadowArray;
 use gecko_bindings::bindings::Gecko_nsStyleFont_SetLang;
 use gecko_bindings::bindings::Gecko_nsStyleFont_CopyLangFrom;
-use gecko_bindings::bindings::Gecko_SetListStyleImage;
 use gecko_bindings::bindings::Gecko_SetListStyleImageNone;
+use gecko_bindings::bindings::Gecko_SetListStyleImageImageValue;
 use gecko_bindings::bindings::Gecko_SetListStyleType;
 use gecko_bindings::bindings::Gecko_SetNullImageValue;
 use gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
@@ -2964,15 +2964,15 @@ fn static_assert() {
     pub fn set_list_style_image(&mut self, image: longhands::list_style_image::computed_value::T) {
         use values::Either;
         match image {
-            Either::Second(_none) => {
+            longhands::list_style_image::computed_value::T(Either::Second(_none)) => {
                 unsafe {
                     Gecko_SetListStyleImageNone(&mut self.gecko);
                 }
             }
-            Either::First(ref url) => {
+            longhands::list_style_image::computed_value::T(Either::First(ref url)) => {
                 unsafe {
-                    Gecko_SetListStyleImage(&mut self.gecko,
-                                            url.for_ffi());
+                    Gecko_SetListStyleImageImageValue(&mut self.gecko,
+                                                      url.image_value.clone().unwrap().get());
                 }
                 // We don't need to record this struct as uncacheable, like when setting
                 // background-image to a url() value, since only properties in reset structs
