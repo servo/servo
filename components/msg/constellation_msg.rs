@@ -258,8 +258,6 @@ impl fmt::Display for PipelineId {
     }
 }
 
-thread_local!(pub static TOP_LEVEL_BROWSING_CONTEXT_ID: Cell<Option<BrowsingContextId>> = Cell::new(None));
-
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct BrowsingContextIndex(pub u32);
 
@@ -278,15 +276,6 @@ impl BrowsingContextId {
             new_browsing_context_id
         })
     }
-    /// Each script and layout thread should have the top-level browsing context id installed,
-    /// since it is used by crash reporting.
-    pub fn install(id: BrowsingContextId) {
-        TOP_LEVEL_BROWSING_CONTEXT_ID.with(|tls| tls.set(Some(id)))
-    }
-
-    pub fn installed() -> Option<BrowsingContextId> {
-        TOP_LEVEL_BROWSING_CONTEXT_ID.with(|tls| tls.get())
-    }
 }
 
 impl fmt::Display for BrowsingContextId {
@@ -294,6 +283,38 @@ impl fmt::Display for BrowsingContextId {
         let PipelineNamespaceId(namespace_id) = self.namespace_id;
         let BrowsingContextIndex(index) = self.index;
         write!(fmt, "({},{})", namespace_id, index)
+    }
+}
+
+thread_local!(pub static TOP_LEVEL_BROWSING_CONTEXT_ID: Cell<Option<TopLevelBrowsingContextId>> = Cell::new(None));
+
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
+pub struct TopLevelBrowsingContextId(BrowsingContextId);
+
+impl TopLevelBrowsingContextId {
+    pub fn new() -> TopLevelBrowsingContextId {
+        TopLevelBrowsingContextId(BrowsingContextId::new())
+    }
+    /// Each script and layout thread should have the top-level browsing context id installed,
+    /// since it is used by crash reporting.
+    pub fn install(id: TopLevelBrowsingContextId) {
+        TOP_LEVEL_BROWSING_CONTEXT_ID.with(|tls| tls.set(Some(id)))
+    }
+
+    pub fn installed() -> Option<TopLevelBrowsingContextId> {
+        TOP_LEVEL_BROWSING_CONTEXT_ID.with(|tls| tls.get())
+    }
+}
+
+impl fmt::Display for TopLevelBrowsingContextId {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        self.0.fmt(fmt)
+    }
+}
+
+impl From<TopLevelBrowsingContextId> for BrowsingContextId {
+    fn from(id: TopLevelBrowsingContextId) -> BrowsingContextId {
+        id.0
     }
 }
 

@@ -74,7 +74,8 @@ use layout::webrender_helpers::WebRenderDisplayListConverter;
 use layout::wrapper::LayoutNodeLayoutData;
 use layout::wrapper::drop_style_and_layout_data;
 use layout_traits::LayoutThreadFactory;
-use msg::constellation_msg::{BrowsingContextId, PipelineId};
+use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::TopLevelBrowsingContextId;
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
 use parking_lot::RwLock;
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
@@ -129,6 +130,9 @@ use style::traversal::{DomTraversal, TraversalDriver, TraversalFlags};
 pub struct LayoutThread {
     /// The ID of the pipeline that we belong to.
     id: PipelineId,
+
+    /// The ID of the top-level browsing context that we belong to.
+    top_level_browsing_context_id: TopLevelBrowsingContextId,
 
     /// The URL of the pipeline that we belong to.
     url: ServoUrl,
@@ -244,7 +248,7 @@ impl LayoutThreadFactory for LayoutThread {
 
     /// Spawns a new layout thread.
     fn create(id: PipelineId,
-              top_level_browsing_context_id: Option<BrowsingContextId>,
+              top_level_browsing_context_id: TopLevelBrowsingContextId,
               url: ServoUrl,
               is_iframe: bool,
               chan: (Sender<Msg>, Receiver<Msg>),
@@ -261,13 +265,13 @@ impl LayoutThreadFactory for LayoutThread {
         thread::Builder::new().name(format!("LayoutThread {:?}", id)).spawn(move || {
             thread_state::initialize(thread_state::LAYOUT);
 
-            if let Some(top_level_browsing_context_id) = top_level_browsing_context_id {
-                BrowsingContextId::install(top_level_browsing_context_id);
-            }
+            // In order to get accurate crash reports, we install the top-level bc id.
+            TopLevelBrowsingContextId::install(top_level_browsing_context_id);
 
             { // Ensures layout thread is destroyed before we send shutdown message
                 let sender = chan.0;
                 let layout = LayoutThread::new(id,
+                                               top_level_browsing_context_id,
                                                url,
                                                is_iframe,
                                                chan.1,
@@ -417,6 +421,7 @@ fn add_font_face_rules(stylesheet: &Stylesheet,
 impl LayoutThread {
     /// Creates a new `LayoutThread` structure.
     fn new(id: PipelineId,
+           top_level_browsing_context_id: TopLevelBrowsingContextId,
            url: ServoUrl,
            is_iframe: bool,
            port: Receiver<Msg>,
@@ -465,6 +470,7 @@ impl LayoutThread {
 
         LayoutThread {
             id: id,
+            top_level_browsing_context_id: top_level_browsing_context_id,
             url: url,
             is_iframe: is_iframe,
             port: port,
@@ -732,7 +738,7 @@ impl LayoutThread {
 
     fn create_layout_thread(&self, info: NewLayoutThreadInfo) {
         LayoutThread::create(info.id,
-                             BrowsingContextId::installed(),
+                             self.top_level_browsing_context_id,
                              info.url.clone(),
                              info.is_parent,
                              info.layout_pair,

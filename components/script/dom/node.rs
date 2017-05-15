@@ -1136,7 +1136,7 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
     fn iframe_browsing_context_id(&self) -> BrowsingContextId {
         let iframe_element = self.downcast::<HTMLIFrameElement>()
             .expect("not an iframe element!");
-        iframe_element.browsing_context_id()
+        iframe_element.browsing_context_id().unwrap()
     }
 
     fn iframe_pipeline_id(&self) -> PipelineId {

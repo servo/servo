@@ -73,7 +73,7 @@ use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use mem::heap_size_of_self_and_children;
 use microtask::{MicrotaskQueue, Microtask};
-use msg::constellation_msg::{BrowsingContextId, FrameType, PipelineId, PipelineNamespace};
+use msg::constellation_msg::{BrowsingContextId, FrameType, PipelineId, PipelineNamespace, TopLevelBrowsingContextId};
 use net_traits::{CoreResourceMsg, FetchMetadata, FetchResponseListener};
 use net_traits::{IpcSend, Metadata, ReferrerPolicy, ResourceThreads};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
@@ -143,8 +143,10 @@ pub unsafe fn trace_thread(tr: *mut JSTracer) {
 struct InProgressLoad {
     /// The pipeline which requested this load.
     pipeline_id: PipelineId,
-    /// The frame being loaded into.
+    /// The browsing context being loaded into.
     browsing_context_id: BrowsingContextId,
+    /// The top level ancestor browsing context.
+    top_level_browsing_context_id: TopLevelBrowsingContextId,
     /// The parent pipeline and frame type associated with this load, if any.
     parent_info: Option<(PipelineId, FrameType)>,
     /// The current window size associated with this pipeline.
@@ -165,6 +167,7 @@ impl InProgressLoad {
     /// Create a new InProgressLoad object.
     fn new(id: PipelineId,
            browsing_context_id: BrowsingContextId,
+           top_level_browsing_context_id: TopLevelBrowsingContextId,
            parent_info: Option<(PipelineId, FrameType)>,
            layout_chan: Sender<message::Msg>,
            window_size: Option<WindowSizeData>,
@@ -173,6 +176,7 @@ impl InProgressLoad {
         InProgressLoad {
             pipeline_id: id,
             browsing_context_id: browsing_context_id,
+            top_level_browsing_context_id: top_level_browsing_context_id,
             parent_info: parent_info,
             layout_chan: layout_chan,
             window_size: window_size,
@@ -548,11 +552,12 @@ impl ScriptThreadFactory for ScriptThread {
         thread::Builder::new().name(format!("ScriptThread {:?}", state.id)).spawn(move || {
             thread_state::initialize(thread_state::SCRIPT);
             PipelineNamespace::install(state.pipeline_namespace_id);
-            BrowsingContextId::install(state.top_level_browsing_context_id);
+            TopLevelBrowsingContextId::install(state.top_level_browsing_context_id);
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
             let id = state.id;
             let browsing_context_id = state.browsing_context_id;
+            let top_level_browsing_context_id = state.top_level_browsing_context_id;
             let parent_info = state.parent_info;
             let mem_profiler_chan = state.mem_profiler_chan.clone();
             let window_size = state.window_size;
@@ -567,7 +572,7 @@ impl ScriptThreadFactory for ScriptThread {
             let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
 
             let origin = MutableOrigin::new(load_data.url.origin());
-            let new_load = InProgressLoad::new(id, browsing_context_id, parent_info,
+            let new_load = InProgressLoad::new(id, browsing_context_id, top_level_browsing_context_id, parent_info,
                                                layout_chan, window_size, load_data.url.clone(), origin);
             script_thread.start_page_load(new_load, load_data);
 
@@ -1117,10 +1122,10 @@ impl ScriptThread {
             ConstellationControlMsg::PostMessage(pipeline_id, origin, data) =>
                 self.handle_post_message_msg(pipeline_id, origin, data),
             ConstellationControlMsg::MozBrowserEvent(parent_pipeline_id,
-                                                     browsing_context_id,
+                                                     top_level_browsing_context_id,
                                                      event) =>
                 self.handle_mozbrowser_event_msg(parent_pipeline_id,
-                                                 browsing_context_id,
+                                                 top_level_browsing_context_id,
                                                  event),
             ConstellationControlMsg::UpdatePipelineId(parent_pipeline_id,
                                                       browsing_context_id,
@@ -1344,6 +1349,7 @@ impl ScriptThread {
             parent_info,
             new_pipeline_id,
             browsing_context_id,
+            top_level_browsing_context_id,
             load_data,
             window_size,
             pipeline_port,
@@ -1379,9 +1385,14 @@ impl ScriptThread {
         };
 
         // Kick off the fetch for the new resource.
-        let new_load = InProgressLoad::new(new_pipeline_id, browsing_context_id, parent_info,
-                                           layout_chan, window_size,
-                                           load_data.url.clone(), origin);
+        let new_load = InProgressLoad::new(new_pipeline_id,
+                                           browsing_context_id,
+                                           top_level_browsing_context_id,
+                                           parent_info,
+                                           layout_chan,
+                                           window_size,
+                                           load_data.url.clone(),
+                                           origin);
         if load_data.url.as_str() == "about:blank" {
             self.start_page_load_about_blank(new_load);
         } else {
@@ -1495,17 +1506,18 @@ impl ScriptThread {
     /// https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadstart
     fn handle_mozbrowser_event_msg(&self,
                                    parent_pipeline_id: PipelineId,
-                                   browsing_context_id: Option<BrowsingContextId>,
+                                   top_level_browsing_context_id: Option<TopLevelBrowsingContextId>,
                                    event: MozBrowserEvent) {
         let doc = match { self.documents.borrow().find_document(parent_pipeline_id) } {
             None => return warn!("Mozbrowser event after pipeline {} closed.", parent_pipeline_id),
             Some(doc) => doc,
         };
 
-        match browsing_context_id {
+        match top_level_browsing_context_id {
             None => doc.window().dispatch_mozbrowser_event(event),
-            Some(browsing_context_id) => match doc.find_iframe(browsing_context_id) {
-                None => warn!("Mozbrowser event after iframe {}/{} closed.", parent_pipeline_id, browsing_context_id),
+            Some(top_level_browsing_context_id) => match doc.find_mozbrowser_iframe(top_level_browsing_context_id) {
+                None => warn!("Mozbrowser event after iframe {}/{} closed.",
+                              parent_pipeline_id, top_level_browsing_context_id),
                 Some(frame_element) => frame_element.dispatch_mozbrowser_event(event),
             },
         }
@@ -1779,9 +1791,10 @@ impl ScriptThread {
     // construct a new dissimilar-origin browsing context, add it
     // to the `window_proxies` map, and return it.
     fn remote_window_proxy(&self,
-                               global_to_clone: &GlobalScope,
-                               pipeline_id: PipelineId)
-                               -> Option<Root<WindowProxy>>
+                           global_to_clone: &GlobalScope,
+                           top_level_browsing_context_id: TopLevelBrowsingContextId,
+                           pipeline_id: PipelineId)
+                           -> Option<Root<WindowProxy>>
     {
         let browsing_context_id = match self.ask_constellation_for_browsing_context_id(pipeline_id) {
             Some(browsing_context_id) => browsing_context_id,
@@ -1791,10 +1804,15 @@ impl ScriptThread {
             return Some(Root::from_ref(window_proxy));
         }
         let parent = match self.ask_constellation_for_parent_info(pipeline_id) {
-            Some((parent_id, FrameType::IFrame)) => self.remote_window_proxy(global_to_clone, parent_id),
+            Some((parent_id, FrameType::IFrame)) => self.remote_window_proxy(global_to_clone,
+                                                                             top_level_browsing_context_id,
+                                                                             parent_id),
             _ => None,
         };
-        let window_proxy = WindowProxy::new_dissimilar_origin(global_to_clone, browsing_context_id, parent.r());
+        let window_proxy = WindowProxy::new_dissimilar_origin(global_to_clone,
+                                                              browsing_context_id,
+                                                              top_level_browsing_context_id,
+                                                              parent.r());
         self.window_proxies.borrow_mut().insert(browsing_context_id, JS::from_ref(&*window_proxy));
         Some(window_proxy)
     }
@@ -1806,10 +1824,11 @@ impl ScriptThread {
     // construct a new similar-origin browsing context, add it
     // to the `window_proxies` map, and return it.
     fn local_window_proxy(&self,
-                              window: &Window,
-                              browsing_context_id: BrowsingContextId,
-                              parent_info: Option<(PipelineId, FrameType)>)
-                              -> Root<WindowProxy>
+                          window: &Window,
+                          browsing_context_id: BrowsingContextId,
+                          top_level_browsing_context_id: TopLevelBrowsingContextId,
+                          parent_info: Option<(PipelineId, FrameType)>)
+                          -> Root<WindowProxy>
     {
         if let Some(window_proxy) = self.window_proxies.borrow().get(&browsing_context_id) {
             window_proxy.set_currently_active(&*window);
@@ -1821,10 +1840,16 @@ impl ScriptThread {
         };
         let parent = match (parent_info, iframe.as_ref()) {
             (_, Some(iframe)) => Some(window_from_node(&**iframe).window_proxy()),
-            (Some((parent_id, FrameType::IFrame)), _) => self.remote_window_proxy(window.upcast(), parent_id),
+            (Some((parent_id, FrameType::IFrame)), _) => self.remote_window_proxy(window.upcast(),
+                                                                                  top_level_browsing_context_id,
+                                                                                  parent_id),
             _ => None,
         };
-        let window_proxy = WindowProxy::new(&window, browsing_context_id, iframe.r().map(Castable::upcast), parent.r());
+        let window_proxy = WindowProxy::new(&window,
+                                            browsing_context_id,
+                                            top_level_browsing_context_id,
+                                            iframe.r().map(Castable::upcast),
+                                            parent.r());
         self.window_proxies.borrow_mut().insert(browsing_context_id, JS::from_ref(&*window_proxy));
         window_proxy
     }
@@ -1882,7 +1907,10 @@ impl ScriptThread {
                                  self.webvr_thread.clone());
 
         // Initialize the browsing context for the window.
-        let window_proxy = self.local_window_proxy(&window, incomplete.browsing_context_id, incomplete.parent_info);
+        let window_proxy = self.local_window_proxy(&window,
+                                                   incomplete.browsing_context_id,
+                                                   incomplete.top_level_browsing_context_id,
+                                                   incomplete.parent_info);
         window.init_window_proxy(&window_proxy);
 
         let last_modified = metadata.headers.as_ref().and_then(|headers| {
