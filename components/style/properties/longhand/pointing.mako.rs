@@ -131,7 +131,10 @@
         let mut images = vec![];
         loop {
             match input.try(|input| parse_image(context, input)) {
-                Ok(image) => images.push(image),
+                Ok(mut image) => {
+                    image.url.build_image_value();
+                    images.push(image)
+                }
                 Err(()) => break,
             }
             try!(input.expect_comma());
