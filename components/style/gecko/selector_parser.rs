@@ -319,22 +319,26 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
                 None => return Err(()),
             };
 
-        let state = input.try(|input| {
-            let mut state = ElementState::empty();
+        let state = if pseudo.supports_user_action_state() {
+            input.try(|input| {
+                let mut state = ElementState::empty();
 
-            while !input.is_exhausted() {
-                input.expect_colon()?;
-                let ident = input.expect_ident()?;
-                let pseudo_class = self.parse_non_ts_pseudo_class(ident)?;
+                while !input.is_exhausted() {
+                    input.expect_colon()?;
+                    let ident = input.expect_ident()?;
+                    let pseudo_class = self.parse_non_ts_pseudo_class(ident)?;
 
-                if !pseudo_class.is_safe_user_action_state() {
-                    return Err(())
+                    if !pseudo_class.is_safe_user_action_state() {
+                        return Err(())
+                    }
+                    state.insert(pseudo_class.state_flag());
                 }
-                state.insert(pseudo_class.state_flag());
-            }
 
-            Ok(state)
-        });
+                Ok(state)
+            }).ok()
+        } else {
+            None
+        };
 
         Ok(PseudoElementSelector {
             pseudo: pseudo,
