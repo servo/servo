@@ -1505,7 +1505,7 @@ pub mod tests {
             }
         }
 
-        fn parse_pseudo_element(&self, name: Cow<str>, input: &mut CssParser)
+        fn parse_pseudo_element(&self, name: Cow<str>, _input: &mut CssParser)
                                 -> Result<PseudoElement, ()> {
             match_ignore_ascii_case! { &name,
                 "before" => Ok(PseudoElement::Before),
