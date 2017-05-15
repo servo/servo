@@ -2,16 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use euclid::size::TypedSize2D;
 use parsing::parse;
-use std::f32::consts::PI;
-use style::context::QuirksMode;
-use style::font_metrics::ServoMetricsProvider;
-use style::media_queries::{Device, MediaType};
-use style::properties::{ComputedValues, StyleBuilder};
-use style::values::computed;
-use style::values::computed::{Angle, Context, ToComputedValue};
-use style::values::specified;
+use style::parser::Parse;
 use style::values::specified::image::*;
 use style_traits::ToCss;
 
@@ -37,101 +29,77 @@ fn test_linear_gradient() {
 
     // Parsing without <angle> and <side-or-corner>
     assert_roundtrip_with_context!(Image::parse, "linear-gradient(red, green)");
-
-    // AngleOrCorner::None should become AngleOrCorner::Angle(Angle(PI)) when parsed
-    // Note that Angle(PI) is correct for top-to-bottom rendering, whereas Angle(0) would render bottom-to-top.
-    // ref: https://developer.mozilla.org/en-US/docs/Web/CSS/angle
-    let viewport_size = TypedSize2D::new(0., 0.);
-    let initial_style = ComputedValues::initial_values();
-    let device = Device::new(MediaType::Screen, viewport_size);
-    let specified_context = Context {
-        is_root_element: true,
-        device: &device,
-        inherited_style: initial_style,
-        layout_parent_style: initial_style,
-        style: StyleBuilder::for_derived_style(&initial_style),
-        cached_system_font: None,
-        font_metrics_provider: &ServoMetricsProvider,
-        in_media_query: false,
-        quirks_mode: QuirksMode::NoQuirks,
-    };
-    assert_eq!(specified::AngleOrCorner::None.to_computed_value(&specified_context),
-               computed::AngleOrCorner::Angle(Angle::from_radians(PI)));
 }
 
 #[test]
 fn test_radial_gradient() {
     // Parsing with all values
     assert_roundtrip_with_context!(Image::parse, "radial-gradient(circle closest-side at 20px 30px, red, green)");
-    assert_roundtrip_with_context!(Image::parse, "radial-gradient(ellipse closest-side at 20px 30px, red, green)");
+    assert_roundtrip_with_context!(Image::parse, "radial-gradient(ellipse closest-side at 20px 30px, red, green)",
+                                                 "radial-gradient(closest-side at 20px 30px, red, green)");
     assert_roundtrip_with_context!(Image::parse, "radial-gradient(closest-side circle at 20px 30px, red, green)",
                                                  "radial-gradient(circle closest-side at 20px 30px, red, green)");
     assert_roundtrip_with_context!(Image::parse, "radial-gradient(closest-side ellipse at 20px 30px, red, green)",
-                                                 "radial-gradient(ellipse closest-side at 20px 30px, red, green)");
+                                                 "radial-gradient(closest-side at 20px 30px, red, green)");
 
     // Parsing with <shape-keyword> and <size> reversed
     assert_roundtrip_with_context!(Image::parse, "radial-gradient(closest-side circle at 20px 30px, red, green)",
                                                  "radial-gradient(circle closest-side at 20px 30px, red, green)");
     assert_roundtrip_with_context!(Image::parse, "radial-gradient(closest-corner ellipse at 20px 30px, red, green)",
-                                                 "radial-gradient(ellipse closest-corner at 20px 30px, red, green)");
+                                                 "radial-gradient(closest-corner at 20px 30px, red, green)");
     assert_roundtrip_with_context!(Image::parse, "radial-gradient(30px circle, red, green)",
-                                                 "radial-gradient(circle 30px at center center, red, green)");
+                                                 "radial-gradient(30px at center center, red, green)");
     assert_roundtrip_with_context!(Image::parse, "radial-gradient(30px 40px ellipse, red, green)",
-                                                 "radial-gradient(ellipse 30px 40px at center center, red, green)");
+                                                 "radial-gradient(30px 40px at center center, red, green)");
 
     // Parsing without <size>
     assert_roundtrip_with_context!(Image::parse,
                                    "radial-gradient(circle, red, green)",
-                                   "radial-gradient(circle farthest-corner at center center, red, green)");
+                                   "radial-gradient(circle at center center, red, green)");
     assert_roundtrip_with_context!(Image::parse,
                                    "radial-gradient(ellipse, red, green)",
-                                   "radial-gradient(ellipse farthest-corner at center center, red, green)");
+                                   "radial-gradient(at center center, red, green)");
     assert_roundtrip_with_context!(Image::parse,
-                                   "radial-gradient(circle at 20px 30px, red, green)",
-                                   "radial-gradient(circle farthest-corner at 20px 30px, red, green)");
+                                   "radial-gradient(circle at 20px 30px, red, green)");
     assert_roundtrip_with_context!(Image::parse,
                                    "radial-gradient(ellipse at 20px 30px, red, green)",
-                                   "radial-gradient(ellipse farthest-corner at 20px 30px, red, green)");
+                                   "radial-gradient(at 20px 30px, red, green)");
 
 
     // Parsing without <shape-keyword>
     assert_roundtrip_with_context!(Image::parse,
-                                   "radial-gradient(20px at 20px 30px, red, green)",
-                                   "radial-gradient(circle 20px at 20px 30px, red, green)");
+                                   "radial-gradient(20px at 20px 30px, red, green)");
     assert_roundtrip_with_context!(Image::parse,
-                                   "radial-gradient(20px 30px at left center, red, green)",
-                                   "radial-gradient(ellipse 20px 30px at left center, red, green)");
+                                   "radial-gradient(20px 30px at left center, red, green)");
     assert_roundtrip_with_context!(Image::parse,
                                    "radial-gradient(closest-side at center, red, green)",
-                                   "radial-gradient(ellipse closest-side at center center, red, green)");
+                                   "radial-gradient(closest-side at center center, red, green)");
     assert_roundtrip_with_context!(Image::parse,
                                    "radial-gradient(20px, red, green)",
-                                   "radial-gradient(circle 20px at center center, red, green)");
+                                   "radial-gradient(20px at center center, red, green)");
     assert_roundtrip_with_context!(Image::parse,
                                    "radial-gradient(20px 30px, red, green)",
-                                   "radial-gradient(ellipse 20px 30px at center center, red, green)");
+                                   "radial-gradient(20px 30px at center center, red, green)");
     assert_roundtrip_with_context!(Image::parse,
                                    "radial-gradient(closest-side, red, green)",
-                                   "radial-gradient(ellipse closest-side at center center, red, green)");
+                                   "radial-gradient(closest-side at center center, red, green)");
 
     // Parsing without <shape-keyword> and <size>
     assert_roundtrip_with_context!(Image::parse,
                                    "radial-gradient(at center, red, green)",
-                                   "radial-gradient(ellipse farthest-corner at center center, red, green)");
+                                   "radial-gradient(at center center, red, green)");
     assert_roundtrip_with_context!(Image::parse,
-                                   "radial-gradient(at center bottom, red, green)",
-                                   "radial-gradient(ellipse farthest-corner at center bottom, red, green)");
+                                   "radial-gradient(at center bottom, red, green)");
     assert_roundtrip_with_context!(Image::parse,
-                                   "radial-gradient(at 40px 50px, red, green)",
-                                   "radial-gradient(ellipse farthest-corner at 40px 50px, red, green)");
+                                   "radial-gradient(at 40px 50px, red, green)");
 
     // Parsing with just color stops
     assert_roundtrip_with_context!(Image::parse,
                                    "radial-gradient(red, green)",
-                                   "radial-gradient(ellipse farthest-corner at center center, red, green)");
+                                   "radial-gradient(at center center, red, green)");
 
     // Parsing repeating radial gradient
     assert_roundtrip_with_context!(Image::parse,
                                    "repeating-radial-gradient(red, green)",
-                                   "repeating-radial-gradient(ellipse farthest-corner at center center, red, green)");
+                                   "repeating-radial-gradient(at center center, red, green)");
 }

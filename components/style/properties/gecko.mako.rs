@@ -927,7 +927,7 @@ fn static_assert() {
             Gecko_SetNullImageValue(&mut self.gecko.mBorderImageSource);
         }
 
-        if let Some(image) = image.0 {
+        if let Either::Second(image) = image {
             self.gecko.mBorderImageSource.set(image, &mut false)
         }
     }
@@ -2879,7 +2879,7 @@ fn static_assert() {
 
         for (image, geckoimage) in images.zip(self.gecko.${image_layers_field}
                                                   .mLayers.iter_mut()) {
-            if let Some(image) = image.0 {
+            if let Either::Second(image) = image {
                 geckoimage.mImage.set(image, cacheable)
             }
         }

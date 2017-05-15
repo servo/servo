@@ -799,7 +799,8 @@ mod shorthand_serialization {
         use style::properties::longhands::mask_position_y as position_y;
         use style::properties::longhands::mask_repeat as repeat;
         use style::properties::longhands::mask_size as size;
-        use style::values::specified::Image;
+        use style::values::Either;
+        use style::values::generics::image::Image;
         use super::*;
 
         macro_rules! single_vec_value_typedef {
@@ -828,9 +829,10 @@ mod shorthand_serialization {
         fn mask_should_serialize_all_available_properties_when_specified() {
             let mut properties = Vec::new();
 
-            let image = single_vec_value_typedef!(image,
-                image::single_value::SpecifiedValue(
-                    Some(Image::Url(SpecifiedUrl::new_for_testing("http://servo/test.png")))));
+            let image = single_vec_value_typedef!(
+                image,
+                Either::Second(Image::Url(SpecifiedUrl::new_for_testing("http://servo/test.png")))
+            );
 
             let mode = single_vec_keyword_value!(mode, luminance);
 
@@ -880,9 +882,10 @@ mod shorthand_serialization {
         fn mask_should_combine_origin_and_clip_properties_when_equal() {
             let mut properties = Vec::new();
 
-            let image = single_vec_value_typedef!(image,
-                image::single_value::SpecifiedValue(
-                    Some(Image::Url(SpecifiedUrl::new_for_testing("http://servo/test.png")))));
+            let image = single_vec_value_typedef!(
+                image,
+                Either::Second(Image::Url(SpecifiedUrl::new_for_testing("http://servo/test.png")))
+            );
 
             let mode = single_vec_keyword_value!(mode, luminance);
 

@@ -15,7 +15,7 @@ use std::{cmp, fmt, mem};
 use std::ascii::AsciiExt;
 use std::ops::Mul;
 use style_traits::ToCss;
-use style_traits::values::specified::AllowedLengthType;
+use style_traits::values::specified::{AllowedLengthType, AllowedNumericType};
 use stylesheets::CssRuleType;
 use super::{AllowQuirks, Number, ToComputedValue};
 use values::{Auto, CSSFloat, Either, FONT_MEDIUM_PX, HasViewportPercentage, None_, Normal};
@@ -24,9 +24,8 @@ use values::computed::{ComputedValueAsSpecified, Context};
 use values::specified::calc::CalcNode;
 
 pub use values::specified::calc::CalcLengthOrPercentage;
-pub use super::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
-pub use super::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword, LengthOrPercentageOrKeyword};
-pub use super::image::{SizeKeyword, VerticalDirection};
+pub use super::image::{ColorStop, EndingShape as GradientEndingShape, Gradient};
+pub use super::image::{GradientKind, Image};
 
 /// Number of app units per pixel
 pub const AU_PER_PX: CSSFloat = 60.;
@@ -730,7 +729,10 @@ impl ToCss for Percentage {
 }
 
 impl Percentage {
-    fn parse_internal(input: &mut Parser, context: AllowedLengthType) -> Result<Self, ()> {
+    /// Parse a specific kind of percentage.
+    pub fn parse_with_clamping_mode(input: &mut Parser,
+                                    context: AllowedNumericType)
+                                    -> Result<Self, ()> {
         match try!(input.next()) {
             Token::Percentage(ref value) if context.is_ok(value.unit_value) => {
                 Ok(Percentage(value.unit_value))
@@ -741,14 +743,14 @@ impl Percentage {
 
     /// Parses a percentage token, but rejects it if it's negative.
     pub fn parse_non_negative(input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_internal(input, AllowedLengthType::NonNegative)
+        Self::parse_with_clamping_mode(input, AllowedNumericType::NonNegative)
     }
 }
 
 impl Parse for Percentage {
     #[inline]
     fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_internal(input, AllowedLengthType::All)
+        Self::parse_with_clamping_mode(input, AllowedNumericType::All)
     }
 }
 

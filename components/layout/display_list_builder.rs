@@ -57,12 +57,14 @@ use style::properties::{self, ServoComputedValues};
 use style::properties::longhands::border_image_repeat::computed_value::RepeatKeyword;
 use style::properties::style_structs;
 use style::servo::restyle_damage::REPAINT;
-use style::values::{Either, RGBA, computed};
-use style::values::computed::{AngleOrCorner, Gradient, GradientItem, GradientKind, LengthOrPercentage};
-use style::values::computed::{LengthOrPercentageOrAuto, LengthOrKeyword, LengthOrPercentageOrKeyword};
-use style::values::computed::{NumberOrPercentage, Position};
-use style::values::computed::image::{EndingShape, SizeKeyword};
-use style::values::specified::{HorizontalDirection, VerticalDirection};
+use style::values::{Either, RGBA};
+use style::values::computed::{Gradient, GradientItem, LengthOrPercentage};
+use style::values::computed::{LengthOrPercentageOrAuto, NumberOrPercentage, Position};
+use style::values::computed::image::{EndingShape, LineDirection};
+use style::values::generics::image::{Circle, Ellipse, EndingShape as GenericEndingShape};
+use style::values::generics::image::{GradientItem as GenericGradientItem, GradientKind};
+use style::values::generics::image::{Image, ShapeExtent};
+use style::values::specified::position::{X, Y};
 use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
@@ -390,7 +392,7 @@ pub trait FragmentDisplayListBuilding {
     fn convert_linear_gradient(&self,
                                bounds: &Rect<Au>,
                                stops: &[GradientItem],
-                               angle_or_corner: &AngleOrCorner,
+                               direction: &LineDirection,
                                repeating: bool,
                                style: &ServoComputedValues)
                                -> display_list::Gradient;
@@ -610,7 +612,7 @@ fn convert_gradient_stops(gradient_items: &[GradientItem],
     // Only keep the color stops, discard the color interpolation hints.
     let mut stop_items = gradient_items.iter().filter_map(|item| {
         match *item {
-            GradientItem::ColorStop(ref stop) => Some(*stop),
+            GenericGradientItem::ColorStop(ref stop) => Some(*stop),
             _ => None,
         }
     }).collect::<Vec<_>>();
@@ -758,36 +760,46 @@ fn get_ellipse_radius<F>(size: &Size2D<Au>, center: &Point2D<Au>, cmp: F) -> Siz
 
 /// Determines the radius of a circle if it was not explictly provided.
 /// https://drafts.csswg.org/css-images-3/#typedef-size
-fn convert_circle_size_keyword(keyword: SizeKeyword,
+fn convert_circle_size_keyword(keyword: ShapeExtent,
                                size: &Size2D<Au>,
                                center: &Point2D<Au>) -> Size2D<Au> {
-    use style::values::computed::image::SizeKeyword::*;
     let radius = match keyword {
-        ClosestSide | Contain => {
+        ShapeExtent::ClosestSide | ShapeExtent::Contain => {
             let dist = get_distance_to_sides(size, center, ::std::cmp::min);
             ::std::cmp::min(dist.width, dist.height)
         }
-        FarthestSide => {
+        ShapeExtent::FarthestSide => {
             let dist = get_distance_to_sides(size, center, ::std::cmp::max);
             ::std::cmp::max(dist.width, dist.height)
         }
-        ClosestCorner => get_distance_to_corner(size, center, ::std::cmp::min),
-        FarthestCorner | Cover => get_distance_to_corner(size, center, ::std::cmp::max),
+        ShapeExtent::ClosestCorner => {
+            get_distance_to_corner(size, center, ::std::cmp::min)
+        },
+        ShapeExtent::FarthestCorner | ShapeExtent::Cover => {
+            get_distance_to_corner(size, center, ::std::cmp::max)
+        },
     };
     Size2D::new(radius, radius)
 }
 
 /// Determines the radius of an ellipse if it was not explictly provided.
 /// https://drafts.csswg.org/css-images-3/#typedef-size
-fn convert_ellipse_size_keyword(keyword: SizeKeyword,
+fn convert_ellipse_size_keyword(keyword: ShapeExtent,
                                 size: &Size2D<Au>,
                                 center: &Point2D<Au>) -> Size2D<Au> {
-    use style::values::computed::image::SizeKeyword::*;
     match keyword {
-        ClosestSide | Contain => get_distance_to_sides(size, center, ::std::cmp::min),
-        FarthestSide => get_distance_to_sides(size, center, ::std::cmp::max),
-        ClosestCorner => get_ellipse_radius(size, center, ::std::cmp::min),
-        FarthestCorner | Cover => get_ellipse_radius(size, center, ::std::cmp::max),
+        ShapeExtent::ClosestSide | ShapeExtent::Contain => {
+            get_distance_to_sides(size, center, ::std::cmp::min)
+        },
+        ShapeExtent::FarthestSide => {
+            get_distance_to_sides(size, center, ::std::cmp::max)
+        },
+        ShapeExtent::ClosestCorner => {
+            get_ellipse_radius(size, center, ::std::cmp::min)
+        },
+        ShapeExtent::FarthestCorner | ShapeExtent::Cover => {
+            get_ellipse_radius(size, center, ::std::cmp::max)
+        },
     }
 }
 
@@ -853,9 +865,9 @@ impl FragmentDisplayListBuilding for Fragment {
         // http://www.w3.org/TR/CSS21/colors.html#background
         let background = style.get_background();
         for (i, background_image) in background.background_image.0.iter().enumerate().rev() {
-            match background_image.0 {
-                None => {}
-                Some(computed::Image::Gradient(ref gradient)) => {
+            match *background_image {
+                Either::First(_) => {}
+                Either::Second(Image::Gradient(ref gradient)) => {
                     self.build_display_list_for_background_gradient(state,
                                                                     display_list_section,
                                                                     &absolute_bounds,
@@ -864,7 +876,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                     gradient,
                                                                     style);
                 }
-                Some(computed::Image::Url(ref image_url)) => {
+                Either::Second(Image::Url(ref image_url)) => {
                     if let Some(url) = image_url.url() {
                         self.build_display_list_for_background_image(state,
                                                                      style,
@@ -875,10 +887,10 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                      i);
                     }
                 }
-                Some(computed::Image::ImageRect(_)) => {
+                Either::Second(Image::Rect(_)) => {
                     // TODO: Implement `-moz-image-rect`
                 }
-                Some(computed::Image::Element(_)) => {
+                Either::Second(Image::Element(_)) => {
                     // TODO: Implement `-moz-element`
                 }
             }
@@ -1097,26 +1109,26 @@ impl FragmentDisplayListBuilding for Fragment {
     fn convert_linear_gradient(&self,
                                bounds: &Rect<Au>,
                                stops: &[GradientItem],
-                               angle_or_corner: &AngleOrCorner,
+                               direction: &LineDirection,
                                repeating: bool,
                                style: &ServoComputedValues)
                                -> display_list::Gradient {
-        let angle = match *angle_or_corner {
-            AngleOrCorner::Angle(angle) => angle.radians(),
-            AngleOrCorner::Corner(horizontal, vertical) => {
+        let angle = match *direction {
+            LineDirection::Angle(angle) => angle.radians(),
+            LineDirection::Corner(horizontal, vertical) => {
                 // This the angle for one of the diagonals of the box. Our angle
                 // will either be this one, this one + PI, or one of the other
                 // two perpendicular angles.
                 let atan = (bounds.size.height.to_f32_px() /
                             bounds.size.width.to_f32_px()).atan();
                 match (horizontal, vertical) {
-                    (HorizontalDirection::Right, VerticalDirection::Bottom)
+                    (X::Right, Y::Bottom)
                         => f32::consts::PI - atan,
-                    (HorizontalDirection::Left, VerticalDirection::Bottom)
+                    (X::Left, Y::Bottom)
                         => f32::consts::PI + atan,
-                    (HorizontalDirection::Right, VerticalDirection::Top)
+                    (X::Right, Y::Top)
                         => atan,
-                    (HorizontalDirection::Left, VerticalDirection::Top)
+                    (X::Left, Y::Top)
                         => -atan,
                 }
             }
@@ -1170,16 +1182,18 @@ impl FragmentDisplayListBuilding for Fragment {
         let center = Point2D::new(specified(center.horizontal, bounds.size.width),
                                   specified(center.vertical, bounds.size.height));
         let radius = match *shape {
-            EndingShape::Circle(LengthOrKeyword::Length(length))
-                => Size2D::new(length, length),
-            EndingShape::Circle(LengthOrKeyword::Keyword(word))
-                => convert_circle_size_keyword(word, &bounds.size, &center),
-            EndingShape::Ellipse(LengthOrPercentageOrKeyword::LengthOrPercentage(horizontal,
-                                                                                    vertical))
-                    => Size2D::new(specified(horizontal, bounds.size.width),
-                                specified(vertical, bounds.size.height)),
-            EndingShape::Ellipse(LengthOrPercentageOrKeyword::Keyword(word))
-                => convert_ellipse_size_keyword(word, &bounds.size, &center),
+            GenericEndingShape::Circle(Circle::Radius(length)) => {
+                Size2D::new(length, length)
+            },
+            GenericEndingShape::Circle(Circle::Extent(extent)) => {
+                convert_circle_size_keyword(extent, &bounds.size, &center)
+            },
+            GenericEndingShape::Ellipse(Ellipse::Radii(x, y)) => {
+                Size2D::new(specified(x, bounds.size.width), specified(y, bounds.size.height))
+            },
+            GenericEndingShape::Ellipse(Ellipse::Extent(extent)) => {
+                convert_ellipse_size_keyword(extent, &bounds.size, &center)
+            },
         };
 
         let mut stops = convert_gradient_stops(stops, radius.width, style);
@@ -1221,7 +1235,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                   style.get_cursor(Cursor::Default),
                                                   display_list_section);
 
-        let display_item = match gradient.gradient_kind {
+        let display_item = match gradient.kind {
             GradientKind::Linear(ref angle_or_corner) => {
                 let gradient = self.convert_linear_gradient(&bounds,
                                                             &gradient.items[..],
@@ -1342,8 +1356,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                                   style.get_cursor(Cursor::Default),
                                                   display_list_section);
 
-        match border_style_struct.border_image_source.0 {
-            None => {
+        match border_style_struct.border_image_source {
+            Either::First(_) => {
                 state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
                     base: base,
                     border_widths: border.to_physical(style.writing_mode),
@@ -1357,8 +1371,8 @@ impl FragmentDisplayListBuilding for Fragment {
                     }),
                 }));
             }
-            Some(computed::Image::Gradient(ref gradient)) => {
-                match gradient.gradient_kind {
+            Either::Second(Image::Gradient(ref gradient)) => {
+                match gradient.kind {
                     GradientKind::Linear(angle_or_corner) => {
                         let grad = self.convert_linear_gradient(&bounds,
                                                                 &gradient.items[..],
@@ -1398,13 +1412,13 @@ impl FragmentDisplayListBuilding for Fragment {
                     }
                 }
             }
-            Some(computed::Image::ImageRect(..)) => {
+            Either::Second(Image::Rect(..)) => {
                 // TODO: Handle border-image with `-moz-image-rect`.
             }
-            Some(computed::Image::Element(..)) => {
+            Either::Second(Image::Element(..)) => {
                 // TODO: Handle border-image with `-moz-element`.
             }
-            Some(computed::Image::Url(ref image_url)) => {
+            Either::Second(Image::Url(ref image_url)) => {
                 if let Some(url) = image_url.url() {
                     let webrender_image = state.layout_context
                                                .get_webrender_image_for_url(self.node,
