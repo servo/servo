@@ -536,7 +536,7 @@ impl Parse for AdditiveSymbols {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         let tuples = Vec::<AdditiveTuple>::parse(context, input)?;
         // FIXME maybe? https://github.com/w3c/csswg-drafts/issues/1220
-        if tuples.windows(2).any(|window| window[0].value <= window[1].value) {
+        if tuples.windows(2).any(|window| window[0].weight <= window[1].weight) {
             return Err(())
         }
         Ok(AdditiveSymbols(tuples))
@@ -552,8 +552,10 @@ impl ToCss for AdditiveSymbols {
 /// <integer> && <symbol>
 #[derive(Debug, Clone)]
 pub struct AdditiveTuple {
-    value: u32,
-    symbol: Symbol,
+    /// <integer>
+    pub weight: u32,
+    /// <symbol>
+    pub symbol: Symbol,
 }
 
 impl OneOrMoreCommaSeparated for AdditiveTuple {}
@@ -561,13 +563,13 @@ impl OneOrMoreCommaSeparated for AdditiveTuple {}
 impl Parse for AdditiveTuple {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         let symbol = input.try(|input| Symbol::parse(context, input));
-        let value = input.expect_integer()?;
-        if value < 0 {
+        let weight = input.expect_integer()?;
+        if weight < 0 {
             return Err(())
         }
         let symbol = symbol.or_else(|()| Symbol::parse(context, input))?;
         Ok(AdditiveTuple {
-            value: value as u32,
+            weight: weight as u32,
             symbol: symbol,
         })
     }
@@ -575,7 +577,7 @@ impl Parse for AdditiveTuple {
 
 impl ToCss for AdditiveTuple {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        write!(dest, "{} ", self.value)?;
+        write!(dest, "{} ", self.weight)?;
         self.symbol.to_css(dest)
     }
 }
