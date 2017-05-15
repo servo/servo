@@ -15,7 +15,7 @@ use fnv::FnvHashMap;
 use restyle_hints::ElementSnapshot;
 use selector_parser::{ElementExt, PseudoElementCascadeType, SelectorParser};
 use selectors::{Element, MatchAttrGeneric};
-use selectors::matching::StyleRelations;
+use selectors::matching::MatchingContext;
 use selectors::parser::{AttrSelector, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
 use std::borrow::Cow;
@@ -580,7 +580,7 @@ impl MatchAttrGeneric for ServoElementSnapshot {
 impl<E: Element<Impl=SelectorImpl> + Debug> ElementExt for E {
     fn is_link(&self) -> bool {
         self.match_non_ts_pseudo_class(&NonTSPseudoClass::AnyLink,
-                                       &mut StyleRelations::empty(),
+                                       &mut MatchingContext::default(),
                                        &mut |_, _| {})
     }
 

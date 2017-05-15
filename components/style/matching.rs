@@ -24,7 +24,7 @@ use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RESTYLE_SMIL};
 use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode};
 use selector_parser::{PseudoElement, RestyleDamage, SelectorImpl};
 use selectors::bloom::BloomFilter;
-use selectors::matching::{ElementSelectorFlags, StyleRelations};
+use selectors::matching::{ElementSelectorFlags, MatchingContext, StyleRelations};
 use selectors::matching::AFFECTED_BY_PSEUDO_ELEMENTS;
 use shared_lock::StylesheetGuards;
 use sink::ForgetfulSink;
@@ -895,8 +895,10 @@ pub trait MatchMethods : TElement {
                          sharing: StyleSharingBehavior)
     {
         // Perform selector matching for the primary style.
-        let mut primary_relations = StyleRelations::empty();
-        let _rule_node_changed = self.match_primary(context, data, &mut primary_relations);
+        let mut primary_matching_context = MatchingContext::default();
+        let _rule_node_changed = self.match_primary(context,
+                                                    data,
+                                                    &mut primary_matching_context);
 
         // Cascade properties and compute primary values.
         self.cascade_primary(context, data);
@@ -910,7 +912,7 @@ pub trait MatchMethods : TElement {
 
         // If we have any pseudo elements, indicate so in the primary StyleRelations.
         if !data.styles().pseudos.is_empty() {
-            primary_relations |= AFFECTED_BY_PSEUDO_ELEMENTS;
+            primary_matching_context.relations |= AFFECTED_BY_PSEUDO_ELEMENTS;
         }
 
         // If the style is shareable, add it to the LRU cache.
@@ -930,7 +932,7 @@ pub trait MatchMethods : TElement {
                    .style_sharing_candidate_cache
                    .insert_if_possible(self,
                                        data.styles().primary.values(),
-                                       primary_relations,
+                                       primary_matching_context.relations,
                                        revalidation_match_results);
         }
     }
@@ -950,7 +952,7 @@ pub trait MatchMethods : TElement {
     fn match_primary(&self,
                      context: &mut StyleContext<Self>,
                      data: &mut ElementData,
-                     relations: &mut StyleRelations)
+                     matching_context: &mut MatchingContext)
                      -> bool
     {
         let implemented_pseudo = self.implemented_pseudo_element();
@@ -1021,14 +1023,15 @@ pub trait MatchMethods : TElement {
         };
 
         // Compute the primary rule node.
-        *relations = stylist.push_applicable_declarations(&selector_matching_target,
-                                                          Some(bloom),
-                                                          style_attribute,
-                                                          smil_override,
-                                                          animation_rules,
-                                                          pseudo_and_state,
-                                                          &mut applicable_declarations,
-                                                          &mut set_selector_flags);
+        stylist.push_applicable_declarations(&selector_matching_target,
+                                             Some(bloom),
+                                             style_attribute,
+                                             smil_override,
+                                             animation_rules,
+                                             pseudo_and_state,
+                                             &mut applicable_declarations,
+                                             matching_context,
+                                             &mut set_selector_flags);
 
         let primary_rule_node =
             compute_rule_node::<Self>(&stylist.rule_tree,
@@ -1082,6 +1085,7 @@ pub trait MatchMethods : TElement {
                                                  AnimationRules(None, None),
                                                  Some((&pseudo, ElementState::empty())),
                                                  &mut applicable_declarations,
+                                                 &mut MatchingContext::default(),
                                                  &mut set_selector_flags);
 
             if !applicable_declarations.is_empty() {

@@ -29,7 +29,7 @@ use selector_parser::{SelectorImpl, PseudoElement, SnapshotMap};
 use selectors::Element;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{AFFECTED_BY_STYLE_ATTRIBUTE, AFFECTED_BY_PRESENTATIONAL_HINTS};
-use selectors::matching::{ElementSelectorFlags, StyleRelations, matches_selector};
+use selectors::matching::{ElementSelectorFlags, matches_selector, MatchingContext};
 use selectors::parser::{AttrSelector, Combinator, Component, Selector, SelectorInner, SelectorIter};
 use selectors::parser::{SelectorMethods, LocalName as LocalNameSelector};
 use selectors::visitor::SelectorVisitor;
@@ -707,7 +707,6 @@ impl Stylist {
             }
         };
 
-
         let mut declarations = ApplicableDeclarationList::new();
         self.push_applicable_declarations(element,
                                           None,
@@ -716,6 +715,7 @@ impl Stylist {
                                           AnimationRules(None, None),
                                           Some((pseudo, pseudo_state)),
                                           &mut declarations,
+                                          &mut MatchingContext::default(),
                                           &mut set_selector_flags);
         if declarations.is_empty() {
             return None
@@ -834,8 +834,8 @@ impl Stylist {
     ///
     /// This corresponds to `ElementRuleCollector` in WebKit.
     ///
-    /// The returned `StyleRelations` indicate hints about which kind of rules
-    /// have matched.
+    /// The `StyleRelations` recorded in `MatchingContext` indicate hints about
+    /// which kind of rules have matched.
     pub fn push_applicable_declarations<E, V, F>(
                                         &self,
                                         element: &E,
@@ -845,8 +845,8 @@ impl Stylist {
                                         animation_rules: AnimationRules,
                                         pseudo_element: Option<(&PseudoElement, ElementState)>,
                                         applicable_declarations: &mut V,
+                                        context: &mut MatchingContext,
                                         flags_setter: &mut F)
-                                        -> StyleRelations
         where E: TElement,
               V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock>,
               F: FnMut(&E, ElementSelectorFlags),
@@ -864,8 +864,6 @@ impl Stylist {
             None => &self.element_map,
         };
 
-        let mut relations = StyleRelations::empty();
-
         debug!("Determining if style is shareable: pseudo: {}",
                pseudo_element.is_some());
 
@@ -874,10 +872,10 @@ impl Stylist {
                                               pseudo_element,
                                               parent_bf,
                                               applicable_declarations,
-                                              &mut relations,
+                                              context,
                                               flags_setter,
                                               CascadeLevel::UANormal);
-        debug!("UA normal: {:?}", relations);
+        debug!("UA normal: {:?}", context.relations);
 
         if pseudo_element.is_none() {
             // Step 2: Presentational hints.
@@ -890,9 +888,9 @@ impl Stylist {
                     }
                 }
                 // Never share style for elements with preshints
-                relations |= AFFECTED_BY_PRESENTATIONAL_HINTS;
+                context.relations |= AFFECTED_BY_PRESENTATIONAL_HINTS;
             }
-            debug!("preshints: {:?}", relations);
+            debug!("preshints: {:?}", context.relations);
         }
 
         if element.matches_user_and_author_rules() {
@@ -901,29 +899,29 @@ impl Stylist {
                                             pseudo_element,
                                             parent_bf,
                                             applicable_declarations,
-                                            &mut relations,
+                                            context,
                                             flags_setter,
                                             CascadeLevel::UserNormal);
-            debug!("user normal: {:?}", relations);
+            debug!("user normal: {:?}", context.relations);
             map.author.get_all_matching_rules(element,
                                               pseudo_element,
                                               parent_bf,
                                               applicable_declarations,
-                                              &mut relations,
+                                              context,
                                               flags_setter,
                                               CascadeLevel::AuthorNormal);
-            debug!("author normal: {:?}", relations);
+            debug!("author normal: {:?}", context.relations);
 
             // Step 4: Normal style attributes.
             if let Some(sa) = style_attribute {
-                relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
+                context.relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
                 Push::push(
                     applicable_declarations,
                     ApplicableDeclarationBlock::from_declarations(sa.clone(),
                                                                   CascadeLevel::StyleAttributeNormal));
             }
 
-            debug!("style attr: {:?}", relations);
+            debug!("style attr: {:?}", context.relations);
 
             // Step 5: SMIL override.
             // Declarations from SVG SMIL animation elements.
@@ -933,7 +931,7 @@ impl Stylist {
                     ApplicableDeclarationBlock::from_declarations(so.clone(),
                                                                   CascadeLevel::SMILOverride));
             }
-            debug!("SMIL: {:?}", relations);
+            debug!("SMIL: {:?}", context.relations);
 
             // Step 6: Animations.
             // The animations sheet (CSS animations, script-generated animations,
@@ -944,7 +942,7 @@ impl Stylist {
                     ApplicableDeclarationBlock::from_declarations(anim,
                                                                   CascadeLevel::Animations));
             }
-            debug!("animation: {:?}", relations);
+            debug!("animation: {:?}", context.relations);
         } else {
             debug!("skipping non-agent rules");
         }
@@ -961,11 +959,9 @@ impl Stylist {
                 applicable_declarations,
                 ApplicableDeclarationBlock::from_declarations(anim, CascadeLevel::Transitions));
         }
-        debug!("transition: {:?}", relations);
+        debug!("transition: {:?}", context.relations);
 
-        debug!("push_applicable_declarations: shareable: {:?}", relations);
-
-        relations
+        debug!("push_applicable_declarations: shareable: {:?}", context.relations);
     }
 
     /// Return whether the device is dirty, that is, whether the screen size or
@@ -997,9 +993,6 @@ impl Stylist {
         where E: TElement,
               F: FnMut(&E, ElementSelectorFlags),
     {
-        use selectors::matching::StyleRelations;
-        use selectors::matching::matches_selector;
-
         // Note that, by the time we're revalidating, we're guaranteed that the
         // candidate and the entry have the same id, classes, and local name.
         // This means we're guaranteed to get the same rulehash buckets for all
@@ -1010,7 +1003,7 @@ impl Stylist {
             results.push(matches_selector(selector,
                                           element,
                                           Some(bloom),
-                                          &mut StyleRelations::empty(),
+                                          &mut MatchingContext::default(),
                                           flags_setter));
             true
         });
@@ -1293,7 +1286,7 @@ impl SelectorMap<Rule> {
                                            pseudo_element: Option<(&PseudoElement, ElementState)>,
                                            parent_bf: Option<&BloomFilter>,
                                            matching_rules_list: &mut V,
-                                           relations: &mut StyleRelations,
+                                           context: &mut MatchingContext,
                                            flags_setter: &mut F,
                                            cascade_level: CascadeLevel)
         where E: Element<Impl=SelectorImpl>,
@@ -1313,7 +1306,7 @@ impl SelectorMap<Rule> {
                                                       &self.id_hash,
                                                       &id,
                                                       matching_rules_list,
-                                                      relations,
+                                                      context,
                                                       flags_setter,
                                                       cascade_level)
         }
@@ -1325,7 +1318,7 @@ impl SelectorMap<Rule> {
                                                       &self.class_hash,
                                                       class,
                                                       matching_rules_list,
-                                                      relations,
+                                                      context,
                                                       flags_setter,
                                                       cascade_level);
         });
@@ -1336,7 +1329,7 @@ impl SelectorMap<Rule> {
                                                   &self.local_name_hash,
                                                   element.get_local_name(),
                                                   matching_rules_list,
-                                                  relations,
+                                                  context,
                                                   flags_setter,
                                                   cascade_level);
 
@@ -1345,7 +1338,7 @@ impl SelectorMap<Rule> {
                                         parent_bf,
                                         &self.other,
                                         matching_rules_list,
-                                        relations,
+                                        context,
                                         flags_setter,
                                         cascade_level);
 
@@ -1384,7 +1377,7 @@ impl SelectorMap<Rule> {
         hash: &FnvHashMap<Str, Vec<Rule>>,
         key: &BorrowedStr,
         matching_rules: &mut Vector,
-        relations: &mut StyleRelations,
+        context: &mut MatchingContext,
         flags_setter: &mut F,
         cascade_level: CascadeLevel)
         where E: Element<Impl=SelectorImpl>,
@@ -1399,7 +1392,7 @@ impl SelectorMap<Rule> {
                                             parent_bf,
                                             rules,
                                             matching_rules,
-                                            relations,
+                                            context,
                                             flags_setter,
                                             cascade_level)
         }
@@ -1411,7 +1404,7 @@ impl SelectorMap<Rule> {
                                    parent_bf: Option<&BloomFilter>,
                                    rules: &[Rule],
                                    matching_rules: &mut V,
-                                   relations: &mut StyleRelations,
+                                   context: &mut MatchingContext,
                                    flags_setter: &mut F,
                                    cascade_level: CascadeLevel)
         where E: Element<Impl=SelectorImpl>,
@@ -1443,7 +1436,7 @@ impl SelectorMap<Rule> {
             if matches_selector(&rule.selector.inner,
                                 element,
                                 parent_bf,
-                                relations,
+                                context,
                                 flags_setter) {
                 matching_rules.push(
                     rule.to_applicable_declaration_block(cascade_level));

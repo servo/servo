@@ -17,6 +17,7 @@ bitflags! {
     /// the selector matching process.
     ///
     /// This is used to implement efficient sharing.
+    #[derive(Default)]
     pub flags StyleRelations: usize {
         /// Whether this element is affected by an ID selector.
         const AFFECTED_BY_ID_SELECTOR = 1 << 0,
@@ -68,6 +69,16 @@ impl ElementSelectorFlags {
     }
 }
 
+/// Data associated with the matching process for a element.  This context is
+/// used across many selectors for an element, so it's not appropriate for
+/// transient data that applies to only a single selector.
+#[derive(Default)]
+pub struct MatchingContext {
+    /// Output that records certains relations between elements noticed during
+    /// matching (and also extended after matching).
+    pub relations: StyleRelations,
+}
+
 pub fn matches_selector_list<E>(selector_list: &[Selector<E::Impl>],
                                 element: &E,
                                 parent_bf: Option<&BloomFilter>)
@@ -79,7 +90,7 @@ pub fn matches_selector_list<E>(selector_list: &[Selector<E::Impl>],
         matches_selector(&selector.inner,
                          element,
                          parent_bf,
-                         &mut StyleRelations::empty(),
+                         &mut MatchingContext::default(),
                          &mut |_, _| {})
     })
 }
@@ -108,7 +119,7 @@ fn may_match<E>(sel: &SelectorInner<E::Impl>,
 pub fn matches_selector<E, F>(selector: &SelectorInner<E::Impl>,
                               element: &E,
                               parent_bf: Option<&BloomFilter>,
-                              relations: &mut StyleRelations,
+                              context: &mut MatchingContext,
                               flags_setter: &mut F)
                               -> bool
     where E: Element,
@@ -122,7 +133,7 @@ pub fn matches_selector<E, F>(selector: &SelectorInner<E::Impl>,
     }
 
     // Match the selector.
-    matches_complex_selector(&selector.complex, element, relations, flags_setter)
+    matches_complex_selector(&selector.complex, element, context, flags_setter)
 }
 
 /// A result of selector matching, includes 3 failure types,
@@ -178,7 +189,7 @@ enum SelectorMatchingResult {
 /// Matches a complex selector.
 pub fn matches_complex_selector<E, F>(selector: &ComplexSelector<E::Impl>,
                                       element: &E,
-                                      relations: &mut StyleRelations,
+                                      context: &mut MatchingContext,
                                       flags_setter: &mut F)
                                       -> bool
      where E: Element,
@@ -186,7 +197,7 @@ pub fn matches_complex_selector<E, F>(selector: &ComplexSelector<E::Impl>,
 {
     match matches_complex_selector_internal(selector.iter(),
                                             element,
-                                            relations,
+                                            context,
                                             flags_setter) {
         SelectorMatchingResult::Matched => true,
         _ => false
@@ -195,14 +206,14 @@ pub fn matches_complex_selector<E, F>(selector: &ComplexSelector<E::Impl>,
 
 fn matches_complex_selector_internal<E, F>(mut selector_iter: SelectorIter<E::Impl>,
                                            element: &E,
-                                           relations: &mut StyleRelations,
+                                           context: &mut MatchingContext,
                                            flags_setter: &mut F)
                                            -> SelectorMatchingResult
      where E: Element,
            F: FnMut(&E, ElementSelectorFlags),
 {
     let matches_all_simple_selectors = selector_iter.all(|simple| {
-        matches_simple_selector(simple, element, relations, flags_setter)
+        matches_simple_selector(simple, element, context, flags_setter)
     });
 
     let combinator = selector_iter.next_sequence();
@@ -233,7 +244,7 @@ fn matches_complex_selector_internal<E, F>(mut selector_iter: SelectorIter<E::Im
                 };
                 let result = matches_complex_selector_internal(selector_iter.clone(),
                                                                &element,
-                                                               relations,
+                                                               context,
                                                                flags_setter);
                 match (result, c) {
                     // Return the status immediately.
@@ -276,7 +287,7 @@ fn matches_complex_selector_internal<E, F>(mut selector_iter: SelectorIter<E::Im
 fn matches_simple_selector<E, F>(
         selector: &Component<E::Impl>,
         element: &E,
-        relations: &mut StyleRelations,
+        context: &mut MatchingContext,
         flags_setter: &mut F)
         -> bool
     where E: Element,
@@ -285,7 +296,7 @@ fn matches_simple_selector<E, F>(
     macro_rules! relation_if {
         ($ex:expr, $flag:ident) => {
             if $ex {
-                *relations |= $flag;
+                context.relations |= $flag;
                 true
             } else {
                 false
@@ -341,7 +352,7 @@ fn matches_simple_selector<E, F>(
             false
         }
         Component::NonTSPseudoClass(ref pc) => {
-            element.match_non_ts_pseudo_class(pc, relations, flags_setter)
+            element.match_non_ts_pseudo_class(pc, context, flags_setter)
         }
         Component::FirstChild => {
             matches_first_child(element, flags_setter)
@@ -385,7 +396,7 @@ fn matches_simple_selector<E, F>(
             matches_generic_nth_child(element, 0, 1, true, true, flags_setter)
         }
         Component::Negation(ref negated) => {
-            !negated.iter().all(|ss| matches_simple_selector(ss, element, relations, flags_setter))
+            !negated.iter().all(|ss| matches_simple_selector(ss, element, context, flags_setter))
         }
     }
 }

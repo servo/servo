@@ -16,7 +16,7 @@ use gecko_bindings::structs::nsRestyleHint;
 use heapsize::HeapSizeOf;
 use selector_parser::{AttrValue, NonTSPseudoClass, PseudoElement, SelectorImpl, Snapshot, SnapshotMap};
 use selectors::{Element, MatchAttr};
-use selectors::matching::{ElementSelectorFlags, StyleRelations};
+use selectors::matching::{ElementSelectorFlags, MatchingContext};
 use selectors::matching::matches_selector;
 use selectors::parser::{AttrSelector, Combinator, Component, Selector};
 use selectors::parser::{SelectorInner, SelectorMethods};
@@ -348,7 +348,7 @@ impl<'a, E> Element for ElementWrapper<'a, E>
 {
     fn match_non_ts_pseudo_class<F>(&self,
                                     pseudo_class: &NonTSPseudoClass,
-                                    relations: &mut StyleRelations,
+                                    context: &mut MatchingContext,
                                     _setter: &mut F)
                                     -> bool
         where F: FnMut(&Self, ElementSelectorFlags),
@@ -360,7 +360,7 @@ impl<'a, E> Element for ElementWrapper<'a, E>
             use selectors::matching::matches_complex_selector;
             if let NonTSPseudoClass::MozAny(ref selectors) = *pseudo_class {
                 return selectors.iter().any(|s| {
-                    matches_complex_selector(s, self, relations, _setter)
+                    matches_complex_selector(s, self, context, _setter)
                 })
             }
         }
@@ -393,14 +393,14 @@ impl<'a, E> Element for ElementWrapper<'a, E>
         let flag = pseudo_class.state_flag();
         if flag.is_empty() {
             return self.element.match_non_ts_pseudo_class(pseudo_class,
-                                                          relations,
+                                                          context,
                                                           &mut |_, _| {})
         }
         match self.snapshot().and_then(|s| s.state()) {
             Some(snapshot_state) => snapshot_state.intersects(flag),
             None => {
                 self.element.match_non_ts_pseudo_class(pseudo_class,
-                                                       relations,
+                                                       context,
                                                        &mut |_, _| {})
             }
         }
@@ -780,7 +780,7 @@ impl DependencySet {
             // either (or it doesn't matter because our parent posted a restyle
             // for us above).
             if !matches_selector(&dep.selector.inner, &selector_matching_target,
-                                 None, &mut StyleRelations::empty(),
+                                 None, &mut MatchingContext::default(),
                                  &mut |_, _| {}) {
                 return true;
             }
@@ -857,11 +857,11 @@ impl DependencySet {
             // change its matching behavior here.
             let matched_then =
                 matches_selector(&dep.selector, &snapshot_el, None,
-                                 &mut StyleRelations::empty(),
+                                 &mut MatchingContext::default(),
                                  &mut |_, _| {});
             let matches_now =
                 matches_selector(&dep.selector, el, None,
-                                 &mut StyleRelations::empty(),
+                                 &mut MatchingContext::default(),
                                  &mut |_, _| {});
             if matched_then != matches_now {
                 hint.insert(dep.hint);

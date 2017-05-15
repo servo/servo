@@ -64,7 +64,7 @@ use properties::style_structs::Font;
 use rule_tree::CascadeLevel as ServoCascadeLevel;
 use selector_parser::ElementExt;
 use selectors::Element;
-use selectors::matching::{ElementSelectorFlags, StyleRelations};
+use selectors::matching::{ElementSelectorFlags, MatchingContext};
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use shared_lock::Locked;
 use sink::Push;
@@ -1125,7 +1125,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
 
     fn match_non_ts_pseudo_class<F>(&self,
                                     pseudo_class: &NonTSPseudoClass,
-                                    relations: &mut StyleRelations,
+                                    context: &mut MatchingContext,
                                     flags_setter: &mut F)
                                     -> bool
         where F: FnMut(&Self, ElementSelectorFlags),
@@ -1219,7 +1219,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             },
             NonTSPseudoClass::MozAny(ref sels) => {
                 sels.iter().any(|s| {
-                    matches_complex_selector(s, self, relations, flags_setter)
+                    matches_complex_selector(s, self, context, flags_setter)
                 })
             }
             NonTSPseudoClass::MozSystemMetric(ref s) |
@@ -1376,7 +1376,7 @@ impl<'le> ElementExt for GeckoElement<'le> {
     #[inline]
     fn is_link(&self) -> bool {
         self.match_non_ts_pseudo_class(&NonTSPseudoClass::AnyLink,
-                                       &mut StyleRelations::empty(),
+                                       &mut MatchingContext::default(),
                                        &mut |_, _| {})
     }
 
