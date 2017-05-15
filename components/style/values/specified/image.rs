@@ -52,14 +52,34 @@ impl ToCss for Image {
 impl Image {
     #[allow(missing_docs)]
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<Image, ()> {
-        if let Ok(url) = input.try(|input| SpecifiedUrl::parse(context, input)) {
-            return Ok(Image::Url(url));
+        #[cfg(feature = "gecko")]
+        {
+          if let Ok(mut url) = input.try(|input| SpecifiedUrl::parse(context, input)) {
+              url.build_image_value();
+              return Ok(Image::Url(url));
+          }
+        }
+        #[cfg(feature = "servo")]
+        {
+          if let Ok(url) = input.try(|input| SpecifiedUrl::parse(context, input)) {
+              return Ok(Image::Url(url));
+          }
         }
         if let Ok(gradient) = input.try(|input| Gradient::parse_function(context, input)) {
             return Ok(Image::Gradient(gradient));
         }
-        if let Ok(image_rect) = input.try(|input| ImageRect::parse(context, input)) {
-            return Ok(Image::ImageRect(image_rect));
+        #[cfg(feature = "gecko")]
+        {
+            if let Ok(mut image_rect) = input.try(|input| ImageRect::parse(context, input)) {
+                image_rect.url.build_image_value();
+                return Ok(Image::ImageRect(image_rect));
+            }
+        }
+        #[cfg(feature = "servo")]
+        {
+            if let Ok(image_rect) = input.try(|input| ImageRect::parse(context, input)) {
+                return Ok(Image::ImageRect(image_rect));
+            }
         }
 
         Ok(Image::Element(Image::parse_element(input)?))
