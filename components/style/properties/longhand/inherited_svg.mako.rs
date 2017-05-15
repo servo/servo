@@ -119,17 +119,17 @@ ${helpers.single_keyword("clip-rule", "nonzero evenodd",
                          spec="https://www.w3.org/TR/SVG11/masking.html#ClipRuleProperty")}
 
 ${helpers.predefined_type("marker-start", "UrlOrNone", "Either::Second(None_)",
-                          products="gecko",
+                          products="gecko", boxed="True",
                           animation_value_type="none",
                           spec="https://www.w3.org/TR/SVG2/painting.html#VertexMarkerProperties")}
 
 ${helpers.predefined_type("marker-mid", "UrlOrNone", "Either::Second(None_)",
-                          products="gecko",
+                          products="gecko", boxed="True",
                           animation_value_type="none",
                           spec="https://www.w3.org/TR/SVG2/painting.html#VertexMarkerProperties")}
 
 ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
-                          products="gecko",
+                          products="gecko", boxed="True",
                           animation_value_type="none",
                           spec="https://www.w3.org/TR/SVG2/painting.html#VertexMarkerProperties")}
 

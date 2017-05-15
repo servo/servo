@@ -38,6 +38,7 @@ ${helpers.single_keyword("list-style-type", """
     spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type")}
 
 <%helpers:longhand name="list-style-image" animation_value_type="none"
+                   boxed="True"
                    spec="https://drafts.csswg.org/css-lists/#propdef-list-style-image">
     use std::fmt;
     use values::HasViewportPercentage;
