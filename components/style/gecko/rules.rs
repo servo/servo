@@ -217,9 +217,9 @@ impl ToNsCssValue for counter_style::Symbol {
 }
 
 impl ToNsCssValue for counter_style::Ranges {
-    fn convert(&self, _nscssvalue: &mut nsCSSValue) {
+    fn convert(&self, nscssvalue: &mut nsCSSValue) {
         if self.0.is_empty() {
-            //nscssvalue.set_auto();  // FIXME: add bindings for nsCSSValue::SetAutoValue
+            nscssvalue.set_auto();
         } else {
             for range in &self.0 {
                 fn set_bound(bound: Option<i32>, nscssvalue: &mut nsCSSValue) {
@@ -274,7 +274,7 @@ impl ToNsCssValue for counter_style::SpeakAs {
     fn convert(&self, nscssvalue: &mut nsCSSValue) {
         use counter_style::SpeakAs::*;
         match *self {
-            Auto => {} //nscssvalue.set_auto(),  // FIXME: add bindings for nsCSSValue::SetAutoValue
+            Auto => nscssvalue.set_auto(),
             Bullets => nscssvalue.set_enum(structs::NS_STYLE_COUNTER_SPEAKAS_BULLETS as i32),
             Numbers => nscssvalue.set_enum(structs::NS_STYLE_COUNTER_SPEAKAS_NUMBERS as i32),
             Words => nscssvalue.set_enum(structs::NS_STYLE_COUNTER_SPEAKAS_WORDS as i32),

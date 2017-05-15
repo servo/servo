@@ -101,9 +101,24 @@ impl nsCSSValue {
         }
     }
 
+    fn set_valueless_unit(&mut self, unit: nsCSSUnit) {
+        debug_assert_eq!(self.mUnit, nsCSSUnit::eCSSUnit_Null);
+        debug_assert!(unit as u32 <= nsCSSUnit::eCSSUnit_DummyInherit as u32, "Not a valueless unit");
+        self.mUnit = unit;
+    }
+
+    /// Set to an auto value
+    ///
+    /// This method requires the current value to be null.
+    pub fn set_auto(&mut self) {
+        self.set_valueless_unit(nsCSSUnit::eCSSUnit_Auto);
+    }
+
     /// Set to a normal value
+    ///
+    /// This method requires the current value to be null.
     pub fn set_normal(&mut self) {
-        unsafe { bindings::Gecko_CSSValue_SetNormal(self) }
+        self.set_valueless_unit(nsCSSUnit::eCSSUnit_Normal);
     }
 
     fn set_string_internal(&mut self, s: &str, unit: nsCSSUnit) {
