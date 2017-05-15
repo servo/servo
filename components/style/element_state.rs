@@ -115,6 +115,11 @@ bitflags! {
         const IN_HANDLER_VULNERABLE_NO_UPDATE_STATE = 1 << 42,
         /// https://drafts.csswg.org/selectors-4/#the-focus-within-pseudo
         const IN_FOCUS_WITHIN_STATE = 1 << 43,
+        /// :dir matching; the states are used for dynamic change detection.
+        /// State that elements that match :dir(ltr) are in.
+        const IN_LTR_STATE = 1 << 44,
+        /// State that elements that match :dir(rtl) are in.
+        const IN_RTL_STATE = 1 << 45,
         /// Non-standard & undocumented.
         const IN_AUTOFILL_STATE = 1 << 50,
         /// Non-standard & undocumented.
