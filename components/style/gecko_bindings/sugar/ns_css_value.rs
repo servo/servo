@@ -6,6 +6,7 @@
 
 use app_units::Au;
 use gecko_bindings::bindings;
+use gecko_bindings::structs;
 use gecko_bindings::structs::{nsCSSValue, nsCSSUnit};
 use gecko_bindings::structs::{nsCSSValue_Array, nscolor};
 use gecko_string_cache::Atom;
@@ -219,6 +220,45 @@ impl nsCSSValue {
     /// This is only supported on the main thread.
     pub fn set_pair(&mut self, x: &nsCSSValue, y: &nsCSSValue) {
         unsafe { bindings::Gecko_CSSValue_SetPair(self, x, y) }
+    }
+
+    /// Set to a list value
+    ///
+    /// This is only supported on the main thread.
+    pub fn set_list<I>(&mut self, mut values: I) where I: ExactSizeIterator<Item=nsCSSValue> {
+        debug_assert!(values.len() > 0, "Empty list is not supported");
+        unsafe { bindings::Gecko_CSSValue_SetList(self, values.len() as u32); }
+        debug_assert_eq!(self.mUnit, nsCSSUnit::eCSSUnit_List);
+        let mut item_ptr = &mut unsafe {
+            self.mValue.mList.as_ref() // &*nsCSSValueList_heap
+                .as_mut().expect("List pointer should be non-null")
+        }._base as *mut structs::nsCSSValueList;
+        while let Some(item) = unsafe { item_ptr.as_mut() } {
+            item.mValue = values.next().expect("Values shouldn't have been exhausted");
+            item_ptr = item.mNext;
+        }
+        debug_assert!(values.next().is_none(), "Values should have been exhausted");
+    }
+
+    /// Set to a pair list value
+    ///
+    /// This is only supported on the main thread.
+    pub fn set_pair_list<I>(&mut self, mut values: I)
+    where I: ExactSizeIterator<Item=(nsCSSValue, nsCSSValue)> {
+        debug_assert!(values.len() > 0, "Empty list is not supported");
+        unsafe { bindings::Gecko_CSSValue_SetPairList(self, values.len() as u32); }
+        debug_assert_eq!(self.mUnit, nsCSSUnit::eCSSUnit_PairList);
+        let mut item_ptr = &mut unsafe {
+            self.mValue.mPairList.as_ref() // &*nsCSSValuePairList_heap
+                .as_mut().expect("List pointer should be non-null")
+        }._base as *mut structs::nsCSSValuePairList;
+        while let Some(item) = unsafe { item_ptr.as_mut() } {
+            let value = values.next().expect("Values shouldn't have been exhausted");
+            item.mXValue = value.0;
+            item.mYValue = value.1;
+            item_ptr = item.mNext;
+        }
+        debug_assert!(values.next().is_none(), "Values should have been exhausted");
     }
 }
 

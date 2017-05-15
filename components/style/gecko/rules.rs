@@ -221,7 +221,7 @@ impl ToNsCssValue for counter_style::Ranges {
         if self.0.is_empty() {
             nscssvalue.set_auto();
         } else {
-            for range in &self.0 {
+            nscssvalue.set_pair_list(self.0.iter().map(|range| {
                 fn set_bound(bound: Option<i32>, nscssvalue: &mut nsCSSValue) {
                     if let Some(finite) = bound {
                         nscssvalue.set_integer(finite)
@@ -233,8 +233,8 @@ impl ToNsCssValue for counter_style::Ranges {
                 let mut end = nsCSSValue::null();
                 set_bound(range.start, &mut start);
                 set_bound(range.end, &mut end);
-                // FIXME: add bindings for nsCSSValuePairList
-            }
+                (start, end)
+            }));
         }
     }
 }
@@ -256,16 +256,24 @@ impl ToNsCssValue for counter_style::Fallback {
 }
 
 impl ToNsCssValue for counter_style::Symbols {
-    fn convert(&self, _nscssvalue: &mut nsCSSValue) {
-        debug_assert!(!self.0.is_empty());
-        // FIXME: add bindings for nsCSSValueList
+    fn convert(&self, nscssvalue: &mut nsCSSValue) {
+        nscssvalue.set_list(self.0.iter().map(|item| {
+            let mut value = nsCSSValue::null();
+            value.set_from(item);
+            value
+        }));
     }
 }
 
 impl ToNsCssValue for counter_style::AdditiveSymbols {
-    fn convert(&self, _nscssvalue: &mut nsCSSValue) {
-        debug_assert!(!self.0.is_empty());
-        // FIXME: add bindings for nsCSSValuePairList
+    fn convert(&self, nscssvalue: &mut nsCSSValue) {
+        nscssvalue.set_pair_list(self.0.iter().map(|tuple| {
+            let mut weight = nsCSSValue::null();
+            let mut symbol = nsCSSValue::null();
+            weight.set_integer(tuple.weight as i32);
+            symbol.set_from(&tuple.symbol);
+            (weight, symbol)
+        }));
     }
 }
 
