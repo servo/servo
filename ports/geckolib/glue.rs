@@ -2411,7 +2411,7 @@ pub extern "C" fn Servo_StyleSet_ResolveForDeclarations(raw_data: RawServoStyleS
 pub extern "C" fn Servo_StyleSet_MightHaveAttributeDependency(raw_data: RawServoStyleSetBorrowed,
                                                               local_name: *mut nsIAtom) -> bool {
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
-    unsafe { Atom::with(local_name, &mut |atom| data.stylist.might_have_attribute_dependency(atom)) }
+    unsafe { Atom::with(local_name, |atom| data.stylist.might_have_attribute_dependency(atom)) }
 }
 
 #[no_mangle]
