@@ -60,10 +60,20 @@ impl PseudoElement {
                  ${" | ".join(map(lambda name: "PseudoElement::{}".format(name), EAGER_PSEUDOS))})
     }
 
-    /// Whether this pseudo-element is precomputed.
-    #[inline]
-    pub fn is_precomputed(&self) -> bool {
-        self.is_anon_box()
+    /// Gets the flags associated to this pseudo-element, or 0 if it's an
+    /// anonymous box.
+    pub fn flags(&self) -> u32 {
+        match *self {
+            % for pseudo in PSEUDOS:
+                PseudoElement::${pseudo.capitalized()} => {
+                    % if pseudo.is_anon_box():
+                        0
+                    % else:
+                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_${pseudo.original_ident}
+                    % endif
+                }
+            % endfor
+        }
     }
 
     /// Construct a pseudo-element from a `CSSPseudoElementType`.
@@ -106,7 +116,7 @@ impl PseudoElement {
         use std::ascii::AsciiExt;
 
         % for pseudo in PSEUDOS:
-            if !${str(pseudo.is_anon_box()).lower()} || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::${pseudo.capitalized()}.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("${pseudo.value[1:]}") {
                     return Some(PseudoElement::${pseudo.capitalized()})
                 }

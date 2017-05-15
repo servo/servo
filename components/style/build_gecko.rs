@@ -348,6 +348,8 @@ mod bindings {
             "BORDER_COLOR_.*",
             "BORDER_STYLE_.*",
             "mozilla::SERVO_PREF_.*",
+            "CSS_PSEUDO_ELEMENT_.*",
+            "SERVO_CSS_PSEUDO_ELEMENT_FLAGS_.*",
             "kNameSpaceID_.*",
             "kGenericFont_.*",
             "kPresContext_.*",

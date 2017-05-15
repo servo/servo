@@ -1642,7 +1642,7 @@ extern "C" {
                                                *mut ServoStyleSheet,
                                            data: *const nsACString,
                                            extra_data:
-                                                *mut RawGeckoURLExtraData,
+                                               *mut RawGeckoURLExtraData,
                                            line_number_offset: u32);
 }
 extern "C" {

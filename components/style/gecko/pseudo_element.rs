@@ -9,7 +9,7 @@
 //! need to update the checked-in files for Servo.
 
 use cssparser::ToCss;
-use gecko_bindings::structs::CSSPseudoElementType;
+use gecko_bindings::structs::{self, CSSPseudoElementType};
 use selector_parser::PseudoElementCascadeType;
 use std::fmt;
 use string_cache::Atom;
@@ -60,6 +60,26 @@ impl PseudoElement {
     #[inline]
     pub fn is_lazy(&self) -> bool {
         !self.is_eager() && !self.is_precomputed()
+    }
+
+    /// Whether this pseudo-element is web-exposed.
+    pub fn exposed_in_non_ua_sheets(&self) -> bool {
+        if self.is_anon_box() {
+            return false;
+        }
+
+        (self.flags() & structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY) == 0
+    }
+
+    /// Whether this pseudo-element supports user action selectors.
+    pub fn supports_user_action_state(&self) -> bool {
+        (self.flags() & structs::CSS_PSEUDO_ELEMENT_SUPPORTS_USER_ACTION_STATE) != 0
+    }
+
+    /// Whether this pseudo-element is precomputed.
+    #[inline]
+    pub fn is_precomputed(&self) -> bool {
+        self.is_anon_box()
     }
 }
 

@@ -461,10 +461,260 @@ impl PseudoElement {
                  PseudoElement::Before | PseudoElement::After)
     }
 
-    /// Whether this pseudo-element is precomputed.
-    #[inline]
-    pub fn is_precomputed(&self) -> bool {
-        self.is_anon_box()
+    /// Gets the flags associated to this pseudo-element, or 0 if it's an
+    /// anonymous box.
+    pub fn flags(&self) -> u32 {
+        match *self {
+                PseudoElement::After => {
+                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_after
+                }
+                PseudoElement::Before => {
+                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_before
+                }
+                PseudoElement::Backdrop => {
+                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_backdrop
+                }
+                PseudoElement::Cue => {
+                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_cue
+                }
+                PseudoElement::FirstLetter => {
+                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_firstLetter
+                }
+                PseudoElement::FirstLine => {
+                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_firstLine
+                }
+                PseudoElement::MozSelection => {
+                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozSelection
+                }
+                PseudoElement::MozFocusInner => {
+                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozFocusInner
+                }
+                PseudoElement::MozFocusOuter => {
+                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozFocusOuter
+                }
+                PseudoElement::MozListBullet => {
+                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozListBullet
+                }
+                PseudoElement::MozListNumber => {
+                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozListNumber
+                }
+                PseudoElement::MozMathAnonymous => {
+                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozMathAnonymous
+                }
+                PseudoElement::MozNumberWrapper => {
+                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozNumberWrapper
+                }
+                PseudoElement::MozNumberText => {
+                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozNumberText
+                }
+                PseudoElement::MozNumberSpinBox => {
+                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozNumberSpinBox
+                }
+                PseudoElement::MozNumberSpinUp => {
+                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozNumberSpinUp
+                }
+                PseudoElement::MozNumberSpinDown => {
+                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozNumberSpinDown
+                }
+                PseudoElement::MozProgressBar => {
+                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozProgressBar
+                }
+                PseudoElement::MozRangeTrack => {
+                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozRangeTrack
+                }
+                PseudoElement::MozRangeProgress => {
+                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozRangeProgress
+                }
+                PseudoElement::MozRangeThumb => {
+                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozRangeThumb
+                }
+                PseudoElement::MozMeterBar => {
+                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozMeterBar
+                }
+                PseudoElement::MozPlaceholder => {
+                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozPlaceholder
+                }
+                PseudoElement::Placeholder => {
+                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_placeholder
+                }
+                PseudoElement::MozColorSwatch => {
+                        structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_mozColorSwatch
+                }
+                PseudoElement::MozText => {
+                        0
+                }
+                PseudoElement::OofPlaceholder => {
+                        0
+                }
+                PseudoElement::FirstLetterContinuation => {
+                        0
+                }
+                PseudoElement::MozBlockInsideInlineWrapper => {
+                        0
+                }
+                PseudoElement::MozMathMLAnonymousBlock => {
+                        0
+                }
+                PseudoElement::MozXULAnonymousBlock => {
+                        0
+                }
+                PseudoElement::HorizontalFramesetBorder => {
+                        0
+                }
+                PseudoElement::VerticalFramesetBorder => {
+                        0
+                }
+                PseudoElement::MozLineFrame => {
+                        0
+                }
+                PseudoElement::ButtonContent => {
+                        0
+                }
+                PseudoElement::CellContent => {
+                        0
+                }
+                PseudoElement::DropDownList => {
+                        0
+                }
+                PseudoElement::FieldsetContent => {
+                        0
+                }
+                PseudoElement::FramesetBlank => {
+                        0
+                }
+                PseudoElement::MozDisplayComboboxControlFrame => {
+                        0
+                }
+                PseudoElement::HtmlCanvasContent => {
+                        0
+                }
+                PseudoElement::InlineTable => {
+                        0
+                }
+                PseudoElement::Table => {
+                        0
+                }
+                PseudoElement::TableCell => {
+                        0
+                }
+                PseudoElement::TableColGroup => {
+                        0
+                }
+                PseudoElement::TableCol => {
+                        0
+                }
+                PseudoElement::TableWrapper => {
+                        0
+                }
+                PseudoElement::TableRowGroup => {
+                        0
+                }
+                PseudoElement::TableRow => {
+                        0
+                }
+                PseudoElement::Canvas => {
+                        0
+                }
+                PseudoElement::PageBreak => {
+                        0
+                }
+                PseudoElement::Page => {
+                        0
+                }
+                PseudoElement::PageContent => {
+                        0
+                }
+                PseudoElement::PageSequence => {
+                        0
+                }
+                PseudoElement::ScrolledContent => {
+                        0
+                }
+                PseudoElement::ScrolledCanvas => {
+                        0
+                }
+                PseudoElement::ScrolledPageSequence => {
+                        0
+                }
+                PseudoElement::ColumnContent => {
+                        0
+                }
+                PseudoElement::Viewport => {
+                        0
+                }
+                PseudoElement::ViewportScroll => {
+                        0
+                }
+                PseudoElement::AnonymousFlexItem => {
+                        0
+                }
+                PseudoElement::AnonymousGridItem => {
+                        0
+                }
+                PseudoElement::Ruby => {
+                        0
+                }
+                PseudoElement::RubyBase => {
+                        0
+                }
+                PseudoElement::RubyBaseContainer => {
+                        0
+                }
+                PseudoElement::RubyText => {
+                        0
+                }
+                PseudoElement::RubyTextContainer => {
+                        0
+                }
+                PseudoElement::Moztreecolumn => {
+                        0
+                }
+                PseudoElement::Moztreerow => {
+                        0
+                }
+                PseudoElement::Moztreeseparator => {
+                        0
+                }
+                PseudoElement::Moztreecell => {
+                        0
+                }
+                PseudoElement::Moztreeindentation => {
+                        0
+                }
+                PseudoElement::Moztreeline => {
+                        0
+                }
+                PseudoElement::Moztreetwisty => {
+                        0
+                }
+                PseudoElement::Moztreeimage => {
+                        0
+                }
+                PseudoElement::Moztreecelltext => {
+                        0
+                }
+                PseudoElement::Moztreecheckbox => {
+                        0
+                }
+                PseudoElement::Moztreeprogressmeter => {
+                        0
+                }
+                PseudoElement::Moztreedropfeedback => {
+                        0
+                }
+                PseudoElement::MozSVGMarkerAnonChild => {
+                        0
+                }
+                PseudoElement::MozSVGOuterSVGAnonChild => {
+                        0
+                }
+                PseudoElement::MozSVGForeignContent => {
+                        0
+                }
+                PseudoElement::MozSVGText => {
+                        0
+                }
+        }
     }
 
     /// Construct a pseudo-element from a `CSSPseudoElementType`.
@@ -741,417 +991,417 @@ impl PseudoElement {
     pub fn from_slice(s: &str, in_ua_stylesheet: bool) -> Option<Self> {
         use std::ascii::AsciiExt;
 
-            if !false || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::After.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("after") {
                     return Some(PseudoElement::After)
                 }
             }
-            if !false || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::Before.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("before") {
                     return Some(PseudoElement::Before)
                 }
             }
-            if !false || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::Backdrop.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("backdrop") {
                     return Some(PseudoElement::Backdrop)
                 }
             }
-            if !false || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::Cue.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("cue") {
                     return Some(PseudoElement::Cue)
                 }
             }
-            if !false || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::FirstLetter.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("first-letter") {
                     return Some(PseudoElement::FirstLetter)
                 }
             }
-            if !false || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::FirstLine.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("first-line") {
                     return Some(PseudoElement::FirstLine)
                 }
             }
-            if !false || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::MozSelection.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-selection") {
                     return Some(PseudoElement::MozSelection)
                 }
             }
-            if !false || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::MozFocusInner.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-focus-inner") {
                     return Some(PseudoElement::MozFocusInner)
                 }
             }
-            if !false || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::MozFocusOuter.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-focus-outer") {
                     return Some(PseudoElement::MozFocusOuter)
                 }
             }
-            if !false || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::MozListBullet.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-list-bullet") {
                     return Some(PseudoElement::MozListBullet)
                 }
             }
-            if !false || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::MozListNumber.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-list-number") {
                     return Some(PseudoElement::MozListNumber)
                 }
             }
-            if !false || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::MozMathAnonymous.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-math-anonymous") {
                     return Some(PseudoElement::MozMathAnonymous)
                 }
             }
-            if !false || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::MozNumberWrapper.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-number-wrapper") {
                     return Some(PseudoElement::MozNumberWrapper)
                 }
             }
-            if !false || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::MozNumberText.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-number-text") {
                     return Some(PseudoElement::MozNumberText)
                 }
             }
-            if !false || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::MozNumberSpinBox.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-number-spin-box") {
                     return Some(PseudoElement::MozNumberSpinBox)
                 }
             }
-            if !false || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::MozNumberSpinUp.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-number-spin-up") {
                     return Some(PseudoElement::MozNumberSpinUp)
                 }
             }
-            if !false || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::MozNumberSpinDown.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-number-spin-down") {
                     return Some(PseudoElement::MozNumberSpinDown)
                 }
             }
-            if !false || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::MozProgressBar.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-progress-bar") {
                     return Some(PseudoElement::MozProgressBar)
                 }
             }
-            if !false || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::MozRangeTrack.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-range-track") {
                     return Some(PseudoElement::MozRangeTrack)
                 }
             }
-            if !false || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::MozRangeProgress.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-range-progress") {
                     return Some(PseudoElement::MozRangeProgress)
                 }
             }
-            if !false || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::MozRangeThumb.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-range-thumb") {
                     return Some(PseudoElement::MozRangeThumb)
                 }
             }
-            if !false || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::MozMeterBar.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-meter-bar") {
                     return Some(PseudoElement::MozMeterBar)
                 }
             }
-            if !false || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::MozPlaceholder.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-placeholder") {
                     return Some(PseudoElement::MozPlaceholder)
                 }
             }
-            if !false || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::Placeholder.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("placeholder") {
                     return Some(PseudoElement::Placeholder)
                 }
             }
-            if !false || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::MozColorSwatch.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-color-swatch") {
                     return Some(PseudoElement::MozColorSwatch)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::MozText.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-text") {
                     return Some(PseudoElement::MozText)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::OofPlaceholder.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-oof-placeholder") {
                     return Some(PseudoElement::OofPlaceholder)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::FirstLetterContinuation.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-first-letter-continuation") {
                     return Some(PseudoElement::FirstLetterContinuation)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::MozBlockInsideInlineWrapper.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-block-inside-inline-wrapper") {
                     return Some(PseudoElement::MozBlockInsideInlineWrapper)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::MozMathMLAnonymousBlock.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-mathml-anonymous-block") {
                     return Some(PseudoElement::MozMathMLAnonymousBlock)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::MozXULAnonymousBlock.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-xul-anonymous-block") {
                     return Some(PseudoElement::MozXULAnonymousBlock)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::HorizontalFramesetBorder.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-hframeset-border") {
                     return Some(PseudoElement::HorizontalFramesetBorder)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::VerticalFramesetBorder.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-vframeset-border") {
                     return Some(PseudoElement::VerticalFramesetBorder)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::MozLineFrame.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-line-frame") {
                     return Some(PseudoElement::MozLineFrame)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::ButtonContent.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-button-content") {
                     return Some(PseudoElement::ButtonContent)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::CellContent.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-cell-content") {
                     return Some(PseudoElement::CellContent)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::DropDownList.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-dropdown-list") {
                     return Some(PseudoElement::DropDownList)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::FieldsetContent.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-fieldset-content") {
                     return Some(PseudoElement::FieldsetContent)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::FramesetBlank.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-frameset-blank") {
                     return Some(PseudoElement::FramesetBlank)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::MozDisplayComboboxControlFrame.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-display-comboboxcontrol-frame") {
                     return Some(PseudoElement::MozDisplayComboboxControlFrame)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::HtmlCanvasContent.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-html-canvas-content") {
                     return Some(PseudoElement::HtmlCanvasContent)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::InlineTable.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-inline-table") {
                     return Some(PseudoElement::InlineTable)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::Table.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-table") {
                     return Some(PseudoElement::Table)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::TableCell.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-table-cell") {
                     return Some(PseudoElement::TableCell)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::TableColGroup.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-table-column-group") {
                     return Some(PseudoElement::TableColGroup)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::TableCol.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-table-column") {
                     return Some(PseudoElement::TableCol)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::TableWrapper.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-table-wrapper") {
                     return Some(PseudoElement::TableWrapper)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::TableRowGroup.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-table-row-group") {
                     return Some(PseudoElement::TableRowGroup)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::TableRow.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-table-row") {
                     return Some(PseudoElement::TableRow)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::Canvas.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-canvas") {
                     return Some(PseudoElement::Canvas)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::PageBreak.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-pagebreak") {
                     return Some(PseudoElement::PageBreak)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::Page.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-page") {
                     return Some(PseudoElement::Page)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::PageContent.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-pagecontent") {
                     return Some(PseudoElement::PageContent)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::PageSequence.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-page-sequence") {
                     return Some(PseudoElement::PageSequence)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::ScrolledContent.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-scrolled-content") {
                     return Some(PseudoElement::ScrolledContent)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::ScrolledCanvas.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-scrolled-canvas") {
                     return Some(PseudoElement::ScrolledCanvas)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::ScrolledPageSequence.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-scrolled-page-sequence") {
                     return Some(PseudoElement::ScrolledPageSequence)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::ColumnContent.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-column-content") {
                     return Some(PseudoElement::ColumnContent)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::Viewport.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-viewport") {
                     return Some(PseudoElement::Viewport)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::ViewportScroll.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-viewport-scroll") {
                     return Some(PseudoElement::ViewportScroll)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::AnonymousFlexItem.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-anonymous-flex-item") {
                     return Some(PseudoElement::AnonymousFlexItem)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::AnonymousGridItem.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-anonymous-grid-item") {
                     return Some(PseudoElement::AnonymousGridItem)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::Ruby.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-ruby") {
                     return Some(PseudoElement::Ruby)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::RubyBase.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-ruby-base") {
                     return Some(PseudoElement::RubyBase)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::RubyBaseContainer.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-ruby-base-container") {
                     return Some(PseudoElement::RubyBaseContainer)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::RubyText.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-ruby-text") {
                     return Some(PseudoElement::RubyText)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::RubyTextContainer.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-ruby-text-container") {
                     return Some(PseudoElement::RubyTextContainer)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::Moztreecolumn.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-tree-column") {
                     return Some(PseudoElement::Moztreecolumn)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::Moztreerow.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-tree-row") {
                     return Some(PseudoElement::Moztreerow)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::Moztreeseparator.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-tree-separator") {
                     return Some(PseudoElement::Moztreeseparator)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::Moztreecell.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-tree-cell") {
                     return Some(PseudoElement::Moztreecell)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::Moztreeindentation.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-tree-indentation") {
                     return Some(PseudoElement::Moztreeindentation)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::Moztreeline.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-tree-line") {
                     return Some(PseudoElement::Moztreeline)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::Moztreetwisty.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-tree-twisty") {
                     return Some(PseudoElement::Moztreetwisty)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::Moztreeimage.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-tree-image") {
                     return Some(PseudoElement::Moztreeimage)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::Moztreecelltext.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-tree-cell-text") {
                     return Some(PseudoElement::Moztreecelltext)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::Moztreecheckbox.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-tree-checkbox") {
                     return Some(PseudoElement::Moztreecheckbox)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::Moztreeprogressmeter.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-tree-progressmeter") {
                     return Some(PseudoElement::Moztreeprogressmeter)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::Moztreedropfeedback.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-tree-drop-feedback") {
                     return Some(PseudoElement::Moztreedropfeedback)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::MozSVGMarkerAnonChild.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-svg-marker-anon-child") {
                     return Some(PseudoElement::MozSVGMarkerAnonChild)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::MozSVGOuterSVGAnonChild.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-svg-outer-svg-anon-child") {
                     return Some(PseudoElement::MozSVGOuterSVGAnonChild)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::MozSVGForeignContent.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-svg-foreign-content") {
                     return Some(PseudoElement::MozSVGForeignContent)
                 }
             }
-            if !true || in_ua_stylesheet {
+            if in_ua_stylesheet || PseudoElement::MozSVGText.exposed_in_non_ua_sheets() {
                 if s.eq_ignore_ascii_case("-moz-svg-text") {
                     return Some(PseudoElement::MozSVGText)
                 }
