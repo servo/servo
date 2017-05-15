@@ -21,14 +21,14 @@ use std::fmt;
 pub type FontFaceRule = RefPtr<nsCSSFontFaceRule>;
 
 impl ToNsCssValue for FamilyName {
-    fn convert(&self, nscssvalue: &mut nsCSSValue) {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
         nscssvalue.set_string_from_atom(&self.name)
     }
 }
 
 impl ToNsCssValue for font_weight::T {
-    fn convert(&self, nscssvalue: &mut nsCSSValue) {
-        nscssvalue.set_integer(*self as i32)
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
+        nscssvalue.set_integer(self as i32)
     }
 }
 
@@ -42,8 +42,8 @@ macro_rules! map_enum {
     ) => {
         $(
             impl ToNsCssValue for $prop::T {
-                fn convert(&self, nscssvalue: &mut nsCSSValue) {
-                    nscssvalue.set_enum(match *self {
+                fn convert(self, nscssvalue: &mut nsCSSValue) {
+                    nscssvalue.set_enum(match self {
                         $( $prop::T::$servo => structs::$gecko as i32, )+
                     })
                 }
@@ -73,7 +73,7 @@ map_enum! {
 }
 
 impl ToNsCssValue for Vec<Source> {
-    fn convert(&self, nscssvalue: &mut nsCSSValue) {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
         let src_len = self.iter().fold(0, |acc, src| {
             acc + match *src {
                 // Each format hint takes one position in the array of mSrc.
@@ -86,15 +86,15 @@ impl ToNsCssValue for Vec<Source> {
         macro_rules! next { () => {
             target_srcs.next().expect("Length of target_srcs should be enough")
         } }
-        for src in self.iter() {
-            match *src {
-                Source::Url(ref url) => {
+        for src in self.into_iter() {
+            match src {
+                Source::Url(url) => {
                     next!().set_url(&url.url);
                     for hint in url.format_hints.iter() {
                         next!().set_font_format(&hint);
                     }
                 }
-                Source::Local(ref family) => {
+                Source::Local(family) => {
                     next!().set_local_font(&family.name);
                 }
             }
@@ -104,7 +104,7 @@ impl ToNsCssValue for Vec<Source> {
 }
 
 impl ToNsCssValue for Vec<UnicodeRange> {
-    fn convert(&self, nscssvalue: &mut nsCSSValue) {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
         let target_ranges = nscssvalue
             .set_array((self.len() * 2) as i32)
             .as_mut_slice().chunks_mut(2);
@@ -167,9 +167,9 @@ impl ToCssWithGuard for CounterStyleRule {
 pub type CounterStyleDescriptors = [nsCSSValue; nsCSSCounterDesc::eCSSCounterDesc_COUNT as usize];
 
 impl ToNsCssValue for counter_style::System {
-    fn convert(&self, nscssvalue: &mut nsCSSValue) {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
         use counter_style::System::*;
-        match *self {
+        match self {
             Cyclic => nscssvalue.set_enum(structs::NS_STYLE_COUNTER_SYSTEM_CYCLIC as i32),
             Numeric => nscssvalue.set_enum(structs::NS_STYLE_COUNTER_SYSTEM_NUMERIC as i32),
             Alphabetic => nscssvalue.set_enum(structs::NS_STYLE_COUNTER_SYSTEM_ALPHABETIC as i32),
@@ -182,7 +182,7 @@ impl ToNsCssValue for counter_style::System {
                 b.set_integer(first_symbol_value.unwrap_or(1));
                 nscssvalue.set_pair(&a, &b);
             }
-            Extends(ref other) => {
+            Extends(other) => {
                 let mut a = nsCSSValue::null();
                 let mut b = nsCSSValue::null();
                 a.set_enum(structs::NS_STYLE_COUNTER_SYSTEM_EXTENDS as i32);
@@ -194,34 +194,34 @@ impl ToNsCssValue for counter_style::System {
 }
 
 impl ToNsCssValue for counter_style::Negative {
-    fn convert(&self, nscssvalue: &mut nsCSSValue) {
-        if let Some(ref second) = self.1 {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
+        if let Some(second) = self.1 {
             let mut a = nsCSSValue::null();
             let mut b = nsCSSValue::null();
-            a.set_from(&self.0);
+            a.set_from(self.0);
             b.set_from(second);
             nscssvalue.set_pair(&a, &b);
         } else {
-            nscssvalue.set_from(&self.0)
+            nscssvalue.set_from(self.0)
         }
     }
 }
 
 impl ToNsCssValue for counter_style::Symbol {
-    fn convert(&self, nscssvalue: &mut nsCSSValue) {
-        match *self {
-            counter_style::Symbol::String(ref s) => nscssvalue.set_string(s),
-            counter_style::Symbol::Ident(ref s) => nscssvalue.set_ident(s),
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
+        match self {
+            counter_style::Symbol::String(s) => nscssvalue.set_string(&s),
+            counter_style::Symbol::Ident(s) => nscssvalue.set_ident(&s),
         }
     }
 }
 
 impl ToNsCssValue for counter_style::Ranges {
-    fn convert(&self, nscssvalue: &mut nsCSSValue) {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
         if self.0.is_empty() {
             nscssvalue.set_auto();
         } else {
-            nscssvalue.set_pair_list(self.0.iter().map(|range| {
+            nscssvalue.set_pair_list(self.0.into_iter().map(|range| {
                 fn set_bound(bound: Option<i32>, nscssvalue: &mut nsCSSValue) {
                     if let Some(finite) = bound {
                         nscssvalue.set_integer(finite)
@@ -240,24 +240,24 @@ impl ToNsCssValue for counter_style::Ranges {
 }
 
 impl ToNsCssValue for counter_style::Pad {
-    fn convert(&self, nscssvalue: &mut nsCSSValue) {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
         let mut min_length = nsCSSValue::null();
         let mut pad_with = nsCSSValue::null();
         min_length.set_integer(self.0 as i32);
-        pad_with.set_from(&self.1);
+        pad_with.set_from(self.1);
         nscssvalue.set_pair(&min_length, &pad_with);
     }
 }
 
 impl ToNsCssValue for counter_style::Fallback {
-    fn convert(&self, nscssvalue: &mut nsCSSValue) {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
         nscssvalue.set_ident_from_atom(&self.0 .0)
     }
 }
 
 impl ToNsCssValue for counter_style::Symbols {
-    fn convert(&self, nscssvalue: &mut nsCSSValue) {
-        nscssvalue.set_list(self.0.iter().map(|item| {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
+        nscssvalue.set_list(self.0.into_iter().map(|item| {
             let mut value = nsCSSValue::null();
             value.set_from(item);
             value
@@ -266,26 +266,26 @@ impl ToNsCssValue for counter_style::Symbols {
 }
 
 impl ToNsCssValue for counter_style::AdditiveSymbols {
-    fn convert(&self, nscssvalue: &mut nsCSSValue) {
-        nscssvalue.set_pair_list(self.0.iter().map(|tuple| {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
+        nscssvalue.set_pair_list(self.0.into_iter().map(|tuple| {
             let mut weight = nsCSSValue::null();
             let mut symbol = nsCSSValue::null();
             weight.set_integer(tuple.weight as i32);
-            symbol.set_from(&tuple.symbol);
+            symbol.set_from(tuple.symbol);
             (weight, symbol)
         }));
     }
 }
 
 impl ToNsCssValue for counter_style::SpeakAs {
-    fn convert(&self, nscssvalue: &mut nsCSSValue) {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
         use counter_style::SpeakAs::*;
-        match *self {
+        match self {
             Auto => nscssvalue.set_auto(),
             Bullets => nscssvalue.set_enum(structs::NS_STYLE_COUNTER_SPEAKAS_BULLETS as i32),
             Numbers => nscssvalue.set_enum(structs::NS_STYLE_COUNTER_SPEAKAS_NUMBERS as i32),
             Words => nscssvalue.set_enum(structs::NS_STYLE_COUNTER_SPEAKAS_WORDS as i32),
-            Other(ref other) => nscssvalue.set_ident_from_atom(&other.0),
+            Other(other) => nscssvalue.set_ident_from_atom(&other.0),
         }
     }
 }

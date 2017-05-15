@@ -208,9 +208,9 @@ macro_rules! font_face_descriptors_common {
 
             /// Convert to Gecko types
             #[cfg(feature = "gecko")]
-            pub fn set_descriptors(&self, descriptors: &mut CSSFontFaceDescriptors) {
+            pub fn set_descriptors(self, descriptors: &mut CSSFontFaceDescriptors) {
                 $(
-                    if let Some(ref value) = self.$ident {
+                    if let Some(value) = self.$ident {
                         descriptors.$gecko_ident.set_from(value)
                     }
                 )*

@@ -191,7 +191,7 @@ impl nsCSSValue {
     }
 
     /// Generic set from any value that implements the ToNsCssValue trait.
-    pub fn set_from<T: ToNsCssValue>(&mut self, value: &T) {
+    pub fn set_from<T: ToNsCssValue>(&mut self, value: T) {
         value.convert(self)
     }
 
@@ -311,5 +311,5 @@ impl IndexMut<usize> for nsCSSValue_Array {
 /// Generic conversion to nsCSSValue
 pub trait ToNsCssValue {
     /// Convert
-    fn convert(&self, nscssvalue: &mut nsCSSValue);
+    fn convert(self, nscssvalue: &mut nsCSSValue);
 }

@@ -172,9 +172,9 @@ macro_rules! counter_style_descriptors {
 
             /// Convert to Gecko types
             #[cfg(feature = "gecko")]
-            pub fn set_descriptors(&self, descriptors: &mut CounterStyleDescriptors) {
+            pub fn set_descriptors(self, descriptors: &mut CounterStyleDescriptors) {
                 $(
-                    if let Some(ref value) = self.$ident {
+                    if let Some(value) = self.$ident {
                         descriptors[nsCSSCounterDesc::$gecko_ident as usize].set_from(value)
                     }
                 )*
