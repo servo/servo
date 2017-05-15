@@ -1218,7 +1218,8 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                 true
             }
             NonTSPseudoClass::MozTableBorderNonzero |
-            NonTSPseudoClass::MozBrowserFrame => unsafe {
+            NonTSPseudoClass::MozBrowserFrame |
+            NonTSPseudoClass::MozNativeAnonymous => unsafe {
                 Gecko_MatchesElement(pseudo_class.to_gecko_pseudoclasstype().unwrap(), self.0)
             },
             NonTSPseudoClass::MozAny(ref sels) => {

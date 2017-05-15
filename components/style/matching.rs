@@ -176,7 +176,7 @@ fn element_matches_candidate<E: TElement>(element: &E,
         miss!(State)
     }
 
-    if element.get_id().is_some() {
+    if element.get_id() != candidate_element.get_id() {
         miss!(IdAttr)
     }
 
