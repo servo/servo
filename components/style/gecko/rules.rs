@@ -186,7 +186,7 @@ impl ToNsCssValue for counter_style::System {
                 let mut a = nsCSSValue::null();
                 let mut b = nsCSSValue::null();
                 a.set_enum(structs::NS_STYLE_COUNTER_SYSTEM_EXTENDS as i32);
-                b.set_string_from_atom(&other.0);
+                b.set_atom_ident(other.0);
                 nscssvalue.set_pair(&a, &b);
             }
         }
@@ -251,7 +251,7 @@ impl ToNsCssValue for counter_style::Pad {
 
 impl ToNsCssValue for counter_style::Fallback {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
-        nscssvalue.set_ident_from_atom(&self.0 .0)
+        nscssvalue.set_atom_ident(self.0 .0)
     }
 }
 
@@ -285,7 +285,7 @@ impl ToNsCssValue for counter_style::SpeakAs {
             Bullets => nscssvalue.set_enum(structs::NS_STYLE_COUNTER_SPEAKAS_BULLETS as i32),
             Numbers => nscssvalue.set_enum(structs::NS_STYLE_COUNTER_SPEAKAS_NUMBERS as i32),
             Words => nscssvalue.set_enum(structs::NS_STYLE_COUNTER_SPEAKAS_WORDS as i32),
-            Other(other) => nscssvalue.set_ident_from_atom(&other.0),
+            Other(other) => nscssvalue.set_atom_ident(other.0),
         }
     }
 }
