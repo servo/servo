@@ -10,7 +10,8 @@ use counter_style;
 use cssparser::UnicodeRange;
 use font_face::{FontFaceRuleData, Source};
 use gecko_bindings::bindings;
-use gecko_bindings::structs::{self, nsCSSFontFaceRule, nsCSSValue, nsCSSCounterDesc};
+use gecko_bindings::structs::{self, nsCSSFontFaceRule, nsCSSValue};
+use gecko_bindings::structs::{nsCSSCounterDesc, nsCSSCounterStyleRule};
 use gecko_bindings::sugar::ns_css_value::ToNsCssValue;
 use gecko_bindings::sugar::refptr::{RefPtr, UniqueRefPtr};
 use shared_lock::{ToCssWithGuard, SharedRwLockReadGuard};
@@ -132,6 +133,31 @@ impl ToCssWithGuard for FontFaceRule {
         ns_auto_string!(css_text);
         unsafe {
             bindings::Gecko_CSSFontFaceRule_GetCssText(self.get(), &mut *css_text);
+        }
+        write!(dest, "{}", css_text)
+    }
+}
+
+/// A @counter-style rule
+pub type CounterStyleRule = RefPtr<nsCSSCounterStyleRule>;
+
+impl From<counter_style::CounterStyleRuleData> for CounterStyleRule {
+    fn from(data: counter_style::CounterStyleRuleData) -> CounterStyleRule {
+        let mut result = unsafe {
+            UniqueRefPtr::from_addrefed(
+                bindings::Gecko_CSSCounterStyle_Create(data.name().0.as_ptr()))
+        };
+        data.set_descriptors(&mut result.mValues);
+        result.get()
+    }
+}
+
+impl ToCssWithGuard for CounterStyleRule {
+    fn to_css<W>(&self, _guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
+    where W: fmt::Write {
+        ns_auto_string!(css_text);
+        unsafe {
+            bindings::Gecko_CSSCounterStyle_GetCssText(self.get(), &mut *css_text);
         }
         write!(dest, "{}", css_text)
     }

@@ -8,7 +8,9 @@
 
 use {Atom, Prefix, Namespace};
 use context::QuirksMode;
-use counter_style::{CounterStyleRule, parse_counter_style_name, parse_counter_style_body};
+use counter_style::{parse_counter_style_name, parse_counter_style_body};
+#[cfg(feature = "servo")]
+use counter_style::CounterStyleRuleData;
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser};
 use cssparser::{AtRuleType, RuleListParser, parse_one_rule, SourceLocation};
 use cssparser::ToCss as ParserToCss;
@@ -18,7 +20,7 @@ use error_reporting::{ParseErrorReporter, NullReporter};
 use font_face::FontFaceRuleData;
 use font_face::parse_font_face_block;
 #[cfg(feature = "gecko")]
-pub use gecko::rules::FontFaceRule;
+pub use gecko::rules::{CounterStyleRule, FontFaceRule};
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs::URLExtraData;
 #[cfg(feature = "gecko")]
@@ -697,6 +699,10 @@ impl ToCssWithGuard for StyleRule {
 #[cfg(feature = "servo")]
 pub type FontFaceRule = FontFaceRuleData;
 
+/// A @counter-style rule
+#[cfg(feature = "servo")]
+pub type CounterStyleRule = CounterStyleRuleData;
+
 #[derive(Debug)]
 /// A @-moz-document rule
 pub struct DocumentRule {
@@ -1282,7 +1288,7 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
             AtRulePrelude::CounterStyle(name) => {
                 let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::CounterStyle));
                 Ok(CssRule::CounterStyle(Arc::new(self.shared_lock.wrap(
-                   parse_counter_style_body(name, &context, input)?))))
+                   parse_counter_style_body(name, &context, input)?.into()))))
             }
             AtRulePrelude::Media(media_queries, location) => {
                 Ok(CssRule::Media(Arc::new(self.shared_lock.wrap(MediaRule {

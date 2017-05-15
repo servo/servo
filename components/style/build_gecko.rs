@@ -319,6 +319,7 @@ mod bindings {
             .include(add_include("mozilla/dom/NameSpaceConstants.h"))
             .include(add_include("mozilla/LookAndFeel.h"))
             .include(add_include("mozilla/ServoBindings.h"))
+            .include(add_include("nsCSSCounterStyleRule.h"))
             .include(add_include("nsCSSFontFaceRule.h"))
             .include(add_include("nsMediaFeatures.h"))
             .include(add_include("nsMediaList.h"))
@@ -402,6 +403,7 @@ mod bindings {
             "nsBorderColors",
             "nscolor",
             "nsChangeHint",
+            "nsCSSCounterStyleRule",
             "nsCSSFontFaceRule",
             "nsCSSKeyword",
             "nsCSSPropertyID",
@@ -691,6 +693,7 @@ mod bindings {
             "StyleBasicShapeType",
             "StyleShapeSource",
             "StyleTransition",
+            "nsCSSCounterStyleRule",
             "nsCSSFontFaceRule",
             "nsCSSKeyword",
             "nsCSSPropertyID",

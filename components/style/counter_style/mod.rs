@@ -49,9 +49,9 @@ pub fn parse_counter_style_name(input: &mut Parser) -> Result<CustomIdent, ()> {
 
 /// Parse the body (inside `{}`) of an @counter-style rule
 pub fn parse_counter_style_body(name: CustomIdent, context: &ParserContext, input: &mut Parser)
-                            -> Result<CounterStyleRule, ()> {
+                            -> Result<CounterStyleRuleData, ()> {
     let start = input.position();
-    let mut rule = CounterStyleRule::empty(name);
+    let mut rule = CounterStyleRuleData::empty(name);
     {
         let parser = CounterStyleRuleParser {
             context: context,
@@ -108,7 +108,7 @@ pub fn parse_counter_style_body(name: CustomIdent, context: &ParserContext, inpu
 
 struct CounterStyleRuleParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>,
-    rule: &'a mut CounterStyleRule,
+    rule: &'a mut CounterStyleRuleData,
 }
 
 /// Default methods reject all at rules.
@@ -143,7 +143,7 @@ macro_rules! counter_style_descriptors {
     ) => {
         /// An @counter-style rule
         #[derive(Debug)]
-        pub struct CounterStyleRule {
+        pub struct CounterStyleRuleData {
             name: CustomIdent,
             $(
                 #[$doc]
@@ -151,14 +151,19 @@ macro_rules! counter_style_descriptors {
             )+
         }
 
-        impl CounterStyleRule {
+        impl CounterStyleRuleData {
             fn empty(name: CustomIdent) -> Self {
-                CounterStyleRule {
+                CounterStyleRuleData {
                     name: name,
                     $(
                         $ident: None,
                     )+
                 }
+            }
+
+            /// Get the name of the counter style rule.
+            pub fn name(&self) -> &CustomIdent {
+                &self.name
             }
 
             $(
@@ -197,7 +202,7 @@ macro_rules! counter_style_descriptors {
             }
         }
 
-        impl ToCssWithGuard for CounterStyleRule {
+        impl ToCssWithGuard for CounterStyleRuleData {
             fn to_css<W>(&self, _guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
             where W: fmt::Write {
                 dest.write_str("@counter-style ")?;
