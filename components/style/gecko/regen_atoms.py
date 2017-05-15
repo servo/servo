@@ -10,6 +10,10 @@ import sys
 
 from io import BytesIO
 
+GECKO_DIR = os.path.dirname(__file__.replace('\\', '/'))
+sys.path.insert(0, os.path.join(os.path.dirname(GECKO_DIR), "properties"))
+
+import build
 
 PRELUDE = """
 /* This Source Code Form is subject to the terms of the Mozilla Public
@@ -74,7 +78,7 @@ def map_atom(ident):
 class Atom:
     def __init__(self, source, ident, value):
         self.ident = "{}_{}".format(source.CLASS, ident)
-        self._original_ident = ident
+        self.original_ident = ident
         self.value = value
         self.source = source
 
@@ -82,16 +86,22 @@ class Atom:
         return self.source.CLASS
 
     def gnu_symbol(self):
-        return gnu_symbolify(self.source, self._original_ident)
+        return gnu_symbolify(self.source, self.original_ident)
 
     def msvc32_symbol(self):
-        return msvc32_symbolify(self.source, self._original_ident)
+        return msvc32_symbolify(self.source, self.original_ident)
 
     def msvc64_symbol(self):
-        return msvc64_symbolify(self.source, self._original_ident)
+        return msvc64_symbolify(self.source, self.original_ident)
 
     def type(self):
         return self.source.TYPE
+
+    def capitalized(self):
+        return self.original_ident[0].upper() + self.original_ident[1:]
+
+    def is_anon_box(self):
+        return self.type() == "nsICSSAnonBoxPseudo"
 
 
 def collect_atoms(objdir):
@@ -211,56 +221,24 @@ def write_atom_macro(atoms, file_name):
         f.write(MACRO.format('\n'.join(macro_rules)))
 
 
-PSEUDO_ELEMENT_HEADER = """
-/*
- * This file contains a helper macro invocation to aid Gecko's style system
- * pseudo-element integration.
- *
- * This file is NOT INTENDED to be compiled as a standalone module.
- *
- * Also, it guarantees the property that normal pseudo-elements are processed
- * before anonymous boxes.
- *
- * Expected usage is as follows:
- *
- * ```
- * fn have_to_use_pseudo_elements() {
- *     macro_rules! pseudo_element {
- *         ($pseudo_str_with_colon:expr, $pseudo_atom:expr, $is_anon_box:true) => {{
- *             // Stuff stuff stuff.
- *         }}
- *     }
- *     include!("path/to/helper.rs")
- * }
- * ```
- *
- */
-"""
+def write_pseudo_elements(atoms, target_filename):
+    pseudos = []
+    for atom in atoms:
+        if atom.type() == "nsICSSPseudoElement" or atom.type() == "nsICSSAnonBoxPseudo":
+            pseudos.append(atom)
 
-PSEUDO_ELEMENT_MACRO_INVOCATION = """
-    pseudo_element!(\"{}\",
-                    atom!(\"{}\"),
-                    {});
-"""[1:]
+    pseudo_definition_template = os.path.join(GECKO_DIR, "pseudo_element_definition.mako.rs")
+    print("cargo:rerun-if-changed={}".format(pseudo_definition_template))
+    contents = build.render(pseudo_definition_template, PSEUDOS=pseudos)
 
-
-def write_pseudo_element_helper(atoms, target_filename):
     with FileAvoidWrite(target_filename) as f:
-        f.write(PRELUDE)
-        f.write(PSEUDO_ELEMENT_HEADER)
-        f.write("{\n")
-        for atom in atoms:
-            if atom.type() == "nsICSSPseudoElement":
-                f.write(PSEUDO_ELEMENT_MACRO_INVOCATION.format(atom.value, atom.value, "false"))
-            elif atom.type() == "nsICSSAnonBoxPseudo":
-                f.write(PSEUDO_ELEMENT_MACRO_INVOCATION.format(atom.value, atom.value, "true"))
-        f.write("}\n")
+        f.write(contents)
 
 
 def generate_atoms(dist, out):
     atoms = collect_atoms(dist)
     write_atom_macro(atoms, os.path.join(out, "atom_macro.rs"))
-    write_pseudo_element_helper(atoms, os.path.join(out, "pseudo_element_helper.rs"))
+    write_pseudo_elements(atoms, os.path.join(out, "pseudo_element_definition.rs"))
 
 
 if __name__ == "__main__":

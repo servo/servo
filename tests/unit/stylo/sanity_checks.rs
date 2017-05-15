@@ -26,28 +26,3 @@ macro_rules! check_enum_value_non_static {
         assert_eq!($a.0 as usize, $b as usize);
     }
 }
-
-// Note that we can't call each_pseudo_element, parse_pseudo_element, or
-// similar, because we'd need the foreign atom symbols to link.
-#[test]
-fn assert_basic_pseudo_elements() {
-    let saw_before;
-    let saw_after;
-
-    macro_rules! pseudo_element {
-        (":before", $atom:expr, false) => {
-            saw_before = true;
-        };
-        (":after", $atom:expr, false) => {
-            saw_after = true;
-        };
-        ($pseudo_str_with_colon:expr, $atom:expr, $is_anon_box:expr) => {
-            // Do nothing
-        };
-    }
-
-    include!("../../../components/style/gecko/generated/pseudo_element_helper.rs");
-
-    assert!(saw_before);
-    assert!(saw_after);
-}

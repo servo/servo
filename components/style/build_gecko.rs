@@ -672,6 +672,7 @@ mod bindings {
             "RawGeckoURLExtraData",
             "RefPtr",
             "CSSPseudoClassType",
+            "CSSPseudoElementType",
             "TraversalRestyleBehavior",
             "TraversalRootBehavior",
             "ComputedTimingFunction_BeforeFlag",
@@ -842,7 +843,7 @@ mod bindings {
     }
 
     fn generate_atoms() {
-        let script = Path::new(file!()).parent().unwrap().join("binding_tools").join("regen_atoms.py");
+        let script = Path::new(file!()).parent().unwrap().join("gecko").join("regen_atoms.py");
         println!("cargo:rerun-if-changed={}", script.display());
         let status = Command::new(&*PYTHON)
             .arg(&script)
