@@ -5,7 +5,7 @@
 //! These types need to have the same size and alignment as the respectively corresponding
 //! types in components/style/gecko/selector_parser.rs
 
-#[derive(Eq, PartialEq, Clone, Debug, Hash)]
+#[derive(Eq, PartialEq, Clone, Debug)]
 #[allow(dead_code)]
 pub enum PseudoClass {
     Bare,
@@ -13,7 +13,7 @@ pub enum PseudoClass {
     MozAny(Box<[()]>),
 }
 
-#[derive(Eq, PartialEq, Clone, Debug, Hash)]
+#[derive(Eq, PartialEq, Clone, Debug)]
 pub enum PseudoElement {
     A,
     B,
@@ -22,8 +22,8 @@ pub enum PseudoElement {
 #[derive(Eq, PartialEq, Clone, Debug)]
 pub struct PseudoElementSelector(PseudoElement, u64);
 
-#[derive(Eq, PartialEq, Clone, Debug, Hash, Default)]
+#[derive(Eq, PartialEq, Clone, Debug, Default)]
 pub struct Atom(usize);
 
-#[derive(Eq, PartialEq, Clone, Hash)]
+#[derive(Eq, PartialEq, Clone)]
 pub struct Impl;
