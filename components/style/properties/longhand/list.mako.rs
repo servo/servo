@@ -37,9 +37,55 @@ ${helpers.single_keyword("list-style-type", """
     animation_value_type="none",
     spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type")}
 
-${helpers.predefined_type("list-style-image", "UrlOrNone", "Either::Second(None_)",
-                          initial_specified_value="Either::Second(None_)", animation_value_type="none",
-                          spec="https://drafts.csswg.org/css-lists/#propdef-list-style-image")}
+<%helpers:longhand name="list-style-image" animation_value_type="none"
+                   boxed="${product == 'gecko'}"
+                   spec="https://drafts.csswg.org/css-lists/#propdef-list-style-image">
+    use std::fmt;
+    use values::HasViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+    use values::specified::UrlOrNone;
+    pub use self::computed_value::T as SpecifiedValue;
+    use style_traits::ToCss;
+
+    pub mod computed_value {
+        use values::specified::UrlOrNone;
+
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub struct T(pub UrlOrNone);
+    }
+
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self.0.to_css(dest)
+        }
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T(Either::Second(None_))
+    }
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue(Either::Second(None_))
+    }
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+        % if product == "gecko":
+        let mut value = input.try(|input| UrlOrNone::parse(context, input))?;
+        if let Either::First(ref mut url) = value {
+            url.build_image_value();
+        }
+        % else :
+        let value = input.try(|input| UrlOrNone::parse(context, input))?;
+        % endif
+
+        return Ok(SpecifiedValue(value));
+    }
+</%helpers:longhand>
 
 <%helpers:longhand name="quotes" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-content/#propdef-quotes">
