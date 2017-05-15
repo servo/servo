@@ -153,14 +153,16 @@ mod bindings {
             }
             if cfg!(target_os = "linux") {
                 builder = builder.clang_arg("-DOS_LINUX=1");
-                // We may be cross-compiling with a clang that defaults to
-                // a different architecture, so we should explicitly specify
-                // the bitness being used here. Specifying --target instead
-                // leads to difficulties with LLVM search paths.
-                if cfg!(target_arch = "x86") {
-                    builder = builder.clang_arg("-m32")
-                } else if cfg!(target_arch = "x86_64") {
-                    builder = builder.clang_arg("-m64")
+                // cfg!(target_arch) will tell us the architecture that this .rs
+                // file is being compiled for.  We want the architecture that
+                // the clang we're going to invoking is compiling for, which
+                // isn't necessarily the same thing.  Cargo provides the
+                // (undocumented) CARGO_CFG_TARGET_ARCH for this purpose
+                let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap();
+                if target_arch == "x86" {
+                    builder = builder.clang_arg("-m32");
+                } else if target_arch == "x86_64" {
+                    builder = builder.clang_arg("-m64");
                 }
             } else if cfg!(target_os = "solaris") {
                 builder = builder.clang_arg("-DOS_SOLARIS=1");
