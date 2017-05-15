@@ -10,6 +10,9 @@ use dom::bindings::js::{LayoutJS, MutNullableJS, Root, RootedReference};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::element::{AttributeMutation, Element};
+use dom::mutationobserver::Mutation;
+use dom::mutationobserver::MutationObserver;
+use dom::node::Node;
 use dom::virtualmethods::vtable_for;
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -170,6 +173,14 @@ impl AttrMethods for Attr {
 
 impl Attr {
     pub fn set_value(&self, mut value: AttrValue, owner: &Element) {
+        let name = Atom::from(self.local_name().to_string());
+        let namespace = Namespace::from(self.namespace().to_string());
+        let oldValue = DOMString::from(self.value().to_string());
+        let newValue = DOMString::from(value.to_string());
+        let attributeSpec = Mutation::Attribute { name, namespace, oldValue, newValue };
+
+        MutationObserver::queue_a_mutation_record(owner.upcast::<Node>(), attributeSpec);
+
         assert!(Some(owner) == self.owner().r());
         owner.will_mutate_attr(self);
         self.swap_value(&mut value);

@@ -7,6 +7,7 @@
 use app_units::Au;
 use devtools_traits::NodeInfo;
 use document_loader::DocumentLoader;
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -46,6 +47,7 @@ use dom::htmllinkelement::HTMLLinkElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlstyleelement::HTMLStyleElement;
 use dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
+use dom::mutationobserver::MutationObserver;
 use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::range::WeakRangeVec;
@@ -137,6 +139,9 @@ pub struct Node {
     /// Must be sent back to the layout thread to be destroyed when this
     /// node is finalized.
     style_and_layout_data: Cell<Option<OpaqueStyleAndLayoutData>>,
+
+    /// Registered observers for this node.
+    mutation_observers: DOMRefCell<Vec<Root<MutationObserver>>>,
 
     unique_id: UniqueId,
 }
@@ -361,6 +366,16 @@ impl Node {
         for kid in self.children() {
             kid.teardown();
         }
+    }
+
+    /// method on Node that returns Vec<Root<MutationObserver>>
+    pub fn registered_mutation_observers(&self) -> &DOMRefCell<Vec<Root<MutationObserver>>> {
+         return &self.mutation_observers;
+    }
+
+    /// add a registered observer
+    pub fn add_registered_mutation_observer(&self, observer: &MutationObserver) {
+        self.mutation_observers.borrow_mut().push(Root::from_ref(observer));
     }
 
     /// Dumps the subtree rooted at this node, for debugging.
@@ -1412,6 +1427,8 @@ impl Node {
             ranges: WeakRangeVec::new(),
 
             style_and_layout_data: Cell::new(None),
+
+            mutation_observers: Default::default(),
 
             unique_id: UniqueId::new(),
         }
