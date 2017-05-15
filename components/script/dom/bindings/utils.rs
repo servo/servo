@@ -77,6 +77,9 @@ enum WrapperType {
     Opaque,
 }
 
+/* this is duplicate code. there's some in C in jsglue.cpp.
+ * TODO decide what to do about this
+ */
 #[derive(Debug, PartialEq)]
 enum CrossOriginObjectType {
     CrossOriginWindow,
