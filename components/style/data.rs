@@ -384,6 +384,13 @@ impl ElementData {
             None => RestyleHint::empty(),
         };
 
+        debug!("compute_final_hint: {:?}, has_snapshot: {}, handled_snapshot: {}, \
+                pseudo: {:?}",
+                element,
+                element.has_snapshot(),
+                element.handled_snapshot(),
+                element.implemented_pseudo_element());
+
         if element.has_snapshot() && !element.handled_snapshot() {
             hint |= context.stylist.compute_restyle_hint(&element, context.snapshot_map);
             unsafe { element.set_handled_snapshot() }

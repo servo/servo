@@ -787,10 +787,11 @@ fn preprocess_children<E, D>(traversal: &D,
         let later_siblings =
             child_data.compute_final_hint(child, traversal.shared_context());
 
-        trace!(" > {:?} -> {:?} + {:?}, later_siblings: {:?}",
+        trace!(" > {:?} -> {:?} + {:?}, pseudo: {:?}, later_siblings: {:?}",
                child,
                child_data.get_restyle().map(|r| &r.hint),
                propagated_hint,
+               child.implemented_pseudo_element(),
                later_siblings);
 
         // If the child doesn't have pre-existing RestyleData and we don't have
