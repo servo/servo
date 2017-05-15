@@ -62,6 +62,7 @@ use style::gecko_bindings::structs;
 use style::gecko_bindings::structs::{RawServoStyleRule, ServoStyleSheet};
 use style::gecko_bindings::structs::{SheetParsingMode, nsIAtom, nsCSSPropertyID};
 use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint, nsCSSFontFaceRule};
+use style::gecko_bindings::structs::CompositeOperation;
 use style::gecko_bindings::structs::Loader;
 use style::gecko_bindings::structs::RawGeckoPresContextOwned;
 use style::gecko_bindings::structs::ServoElementSnapshotTable;
@@ -325,12 +326,16 @@ pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMa
     let property: TransitionProperty = css_property.into();
     let value_map = AnimationValueMap::from_ffi_mut(raw_value_map);
 
+    let need_underlying_value = segment.mFromValue.mServo.mRawPtr.is_null() ||
+                                segment.mToValue.mServo.mRawPtr.is_null() ||
+                                segment.mFromComposite != CompositeOperation::Replace ||
+                                segment.mToComposite != CompositeOperation::Replace;
+
     // If either of the segment endpoints are null, get the underlying value to
     // use from the current value in the values map (set by a lower-priority
     // effect), or, if there is no current value, look up the cached base value
     // for this property.
-    let underlying_value = if segment.mFromValue.mServo.mRawPtr.is_null() ||
-                              segment.mToValue.mServo.mRawPtr.is_null() {
+    let underlying_value = if need_underlying_value {
         let previous_composed_value = value_map.get(&property).cloned();
         previous_composed_value.or_else(|| {
             let raw_base_style = unsafe { Gecko_AnimationGetBaseStyle(base_values, css_property) };
@@ -340,26 +345,40 @@ pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMa
         None
     };
 
-    if (segment.mFromValue.mServo.mRawPtr.is_null() ||
-        segment.mToValue.mServo.mRawPtr.is_null()) &&
-        underlying_value.is_none() {
-        warn!("Underlying value should be valid in the case where either 'from' value or 'to' value is null");
+    if need_underlying_value && underlying_value.is_none() {
+        warn!("Underlying value should be valid when we expect to use it");
         return;
     }
 
-    // Declare for making derefenced raw pointer alive outside the if block.
+    // Temporaries used in the following if-block whose lifetimes we need to prlong.
     let raw_from_value;
+    let from_composite_result;
     let from_value = if !segment.mFromValue.mServo.mRawPtr.is_null() {
         raw_from_value = unsafe { &*segment.mFromValue.mServo.mRawPtr };
-        AnimationValue::as_arc(&raw_from_value).as_ref()
+        match segment.mFromComposite {
+            CompositeOperation::Add => {
+                let value_to_composite = AnimationValue::as_arc(&raw_from_value).as_ref();
+                from_composite_result = underlying_value.as_ref().unwrap().add(value_to_composite);
+                from_composite_result.as_ref().unwrap_or(value_to_composite)
+            }
+            _ => { AnimationValue::as_arc(&raw_from_value) }
+        }
     } else {
         underlying_value.as_ref().unwrap()
     };
 
     let raw_to_value;
+    let to_composite_result;
     let to_value = if !segment.mToValue.mServo.mRawPtr.is_null() {
         raw_to_value = unsafe { &*segment.mToValue.mServo.mRawPtr };
-        AnimationValue::as_arc(&raw_to_value).as_ref()
+        match segment.mToComposite {
+            CompositeOperation::Add => {
+                let value_to_composite = AnimationValue::as_arc(&raw_to_value).as_ref();
+                to_composite_result = underlying_value.as_ref().unwrap().add(value_to_composite);
+                to_composite_result.as_ref().unwrap_or(value_to_composite)
+            }
+            _ => { AnimationValue::as_arc(&raw_to_value) }
+        }
     } else {
         underlying_value.as_ref().unwrap()
     };
