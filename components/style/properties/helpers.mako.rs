@@ -118,6 +118,10 @@
                             self.0.add_weighted(&other.0, self_portion, other_portion).map(T)
                         }
 
+                        fn add(&self, other: &Self) -> Result<Self, ()> {
+                            self.0.add(&other.0).map(T)
+                        }
+
                         #[inline]
                         fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
                             self.0.compute_distance(&other.0)

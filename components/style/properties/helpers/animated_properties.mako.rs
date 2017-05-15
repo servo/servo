@@ -608,6 +608,30 @@ impl Animatable for AnimationValue {
         }
     }
 
+    fn add(&self, other: &Self) -> Result<Self, ()> {
+        match (self, other) {
+            % for prop in data.longhands:
+                % if prop.animatable:
+                    % if prop.animation_value_type == "discrete":
+                        (&AnimationValue::${prop.camel_case}(_),
+                         &AnimationValue::${prop.camel_case}(_)) => {
+                            Err(())
+                        }
+                    % else:
+                        (&AnimationValue::${prop.camel_case}(ref from),
+                         &AnimationValue::${prop.camel_case}(ref to)) => {
+                            from.add(to).map(AnimationValue::${prop.camel_case})
+                        }
+                    % endif
+                % endif
+            % endfor
+            _ => {
+                panic!("Expected weighted addition of computed values of the same \
+                        property, got: {:?}, {:?}", self, other);
+            }
+        }
+    }
+
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         match (self, other) {
             % for prop in data.longhands:
@@ -646,6 +670,13 @@ pub trait Animatable: Sized {
     /// [interpolation]: https://w3c.github.io/web-animations/#animation-interpolation
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         self.add_weighted(other, 1.0 - progress, progress)
+    }
+
+    /// Returns the [sum][animation-addition] of this value and |other|.
+    ///
+    /// [animation-addition]: https://w3c.github.io/web-animations/#animation-addition
+    fn add(&self, other: &Self) -> Result<Self, ()> {
+        self.add_weighted(other, 1.0, 1.0)
     }
 
     /// Compute distance between a value and another for a given property.
@@ -791,16 +822,12 @@ impl Animatable for Visibility {
     #[inline]
     fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
         match (*self, *other) {
-            (Visibility::visible, _) | (_, Visibility::visible) => {
-                Ok(if self_portion >= 0.0 && self_portion <= 1.0 &&
-                      other_portion >= 0.0 && other_portion <= 1.0 {
-                    Visibility::visible
-                } else if self_portion > other_portion {
-                    *self
-                } else {
-                    *other
-                })
-            }
+            (Visibility::visible, _) => {
+                Ok(if self_portion > 0.0 { *self } else { *other })
+            },
+            (_, Visibility::visible) => {
+                Ok(if other_portion > 0.0 { *other } else { *self })
+            },
             _ => Err(()),
         }
     }
@@ -1495,6 +1522,21 @@ impl Animatable for ClipRect {
                 };
                 result.push(shadow);
             }
+
+            Ok(${item}List(result))
+        }
+
+        fn add(&self, other: &Self) -> Result<Self, ()> {
+            let len = self.0.len() + other.0.len();
+
+            let mut result = if len > 1 {
+                SmallVec::from_vec(Vec::with_capacity(len))
+            } else {
+                SmallVec::new()
+            };
+
+            result.extend(self.0.iter().cloned());
+            result.extend(other.0.iter().cloned());
 
             Ok(${item}List(result))
         }
@@ -2438,6 +2480,23 @@ impl Animatable for TransformList {
         };
 
         Ok(result)
+    }
+
+    fn add(&self, other: &Self) -> Result<Self, ()> {
+        match (&self.0, &other.0) {
+            (&Some(ref from_list), &Some(ref to_list)) => {
+                Ok(TransformList(Some([&from_list[..], &to_list[..]].concat())))
+            }
+            (&Some(_), &None) => {
+                Ok(self.clone())
+            }
+            (&None, &Some(_)) => {
+                Ok(other.clone())
+            }
+            _ => {
+                Ok(TransformList(None))
+            }
+        }
     }
 }
 
