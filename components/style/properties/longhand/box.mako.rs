@@ -2198,11 +2198,14 @@ ${helpers.single_keyword("transform-style",
 
         impl Animatable for T {
             #[inline]
-            fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+            fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
+                -> Result<Self, ()> {
                 Ok(T {
-                    horizontal: try!(self.horizontal.interpolate(&other.horizontal, time)),
-                    vertical: try!(self.vertical.interpolate(&other.vertical, time)),
-                    depth: try!(self.depth.interpolate(&other.depth, time)),
+                    horizontal: try!(self.horizontal.add_weighted(&other.horizontal,
+                                                                  self_portion, other_portion)),
+                    vertical: try!(self.vertical.add_weighted(&other.vertical,
+                                                              self_portion, other_portion)),
+                    depth: try!(self.depth.add_weighted(&other.depth, self_portion, other_portion)),
                 })
             }
 

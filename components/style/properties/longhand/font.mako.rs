@@ -1073,10 +1073,12 @@ ${helpers.single_keyword_system("font-variant-caps",
         }
 
         impl Animatable for T {
-            fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+            fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
+                -> Result<Self, ()> {
                 match (*self, *other) {
                     (T::Number(ref number), T::Number(ref other)) =>
-                        Ok(T::Number(try!(number.interpolate(other, time)))),
+                        Ok(T::Number(try!(number.add_weighted(other,
+                                                              self_portion, other_portion)))),
                     _ => Err(()),
                 }
             }
