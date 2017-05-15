@@ -832,6 +832,13 @@ extern "C" {
     pub fn Gecko_ReleaseImageValueArbitraryThread(aPtr: *mut ImageValue);
 }
 extern "C" {
+    pub fn Gecko_ImageValue_Create(uri: ServoBundledURI) -> *mut ImageValue;
+}
+extern "C" {
+    pub fn Gecko_SetLayerImageImageValue(image: *mut nsStyleImage,
+                                         imageValue: *mut ImageValue);
+}
+extern "C" {
     pub fn Gecko_SetUrlImageValue(image: *mut nsStyleImage,
                                   uri: ServoBundledURI);
 }
@@ -855,6 +862,10 @@ extern "C" {
     pub fn Gecko_SetListStyleImageNone(style_struct: *mut nsStyleList);
 }
 extern "C" {
+    pub fn Gecko_SetListStyleImageImageValue(style_struct: *mut nsStyleList,
+    	                                     imageValue: *mut ImageValue);
+}
+extern "C" {
     pub fn Gecko_SetListStyleImage(style_struct: *mut nsStyleList,
                                    uri: ServoBundledURI);
 }
@@ -867,12 +878,20 @@ extern "C" {
                                       len: usize);
 }
 extern "C" {
+    pub fn Gecko_SetCursorImageValue(cursor: *mut nsCursorImage,
+                                     imageValue: *mut ImageValue);
+}
+extern "C" {
     pub fn Gecko_SetCursorImage(cursor: *mut nsCursorImage,
                                 uri: ServoBundledURI);
 }
 extern "C" {
     pub fn Gecko_CopyCursorArrayFrom(dest: *mut nsStyleUserInterface,
                                      src: *const nsStyleUserInterface);
+}
+extern "C" {
+    pub fn Gecko_SetContentDataImageValue(content_data: *mut nsStyleContentData,
+                                    imageValue: *mut ImageValue);
 }
 extern "C" {
     pub fn Gecko_SetContentDataImage(content_data: *mut nsStyleContentData,
