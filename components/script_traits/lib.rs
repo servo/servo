@@ -53,7 +53,7 @@ use hyper::header::Headers;
 use hyper::method::Method;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
-use msg::constellation_msg::{BrowsingContextId, FrameType, Key, KeyModifiers, KeyState};
+use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, FrameType, Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineId, PipelineNamespaceId, TraversalDirection};
 use net_traits::{ReferrerPolicy, ResourceThreads};
 use net_traits::image::base::Image;
@@ -181,6 +181,8 @@ pub struct NewLayoutInfo {
     pub new_pipeline_id: PipelineId,
     /// Id of the browsing context associated with this pipeline.
     pub browsing_context_id: BrowsingContextId,
+    /// Id of the top-level browsing context associated with this pipeline.
+    pub top_level_browsing_context_id: TopLevelBrowsingContextId,
     /// Network request data which will be initiated by the script thread.
     pub load_data: LoadData,
     /// Information about the initial window size.
@@ -260,9 +262,9 @@ pub enum ConstellationControlMsg {
     Navigate(PipelineId, BrowsingContextId, LoadData, bool),
     /// Post a message to a given window.
     PostMessage(PipelineId, Option<ImmutableOrigin>, Vec<u8>),
-    /// Requests the script thread forward a mozbrowser event to an iframe it owns,
+    /// Requests the script thread forward a mozbrowser event to a mozbrowser iframe it owns,
     /// or to the window if no browsing context id is provided.
-    MozBrowserEvent(PipelineId, Option<BrowsingContextId>, MozBrowserEvent),
+    MozBrowserEvent(PipelineId, Option<TopLevelBrowsingContextId>, MozBrowserEvent),
     /// Updates the current pipeline ID of a given iframe.
     /// First PipelineId is for the parent, second is the new PipelineId for the frame.
     UpdatePipelineId(PipelineId, BrowsingContextId, PipelineId, UpdatePipelineIdReason),
@@ -488,10 +490,10 @@ pub struct InitialScriptState {
     /// The subpage ID of this pipeline to create in its pipeline parent.
     /// If `None`, this is the root.
     pub parent_info: Option<(PipelineId, FrameType)>,
-    /// The ID of the frame this script is part of.
+    /// The ID of the browsing context this script is part of.
     pub browsing_context_id: BrowsingContextId,
-    /// The ID of the top-level frame this script is part of.
-    pub top_level_browsing_context_id: BrowsingContextId,
+    /// The ID of the top-level browsing context this script is part of.
+    pub top_level_browsing_context_id: TopLevelBrowsingContextId,
     /// A channel with which messages can be sent to us (the script thread).
     pub control_chan: IpcSender<ConstellationControlMsg>,
     /// A port on which messages sent by the constellation to script can be received.
@@ -548,8 +550,11 @@ pub enum IFrameSandboxState {
 pub struct IFrameLoadInfo {
     /// Pipeline ID of the parent of this iframe
     pub parent_pipeline_id: PipelineId,
-    /// The ID for this iframe.
+    /// The ID for this iframe's nested browsing context.
     pub browsing_context_id: BrowsingContextId,
+    /// The ID for the top-level ancestor browsing context of this iframe's nested browsing context.
+    /// Note: this is the same as the browsing_context_id for mozbrowser iframes.
+    pub top_level_browsing_context_id: TopLevelBrowsingContextId,
     /// The new pipeline ID that the iframe has generated.
     pub new_pipeline_id: PipelineId,
     ///  Whether this iframe should be considered private
@@ -761,7 +766,7 @@ pub enum ConstellationMsg {
     /// Reload the current page.
     Reload,
     /// A log entry, with the top-level browsing context id and thread name
-    LogEntry(Option<BrowsingContextId>, Option<String>, LogEntry),
+    LogEntry(Option<TopLevelBrowsingContextId>, Option<String>, LogEntry),
     /// Set the WebVR thread channel.
     SetWebVRThread(IpcSender<WebVRMsg>),
     /// Dispatch WebVR events to the subscribed script threads.

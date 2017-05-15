@@ -20,7 +20,7 @@ extern crate webrender_traits;
 
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use msg::constellation_msg::{BrowsingContextId, PipelineId};
+use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::ImageCache;
 use profile_traits::{mem, time};
 use script_traits::{ConstellationControlMsg, LayoutControlMsg};
@@ -34,7 +34,6 @@ use std::sync::mpsc::{Receiver, Sender};
 pub trait LayoutThreadFactory {
     type Message;
     fn create(id: PipelineId,
-              top_level_browsing_context_id: Option<BrowsingContextId>,
               url: ServoUrl,
               is_iframe: bool,
               chan: (Sender<Self::Message>, Receiver<Self::Message>),
