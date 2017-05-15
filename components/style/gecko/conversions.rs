@@ -10,7 +10,7 @@
 
 use app_units::Au;
 use gecko::values::{convert_rgba_to_nscolor, GeckoStyleCoordConvertible};
-use gecko_bindings::bindings::{Gecko_CreateGradient, Gecko_SetGradientImageValue, Gecko_SetUrlImageValue};
+use gecko_bindings::bindings::{Gecko_CreateGradient, Gecko_SetGradientImageValue, Gecko_SetLayerImageImageValue};
 use gecko_bindings::bindings::{Gecko_InitializeImageCropRect, Gecko_SetImageElement};
 use gecko_bindings::structs::{nsCSSUnit, nsStyleCoord_CalcValue, nsStyleImage};
 use gecko_bindings::structs::{nsresult, SheetType};
@@ -144,7 +144,7 @@ impl nsStyleImage {
             },
             GenericImage::Url(ref url) => {
                 unsafe {
-                    Gecko_SetUrlImageValue(self, url.for_ffi());
+                    Gecko_SetLayerImageImageValue(self, url.image_value.clone().unwrap().get());
                     // We unfortunately must make any url() value uncacheable, since
                     // the applicable declarations cache is not per document, but
                     // global, and the imgRequestProxy objects we store in the style
@@ -157,7 +157,7 @@ impl nsStyleImage {
             },
             GenericImage::Rect(ref image_rect) => {
                 unsafe {
-                    Gecko_SetUrlImageValue(self, image_rect.url.for_ffi());
+                    Gecko_SetLayerImageImageValue(self, image_rect.url.image_value.clone().unwrap().get());
                     Gecko_InitializeImageCropRect(self);
 
                     // We unfortunately must make any url() value uncacheable, since

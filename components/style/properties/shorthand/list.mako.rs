@@ -60,7 +60,7 @@
             (true, 2, None, None) => {
                 Ok(Longhands {
                     list_style_position: position,
-                    list_style_image: Either::Second(None_),
+                    list_style_image: list_style_image::SpecifiedValue(Either::Second(None_)),
                     list_style_type: list_style_type::SpecifiedValue::none,
                 })
             }
@@ -74,14 +74,14 @@
             (true, 1, Some(list_style_type), None) => {
                 Ok(Longhands {
                     list_style_position: position,
-                    list_style_image: Either::Second(None_),
+                    list_style_image: list_style_image::SpecifiedValue(Either::Second(None_)),
                     list_style_type: list_style_type,
                 })
             }
             (true, 1, None, None) => {
                 Ok(Longhands {
                     list_style_position: position,
-                    list_style_image: Either::Second(None_),
+                    list_style_image: list_style_image::SpecifiedValue(Either::Second(None_)),
                     list_style_type: list_style_type::SpecifiedValue::none,
                 })
             }

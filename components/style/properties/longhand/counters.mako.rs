@@ -148,7 +148,8 @@
         let mut content = vec![];
         loop {
             % if product == "gecko":
-                if let Ok(url) = input.try(|i| SpecifiedUrl::parse(context, i)) {
+                if let Ok(mut url) = input.try(|i| SpecifiedUrl::parse(context, i)) {
+                    url.build_image_value();
                     content.push(ContentItem::Url(url));
                     continue;
                 }

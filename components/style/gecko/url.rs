@@ -6,6 +6,7 @@
 
 use cssparser::CssStringWriter;
 use gecko_bindings::structs::{ServoBundledURI, URLExtraData};
+use gecko_bindings::structs::root::mozilla::css::ImageValue;
 use gecko_bindings::sugar::refptr::RefPtr;
 use parser::ParserContext;
 use std::borrow::Cow;
@@ -24,6 +25,10 @@ pub struct SpecifiedUrl {
 
     /// The URL extra data.
     pub extra_data: RefPtr<URLExtraData>,
+
+    /// Cache ImageValue, if any, so that we can reuse it while rematching a
+    /// a property with this specified url value.
+    pub image_value: Option<RefPtr<ImageValue>>,
 }
 
 impl SpecifiedUrl {
@@ -37,6 +42,7 @@ impl SpecifiedUrl {
         Ok(SpecifiedUrl {
             serialization: Arc::new(url.into_owned()),
             extra_data: context.url_data.clone(),
+            image_value: None,
         })
     }
 
@@ -74,6 +80,21 @@ impl SpecifiedUrl {
             mURLString: ptr,
             mURLStringLength: len as u32,
             mExtraData: self.extra_data.get(),
+        }
+    }
+
+    /// Build and carry an image value on request.
+    pub fn build_image_value(&mut self) {
+        use gecko_bindings::bindings::Gecko_ImageValue_Create;
+
+        debug_assert_eq!(self.image_value, None);
+        self.image_value = {
+            unsafe {
+                let ptr = Gecko_ImageValue_Create(self.for_ffi());
+                // We do not expect Gecko_ImageValue_Create returns null.
+                debug_assert!(!ptr.is_null());
+                Some(RefPtr::from_addrefed(ptr))
+            }
         }
     }
 }

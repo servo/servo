@@ -1845,7 +1845,8 @@ pub extern "C" fn Servo_DeclarationBlock_SetBackgroundImage(declarations:
     let context = ParserContext::new(Origin::Author, url_data, &error_reporter,
                                      Some(CssRuleType::Style), PARSING_MODE_DEFAULT,
                                      QuirksMode::NoQuirks);
-    if let Ok(url) = SpecifiedUrl::parse_from_string(string.into(), &context) {
+    if let Ok(mut url) = SpecifiedUrl::parse_from_string(string.into(), &context) {
+        url.build_image_value();
         let decl = PropertyDeclaration::BackgroundImage(BackgroundImage(
             vec![Either::Second(Image::Url(url))]
         ));

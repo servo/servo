@@ -53,6 +53,7 @@ use style::computed_values::position;
 use style::context::SharedStyleContext;
 use style::logical_geometry::Direction;
 use style::properties::ServoComputedValues;
+use style::properties::longhands::list_style_image;
 use style::selector_parser::{PseudoElement, RestyleDamage};
 use style::servo::restyle_damage::{BUBBLE_ISIZES, RECONSTRUCT_FLOW};
 use style::values::Either;
@@ -1206,13 +1207,13 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                                 -> ConstructionResult {
         let flotation = FloatKind::from_property(flotation);
         let marker_fragments = match node.style(self.style_context()).get_list().list_style_image {
-            Either::First(ref url_value) => {
+            list_style_image::computed_value::T(Either::First(ref url_value)) => {
                 let image_info = box ImageFragmentInfo::new(url_value.url().map(|u| u.clone()),
                                                             node,
                                                             &self.layout_context);
                 vec![Fragment::new(node, SpecificFragmentInfo::Image(image_info), self.layout_context)]
             }
-            Either::Second(_none) => {
+            list_style_image::computed_value::T(Either::Second(_none)) => {
                 match ListStyleTypeContent::from_list_style_type(node.style(self.style_context())
                                                                      .get_list()
                                                                      .list_style_type) {
