@@ -250,7 +250,14 @@ mod bindings {
                 return;
             }
         }
-        let mut result = builder.generate().expect("Unable to generate bindings").to_string();
+        let command_line_opts = builder.command_line_flags();
+        let result = builder.generate();
+        let mut result = match result {
+            Ok(bindings) => bindings.to_string(),
+            Err(_) => {
+                panic!("Failed to generate bindings, flags: {:?}", command_line_opts);
+            },
+        };
         for fixup in fixups.iter() {
             result = Regex::new(&format!(r"\b{}\b", fixup.pat)).unwrap().replace_all(&result, fixup.rep.as_str())
                 .into_owned().into();
