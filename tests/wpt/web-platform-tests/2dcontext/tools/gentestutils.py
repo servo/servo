@@ -450,6 +450,11 @@ def genTestUtils(TESTOUTPUTDIR, IMAGEOUTPUTDIR, TEMPLATEFILE, NAME2DIRFILE, ISOF
         for s in test.get('scripts', []):
             scripts += '<script src="%s"></script>\n' % (s)
 
+        variants = test.get('script-variants', {})
+        script_variants = [(v, '<script src="%s"></script>\n' % (s)) for (v, s) in variants.iteritems()]
+        if not script_variants:
+            script_variants = [('', '')]
+
         images = ''
         for i in test.get('images', []):
             id = i.split('/')[-1]
@@ -474,38 +479,44 @@ def genTestUtils(TESTOUTPUTDIR, IMAGEOUTPUTDIR, TEMPLATEFILE, NAME2DIRFILE, ISOF
 
         desc = test.get('desc', '')
         escaped_desc = simpleEscapeJS(desc)
-        template_params = {
-            'name':name, 'name_wrapped':name_wrapped, 'backrefs':backref_html(name),
-            'mapped_name':mapped_name,
-            'desc':desc, 'escaped_desc':escaped_desc,
-            'prev':prev, 'next':next, 'refs':refs, 'notes':notes, 'images':images,
-            'fonts':fonts, 'fonthack':fonthack,
-            'canvas':canvas, 'expected':expectation_html, 'code':code, 'scripts':scripts,
-            'mochi_name':mochi_name, 'mochi_desc':mochi_desc, 'mochi_code':mochi_code,
-            'mochi_setup':mochi_setup, 'mochi_footer':mochi_footer, 'mochi_images':mochi_images,
-            'fallback':fallback
-        }
 
-        if W3CMODE:
-            f = codecs.open('%s/%s.html' % (TESTOUTPUTDIR, mapped_name), 'w', 'utf-8')
-            f.write(templates['w3c'] % template_params)
-            if ISOFFSCREENCANVAS:
-                f = codecs.open('%s/%s.worker.js' % (TESTOUTPUTDIR, mapped_name), 'w', 'utf-8')
-                f.write(templates['w3cworker'] % template_params)
-        else:
-            f = codecs.open('%s/%s.html' % (TESTOUTPUTDIR, name), 'w', 'utf-8')
-            f.write(templates['standalone'] % template_params)
+        for (variant, extra_script) in script_variants:
+            name_variant = '' if not variant else '.' + variant
 
-            f = codecs.open('%s/framed.%s.html' % (TESTOUTPUTDIR, name), 'w', 'utf-8')
-            f.write(templates['framed'] % template_params)
+            template_params = {
+                'name':name + name_variant,
+                'name_wrapped':name_wrapped, 'backrefs':backref_html(name),
+                'mapped_name':mapped_name,
+                'desc':desc, 'escaped_desc':escaped_desc,
+                'prev':prev, 'next':next, 'refs':refs, 'notes':notes, 'images':images,
+                'fonts':fonts, 'fonthack':fonthack,
+                'canvas':canvas, 'expected':expectation_html, 'code':code,
+                'scripts':scripts + extra_script,
+                'mochi_name':mochi_name, 'mochi_desc':mochi_desc, 'mochi_code':mochi_code,
+                'mochi_setup':mochi_setup, 'mochi_footer':mochi_footer, 'mochi_images':mochi_images,
+                'fallback':fallback
+            }
 
-            f = codecs.open('%s/minimal.%s.html' % (TESTOUTPUTDIR, name), 'w', 'utf-8')
-            f.write(templates['minimal'] % template_params)
+            if W3CMODE:
+                f = codecs.open('%s/%s%s.html' % (TESTOUTPUTDIR, mapped_name, name_variant), 'w', 'utf-8')
+                f.write(templates['w3c'] % template_params)
+                if ISOFFSCREENCANVAS:
+                    f = codecs.open('%s/%s%s.worker.js' % (TESTOUTPUTDIR, mapped_name, name_variant), 'w', 'utf-8')
+                    f.write(templates['w3cworker'] % template_params)
+            else:
+                f = codecs.open('%s/%s%s.html' % (TESTOUTPUTDIR, name, name_variant), 'w', 'utf-8')
+                f.write(templates['standalone'] % template_params)
 
-        if mochitest:
-            mochitests.append(name)
-            f = codecs.open('%s/mochitests/test_%s.html' % (MISCOUTPUTDIR, name), 'w', 'utf-8')
-            f.write(templates['mochitest'] % template_params)
+                f = codecs.open('%s/framed.%s%s.html' % (TESTOUTPUTDIR, name, name_variant), 'w', 'utf-8')
+                f.write(templates['framed'] % template_params)
+
+                f = codecs.open('%s/minimal.%s%s.html' % (TESTOUTPUTDIR, name, name_variant), 'w', 'utf-8')
+                f.write(templates['minimal'] % template_params)
+
+            if mochitest:
+                mochitests.append(name)
+                f = codecs.open('%s/mochitests/test_%s%s.html' % (MISCOUTPUTDIR, name, name_variant), 'w', 'utf-8')
+                f.write(templates['mochitest'] % template_params)
 
     def write_mochitest_makefile():
         f = open('%s/mochitests/Makefile.in' % MISCOUTPUTDIR, 'w')
