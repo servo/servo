@@ -81,7 +81,8 @@ use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, TimerMetadata, profile};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use script::layout_wrapper::{ServoLayoutElement, ServoLayoutDocument, ServoLayoutNode};
-use script_layout_interface::message::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType, ScriptReflow};
+use script_layout_interface::message::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType};
+use script_layout_interface::message::{ScriptReflow, ReflowComplete};
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::{LayoutRPC, MarginStyleResponse, NodeOverflowResponse, OffsetParentResponse};
 use script_layout_interface::rpc::TextIndexResponse;
@@ -292,6 +293,37 @@ impl LayoutThreadFactory for LayoutThread {
     }
 }
 
+struct ScriptReflowResult {
+    script_reflow: ScriptReflow,
+    result: RefCell<Option<ReflowComplete>>,
+}
+
+impl Deref for ScriptReflowResult {
+    type Target = ScriptReflow;
+    fn deref(&self) -> &ScriptReflow {
+        &self.script_reflow
+    }
+}
+
+impl ScriptReflowResult {
+    fn new(script_reflow: ScriptReflow) -> ScriptReflowResult {
+        ScriptReflowResult {
+            script_reflow: script_reflow,
+            result: RefCell::new(Some(Default::default())),
+        }
+    }
+}
+
+impl Drop for ScriptReflowResult {
+    fn drop(&mut self) {
+        self.script_reflow.script_join_chan.send(
+            self.result
+                .borrow_mut()
+                .take()
+                .unwrap()).unwrap();
+    }
+}
+
 /// The `LayoutThread` `rw_data` lock must remain locked until the first reflow,
 /// as RPC calls don't make sense until then. Use this in combination with
 /// `LayoutThread::lock_rw_data` and `LayoutThread::return_rw_data`.
@@ -476,7 +508,6 @@ impl LayoutThread {
                     margin_style_response: MarginStyleResponse::empty(),
                     stacking_context_scroll_offsets: HashMap::new(),
                     text_index_response: TextIndexResponse(None),
-                    pending_images: vec![],
                     nodes_from_point_response: vec![],
                 })),
             error_reporter: CSSErrorReporter {
@@ -513,7 +544,7 @@ impl LayoutThread {
     // Create a layout context for use in building display lists, hit testing, &c.
     fn build_layout_context<'a>(&'a self,
                                 guards: StylesheetGuards<'a>,
-                                request_images: bool,
+                                script_initiated_layout: bool,
                                 snapshot_map: &'a SnapshotMap)
                                 -> LayoutContext<'a> {
         let thread_local_style_context_creation_data =
@@ -537,7 +568,8 @@ impl LayoutThread {
             image_cache: self.image_cache.clone(),
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
             webrender_image_cache: self.webrender_image_cache.clone(),
-            pending_images: if request_images { Some(Mutex::new(vec![])) } else { None },
+            pending_images: if script_initiated_layout { Some(Mutex::new(vec![])) } else { None },
+            newly_transitioning_nodes: if script_initiated_layout { Some(Mutex::new(vec![])) } else { None },
         }
     }
 
@@ -614,10 +646,11 @@ impl LayoutThread {
                                    Box<LayoutRPC + Send>).unwrap();
             },
             Msg::Reflow(data) => {
+                let mut data = ScriptReflowResult::new(data);
                 profile(time::ProfilerCategory::LayoutPerform,
                         self.profiler_metadata(),
                         self.time_profiler_chan.clone(),
-                        || self.handle_reflow(&data, possibly_locked_rw_data));
+                        || self.handle_reflow(&mut data, possibly_locked_rw_data));
             },
             Msg::TickAnimations => self.tick_all_animations(possibly_locked_rw_data),
             Msg::SetStackingContextScrollStates(new_scroll_states) => {
@@ -953,7 +986,7 @@ impl LayoutThread {
 
     /// The high-level routine that performs layout threads.
     fn handle_reflow<'a, 'b>(&mut self,
-                             data: &ScriptReflow,
+                             data: &mut ScriptReflowResult,
                              possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
@@ -1238,18 +1271,26 @@ impl LayoutThread {
 
         self.respond_to_query_if_necessary(&data.query_type,
                                            &mut *rw_data,
-                                           &mut layout_context);
+                                           &mut layout_context,
+                                           data.result.borrow_mut().as_mut().unwrap());
     }
 
     fn respond_to_query_if_necessary(&self,
                                      query_type: &ReflowQueryType,
                                      rw_data: &mut LayoutThreadData,
-                                     context: &mut LayoutContext) {
+                                     context: &mut LayoutContext,
+                                     reflow_result: &mut ReflowComplete) {
         let pending_images = match context.pending_images {
             Some(ref pending) => std_mem::replace(&mut *pending.lock().unwrap(), vec![]),
             None => vec![],
         };
-        rw_data.pending_images = pending_images;
+        reflow_result.pending_images = pending_images;
+
+        let newly_transitioning_nodes = match context.newly_transitioning_nodes {
+            Some(ref nodes) => std_mem::replace(&mut *nodes.lock().unwrap(), vec![]),
+            None => vec![],
+        };
+        reflow_result.newly_transitioning_nodes = newly_transitioning_nodes;
 
         let mut root_flow = match self.root_flow.borrow().clone() {
             Some(root_flow) => root_flow,
@@ -1426,6 +1467,7 @@ impl LayoutThread {
                                                          &mut *rw_data,
                                                          &mut layout_context);
             assert!(layout_context.pending_images.is_none());
+            assert!(layout_context.newly_transitioning_nodes.is_none());
         }
     }
 
@@ -1436,14 +1478,24 @@ impl LayoutThread {
                                                document: Option<&ServoLayoutDocument>,
                                                rw_data: &mut LayoutThreadData,
                                                context: &mut LayoutContext) {
-        // Kick off animations if any were triggered, expire completed ones.
-        animation::update_animation_state(&self.constellation_chan,
-                                          &self.script_chan,
-                                          &mut *self.running_animations.write(),
-                                          &mut *self.expired_animations.write(),
-                                          &self.new_animations_receiver,
-                                          self.id,
-                                          &self.timer);
+        {
+            let mut newly_transitioning_nodes = context
+                .newly_transitioning_nodes
+                .as_ref()
+                .map(|nodes| nodes.lock().unwrap());
+            let newly_transitioning_nodes = newly_transitioning_nodes
+                .as_mut()
+                .map(|nodes| &mut **nodes);
+            // Kick off animations if any were triggered, expire completed ones.
+            animation::update_animation_state(&self.constellation_chan,
+                                              &self.script_chan,
+                                              &mut *self.running_animations.write(),
+                                              &mut *self.expired_animations.write(),
+                                              newly_transitioning_nodes,
+                                              &self.new_animations_receiver,
+                                              self.id,
+                                              &self.timer);
+        }
 
         profile(time::ProfilerCategory::LayoutRestyleDamagePropagation,
                 self.profiler_metadata(),

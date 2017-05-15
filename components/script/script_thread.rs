@@ -47,7 +47,7 @@ use dom::globalscope::GlobalScope;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmliframeelement::{HTMLIFrameElement, NavigationType};
 use dom::mutationobserver::MutationObserver;
-use dom::node::{Node, NodeDamage, window_from_node};
+use dom::node::{Node, NodeDamage, window_from_node, from_untrusted_node_address};
 use dom::serviceworker::TrustedServiceWorkerAddress;
 use dom::serviceworkerregistration::ServiceWorkerRegistration;
 use dom::servoparser::{ParserContext, ServoParser};
@@ -69,7 +69,6 @@ use js::jsapi::{JSAutoCompartment, JSContext, JS_SetWrapObjectCallbacks};
 use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
-use layout_wrapper::ServoLayoutNode;
 use mem::heap_size_of_self_and_children;
 use microtask::{MicrotaskQueue, Microtask};
 use msg::constellation_msg::{FrameId, FrameType, PipelineId, PipelineNamespace};
@@ -109,7 +108,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use std::thread;
 use style::context::ReflowGoal;
-use style::dom::{TNode, UnsafeNode};
 use style::thread_state;
 use task_source::dom_manipulation::{DOMManipulationTask, DOMManipulationTaskSource};
 use task_source::file_reading::FileReadingTaskSource;
@@ -490,6 +488,10 @@ pub struct ScriptThread {
     /// A list of pipelines containing documents that finished loading all their blocking
     /// resources during a turn of the event loop.
     docs_with_no_blocking_loads: DOMRefCell<HashSet<JS<Document>>>,
+
+    /// A list of nodes with in-progress CSS transitions, which roots them for the duration
+    /// of the transition.
+    transitioning_nodes: DOMRefCell<Vec<JS<Node>>>,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -574,6 +576,17 @@ impl ScriptThreadFactory for ScriptThread {
 }
 
 impl ScriptThread {
+    pub unsafe fn note_newly_transitioning_nodes(nodes: Vec<UntrustedNodeAddress>) {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = &*root.get().unwrap();
+            let js_runtime = script_thread.js_runtime.rt();
+            let new_nodes = nodes
+                .into_iter()
+                .map(|n| JS::from_ref(&*from_untrusted_node_address(js_runtime, n)));
+            script_thread.transitioning_nodes.borrow_mut().extend(new_nodes);
+        })
+    }
+
     pub fn add_mutation_observer(observer: &MutationObserver) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
@@ -742,6 +755,8 @@ impl ScriptThread {
             webvr_thread: state.webvr_thread,
 
             docs_with_no_blocking_loads: Default::default(),
+
+            transitioning_nodes: Default::default(),
         }
     }
 
@@ -1602,11 +1617,29 @@ impl ScriptThread {
     }
 
     /// Handles firing of transition events.
-    #[allow(unsafe_code)]
-    fn handle_transition_event(&self, unsafe_node: UnsafeNode, name: String, duration: f64) {
-        let node = unsafe { ServoLayoutNode::from_unsafe(&unsafe_node) };
-        let node = unsafe { node.get_jsmanaged().get_for_script() };
-        let window = window_from_node(node);
+    fn handle_transition_event(&self, unsafe_node: UntrustedNodeAddress, name: String, duration: f64) {
+        let js_runtime = self.js_runtime.rt();
+        let node = unsafe {
+            from_untrusted_node_address(js_runtime, unsafe_node)
+        };
+
+        let idx = self.transitioning_nodes
+            .borrow()
+            .iter()
+            .position(|n| &**n as *const _ == &*node as *const _);
+        match idx {
+            Some(idx) => {
+                self.transitioning_nodes.borrow_mut().remove(idx);
+            }
+            None => {
+                // If no index is found, we can't know whether this node is safe to use.
+                // It's better not to fire a DOM event than crash.
+                warn!("Ignoring transition end notification for unknown node.");
+                return;
+            }
+        }
+
+        let window = window_from_node(&*node);
 
         // Not quite the right thing - see #13865.
         node.dirty(NodeDamage::NodeStyleDamaged);

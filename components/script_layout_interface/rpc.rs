@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use PendingImage;
 use app_units::Au;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
@@ -38,8 +37,6 @@ pub trait LayoutRPC {
     fn offset_parent(&self) -> OffsetParentResponse;
     /// Query layout for the resolve values of the margin properties for an element.
     fn margin_style(&self) -> MarginStyleResponse;
-    /// Requests the list of not-yet-loaded images that were encountered in the last reflow.
-    fn pending_images(&self) -> Vec<PendingImage>;
     /// Requests the list of nodes from the given point.
     fn nodes_from_point_response(&self) -> Vec<UntrustedNodeAddress>;
 
