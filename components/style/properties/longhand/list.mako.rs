@@ -21,21 +21,85 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
 // we may need to look into this and handle these differently.
 //
 // [1]: http://dev.w3.org/csswg/css-counter-styles/
-${helpers.single_keyword("list-style-type", """
-    disc none circle square decimal disclosure-open disclosure-closed lower-alpha upper-alpha
-""", extra_servo_values="""arabic-indic bengali cambodian cjk-decimal devanagari
-                           gujarati gurmukhi kannada khmer lao malayalam mongolian
-                           myanmar oriya persian telugu thai tibetan cjk-earthly-branch
-                           cjk-heavenly-stem lower-greek hiragana hiragana-iroha katakana
-                           katakana-iroha""",
-    extra_gecko_values="""japanese-informal japanese-formal korean-hangul-formal
-    korean-hanja-formal korean-hanja-informal simp-chinese-informal simp-chinese-formal
-    trad-chinese-informal trad-chinese-formal ethiopic-numeric upper-roman lower-roman
-    """,
-    gecko_constant_prefix="NS_STYLE_LIST_STYLE",
-    needs_conversion="True",
-    animation_value_type="none",
-    spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type")}
+% if product == "servo":
+    ${helpers.single_keyword("list-style-type", """
+        disc none circle square decimal disclosure-open disclosure-closed lower-alpha upper-alpha
+        arabic-indic bengali cambodian cjk-decimal devanagari gujarati gurmukhi kannada khmer lao
+        malayalam mongolian myanmar oriya persian telugu thai tibetan cjk-earthly-branch
+        cjk-heavenly-stem lower-greek hiragana hiragana-iroha katakana katakana-iroha""",
+        needs_conversion="True",
+        animation_value_type="none",
+        spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type")}
+% else:
+    <%helpers:longhand name="list-style-type" animation_value_type="none"
+                       spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type">
+        use std::fmt;
+        use style_traits::ToCss;
+        use values::CustomIdent;
+        use values::HasViewportPercentage;
+        use values::computed::ComputedValueAsSpecified;
+        use values::generics::CounterStyleOrNone;
+
+        pub use self::computed_value::T as SpecifiedValue;
+
+        pub mod computed_value {
+            use values::generics::CounterStyleOrNone;
+
+            /// <counter-style> | none
+            #[derive(Debug, Clone, PartialEq, Eq)]
+            pub struct T(pub CounterStyleOrNone);
+        }
+
+        impl ComputedValueAsSpecified for SpecifiedValue {}
+        no_viewport_percentage!(SpecifiedValue);
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                self.0.to_css(dest)
+            }
+        }
+
+        #[cfg(feature = "gecko")]
+        impl SpecifiedValue {
+            /// Convert from gecko keyword to list-style-type.
+            ///
+            /// This should only be used for mapping type attribute to
+            /// list-style-type, and thus only values possible in that
+            /// attribute is considered here.
+            pub fn from_gecko_keyword(value: u32) -> Self {
+                use gecko_bindings::structs;
+                SpecifiedValue(if value == structs::NS_STYLE_LIST_STYLE_NONE {
+                    CounterStyleOrNone::None_
+                } else {
+                    <%
+                        values = """disc circle square decimal lower-roman
+                                    upper-roman lower-alpha upper-alpha""".split()
+                    %>
+                    CounterStyleOrNone::Name(CustomIdent(match value {
+                        % for style in values:
+                        structs::NS_STYLE_LIST_STYLE_${style.replace('-', '_').upper()} => atom!("${style}"),
+                        % endfor
+                        _ => unreachable!("Unknown counter style keyword value"),
+                    }))
+                })
+            }
+        }
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            computed_value::T(CounterStyleOrNone::disc())
+        }
+
+        #[inline]
+        pub fn get_initial_specified_value() -> SpecifiedValue {
+            SpecifiedValue(CounterStyleOrNone::disc())
+        }
+
+        pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+            CounterStyleOrNone::parse(context, input).map(SpecifiedValue)
+        }
+    </%helpers:longhand>
+% endif
 
 <%helpers:longhand name="list-style-image" animation_value_type="none"
                    boxed="${product == 'gecko'}"

@@ -25,14 +25,6 @@
                 continue
             }
 
-            if list_style_type.is_none() {
-                if let Ok(value) = input.try(|input| list_style_type::parse(context, input)) {
-                    list_style_type = Some(value);
-                    any = true;
-                    continue
-                }
-            }
-
             if image.is_none() {
                 if let Ok(value) = input.try(|input| list_style_image::parse(context, input)) {
                     image = Some(value);
@@ -48,10 +40,30 @@
                     continue
                 }
             }
+
+            // list-style-type must be checked the last, because it accepts
+            // arbitrary identifier for custom counter style, and thus may
+            // affect values of list-style-position.
+            if list_style_type.is_none() {
+                if let Ok(value) = input.try(|input| list_style_type::parse(context, input)) {
+                    list_style_type = Some(value);
+                    any = true;
+                    continue
+                }
+            }
             break
         }
 
         let position = unwrap_or_initial!(list_style_position, position);
+
+        fn list_style_type_none() -> list_style_type::SpecifiedValue {
+            % if product == "servo":
+            list_style_type::SpecifiedValue::none
+            % else:
+            use values::generics::CounterStyleOrNone;
+            list_style_type::SpecifiedValue(CounterStyleOrNone::None_)
+            % endif
+        }
 
         // If there are two `none`s, then we can't have a type or image; if there is one `none`,
         // then we can't have both a type *and* an image; if there is no `none` then we're fine as
@@ -61,14 +73,14 @@
                 Ok(Longhands {
                     list_style_position: position,
                     list_style_image: list_style_image::SpecifiedValue(Either::Second(None_)),
-                    list_style_type: list_style_type::SpecifiedValue::none,
+                    list_style_type: list_style_type_none(),
                 })
             }
             (true, 1, None, Some(image)) => {
                 Ok(Longhands {
                     list_style_position: position,
                     list_style_image: image,
-                    list_style_type: list_style_type::SpecifiedValue::none,
+                    list_style_type: list_style_type_none(),
                 })
             }
             (true, 1, Some(list_style_type), None) => {
@@ -82,7 +94,7 @@
                 Ok(Longhands {
                     list_style_position: position,
                     list_style_image: list_style_image::SpecifiedValue(Either::Second(None_)),
-                    list_style_type: list_style_type::SpecifiedValue::none,
+                    list_style_type: list_style_type_none(),
                 })
             }
             (true, 0, list_style_type, image) => {
