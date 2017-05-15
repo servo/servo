@@ -2385,6 +2385,19 @@ pub extern "C" fn Servo_StyleSet_GetFontFaceRules(raw_data: RawServoStyleSetBorr
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_StyleSet_GetCounterStyleRule(raw_data: RawServoStyleSetBorrowed,
+                                                     name: *mut nsIAtom) -> *mut nsCSSCounterStyleRule {
+    let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
+    unsafe {
+        Atom::with(name, |name| data.counter_styles.get(name))
+    }.map(|rule| {
+        let global_style_data = &*GLOBAL_STYLE_DATA;
+        let guard = global_style_data.shared_lock.read();
+        rule.read_with(&guard).get()
+    }).unwrap_or(ptr::null_mut())
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_StyleSet_ResolveForDeclarations(raw_data: RawServoStyleSetBorrowed,
                                                         parent_style_or_null: ServoComputedValuesBorrowedOrNull,
                                                         declarations: RawServoDeclarationBlockBorrowed)
