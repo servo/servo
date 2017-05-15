@@ -571,7 +571,8 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
                                                  data: *const nsACString,
                                                  mode: SheetParsingMode,
                                                  media_list: *const RawServoMediaList,
-                                                 extra_data: *mut URLExtraData)
+                                                 extra_data: *mut URLExtraData,
+                                                 line_number_offset: u32)
                                                  -> RawServoStyleSheetStrong {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let input = unsafe { data.as_ref().unwrap().as_str_unchecked() };
@@ -605,7 +606,8 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
 
     Arc::new(Stylesheet::from_str(
         input, url_data.clone(), origin, media,
-        shared_lock, loader, &RustLogReporter, QuirksMode::NoQuirks, 0u64)
+        shared_lock, loader, &RustLogReporter,
+        QuirksMode::NoQuirks, line_number_offset as u64)
     ).into_strong()
 }
 
@@ -614,7 +616,8 @@ pub extern "C" fn Servo_StyleSheet_ClearAndUpdate(stylesheet: RawServoStyleSheet
                                                   loader: *mut Loader,
                                                   gecko_stylesheet: *mut ServoStyleSheet,
                                                   data: *const nsACString,
-                                                  extra_data: *mut URLExtraData)
+                                                  extra_data: *mut URLExtraData,
+                                                  line_number_offset: u32)
 {
     let input = unsafe { data.as_ref().unwrap().as_str_unchecked() };
     let url_data = unsafe { RefPtr::from_ptr_ref(&extra_data) };
@@ -632,8 +635,8 @@ pub extern "C" fn Servo_StyleSheet_ClearAndUpdate(stylesheet: RawServoStyleSheet
     };
 
     let sheet = Stylesheet::as_arc(&stylesheet);
-    Stylesheet::update_from_str(&sheet, input, url_data,
-                                loader, &RustLogReporter);
+    Stylesheet::update_from_str(&sheet, input, url_data, loader,
+                                &RustLogReporter, line_number_offset as u64);
 }
 
 #[no_mangle]
@@ -782,16 +785,24 @@ macro_rules! impl_basic_rule_funcs {
         to_css: $to_css:ident,
     } => {
         #[no_mangle]
-        pub extern "C" fn $getter(rules: ServoCssRulesBorrowed, index: u32) -> Strong<$raw_type> {
-            read_locked_arc(rules, |rules: &CssRules| {
-                match rules.0[index as usize] {
-                    CssRule::$name(ref rule) => rule.clone().into_strong(),
-                    _ => {
-                        unreachable!(concat!(stringify!($getter), "should only be called ",
-                                             "on a ", stringify!($name), " rule"));
-                    }
+        pub extern "C" fn $getter(rules: ServoCssRulesBorrowed, index: u32,
+                                  line: *mut u32, column: *mut u32)
+            -> Strong<$raw_type> {
+            let global_style_data = &*GLOBAL_STYLE_DATA;
+            let guard = global_style_data.shared_lock.read();
+            let rules = Locked::<CssRules>::as_arc(&rules).read_with(&guard);
+            match rules.0[index as usize] {
+                CssRule::$name(ref rule) => {
+                    let location = rule.read_with(&guard).source_location;
+                    *unsafe { line.as_mut().unwrap() } = location.line as u32;
+                    *unsafe { column.as_mut().unwrap() } = location.column as u32;
+                    rule.clone().into_strong()
+                },
+                _ => {
+                    unreachable!(concat!(stringify!($getter), "should only be called ",
+                                         "on a ", stringify!($name), " rule"));
                 }
-            })
+            }
         }
 
         #[no_mangle]
@@ -924,7 +935,7 @@ pub extern "C" fn Servo_NamespaceRule_GetURI(rule: RawServoNamespaceRuleBorrowed
 #[no_mangle]
 pub extern "C" fn Servo_PageRule_GetStyle(rule: RawServoPageRuleBorrowed) -> RawServoDeclarationBlockStrong {
     read_locked_arc(rule, |rule: &PageRule| {
-        rule.0.clone().into_strong()
+        rule.block.clone().into_strong()
     })
 }
 
@@ -933,7 +944,7 @@ pub extern "C" fn Servo_PageRule_SetStyle(rule: RawServoPageRuleBorrowed,
                                            declarations: RawServoDeclarationBlockBorrowed) {
     let declarations = Locked::<PropertyDeclarationBlock>::as_arc(&declarations);
     write_locked_arc(rule, |rule: &mut PageRule| {
-        rule.0 = declarations.clone();
+        rule.block = declarations.clone();
     })
 }
 

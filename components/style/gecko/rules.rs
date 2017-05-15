@@ -117,7 +117,9 @@ impl ToNsCssValue for Vec<UnicodeRange> {
 impl From<FontFaceRuleData> for FontFaceRule {
     fn from(data: FontFaceRuleData) -> FontFaceRule {
         let mut result = unsafe {
-            UniqueRefPtr::from_addrefed(bindings::Gecko_CSSFontFaceRule_Create())
+            UniqueRefPtr::from_addrefed(bindings::Gecko_CSSFontFaceRule_Create(
+                data.source_location.line as u32, data.source_location.column as u32
+            ))
         };
         data.set_descriptors(&mut result.mDecl.mDescriptors);
         result.get()

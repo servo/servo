@@ -1024,6 +1024,7 @@ dependencies = [
 name = "gfx_tests"
 version = "0.0.1"
 dependencies = [
+ "cssparser 0.13.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx 0.0.1",
  "ipc-channel 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",

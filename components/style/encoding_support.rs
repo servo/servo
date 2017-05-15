@@ -88,6 +88,7 @@ impl Stylesheet {
                               &string,
                               url_data,
                               stylesheet_loader,
-                              error_reporter)
+                              error_reporter,
+                              0)
     }
 }

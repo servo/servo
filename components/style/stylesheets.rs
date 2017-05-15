@@ -10,7 +10,7 @@ use {Atom, Prefix, Namespace};
 use context::QuirksMode;
 use counter_style::{CounterStyleRule, parse_counter_style_name, parse_counter_style_body};
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser};
-use cssparser::{AtRuleType, RuleListParser, parse_one_rule};
+use cssparser::{AtRuleType, RuleListParser, parse_one_rule, SourceLocation};
 use cssparser::ToCss as ParserToCss;
 use document_condition::DocumentCondition;
 use error_reporting::{ParseErrorReporter, NullReporter};
@@ -489,12 +489,22 @@ impl ToCssWithGuard for CssRule {
     }
 }
 
+/// Calculates the location of a rule's source given an offset.
+fn get_location_with_offset(location: SourceLocation, offset: u64)
+    -> SourceLocation {
+    SourceLocation {
+        line: location.line + offset as usize - 1,
+        column: location.column,
+    }
+}
+
 #[derive(Debug, PartialEq)]
 #[allow(missing_docs)]
 pub struct NamespaceRule {
     /// `None` for the default Namespace
     pub prefix: Option<Prefix>,
     pub url: Namespace,
+    pub source_location: SourceLocation,
 }
 
 impl ToCssWithGuard for NamespaceRule {
@@ -581,6 +591,7 @@ impl ToCssWithGuard for KeyframesRule {
 pub struct MediaRule {
     pub media_queries: Arc<Locked<MediaList>>,
     pub rules: Arc<Locked<CssRules>>,
+    pub source_location: SourceLocation,
 }
 
 impl ToCssWithGuard for MediaRule {
@@ -609,6 +620,8 @@ pub struct SupportsRule {
     pub rules: Arc<Locked<CssRules>>,
     /// The result of evaluating the condition
     pub enabled: bool,
+    /// The line and column of the rule's source code.
+    pub source_location: SourceLocation,
 }
 
 impl ToCssWithGuard for SupportsRule {
@@ -630,15 +643,19 @@ impl ToCssWithGuard for SupportsRule {
 ///
 /// [page]: https://drafts.csswg.org/css2/page.html#page-box
 /// [page-selectors]: https://drafts.csswg.org/css2/page.html#page-selectors
+#[allow(missing_docs)]
 #[derive(Debug)]
-pub struct PageRule(pub Arc<Locked<PropertyDeclarationBlock>>);
+pub struct PageRule {
+    pub block: Arc<Locked<PropertyDeclarationBlock>>,
+    pub source_location: SourceLocation,
+}
 
 impl ToCssWithGuard for PageRule {
     // Serialization of PageRule is not specced, adapted from steps for StyleRule.
     fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
     where W: fmt::Write {
         dest.write_str("@page { ")?;
-        let declaration_block = self.0.read_with(guard);
+        let declaration_block = self.block.read_with(guard);
         declaration_block.to_css(dest)?;
         if declaration_block.declarations().len() > 0 {
             write!(dest, " ")?;
@@ -652,6 +669,7 @@ impl ToCssWithGuard for PageRule {
 pub struct StyleRule {
     pub selectors: SelectorList<SelectorImpl>,
     pub block: Arc<Locked<PropertyDeclarationBlock>>,
+    pub source_location: SourceLocation,
 }
 
 impl ToCssWithGuard for StyleRule {
@@ -686,6 +704,8 @@ pub struct DocumentRule {
     pub condition: DocumentCondition,
     /// Child rules
     pub rules: Arc<Locked<CssRules>>,
+    /// The line and column of the rule's source code.
+    pub source_location: SourceLocation,
 }
 
 impl ToCssWithGuard for DocumentRule {
@@ -708,15 +728,15 @@ impl Stylesheet {
                            css: &str,
                            url_data: &UrlExtraData,
                            stylesheet_loader: Option<&StylesheetLoader>,
-                           error_reporter: &ParseErrorReporter) {
+                           error_reporter: &ParseErrorReporter,
+                           line_number_offset: u64) {
         let mut namespaces = Namespaces::default();
         // FIXME: we really should update existing.url_data with the given url_data,
         // otherwise newly inserted rule may not have the right base url.
         let (rules, dirty_on_viewport_size_change) = Stylesheet::parse_rules(
             css, url_data, existing.origin, &mut namespaces,
             &existing.shared_lock, stylesheet_loader, error_reporter,
-            existing.quirks_mode, 0u64);
-
+            existing.quirks_mode, line_number_offset);
         *existing.namespaces.write() = namespaces;
         existing.dirty_on_viewport_size_change
             .store(dirty_on_viewport_size_change, Ordering::Release);
@@ -996,21 +1016,21 @@ pub enum VendorPrefix {
 
 enum AtRulePrelude {
     /// A @font-face rule prelude.
-    FontFace,
+    FontFace(SourceLocation),
     /// A @counter-style rule prelude, with its counter style name.
     CounterStyle(CustomIdent),
     /// A @media rule prelude, with its media queries.
-    Media(Arc<Locked<MediaList>>),
+    Media(Arc<Locked<MediaList>>, SourceLocation),
     /// An @supports rule, with its conditional
-    Supports(SupportsCondition),
+    Supports(SupportsCondition, SourceLocation),
     /// A @viewport rule prelude.
     Viewport,
     /// A @keyframes rule, with its animation name and vendor prefix if exists.
     Keyframes(KeyframesName, Option<VendorPrefix>),
     /// A @page rule prelude.
-    Page,
+    Page(SourceLocation),
     /// A @document rule, with its conditional.
-    Document(DocumentCondition),
+    Document(DocumentCondition, SourceLocation),
 }
 
 
@@ -1066,6 +1086,9 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                 if self.state.get() <= State::Namespaces {
                     self.state.set(State::Namespaces);
 
+                    let location = get_location_with_offset(input.current_source_location(),
+                                                            self.context.line_number_offset);
+
                     let prefix_result = input.try(|input| input.expect_ident());
                     let url = Namespace::from(try!(input.expect_url_or_string()));
 
@@ -1082,6 +1105,7 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                         self.shared_lock.wrap(NamespaceRule {
                             prefix: opt_prefix,
                             url: url,
+                            source_location: location,
                         })
                     ))))
                 } else {
@@ -1176,18 +1200,20 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
 
     fn parse_prelude(&mut self, name: &str, input: &mut Parser)
                      -> Result<AtRuleType<AtRulePrelude, CssRule>, ()> {
+        let location = get_location_with_offset(input.current_source_location(),
+                                                self.context.line_number_offset);
         match_ignore_ascii_case! { name,
             "media" => {
                 let media_queries = parse_media_query_list(self.context, input);
                 let arc = Arc::new(self.shared_lock.wrap(media_queries));
-                Ok(AtRuleType::WithBlock(AtRulePrelude::Media(arc)))
+                Ok(AtRuleType::WithBlock(AtRulePrelude::Media(arc, location)))
             },
             "supports" => {
                 let cond = SupportsCondition::parse(input)?;
-                Ok(AtRuleType::WithBlock(AtRulePrelude::Supports(cond)))
+                Ok(AtRuleType::WithBlock(AtRulePrelude::Supports(cond, location)))
             },
             "font-face" => {
-                Ok(AtRuleType::WithBlock(AtRulePrelude::FontFace))
+                Ok(AtRuleType::WithBlock(AtRulePrelude::FontFace(location)))
             },
             "counter-style" => {
                 if !cfg!(feature = "gecko") {
@@ -1229,7 +1255,7 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
             },
             "page" => {
                 if cfg!(feature = "gecko") {
-                    Ok(AtRuleType::WithBlock(AtRulePrelude::Page))
+                    Ok(AtRuleType::WithBlock(AtRulePrelude::Page(location)))
                 } else {
                     Err(())
                 }
@@ -1237,7 +1263,7 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
             "-moz-document" => {
                 if cfg!(feature = "gecko") {
                     let cond = DocumentCondition::parse(self.context, input)?;
-                    Ok(AtRuleType::WithBlock(AtRulePrelude::Document(cond)))
+                    Ok(AtRuleType::WithBlock(AtRulePrelude::Document(cond, location)))
                 } else {
                     Err(())
                 }
@@ -1248,28 +1274,30 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
 
     fn parse_block(&mut self, prelude: AtRulePrelude, input: &mut Parser) -> Result<CssRule, ()> {
         match prelude {
-            AtRulePrelude::FontFace => {
+            AtRulePrelude::FontFace(location) => {
                 let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::FontFace));
                 Ok(CssRule::FontFace(Arc::new(self.shared_lock.wrap(
-                   parse_font_face_block(&context, input).into()))))
+                   parse_font_face_block(&context, input, location).into()))))
             }
             AtRulePrelude::CounterStyle(name) => {
                 let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::CounterStyle));
                 Ok(CssRule::CounterStyle(Arc::new(self.shared_lock.wrap(
                    parse_counter_style_body(name, &context, input)?))))
             }
-            AtRulePrelude::Media(media_queries) => {
+            AtRulePrelude::Media(media_queries, location) => {
                 Ok(CssRule::Media(Arc::new(self.shared_lock.wrap(MediaRule {
                     media_queries: media_queries,
                     rules: self.parse_nested_rules(input, CssRuleType::Media),
+                    source_location: location,
                 }))))
             }
-            AtRulePrelude::Supports(cond) => {
+            AtRulePrelude::Supports(cond, location) => {
                 let enabled = cond.eval(self.context);
                 Ok(CssRule::Supports(Arc::new(self.shared_lock.wrap(SupportsRule {
                     condition: cond,
                     rules: self.parse_nested_rules(input, CssRuleType::Supports),
                     enabled: enabled,
+                    source_location: location,
                 }))))
             }
             AtRulePrelude::Viewport => {
@@ -1285,18 +1313,20 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                     vendor_prefix: prefix,
                 }))))
             }
-            AtRulePrelude::Page => {
+            AtRulePrelude::Page(location) => {
                 let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::Page));
                 let declarations = parse_property_declaration_list(&context, input);
-                Ok(CssRule::Page(Arc::new(self.shared_lock.wrap(PageRule(
-                    Arc::new(self.shared_lock.wrap(declarations))
-                )))))
+                Ok(CssRule::Page(Arc::new(self.shared_lock.wrap(PageRule {
+                    block: Arc::new(self.shared_lock.wrap(declarations)),
+                    source_location: location,
+                }))))
             }
-            AtRulePrelude::Document(cond) => {
+            AtRulePrelude::Document(cond, location) => {
                 if cfg!(feature = "gecko") {
                     Ok(CssRule::Document(Arc::new(self.shared_lock.wrap(DocumentRule {
                         condition: cond,
                         rules: self.parse_nested_rules(input, CssRuleType::Document),
+                        source_location: location,
                     }))))
                 } else {
                     unreachable!()
@@ -1320,11 +1350,14 @@ impl<'a, 'b> QualifiedRuleParser for NestedRuleParser<'a, 'b> {
 
     fn parse_block(&mut self, prelude: SelectorList<SelectorImpl>, input: &mut Parser)
                    -> Result<CssRule, ()> {
+        let location = get_location_with_offset(input.current_source_location(),
+                                                self.context.line_number_offset);
         let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::Style));
         let declarations = parse_property_declaration_list(&context, input);
         Ok(CssRule::Style(Arc::new(self.shared_lock.wrap(StyleRule {
             selectors: prelude,
-            block: Arc::new(self.shared_lock.wrap(declarations))
+            block: Arc::new(self.shared_lock.wrap(declarations)),
+            source_location: location,
         }))))
     }
 }
