@@ -120,16 +120,19 @@ ${helpers.single_keyword("clip-rule", "nonzero evenodd",
 
 ${helpers.predefined_type("marker-start", "UrlOrNone", "Either::Second(None_)",
                           products="gecko",
+                          boxed="True" if product == "gecko" else "False",
                           animation_value_type="none",
                           spec="https://www.w3.org/TR/SVG2/painting.html#VertexMarkerProperties")}
 
 ${helpers.predefined_type("marker-mid", "UrlOrNone", "Either::Second(None_)",
                           products="gecko",
+                          boxed="True" if product == "gecko" else "False",
                           animation_value_type="none",
                           spec="https://www.w3.org/TR/SVG2/painting.html#VertexMarkerProperties")}
 
 ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
                           products="gecko",
+                          boxed="True" if product == "gecko" else "False",
                           animation_value_type="none",
                           spec="https://www.w3.org/TR/SVG2/painting.html#VertexMarkerProperties")}
 

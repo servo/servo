@@ -82,14 +82,34 @@ pub type ImageRect = GenericImageRect<NumberOrPercentage>;
 
 impl Parse for Image {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Image, ()> {
-        if let Ok(url) = input.try(|input| SpecifiedUrl::parse(context, input)) {
-            return Ok(GenericImage::Url(url));
+        #[cfg(feature = "gecko")]
+        {
+          if let Ok(mut url) = input.try(|input| SpecifiedUrl::parse(context, input)) {
+              url.build_image_value();
+              return Ok(GenericImage::Url(url));
+          }
+        }
+        #[cfg(feature = "servo")]
+        {
+          if let Ok(url) = input.try(|input| SpecifiedUrl::parse(context, input)) {
+              return Ok(GenericImage::Url(url));
+          }
         }
         if let Ok(gradient) = input.try(|i| Gradient::parse(context, i)) {
             return Ok(GenericImage::Gradient(gradient));
         }
-        if let Ok(image_rect) = input.try(|input| ImageRect::parse(context, input)) {
-            return Ok(GenericImage::Rect(image_rect));
+        #[cfg(feature = "gecko")]
+        {
+            if let Ok(mut image_rect) = input.try(|input| ImageRect::parse(context, input)) {
+                image_rect.url.build_image_value();
+                return Ok(GenericImage::Rect(image_rect));
+            }
+        }
+        #[cfg(feature = "servo")]
+        {
+            if let Ok(image_rect) = input.try(|input| ImageRect::parse(context, input)) {
+                return Ok(GenericImage::Rect(image_rect));
+            }
         }
 
         Ok(GenericImage::Element(Image::parse_element(input)?))
