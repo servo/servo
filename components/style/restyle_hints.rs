@@ -9,14 +9,13 @@
 use Atom;
 use dom::TElement;
 use element_state::*;
-use fnv::FnvHashMap;
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs::nsRestyleHint;
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
 use selector_parser::{AttrValue, NonTSPseudoClass, PseudoElement, SelectorImpl, Snapshot, SnapshotMap};
 use selectors::{Element, MatchAttr};
-use selectors::matching::{ElementSelectorFlags, MatchingContext};
+use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode};
 use selectors::matching::matches_selector;
 use selectors::parser::{AttrSelector, Combinator, Component, Selector};
 use selectors::parser::{SelectorInner, SelectorMethods};
@@ -406,6 +405,14 @@ impl<'a, E> Element for ElementWrapper<'a, E>
         }
     }
 
+    fn match_pseudo_element(&self,
+                            pseudo_element: &PseudoElement,
+                            context: &mut MatchingContext)
+                            -> bool
+    {
+        self.element.match_pseudo_element(pseudo_element, context)
+    }
+
     fn parent_element(&self) -> Option<Self> {
         self.element.parent_element()
             .map(|e| ElementWrapper::new(e, self.snapshot_map))
@@ -475,6 +482,11 @@ impl<'a, E> Element for ElementWrapper<'a, E>
             _   => self.element.each_class(callback)
         }
     }
+
+    fn pseudo_element_originating_element(&self) -> Option<Self> {
+        self.element.closest_non_native_anonymous_ancestor()
+            .map(|e| ElementWrapper::new(e, self.snapshot_map))
+    }
 }
 
 fn selector_to_state(sel: &Component<SelectorImpl>) -> ElementState {
@@ -507,6 +519,9 @@ fn combinator_to_restyle_hint(combinator: Option<Combinator>) -> RestyleHint {
     match combinator {
         None => RESTYLE_SELF,
         Some(c) => match c {
+            // NB: RESTYLE_SELF is needed to handle properly eager pseudos,
+            // otherwise we may leave a stale style on the parent.
+            Combinator::PseudoElement => RESTYLE_SELF | RESTYLE_DESCENDANTS,
             Combinator::Child => RESTYLE_DESCENDANTS,
             Combinator::Descendant => RESTYLE_DESCENDANTS,
             Combinator::NextSibling => RESTYLE_LATER_SIBLINGS,
@@ -634,13 +649,6 @@ impl SelectorVisitor for SensitivitiesVisitor {
 #[derive(Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct DependencySet {
-    /// A map used for pseudo-element's dependencies.
-    ///
-    /// Note that pseudo-elements are somewhat special, because some of them in
-    /// Gecko track state, and also because they don't do selector-matching as
-    /// normal, but against their parent element.
-    pseudo_dependencies: FnvHashMap<PseudoElement, SelectorMap<PseudoElementDependency>>,
-
     /// This is for all other normal element's selectors/selector parts.
     dependencies: SelectorMap<Dependency>,
 }
@@ -668,34 +676,9 @@ impl DependencySet {
                 index += 1; // Account for the simple selector.
             }
 
-
-            let pseudo_selector_is_state_dependent =
-                sequence_start == 0 &&
-                selector.pseudo_element.as_ref().map_or(false, |pseudo_selector| {
-                    !pseudo_selector.state().is_empty()
-                });
-
-            if pseudo_selector_is_state_dependent {
-                let pseudo_selector = selector.pseudo_element.as_ref().unwrap();
-                self.pseudo_dependencies
-                    .entry(pseudo_selector.pseudo_element().clone())
-                    .or_insert_with(SelectorMap::new)
-                    .insert(PseudoElementDependency {
-                        selector: selector.clone(),
-                    });
-            }
-
             // If we found a sensitivity, add an entry in the dependency set.
             if !visitor.sensitivities.is_empty() {
-                let mut hint = combinator_to_restyle_hint(combinator);
-
-                if sequence_start == 0 && selector.pseudo_element.is_some() {
-                    // FIXME(emilio): Be more granular about this. See the
-                    // comment in `PseudoElementDependency` about how could this
-                    // be modified in order to be more efficient and restyle
-                    // less.
-                    hint |= RESTYLE_DESCENDANTS;
-                }
+                let hint = combinator_to_restyle_hint(combinator);
 
                 let dep_selector = if sequence_start == 0 {
                     // Reuse the bloom hashes if this is the base selector.
@@ -724,82 +707,22 @@ impl DependencySet {
     pub fn new() -> Self {
         DependencySet {
             dependencies: SelectorMap::new(),
-            pseudo_dependencies: FnvHashMap::default(),
         }
     }
 
     /// Return the total number of dependencies that this set contains.
     pub fn len(&self) -> usize {
-        self.dependencies.len() +
-            self.pseudo_dependencies.values().fold(0, |acc, val| acc + val.len())
+        self.dependencies.len()
     }
 
     /// Clear this dependency set.
     pub fn clear(&mut self) {
         self.dependencies = SelectorMap::new();
-        self.pseudo_dependencies.clear()
     }
 
-    fn compute_pseudo_hint<E>(
-        &self,
-        pseudo: &E,
-        pseudo_element: PseudoElement,
-        snapshots: &SnapshotMap)
-        -> RestyleHint
-        where E: TElement,
-    {
-        debug!("compute_pseudo_hint: {:?}, {:?}", pseudo, pseudo_element);
-        debug_assert!(pseudo.has_snapshot());
-
-        let map = match self.pseudo_dependencies.get(&pseudo_element) {
-            Some(map) => map,
-            None => return RestyleHint::empty(),
-        };
-
-        // Only pseudo-element's state is relevant.
-        let pseudo_state_changes =
-            ElementWrapper::new(*pseudo, snapshots).state_changes();
-
-        debug!("pseudo_state_changes: {:?}", pseudo_state_changes);
-        if pseudo_state_changes.is_empty() {
-            return RestyleHint::empty();
-        }
-
-        let selector_matching_target =
-            pseudo.closest_non_native_anonymous_ancestor().unwrap();
-
-        // Note that we rely on that, if the originating element changes, it'll
-        // post a restyle hint that would make us redo selector matching, so we
-        // don't need to care about that.
-        //
-        // If that ever changes, we'd need to share more code with
-        // `compute_element_hint`.
-        let mut hint = RestyleHint::empty();
-        map.lookup(selector_matching_target, &mut |dep| {
-            // If the selector didn't match before, it either doesn't match now
-            // either (or it doesn't matter because our parent posted a restyle
-            // for us above).
-            if !matches_selector(&dep.selector.inner, &selector_matching_target,
-                                 None, &mut MatchingContext::default(),
-                                 &mut |_, _| {}) {
-                return true;
-            }
-
-            let pseudo_selector = dep.selector.pseudo_element.as_ref().unwrap();
-            debug_assert!(!pseudo_selector.state().is_empty());
-
-            if pseudo_selector.state().intersects(pseudo_state_changes) {
-                hint = RESTYLE_SELF;
-                return false;
-            }
-
-            true
-        });
-
-        hint
-    }
-
-    fn compute_element_hint<E>(
+    /// Compute a restyle hint given an element and a snapshot, per the rules
+    /// explained in the rest of the documentation.
+    pub fn compute_hint<E>(
         &self,
         el: &E,
         snapshots: &SnapshotMap)
@@ -838,8 +761,18 @@ impl DependencySet {
             });
         }
 
+        // FIXME(emilio): A bloom filter here would be neat.
+        let mut matching_context =
+            MatchingContext::new(MatchingMode::Normal, None);
+
+        let lookup_element = if el.implemented_pseudo_element().is_some() {
+            el.closest_non_native_anonymous_ancestor().unwrap()
+        } else {
+            *el
+        };
+
         self.dependencies
-            .lookup_with_additional(*el, additional_id, &additional_classes, &mut |dep| {
+            .lookup_with_additional(lookup_element, additional_id, &additional_classes, &mut |dep| {
             trace!("scanning dependency: {:?}", dep);
             if !dep.sensitivities.sensitive_to(attrs_changed,
                                                state_changes) {
@@ -856,12 +789,12 @@ impl DependencySet {
             // been set during original matching for any element that might
             // change its matching behavior here.
             let matched_then =
-                matches_selector(&dep.selector, &snapshot_el, None,
-                                 &mut MatchingContext::default(),
+                matches_selector(&dep.selector, &snapshot_el,
+                                 &mut matching_context,
                                  &mut |_, _| {});
             let matches_now =
-                matches_selector(&dep.selector, el, None,
-                                 &mut MatchingContext::default(),
+                matches_selector(&dep.selector, el,
+                                 &mut matching_context,
                                  &mut |_, _| {});
             if matched_then != matches_now {
                 hint.insert(dep.hint);
@@ -874,22 +807,5 @@ impl DependencySet {
                hint, el, el.get_state(), self.len());
 
         hint
-    }
-
-
-    /// Compute a restyle hint given an element and a snapshot, per the rules
-    /// explained in the rest of the documentation.
-    pub fn compute_hint<E>(&self,
-                           el: &E,
-                           snapshots: &SnapshotMap)
-                           -> RestyleHint
-        where E: TElement + Clone,
-    {
-        debug!("DependencySet::compute_hint({:?})", el);
-        if let Some(pseudo) = el.implemented_pseudo_element() {
-            return self.compute_pseudo_hint(el, pseudo, snapshots);
-        }
-
-        self.compute_element_hint(el, snapshots)
     }
 }

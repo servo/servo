@@ -3,14 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::ToCss;
+use gecko_like_types;
 use gecko_like_types::*;
+use parser;
 use parser::*;
 use precomputed_hash::PrecomputedHash;
 use std::fmt;
 use visitor::SelectorVisitor;
 
-size_of_test!(size_of_selector, Selector<Impl>, 72);
-size_of_test!(size_of_pseudo_element, PseudoElementSelector, 16);
+size_of_test!(size_of_selector, Selector<Impl>, 48);
+size_of_test!(size_of_pseudo_element, gecko_like_types::PseudoElement, 1);
 size_of_test!(size_of_selector_inner, SelectorInner<Impl>, 40);
 size_of_test!(size_of_complex_selector, ComplexSelector<Impl>, 24);
 
@@ -18,6 +20,9 @@ size_of_test!(size_of_component, Component<Impl>, 64);
 size_of_test!(size_of_attr_selector, AttrSelector<Impl>, 48);
 size_of_test!(size_of_pseudo_class, PseudoClass, 24);
 
+impl parser::PseudoElement for gecko_like_types::PseudoElement {
+    type Impl = Impl;
+}
 
 // Boilerplate
 
@@ -31,7 +36,7 @@ impl SelectorImpl for Impl {
     type BorrowedLocalName = Atom;
     type BorrowedNamespaceUrl = Atom;
     type NonTSPseudoClass = PseudoClass;
-    type PseudoElementSelector = PseudoElementSelector;
+    type PseudoElement = gecko_like_types::PseudoElement;
 }
 
 impl SelectorMethods for PseudoClass {
@@ -45,7 +50,7 @@ impl ToCss for PseudoClass {
     fn to_css<W>(&self, _: &mut W) -> fmt::Result where W: fmt::Write { unimplemented!() }
 }
 
-impl ToCss for PseudoElementSelector {
+impl ToCss for gecko_like_types::PseudoElement {
     fn to_css<W>(&self, _: &mut W) -> fmt::Result where W: fmt::Write { unimplemented!() }
 }
 

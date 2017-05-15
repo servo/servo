@@ -652,6 +652,14 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
         self.element.namespace()
     }
 
+    fn match_pseudo_element(&self,
+                            _pseudo: &PseudoElement,
+                            _context: &mut MatchingContext)
+                            -> bool
+    {
+        false
+    }
+
     fn match_non_ts_pseudo_class<F>(&self,
                                     pseudo_class: &NonTSPseudoClass,
                                     _: &mut MatchingContext,
@@ -1148,6 +1156,14 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
     #[inline]
     fn get_namespace(&self) -> &Namespace {
         self.element.get_namespace()
+    }
+
+    fn match_pseudo_element(&self,
+                            _pseudo: &PseudoElement,
+                            _context: &mut MatchingContext)
+                            -> bool
+    {
+        false
     }
 
     fn match_non_ts_pseudo_class<F>(&self,

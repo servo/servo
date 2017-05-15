@@ -19,9 +19,6 @@ pub enum PseudoElement {
     B,
 }
 
-#[derive(Eq, PartialEq, Clone, Debug)]
-pub struct PseudoElementSelector(PseudoElement, u64);
-
 #[derive(Eq, PartialEq, Clone, Debug, Default)]
 pub struct Atom(usize);
 
