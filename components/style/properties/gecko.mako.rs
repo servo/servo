@@ -4160,8 +4160,11 @@ clip-path
                             // When we support <custom-ident> values for list-style-type this will need to be updated
                             array[2].set_atom_ident(style.to_css_string().into());
                         }
-                        ContentItem::Url(url) => {
-                            unsafe { bindings::Gecko_SetContentDataImage(&mut self.gecko.mContents[i], url.for_ffi()) }
+                        ContentItem::Url(ref url) => {
+                            unsafe {
+                                bindings::Gecko_SetContentDataImageValue(&mut self.gecko.mContents[i],
+                                    url.image_value.clone().unwrap().get())
+                            }
                         }
                     }
                 }
