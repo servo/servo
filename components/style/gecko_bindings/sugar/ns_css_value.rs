@@ -213,6 +213,13 @@ impl nsCSSValue {
             *self.mValue.mFloat.as_mut() = value;
         }
     }
+
+    /// Set to a pair value
+    ///
+    /// This is only supported on the main thread.
+    pub fn set_pair(&mut self, x: &nsCSSValue, y: &nsCSSValue) {
+        unsafe { bindings::Gecko_CSSValue_SetPair(self, x, y) }
+    }
 }
 
 impl Drop for nsCSSValue {

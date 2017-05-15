@@ -180,14 +180,14 @@ impl ToNsCssValue for counter_style::System {
                 let mut b = nsCSSValue::null();
                 a.set_enum(structs::NS_STYLE_COUNTER_SYSTEM_FIXED as i32);
                 b.set_integer(first_symbol_value.unwrap_or(1));
-                //nscssvalue.set_pair(a, b);  // FIXME: add bindings for nsCSSValue::SetPairValue
+                nscssvalue.set_pair(&a, &b);
             }
             Extends(ref other) => {
                 let mut a = nsCSSValue::null();
                 let mut b = nsCSSValue::null();
                 a.set_enum(structs::NS_STYLE_COUNTER_SYSTEM_EXTENDS as i32);
                 b.set_string_from_atom(&other.0);
-                //nscssvalue.set_pair(a, b);  // FIXME: add bindings for nsCSSValue::SetPairValue
+                nscssvalue.set_pair(&a, &b);
             }
         }
     }
@@ -200,7 +200,7 @@ impl ToNsCssValue for counter_style::Negative {
             let mut b = nsCSSValue::null();
             a.set_from(&self.0);
             b.set_from(second);
-            //nscssvalue.set_pair(a, b);  // FIXME: add bindings for nsCSSValue::SetPairValue
+            nscssvalue.set_pair(&a, &b);
         } else {
             nscssvalue.set_from(&self.0)
         }
@@ -240,13 +240,12 @@ impl ToNsCssValue for counter_style::Ranges {
 }
 
 impl ToNsCssValue for counter_style::Pad {
-    fn convert(&self, _nscssvalue: &mut nsCSSValue) {
+    fn convert(&self, nscssvalue: &mut nsCSSValue) {
         let mut min_length = nsCSSValue::null();
         let mut pad_with = nsCSSValue::null();
         min_length.set_integer(self.0 as i32);
         pad_with.set_from(&self.1);
-        // FIXME: add bindings for nsCSSValue::SetPairValue
-        //nscssvalue.set_pair(min_length, pad_with);
+        nscssvalue.set_pair(&min_length, &pad_with);
     }
 }
 
