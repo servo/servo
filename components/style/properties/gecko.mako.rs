@@ -3626,9 +3626,7 @@ fn static_assert() {
         }
 
         self.clear_overflow_sides_if_string();
-        if v.second.is_none() {
-            self.gecko.mTextOverflow.mLogicalDirections = true;
-        }
+        self.gecko.mTextOverflow.mLogicalDirections = v.second.is_none();
 
         let SpecifiedValue { ref first, ref second } = v;
         let second = second.as_ref().unwrap_or(&first);
