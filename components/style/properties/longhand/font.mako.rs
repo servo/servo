@@ -721,7 +721,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                 // XXXManishearth handle quirks mode
 
                 let ref gecko_font = cx.style().get_font().gecko();
-                let base_size = unsafe { Atom::with(gecko_font.mLanguage.raw::<nsIAtom>(), &mut |atom| {
+                let base_size = unsafe { Atom::with(gecko_font.mLanguage.raw::<nsIAtom>(), |atom| {
                     cx.font_metrics_provider.get_size(atom, gecko_font.mGenericID).0
                 }) };
 

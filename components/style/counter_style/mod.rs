@@ -49,9 +49,9 @@ pub fn parse_counter_style_name(input: &mut Parser) -> Result<CustomIdent, ()> {
 
 /// Parse the body (inside `{}`) of an @counter-style rule
 pub fn parse_counter_style_body(name: CustomIdent, context: &ParserContext, input: &mut Parser)
-                            -> Result<CounterStyleRule, ()> {
+                            -> Result<CounterStyleRuleData, ()> {
     let start = input.position();
-    let mut rule = CounterStyleRule::empty(name);
+    let mut rule = CounterStyleRuleData::empty(name);
     {
         let parser = CounterStyleRuleParser {
             context: context,
@@ -108,7 +108,7 @@ pub fn parse_counter_style_body(name: CustomIdent, context: &ParserContext, inpu
 
 struct CounterStyleRuleParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>,
-    rule: &'a mut CounterStyleRule,
+    rule: &'a mut CounterStyleRuleData,
 }
 
 /// Default methods reject all at rules.
@@ -143,7 +143,7 @@ macro_rules! counter_style_descriptors {
     ) => {
         /// An @counter-style rule
         #[derive(Debug)]
-        pub struct CounterStyleRule {
+        pub struct CounterStyleRuleData {
             name: CustomIdent,
             $(
                 #[$doc]
@@ -151,14 +151,19 @@ macro_rules! counter_style_descriptors {
             )+
         }
 
-        impl CounterStyleRule {
+        impl CounterStyleRuleData {
             fn empty(name: CustomIdent) -> Self {
-                CounterStyleRule {
+                CounterStyleRuleData {
                     name: name,
                     $(
                         $ident: None,
                     )+
                 }
+            }
+
+            /// Get the name of the counter style rule.
+            pub fn name(&self) -> &CustomIdent {
+                &self.name
             }
 
             $(
@@ -167,9 +172,9 @@ macro_rules! counter_style_descriptors {
 
             /// Convert to Gecko types
             #[cfg(feature = "gecko")]
-            pub fn set_descriptors(&self, descriptors: &mut CounterStyleDescriptors) {
+            pub fn set_descriptors(self, descriptors: &mut CounterStyleDescriptors) {
                 $(
-                    if let Some(ref value) = self.$ident {
+                    if let Some(value) = self.$ident {
                         descriptors[nsCSSCounterDesc::$gecko_ident as usize].set_from(value)
                     }
                 )*
@@ -197,7 +202,7 @@ macro_rules! counter_style_descriptors {
             }
         }
 
-        impl ToCssWithGuard for CounterStyleRule {
+        impl ToCssWithGuard for CounterStyleRuleData {
             fn to_css<W>(&self, _guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
             where W: fmt::Write {
                 dest.write_str("@counter-style ")?;
@@ -531,7 +536,7 @@ impl Parse for AdditiveSymbols {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         let tuples = Vec::<AdditiveTuple>::parse(context, input)?;
         // FIXME maybe? https://github.com/w3c/csswg-drafts/issues/1220
-        if tuples.windows(2).any(|window| window[0].value <= window[1].value) {
+        if tuples.windows(2).any(|window| window[0].weight <= window[1].weight) {
             return Err(())
         }
         Ok(AdditiveSymbols(tuples))
@@ -547,8 +552,10 @@ impl ToCss for AdditiveSymbols {
 /// <integer> && <symbol>
 #[derive(Debug, Clone)]
 pub struct AdditiveTuple {
-    value: u32,
-    symbol: Symbol,
+    /// <integer>
+    pub weight: u32,
+    /// <symbol>
+    pub symbol: Symbol,
 }
 
 impl OneOrMoreCommaSeparated for AdditiveTuple {}
@@ -556,13 +563,13 @@ impl OneOrMoreCommaSeparated for AdditiveTuple {}
 impl Parse for AdditiveTuple {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         let symbol = input.try(|input| Symbol::parse(context, input));
-        let value = input.expect_integer()?;
-        if value < 0 {
+        let weight = input.expect_integer()?;
+        if weight < 0 {
             return Err(())
         }
         let symbol = symbol.or_else(|()| Symbol::parse(context, input))?;
         Ok(AdditiveTuple {
-            value: value as u32,
+            weight: weight as u32,
             symbol: symbol,
         })
     }
@@ -570,7 +577,7 @@ impl Parse for AdditiveTuple {
 
 impl ToCss for AdditiveTuple {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        write!(dest, "{} ", self.value)?;
+        write!(dest, "{} ", self.weight)?;
         self.symbol.to_css(dest)
     }
 }

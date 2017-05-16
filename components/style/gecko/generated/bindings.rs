@@ -43,6 +43,7 @@ use gecko_bindings::structs::StyleBasicShape;
 use gecko_bindings::structs::StyleBasicShapeType;
 use gecko_bindings::structs::StyleShapeSource;
 use gecko_bindings::structs::StyleTransition;
+use gecko_bindings::structs::nsCSSCounterStyleRule;
 use gecko_bindings::structs::nsCSSFontFaceRule;
 use gecko_bindings::structs::nsCSSKeyword;
 use gecko_bindings::structs::nsCSSPropertyID;
@@ -813,7 +814,8 @@ extern "C" {
                                           aSrc: *const nsStyleVisibility);
 }
 extern "C" {
-    pub fn Gecko_SetListStyleType(style_struct: *mut nsStyleList, type_: u32);
+    pub fn Gecko_SetListStyleType(style_struct: *mut nsStyleList,
+                                  name: *mut nsIAtom);
 }
 extern "C" {
     pub fn Gecko_CopyListStyleTypeFrom(dst: *mut nsStyleList,
@@ -833,11 +835,15 @@ extern "C" {
     pub fn Gecko_ReleaseImageValueArbitraryThread(aPtr: *mut ImageValue);
 }
 extern "C" {
-    pub fn Gecko_ImageValue_Create(uri: ServoBundledURI) -> *mut ImageValue;
+    pub fn Gecko_ImageValue_Create(aURI: ServoBundledURI) -> *mut ImageValue;
 }
 extern "C" {
     pub fn Gecko_SetLayerImageImageValue(image: *mut nsStyleImage,
-                                         imageValue: *mut ImageValue);
+                                         aImageValue: *mut ImageValue);
+}
+extern "C" {
+    pub fn Gecko_SetUrlImageValue(image: *mut nsStyleImage,
+                                  uri: ServoBundledURI);
 }
 extern "C" {
     pub fn Gecko_SetImageElement(image: *mut nsStyleImage,
@@ -860,7 +866,11 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_SetListStyleImageImageValue(style_struct: *mut nsStyleList,
-    	                                     imageValue: *mut ImageValue);
+                                             aImageValue: *mut ImageValue);
+}
+extern "C" {
+    pub fn Gecko_SetListStyleImage(style_struct: *mut nsStyleList,
+                                   uri: ServoBundledURI);
 }
 extern "C" {
     pub fn Gecko_CopyListStyleImageFrom(dest: *mut nsStyleList,
@@ -871,16 +881,24 @@ extern "C" {
                                       len: usize);
 }
 extern "C" {
-    pub fn Gecko_SetCursorImageValue(cursor: *mut nsCursorImage,
-                                     imageValue: *mut ImageValue);
+    pub fn Gecko_SetCursorImageValue(aCursor: *mut nsCursorImage,
+                                     aImageValue: *mut ImageValue);
+}
+extern "C" {
+    pub fn Gecko_SetCursorImage(cursor: *mut nsCursorImage,
+                                uri: ServoBundledURI);
 }
 extern "C" {
     pub fn Gecko_CopyCursorArrayFrom(dest: *mut nsStyleUserInterface,
                                      src: *const nsStyleUserInterface);
 }
 extern "C" {
-    pub fn Gecko_SetContentDataImageValue(content_data: *mut nsStyleContentData,
-                                    imageValue: *mut ImageValue);
+    pub fn Gecko_SetContentDataImageValue(aList: *mut nsStyleContentData,
+                                          aImageValue: *mut ImageValue);
+}
+extern "C" {
+    pub fn Gecko_SetContentDataImage(content_data: *mut nsStyleContentData,
+                                     uri: ServoBundledURI);
 }
 extern "C" {
     pub fn Gecko_SetContentDataArray(content_data: *mut nsStyleContentData,
@@ -1158,9 +1176,6 @@ extern "C" {
                                             len: nscoord);
 }
 extern "C" {
-    pub fn Gecko_CSSValue_SetNormal(css_value: nsCSSValueBorrowedMut);
-}
-extern "C" {
     pub fn Gecko_CSSValue_SetNumber(css_value: nsCSSValueBorrowedMut,
                                     number: f32);
 }
@@ -1205,6 +1220,18 @@ extern "C" {
 extern "C" {
     pub fn Gecko_CSSValue_SetInt(css_value: nsCSSValueBorrowedMut,
                                  integer: i32, unit: nsCSSUnit);
+}
+extern "C" {
+    pub fn Gecko_CSSValue_SetPair(css_value: nsCSSValueBorrowedMut,
+                                  xvalue: nsCSSValueBorrowed,
+                                  yvalue: nsCSSValueBorrowed);
+}
+extern "C" {
+    pub fn Gecko_CSSValue_SetList(css_value: nsCSSValueBorrowedMut, len: u32);
+}
+extern "C" {
+    pub fn Gecko_CSSValue_SetPairList(css_value: nsCSSValueBorrowedMut,
+                                      len: u32);
 }
 extern "C" {
     pub fn Gecko_CSSValue_Drop(css_value: nsCSSValueBorrowedMut);
@@ -1271,6 +1298,22 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_CSSFontFaceRule_Release(aPtr: *mut nsCSSFontFaceRule);
+}
+extern "C" {
+    pub fn Gecko_CSSCounterStyle_Create(name: *mut nsIAtom)
+     -> *mut nsCSSCounterStyleRule;
+}
+extern "C" {
+    pub fn Gecko_CSSCounterStyle_GetCssText(rule:
+                                                *const nsCSSCounterStyleRule,
+                                            result: *mut nsAString);
+}
+extern "C" {
+    pub fn Gecko_CSSCounterStyleRule_AddRef(aPtr: *mut nsCSSCounterStyleRule);
+}
+extern "C" {
+    pub fn Gecko_CSSCounterStyleRule_Release(aPtr:
+                                                 *mut nsCSSCounterStyleRule);
 }
 extern "C" {
     pub fn Gecko_GetBody(pres_context: RawGeckoPresContextBorrowed)
@@ -1707,6 +1750,11 @@ extern "C" {
                                                RawGeckoFontFaceRuleListBorrowedMut);
 }
 extern "C" {
+    pub fn Servo_StyleSet_GetCounterStyleRule(set: RawServoStyleSetBorrowed,
+                                              name: *mut nsIAtom)
+     -> *mut nsCSSCounterStyleRule;
+}
+extern "C" {
     pub fn Servo_StyleSet_ResolveForDeclarations(set:
                                                      RawServoStyleSetBorrowed,
                                                  parent_style:
@@ -1831,6 +1879,11 @@ extern "C" {
     pub fn Servo_CssRules_GetFontFaceRuleAt(rules: ServoCssRulesBorrowed,
                                             index: u32)
      -> *mut nsCSSFontFaceRule;
+}
+extern "C" {
+    pub fn Servo_CssRules_GetCounterStyleRuleAt(rules: ServoCssRulesBorrowed,
+                                                index: u32)
+     -> *mut nsCSSCounterStyleRule;
 }
 extern "C" {
     pub fn Servo_StyleRule_GetStyle(rule: RawServoStyleRuleBorrowed)

@@ -61,7 +61,8 @@ use style::gecko_bindings::structs;
 use style::gecko_bindings::structs::{CSSPseudoElementType, CompositeOperation};
 use style::gecko_bindings::structs::{RawServoStyleRule, ServoStyleSheet};
 use style::gecko_bindings::structs::{SheetParsingMode, nsIAtom, nsCSSPropertyID};
-use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint, nsCSSFontFaceRule};
+use style::gecko_bindings::structs::{nsCSSFontFaceRule, nsCSSCounterStyleRule};
+use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint};
 use style::gecko_bindings::structs::Loader;
 use style::gecko_bindings::structs::RawGeckoPresContextOwned;
 use style::gecko_bindings::structs::ServoElementSnapshotTable;
@@ -871,18 +872,27 @@ impl_group_rule_funcs! { (Document, DocumentRule, RawServoDocumentRule),
     to_css: Servo_DocumentRule_GetCssText,
 }
 
-#[no_mangle]
-pub extern "C" fn Servo_CssRules_GetFontFaceRuleAt(rules: ServoCssRulesBorrowed, index: u32)
-                                                   -> *mut nsCSSFontFaceRule
-{
-    let global_style_data = &*GLOBAL_STYLE_DATA;
-    let guard = global_style_data.shared_lock.read();
-    let rules = Locked::<CssRules>::as_arc(&rules).read_with(&guard);
-    match rules.0[index as usize] {
-        CssRule::FontFace(ref rule) => rule.read_with(&guard).get(),
-        _ => unreachable!("Servo_CssRules_GetFontFaceRuleAt should only be called on a FontFace rule"),
+macro_rules! impl_getter_for_embedded_rule {
+    ($getter:ident: $name:ident -> $ty:ty) => {
+        #[no_mangle]
+        pub extern "C" fn $getter(rules: ServoCssRulesBorrowed, index: u32) -> *mut $ty
+        {
+            let global_style_data = &*GLOBAL_STYLE_DATA;
+            let guard = global_style_data.shared_lock.read();
+            let rules = Locked::<CssRules>::as_arc(&rules).read_with(&guard);
+            match rules.0[index as usize] {
+                CssRule::$name(ref rule) => rule.read_with(&guard).get(),
+                _ => unreachable!(concat!(stringify!($getter), " should only be called on a ",
+                                          stringify!($name), " rule")),
+            }
+        }
     }
 }
+
+impl_getter_for_embedded_rule!(Servo_CssRules_GetFontFaceRuleAt:
+                              FontFace -> nsCSSFontFaceRule);
+impl_getter_for_embedded_rule!(Servo_CssRules_GetCounterStyleRuleAt:
+                              CounterStyle -> nsCSSCounterStyleRule);
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleRule_GetStyle(rule: RawServoStyleRuleBorrowed) -> RawServoDeclarationBlockStrong {
@@ -2375,6 +2385,19 @@ pub extern "C" fn Servo_StyleSet_GetFontFaceRules(raw_data: RawServoStyleSetBorr
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_StyleSet_GetCounterStyleRule(raw_data: RawServoStyleSetBorrowed,
+                                                     name: *mut nsIAtom) -> *mut nsCSSCounterStyleRule {
+    let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
+    unsafe {
+        Atom::with(name, |name| data.counter_styles.get(name))
+    }.map(|rule| {
+        let global_style_data = &*GLOBAL_STYLE_DATA;
+        let guard = global_style_data.shared_lock.read();
+        rule.read_with(&guard).get()
+    }).unwrap_or(ptr::null_mut())
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_StyleSet_ResolveForDeclarations(raw_data: RawServoStyleSetBorrowed,
                                                         parent_style_or_null: ServoComputedValuesBorrowedOrNull,
                                                         declarations: RawServoDeclarationBlockBorrowed)
@@ -2401,7 +2424,7 @@ pub extern "C" fn Servo_StyleSet_ResolveForDeclarations(raw_data: RawServoStyleS
 pub extern "C" fn Servo_StyleSet_MightHaveAttributeDependency(raw_data: RawServoStyleSetBorrowed,
                                                               local_name: *mut nsIAtom) -> bool {
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
-    unsafe { Atom::with(local_name, &mut |atom| data.stylist.might_have_attribute_dependency(atom)) }
+    unsafe { Atom::with(local_name, |atom| data.stylist.might_have_attribute_dependency(atom)) }
 }
 
 #[no_mangle]

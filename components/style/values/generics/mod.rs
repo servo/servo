@@ -5,9 +5,13 @@
 //! Generic types that share their serialization implementations
 //! for both specified and computed values.
 
+use counter_style::parse_counter_style_name;
+use cssparser::Parser;
 use euclid::size::Size2D;
+use parser::{Parse, ParserContext};
 use std::fmt;
 use style_traits::ToCss;
+use super::CustomIdent;
 use super::HasViewportPercentage;
 use super::computed::{Context, ToComputedValue};
 
@@ -73,5 +77,51 @@ impl<L: ToComputedValue> ToComputedValue for BorderRadiusSize<L> {
         let w = ToComputedValue::from_computed_value(&computed.0.width);
         let h = ToComputedValue::from_computed_value(&computed.0.height);
         BorderRadiusSize(Size2D::new(w, h))
+    }
+}
+
+/// https://drafts.csswg.org/css-counter-styles/#typedef-counter-style
+///
+/// Since wherever <counter-style> is used, 'none' is a valid value as
+/// well, we combine them into one type to make code simpler.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum CounterStyleOrNone {
+    /// none
+    None_,
+    /// <counter-style-name>
+    Name(CustomIdent),
+}
+
+impl CounterStyleOrNone {
+    /// disc value
+    pub fn disc() -> Self {
+        CounterStyleOrNone::Name(CustomIdent(atom!("disc")))
+    }
+
+    /// decimal value
+    pub fn decimal() -> Self {
+        CounterStyleOrNone::Name(CustomIdent(atom!("decimal")))
+    }
+}
+
+no_viewport_percentage!(CounterStyleOrNone);
+
+impl Parse for CounterStyleOrNone {
+    fn parse(_: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        input.try(|input| {
+            parse_counter_style_name(input).map(CounterStyleOrNone::Name)
+        }).or_else(|_| {
+            input.expect_ident_matching("none").map(|_| CounterStyleOrNone::None_)
+        })
+    }
+}
+
+impl ToCss for CounterStyleOrNone {
+    #[inline]
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match self {
+            &CounterStyleOrNone::None_ => dest.write_str("none"),
+            &CounterStyleOrNone::Name(ref name) => name.to_css(dest),
+        }
     }
 }

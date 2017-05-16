@@ -47,7 +47,7 @@ pub fn each_class<F, T>(item: T,
         let length = getter(item, &mut class, &mut list);
         match length {
             0 => {}
-            1 => Atom::with(class, &mut callback),
+            1 => Atom::with(class, callback),
             n => {
                 let classes = slice::from_raw_parts(list, n as usize);
                 for c in classes {
