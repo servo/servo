@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 use bloom::BloomFilter;
 use parser::{CaseSensitivity, Combinator, ComplexSelector, Component, LocalName};
-use parser::{Selector, SelectorInner, SelectorIter};
+use parser::{Selector, SelectorInner, SelectorIter, SelectorImpl};
 use std::borrow::Borrow;
 use tree::Element;
 
@@ -310,8 +310,18 @@ fn matches_simple_selector<E, F>(
             let name = if element.is_html_element_in_html_document() { lower_name } else { name };
             element.get_local_name() == name.borrow()
         }
-        Component::Namespace(ref namespace) => {
-            element.get_namespace() == namespace.url.borrow()
+        Component::ExplicitUniversalType |
+        Component::ExplicitAnyNamespace => {
+            true
+        }
+        Component::Namespace(_, ref url) |
+        Component::DefaultNamespace(ref url) => {
+            element.get_namespace() == url.borrow()
+        }
+        Component::ExplicitNoNamespace => {
+            // Rust type’s default, not default namespace
+            let empty_string = <E::Impl as SelectorImpl>::NamespaceUrl::default();
+            element.get_namespace() == empty_string.borrow()
         }
         // TODO: case-sensitivity depends on the document type and quirks mode
         Component::ID(ref id) => {
