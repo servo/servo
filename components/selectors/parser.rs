@@ -182,6 +182,19 @@ pub struct Selector<Impl: SelectorImpl> {
     pub specificity: u32,
 }
 
+impl<Impl: SelectorImpl> Selector<Impl> {
+    /// Whether this selector (pseudo-element part excluded) matches every element.
+    ///
+    /// Used for "pre-computed" pseudo-elements in components/style/stylist.rs
+    pub fn is_universal(&self) -> bool {
+        self.inner.complex.iter_raw().all(|c| matches!(*c,
+            Component::ExplicitUniversalType |
+            Component::ExplicitAnyNamespace |
+            Component::Combinator(_)
+        ))
+    }
+}
+
 pub trait SelectorMethods {
     type Impl: SelectorImpl;
 

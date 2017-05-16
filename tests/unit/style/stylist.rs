@@ -216,5 +216,5 @@ fn test_get_universal_rules() {
 
     let decls = map.get_universal_rules(CascadeLevel::UserNormal);
 
-    assert_eq!(decls.len(), 1);
+    assert_eq!(decls.len(), 1, "{:?}", decls);
 }
