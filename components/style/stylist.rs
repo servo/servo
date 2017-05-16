@@ -1366,9 +1366,20 @@ impl SelectorMap<Rule> {
 
         let mut rules_list = vec![];
         for rule in self.other.iter() {
-            if rule.selector.inner.complex.iter_raw().next().is_none() {
-                rules_list.push(rule.to_applicable_declaration_block(cascade_level));
+            let mut iter = rule.selector.inner.complex.iter_raw();
+            match iter.next() {
+                None => {}
+                Some(&Component::ExplicitUniversalType) => match iter.next() {
+                    None => {}
+                    Some(&Component::ExplicitAnyNamespace) => match iter.next() {
+                        None => {}
+                        _ => continue
+                    },
+                    _ => continue
+                },
+                _ => continue
             }
+            rules_list.push(rule.to_applicable_declaration_block(cascade_level))
         }
 
         sort_by_key(&mut rules_list,
