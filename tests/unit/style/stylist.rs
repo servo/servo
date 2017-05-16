@@ -212,9 +212,9 @@ fn test_insert() {
 #[test]
 fn test_get_universal_rules() {
     thread_state::initialize(thread_state::LAYOUT);
-    let (map, shared_lock) = get_mock_map(&["*|*", "#foo > *|*", ".klass", "#id"]);
+    let (map, shared_lock) = get_mock_map(&["*|*", "#foo > *|*", "*|* > *|*", ".klass", "#id"]);
 
     let decls = map.get_universal_rules(CascadeLevel::UserNormal);
 
-    assert_eq!(decls.len(), 1);
+    assert_eq!(decls.len(), 1, "{:?}", decls);
 }
