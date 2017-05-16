@@ -2382,6 +2382,8 @@ cfg_if! {
             pub static nsGkAtoms_splitter: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms6springE"]
             pub static nsGkAtoms_spring: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms6squareE"]
+            pub static nsGkAtoms_square: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms3srcE"]
             pub static nsGkAtoms_src: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms6srcdocE"]
@@ -7395,6 +7397,8 @@ cfg_if! {
             pub static nsGkAtoms_splitter: *mut nsIAtom;
             #[link_name = "?spring@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_spring: *mut nsIAtom;
+            #[link_name = "?square@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_square: *mut nsIAtom;
             #[link_name = "?src@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_src: *mut nsIAtom;
             #[link_name = "?srcdoc@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -12408,6 +12412,8 @@ cfg_if! {
             pub static nsGkAtoms_splitter: *mut nsIAtom;
             #[link_name = "\x01?spring@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_spring: *mut nsIAtom;
+            #[link_name = "\x01?square@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_square: *mut nsIAtom;
             #[link_name = "\x01?src@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_src: *mut nsIAtom;
             #[link_name = "\x01?srcdoc@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -17424,6 +17430,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_splitter as *mut _) } };
 ("spring") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_spring as *mut _) } };
+("square") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_square as *mut _) } };
 ("src") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_src as *mut _) } };
 ("srcdoc") =>
