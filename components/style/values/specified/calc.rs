@@ -12,6 +12,7 @@ use parser::ParserContext;
 use std::ascii::AsciiExt;
 use std::fmt;
 use style_traits::ToCss;
+use style_traits::values::specified::AllowedLengthType;
 use values::{CSSInteger, CSSFloat, HasViewportPercentage};
 use values::specified::{Angle, Time};
 use values::specified::length::{FontRelativeLength, NoCalcLength, ViewportPercentageLength};
@@ -63,6 +64,7 @@ pub enum CalcUnit {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub struct CalcLengthOrPercentage {
+    pub clamping_mode: AllowedLengthType,
     pub absolute: Option<Au>,
     pub vw: Option<CSSFloat>,
     pub vh: Option<CSSFloat>,
@@ -271,8 +273,12 @@ impl CalcNode {
 
     /// Tries to simplify this expression into a `<length>` or `<percentage`>
     /// value.
-    fn to_length_or_percentage(&self) -> Result<CalcLengthOrPercentage, ()> {
-        let mut ret = CalcLengthOrPercentage::default();
+    fn to_length_or_percentage(&self, clamping_mode: AllowedLengthType)
+                               -> Result<CalcLengthOrPercentage, ()> {
+        let mut ret = CalcLengthOrPercentage {
+            clamping_mode: clamping_mode,
+            .. Default::default()
+        };
         self.add_length_or_percentage_to(&mut ret, 1.0)?;
         Ok(ret)
     }
@@ -498,21 +504,23 @@ impl CalcNode {
     /// Convenience parsing function for `<length> | <percentage>`.
     pub fn parse_length_or_percentage(
         context: &ParserContext,
-        input: &mut Parser)
+        input: &mut Parser,
+        clamping_mode: AllowedLengthType)
         -> Result<CalcLengthOrPercentage, ()>
     {
         Self::parse(context, input, CalcUnit::LengthOrPercentage)?
-            .to_length_or_percentage()
+            .to_length_or_percentage(clamping_mode)
     }
 
     /// Convenience parsing function for `<length>`.
     pub fn parse_length(
         context: &ParserContext,
-        input: &mut Parser)
+        input: &mut Parser,
+        clamping_mode: AllowedLengthType)
         -> Result<CalcLengthOrPercentage, ()>
     {
         Self::parse(context, input, CalcUnit::Length)?
-            .to_length_or_percentage()
+            .to_length_or_percentage(clamping_mode)
     }
 
     /// Convenience parsing function for `<number>`.

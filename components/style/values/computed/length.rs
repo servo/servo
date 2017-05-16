@@ -8,6 +8,7 @@ use app_units::{Au, AU_PER_PX};
 use ordered_float::NotNaN;
 use std::fmt;
 use style_traits::ToCss;
+use style_traits::values::specified::AllowedLengthType;
 use super::{Number, ToComputedValue, Context};
 use values::{Auto, CSSFloat, Either, ExtremumLength, None_, Normal, specified};
 use values::specified::length::{AbsoluteLength, FontBaseSize, FontRelativeLength, ViewportPercentageLength};
@@ -48,7 +49,7 @@ impl ToComputedValue for specified::Length {
     fn to_computed_value(&self, context: &Context) -> Au {
         match *self {
             specified::Length::NoCalc(l) => l.to_computed_value(context),
-            specified::Length::Calc(range, ref calc) => range.clamp(calc.to_computed_value(context).length()),
+            specified::Length::Calc(ref calc) => calc.to_computed_value(context).length(),
         }
     }
 
@@ -62,15 +63,35 @@ impl ToComputedValue for specified::Length {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub struct CalcLengthOrPercentage {
-    pub length: Au,
+    pub clamping_mode: AllowedLengthType,
+    length: Au,
     pub percentage: Option<CSSFloat>,
 }
 
 impl CalcLengthOrPercentage {
+    /// Returns a new `CalcLengthOrPercentage`.
+    #[inline]
+    pub fn new(length: Au, percentage: Option<CSSFloat>) -> Self {
+        Self::with_clamping_mode(length, percentage, AllowedLengthType::All)
+    }
+
+    /// Returns a new `CalcLengthOrPercentage` with a specific clamping mode.
+    #[inline]
+    pub fn with_clamping_mode(length: Au,
+                              percentage: Option<CSSFloat>,
+                              clamping_mode: AllowedLengthType)
+                              -> Self {
+        Self {
+            clamping_mode: clamping_mode,
+            length: length,
+            percentage: percentage,
+        }
+    }
+
     #[inline]
     #[allow(missing_docs)]
     pub fn length(&self) -> Au {
-        self.length
+        self.clamping_mode.clamp(self.length)
     }
 
     #[inline]
@@ -81,10 +102,12 @@ impl CalcLengthOrPercentage {
 
     /// If there are special rules for computing percentages in a value (e.g. the height property),
     /// they apply whenever a calc() expression contains percentages.
-    pub fn to_computed(&self, container_len: Option<Au>) -> Option<Au> {
+    pub fn to_used_value(&self, container_len: Option<Au>) -> Option<Au> {
         match (container_len, self.percentage) {
-            (Some(len), Some(percent)) => Some(self.length + len.scale_by(percent)),
-            (_, None) => Some(self.length),
+            (Some(len), Some(percent)) => {
+                Some(self.clamping_mode.clamp(self.length + len.scale_by(percent)))
+            },
+            (_, None) => Some(self.length()),
             _ => None,
         }
     }
@@ -94,16 +117,10 @@ impl From<LengthOrPercentage> for CalcLengthOrPercentage {
     fn from(len: LengthOrPercentage) -> CalcLengthOrPercentage {
         match len {
             LengthOrPercentage::Percentage(this) => {
-                CalcLengthOrPercentage {
-                    length: Au(0),
-                    percentage: Some(this),
-                }
+                CalcLengthOrPercentage::new(Au(0), Some(this))
             }
             LengthOrPercentage::Length(this) => {
-                CalcLengthOrPercentage {
-                    length: this,
-                    percentage: None,
-                }
+                CalcLengthOrPercentage::new(this, None)
             }
             LengthOrPercentage::Calc(this) => {
                 this
@@ -116,16 +133,10 @@ impl From<LengthOrPercentageOrAuto> for Option<CalcLengthOrPercentage> {
     fn from(len: LengthOrPercentageOrAuto) -> Option<CalcLengthOrPercentage> {
         match len {
             LengthOrPercentageOrAuto::Percentage(this) => {
-                Some(CalcLengthOrPercentage {
-                    length: Au(0),
-                    percentage: Some(this),
-                })
+                Some(CalcLengthOrPercentage::new(Au(0), Some(this)))
             }
             LengthOrPercentageOrAuto::Length(this) => {
-                Some(CalcLengthOrPercentage {
-                    length: this,
-                    percentage: None,
-                })
+                Some(CalcLengthOrPercentage::new(this, None))
             }
             LengthOrPercentageOrAuto::Calc(this) => {
                 Some(this)
@@ -176,6 +187,7 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
         }
 
         CalcLengthOrPercentage {
+            clamping_mode: self.clamping_mode,
             length: length,
             percentage: self.percentage,
         }
@@ -184,6 +196,7 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
     #[inline]
     fn from_computed_value(computed: &CalcLengthOrPercentage) -> Self {
         specified::CalcLengthOrPercentage {
+            clamping_mode: computed.clamping_mode,
             absolute: Some(computed.length),
             percentage: computed.percentage,
             ..Default::default()
@@ -233,6 +246,17 @@ impl LengthOrPercentage {
             Length(l) => (l, NotNaN::new(0.0).unwrap()),
             Percentage(p) => (Au(0), NotNaN::new(p).unwrap()),
             Calc(c) => (c.length(), NotNaN::new(c.percentage()).unwrap()),
+        }
+    }
+
+    /// Returns the used value.
+    pub fn to_used_value(&self, containing_length: Au) -> Au {
+        match *self {
+            LengthOrPercentage::Length(length) => length,
+            LengthOrPercentage::Percentage(p) => containing_length.scale_by(p),
+            LengthOrPercentage::Calc(ref calc) => {
+                calc.to_used_value(Some(containing_length)).unwrap()
+            },
         }
     }
 }
@@ -479,6 +503,18 @@ pub enum LengthOrPercentageOrNone {
     Percentage(CSSFloat),
     Calc(CalcLengthOrPercentage),
     None,
+}
+
+impl LengthOrPercentageOrNone {
+    /// Returns the used value.
+    pub fn to_used_value(&self, containing_length: Au) -> Option<Au> {
+        match *self {
+            LengthOrPercentageOrNone::None => None,
+            LengthOrPercentageOrNone::Length(length) => Some(length),
+            LengthOrPercentageOrNone::Percentage(percent) => Some(containing_length.scale_by(percent)),
+            LengthOrPercentageOrNone::Calc(ref calc) => calc.to_used_value(Some(containing_length)),
+        }
+    }
 }
 
 impl fmt::Debug for LengthOrPercentageOrNone {

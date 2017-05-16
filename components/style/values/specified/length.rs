@@ -539,7 +539,7 @@ pub enum Length {
     /// A calc expression.
     ///
     /// https://drafts.csswg.org/css-values/#calc-notation
-    Calc(AllowedLengthType, Box<CalcLengthOrPercentage>),
+    Calc(Box<CalcLengthOrPercentage>),
 }
 
 impl From<NoCalcLength> for Length {
@@ -553,7 +553,7 @@ impl HasViewportPercentage for Length {
     fn has_viewport_percentage(&self) -> bool {
         match *self {
             Length::NoCalc(ref inner) => inner.has_viewport_percentage(),
-            Length::Calc(_, ref calc) => calc.has_viewport_percentage(),
+            Length::Calc(ref calc) => calc.has_viewport_percentage(),
         }
     }
 }
@@ -562,7 +562,7 @@ impl ToCss for Length {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
             Length::NoCalc(ref inner) => inner.to_css(dest),
-            Length::Calc(_, ref calc) => calc.to_css(dest),
+            Length::Calc(ref calc) => calc.to_css(dest),
         }
     }
 }
@@ -637,10 +637,7 @@ impl Length {
             },
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") =>
                 input.parse_nested_block(|input| {
-                    CalcNode::parse_length(context, input)
-                        .map(|calc| {
-                            Length::Calc(num_context, Box::new(calc))
-                        })
+                    CalcNode::parse_length(context, input, num_context).map(|calc| Length::Calc(Box::new(calc)))
                 }),
             _ => Err(())
         }
@@ -770,7 +767,7 @@ impl From<Length> for LengthOrPercentage {
     fn from(len: Length) -> LengthOrPercentage {
         match len {
             Length::NoCalc(l) => LengthOrPercentage::Length(l),
-            Length::Calc(_, l) => LengthOrPercentage::Calc(l),
+            Length::Calc(l) => LengthOrPercentage::Calc(l),
         }
     }
 }
@@ -832,7 +829,7 @@ impl LengthOrPercentage {
                 Ok(LengthOrPercentage::Length(NoCalcLength::from_px(value.value))),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 let calc = try!(input.parse_nested_block(|i| {
-                    CalcNode::parse_length_or_percentage(context, i)
+                    CalcNode::parse_length_or_percentage(context, i, num_context)
                 }));
                 Ok(LengthOrPercentage::Calc(Box::new(calc)))
             },
@@ -986,7 +983,7 @@ impl LengthOrPercentageOrAuto {
                 Ok(LengthOrPercentageOrAuto::Auto),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 let calc = try!(input.parse_nested_block(|i| {
-                    CalcNode::parse_length_or_percentage(context, i)
+                    CalcNode::parse_length_or_percentage(context, i, num_context)
                 }));
                 Ok(LengthOrPercentageOrAuto::Calc(Box::new(calc)))
             },
@@ -1092,7 +1089,7 @@ impl LengthOrPercentageOrNone {
             }
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 let calc = try!(input.parse_nested_block(|i| {
-                    CalcNode::parse_length_or_percentage(context, i)
+                    CalcNode::parse_length_or_percentage(context, i, num_context)
                 }));
                 Ok(LengthOrPercentageOrNone::Calc(Box::new(calc)))
             },
@@ -1169,7 +1166,7 @@ impl LengthOrPercentageOrAutoOrContent {
                 Ok(LengthOrPercentageOrAutoOrContent::Content),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 let calc = try!(input.parse_nested_block(|i| {
-                    CalcNode::parse_length_or_percentage(context, i)
+                    CalcNode::parse_length_or_percentage(context, i, num_context)
                 }));
                 Ok(LengthOrPercentageOrAutoOrContent::Calc(Box::new(calc)))
             },

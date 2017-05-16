@@ -33,7 +33,7 @@ use gfx_traits::{combine_id_with_fragment_type, FragmentType, StackingContextId}
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc;
 use list_item::ListItemFlow;
-use model::{self, MaybeAuto, specified};
+use model::{self, MaybeAuto};
 use msg::constellation_msg::BrowsingContextId;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::UsePlaceholder;
@@ -1026,10 +1026,8 @@ impl FragmentDisplayListBuilding for Fragment {
             let horiz_position = *get_cyclic(&background.background_position_x.0, index);
             let vert_position = *get_cyclic(&background.background_position_y.0, index);
             // Use `background-position` to get the offset.
-            let horizontal_position = model::specified(horiz_position,
-                                                       bounds.size.width - image_size.width);
-            let vertical_position = model::specified(vert_position,
-                                                     bounds.size.height - image_size.height);
+            let horizontal_position = horiz_position.to_used_value(bounds.size.width - image_size.width);
+            let vertical_position = vert_position.to_used_value(bounds.size.height - image_size.height);
 
             // The anchor position for this background, based on both the background-attachment
             // and background-position properties.
@@ -1185,8 +1183,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                repeating: bool,
                                style: &ServoComputedValues)
                                -> display_list::RadialGradient {
-        let center = Point2D::new(specified(center.horizontal, bounds.size.width),
-                                  specified(center.vertical, bounds.size.height));
+        let center = Point2D::new(center.horizontal.to_used_value(bounds.size.width),
+                                  center.vertical.to_used_value(bounds.size.height));
         let radius = match *shape {
             GenericEndingShape::Circle(Circle::Radius(length)) => {
                 Size2D::new(length, length)
@@ -1195,7 +1193,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 convert_circle_size_keyword(extent, &bounds.size, &center)
             },
             GenericEndingShape::Ellipse(Ellipse::Radii(x, y)) => {
-                Size2D::new(specified(x, bounds.size.width), specified(y, bounds.size.height))
+                Size2D::new(x.to_used_value(bounds.size.width), y.to_used_value(bounds.size.height))
             },
             GenericEndingShape::Ellipse(Ellipse::Extent(extent)) => {
                 convert_ellipse_size_keyword(extent, &bounds.size, &center)
