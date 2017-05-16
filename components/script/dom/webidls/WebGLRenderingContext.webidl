@@ -238,6 +238,7 @@ interface WebGLRenderingContextBase
     const GLenum INT                            = 0x1404;
     const GLenum UNSIGNED_INT                   = 0x1405;
     const GLenum FLOAT                          = 0x1406;
+    const GLenum HALF_FLOAT                     = 0x8D61;
 
     /* PixelFormat */
     const GLenum DEPTH_COMPONENT                = 0x1902;
@@ -608,7 +609,7 @@ interface WebGLRenderingContextBase
 
     any getVertexAttrib(GLuint index, GLenum pname);
 
-    //[WebGLHandlesContextLoss] GLsizeiptr getVertexAttribOffset(GLuint index, GLenum pname);
+    [WebGLHandlesContextLoss] GLsizeiptr getVertexAttribOffset(GLuint index, GLenum pname);
 
     void hint(GLenum target, GLenum mode);
     [WebGLHandlesContextLoss] GLboolean isBuffer(WebGLBuffer? buffer);

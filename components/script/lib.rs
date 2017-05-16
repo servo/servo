@@ -46,6 +46,7 @@ extern crate encoding;
 extern crate euclid;
 extern crate fnv;
 extern crate gfx_traits;
+extern crate half;
 extern crate heapsize;
 #[macro_use] extern crate heapsize_derive;
 #[macro_use] extern crate html5ever;
