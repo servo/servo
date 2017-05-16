@@ -81,12 +81,12 @@ ${helpers.single_keyword("mask-mode",
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(RepeatKeyword::NoRepeat, RepeatKeyword::NoRepeat)
+        computed_value::T(RepeatKeyword::Repeat, RepeatKeyword::Repeat)
     }
 
     #[inline]
     pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue::Other(RepeatKeyword::NoRepeat, None)
+        SpecifiedValue::Other(RepeatKeyword::Repeat, None)
     }
 </%helpers:vector_longhand>
 
