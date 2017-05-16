@@ -68,6 +68,8 @@ fn install_crash_handler() {
             .unwrap_or("".to_owned());
         println!("Stack trace{}\n{:?}", name, Backtrace::new());
         unsafe {
+            // N.B. Using process::abort() here causes the crash handler to be
+            //      triggered recursively.
             abort();
         }
     }
