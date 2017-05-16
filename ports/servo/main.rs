@@ -15,7 +15,7 @@
 //!
 //! [glutin]: https://github.com/tomaka/glutin
 
-#![feature(start)]
+#![feature(start, core_intrinsics)]
 
 #[cfg(target_os = "android")]
 extern crate android_injected_glue;
@@ -58,7 +58,7 @@ pub mod platform {
 fn install_crash_handler() {
     use backtrace::Backtrace;
     use sig::ffi::Sig;
-    use std::process::abort;
+    use std::intrinsics::abort;
     use std::thread;
 
     fn handler(_sig: i32) {
@@ -67,7 +67,9 @@ fn install_crash_handler() {
             .map(|n| format!(" for thread \"{}\"", n))
             .unwrap_or("".to_owned());
         println!("Stack trace{}\n{:?}", name, Backtrace::new());
-        abort();
+        unsafe {
+            abort();
+        }
     }
 
     signal!(Sig::SEGV, handler); // handle segfaults
