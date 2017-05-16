@@ -26,6 +26,7 @@ use gecko_bindings::structs::RawGeckoServoStyleRuleList;
 use gecko_bindings::structs::RawGeckoURLExtraData;
 use gecko_bindings::structs::RefPtr;
 use gecko_bindings::structs::CSSPseudoClassType;
+use gecko_bindings::structs::CSSPseudoElementType;
 use gecko_bindings::structs::TraversalRestyleBehavior;
 use gecko_bindings::structs::TraversalRootBehavior;
 use gecko_bindings::structs::ComputedTimingFunction_BeforeFlag;
@@ -905,7 +906,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_GetImplementedPseudo(element: RawGeckoElementBorrowed)
-     -> *mut nsIAtom;
+     -> CSSPseudoElementType;
 }
 extern "C" {
     pub fn Gecko_CalcStyleDifference(oldstyle: *mut nsStyleContext,
@@ -1641,7 +1642,7 @@ extern "C" {
                                                *mut ServoStyleSheet,
                                            data: *const nsACString,
                                            extra_data:
-                                                *mut RawGeckoURLExtraData,
+                                               *mut RawGeckoURLExtraData,
                                            line_number_offset: u32);
 }
 extern "C" {
@@ -2217,7 +2218,7 @@ extern "C" {
 extern "C" {
     pub fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null:
                                                        ServoComputedValuesBorrowedOrNull,
-                                                   pseudoTag: *mut nsIAtom,
+                                                   pseudo_tag: *mut nsIAtom,
                                                    skip_display_fixup: bool,
                                                    set:
                                                        RawServoStyleSetBorrowed)
@@ -2257,25 +2258,19 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
-                                    pseudo_tag: *mut nsIAtom, is_probe: bool,
+                                    pseudo_type: CSSPseudoElementType,
+                                    is_probe: bool,
                                     set: RawServoStyleSetBorrowed)
      -> ServoComputedValuesStrong;
 }
 extern "C" {
-    pub fn Servo_ResolveRuleNode(element: RawGeckoElementBorrowed,
-                                 pseudo_tag: *mut nsIAtom,
-                                 set: RawServoStyleSetBorrowed)
-     -> RawServoRuleNodeStrong;
-}
-extern "C" {
-    pub fn Servo_HasAuthorSpecifiedRules(rule_node: RawServoRuleNodeBorrowed,
-                                         element: RawGeckoElementBorrowed,
+    pub fn Servo_HasAuthorSpecifiedRules(element: RawGeckoElementBorrowed,
                                          rule_type_mask: u32,
                                          author_colors_allowed: bool) -> bool;
 }
 extern "C" {
     pub fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
-                                    pseudo_tag: *mut nsIAtom,
+                                    pseudo_type: CSSPseudoElementType,
                                     snapshots:
                                         *const ServoElementSnapshotTable,
                                     set: RawServoStyleSetBorrowed)
@@ -2299,8 +2294,8 @@ extern "C" {
                                                               RawGeckoElementBorrowed,
                                                           snapshots:
                                                               *const ServoElementSnapshotTable,
-                                                          pseudo_tag:
-                                                              *mut nsIAtom)
+                                                          pseudo_type:
+                                                              CSSPseudoElementType)
      -> ServoComputedValuesStrong;
 }
 extern "C" {

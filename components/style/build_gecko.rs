@@ -348,6 +348,8 @@ mod bindings {
             "BORDER_COLOR_.*",
             "BORDER_STYLE_.*",
             "mozilla::SERVO_PREF_.*",
+            "CSS_PSEUDO_ELEMENT_.*",
+            "SERVO_CSS_PSEUDO_ELEMENT_FLAGS_.*",
             "kNameSpaceID_.*",
             "kGenericFont_.*",
             "kPresContext_.*",
@@ -672,6 +674,7 @@ mod bindings {
             "RawGeckoURLExtraData",
             "RefPtr",
             "CSSPseudoClassType",
+            "CSSPseudoElementType",
             "TraversalRestyleBehavior",
             "TraversalRootBehavior",
             "ComputedTimingFunction_BeforeFlag",
@@ -842,7 +845,7 @@ mod bindings {
     }
 
     fn generate_atoms() {
-        let script = Path::new(file!()).parent().unwrap().join("binding_tools").join("regen_atoms.py");
+        let script = Path::new(file!()).parent().unwrap().join("gecko").join("regen_atoms.py");
         println!("cargo:rerun-if-changed={}", script.display());
         let status = Command::new(&*PYTHON)
             .arg(&script)

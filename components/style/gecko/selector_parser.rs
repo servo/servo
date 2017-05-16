@@ -5,214 +5,18 @@
 //! Gecko-specific bits for selector-parsing.
 
 use cssparser::{Parser, ToCss};
+use element_state::{IN_ACTIVE_STATE, IN_FOCUS_STATE, IN_HOVER_STATE};
 use element_state::ElementState;
 use gecko_bindings::structs::CSSPseudoClassType;
-use gecko_bindings::structs::nsIAtom;
 use selector_parser::{SelectorParser, PseudoElementCascadeType};
 use selectors::parser::{ComplexSelector, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
 use std::borrow::Cow;
 use std::fmt;
-use std::ptr;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 
+pub use gecko::pseudo_element::{PseudoElement, EAGER_PSEUDOS, EAGER_PSEUDO_COUNT};
 pub use gecko::snapshot::SnapshotMap;
-
-/// A representation of a CSS pseudo-element.
-///
-/// In Gecko, we represent pseudo-elements as plain `Atom`s.
-///
-/// The boolean field represents whether this element is an anonymous box. This
-/// is just for convenience, instead of recomputing it.
-///
-/// Also, note that the `Atom` member is always a static atom, so if space is a
-/// concern, we can use the raw pointer and use the lower bit to represent it
-/// without space overhead.
-///
-/// FIXME(emilio): we know all these atoms are static. Patches are starting to
-/// pile up, but a further potential optimisation is generating bindings without
-/// `-no-gen-bitfield-methods` (that was removed to compile on stable, but it no
-/// longer depends on it), and using the raw *mut nsIAtom (properly asserting
-/// we're a static atom).
-///
-/// This should allow us to avoid random FFI overhead when cloning/dropping
-/// pseudos.
-///
-/// Also, we can further optimize PartialEq and hash comparing/hashing only the
-/// atoms.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct PseudoElement(Atom, bool);
-
-/// List of eager pseudos. Keep this in sync with the count below.
-macro_rules! each_eager_pseudo {
-    ($macro_name:ident, $atom_macro:ident) => {
-        $macro_name!($atom_macro!(":after"), 0);
-        $macro_name!($atom_macro!(":before"), 1);
-    }
-}
-
-/// The number of eager pseudo-elements (just ::before and ::after).
-pub const EAGER_PSEUDO_COUNT: usize = 2;
-
-
-impl PseudoElement {
-    /// Returns the kind of cascade type that a given pseudo is going to use.
-    ///
-    /// In Gecko we only compute ::before and ::after eagerly. We save the rules
-    /// for anonymous boxes separately, so we resolve them as precomputed
-    /// pseudos.
-    ///
-    /// We resolve the others lazily, see `Servo_ResolvePseudoStyle`.
-    pub fn cascade_type(&self) -> PseudoElementCascadeType {
-        if self.is_eager() {
-            debug_assert!(!self.is_anon_box());
-            return PseudoElementCascadeType::Eager
-        }
-
-        if self.is_anon_box() {
-            return PseudoElementCascadeType::Precomputed
-        }
-
-        PseudoElementCascadeType::Lazy
-    }
-
-    /// Gets the canonical index of this eagerly-cascaded pseudo-element.
-    #[inline]
-    pub fn eager_index(&self) -> usize {
-        macro_rules! case {
-            ($atom:expr, $idx:expr) => { if *self.as_atom() == $atom { return $idx; } }
-        }
-        each_eager_pseudo!(case, atom);
-        panic!("Not eager")
-    }
-
-    /// Creates a pseudo-element from an eager index.
-    #[inline]
-    pub fn from_eager_index(i: usize) -> Self {
-        macro_rules! case {
-            ($atom:expr, $idx:expr) => { if i == $idx { return PseudoElement($atom, false); } }
-        }
-        each_eager_pseudo!(case, atom);
-        panic!("Not eager")
-    }
-
-    /// Get the pseudo-element as an atom.
-    #[inline]
-    pub fn as_atom(&self) -> &Atom {
-        &self.0
-    }
-
-    /// Whether this pseudo-element is an anonymous box.
-    #[inline]
-    fn is_anon_box(&self) -> bool {
-        self.1
-    }
-
-    /// Whether this pseudo-element is ::before or ::after.
-    #[inline]
-    pub fn is_before_or_after(&self) -> bool {
-        *self.as_atom() == atom!(":before") ||
-        *self.as_atom() == atom!(":after")
-    }
-
-    /// Whether this pseudo-element is eagerly-cascaded.
-    #[inline]
-    pub fn is_eager(&self) -> bool {
-        macro_rules! case {
-            ($atom:expr, $idx:expr) => { if *self.as_atom() == $atom { return true; } }
-        }
-        each_eager_pseudo!(case, atom);
-        return false;
-    }
-
-    /// Whether this pseudo-element is lazily-cascaded.
-    #[inline]
-    pub fn is_lazy(&self) -> bool {
-        !self.is_eager() && !self.is_precomputed()
-    }
-
-    /// Whether this pseudo-element is precomputed.
-    #[inline]
-    pub fn is_precomputed(&self) -> bool {
-        self.is_anon_box()
-    }
-
-    /// Construct a pseudo-element from an `Atom`, receiving whether it is also
-    /// an anonymous box, and don't check it on release builds.
-    ///
-    /// On debug builds we assert it's the result we expect.
-    #[inline]
-    pub fn from_atom_unchecked(atom: Atom, is_anon_box: bool) -> Self {
-        if cfg!(debug_assertions) {
-            // Do the check on debug regardless.
-            match Self::from_atom(&*atom, true) {
-                Some(pseudo) => {
-                    assert_eq!(pseudo.is_anon_box(), is_anon_box);
-                    return pseudo;
-                }
-                None => panic!("Unknown pseudo: {:?}", atom),
-            }
-        }
-
-        PseudoElement(atom, is_anon_box)
-    }
-
-    #[inline]
-    fn from_atom(atom: &WeakAtom, _in_ua: bool) -> Option<Self> {
-        macro_rules! pseudo_element {
-            ($pseudo_str_with_colon:expr, $atom:expr, $is_anon_box:expr) => {{
-                if atom == &*$atom {
-                    return Some(PseudoElement($atom, $is_anon_box));
-                }
-            }}
-        }
-
-        include!(concat!(env!("OUT_DIR"), "/gecko/pseudo_element_helper.rs"));
-
-        None
-    }
-
-    /// Constructs an atom from a string of text, and whether we're in a
-    /// user-agent stylesheet.
-    ///
-    /// If we're not in a user-agent stylesheet, we will never parse anonymous
-    /// box pseudo-elements.
-    ///
-    /// Returns `None` if the pseudo-element is not recognised.
-    #[inline]
-    fn from_slice(s: &str, in_ua_stylesheet: bool) -> Option<Self> {
-        use std::ascii::AsciiExt;
-        macro_rules! pseudo_element {
-            ($pseudo_str_with_colon:expr, $atom:expr, $is_anon_box:expr) => {{
-                if !$is_anon_box || in_ua_stylesheet {
-                    if s.eq_ignore_ascii_case(&$pseudo_str_with_colon[1..]) {
-                        return Some(PseudoElement($atom, $is_anon_box))
-                    }
-                }
-            }}
-        }
-
-        include!(concat!(env!("OUT_DIR"), "/gecko/pseudo_element_helper.rs"));
-
-        None
-    }
-
-    /// Returns null or nsIAtom pointer corresponding to a given PseudoElement.
-    #[inline]
-    pub fn ns_atom_or_null_from_opt(pseudo: Option<&PseudoElement>) -> *mut nsIAtom {
-        pseudo.map(|p| p.as_atom().as_ptr()).unwrap_or(ptr::null_mut())
-    }
-}
-
-impl ToCss for PseudoElement {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        // FIXME: why does the atom contain one colon? Pseudo-element has two
-        debug_assert!(self.0.as_slice().starts_with(&[b':' as u16]) &&
-                      !self.0.as_slice().starts_with(&[b':' as u16, b':' as u16]));
-        try!(dest.write_char(':'));
-        write!(dest, "{}", self.0)
-    }
-}
 
 bitflags! {
     flags NonTSPseudoClassFlag: u8 {
@@ -325,6 +129,15 @@ impl NonTSPseudoClass {
         apply_non_ts_list!(pseudo_class_check_internal)
     }
 
+    /// https://drafts.csswg.org/selectors-4/#useraction-pseudos
+    ///
+    /// We intentionally skip the link-related ones.
+    fn is_safe_user_action_state(&self) -> bool {
+        matches!(*self, NonTSPseudoClass::Hover |
+                        NonTSPseudoClass::Active |
+                        NonTSPseudoClass::Focus)
+    }
+
     /// Get the state flag associated with a pseudo-class, if any.
     pub fn state_flag(&self) -> ElementState {
         macro_rules! flag {
@@ -375,6 +188,58 @@ impl NonTSPseudoClass {
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SelectorImpl;
 
+/// Some subset of pseudo-elements in Gecko are sensitive to some state
+/// selectors.
+///
+/// We store the sensitive states in this struct in order to properly handle
+/// these.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct PseudoElementSelector {
+    pseudo: PseudoElement,
+    state: ElementState,
+}
+
+impl PseudoElementSelector {
+    /// Returns the pseudo-element this selector represents.
+    pub fn pseudo_element(&self) -> &PseudoElement {
+        &self.pseudo
+    }
+
+    /// Returns the pseudo-element selector state.
+    pub fn state(&self) -> ElementState {
+        self.state
+    }
+}
+
+impl ToCss for PseudoElementSelector {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: fmt::Write,
+    {
+        if cfg!(debug_assertions) {
+            let mut state = self.state;
+            state.remove(IN_HOVER_STATE | IN_ACTIVE_STATE | IN_FOCUS_STATE);
+            assert_eq!(state, ElementState::empty(),
+                       "Unhandled pseudo-element state selector?");
+        }
+
+        self.pseudo.to_css(dest)?;
+
+        if self.state.contains(IN_HOVER_STATE) {
+            dest.write_str(":hover")?
+        }
+
+        if self.state.contains(IN_ACTIVE_STATE) {
+            dest.write_str(":active")?
+        }
+
+        if self.state.contains(IN_FOCUS_STATE) {
+            dest.write_str(":focus")?
+        }
+
+        Ok(())
+    }
+}
+
 impl ::selectors::SelectorImpl for SelectorImpl {
     type AttrValue = Atom;
     type Identifier = Atom;
@@ -385,7 +250,7 @@ impl ::selectors::SelectorImpl for SelectorImpl {
     type BorrowedNamespaceUrl = WeakNamespace;
     type BorrowedLocalName = WeakAtom;
 
-    type PseudoElement = PseudoElement;
+    type PseudoElementSelector = PseudoElementSelector;
     type NonTSPseudoClass = NonTSPseudoClass;
 }
 
@@ -447,11 +312,38 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
         }
     }
 
-    fn parse_pseudo_element(&self, name: Cow<str>) -> Result<PseudoElement, ()> {
-        match PseudoElement::from_slice(&name, self.in_user_agent_stylesheet()) {
-            Some(pseudo) => Ok(pseudo),
-            None => Err(()),
-        }
+    fn parse_pseudo_element(&self, name: Cow<str>, input: &mut Parser) -> Result<PseudoElementSelector, ()> {
+        let pseudo =
+            match PseudoElement::from_slice(&name, self.in_user_agent_stylesheet()) {
+                Some(pseudo) => pseudo,
+                None => return Err(()),
+            };
+
+        let state = if pseudo.supports_user_action_state() {
+            input.try(|input| {
+                let mut state = ElementState::empty();
+
+                while !input.is_exhausted() {
+                    input.expect_colon()?;
+                    let ident = input.expect_ident()?;
+                    let pseudo_class = self.parse_non_ts_pseudo_class(ident)?;
+
+                    if !pseudo_class.is_safe_user_action_state() {
+                        return Err(())
+                    }
+                    state.insert(pseudo_class.state_flag());
+                }
+
+                Ok(state)
+            }).ok()
+        } else {
+            None
+        };
+
+        Ok(PseudoElementSelector {
+            pseudo: pseudo,
+            state: state.unwrap_or(ElementState::empty()),
+        })
     }
 
     fn default_namespace(&self) -> Option<Namespace> {
@@ -476,25 +368,18 @@ impl SelectorImpl {
     pub fn each_eagerly_cascaded_pseudo_element<F>(mut fun: F)
         where F: FnMut(PseudoElement),
     {
-        macro_rules! case {
-            ($atom:expr, $idx:expr) => { fun(PseudoElement($atom, false)); }
+        for pseudo in &EAGER_PSEUDOS {
+            fun(pseudo.clone())
         }
-        each_eager_pseudo!(case, atom);
     }
 
 
     #[inline]
     /// Executes a function for each pseudo-element.
-    pub fn each_pseudo_element<F>(mut fun: F)
+    pub fn each_pseudo_element<F>(fun: F)
         where F: FnMut(PseudoElement),
     {
-        macro_rules! pseudo_element {
-            ($pseudo_str_with_colon:expr, $atom:expr, $is_anon_box:expr) => {{
-                fun(PseudoElement($atom, $is_anon_box));
-            }}
-        }
-
-        include!(concat!(env!("OUT_DIR"), "/gecko/pseudo_element_helper.rs"));
+        PseudoElement::each(fun)
     }
 
     #[inline]

@@ -20,6 +20,7 @@ use style::context::SharedStyleContext;
 use style::data::ElementData;
 use style::dom::{LayoutIterator, NodeInfo, PresentationalHintsSynthesizer, TNode};
 use style::dom::OpaqueNode;
+use style::element_state::ElementState;
 use style::font_metrics::ServoMetricsProvider;
 use style::properties::{CascadeFlags, ServoComputedValues};
 use style::selector_parser::{PseudoElement, PseudoElementCascadeType, SelectorImpl};
@@ -434,6 +435,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
                                            &context.guards,
                                            unsafe { &self.unsafe_get() },
                                            &style_pseudo,
+                                           ElementState::empty(),
                                            data.styles().primary.values(),
                                            &ServoMetricsProvider);
                             data.styles_mut().cached_pseudos

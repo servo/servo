@@ -15,6 +15,7 @@ use cascade_info::CascadeInfo;
 use context::{CurrentElementInfo, SelectorFlagsMap, SharedStyleContext, StyleContext};
 use data::{ComputedStyle, ElementData, ElementStyles, RestyleData};
 use dom::{AnimationRules, SendElement, TElement, TNode};
+use element_state::ElementState;
 use font_metrics::FontMetricsProvider;
 use properties::{CascadeFlags, ComputedValues, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
 use properties::longhands::display::computed_value as display;
@@ -1015,13 +1016,18 @@ pub trait MatchMethods : TElement {
             None => *self,
         };
 
+        let pseudo_and_state = match implemented_pseudo {
+            Some(ref pseudo) => Some((pseudo, self.get_state())),
+            None => None,
+        };
+
         // Compute the primary rule node.
         *relations = stylist.push_applicable_declarations(&selector_matching_target,
                                                           Some(bloom),
                                                           style_attribute,
                                                           smil_override,
                                                           animation_rules,
-                                                          implemented_pseudo.as_ref(),
+                                                          pseudo_and_state,
                                                           &mut applicable_declarations,
                                                           &mut set_selector_flags);
 
@@ -1076,7 +1082,7 @@ pub trait MatchMethods : TElement {
                                                  None,
                                                  None,
                                                  AnimationRules(None, None),
-                                                 Some(&pseudo),
+                                                 Some((&pseudo, ElementState::empty())),
                                                  &mut applicable_declarations,
                                                  &mut set_selector_flags);
 

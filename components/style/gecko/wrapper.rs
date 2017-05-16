@@ -627,7 +627,8 @@ impl<'le> TElement for GeckoElement<'le> {
                                              _existing_values: &'a Arc<ComputedValues>,
                                              pseudo: Option<&PseudoElement>)
                                              -> Option<&'a nsStyleContext> {
-        let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
+        // TODO(emilio): Migrate this to CSSPseudoElementType.
+        let atom_ptr = pseudo.map_or(ptr::null_mut(), |p| p.atom().as_ptr());
         unsafe {
             let context_ptr = Gecko_GetStyleContext(self.0, atom_ptr);
             context_ptr.as_ref()
@@ -699,15 +700,9 @@ impl<'le> TElement for GeckoElement<'le> {
             return None;
         }
 
-        let maybe_atom =
+        let pseudo_type =
             unsafe { bindings::Gecko_GetImplementedPseudo(self.0) };
-
-        if maybe_atom.is_null() {
-            return None;
-        }
-
-        let atom = Atom::from(maybe_atom);
-        Some(PseudoElement::from_atom_unchecked(atom, /* anon_box = */ false))
+        PseudoElement::from_pseudo_type(pseudo_type)
     }
 
     fn store_children_to_process(&self, _: isize) {

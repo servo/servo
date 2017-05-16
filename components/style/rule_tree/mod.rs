@@ -1071,10 +1071,11 @@ impl StrongRuleNode {
             if !have_explicit_ua_inherit { break }
 
             // Continue to the parent element and search for the inherited properties.
-            element = match element.parent_element() {
+            element = match element.inheritance_parent() {
                 Some(parent) => parent,
                 None => break
             };
+
             let parent_data = element.mutate_data().unwrap();
             let parent_rule_node = parent_data.styles().primary.rules.clone();
             element_rule_node = Cow::Owned(parent_rule_node);
