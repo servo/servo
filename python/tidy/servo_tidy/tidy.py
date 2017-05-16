@@ -58,6 +58,7 @@ FILE_PATTERNS_TO_IGNORE = ["*.#*", "*.pyc", "fake-ld.sh"]
 SPEC_BASE_PATH = "components/script/dom/"
 
 WEBIDL_STANDARDS = [
+    "//www.khronos.org/registry/webgl/extensions",
     "//www.khronos.org/registry/webgl/specs",
     "//developer.mozilla.org/en-US/docs/Web/API",
     "//dev.w3.org/2006/webapi",
