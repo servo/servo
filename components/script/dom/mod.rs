@@ -423,6 +423,7 @@ pub mod testbindingiterable;
 pub mod testbindingpairiterable;
 pub mod testbindingproxy;
 pub mod testrunner;
+pub mod testworklet;
 pub mod testworkletglobalscope;
 pub mod text;
 pub mod textdecoder;

@@ -12,9 +12,9 @@
 
 use dom::bindings::codegen::Bindings::RequestBinding::RequestCredentials;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use dom::bindings::codegen::Bindings::WorkletBinding;
 use dom::bindings::codegen::Bindings::WorkletBinding::WorkletMethods;
 use dom::bindings::codegen::Bindings::WorkletBinding::WorkletOptions;
+use dom::bindings::codegen::Bindings::WorkletBinding::Wrap;
 use dom::bindings::error::Error;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::JS;
@@ -22,6 +22,7 @@ use dom::bindings::js::Root;
 use dom::bindings::js::RootCollection;
 use dom::bindings::refcounted::TrustedPromise;
 use dom::bindings::reflector::Reflector;
+use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::USVString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::RootedTraceableBox;
@@ -44,6 +45,7 @@ use net_traits::IpcSend;
 use net_traits::load_whole_resource;
 use net_traits::request::Destination;
 use net_traits::request::RequestInit;
+use net_traits::request::RequestMode;
 use net_traits::request::Type as RequestType;
 use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory;
@@ -53,6 +55,7 @@ use script_thread::MainThreadScriptMsg;
 use script_thread::Runnable;
 use script_thread::ScriptThread;
 use servo_rand;
+use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use std::cmp::max;
 use std::collections::HashMap;
@@ -93,15 +96,9 @@ impl Worklet {
         }
     }
 
-    #[allow(unsafe_code)]
-    #[allow(unrooted_must_root)]
     pub fn new(window: &Window, global_type: WorkletGlobalScopeType) -> Root<Worklet> {
         debug!("Creating worklet {:?}.", global_type);
-        let worklet = box Worklet::new_inherited(window, global_type);
-        let global = window.upcast::<GlobalScope>();
-        unsafe {
-            WorkletBinding::Wrap(global.get_cx(), global, worklet)
-        }
+        reflect_dom_object(box Worklet::new_inherited(window, global_type), window, Wrap)
     }
 
     pub fn worklet_id(&self) -> WorkletId {
@@ -137,9 +134,11 @@ impl WorkletMethods for Worklet {
         let pending_tasks_struct = PendingTasksStruct::new();
         let global = self.window.upcast::<GlobalScope>();
         let pool = ScriptThread::worklet_thread_pool();
+
         pool.fetch_and_invoke_a_worklet_script(global.pipeline_id(),
                                                self.worklet_id,
                                                self.global_type,
+                                               self.window.origin().immutable().clone(),
                                                global.api_base_url(),
                                                module_url_record,
                                                options.credentials.clone(),
@@ -273,6 +272,7 @@ impl WorkletThreadPool {
                                          pipeline_id: PipelineId,
                                          worklet_id: WorkletId,
                                          global_type: WorkletGlobalScopeType,
+                                         origin: ImmutableOrigin,
                                          base_url: ServoUrl,
                                          script_url: ServoUrl,
                                          credentials: RequestCredentials,
@@ -285,6 +285,7 @@ impl WorkletThreadPool {
                 pipeline_id: pipeline_id,
                 worklet_id: worklet_id,
                 global_type: global_type,
+                origin: origin.clone(),
                 base_url: base_url.clone(),
                 script_url: script_url.clone(),
                 credentials: credentials,
@@ -322,6 +323,7 @@ enum WorkletControl {
         pipeline_id: PipelineId,
         worklet_id: WorkletId,
         global_type: WorkletGlobalScopeType,
+        origin: ImmutableOrigin,
         base_url: ServoUrl,
         script_url: ServoUrl,
         credentials: RequestCredentials,
@@ -540,9 +542,10 @@ impl WorkletThread {
     }
 
     /// Fetch and invoke a worklet script.
-    ///g https://drafts.css-houdini.org/worklets/#fetch-and-invoke-a-worklet-script
+    /// https://drafts.css-houdini.org/worklets/#fetch-and-invoke-a-worklet-script
     fn fetch_and_invoke_a_worklet_script(&self,
                                          global_scope: &WorkletGlobalScope,
+                                         origin: ImmutableOrigin,
                                          script_url: ServoUrl,
                                          credentials: RequestCredentials,
                                          pending_tasks_struct: PendingTasksStruct,
@@ -556,11 +559,15 @@ impl WorkletThread {
         // TODO: Fetch a module graph, not just a single script.
         // TODO: Fetch the script asynchronously?
         // TODO: Caching.
+        // TODO: Avoid re-parsing the origin as a URL.
         let resource_fetcher = self.global_init.resource_threads.sender();
+        let origin_url = ServoUrl::parse(&*origin.unicode_serialization()).expect("Failed to parse origin as URL.");
         let request = RequestInit {
             url: script_url,
             type_: RequestType::Script,
             destination: Destination::Script,
+            mode: RequestMode::CorsMode,
+            origin: origin_url,
             credentials_mode: credentials.into(),
             .. RequestInit::default()
         };
@@ -602,10 +609,19 @@ impl WorkletThread {
     fn process_control(&mut self, control: WorkletControl) {
         match control {
             WorkletControl::FetchAndInvokeAWorkletScript {
-                pipeline_id, worklet_id, global_type, base_url, script_url, credentials, pending_tasks_struct, promise
+                pipeline_id, worklet_id, global_type, origin, base_url,
+                script_url, credentials, pending_tasks_struct, promise,
             } => {
-                let global = self.get_worklet_global_scope(pipeline_id, worklet_id, global_type, base_url);
-                self.fetch_and_invoke_a_worklet_script(&*global, script_url, credentials, pending_tasks_struct, promise)
+                let global = self.get_worklet_global_scope(pipeline_id,
+                                                           worklet_id,
+                                                           global_type,
+                                                           base_url);
+                self.fetch_and_invoke_a_worklet_script(&*global,
+                                                       origin,
+                                                       script_url,
+                                                       credentials,
+                                                       pending_tasks_struct,
+                                                       promise)
             }
         }
     }

@@ -99,13 +99,13 @@ impl WorkletGlobalScope {
 /// Resources required by workletglobalscopes
 #[derive(Clone)]
 pub struct WorkletGlobalScopeInit {
-    /// Chan to a resource thread
+    /// Channel to a resource thread
     pub resource_threads: ResourceThreads,
-    /// Chan to the memory profiler
+    /// Channel to the memory profiler
     pub mem_profiler_chan: mem::ProfilerChan,
-    /// Chan to the time profiler
+    /// Channel to the time profiler
     pub time_profiler_chan: time::ProfilerChan,
-    /// Chan to devtools
+    /// Channel to devtools
     pub devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// Messages to send to constellation
     pub constellation_chan: IpcSender<ScriptMsg>,

@@ -50,7 +50,6 @@ use dom::storage::Storage;
 use dom::testrunner::TestRunner;
 use dom::windowproxy::WindowProxy;
 use dom::worklet::Worklet;
-use dom::workletglobalscope::WorkletGlobalScopeType;
 use dom_struct::dom_struct;
 use euclid::{Point2D, Rect, Size2D};
 use fetch;
@@ -996,16 +995,6 @@ impl WindowMethods for Window {
     // https://fetch.spec.whatwg.org/#fetch-method
     fn Fetch(&self, input: RequestOrUSVString, init: RootedTraceableBox<RequestInit>) -> Rc<Promise> {
         fetch::Fetch(&self.upcast(), input, init)
-    }
-
-    fn TestWorklet(&self) -> Root<Worklet> {
-        self.test_worklet.or_init(|| Worklet::new(self, WorkletGlobalScopeType::Test))
-    }
-
-    fn TestWorkletLookup(&self, key: DOMString) -> Option<DOMString> {
-        let id = self.TestWorklet().worklet_id();
-        let pool = ScriptThread::worklet_thread_pool();
-        pool.test_worklet_lookup(id, String::from(key)).map(DOMString::from)
     }
 
     fn TestRunner(&self) -> Root<TestRunner> {
