@@ -1954,33 +1954,30 @@ impl ComputedValues {
         ))
     }
 
-    /// https://drafts.csswg.org/css-transforms/#grouping-property-values
-    pub fn get_used_transform_style(&self) -> computed_values::transform_style::T {
+    /// Return true if the effects force the transform style to be Flat
+    pub fn overrides_transform_style(&self) -> bool {
         use computed_values::mix_blend_mode;
-        use computed_values::transform_style;
 
         let effects = self.get_effects();
+        // TODO(gw): Add clip-path, isolation, mask-image, mask-border-source when supported.
+        effects.opacity < 1.0 ||
+           !effects.filter.is_empty() ||
+           !effects.clip.is_auto() ||
+           effects.mix_blend_mode != mix_blend_mode::T::normal
+    }
+
+    /// https://drafts.csswg.org/css-transforms/#grouping-property-values
+    pub fn get_used_transform_style(&self) -> computed_values::transform_style::T {
+        use computed_values::transform_style;
+
         let box_ = self.get_box();
 
-        // TODO(gw): Add clip-path, isolation, mask-image, mask-border-source when supported.
-        if effects.opacity < 1.0 ||
-           !effects.filter.is_empty() ||
-           !effects.clip.is_auto() {
-           effects.mix_blend_mode != mix_blend_mode::T::normal ||
-            return transform_style::T::flat;
+        if self.overrides_transform_style() {
+            transform_style::T::flat
+        } else {
+            // Return the computed value if not overridden by the above exceptions
+            box_.transform_style
         }
-
-        if box_.transform_style == transform_style::T::auto {
-            if box_.transform.0.is_some() {
-                return transform_style::T::flat;
-            }
-            if let Either::First(ref _length) = box_.perspective {
-                return transform_style::T::flat;
-            }
-        }
-
-        // Return the computed value if not overridden by the above exceptions
-        box_.transform_style
     }
 
     /// Whether given this transform value, the compositor would require a

@@ -30,11 +30,11 @@ use std::cmp::{self, Ordering};
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
-use style::computed_values::{border_style, filter, image_rendering, mix_blend_mode};
+use style::computed_values::{border_style, filter, image_rendering};
 use style_traits::cursor::Cursor;
 use text::TextRun;
 use text::glyph::ByteIndex;
-use webrender_traits::{self, ClipId, ColorF, GradientStop, ScrollPolicy, WebGLContextId};
+use webrender_traits::{self, ClipId, ColorF, GradientStop, MixBlendMode, ScrollPolicy, TransformStyle, WebGLContextId};
 
 pub use style::dom::OpaqueNode;
 
@@ -48,6 +48,16 @@ pub struct DisplayList {
 }
 
 impl DisplayList {
+    /// Return the bounds of this display list based on the dimensions of the root
+    /// stacking context.
+    pub fn bounds(&self) -> Rect<Au> {
+        match self.list.get(0) {
+            Some(&DisplayItem::PushStackingContext(ref item)) => item.stacking_context.bounds,
+            Some(_) => unreachable!("Root element of display list not stacking context."),
+            None => Rect::zero(),
+        }
+    }
+
     // Returns the text index within a node for the point of interest.
     pub fn text_index(&self,
                       node: OpaqueNode,
@@ -365,10 +375,13 @@ pub struct StackingContext {
     pub filters: filter::T,
 
     /// The blend mode with which this stacking context blends with its backdrop.
-    pub blend_mode: mix_blend_mode::T,
+    pub mix_blend_mode: MixBlendMode,
 
     /// A transform to be applied to this stacking context.
     pub transform: Option<Matrix4D<f32>>,
+
+    /// The transform style of this stacking context.
+    pub transform_style: TransformStyle,
 
     /// The perspective matrix to be applied to children.
     pub perspective: Option<Matrix4D<f32>>,
@@ -389,8 +402,9 @@ impl StackingContext {
                overflow: &Rect<Au>,
                z_index: i32,
                filters: filter::T,
-               blend_mode: mix_blend_mode::T,
+               mix_blend_mode: MixBlendMode,
                transform: Option<Matrix4D<f32>>,
+               transform_style: TransformStyle,
                perspective: Option<Matrix4D<f32>>,
                scroll_policy: ScrollPolicy,
                parent_scroll_id: ClipId)
@@ -402,8 +416,9 @@ impl StackingContext {
             overflow: *overflow,
             z_index: z_index,
             filters: filters,
-            blend_mode: blend_mode,
+            mix_blend_mode: mix_blend_mode,
             transform: transform,
+            transform_style: transform_style,
             perspective: perspective,
             scroll_policy: scroll_policy,
             parent_scroll_id: parent_scroll_id,
@@ -418,8 +433,9 @@ impl StackingContext {
                              &Rect::zero(),
                              0,
                              filter::T::new(Vec::new()),
-                             mix_blend_mode::T::normal,
+                             MixBlendMode::Normal,
                              None,
+                             TransformStyle::Flat,
                              None,
                              ScrollPolicy::Scrollable,
                              pipeline_id.root_scroll_node())
