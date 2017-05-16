@@ -215,7 +215,8 @@ impl WebRenderDisplayListConverter for DisplayList {
     fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder {
         let traversal = DisplayListTraversal::new(self);
         let webrender_pipeline_id = pipeline_id.to_webrender();
-        let mut builder = DisplayListBuilder::new(webrender_pipeline_id);
+        let mut builder = DisplayListBuilder::new(webrender_pipeline_id,
+                                                  self.bounds().size.to_sizef());
 
         let mut current_scroll_root_id = ClipId::root_scroll_node(webrender_pipeline_id);
         builder.push_clip_id(current_scroll_root_id);
@@ -280,7 +281,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                       item.text_run.font_key,
                                       item.text_color,
                                       item.text_run.actual_pt_size,
-                                      item.blur_radius,
+                                      item.blur_radius.to_f32_px(),
                                       None);
                 }
             }
