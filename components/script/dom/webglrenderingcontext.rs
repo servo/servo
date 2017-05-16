@@ -4,7 +4,10 @@
 
 use byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use canvas_traits::{CanvasCommonMsg, CanvasMsg, byte_swap, multiply_u8_pixel};
+use core::cell::Ref;
+use core::iter::FromIterator;
 use core::nonzero::NonZero;
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
@@ -20,6 +23,7 @@ use dom::globalscope::GlobalScope;
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcanvaselement::utils as canvas_utils;
 use dom::node::{Node, NodeDamage, window_from_node};
+use dom::webgl_extensions::WebGLExtensions;
 use dom::webgl_validations::WebGLValidator;
 use dom::webgl_validations::tex_image_2d::{CommonTexImage2DValidator, CommonTexImage2DValidatorResult};
 use dom::webgl_validations::tex_image_2d::{TexImage2DValidator, TexImage2DValidatorResult};
@@ -37,6 +41,7 @@ use dom::webgluniformlocation::WebGLUniformLocation;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use euclid::size::Size2D;
+use half::f16;
 use ipc_channel::ipc::{self, IpcSender};
 use js::conversions::ConversionBehavior;
 use js::jsapi::{JSContext, JSObject, Type, Rooted};
@@ -47,6 +52,7 @@ use net_traits::image_cache::ImageResponse;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::cell::Cell;
+use std::collections::HashMap;
 use webrender_traits;
 use webrender_traits::{WebGLCommand, WebGLError, WebGLFramebufferBindingRequest, WebGLParameter};
 use webrender_traits::WebGLError::*;
@@ -143,6 +149,7 @@ pub struct WebGLRenderingContext {
     bound_texture_cube_map: MutNullableJS<WebGLTexture>,
     bound_buffer_array: MutNullableJS<WebGLBuffer>,
     bound_buffer_element_array: MutNullableJS<WebGLBuffer>,
+    bound_attrib_buffers: DOMRefCell<HashMap<u32, JS<WebGLBuffer>>>,
     current_program: MutNullableJS<WebGLProgram>,
     #[ignore_heap_size_of = "Because it's small"]
     current_vertex_attrib_0: Cell<(f32, f32, f32, f32)>,
@@ -150,6 +157,7 @@ pub struct WebGLRenderingContext {
     current_scissor: Cell<(i32, i32, i32, i32)>,
     #[ignore_heap_size_of = "Because it's small"]
     current_clear_color: Cell<(f32, f32, f32, f32)>,
+    extension_manager: WebGLExtensions
 }
 
 impl WebGLRenderingContext {
@@ -178,11 +186,13 @@ impl WebGLRenderingContext {
                 bound_texture_cube_map: MutNullableJS::new(None),
                 bound_buffer_array: MutNullableJS::new(None),
                 bound_buffer_element_array: MutNullableJS::new(None),
+                bound_attrib_buffers: DOMRefCell::new(HashMap::new()),
                 bound_renderbuffer: MutNullableJS::new(None),
                 current_program: MutNullableJS::new(None),
                 current_vertex_attrib_0: Cell::new((0f32, 0f32, 0f32, 1f32)),
                 current_scissor: Cell::new((0, 0, size.width, size.height)),
-                current_clear_color: Cell::new((0.0, 0.0, 0.0, 0.0))
+                current_clear_color: Cell::new((0.0, 0.0, 0.0, 0.0)),
+                extension_manager: WebGLExtensions::new()
             }
         })
     }
@@ -221,6 +231,22 @@ impl WebGLRenderingContext {
         }
     }
 
+    pub fn borrow_bound_attrib_buffers(&self) -> Ref<HashMap<u32, JS<WebGLBuffer>>> {
+        self.bound_attrib_buffers.borrow()
+    }
+
+    pub fn set_bound_attrib_buffers<'a, T>(&self, iter: T) where T: Iterator<Item=(u32, &'a WebGLBuffer)> {
+        *self.bound_attrib_buffers.borrow_mut() = HashMap::from_iter(iter.map(|(k,v)| (k, JS::from_ref(v))));
+    }
+
+    pub fn bound_buffer_element_array(&self) -> Option<Root<WebGLBuffer>> {
+        self.bound_buffer_element_array.get()
+    }
+
+    pub fn set_bound_buffer_element_array(&self, buffer: Option<&WebGLBuffer>) {
+        self.bound_buffer_element_array.set(buffer);
+    }
+
     pub fn recreate(&self, size: Size2D<i32>) {
         self.ipc_renderer.send(CanvasMsg::Common(CanvasCommonMsg::Recreate(size))).unwrap();
 
@@ -243,6 +269,14 @@ impl WebGLRenderingContext {
 
     pub fn ipc_renderer(&self) -> IpcSender<CanvasMsg> {
         self.ipc_renderer.clone()
+    }
+
+    pub fn send_renderer_message(&self, msg: CanvasMsg) {
+        self.ipc_renderer.send(msg).unwrap();
+    }
+
+    pub fn get_extension_manager<'a>(&'a self) -> &'a WebGLExtensions {
+        &self.extension_manager
     }
 
     pub fn webgl_error(&self, err: WebGLError) {
@@ -296,6 +330,23 @@ impl WebGLRenderingContext {
         };
         if let Some(texture) = texture {
             handle_potential_webgl_error!(self, texture.tex_parameter(target, name, value));
+
+            // Validate non filterable TEXTURE_2D data_types
+            if target != constants::TEXTURE_2D {
+                return;
+            }
+
+            let target = TexImageTarget::Texture2D;
+            let info = texture.image_info_for_target(&target, 0);
+            if info.is_initialized() {
+                self.validate_filterable_texture(&texture,
+                                                 target,
+                                                 0,
+                                                 info.internal_format().unwrap_or(TexFormat::RGBA),
+                                                 info.width(),
+                                                 info.height(),
+                                                 info.data_type().unwrap_or(TexDataType::UnsignedByte));
+            }
         } else {
             self.webgl_error(InvalidOperation)
         }
@@ -327,6 +378,37 @@ impl WebGLRenderingContext {
             None => return Some((self.DrawingBufferWidth(),
                                  self.DrawingBufferHeight())),
         }
+    }
+
+    // LINEAR filtering may be forbidden when using WebGL extensions.
+    // https://www.khronos.org/registry/webgl/extensions/OES_texture_float_linear/
+    fn validate_filterable_texture(&self,
+                                   texture: &WebGLTexture,
+                                   target: TexImageTarget,
+                                   level: u32,
+                                   format: TexFormat,
+                                   width: u32,
+                                   height: u32,
+                                   data_type: TexDataType)
+                                   -> bool
+    {
+        if self.extension_manager.is_filterable(data_type.as_gl_constant()) || !texture.is_using_linear_filtering() {
+            return true;
+        }
+
+        // Handle validation failed: LINEAR filtering not valid for this texture
+        // WebGL Conformance tests expect to fallback to [0, 0, 0, 255] RGBA UNSIGNED_BYTE
+        let data_type = TexDataType::UnsignedByte;
+        let expected_byte_length = width * height * 4;
+        let mut pixels = vec![0u8; expected_byte_length as usize];
+        for rgba8 in pixels.chunks_mut(4) {
+            rgba8[3] = 255u8;
+        }
+
+        let pixels = self.prepare_pixels(format, data_type, width, height, 1, true, true, pixels);
+        self.tex_image_2d(texture, target, data_type, format, level, width, height, 0, 1, pixels);
+
+        false
     }
 
     fn validate_stencil_actions(&self, action: u32) -> bool {
@@ -369,6 +451,14 @@ impl WebGLRenderingContext {
         true
     }
 
+    // https://en.wikipedia.org/wiki/Relative_luminance
+    #[inline]
+    fn luminance(r: u8, g: u8, b: u8) -> u8 {
+        (0.2126 * (r as f32) +
+         0.7152 * (g as f32) +
+         0.0722 * (b as f32)) as u8
+    }
+
     /// Translates an image in rgba8 (red in the first byte) format to
     /// the format that was requested of TexImage.
     ///
@@ -391,7 +481,6 @@ impl WebGLRenderingContext {
             (TexFormat::RGBA, TexDataType::UnsignedByte) => pixels,
             (TexFormat::RGB, TexDataType::UnsignedByte) => {
                 // Remove alpha channel
-                let pixel_count = pixels.len() / 4;
                 let mut rgb8 = Vec::<u8>::with_capacity(pixel_count * 3);
                 for rgba8 in pixels.chunks(4) {
                     rgb8.push(rgba8[0]);
@@ -400,6 +489,32 @@ impl WebGLRenderingContext {
                 }
                 rgb8
             },
+
+            (TexFormat::Alpha, TexDataType::UnsignedByte) => {
+                let mut alpha = Vec::<u8>::with_capacity(pixel_count);
+                for rgba8 in pixels.chunks(4) {
+                    alpha.push(rgba8[3]);
+                }
+                alpha
+            },
+
+            (TexFormat::Luminance, TexDataType::UnsignedByte) => {
+                let mut luminance = Vec::<u8>::with_capacity(pixel_count);
+                for rgba8 in pixels.chunks(4) {
+                    luminance.push(Self::luminance(rgba8[0], rgba8[1], rgba8[2]));
+                }
+                luminance
+            },
+
+            (TexFormat::LuminanceAlpha, TexDataType::UnsignedByte) => {
+                let mut data = Vec::<u8>::with_capacity(pixel_count * 2);
+                for rgba8 in pixels.chunks(4) {
+                    data.push(Self::luminance(rgba8[0], rgba8[1], rgba8[2]));
+                    data.push(rgba8[3]);
+                }
+                data
+            },
+
             (TexFormat::RGBA, TexDataType::UnsignedShort4444) => {
                 let mut rgba4 = Vec::<u8>::with_capacity(pixel_count * 2);
                 for rgba8 in pixels.chunks(4) {
@@ -432,10 +547,107 @@ impl WebGLRenderingContext {
                 rgb565
             }
 
+
+            (TexFormat::RGBA, TexDataType::Float) => {
+                let mut rgbaf32 = Vec::<u8>::with_capacity(pixel_count * 16);
+                for rgba8 in pixels.chunks(4) {
+                    rgbaf32.write_f32::<NativeEndian>(rgba8[0] as f32).unwrap();
+                    rgbaf32.write_f32::<NativeEndian>(rgba8[1] as f32).unwrap();
+                    rgbaf32.write_f32::<NativeEndian>(rgba8[2] as f32).unwrap();
+                    rgbaf32.write_f32::<NativeEndian>(rgba8[3] as f32).unwrap();
+                }
+                rgbaf32
+            }
+
+            (TexFormat::RGB, TexDataType::Float) => {
+                let mut rgbf32 = Vec::<u8>::with_capacity(pixel_count * 12);
+                for rgba8 in pixels.chunks(4) {
+                    rgbf32.write_f32::<NativeEndian>(rgba8[0] as f32).unwrap();
+                    rgbf32.write_f32::<NativeEndian>(rgba8[1] as f32).unwrap();
+                    rgbf32.write_f32::<NativeEndian>(rgba8[2] as f32).unwrap();
+                }
+                rgbf32
+            }
+
+            (TexFormat::Alpha, TexDataType::Float) => {
+                let mut alpha = Vec::<u8>::with_capacity(pixel_count * 4);
+                for rgba8 in pixels.chunks(4) {
+                    alpha.write_f32::<NativeEndian>(rgba8[0] as f32).unwrap();
+                }
+                alpha
+            },
+
+            (TexFormat::Luminance, TexDataType::Float) => {
+                let mut luminance = Vec::<u8>::with_capacity(pixel_count * 4);
+                for rgba8 in pixels.chunks(4) {
+                    let p = Self::luminance(rgba8[0], rgba8[1], rgba8[2]);
+                    luminance.write_f32::<NativeEndian>(p as f32).unwrap();
+                }
+                luminance
+            },
+
+            (TexFormat::LuminanceAlpha, TexDataType::Float) => {
+                let mut data = Vec::<u8>::with_capacity(pixel_count * 8);
+                for rgba8 in pixels.chunks(4) {
+                    let p = Self::luminance(rgba8[0], rgba8[1], rgba8[2]);
+                    data.write_f32::<NativeEndian>(p as f32).unwrap();
+                    data.write_f32::<NativeEndian>(rgba8[3] as f32).unwrap();
+                }
+                data
+            },
+
+            (TexFormat::RGBA, TexDataType::HalfFloat) => {
+                let mut rgbaf16 = Vec::<u8>::with_capacity(pixel_count * 8);
+                for rgba8 in pixels.chunks(4) {
+                    rgbaf16.write_u16::<NativeEndian>(f16::from_f32(rgba8[0] as f32).as_bits()).unwrap();
+                    rgbaf16.write_u16::<NativeEndian>(f16::from_f32(rgba8[1] as f32).as_bits()).unwrap();
+                    rgbaf16.write_u16::<NativeEndian>(f16::from_f32(rgba8[2] as f32).as_bits()).unwrap();
+                    rgbaf16.write_u16::<NativeEndian>(f16::from_f32(rgba8[3] as f32).as_bits()).unwrap();
+                }
+                rgbaf16
+            },
+
+            (TexFormat::RGB, TexDataType::HalfFloat) => {
+                let mut rgbf16 = Vec::<u8>::with_capacity(pixel_count * 6);
+                for rgba8 in pixels.chunks(4) {
+                    rgbf16.write_u16::<NativeEndian>(f16::from_f32(rgba8[0] as f32).as_bits()).unwrap();
+                    rgbf16.write_u16::<NativeEndian>(f16::from_f32(rgba8[1] as f32).as_bits()).unwrap();
+                    rgbf16.write_u16::<NativeEndian>(f16::from_f32(rgba8[2] as f32).as_bits()).unwrap();
+                }
+                rgbf16
+            },
+
+            (TexFormat::Alpha, TexDataType::HalfFloat) => {
+                let mut alpha = Vec::<u8>::with_capacity(pixel_count * 2);
+                for rgba8 in pixels.chunks(4) {
+                    alpha.write_u16::<NativeEndian>(f16::from_f32(rgba8[3] as f32).as_bits()).unwrap();
+                }
+                alpha
+            },
+
+            (TexFormat::Luminance, TexDataType::HalfFloat) => {
+                let mut luminance = Vec::<u8>::with_capacity(pixel_count * 4);
+                for rgba8 in pixels.chunks(4) {
+                    let p = Self::luminance(rgba8[0], rgba8[1], rgba8[2]);
+                    luminance.write_u16::<NativeEndian>(f16::from_f32(p as f32).as_bits()).unwrap();
+                }
+                luminance
+            },
+
+            (TexFormat::LuminanceAlpha, TexDataType::HalfFloat) => {
+                let mut data = Vec::<u8>::with_capacity(pixel_count * 8);
+                for rgba8 in pixels.chunks(4) {
+                    let p = Self::luminance(rgba8[0], rgba8[1], rgba8[2]);
+                    data.write_u16::<NativeEndian>(f16::from_f32(p as f32).as_bits()).unwrap();
+                    data.write_u16::<NativeEndian>(f16::from_f32(rgba8[3] as f32).as_bits()).unwrap();
+                }
+                data
+            },
+
             // Validation should have ensured that we only hit the
             // above cases, but we haven't turned the (format, type)
             // into an enum yet so there's a default case here.
-            _ => unreachable!()
+            _ => unreachable!("Unsupported formats {:?} {:?}", format, data_type)
         }
     }
 
@@ -522,9 +734,11 @@ impl WebGLRenderingContext {
         // If it is UNSIGNED_BYTE, a Uint8Array must be supplied;
         // if it is UNSIGNED_SHORT_5_6_5, UNSIGNED_SHORT_4_4_4_4,
         // or UNSIGNED_SHORT_5_5_5_1, a Uint16Array must be supplied.
+        // or FLOAT, a Float32Array must be supplied.
         // If the types do not match, an INVALID_OPERATION error is generated.
         typedarray!(in(cx) let typedarray_u8: Uint8Array = data);
         typedarray!(in(cx) let typedarray_u16: Uint16Array = data);
+        typedarray!(in(cx) let typedarray_f32: Float32Array = data);
         let received_size = if data.is_null() {
             element_size
         } else {
@@ -532,6 +746,8 @@ impl WebGLRenderingContext {
                 2
             } else if typedarray_u8.is_ok() {
                 1
+            } else if typedarray_f32.is_ok() {
+                4
             } else {
                 self.webgl_error(InvalidOperation);
                 return Err(());
@@ -700,7 +916,7 @@ impl WebGLRenderingContext {
     }
 
     fn tex_image_2d(&self,
-                    texture: Root<WebGLTexture>,
+                    texture: &WebGLTexture,
                     target: TexImageTarget,
                     data_type: TexDataType,
                     internal_format: TexFormat,
@@ -728,12 +944,17 @@ impl WebGLRenderingContext {
             .send(CanvasMsg::WebGL(WebGLCommand::PixelStorei(constants::UNPACK_ALIGNMENT, unpacking_alignment as i32)))
             .unwrap();
 
+        let format = internal_format.as_gl_constant();
+        let data_type = data_type.as_gl_constant();
+        let internal_format = self.extension_manager.get_effective_tex_internal_format(format, data_type);
+
         // TODO(emilio): convert colorspace if requested
         let msg = WebGLCommand::TexImage2D(target.as_gl_constant(), level as i32,
-                                           internal_format.as_gl_constant() as i32,
+                                           internal_format as i32,
                                            width as i32, height as i32,
-                                           internal_format.as_gl_constant(),
-                                           data_type.as_gl_constant(), pixels);
+                                           format,
+                                           data_type,
+                                           pixels);
 
         self.ipc_renderer
             .send(CanvasMsg::WebGL(msg))
@@ -806,6 +1027,14 @@ impl WebGLRenderingContext {
                 false
             },
         }
+    }
+
+    fn get_gl_extensions(&self) -> String {
+        let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::GetExtensions(sender)))
+            .unwrap();
+        receiver.recv().unwrap()
     }
 }
 
@@ -958,6 +1187,19 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             _ => {}
         }
 
+        // Handle GetParameter getters injected via WebGL extensions
+        if let Some(query_handler) = self.extension_manager.get_query_parameter_handler(parameter) {
+            match query_handler(cx, &self) {
+                Ok(value) => {
+                    return value;
+                },
+                Err(error) => {
+                    self.webgl_error(error);
+                    return NullValue();
+                }
+            }
+        }
+
         let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
         self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::GetParameter(parameter, sender)))
@@ -1019,14 +1261,21 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14
     fn GetSupportedExtensions(&self) -> Option<Vec<DOMString>> {
-        Some(vec![])
+        self.extension_manager.init_once(|| {
+            self.get_gl_extensions()
+        });
+        let extensions = self.extension_manager.get_suported_extensions();
+        Some(extensions.iter().map(|name| DOMString::from(*name)).collect())
     }
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14
-    unsafe fn GetExtension(&self, _cx: *mut JSContext, _name: DOMString)
+    unsafe fn GetExtension(&self, _cx: *mut JSContext, name: DOMString)
                     -> Option<NonZero<*mut JSObject>> {
-        None
+        self.extension_manager.init_once(|| {
+            self.get_gl_extensions()
+        });
+        self.extension_manager.get_or_init_extension(&name, self)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
@@ -1627,6 +1876,23 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn DeleteBuffer(&self, buffer: Option<&WebGLBuffer>) {
         if let Some(buffer) = buffer {
+            if buffer.is_attached_to_vao() {
+                // WebGL spec: The buffers attached to VAOs should still not be deleted.
+                // They are deleted after the VAO is deleted.
+                buffer.set_pending_delete();
+                return;
+            }
+
+            // Remove deleted buffer from bound attrib buffers.
+            let attrib_ids: Vec<_> = self.bound_attrib_buffers.borrow().iter()
+                                                              .filter(|&(_, v)| v.id() == buffer.id())
+                                                              .map(|(&k, _)| k)
+                                                              .collect();
+            for id in attrib_ids {
+                self.bound_attrib_buffers.borrow_mut().remove(&id);
+            }
+
+            // Delete buffer.
             handle_object_deletion!(self, self.bound_buffer_array, buffer,
                                     Some(WebGLCommand::BindBuffer(constants::ARRAY_BUFFER, None)));
             handle_object_deletion!(self, self.bound_buffer_element_array, buffer,
@@ -1989,6 +2255,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return result.get()
         }
 
+        if pname == constants::VERTEX_ATTRIB_ARRAY_BUFFER_BINDING {
+            rooted!(in(cx) let mut jsval = NullValue());
+            if let Some(buffer) =  self.bound_attrib_buffers.borrow().get(&index) {
+                buffer.to_jsval(cx, jsval.handle_mut());
+            }
+            return jsval.get();
+        }
+
         let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
         self.ipc_renderer.send(CanvasMsg::WebGL(WebGLCommand::GetVertexAttrib(index, pname, sender))).unwrap();
 
@@ -2004,6 +2278,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             }
             WebGLParameter::Invalid => NullValue(),
         }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn GetVertexAttribOffset(&self, index: u32, pname: u32) -> i64 {
+        let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
+        self.ipc_renderer.send(CanvasMsg::WebGL(WebGLCommand::GetVertexAttribOffset(index, pname, sender))).unwrap();
+
+        handle_potential_webgl_error!(self, receiver.recv().unwrap(), 0) as i64
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
@@ -2784,9 +3066,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if size < 1 || size > 4 {
             return self.webgl_error(InvalidValue);
         }
-        if self.bound_buffer_array.get().is_none() {
-            return self.webgl_error(InvalidOperation);
-        }
+
+        let buffer_array = match self.bound_buffer_array.get() {
+            Some(buffer) => buffer,
+            None => {
+                return self.webgl_error(InvalidOperation);
+            }
+        };
 
         // stride and offset must be multiple of data_type
         match data_type {
@@ -2804,6 +3090,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             _ => return self.webgl_error(InvalidEnum),
 
         }
+
+        self.bound_attrib_buffers.borrow_mut().insert(attrib_id, JS::from_ref(&*buffer_array));
 
         let msg = CanvasMsg::WebGL(
                     WebGLCommand::VertexAttribPointer(attrib_id, size, data_type, normalized, stride, offset as u32));
@@ -2834,6 +3122,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   format: u32,
                   data_type: u32,
                   data_ptr: *mut JSObject) -> Fallible<()> {
+        if !self.extension_manager.is_tex_type_enabled(data_type) {
+            return Ok(self.webgl_error(InvalidEnum));
+        }
+
         let data = if data_ptr.is_null() {
             None
         } else {
@@ -2885,10 +3177,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return Ok(self.webgl_error(InvalidOperation));
         }
 
+        if !self.validate_filterable_texture(&texture, target, level, format, width, height, data_type) {
+            return Ok(()); // The validator sets the correct error for use
+        }
+
         let pixels = self.prepare_pixels(format, data_type, width, height,
                                          unpacking_alignment, false, false, buff);
 
-        self.tex_image_2d(texture, target, data_type, format,
+        self.tex_image_2d(&texture, target, data_type, format,
                           level, width, height, border, unpacking_alignment, pixels);
 
         Ok(())
@@ -2902,6 +3198,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                    format: u32,
                    data_type: u32,
                    source: Option<ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement>) -> Fallible<()> {
+        if !self.extension_manager.is_tex_type_enabled(data_type) {
+            return Ok(self.webgl_error(InvalidEnum));
+        }
+
         // Get pixels from image source
         let (pixels, size, premultiplied) = match self.get_image_pixels(source) {
             Ok((pixels, size, premultiplied)) => (pixels, size, premultiplied),
@@ -2927,11 +3227,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Err(_) => return Ok(()), // NB: The validator sets the correct error for us.
         };
 
+        if !self.validate_filterable_texture(&texture, target, level, format, width, height, data_type) {
+            return Ok(()); // The validator sets the correct error for use
+        }
+
         let unpacking_alignment = 1;
         let pixels = self.prepare_pixels(format, data_type, width, height,
                                          unpacking_alignment, premultiplied, true, pixels);
 
-        self.tex_image_2d(texture, target, data_type, format,
+        self.tex_image_2d(&texture, target, data_type, format,
                           level, width, height, border, 1, pixels);
         Ok(())
     }
@@ -2954,7 +3258,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         } else {
             Some(try!(fallible_array_buffer_view_to_vec(cx, data_ptr)))
         };
-
 
         let validator = TexImage2DValidator::new(self, target, level,
                                                  format, width, height,

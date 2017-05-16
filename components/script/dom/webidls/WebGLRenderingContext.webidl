@@ -608,7 +608,7 @@ interface WebGLRenderingContextBase
 
     any getVertexAttrib(GLuint index, GLenum pname);
 
-    //[WebGLHandlesContextLoss] GLsizeiptr getVertexAttribOffset(GLuint index, GLenum pname);
+    [WebGLHandlesContextLoss] GLsizeiptr getVertexAttribOffset(GLuint index, GLenum pname);
 
     void hint(GLenum target, GLenum mode);
     [WebGLHandlesContextLoss] GLboolean isBuffer(WebGLBuffer? buffer);
