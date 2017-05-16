@@ -25,8 +25,6 @@
  *
  * Pending pseudo-classes:
  *
- *  :-moz-is-html -> Used only in UA sheets, should be easy to support.
- *
  *  :-moz-lwtheme, :-moz-lwtheme-brighttext, :-moz-lwtheme-darktext,
  *  :-moz-window-inactive.
  *
@@ -108,6 +106,7 @@ macro_rules! apply_non_ts_list {
                 ("-moz-last-node", MozLastNode, lastNode, _, _),
                 ("-moz-only-whitespace", MozOnlyWhitespace, mozOnlyWhitespace, _, _),
                 ("-moz-native-anonymous", MozNativeAnonymous, mozNativeAnonymous, _, PSEUDO_CLASS_INTERNAL),
+                ("-moz-is-html", MozIsHTML, mozIsHTML, _, _),
             ],
             string: [
                 ("-moz-system-metric", MozSystemMetric, mozSystemMetric, _, PSEUDO_CLASS_INTERNAL),

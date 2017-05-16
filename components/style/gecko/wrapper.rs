@@ -1217,6 +1217,9 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozNativeAnonymous => unsafe {
                 Gecko_MatchesElement(pseudo_class.to_gecko_pseudoclasstype().unwrap(), self.0)
             },
+            NonTSPseudoClass::MozIsHTML => {
+                self.is_html_element_in_html_document()
+            }
             NonTSPseudoClass::MozAny(ref sels) => {
                 sels.iter().any(|s| {
                     matches_complex_selector(s, self, context, flags_setter)
