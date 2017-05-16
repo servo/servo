@@ -1035,11 +1035,9 @@ impl Animatable for CalcLengthOrPercentage {
             }
         }
 
-        Ok(CalcLengthOrPercentage {
-            length: try!(self.length.add_weighted(&other.length, self_portion, other_portion)),
-            percentage: try!(add_weighted_half(self.percentage, other.percentage,
-                                               self_portion, other_portion)),
-        })
+        let length = self.length().add_weighted(&other.length(), self_portion, other_portion)?;
+        let percentage = add_weighted_half(self.percentage, other.percentage, self_portion, other_portion)?;
+        Ok(CalcLengthOrPercentage::with_clamping_mode(length, percentage, self.clamping_mode))
     }
 
     #[inline]

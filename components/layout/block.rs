@@ -46,7 +46,6 @@ use gfx_traits::print_tree::PrintTree;
 use incremental::RelayoutMode;
 use layout_debug;
 use model::{AdjoiningMargins, CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo, MaybeAuto};
-use model::{specified, specified_or_none};
 use sequential;
 use serde::{Serialize, Serializer};
 use servo_geometry::max_rect;
@@ -326,7 +325,7 @@ impl CandidateBSizeIterator {
                 MaybeAuto::Specified(block_container_block_size.scale_by(percent))
             }
             (LengthOrPercentageOrAuto::Calc(calc), _) => {
-                MaybeAuto::from_option(calc.to_computed(block_container_block_size))
+                MaybeAuto::from_option(calc.to_used_value(block_container_block_size))
             }
             (LengthOrPercentageOrAuto::Percentage(_), None) |
             (LengthOrPercentageOrAuto::Auto, _) => MaybeAuto::Auto,
@@ -337,7 +336,7 @@ impl CandidateBSizeIterator {
                 Some(block_container_block_size.scale_by(percent))
             }
             (LengthOrPercentageOrNone::Calc(calc), _) => {
-                calc.to_computed(block_container_block_size)
+                calc.to_used_value(block_container_block_size)
             }
             (LengthOrPercentageOrNone::Percentage(_), None) |
             (LengthOrPercentageOrNone::None, _) => None,
@@ -348,7 +347,7 @@ impl CandidateBSizeIterator {
                 block_container_block_size.scale_by(percent)
             }
             (LengthOrPercentage::Calc(calc), _) => {
-                calc.to_computed(block_container_block_size).unwrap_or(Au(0))
+                calc.to_used_value(block_container_block_size).unwrap_or(Au(0))
             }
             (LengthOrPercentage::Percentage(_), None) => Au(0),
             (LengthOrPercentage::Length(length), _) => length,
@@ -1167,7 +1166,7 @@ impl BlockFlow {
 
         match (content_block_size, containing_block_size) {
             (LengthOrPercentageOrAuto::Calc(calc), _) => {
-                calc.to_computed(containing_block_size)
+                calc.to_used_value(containing_block_size)
             }
             (LengthOrPercentageOrAuto::Length(length), _) => Some(length),
             (LengthOrPercentageOrAuto::Percentage(percent), Some(container_size)) => {
@@ -1417,8 +1416,8 @@ impl BlockFlow {
             // we know.
             if kid.is_inline_flow() {
                 kid.as_mut_inline().first_line_indentation =
-                    specified(self.fragment.style().get_inheritedtext().text_indent,
-                              containing_block_size);
+                    self.fragment.style().get_inheritedtext().text_indent
+                        .to_used_value(containing_block_size);
             }
         }
     }
@@ -1512,14 +1511,12 @@ impl BlockFlow {
         } else {
             content_box.size.inline
         } - self.fragment.margin.inline_start_end();
-        let max_inline_size = specified_or_none(
-            self.fragment.style().max_inline_size(),
-            self.base.block_container_inline_size
-        ).unwrap_or(MAX_AU);
-        let min_inline_size = specified(
-            self.fragment.style().min_inline_size(),
-            self.base.block_container_inline_size
-        );
+        let max_inline_size =
+            self.fragment.style().max_inline_size()
+                .to_used_value(self.base.block_container_inline_size)
+                .unwrap_or(MAX_AU);
+        let min_inline_size =
+            self.fragment.style().min_inline_size().to_used_value(self.base.block_container_inline_size);
         let specified_inline_size = self.fragment.style().content_inline_size();
         let container_size = self.base.block_container_inline_size;
         let inline_size =
@@ -2413,8 +2410,7 @@ pub trait ISizeAndMarginsComputer {
         // If the tentative used inline-size is greater than 'max-inline-size', inline-size should
         // be recalculated, but this time using the computed value of 'max-inline-size' as the
         // computed value for 'inline-size'.
-        match specified_or_none(block.fragment().style().max_inline_size(),
-                                containing_block_inline_size) {
+        match block.fragment().style().max_inline_size().to_used_value(containing_block_inline_size) {
             Some(max_inline_size) if max_inline_size < solution.inline_size => {
                 input.computed_inline_size = MaybeAuto::Specified(max_inline_size);
                 solution = self.solve_inline_size_constraints(block, &input);
@@ -2425,8 +2421,8 @@ pub trait ISizeAndMarginsComputer {
         // If the resulting inline-size is smaller than 'min-inline-size', inline-size should be
         // recalculated, but this time using the value of 'min-inline-size' as the computed value
         // for 'inline-size'.
-        let computed_min_inline_size = specified(block.fragment().style().min_inline_size(),
-                                                 containing_block_inline_size);
+        let computed_min_inline_size =
+            block.fragment().style().min_inline_size().to_used_value(containing_block_inline_size);
         if computed_min_inline_size > solution.inline_size {
             input.computed_inline_size = MaybeAuto::Specified(computed_min_inline_size);
             solution = self.solve_inline_size_constraints(block, &input);

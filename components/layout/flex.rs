@@ -18,7 +18,6 @@ use flow::{INLINE_POSITION_IS_STATIC, IS_ABSOLUTELY_POSITIONED};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use layout_debug;
 use model::{IntrinsicISizes, MaybeAuto, SizeConstraint};
-use model::{specified, specified_or_none};
 use std::cmp::{max, min};
 use std::ops::Range;
 use style::computed_values::{align_content, align_self, flex_direction, flex_wrap, justify_content};
@@ -52,7 +51,7 @@ impl AxisSize {
                 }
             }
             LengthOrPercentageOrAuto::Calc(calc) => {
-                match calc.to_computed(content_size) {
+                match calc.to_used_value(content_size) {
                     Some(length) => AxisSize::Definite(length),
                     None => AxisSize::Infinite,
                 }
@@ -79,7 +78,7 @@ fn from_flex_basis(flex_basis: LengthOrPercentageOrAutoOrContent,
         (LengthOrPercentageOrAutoOrContent::Percentage(_), None) =>
             MaybeAuto::Auto,
         (LengthOrPercentageOrAutoOrContent::Calc(calc), _) =>
-            MaybeAuto::from_option(calc.to_computed(containing_length)),
+            MaybeAuto::from_option(calc.to_used_value(containing_length)),
         (LengthOrPercentageOrAutoOrContent::Content, _) =>
             MaybeAuto::Auto,
         (LengthOrPercentageOrAutoOrContent::Auto, Some(size)) =>
@@ -169,10 +168,11 @@ impl FlexItem {
                     - margin
                     + block.fragment.box_sizing_boundary(direction);
                 self.base_size = basis.specified_or_default(content_size);
-                self.max_size = specified_or_none(block.fragment.style.max_inline_size(),
-                                                  containing_length).unwrap_or(MAX_AU);
-                self.min_size = specified(block.fragment.style.min_inline_size(),
-                                          containing_length);
+                self.max_size =
+                    block.fragment.style.max_inline_size()
+                         .to_used_value(containing_length)
+                         .unwrap_or(MAX_AU);
+                self.min_size = block.fragment.style.min_inline_size().to_used_value(containing_length);
             }
             Direction::Block => {
                 let basis = from_flex_basis(block.fragment.style.get_position().flex_basis,
@@ -182,10 +182,11 @@ impl FlexItem {
                     - block.fragment.border_padding.block_start_end()
                     + block.fragment.box_sizing_boundary(direction);
                 self.base_size = basis.specified_or_default(content_size);
-                self.max_size = specified_or_none(block.fragment.style.max_block_size(),
-                                                  containing_length).unwrap_or(MAX_AU);
-                self.min_size = specified(block.fragment.style.min_block_size(),
-                                          containing_length);
+                self.max_size =
+                    block.fragment.style.max_block_size()
+                         .to_used_value(containing_length)
+                         .unwrap_or(MAX_AU);
+                self.min_size = block.fragment.style.min_block_size().to_used_value(containing_length);
             }
         }
     }

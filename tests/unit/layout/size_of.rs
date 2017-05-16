@@ -5,5 +5,5 @@
 use layout::Fragment;
 use layout::SpecificFragmentInfo;
 
-size_of_test!(test_size_of_fragment, Fragment, 160);
+size_of_test!(test_size_of_fragment, Fragment, 136);
 size_of_test!(test_size_of_specific_fragment_info, SpecificFragmentInfo, 24);
