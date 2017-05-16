@@ -33,7 +33,7 @@ use selectors::parser::{SelectorMethods, LocalName as LocalNameSelector};
 use selectors::visitor::SelectorVisitor;
 use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use sink::Push;
-use smallvec::VecLike;
+use smallvec::{SmallVec, VecLike};
 use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::hash::Hash;
@@ -48,6 +48,15 @@ use thread_state;
 use viewport::{self, MaybeNew, ViewportRule};
 
 pub use ::fnv::FnvHashMap;
+
+/// List of applicable declaration. This is a transient structure that shuttles
+/// declarations between selector matching and inserting into the rule tree, and
+/// therefore we want to avoid heap-allocation where possible.
+///
+/// In measurements on wikipedia, we pretty much never have more than 8 applicable
+/// declarations, so we could consider making this 8 entries instead of 16.
+/// However, it may depend a lot on workload, and stack space is cheap.
+pub type ApplicableDeclarationList = SmallVec<[ApplicableDeclarationBlock; 16]>;
 
 /// This structure holds all the selectors and device characteristics
 /// for a given document. The selectors are converted into `Rule`s
@@ -678,7 +687,7 @@ impl Stylist {
         };
 
 
-        let mut declarations = vec![];
+        let mut declarations = ApplicableDeclarationList::new();
         self.push_applicable_declarations(element,
                                           None,
                                           None,

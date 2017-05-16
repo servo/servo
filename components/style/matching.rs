@@ -29,7 +29,7 @@ use selectors::matching::AFFECTED_BY_PSEUDO_ELEMENTS;
 use shared_lock::StylesheetGuards;
 use sink::ForgetfulSink;
 use stylearc::Arc;
-use stylist::ApplicableDeclarationBlock;
+use stylist::ApplicableDeclarationList;
 
 /// The way a style should be inherited.
 enum InheritMode {
@@ -865,11 +865,11 @@ trait PrivateMatchMethods: TElement {
 }
 
 fn compute_rule_node<E: TElement>(rule_tree: &RuleTree,
-                                  applicable_declarations: &mut Vec<ApplicableDeclarationBlock>,
+                                  applicable_declarations: &mut ApplicableDeclarationList,
                                   guards: &StylesheetGuards)
                                   -> StrongRuleNode
 {
-    let rules = applicable_declarations.drain(..).map(|d| (d.source, d.level));
+    let rules = applicable_declarations.drain().map(|d| (d.source, d.level));
     let rule_node = rule_tree.insert_ordered_rules_with_important(rules, guards);
     rule_node
 }
@@ -994,8 +994,7 @@ pub trait MatchMethods : TElement {
             }
         }
 
-        let mut applicable_declarations =
-            Vec::<ApplicableDeclarationBlock>::with_capacity(16);
+        let mut applicable_declarations = ApplicableDeclarationList::new();
 
         let stylist = &context.shared.stylist;
         let style_attribute = self.style_attribute();
@@ -1054,8 +1053,7 @@ pub trait MatchMethods : TElement {
             return false;
         }
 
-        let mut applicable_declarations =
-            Vec::<ApplicableDeclarationBlock>::with_capacity(16);
+        let mut applicable_declarations = ApplicableDeclarationList::new();
 
         let map = &mut context.thread_local.selector_flags;
         let mut set_selector_flags = |element: &Self, flags: ElementSelectorFlags| {
