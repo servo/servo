@@ -12,8 +12,8 @@ use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::ImageCache;
 use profile_traits::mem::ReportsChan;
 use rpc::LayoutRPC;
-use script_traits::{ConstellationControlMsg, LayoutControlMsg, UntrustedNodeAddress};
-use script_traits::{LayoutMsg as ConstellationMsg, StackingContextScrollState, WindowSizeData};
+use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
+use script_traits::{ScrollState, UntrustedNodeAddress, WindowSizeData};
 use servo_url::ServoUrl;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender};
@@ -79,7 +79,11 @@ pub enum Msg {
     SetFinalUrl(ServoUrl),
 
     /// Tells layout about the new scrolling offsets of each scrollable stacking context.
-    SetStackingContextScrollStates(Vec<StackingContextScrollState>),
+    SetScrollStates(Vec<ScrollState>),
+
+    /// Tells layout about a single new scrolling offset from the script. The rest will
+    /// remain untouched and layout won't forward this back to script.
+    UpdateScrollStateFromScript(ScrollState),
 }
 
 
@@ -90,7 +94,7 @@ pub enum ReflowQueryType {
     ContentBoxQuery(TrustedNodeAddress),
     ContentBoxesQuery(TrustedNodeAddress),
     NodeOverflowQuery(TrustedNodeAddress),
-    HitTestQuery(Point2D<f32>, Point2D<f32>, bool),
+    HitTestQuery(Point2D<f32>, bool),
     NodeScrollRootIdQuery(TrustedNodeAddress),
     NodeGeometryQuery(TrustedNodeAddress),
     NodeScrollGeometryQuery(TrustedNodeAddress),
@@ -98,7 +102,7 @@ pub enum ReflowQueryType {
     OffsetParentQuery(TrustedNodeAddress),
     MarginStyleQuery(TrustedNodeAddress),
     TextIndexQuery(TrustedNodeAddress, i32, i32),
-    NodesFromPoint(Point2D<f32>, Point2D<f32>),
+    NodesFromPoint(Point2D<f32>),
 }
 
 /// Information needed for a reflow.

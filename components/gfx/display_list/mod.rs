@@ -47,6 +47,74 @@ pub struct DisplayList {
     pub list: Vec<DisplayItem>,
 }
 
+struct ScrollOffsetLookup<'a> {
+    parents: &'a mut HashMap<ClipId, ClipId>,
+    calculated_total_offsets: ScrollOffsetMap,
+    raw_offsets: &'a ScrollOffsetMap,
+}
+
+impl<'a> ScrollOffsetLookup<'a> {
+    fn new(parents: &'a mut HashMap<ClipId, ClipId>,
+           raw_offsets: &'a ScrollOffsetMap)
+           -> ScrollOffsetLookup<'a> {
+        ScrollOffsetLookup {
+            parents: parents,
+            calculated_total_offsets: HashMap::new(),
+            raw_offsets: raw_offsets,
+        }
+    }
+
+    fn new_for_reference_frame(&mut self,
+                               clip_id: ClipId,
+                               transform: &Matrix4D<f32>,
+                               point: &mut Point2D<Au>)
+                               -> Option<ScrollOffsetLookup> {
+        // If a transform function causes the current transformation matrix of an object
+        // to be non-invertible, the object and its content do not get displayed.
+        let inv_transform = match transform.inverse() {
+            Some(transform) => transform,
+            None => return None,
+        };
+
+        let scroll_offset = self.full_offset_for_scroll_root(&clip_id);
+        *point = Point2D::new(point.x - Au::from_f32_px(scroll_offset.x),
+                              point.y - Au::from_f32_px(scroll_offset.y));
+        let frac_point = inv_transform.transform_point(&Point2D::new(point.x.to_f32_px(),
+                                                                     point.y.to_f32_px()));
+        *point = Point2D::new(Au::from_f32_px(frac_point.x), Au::from_f32_px(frac_point.y));
+
+        let mut sublookup = ScrollOffsetLookup {
+            parents: &mut self.parents,
+            calculated_total_offsets: HashMap::new(),
+            raw_offsets: self.raw_offsets,
+        };
+        sublookup.calculated_total_offsets.insert(clip_id, Point2D::zero());
+        Some(sublookup)
+    }
+
+    fn add_scroll_root(&mut self, scroll_root: &ScrollRoot) {
+        self.parents.insert(scroll_root.id, scroll_root.parent_id);
+    }
+
+    fn full_offset_for_scroll_root(&mut self, id: &ClipId) -> Point2D<f32> {
+        if let Some(offset) = self.calculated_total_offsets.get(id) {
+            return *offset;
+        }
+
+        let parent_offset = if !id.is_root_scroll_node() {
+            let parent_id = *self.parents.get(id).unwrap();
+            self.full_offset_for_scroll_root(&parent_id)
+        } else {
+            Point2D::zero()
+        };
+
+        let offset = parent_offset +
+                     self.raw_offsets.get(id).cloned().unwrap_or_else(Point2D::zero);
+        self.calculated_total_offsets.insert(*id, offset);
+        offset
+    }
+}
+
 impl DisplayList {
     /// Return the bounds of this display list based on the dimensions of the root
     /// stacking context.
@@ -69,51 +137,36 @@ impl DisplayList {
         self.text_index_contents(node,
                                  &mut traversal,
                                  client_point,
-                                 client_point,
-                                 scroll_offsets,
+                                 &mut ScrollOffsetLookup::new(&mut HashMap::new(), scroll_offsets),
                                  &mut result);
         result.pop()
     }
 
-    pub fn text_index_contents<'a>(&self,
-                                   node: OpaqueNode,
-                                   traversal: &mut DisplayListTraversal<'a>,
-                                   translated_point: &Point2D<Au>,
-                                   client_point: &Point2D<Au>,
-                                   scroll_offsets: &ScrollOffsetMap,
-                                   result: &mut Vec<usize>) {
+    fn text_index_contents<'a>(&self,
+                               node: OpaqueNode,
+                               traversal: &mut DisplayListTraversal<'a>,
+                               point: &Point2D<Au>,
+                               offset_lookup: &mut ScrollOffsetLookup,
+                               result: &mut Vec<usize>) {
         while let Some(item) = traversal.next() {
             match item {
-                &DisplayItem::PushStackingContext(ref stacking_context_item) => {
-                    let mut point = *translated_point;
-                    DisplayList::translate_point(&stacking_context_item.stacking_context,
-                                                 &mut point,
-                                                 client_point);
-                    self.text_index_contents(node,
-                                             traversal,
-                                             &point,
-                                             client_point,
-                                             scroll_offsets,
-                                             result);
+                &DisplayItem::PushStackingContext(ref context_item) => {
+                    self.text_index_stacking_context(&context_item.stacking_context,
+                                                     item.base().scroll_root_id,
+                                                     node,
+                                                     traversal,
+                                                     point,
+                                                     offset_lookup,
+                                                     result);
                 }
                 &DisplayItem::DefineClip(ref item) => {
-                    let mut point = *translated_point;
-                    DisplayList::scroll_root(&item.scroll_root,
-                                             &mut point,
-                                             scroll_offsets);
-                    self.text_index_contents(node,
-                                             traversal,
-                                             &point,
-                                             client_point,
-                                             scroll_offsets,
-                                             result);
-
-                },
+                    offset_lookup.add_scroll_root(&item.scroll_root);
+                }
                 &DisplayItem::PopStackingContext(_) => return,
                 &DisplayItem::Text(ref text) => {
                     let base = item.base();
                     if base.metadata.node == node {
-                        let offset = *translated_point - text.baseline_origin;
+                        let offset = *point - text.baseline_origin;
                         let index = text.text_run.range_index_of_advance(&text.range, offset.x);
                         result.push(index);
                     }
@@ -123,56 +176,71 @@ impl DisplayList {
         }
     }
 
+    fn text_index_stacking_context<'a>(&self,
+                                       stacking_context: &StackingContext,
+                                       clip_id: ClipId,
+                                       node: OpaqueNode,
+                                       traversal: &mut DisplayListTraversal<'a>,
+                                       point: &Point2D<Au>,
+                                       offset_lookup: &mut ScrollOffsetLookup,
+                                       result: &mut Vec<usize>) {
+        let mut point = *point - stacking_context.bounds.origin;
+        if stacking_context.scroll_policy == ScrollPolicy::Fixed {
+            let old_offset = offset_lookup.calculated_total_offsets.get(&clip_id).cloned();
+            offset_lookup.calculated_total_offsets.insert(clip_id, Point2D::zero());
+
+            self.text_index_contents(node, traversal, &point, offset_lookup, result);
+
+            match old_offset {
+                Some(offset) => offset_lookup.calculated_total_offsets.insert(clip_id, offset),
+                None => offset_lookup.calculated_total_offsets.remove(&clip_id),
+            };
+        } else if let Some(transform) = stacking_context.transform {
+            if let Some(ref mut sublookup) =
+                offset_lookup.new_for_reference_frame(clip_id, &transform, &mut point) {
+                self.text_index_contents(node, traversal, &point, sublookup, result);
+            }
+        } else {
+            self.text_index_contents(node, traversal, &point, offset_lookup, result);
+        }
+    }
+
     // Return all nodes containing the point of interest, bottommost first, and
     // respecting the `pointer-events` CSS property.
     pub fn hit_test(&self,
-                    translated_point: &Point2D<Au>,
-                    client_point: &Point2D<Au>,
+                    point: &Point2D<Au>,
                     scroll_offsets: &ScrollOffsetMap)
                     -> Vec<DisplayItemMetadata> {
         let mut result = Vec::new();
         let mut traversal = DisplayListTraversal::new(self);
         self.hit_test_contents(&mut traversal,
-                               translated_point,
-                               client_point,
-                               scroll_offsets,
+                               point,
+                               &mut ScrollOffsetLookup::new(&mut HashMap::new(), scroll_offsets),
                                &mut result);
         result
     }
 
-    pub fn hit_test_contents<'a>(&self,
-                                 traversal: &mut DisplayListTraversal<'a>,
-                                 translated_point: &Point2D<Au>,
-                                 client_point: &Point2D<Au>,
-                                 scroll_offsets: &ScrollOffsetMap,
-                                 result: &mut Vec<DisplayItemMetadata>) {
+    fn hit_test_contents<'a>(&self,
+                             traversal: &mut DisplayListTraversal<'a>,
+                             point: &Point2D<Au>,
+                             offset_lookup: &mut ScrollOffsetLookup,
+                             result: &mut Vec<DisplayItemMetadata>) {
         while let Some(item) = traversal.next() {
             match item {
-                &DisplayItem::PushStackingContext(ref stacking_context_item) => {
-                    let mut point = *translated_point;
-                    DisplayList::translate_point(&stacking_context_item.stacking_context,
-                                                 &mut point,
-                                                 client_point);
-                    self.hit_test_contents(traversal,
-                                           &point,
-                                           client_point,
-                                           scroll_offsets,
-                                           result);
-                }
-                &DisplayItem::DefineClip(ref item) => {
-                    let mut point = *translated_point;
-                    DisplayList::scroll_root(&item.scroll_root,
-                                             &mut point,
-                                             scroll_offsets);
-                    self.hit_test_contents(traversal,
-                                           &point,
-                                           client_point,
-                                           scroll_offsets,
-                                           result);
+                &DisplayItem::PushStackingContext(ref context_item) => {
+                    self.hit_test_stacking_context(&context_item.stacking_context,
+                                                   item.base().scroll_root_id,
+                                                   traversal,
+                                                   point,
+                                                   offset_lookup,
+                                                   result);
                 }
                 &DisplayItem::PopStackingContext(_) => return,
+                &DisplayItem::DefineClip(ref item) => {
+                    offset_lookup.add_scroll_root(&item.scroll_root);
+                }
                 _ => {
-                    if let Some(meta) = item.hit_test(*translated_point) {
+                    if let Some(meta) = item.hit_test(*point, offset_lookup) {
                         result.push(meta);
                     }
                 }
@@ -180,52 +248,33 @@ impl DisplayList {
         }
     }
 
-    #[inline]
-    fn translate_point<'a>(stacking_context: &StackingContext,
-                           translated_point: &mut Point2D<Au>,
-                           client_point: &Point2D<Au>) {
-        // Convert the parent translated point into stacking context local transform space if the
-        // stacking context isn't fixed.  If it's fixed, we need to use the client point anyway.
+    fn hit_test_stacking_context<'a>(&self,
+                                     stacking_context: &StackingContext,
+                                     clip_id: ClipId,
+                                     traversal: &mut DisplayListTraversal<'a>,
+                                     point: &Point2D<Au>,
+                                     offset_lookup: &mut ScrollOffsetLookup,
+                                     result: &mut Vec<DisplayItemMetadata>) {
         debug_assert!(stacking_context.context_type == StackingContextType::Real);
-        let is_fixed = stacking_context.scroll_policy == ScrollPolicy::Fixed;
-        *translated_point = if is_fixed {
-            *client_point
-        } else {
-            let point = *translated_point - stacking_context.bounds.origin;
 
-            match stacking_context.transform {
-                Some(transform) => {
-                    let inv_transform = match transform.inverse() {
-                        Some(transform) => transform,
-                        None => {
-                            // If a transform function causes the current transformation matrix of an object
-                            // to be non-invertible, the object and its content do not get displayed.
-                            return;
-                        }
-                    };
-                    let frac_point = inv_transform.transform_point(&Point2D::new(point.x.to_f32_px(),
-                                                                                 point.y.to_f32_px()));
-                    Point2D::new(Au::from_f32_px(frac_point.x), Au::from_f32_px(frac_point.y))
-                }
-                None => {
-                    point
-                }
+        let mut point = *point - stacking_context.bounds.origin;
+        if stacking_context.scroll_policy == ScrollPolicy::Fixed {
+            let old_offset = offset_lookup.calculated_total_offsets.get(&clip_id).cloned();
+            offset_lookup.calculated_total_offsets.insert(clip_id, Point2D::zero());
+
+            self.hit_test_contents(traversal, &point, offset_lookup, result);
+
+            match old_offset {
+                Some(offset) => offset_lookup.calculated_total_offsets.insert(clip_id, offset),
+                None => offset_lookup.calculated_total_offsets.remove(&clip_id),
+            };
+        } else if let Some(transform) = stacking_context.transform {
+            if let Some(ref mut sublookup) =
+                offset_lookup.new_for_reference_frame(clip_id, &transform, &mut point) {
+                self.hit_test_contents(traversal, &point, sublookup, result);
             }
-        };
-    }
-
-    #[inline]
-    fn scroll_root<'a>(scroll_root: &ScrollRoot,
-                       translated_point: &mut Point2D<Au>,
-                       scroll_offsets: &ScrollOffsetMap) {
-        // Adjust the translated point to account for the scroll offset if necessary.
-        //
-        // We don't perform this adjustment on the root stacking context because
-        // the DOM-side code has already translated the point for us (e.g. in
-        // `Window::hit_test_query()`) by now.
-        if let Some(scroll_offset) = scroll_offsets.get(&scroll_root.id) {
-            translated_point.x -= Au::from_f32_px(scroll_offset.x);
-            translated_point.y -= Au::from_f32_px(scroll_offset.y);
+        } else {
+            self.hit_test_contents(traversal, &point, offset_lookup, result);
         }
     }
 
@@ -1207,10 +1256,17 @@ impl DisplayItem {
         println!("{}+ {:?}", indent, self);
     }
 
-    fn hit_test(&self, point: Point2D<Au>) -> Option<DisplayItemMetadata> {
+    fn hit_test(&self,
+                point: Point2D<Au>,
+                offset_lookup: &mut ScrollOffsetLookup)
+                -> Option<DisplayItemMetadata> {
         // TODO(pcwalton): Use a precise algorithm here. This will allow us to properly hit
         // test elements with `border-radius`, for example.
         let base_item = self.base();
+
+        let scroll_offset = offset_lookup.full_offset_for_scroll_root(&base_item.scroll_root_id);
+        let point = Point2D::new(point.x - Au::from_f32_px(scroll_offset.x),
+                                 point.y - Au::from_f32_px(scroll_offset.y));
 
         if !base_item.clip.might_intersect_point(&point) {
             // Clipped out.

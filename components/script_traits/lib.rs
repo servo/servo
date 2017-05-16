@@ -122,7 +122,7 @@ pub enum LayoutControlMsg {
     /// Asks layout to run another step in its animation.
     TickAnimations,
     /// Tells layout about the new scrolling offsets of each scrollable stacking context.
-    SetStackingContextScrollStates(Vec<StackingContextScrollState>),
+    SetScrollStates(Vec<ScrollState>),
     /// Requests the current load state of Web fonts. `true` is returned if fonts are still loading
     /// and `false` is returned if all fonts have loaded.
     GetWebFontLoadState(IpcSender<bool>),
@@ -673,7 +673,7 @@ pub enum AnimationTickType {
 
 /// The scroll state of a stacking context.
 #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
-pub struct StackingContextScrollState {
+pub struct ScrollState {
     /// The ID of the scroll root.
     pub scroll_root_id: ClipId,
     /// The scrolling offset of this stacking context.
