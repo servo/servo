@@ -10,7 +10,6 @@ use std::ascii::AsciiExt;
 use std::borrow::{Borrow, Cow};
 use std::cmp;
 use std::fmt::{self, Display, Debug, Write};
-use std::hash::Hash;
 use std::iter::Rev;
 use std::ops::Add;
 use std::slice;
@@ -54,7 +53,7 @@ macro_rules! with_all_bounds {
             type NamespaceUrl: $($CommonBounds)* + Default + Borrow<Self::BorrowedNamespaceUrl> + PrecomputedHash;
             type NamespacePrefix: $($InSelector)* + Default;
             type BorrowedNamespaceUrl: ?Sized + Eq;
-            type BorrowedLocalName: ?Sized + Eq + Hash;
+            type BorrowedLocalName: ?Sized + Eq;
 
             /// non tree-structural pseudo-classes
             /// (see: https://drafts.csswg.org/selectors/#structural-pseudos)
@@ -77,7 +76,7 @@ macro_rules! with_bounds {
 }
 
 with_bounds! {
-    [Clone + Eq + Hash]
+    [Clone + Eq]
     [From<String> + for<'a> From<&'a str>]
 }
 
@@ -113,7 +112,7 @@ pub trait Parser {
     }
 }
 
-#[derive(PartialEq, Eq, Hash, Clone, Debug)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub struct SelectorList<Impl: SelectorImpl>(pub Vec<Selector<Impl>>);
 
 impl<Impl: SelectorImpl> SelectorList<Impl> {
@@ -136,7 +135,7 @@ const NUM_ANCESTOR_HASHES: usize = 4;
 /// information that lives on |Selector| proper. We may want to refactor things
 /// and move that information elsewhere, at which point we could rename this
 /// to |Selector|.
-#[derive(PartialEq, Eq, Hash, Clone)]
+#[derive(PartialEq, Eq, Clone)]
 pub struct SelectorInner<Impl: SelectorImpl> {
     /// The selector data.
     pub complex: ComplexSelector<Impl>,
@@ -176,7 +175,7 @@ impl<Impl: SelectorImpl> SelectorInner<Impl> {
     }
 }
 
-#[derive(PartialEq, Eq, Hash, Clone)]
+#[derive(PartialEq, Eq, Clone)]
 pub struct Selector<Impl: SelectorImpl> {
     pub inner: SelectorInner<Impl>,
     pub pseudo_element: Option<Impl::PseudoElementSelector>,
@@ -279,7 +278,7 @@ impl<Impl: SelectorImpl> SelectorMethods for Component<Impl> {
 /// We store selectors internally left-to-right (in parsing order), but the
 /// canonical iteration order is right-to-left (selector matching order). The
 /// iterators abstract over these details.
-#[derive(Clone, Eq, Hash, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct ComplexSelector<Impl: SelectorImpl>(ArcSlice<Component<Impl>>);
 
 impl<Impl: SelectorImpl> ComplexSelector<Impl> {
@@ -405,7 +404,7 @@ impl<'a, Impl: SelectorImpl> Iterator for AncestorIter<'a, Impl> {
     }
 }
 
-#[derive(Eq, PartialEq, Clone, Copy, Debug, Hash)]
+#[derive(Eq, PartialEq, Clone, Copy, Debug)]
 pub enum Combinator {
     Child,  //  >
     Descendant,  // space
@@ -429,7 +428,7 @@ impl Combinator {
 /// optimal packing and cache performance, see [1].
 ///
 /// [1] https://bugzilla.mozilla.org/show_bug.cgi?id=1357973
-#[derive(Eq, PartialEq, Clone, Hash)]
+#[derive(Eq, PartialEq, Clone)]
 pub enum Component<Impl: SelectorImpl> {
     Combinator(Combinator),
     ID(Impl::Identifier),
@@ -517,34 +516,33 @@ impl<Impl: SelectorImpl> Component<Impl> {
     }
 }
 
-#[derive(Eq, PartialEq, Clone, Hash, Copy, Debug)]
+#[derive(Eq, PartialEq, Clone, Copy, Debug)]
 pub enum CaseSensitivity {
     CaseSensitive,  // Selectors spec says language-defined, but HTML says sensitive.
     CaseInsensitive,
 }
 
 
-#[derive(Eq, PartialEq, Clone, Hash)]
+#[derive(Eq, PartialEq, Clone)]
 pub struct LocalName<Impl: SelectorImpl> {
     pub name: Impl::LocalName,
     pub lower_name: Impl::LocalName,
 }
 
-#[derive(Eq, PartialEq, Clone, Hash)]
+#[derive(Eq, PartialEq, Clone)]
 pub struct AttrSelector<Impl: SelectorImpl> {
     pub name: Impl::LocalName,
     pub lower_name: Impl::LocalName,
     pub namespace: NamespaceConstraint<Impl>,
 }
 
-#[derive(Eq, PartialEq, Clone, Hash, Debug)]
+#[derive(Eq, PartialEq, Clone, Debug)]
 pub enum NamespaceConstraint<Impl: SelectorImpl> {
     Any,
     Specific(Namespace<Impl>),
 }
 
-/// FIXME(SimonSapin): should Hash only hash the URL? What is it used for?
-#[derive(Eq, PartialEq, Clone, Hash)]
+#[derive(Eq, PartialEq, Clone)]
 pub struct Namespace<Impl: SelectorImpl> {
     pub prefix: Option<Impl::NamespacePrefix>,
     pub url: Impl::NamespaceUrl,
@@ -1395,13 +1393,13 @@ pub mod tests {
     use std::fmt;
     use super::*;
 
-    #[derive(PartialEq, Clone, Debug, Hash, Eq)]
+    #[derive(PartialEq, Clone, Debug, Eq)]
     pub enum PseudoClass {
         Hover,
         Lang(String),
     }
 
-    #[derive(Eq, PartialEq, Clone, Debug, Hash)]
+    #[derive(Eq, PartialEq, Clone, Debug)]
     pub enum PseudoElement {
         Before,
         After,
@@ -1458,7 +1456,7 @@ pub mod tests {
         type PseudoElementSelector = PseudoElement;
     }
 
-    #[derive(Default, Debug, Hash, Clone, PartialEq, Eq)]
+    #[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
     pub struct DummyAtom(String);
 
     impl fmt::Display for DummyAtom {
@@ -1505,7 +1503,7 @@ pub mod tests {
             }
         }
 
-        fn parse_pseudo_element(&self, name: Cow<str>, input: &mut CssParser)
+        fn parse_pseudo_element(&self, name: Cow<str>, _input: &mut CssParser)
                                 -> Result<PseudoElement, ()> {
             match_ignore_ascii_case! { &name,
                 "before" => Ok(PseudoElement::Before),

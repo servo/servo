@@ -7,12 +7,15 @@
 #[macro_use] extern crate matches;
 extern crate fnv;
 extern crate precomputed_hash;
+#[cfg(test)] #[macro_use] extern crate size_of_test;
 extern crate smallvec;
 
 pub mod arcslice;
 pub mod bloom;
 pub mod matching;
 pub mod parser;
+#[cfg(test)] mod size_of_tests;
+#[cfg(any(test, feature = "gecko_like_types"))] pub mod gecko_like_types;
 mod tree;
 pub mod visitor;
 

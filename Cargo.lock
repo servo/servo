@@ -1407,6 +1407,7 @@ dependencies = [
  "atomic_refcell 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "layout 0.0.1",
  "script_layout_interface 0.0.1",
+ "size_of_test 0.0.1",
 ]
 
 [[package]]
@@ -2443,6 +2444,7 @@ dependencies = [
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "matches 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "precomputed-hash 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "size_of_test 0.0.1",
  "smallvec 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -2731,6 +2733,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "siphasher"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "size_of_test"
+version = "0.0.1"
 
 [[package]]
 name = "slab"
