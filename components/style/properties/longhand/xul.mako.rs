@@ -44,9 +44,9 @@ ${helpers.single_keyword("-moz-box-pack", "start center end justify",
                          alias="-webkit-box-pack",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/box-pack)")}
 
-${helpers.single_keyword("-moz-stack-sizing", "stretch-to-fit ignore",
-                         products="gecko", gecko_ffi_name="mStretchStack",
-                         gecko_constant_prefix="NS_STYLE_STACK_SIZING",
+${helpers.single_keyword("-moz-stack-sizing", "stretch-to-fit ignore ignore-horizontal ignore-vertical",
+                         products="gecko", gecko_ffi_name="mStackSizing",
+                         gecko_enum_prefix="StyleStackSizing",
                          animation_value_type="none",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-stack-sizing)")}
 
