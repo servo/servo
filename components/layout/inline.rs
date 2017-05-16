@@ -36,7 +36,7 @@ use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::properties::{longhands, ServoComputedValues};
 use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPOSITION, RESOLVE_GENERATED_CONTENT};
 use text;
-use unicode_bidi;
+use unicode_bidi as bidi;
 
 /// `Line`s are represented as offsets into the child list, rather than
 /// as an object that "owns" fragments. Choosing a different set of line
@@ -95,7 +95,7 @@ pub struct Line {
     /// The bidirectional embedding level runs for this line, in visual order.
     ///
     /// Can be set to `None` if the line is 100% left-to-right.
-    pub visual_runs: Option<Vec<(Range<FragmentIndex>, u8)>>,
+    pub visual_runs: Option<Vec<(Range<FragmentIndex>, bidi::Level)>>,
 
     /// The bounds are the exact position and extents of the line with respect
     /// to the parent box.
@@ -293,22 +293,25 @@ impl LineBreaker {
         // (because we split fragments on level run boundaries during flow
         // construction), so we can build a level array with just one entry per
         // fragment.
-        let levels: Vec<u8> = self.new_fragments.iter().map(|fragment| match fragment.specific {
-            SpecificFragmentInfo::ScannedText(ref info) => info.run.bidi_level,
-            _ => para_level
-        }).collect();
+        let levels: Vec<bidi::Level> = self.new_fragments.iter().map(
+            |fragment| match fragment.specific {
+                SpecificFragmentInfo::ScannedText(ref info) => info.run.bidi_level,
+                _ => para_level
+            }
+        ).collect();
 
         let mut lines = mem::replace(&mut self.lines, Vec::new());
 
         // If everything is LTR, don't bother with reordering.
-        let has_rtl = levels.iter().cloned().any(unicode_bidi::is_rtl);
-
-        if has_rtl {
+        if bidi::level::has_rtl(&levels) {
             // Compute and store the visual ordering of the fragments within the
             // line.
             for line in &mut lines {
                 let range = line.range.begin().to_usize()..line.range.end().to_usize();
-                let runs = unicode_bidi::visual_runs(range, &levels);
+                // FIXME: Update to use BidiInfo::visual_runs, as this algorithm needs access to
+                // the original text and original BidiClass of its characters.
+                #[allow(deprecated)]
+                let runs = bidi::deprecated::visual_runs(range, &levels);
                 line.visual_runs = Some(runs.iter().map(|run| {
                     let start = FragmentIndex(run.start as isize);
                     let len = FragmentIndex(run.len() as isize);
@@ -957,11 +960,11 @@ impl InlineFlow {
             let (range, level) = match line.visual_runs {
                 Some(ref runs) if is_ltr => runs[run_idx],
                 Some(ref runs) => runs[run_count - run_idx - 1], // reverse order for RTL runs
-                None => (line.range, 0)
+                None => (line.range, bidi::Level::ltr())
             };
             // If the bidi embedding direction is opposite the layout direction, lay out this
             // run in reverse order.
-            let reverse = unicode_bidi::is_ltr(level) != is_ltr;
+            let reverse = level.is_ltr() != is_ltr;
             let fragment_indices = if reverse {
                 (range.end().get() - 1..range.begin().get() - 1).step_by(-1)
             } else {
