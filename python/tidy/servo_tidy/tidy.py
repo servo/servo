@@ -388,7 +388,6 @@ def check_html_title_tag(file_name, lines):
     if not file_name.endswith(".html"):
         raise StopIteration
     for idx, line in enumerate(lines):
-        print(line)
         if '></title>' in line:
             yield (idx + 1, "Found empty title tag. Please add descriptive title.")
 
