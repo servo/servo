@@ -104,7 +104,7 @@ fn test_parse_stylesheet() {
                                     prefix: None,
                                     url: ns!()
                                 }),
-                            }, "hidden".to_owned(), CaseSensitivity::CaseInsensitive)
+                            }, "hidden".to_owned(), CaseSensitivity::AsciiCaseInsensitive)
                         ]),
                         (0 << 20) + (1 << 10) + (1 << 0)
                     ),
