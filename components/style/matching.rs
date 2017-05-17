@@ -496,6 +496,27 @@ trait PrivateMatchMethods: TElement {
                         primary_style: &ComputedStyle,
                         eager_pseudo_style: Option<&ComputedStyle>)
                         -> Arc<ComputedValues> {
+        if let Some(pseudo) = self.implemented_pseudo_element() {
+            debug_assert!(eager_pseudo_style.is_none());
+
+            // This is an element-backed pseudo, just grab the styles from the
+            // parent if it's eager, and recascade otherwise.
+            //
+            // We also recascade if the eager pseudo-style has any animation
+            // rules, because we don't cascade those during the eager traversal.
+            //
+            // We could make that a bit better if the complexity cost is not too
+            // big, but given further restyles are posted directly to
+            // pseudo-elements, it doesn't seem worth the effort at a glance.
+            if pseudo.is_eager() && self.get_animation_rules().is_empty() {
+                let parent = self.parent_element().unwrap();
+                let parent_data = parent.borrow_data().unwrap();
+                let pseudo_style =
+                    parent_data.styles().pseudos.get(&pseudo).unwrap();
+                return pseudo_style.values().clone()
+            }
+        }
+
         // Grab the rule node.
         let rule_node = &eager_pseudo_style.unwrap_or(primary_style).rules;
         let inherit_mode = if eager_pseudo_style.is_some() {
@@ -513,96 +534,65 @@ trait PrivateMatchMethods: TElement {
 
     /// Computes values and damage for the primary or pseudo style of an element,
     /// setting them on the ElementData.
-    fn cascade_primary_or_pseudo(&self,
-                                 context: &mut StyleContext<Self>,
-                                 data: &mut ElementData,
-                                 pseudo: Option<&PseudoElement>) {
-        debug_assert!(pseudo.is_none() || self.implemented_pseudo_element().is_none(),
-                      "Pseudo-element-implementing elements can't have pseudos!");
+    fn cascade_primary(&self,
+                       context: &mut StyleContext<Self>,
+                       data: &mut ElementData) {
         // Collect some values.
         let (mut styles, restyle) = data.styles_and_restyle_mut();
         let mut primary_style = &mut styles.primary;
-        let pseudos = &mut styles.pseudos;
-        let mut pseudo_style = match pseudo {
-            Some(p) => {
-                let style = pseudos.get_mut(p);
-                debug_assert!(style.is_some());
-                style
-            }
-            None => None,
-        };
-
-        let mut old_values = match pseudo_style {
-            Some(ref mut s) => s.values.take(),
-            None => primary_style.values.take(),
-        };
+        let mut old_values = primary_style.values.take();
 
         // Compute the new values.
-        let mut new_values = match self.implemented_pseudo_element() {
-            Some(ref pseudo) => {
-                // This is an element-backed pseudo, just grab the styles from
-                // the parent if it's eager, and recascade otherwise.
-                //
-                // We also recascade if the eager pseudo-style has any animation
-                // rules, because we don't cascade those during the eager
-                // traversal. We could make that a bit better if the complexity
-                // cost is not too big, but given further restyles are posted
-                // directly to pseudo-elements, it doesn't seem worth the effort
-                // at a glance.
-                if pseudo.is_eager() &&
-                   self.get_animation_rules().is_empty() {
-                    let parent = self.parent_element().unwrap();
-
-                    let parent_data = parent.borrow_data().unwrap();
-                    let pseudo_style =
-                        parent_data.styles().pseudos.get(pseudo).unwrap();
-                    pseudo_style.values().clone()
-                } else {
-                    self.cascade_internal(context,
-                                          primary_style,
-                                          None)
-                }
-            }
-            None => {
-                // Else it's an eager pseudo or a normal element, do the cascade
-                // work.
-                self.cascade_internal(context,
-                                      primary_style,
-                                      pseudo_style.as_ref().map(|s| &**s))
-            }
-        };
+        let mut new_values = self.cascade_internal(context, primary_style, None);
 
         // NB: Animations for pseudo-elements in Gecko are handled while
         // traversing the pseudo-elements themselves.
-        if pseudo.is_none() &&
-           !context.shared.traversal_flags.for_animation_only() {
+        if !context.shared.traversal_flags.for_animation_only() {
             self.process_animations(context,
                                     &mut old_values,
                                     &mut new_values,
                                     primary_style);
         }
 
-        // Accumulate restyle damage.
+        if let Some(old) = old_values {
+            self.accumulate_damage(&context.shared,
+                                   restyle.unwrap(),
+                                   &old,
+                                   &new_values,
+                                   None);
+        }
+
+        // Set the new computed values.
+        primary_style.values = Some(new_values);
+    }
+
+    fn cascade_eager_pseudo(&self,
+                            context: &mut StyleContext<Self>,
+                            data: &mut ElementData,
+                            pseudo: &PseudoElement) {
+        debug_assert!(pseudo.is_eager());
+        let (mut styles, restyle) = data.styles_and_restyle_mut();
+        let mut pseudo_style = styles.pseudos.get_mut(pseudo).unwrap();
+        let old_values = pseudo_style.values.take();
+
+        let new_values =
+            self.cascade_internal(context, &styles.primary, Some(pseudo_style));
+
         if let Some(old) = old_values {
             // ::before and ::after are element-backed in Gecko, so they do
             // the damage calculation for themselves.
-            //
-            // FIXME(emilio): We have more element-backed stuff, and this is
-            // redundant for them right now.
-            if cfg!(feature = "servo") ||
-               pseudo.map_or(true, |p| !p.is_before_or_after()) {
+            if cfg!(feature = "servo") || !pseudo.is_before_or_after() {
                 self.accumulate_damage(&context.shared,
                                        restyle.unwrap(),
                                        &old,
                                        &new_values,
-                                       pseudo);
+                                       Some(pseudo));
             }
         }
 
-        // Set the new computed values.
-        let mut relevant_style = pseudo_style.unwrap_or(primary_style);
-        relevant_style.values = Some(new_values);
+        pseudo_style.values = Some(new_values)
     }
+
 
     /// get_after_change_style removes the transition rules from the ComputedValues.
     /// If there is no transition rule in the ComputedValues, it returns None.
@@ -753,15 +743,11 @@ trait PrivateMatchMethods: TElement {
     }
 
     /// Computes and applies non-redundant damage.
-    ///
-    /// FIXME(emilio): Damage for non-::before and non-::after element-backed
-    /// pseudo-elements should be refactored to go on themselves (right now they
-    /// do, but we apply this twice).
     #[cfg(feature = "gecko")]
     fn accumulate_damage(&self,
                          shared_context: &SharedStyleContext,
                          restyle: &mut RestyleData,
-                         old_values: &Arc<ComputedValues>,
+                         old_values: &ComputedValues,
                          new_values: &Arc<ComputedValues>,
                          pseudo: Option<&PseudoElement>) {
         // Don't accumulate damage if we're in a restyle for reconstruction.
@@ -797,12 +783,12 @@ trait PrivateMatchMethods: TElement {
     fn accumulate_damage(&self,
                          _shared_context: &SharedStyleContext,
                          restyle: &mut RestyleData,
-                         old_values: &Arc<ComputedValues>,
+                         old_values: &ComputedValues,
                          new_values: &Arc<ComputedValues>,
                          pseudo: Option<&PseudoElement>) {
         if restyle.damage != RestyleDamage::rebuild_and_reflow() {
-            let d = self.compute_restyle_damage(&old_values, &new_values, pseudo);
-            restyle.damage |= d;
+            restyle.damage |=
+                self.compute_restyle_damage(&old_values, &new_values, pseudo);
         }
     }
 
@@ -1394,7 +1380,7 @@ pub trait MatchMethods : TElement {
     /// pseudo-element, compute the restyle damage used to determine which
     /// kind of layout or painting operations we'll need.
     fn compute_restyle_damage(&self,
-                              old_values: &Arc<ComputedValues>,
+                              old_values: &ComputedValues,
                               new_values: &Arc<ComputedValues>,
                               pseudo: Option<&PseudoElement>)
                               -> RestyleDamage
@@ -1418,15 +1404,7 @@ pub trait MatchMethods : TElement {
         }
     }
 
-    /// Performs the cascade for the element's primary style.
-    fn cascade_primary(&self,
-                       context: &mut StyleContext<Self>,
-                       mut data: &mut ElementData)
-    {
-        self.cascade_primary_or_pseudo(context, &mut data, None);
-    }
-
-    /// Performs the cascade for the element's eager pseudos.
+    /// Cascade the eager pseudo-elements of this element.
     fn cascade_pseudos(&self,
                        context: &mut StyleContext<Self>,
                        mut data: &mut ElementData)
@@ -1438,7 +1416,7 @@ pub trait MatchMethods : TElement {
         // let us pass the mutable |data| to the cascade function.
         let matched_pseudos = data.styles().pseudos.keys();
         for pseudo in matched_pseudos {
-            self.cascade_primary_or_pseudo(context, data, Some(&pseudo));
+            self.cascade_eager_pseudo(context, data, &pseudo);
         }
     }
 
