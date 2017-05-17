@@ -110,7 +110,7 @@ pub type DetailedGlyphCount = u16;
 impl GlyphEntry {
     #[inline(always)]
     fn advance(&self) -> Au {
-        Au(((self.value & GLYPH_ADVANCE_MASK) >> GLYPH_ADVANCE_SHIFT) as i32)
+        Au::new(((self.value & GLYPH_ADVANCE_MASK) >> GLYPH_ADVANCE_SHIFT) as i32)
     }
 
     #[inline]
@@ -629,7 +629,7 @@ impl<'a> GlyphStore {
                 leftover_spaces += 1;
             }
         }
-        Au(advance) + leftover_advance + extra_word_spacing * (spaces + leftover_spaces)
+        Au::new(advance) + leftover_advance + extra_word_spacing * (spaces + leftover_spaces)
     }
 
     /// When SIMD isn't available, fallback to the slow path.

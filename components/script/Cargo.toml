@@ -25,7 +25,7 @@ tinyfiledialogs = "2.5.9"
 
 [dependencies]
 angle = {git = "https://github.com/servo/angle", branch = "servo"}
-app_units = "0.4"
+app_units = "0.4.1"
 audio-video-metadata = "0.1.2"
 atomic_refcell = "0.1"
 base64 = "0.4.2"

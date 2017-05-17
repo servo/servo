@@ -10,7 +10,7 @@ name = "layout_thread"
 path = "lib.rs"
 
 [dependencies]
-app_units = "0.4"
+app_units = "0.4.1"
 euclid = "0.11"
 fnv = "1.0"
 gfx = {path = "../gfx"}

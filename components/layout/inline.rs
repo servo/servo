@@ -5,7 +5,7 @@
 #![deny(unsafe_code)]
 
 use StyleArc;
-use app_units::Au;
+use app_units::{Au, MIN_AU};
 use block::AbsoluteAssignBSizesTraversal;
 use context::LayoutContext;
 use display_list_builder::{DisplayListBuildState, InlineFlowDisplayListBuilding};
@@ -1113,7 +1113,7 @@ impl InlineFlow {
         let line_height = text::line_height_from_style(style, &font_metrics);
         let inline_metrics = InlineMetrics::from_font_metrics(&font_metrics, line_height);
 
-        let mut line_metrics = LineMetrics::new(Au(0), Au(i32::MIN));
+        let mut line_metrics = LineMetrics::new(Au(0), MIN_AU);
         let mut largest_block_size_for_top_fragments = Au(0);
         let mut largest_block_size_for_bottom_fragments = Au(0);
 

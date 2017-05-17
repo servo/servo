@@ -2,13 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
+use app_units::{Au, MAX_AU};
 use block::FormattingContextType;
 use flow::{self, CLEARS_LEFT, CLEARS_RIGHT, Flow, ImmutableFlowUtils};
 use persistent_list::PersistentList;
 use std::cmp::{max, min};
 use std::fmt;
-use std::i32;
 use style::computed_values::float;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::values::computed::LengthOrPercentageOrAuto;
@@ -319,7 +318,7 @@ impl Floats {
                         Au(0),
                         info.ceiling,
                         info.max_inline_size,
-                        Au(i32::MAX))
+                        MAX_AU)
                 }
                 FloatKind::Right => {
                     return LogicalRect::new(
@@ -327,7 +326,7 @@ impl Floats {
                         info.max_inline_size - info.size.inline,
                         info.ceiling,
                         info.max_inline_size,
-                        Au(i32::MAX))
+                        MAX_AU)
                 }
             }
         }
@@ -352,7 +351,7 @@ impl Floats {
                                 Au(0),
                                 float_b,
                                 info.max_inline_size,
-                                Au(i32::MAX))
+                                MAX_AU)
                         }
                         FloatKind::Right => {
                             LogicalRect::new(
@@ -360,7 +359,7 @@ impl Floats {
                                 info.max_inline_size - info.size.inline,
                                 float_b,
                                 info.max_inline_size,
-                                Au(i32::MAX))
+                                MAX_AU)
                         }
                     }
                 }
@@ -373,7 +372,7 @@ impl Floats {
                         let block_size = self.max_block_size_for_bounds(rect.start.i,
                                                                         rect.start.b,
                                                                         rect.size.inline);
-                        let block_size = block_size.unwrap_or(Au(i32::MAX));
+                        let block_size = block_size.unwrap_or(MAX_AU);
                         return match info.kind {
                             FloatKind::Left => {
                                 LogicalRect::new(
