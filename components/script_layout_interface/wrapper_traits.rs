@@ -11,7 +11,7 @@ use SVGSVGData;
 use atomic_refcell::AtomicRefCell;
 use gfx_traits::{ByteIndex, FragmentType, combine_id_with_fragment_type};
 use html5ever::{Namespace, LocalName};
-use msg::constellation_msg::{FrameId, PipelineId};
+use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use range::Range;
 use servo_url::ServoUrl;
 use std::fmt::Debug;
@@ -272,9 +272,9 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
 
     fn svg_data(&self) -> Option<SVGSVGData>;
 
-    /// If this node is an iframe element, returns its frame ID. If this node is
+    /// If this node is an iframe element, returns its browsing context ID. If this node is
     /// not an iframe element, fails.
-    fn iframe_frame_id(&self) -> FrameId;
+    fn iframe_browsing_context_id(&self) -> BrowsingContextId;
 
     /// If this node is an iframe element, returns its pipeline ID. If this node is
     /// not an iframe element, fails.

@@ -17,7 +17,7 @@ use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use euclid::point::Point2D;
 use euclid::size::{Size2D, TypedSize2D};
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::{FrameId, FrameType, PipelineId, TraversalDirection};
+use msg::constellation_msg::{BrowsingContextId, FrameType, PipelineId, TraversalDirection};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use net_traits::CoreResourceMsg;
 use net_traits::storage_thread::StorageType;
@@ -34,8 +34,8 @@ use webrender_traits::ClipId;
 pub enum LayoutMsg {
     /// Indicates whether this pipeline is currently running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
-    /// Inform the constellation of the size of the frame's viewport.
-    FrameSizes(Vec<(FrameId, TypedSize2D<f32, CSSPixel>)>),
+    /// Inform the constellation of the size of the iframe's viewport.
+    IFrameSizes(Vec<(BrowsingContextId, TypedSize2D<f32, CSSPixel>)>),
     /// Requests that the constellation inform the compositor of the a cursor change.
     SetCursor(Cursor),
     /// Notifies the constellation that the viewport has been constrained in some manner
@@ -87,7 +87,7 @@ pub enum ScriptMsg {
     /// Requests that the constellation retrieve the current contents of the clipboard
     GetClipboardContents(IpcSender<String>),
     /// Get the frame id for a given pipeline.
-    GetFrameId(PipelineId, IpcSender<Option<FrameId>>),
+    GetBrowsingContextId(PipelineId, IpcSender<Option<BrowsingContextId>>),
     /// Get the parent info for a given pipeline.
     GetParentInfo(PipelineId, IpcSender<Option<(PipelineId, FrameType)>>),
     /// <head> tag finished parsing
@@ -99,7 +99,7 @@ pub enum ScriptMsg {
     /// instead of adding a new entry.
     LoadUrl(PipelineId, LoadData, bool),
     /// Post a message to the currently active window of a given browsing context.
-    PostMessage(FrameId, Option<ImmutableOrigin>, Vec<u8>),
+    PostMessage(BrowsingContextId, Option<ImmutableOrigin>, Vec<u8>),
     /// Dispatch a mozbrowser event to the parent of this pipeline.
     /// The first PipelineId is for the parent, the second is for the originating pipeline.
     MozBrowserEvent(PipelineId, PipelineId, MozBrowserEvent),
@@ -113,7 +113,7 @@ pub enum ScriptMsg {
     NodeStatus(Option<String>),
     /// Notification that this iframe should be removed.
     /// Returns a list of pipelines which were closed.
-    RemoveIFrame(FrameId, IpcSender<Vec<PipelineId>>),
+    RemoveIFrame(BrowsingContextId, IpcSender<Vec<PipelineId>>),
     /// Change pipeline visibility
     SetVisible(PipelineId, bool),
     /// Notifies constellation that an iframe's visibility has been changed.
@@ -147,8 +147,8 @@ pub enum ScriptMsg {
     ResizeTo(Size2D<u32>),
     /// Script has handled a touch event, and either prevented or allowed default actions.
     TouchEventProcessed(EventResult),
-    /// A log entry, with the top-level frame id and thread name
-    LogEntry(Option<FrameId>, Option<String>, LogEntry),
+    /// A log entry, with the top-level browsing context id and thread name
+    LogEntry(Option<BrowsingContextId>, Option<String>, LogEntry),
     /// Notifies the constellation that this pipeline has exited.
     PipelineExited(PipelineId),
     /// Send messages from postMessage calls from serviceworker

@@ -74,7 +74,7 @@ use layout::webrender_helpers::WebRenderDisplayListConverter;
 use layout::wrapper::LayoutNodeLayoutData;
 use layout::wrapper::drop_style_and_layout_data;
 use layout_traits::LayoutThreadFactory;
-use msg::constellation_msg::{FrameId, PipelineId};
+use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
 use parking_lot::RwLock;
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
@@ -244,7 +244,7 @@ impl LayoutThreadFactory for LayoutThread {
 
     /// Spawns a new layout thread.
     fn create(id: PipelineId,
-              top_level_frame_id: Option<FrameId>,
+              top_level_browsing_context_id: Option<BrowsingContextId>,
               url: ServoUrl,
               is_iframe: bool,
               chan: (Sender<Msg>, Receiver<Msg>),
@@ -261,8 +261,8 @@ impl LayoutThreadFactory for LayoutThread {
         thread::Builder::new().name(format!("LayoutThread {:?}", id)).spawn(move || {
             thread_state::initialize(thread_state::LAYOUT);
 
-            if let Some(top_level_frame_id) = top_level_frame_id {
-                FrameId::install(top_level_frame_id);
+            if let Some(top_level_browsing_context_id) = top_level_browsing_context_id {
+                BrowsingContextId::install(top_level_browsing_context_id);
             }
 
             { // Ensures layout thread is destroyed before we send shutdown message
@@ -732,7 +732,7 @@ impl LayoutThread {
 
     fn create_layout_thread(&self, info: NewLayoutThreadInfo) {
         LayoutThread::create(info.id,
-                             FrameId::installed(),
+                             BrowsingContextId::installed(),
                              info.url.clone(),
                              info.is_parent,
                              info.layout_pair,
@@ -930,7 +930,7 @@ impl LayoutThread {
                             // build_state.iframe_sizes is only used here, so its okay to replace
                             // it with an empty vector
                             let iframe_sizes = std::mem::replace(&mut build_state.iframe_sizes, vec![]);
-                            let msg = ConstellationMsg::FrameSizes(iframe_sizes);
+                            let msg = ConstellationMsg::IFrameSizes(iframe_sizes);
                             if let Err(e) = self.constellation_chan.send(msg) {
                                 warn!("Layout resize to constellation failed ({}).", e);
                             }

@@ -32,7 +32,7 @@ use hyper::method::Method::{self, Post};
 use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use keys::keycodes_to_keys;
-use msg::constellation_msg::{FrameId, PipelineId, TraversalDirection};
+use msg::constellation_msg::{BrowsingContextId, PipelineId, TraversalDirection};
 use net_traits::image::base::PixelFormat;
 use regex::Captures;
 use rustc_serialize::json::{Json, ToJson};
@@ -102,7 +102,7 @@ pub fn start_server(port: u16, constellation_chan: Sender<ConstellationMsg>) {
 /// Represents the current WebDriver session and holds relevant session state.
 struct WebDriverSession {
     id: Uuid,
-    frame_id: Option<FrameId>,
+    browsing_context_id: Option<BrowsingContextId>,
 
     /// Time to wait for injected scripts to run before interrupting them.  A [`None`] value
     /// specifies that the script should run indefinitely.
@@ -120,7 +120,7 @@ impl WebDriverSession {
     pub fn new() -> WebDriverSession {
         WebDriverSession {
             id: Uuid::new_v4(),
-            frame_id: None,
+            browsing_context_id: None,
 
             script_timeout: Some(30_000),
             load_timeout: Some(300_000),
@@ -264,7 +264,7 @@ impl Handler {
         }
     }
 
-    fn pipeline_id(&self, frame_id: Option<FrameId>) -> WebDriverResult<PipelineId> {
+    fn pipeline_id(&self, frame_id: Option<BrowsingContextId>) -> WebDriverResult<PipelineId> {
         let interval = 20;
         let iterations = 30_000 / interval;
         let (sender, receiver) = ipc::channel().unwrap();
@@ -288,7 +288,7 @@ impl Handler {
     }
 
     fn frame_pipeline(&self) -> WebDriverResult<PipelineId> {
-        self.pipeline_id(self.session.as_ref().and_then(|session| session.frame_id))
+        self.pipeline_id(self.session.as_ref().and_then(|session| session.browsing_context_id))
     }
 
     fn session(&self) -> WebDriverResult<&WebDriverSession> {
@@ -299,10 +299,10 @@ impl Handler {
         }
     }
 
-    fn set_frame_id(&mut self, frame_id: Option<FrameId>) -> WebDriverResult<()> {
+    fn set_browsing_context_id(&mut self, browsing_context_id: Option<BrowsingContextId>) -> WebDriverResult<()> {
         match self.session {
             Some(ref mut x) => {
-                x.frame_id = frame_id;
+                x.browsing_context_id = browsing_context_id;
                 Ok(())
             },
             None => Err(WebDriverError::new(ErrorStatus::SessionNotCreated,
@@ -525,7 +525,7 @@ impl Handler {
         use webdriver::common::FrameId;
         let frame_id = match parameters.id {
             FrameId::Null => {
-                self.set_frame_id(None).unwrap();
+                self.set_browsing_context_id(None).unwrap();
                 return Ok(WebDriverResponse::Void)
             },
             FrameId::Short(ref x) => WebDriverFrameId::Short(*x),
@@ -547,16 +547,16 @@ impl Handler {
         }
         let pipeline_id = try!(self.frame_pipeline());
         let (sender, receiver) = ipc::channel().unwrap();
-        let cmd = WebDriverScriptCommand::GetFrameId(frame_id, sender);
+        let cmd = WebDriverScriptCommand::GetPipelineId(frame_id, sender);
         {
             self.constellation_chan.send(ConstellationMsg::WebDriverCommand(
                 WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd))).unwrap();
         }
 
-        let frame = match receiver.recv().unwrap() {
+        let context_id = match receiver.recv().unwrap() {
             Ok(Some(pipeline_id)) => {
                 let (sender, receiver) = ipc::channel().unwrap();
-                self.constellation_chan.send(ConstellationMsg::GetFrame(pipeline_id, sender)).unwrap();
+                self.constellation_chan.send(ConstellationMsg::GetBrowsingContext(pipeline_id, sender)).unwrap();
                 receiver.recv().unwrap()
             },
             Ok(None) => None,
@@ -566,7 +566,7 @@ impl Handler {
             }
         };
 
-        self.set_frame_id(frame).unwrap();
+        self.set_browsing_context_id(context_id).unwrap();
         Ok(WebDriverResponse::Void)
     }
 

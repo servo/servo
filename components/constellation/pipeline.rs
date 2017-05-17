@@ -15,7 +15,7 @@ use ipc_channel::Error;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::LayoutThreadFactory;
-use msg::constellation_msg::{FrameId, FrameType, PipelineId, PipelineNamespaceId};
+use msg::constellation_msg::{BrowsingContextId, FrameType, PipelineId, PipelineNamespaceId};
 use net::image_cache::ImageCacheImpl;
 use net_traits::{IpcSend, ResourceThreads};
 use net_traits::image_cache::ImageCache;
@@ -49,14 +49,14 @@ pub struct Pipeline {
     /// The ID of the pipeline.
     pub id: PipelineId,
 
-    /// The ID of the frame that contains this Pipeline.
-    pub frame_id: FrameId,
+    /// The ID of the browsing context that contains this Pipeline.
+    pub browsing_context_id: BrowsingContextId,
 
     /// The parent pipeline of this one. `None` if this is a root pipeline.
     /// Note that because of mozbrowser iframes, even top-level pipelines
     /// may have a parent (in which case the frame type will be
     /// `MozbrowserIFrame`).
-    /// TODO: move this field to `Frame`.
+    /// TODO: move this field to `BrowsingContext`.
     pub parent_info: Option<(PipelineId, FrameType)>,
 
     /// The event loop handling this pipeline.
@@ -80,11 +80,11 @@ pub struct Pipeline {
     /// animations cause composites to be continually scheduled.
     pub running_animations: bool,
 
-    /// The child frames of this pipeline (these are iframes in the document).
-    pub children: Vec<FrameId>,
+    /// The child browsing contexts of this pipeline (these are iframes in the document).
+    pub children: Vec<BrowsingContextId>,
 
     /// Whether this pipeline is in private browsing mode.
-    /// TODO: move this field to `Frame`.
+    /// TODO: move this field to `BrowsingContext`.
     pub is_private: bool,
 
     /// Whether this pipeline should be treated as visible for the purposes of scheduling and
@@ -100,11 +100,11 @@ pub struct InitialPipelineState {
     /// The ID of the pipeline to create.
     pub id: PipelineId,
 
-    /// The ID of the frame that contains this Pipeline.
-    pub frame_id: FrameId,
+    /// The ID of the browsing context that contains this Pipeline.
+    pub browsing_context_id: BrowsingContextId,
 
-    /// The ID of the top-level frame that contains this Pipeline.
-    pub top_level_frame_id: FrameId,
+    /// The ID of the top-level browsing context that contains this Pipeline.
+    pub top_level_browsing_context_id: BrowsingContextId,
 
     /// The ID of the parent pipeline and frame type, if any.
     /// If `None`, this is the root.
@@ -200,7 +200,7 @@ impl Pipeline {
                 let new_layout_info = NewLayoutInfo {
                     parent_info: state.parent_info,
                     new_pipeline_id: state.id,
-                    frame_id: state.frame_id,
+                    browsing_context_id: state.browsing_context_id,
                     load_data: state.load_data,
                     window_size: window_size,
                     pipeline_port: pipeline_port,
@@ -237,8 +237,8 @@ impl Pipeline {
 
                 let unprivileged_pipeline_content = UnprivilegedPipelineContent {
                     id: state.id,
-                    frame_id: state.frame_id,
-                    top_level_frame_id: state.top_level_frame_id,
+                    browsing_context_id: state.browsing_context_id,
+                    top_level_browsing_context_id: state.top_level_browsing_context_id,
                     parent_info: state.parent_info,
                     constellation_chan: state.constellation_chan,
                     scheduler_chan: state.scheduler_chan,
@@ -280,7 +280,7 @@ impl Pipeline {
         };
 
         Ok(Pipeline::new(state.id,
-                         state.frame_id,
+                         state.browsing_context_id,
                          state.parent_info,
                          script_chan,
                          pipeline_chan,
@@ -293,7 +293,7 @@ impl Pipeline {
     /// Creates a new `Pipeline`, after the script and layout threads have been
     /// spawned.
     pub fn new(id: PipelineId,
-               frame_id: FrameId,
+               browsing_context_id: BrowsingContextId,
                parent_info: Option<(PipelineId, FrameType)>,
                event_loop: Rc<EventLoop>,
                layout_chan: IpcSender<LayoutControlMsg>,
@@ -304,7 +304,7 @@ impl Pipeline {
                -> Pipeline {
         let pipeline = Pipeline {
             id: id,
-            frame_id: frame_id,
+            browsing_context_id: browsing_context_id,
             parent_info: parent_info,
             event_loop: event_loop,
             layout_chan: layout_chan,
@@ -376,15 +376,15 @@ impl Pipeline {
         }
     }
 
-    /// Add a new child frame.
-    pub fn add_child(&mut self, frame_id: FrameId) {
-        self.children.push(frame_id);
+    /// Add a new child browsing context.
+    pub fn add_child(&mut self, browsing_context_id: BrowsingContextId) {
+        self.children.push(browsing_context_id);
     }
 
-    /// Remove a child frame.
-    pub fn remove_child(&mut self, frame_id: FrameId) {
-        match self.children.iter().position(|id| *id == frame_id) {
-            None => return warn!("Pipeline remove child already removed ({:?}).", frame_id),
+    /// Remove a child browsing context.
+    pub fn remove_child(&mut self, browsing_context_id: BrowsingContextId) {
+        match self.children.iter().position(|id| *id == browsing_context_id) {
+            None => return warn!("Pipeline remove child already removed ({:?}).", browsing_context_id),
             Some(index) => self.children.remove(index),
         };
     }
@@ -393,7 +393,7 @@ impl Pipeline {
     /// This will cause an event to be fired on an iframe in the document,
     /// or on the `Window` if no frame is given.
     pub fn trigger_mozbrowser_event(&self,
-                                     child_id: Option<FrameId>,
+                                     child_id: Option<BrowsingContextId>,
                                      event: MozBrowserEvent) {
         assert!(PREFS.is_mozbrowser_enabled());
 
@@ -433,8 +433,8 @@ impl Pipeline {
 #[derive(Deserialize, Serialize)]
 pub struct UnprivilegedPipelineContent {
     id: PipelineId,
-    frame_id: FrameId,
-    top_level_frame_id: FrameId,
+    browsing_context_id: BrowsingContextId,
+    top_level_browsing_context_id: BrowsingContextId,
     parent_info: Option<(PipelineId, FrameType)>,
     constellation_chan: IpcSender<ScriptMsg>,
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
@@ -470,8 +470,8 @@ impl UnprivilegedPipelineContent {
         let image_cache = Arc::new(ImageCacheImpl::new(self.webrender_api_sender.create_api()));
         let layout_pair = STF::create(InitialScriptState {
             id: self.id,
-            frame_id: self.frame_id,
-            top_level_frame_id: self.top_level_frame_id,
+            browsing_context_id: self.browsing_context_id,
+            top_level_browsing_context_id: self.top_level_browsing_context_id,
             parent_info: self.parent_info,
             control_chan: self.script_chan.clone(),
             control_port: self.script_port,
@@ -491,7 +491,7 @@ impl UnprivilegedPipelineContent {
         }, self.load_data.clone());
 
         LTF::create(self.id,
-                    Some(self.top_level_frame_id),
+                    Some(self.top_level_browsing_context_id),
                     self.load_data.url,
                     self.parent_info.is_some(),
                     layout_pair,
