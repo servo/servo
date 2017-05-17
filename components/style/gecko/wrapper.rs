@@ -655,6 +655,14 @@ impl<'le> TElement for GeckoElement<'le> {
         }
     }
 
+    fn each_class<F>(&self, callback: F)
+        where F: FnMut(&Atom)
+    {
+        snapshot_helpers::each_class(self.0,
+                                     callback,
+                                     Gecko_ClassOrClassList)
+    }
+
     fn existing_style_for_restyle_damage<'a>(&'a self,
                                              _existing_values: &'a ComputedValues,
                                              pseudo: Option<&PseudoElement>)
@@ -1384,18 +1392,6 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         snapshot_helpers::has_class(self.0,
                                     name,
                                     Gecko_ClassOrClassList)
-    }
-
-    fn each_class<F>(&self, callback: F)
-        where F: FnMut(&Atom)
-    {
-        if !self.may_have_class() {
-            return;
-        }
-
-        snapshot_helpers::each_class(self.0,
-                                     callback,
-                                     Gecko_ClassOrClassList)
     }
 
     fn is_html_element_in_html_document(&self) -> bool {
