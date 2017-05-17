@@ -10,6 +10,7 @@ repository = "https://github.com/servo/servo"
 readme = "README.md"
 keywords = ["css", "selectors"]
 license = "MPL-2.0"
+build = "build.rs"
 
 [lib]
 name = "selectors"
@@ -25,8 +26,12 @@ bitflags = "0.7"
 matches = "0.1"
 cssparser = "0.13.3"
 fnv = "1.0"
+phf = "0.7.18"
 precomputed-hash = "0.1"
 smallvec = "0.3"
 
 [dev-dependencies]
 size_of_test = {path = "../size_of_test"}
+
+[build-dependencies]
+phf_codegen = "0.7.18"

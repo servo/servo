@@ -5,7 +5,7 @@
 use attr::{AttrSelectorOperation, NamespaceConstraint};
 use bloom::BloomFilter;
 use parser::{Combinator, ComplexSelector, Component, LocalName};
-use parser::{Selector, SelectorInner, SelectorIter, SelectorImpl};
+use parser::{Selector, SelectorInner, SelectorIter};
 use std::borrow::Borrow;
 use tree::Element;
 
@@ -387,7 +387,8 @@ fn matches_simple_selector<E, F>(
             element.match_pseudo_element(pseudo, context)
         }
         Component::LocalName(LocalName { ref name, ref lower_name }) => {
-            element.get_local_name() == select_name(element, name, lower_name).borrow()
+            let is_html = element.is_html_element_in_html_document();
+            element.get_local_name() == select_name(is_html, name, lower_name).borrow()
         }
         Component::ExplicitUniversalType |
         Component::ExplicitAnyNamespace => {
@@ -410,9 +411,10 @@ fn matches_simple_selector<E, F>(
             element.has_class(class)
         }
         Component::AttributeInNoNamespaceExists { ref local_name, ref local_name_lower } => {
+            let is_html = element.is_html_element_in_html_document();
             element.attr_matches(
                 &NamespaceConstraint::Specific(&::parser::namespace_empty_string::<E::Impl>()),
-                select_name(element, local_name, local_name_lower),
+                select_name(is_html, local_name, local_name_lower),
                 &AttrSelectorOperation::Exists
             )
         }
@@ -427,12 +429,13 @@ fn matches_simple_selector<E, F>(
             if never_matches {
                 false
             } else {
+                let is_html = element.is_html_element_in_html_document();
                 element.attr_matches(
                     &NamespaceConstraint::Specific(&::parser::namespace_empty_string::<E::Impl>()),
-                    select_name(element, local_name, local_name_lower),
+                    select_name(is_html, local_name, local_name_lower),
                     &AttrSelectorOperation::WithValue {
                         operator: operator,
-                        case_sensitivity: case_sensitivity,
+                        case_sensitivity: case_sensitivity.to_definite(is_html),
                         expected_value: value,
                     }
                 )
@@ -442,9 +445,10 @@ fn matches_simple_selector<E, F>(
             if attr_sel.never_matches {
                 return false
             } else {
+                let is_html = element.is_html_element_in_html_document();
                 element.attr_matches(
                     &attr_sel.namespace(),
-                    select_name(element, &attr_sel.local_name, &attr_sel.local_name_lower),
+                    select_name(is_html, &attr_sel.local_name, &attr_sel.local_name_lower),
                     &match attr_sel.operation {
                         AttrSelectorOperation::Exists => AttrSelectorOperation::Exists,
                         AttrSelectorOperation::WithValue {
@@ -454,7 +458,7 @@ fn matches_simple_selector<E, F>(
                         } => {
                             AttrSelectorOperation::WithValue {
                                 operator: operator,
-                                case_sensitivity: case_sensitivity,
+                                case_sensitivity: case_sensitivity.to_definite(is_html),
                                 expected_value: expected_value,
                             }
                         }
@@ -512,11 +516,8 @@ fn matches_simple_selector<E, F>(
     }
 }
 
-fn select_name<'a, E>(element: &E, local_name: &'a <E::Impl as SelectorImpl>::LocalName,
-                      local_name_lower: &'a <E::Impl as SelectorImpl>::LocalName)
-                      -> &'a <E::Impl as SelectorImpl>::LocalName
-where E: Element {
-    if element.is_html_element_in_html_document() {
+fn select_name<'a, T>(is_html: bool, local_name: &'a T, local_name_lower: &'a T) -> &'a T {
+    if is_html {
         local_name_lower
     } else {
         local_name
