@@ -217,7 +217,7 @@ fn traverse_subtree(element: GeckoElement,
     };
 
     let traversal = RecalcStyleOnly::new(shared_style_context, traversal_driver);
-    if traversal_driver.is_parallel() {
+    if traversal_driver.is_parallel() && element.is_root() {
         parallel::traverse_dom(&traversal, element, token,
                                global_style_data.style_thread_pool.as_ref().unwrap());
     } else {
