@@ -11,6 +11,7 @@ extern crate precomputed_hash;
 extern crate smallvec;
 
 pub mod arcslice;
+pub mod attr;
 pub mod bloom;
 pub mod matching;
 pub mod parser;
@@ -21,4 +22,3 @@ pub mod visitor;
 
 pub use parser::{SelectorImpl, Parser, SelectorList};
 pub use tree::Element;
-pub use tree::{MatchAttr, MatchAttrGeneric};

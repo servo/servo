@@ -6,6 +6,7 @@ use cssparser::{self, Parser as CssParser, SourcePosition, SourceLocation};
 use html5ever::{Namespace as NsAtom};
 use media_queries::CSSErrorReporterTest;
 use parking_lot::RwLock;
+use selectors::attr::CaseSensitivity;
 use selectors::parser::*;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;

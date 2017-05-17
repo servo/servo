@@ -14,9 +14,10 @@ use element_state::ElementState;
 use fnv::FnvHashMap;
 use restyle_hints::ElementSnapshot;
 use selector_parser::{ElementExt, PseudoElementCascadeType, SelectorParser};
-use selectors::{Element, MatchAttrGeneric};
+use selectors::{Element};
+use selectors::attr::AttrSelectorOperation;
 use selectors::matching::{MatchingContext, MatchingMode};
-use selectors::parser::{AttrSelector, SelectorMethods};
+use selectors::parser::{SelectorMethods, NamespaceConstraint};
 use selectors::visitor::SelectorVisitor;
 use std::borrow::Cow;
 use std::fmt;
@@ -519,10 +520,10 @@ impl ServoElementSnapshot {
             .map(|&(_, ref v)| v)
     }
 
-    fn get_attr_ignore_ns(&self, name: &LocalName) -> Option<&AttrValue> {
+    fn any_attr_ignore_ns<F>(&self, name: &LocalName, mut f: F) -> bool
+    where F: FnMut(&AttrValue) -> bool {
         self.attrs.as_ref().unwrap().iter()
-                  .find(|&&(ref ident, _)| ident.local_name == *name)
-                  .map(|&(_, ref v)| v)
+                  .any(|&(ref ident, ref v)| ident.local_name == *name && f(v))
     }
 }
 
@@ -555,19 +556,23 @@ impl ElementSnapshot for ServoElementSnapshot {
     }
 }
 
-impl MatchAttrGeneric for ServoElementSnapshot {
-    type Impl = SelectorImpl;
-
-    fn match_attr<F>(&self, attr: &AttrSelector<SelectorImpl>, test: F) -> bool
-        where F: Fn(&str) -> bool
-    {
+impl ServoElementSnapshot {
+    /// selectors::Element::attr_matches
+    pub fn attr_matches(&self,
+                        ns: &NamespaceConstraint<SelectorImpl>,
+                        local_name: &LocalName,
+                        operation: &AttrSelectorOperation<SelectorImpl>)
+                        -> bool {
         use selectors::parser::NamespaceConstraint;
-        let html = self.is_html_element_in_html_document;
-        let local_name = if html { &attr.lower_name } else { &attr.name };
-        match attr.namespace {
-            NamespaceConstraint::Specific(ref ns) => self.get_attr(&ns.url, local_name),
-            NamespaceConstraint::Any => self.get_attr_ignore_ns(local_name),
-        }.map_or(false, |v| test(v))
+        match *ns {
+            NamespaceConstraint::Specific(ref ns) => {
+                self.get_attr(&ns.url, local_name)
+                    .map_or(false, |value| value.eval_selector(operation))
+            }
+            NamespaceConstraint::Any => {
+                self.any_attr_ignore_ns(local_name, |value| value.eval_selector(operation))
+            }
+        }
     }
 }
 

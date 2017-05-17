@@ -12,6 +12,8 @@ use cssparser::{self, Color, RGBA};
 use euclid::num::Zero;
 use num_traits::ToPrimitive;
 use properties::PropertyDeclarationBlock;
+use selector_parser::SelectorImpl;
+use selectors::attr::AttrSelectorOperation;
 use servo_url::ServoUrl;
 use shared_lock::Locked;
 use std::ascii::AsciiExt;
@@ -348,6 +350,12 @@ impl AttrValue {
         } else {
             panic!("Uint not found");
         }
+    }
+
+    pub fn eval_selector(&self, selector: &AttrSelectorOperation<SelectorImpl>) -> bool {
+        // FIXME(SimonSapin) this can be more efficient by matching on `(self, selector)` variants
+        // and doing Atom comparisons instead of string comparisons where possible.
+        selector.eval_str(self)
     }
 }
 

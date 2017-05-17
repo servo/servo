@@ -1,9 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+use attr::{AttrSelectorOperation, AttrSelectorOperator, CaseSensitivity};
 use bloom::BloomFilter;
-use parser::{CaseSensitivity, Combinator, ComplexSelector, Component, LocalName};
-use parser::{Selector, SelectorInner, SelectorIter, SelectorImpl};
+use parser::{Combinator, ComplexSelector, Component, LocalName, NamespaceConstraint};
+use parser::{Selector, SelectorInner, SelectorIter, SelectorImpl, AttrSelector};
 use std::borrow::Borrow;
 use tree::Element;
 
@@ -410,28 +412,56 @@ fn matches_simple_selector<E, F>(
             element.has_class(class)
         }
         Component::AttrExists(ref attr) => {
-            element.match_attr_has(attr)
+            let (ns, n) = unpack_attr_selector(element, attr);
+            element.attr_matches(ns, n, &AttrSelectorOperation::Exists)
         }
         Component::AttrEqual(ref attr, ref value, case_sensitivity) => {
-            match case_sensitivity {
-                CaseSensitivity::CaseSensitive => element.match_attr_equals(attr, value),
-                CaseSensitivity::AsciiCaseInsensitive => element.match_attr_equals_ignore_ascii_case(attr, value),
-            }
+            let (ns, n) = unpack_attr_selector(element, attr);
+            element.attr_matches(ns, n, &AttrSelectorOperation::WithValue {
+                operator: AttrSelectorOperator::Equal,
+                case_sensitivity: case_sensitivity,
+                expected_value: value
+            })
         }
         Component::AttrIncludes(ref attr, ref value) => {
-            element.match_attr_includes(attr, value)
+            let (ns, n) = unpack_attr_selector(element, attr);
+            element.attr_matches(ns, n, &AttrSelectorOperation::WithValue {
+                operator: AttrSelectorOperator::Includes,
+                case_sensitivity: CaseSensitivity::CaseSensitive,
+                expected_value: value
+            })
         }
         Component::AttrDashMatch(ref attr, ref value) => {
-            element.match_attr_dash(attr, value)
+            let (ns, n) = unpack_attr_selector(element, attr);
+            element.attr_matches(ns, n, &AttrSelectorOperation::WithValue {
+                operator: AttrSelectorOperator::DashMatch,
+                case_sensitivity: CaseSensitivity::CaseSensitive,
+                expected_value: value
+            })
         }
         Component::AttrPrefixMatch(ref attr, ref value) => {
-            element.match_attr_prefix(attr, value)
+            let (ns, n) = unpack_attr_selector(element, attr);
+            element.attr_matches(ns, n, &AttrSelectorOperation::WithValue {
+                operator: AttrSelectorOperator::Prefix,
+                case_sensitivity: CaseSensitivity::CaseSensitive,
+                expected_value: value
+            })
         }
         Component::AttrSubstringMatch(ref attr, ref value) => {
-            element.match_attr_substring(attr, value)
+            let (ns, n) = unpack_attr_selector(element, attr);
+            element.attr_matches(ns, n, &AttrSelectorOperation::WithValue {
+                operator: AttrSelectorOperator::Substring,
+                case_sensitivity: CaseSensitivity::CaseSensitive,
+                expected_value: value
+            })
         }
         Component::AttrSuffixMatch(ref attr, ref value) => {
-            element.match_attr_suffix(attr, value)
+            let (ns, n) = unpack_attr_selector(element, attr);
+            element.attr_matches(ns, n, &AttrSelectorOperation::WithValue {
+                operator: AttrSelectorOperator::Suffix,
+                case_sensitivity: CaseSensitivity::CaseSensitive,
+                expected_value: value
+            })
         }
         Component::AttrIncludesNeverMatch(..) |
         Component::AttrPrefixNeverMatch(..) |
@@ -487,6 +517,18 @@ fn matches_simple_selector<E, F>(
             !negated.iter().all(|ss| matches_simple_selector(ss, element, context, flags_setter))
         }
     }
+}
+
+fn unpack_attr_selector<'a, E>(element: &E, attr: &'a AttrSelector<E::Impl>)
+                               -> (&'a NamespaceConstraint<E::Impl>,
+                                   &'a <E::Impl as SelectorImpl>::LocalName)
+where E: Element {
+    let name = if element.is_html_element_in_html_document() {
+        &attr.lower_name
+    } else {
+        &attr.name
+    };
+    (&attr.namespace, name)
 }
 
 #[inline]
