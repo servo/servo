@@ -1393,7 +1393,7 @@ impl<'le> ::selectors::MatchAttr for GeckoElement<'le> {
                                        attr.ns_or_null(),
                                        attr.select_name(self.is_html_element_in_html_document()),
                                        value.as_ptr(),
-                                       /* ignoreCase = */ false)
+                                       /* ignoreCase = */ true)
         }
     }
     fn match_attr_includes(&self, attr: &AttrSelector<Self::Impl>, value: &Atom) -> bool {
