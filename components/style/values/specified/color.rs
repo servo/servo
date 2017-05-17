@@ -53,13 +53,19 @@ mod gecko {
 
     no_viewport_percentage!(Color);
 
+    impl From<CSSParserColor> for Color {
+        fn from(value: CSSParserColor) -> Self {
+            match value {
+                CSSParserColor::CurrentColor => Color::CurrentColor,
+                CSSParserColor::RGBA(x) => Color::RGBA(x),
+            }
+        }
+    }
+
     impl Parse for Color {
         fn parse(_: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
             if let Ok(value) = input.try(CSSParserColor::parse) {
-                match value {
-                    CSSParserColor::CurrentColor => Ok(Color::CurrentColor),
-                    CSSParserColor::RGBA(x) => Ok(Color::RGBA(x)),
-                }
+                Ok(value.into())
             } else if let Ok(system) = input.try(SystemColor::parse) {
                 Ok(Color::System(system))
             } else {

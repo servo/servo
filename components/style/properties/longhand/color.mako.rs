@@ -14,7 +14,7 @@
     use cssparser::RGBA;
     use std::fmt;
     use style_traits::ToCss;
-    use values::specified::{Color, CSSColor, CSSRGBA};
+    use values::specified::{AllowQuirks, Color, CSSColor, CSSRGBA};
 
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
@@ -50,7 +50,7 @@
         RGBA::new(0, 0, 0, 255) // black
     }
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        CSSColor::parse(context, input).map(SpecifiedValue)
+        CSSColor::parse_quirky(context, input, AllowQuirks::Yes).map(SpecifiedValue)
     }
 
     // FIXME(#15973): Add servo support for system colors
