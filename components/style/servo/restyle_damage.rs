@@ -11,7 +11,6 @@ use computed_values::display;
 use heapsize::HeapSizeOf;
 use properties::ServoComputedValues;
 use std::fmt;
-use stylearc::Arc;
 
 bitflags! {
     #[doc = "Individual layout actions that may be necessary after restyling."]
@@ -60,16 +59,17 @@ impl HeapSizeOf for ServoRestyleDamage {
 impl ServoRestyleDamage {
     /// Compute the appropriate restyle damage for a given style change between
     /// `old` and `new`.
-    pub fn compute(old: &Arc<ServoComputedValues>,
-                   new: &Arc<ServoComputedValues>) -> ServoRestyleDamage {
+    pub fn compute(old: &ServoComputedValues,
+                   new: &ServoComputedValues)
+                   -> ServoRestyleDamage {
         compute_damage(old, new)
     }
 
     /// Returns a bitmask that represents a flow that needs to be rebuilt and
     /// reflowed.
     ///
-    /// FIXME(bholley): Do we ever actually need this? Shouldn't RECONSTRUCT_FLOW
-    /// imply everything else?
+    /// FIXME(bholley): Do we ever actually need this? Shouldn't
+    /// RECONSTRUCT_FLOW imply everything else?
     pub fn rebuild_and_reflow() -> ServoRestyleDamage {
         REPAINT | REPOSITION | STORE_OVERFLOW | BUBBLE_ISIZES | REFLOW_OUT_OF_FLOW | REFLOW |
             RECONSTRUCT_FLOW

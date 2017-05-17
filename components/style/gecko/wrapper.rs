@@ -624,7 +624,7 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn existing_style_for_restyle_damage<'a>(&'a self,
-                                             _existing_values: &'a Arc<ComputedValues>,
+                                             _existing_values: &'a ComputedValues,
                                              pseudo: Option<&PseudoElement>)
                                              -> Option<&'a nsStyleContext> {
         // TODO(emilio): Migrate this to CSSPseudoElementType.

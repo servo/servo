@@ -404,9 +404,9 @@ impl<'le> TElement for ServoLayoutElement<'le> {
 
     #[inline]
     fn existing_style_for_restyle_damage<'a>(&'a self,
-                                             current_cv: &'a Arc<ComputedValues>,
+                                             current_cv: &'a ComputedValues,
                                              _pseudo_element: Option<&PseudoElement>)
-                                             -> Option<&'a Arc<ComputedValues>> {
+                                             -> Option<&'a ComputedValues> {
         Some(current_cv)
     }
 
