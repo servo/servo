@@ -84,7 +84,7 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
 
     // https://html.spec.whatwg.org/multipage/#dom-frames
     fn Frames(&self) -> Root<BrowsingContext> {
-        println!("calling frames");
+        println!("calling cross origin frames");
         Root::from_ref(&*self.browsing_context)
     }
 

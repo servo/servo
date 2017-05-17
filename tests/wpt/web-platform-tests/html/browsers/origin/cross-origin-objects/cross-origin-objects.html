@@ -57,30 +57,14 @@ addTest(function() {
   assert_equals(location.hostname, host_info.ORIGINAL_HOST, 'Need to run the top-level test from domain ' + host_info.ORIGINAL_HOST);
   assert_equals(get_port(location), host_info.HTTP_PORT, 'Need to run the top-level test from port ' + host_info.HTTP_PORT);
   assert_equals(B.parent, window, "window.parent works same-origin");
-  //assert_equals(C.parent, window, "window.parent works cross-origin");
+  assert_equals(C.parent, window, "window.parent works cross-origin");
   assert_equals(B.location.pathname, path, "location.href works same-origin");
   //TODO do document.write and console.log have same behavior?
-  try {
-    console.log("C.location.pathname should throw");
-    console.log(C.location.pathname);  //permission denied to unwrap object
-  } catch(err) {
-    console.log(err); //ok it's getting that it's a security error, but not reading it right for the asssert
-  }
   //console.log(C.location.pathname);
-  //assert_throws("SecurityError", function() { C.location.pathname; }, "location.pathname throws cross-origin");
-  try {
-    console.log("B.frames: override");
-    console.log(B.frames); 
-  } catch(err) {
-    console.log(err);
-  }
+  assert_throws("SecurityError", function() { C.location.pathname; }, "location.pathname throws cross-origin");
   assert_equals(B.frames, 'override', "Overrides visible in the same-origin case");
-  try {
-    console.log("C.frames should throw");
-    console.log(C.frames); 
-  } catch(err) {
-    console.log(err);
-  }
+  console.log("C.frames");
+  console.log(C.frames);
   //assert_equals(C.frames, C, "Overrides invisible in the cross-origin case");
 }, "Basic sanity-checking");
 

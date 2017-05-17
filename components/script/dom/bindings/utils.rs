@@ -45,6 +45,12 @@ use std::ptr;
 use std::slice;
 use std::str;
 use dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionBinding::DOMExceptionMethods;
+use js::glue::SetIsFrameIdCallback;
+use js::jsapi::jsid;
+use js::jsapi::RootedId;
+use js::rust::is_window;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
+use dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding::DissimilarOriginWindowBinding::DissimilarOriginWindowMethods;
 
 /// Proxy handler for a WindowProxy.
 pub struct WindowProxyHandler(pub *const libc::c_void);
@@ -91,14 +97,6 @@ unsafe fn identify_cross_origin_object(obj: HandleObject) -> CrossOriginObjectTy
     let obj = UncheckedUnwrapObject(obj.get(), /* stopAtWindowProxy = */ 0);
     let obj_class = JS_GetClass(obj);
     let name = str::from_utf8(CStr::from_ptr((*obj_class).name).to_bytes()).unwrap().to_owned();
-    println!("{}, {:?}", name, obj);
-    //FIXME eeeek
-    if &*name == "DOMException" {
-        let mut ptr = JS_GetReservedSlot(obj, 0).to_private() as *mut DOMException;
-        let exception = &*ptr;
-        println!("DOMException: {:?}", exception.Message());
-        return CrossOriginObjectType::CrossOriginLocation;
-    }
     match &*name {
         "Location" => CrossOriginObjectType::CrossOriginLocation,
         "Window" => CrossOriginObjectType::CrossOriginWindow,
@@ -152,16 +150,13 @@ pub unsafe extern fn subsumes(obj: *mut JSPrincipals, other: *mut JSPrincipals) 
 unsafe fn select_wrapper(cx: *mut JSContext, obj: HandleObject) -> *const libc::c_void {
     let security_wrapper = !target_subsumes_obj(cx, obj);
     if !security_wrapper {
-        println!("CCW");
         return GetCrossCompartmentWrapper()
     };
 
     if identify_cross_origin_object(obj) != CrossOriginObjectType::CrossOriginOpaque {
-        println!("XOW");
         return get_cross_origin_wrapper();
     };
 
-    println!("opaque");
     get_opaque_wrapper()
 }
 
@@ -500,8 +495,28 @@ unsafe extern "C" fn wrap(cx: *mut JSContext,
 
 unsafe extern "C" fn throw_dom_exception_callback(cx: *mut JSContext) {
     //TODO it might not always be a SecurityError?
-    println!("throw dom exception callback");
     throw_dom_exception(cx, &GlobalScope::from_context(cx), Error::Security);
+}
+
+unsafe extern "C" fn is_frame_id(cx: *mut JSContext, obj: *mut JSObject, id_arg: jsid) -> bool {
+    println!("is frame id");
+    /*if IsWrapper(obj) {
+        return false;
+    } 
+    //let id = RootedId{_base: cx, ptr: idArg};
+
+    //will this work for window and dissimilaroriginwindow? probs not
+    if !is_window(obj) {
+        return false;
+    }
+    let win = obj as Window;
+
+    let col = win.Frames();
+    println!("{:?}", col);
+    //let clasp = get_object_class(obj);
+    //let name = str::from_utf8(CStr::from_ptr((*clasp).name).to_bytes()).unwrap().to_owned();
+    //println!("{:?}", name);*/
+    false
 }
 
 unsafe extern "C" fn pre_wrap(cx: *mut JSContext,
@@ -510,6 +525,7 @@ unsafe extern "C" fn pre_wrap(cx: *mut JSContext,
                               _object_passed_to_wrap: HandleObject)
                               -> *mut JSObject {
     SetThrowDOMExceptionCallback(Some(throw_dom_exception_callback));
+    SetIsFrameIdCallback(Some(is_frame_id));
     let _ac = JSAutoCompartment::new(cx, obj.get());
     let obj = ToWindowProxyIfWindow(obj.get());
     assert!(!obj.is_null());
