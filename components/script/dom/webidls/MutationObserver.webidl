@@ -9,7 +9,8 @@
 // https://dom.spec.whatwg.org/#mutationobserver
 [Pref="dom.mutation_observer.enabled", Constructor(MutationCallback callback)]
 interface MutationObserver {
-    //void observe(Node target, optional MutationObserverInit options);
+    [Throws]
+    void observe(Node target, optional MutationObserverInit options);
     //void disconnect();
     //sequence<MutationRecord> takeRecords();
 };

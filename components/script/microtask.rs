@@ -11,6 +11,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use dom::bindings::js::Root;
 use dom::globalscope::GlobalScope;
+use dom::mutationobserver::MutationObserver;
 use msg::constellation_msg::PipelineId;
 use std::cell::Cell;
 use std::mem;
@@ -28,6 +29,7 @@ pub struct MicrotaskQueue {
 #[derive(JSTraceable, HeapSizeOf)]
 pub enum Microtask {
     Promise(EnqueuedPromiseCallback),
+    NotifyMutationObservers,
 }
 
 /// A promise callback scheduled to run during the next microtask checkpoint (#4283).
@@ -70,6 +72,9 @@ impl MicrotaskQueue {
                         if let Some(target) = target_provider(job.pipeline) {
                             let _ = job.callback.Call_(&*target, ExceptionHandling::Report);
                         }
+                    }
+                    Microtask::NotifyMutationObservers => {
+                        MutationObserver::notify_mutation_observers();
                     }
                 }
             }

@@ -7,6 +7,7 @@
 use app_units::Au;
 use devtools_traits::NodeInfo;
 use document_loader::DocumentLoader;
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -46,6 +47,7 @@ use dom::htmllinkelement::HTMLLinkElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlstyleelement::HTMLStyleElement;
 use dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
+use dom::mutationobserver::RegisteredObserver;
 use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::range::WeakRangeVec;
@@ -72,7 +74,7 @@ use selectors::matching::matches_selector_list;
 use selectors::parser::SelectorList;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
-use std::cell::{Cell, UnsafeCell};
+use std::cell::{Cell, UnsafeCell, RefMut};
 use std::cmp::max;
 use std::default::Default;
 use std::iter;
@@ -137,6 +139,9 @@ pub struct Node {
     /// Must be sent back to the layout thread to be destroyed when this
     /// node is finalized.
     style_and_layout_data: Cell<Option<OpaqueStyleAndLayoutData>>,
+
+    /// Registered observers for this node.
+    mutation_observers: DOMRefCell<Vec<RegisteredObserver>>,
 
     unique_id: UniqueId,
 }
@@ -361,6 +366,11 @@ impl Node {
         for kid in self.children() {
             kid.teardown();
         }
+    }
+
+    /// Return all registered mutation observers for this node.
+    pub fn registered_mutation_observers(&self) -> RefMut<Vec<RegisteredObserver>> {
+         self.mutation_observers.borrow_mut()
     }
 
     /// Dumps the subtree rooted at this node, for debugging.
@@ -1410,6 +1420,8 @@ impl Node {
             ranges: WeakRangeVec::new(),
 
             style_and_layout_data: Cell::new(None),
+
+            mutation_observers: Default::default(),
 
             unique_id: UniqueId::new(),
         }

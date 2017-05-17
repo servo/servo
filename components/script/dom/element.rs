@@ -63,6 +63,7 @@ use dom::htmltablerowelement::{HTMLTableRowElement, HTMLTableRowElementLayoutHel
 use dom::htmltablesectionelement::{HTMLTableSectionElement, HTMLTableSectionElementLayoutHelpers};
 use dom::htmltemplateelement::HTMLTemplateElement;
 use dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
+use dom::mutationobserver::{Mutation, MutationObserver};
 use dom::namednodemap::NamedNodeMap;
 use dom::node::{CLICK_IN_PROGRESS, ChildrenMutation, LayoutNodeHelpers, Node};
 use dom::node::{NodeDamage, SEQUENTIALLY_FOCUSABLE, UnbindContext};
@@ -1003,6 +1004,12 @@ impl Element {
     }
 
     pub fn push_attribute(&self, attr: &Attr) {
+        let name = attr.local_name().clone();
+        let namespace = attr.namespace().clone();
+        let old_value = DOMString::from(&**attr.value());
+        let mutation = Mutation::Attribute { name, namespace, old_value };
+        MutationObserver::queue_a_mutation_record(&self.node, mutation);
+
         assert!(attr.GetOwnerElement().r() == Some(self));
         self.will_mutate_attr(attr);
         self.attrs.borrow_mut().push(JS::from_ref(attr));
@@ -1125,13 +1132,18 @@ impl Element {
     }
 
     fn remove_first_matching_attribute<F>(&self, find: F) -> Option<Root<Attr>>
-        where F: Fn(&Attr) -> bool
-    {
+        where F: Fn(&Attr) -> bool {
         let idx = self.attrs.borrow().iter().position(|attr| find(&attr));
-
         idx.map(|idx| {
             let attr = Root::from_ref(&*(*self.attrs.borrow())[idx]);
             self.will_mutate_attr(&attr);
+
+            let name = attr.local_name().clone();
+            let namespace = attr.namespace().clone();
+            let old_value = DOMString::from(&**attr.value());
+            let mutation = Mutation::Attribute { name, namespace, old_value, };
+            MutationObserver::queue_a_mutation_record(&self.node, mutation);
+
             self.attrs.borrow_mut().remove(idx);
             attr.set_owner(None);
             if attr.namespace() == &ns!() {
