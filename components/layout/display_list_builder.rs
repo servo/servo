@@ -2236,6 +2236,14 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             }
 
             match transform {
+                Some(transform) if transform.m13 != 0.0 ||  transform.m23 != 0.0 => {
+                    // We cannot properly handle perspective transforms, because there may be a
+                    // situation where an element is transformed from outside the clip into the
+                    // clip region. Here we don't have enough information to detect when that is
+                    // happening. For the moment we just punt on trying to optimize the display
+                    // list for those cases.
+                    max_rect()
+                }
                 Some(transform) => {
                     let clip = Rect::new(Point2D::new((clip.origin.x - origin.x).to_f32_px(),
                                                       (clip.origin.y - origin.y).to_f32_px()),
