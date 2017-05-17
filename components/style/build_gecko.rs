@@ -148,38 +148,46 @@ mod bindings {
             if build_type == BuildType::Debug {
                 builder = builder.clang_arg("-DDEBUG=1").clang_arg("-DJS_DEBUG=1");
             }
-            if cfg!(target_family = "unix") {
+            // cfg!(...) will check the attributes of the Rust target this file
+            // is being compiled for.  We want the attributes of the target that
+            // the clang we're going to invoke is being compiled for, which isn't
+            // necessarily the same thing.  Cargo provides the (yet-to-be-documented)
+            // CARGO_CFG_* environment variables for this purpose.  Those variables
+            // should be used in preference to cfg! checks below.
+            let target_family = env::var("CARGO_CFG_TARGET_FAMILY").unwrap();
+            let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap();
+            let target_pointer_width = env::var("CARGO_CFG_TARGET_POINTER_WIDTH").unwrap();
+            let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
+            let target_env = env::var("CARGO_CFG_TARGET_ENV").unwrap();
+
+            if target_family == "unix" {
                 builder = builder.clang_arg("-DOS_POSIX=1");
             }
-            if cfg!(target_os = "linux") {
+            if target_os == "linux" {
                 builder = builder.clang_arg("-DOS_LINUX=1");
-                // We may be cross-compiling with a clang that defaults to
-                // a different architecture, so we should explicitly specify
-                // the bitness being used here. Specifying --target instead
-                // leads to difficulties with LLVM search paths.
-                if cfg!(target_arch = "x86") {
-                    builder = builder.clang_arg("-m32")
-                } else if cfg!(target_arch = "x86_64") {
-                    builder = builder.clang_arg("-m64")
+                if target_arch == "x86" {
+                    builder = builder.clang_arg("-m32");
+                } else if target_arch == "x86_64" {
+                    builder = builder.clang_arg("-m64");
                 }
-            } else if cfg!(target_os = "solaris") {
+            } else if target_os == "solaris" {
                 builder = builder.clang_arg("-DOS_SOLARIS=1");
-            } else if cfg!(target_os = "dragonfly") {
+            } else if target_os == "dragonfly" {
                 builder = builder.clang_arg("-DOS_BSD=1").clang_arg("-DOS_DRAGONFLY=1");
-            } else if cfg!(target_os = "freebsd") {
+            } else if target_os == "freebsd" {
                 builder = builder.clang_arg("-DOS_BSD=1").clang_arg("-DOS_FREEBSD=1");
-            } else if cfg!(target_os = "netbsd") {
+            } else if target_os == "netbsd" {
                 builder = builder.clang_arg("-DOS_BSD=1").clang_arg("-DOS_NETBSD=1");
-            } else if cfg!(target_os = "openbsd") {
+            } else if target_os == "openbsd" {
                 builder = builder.clang_arg("-DOS_BSD=1").clang_arg("-DOS_OPENBSD=1");
-            } else if cfg!(target_os = "macos") {
+            } else if target_os == "macos" {
                 builder = builder.clang_arg("-DOS_MACOSX=1")
                     .clang_arg("-stdlib=libc++")
                     // To disable the fixup bindgen applies which adds search
                     // paths from clang command line in order to avoid potential
                     // conflict with -stdlib=libc++.
                     .clang_arg("--target=x86_64-apple-darwin");
-            } else if cfg!(target_env = "msvc") {
+            } else if target_env == "msvc" {
                 builder = builder.clang_arg("-DOS_WIN=1").clang_arg("-DWIN32=1")
                     // For compatibility with MSVC 2015
                     .clang_arg("-fms-compatibility-version=19")
@@ -191,7 +199,7 @@ mod bindings {
                     // thus not enabled by default with a MSVC-compatibile build)
                     // to exclude hidden symbols from the generated file.
                     .clang_arg("-DHAVE_VISIBILITY_HIDDEN_ATTRIBUTE=1");
-                if cfg!(target_pointer_width = "32") {
+                if target_pointer_width == "32" {
                     builder = builder.clang_arg("--target=i686-pc-win32");
                 } else {
                     builder = builder.clang_arg("--target=x86_64-pc-win32");
