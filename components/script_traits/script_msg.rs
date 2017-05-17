@@ -94,7 +94,12 @@ pub enum ScriptMsg {
     HeadParsed,
     /// All pending loads are complete, and the `load` event for this pipeline
     /// has been dispatched.
-    LoadComplete(PipelineId),
+    LoadComplete {
+        ///  The pipeline that has completed loading.
+        loaded_pipeline: PipelineId,
+        /// Whether the parent document has already been notified about the load.
+        parent_has_been_notified: bool
+    },
     /// A new load has been requested, with an option to replace the current entry once loaded
     /// instead of adding a new entry.
     LoadUrl(PipelineId, LoadData, bool),

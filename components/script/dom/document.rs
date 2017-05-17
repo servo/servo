@@ -68,7 +68,7 @@ use dom::location::Location;
 use dom::messageevent::MessageEvent;
 use dom::mouseevent::MouseEvent;
 use dom::node::{self, CloneChildrenFlag, Node, NodeDamage, window_from_node, IS_IN_DOC, LayoutNodeHelpers};
-use dom::node::VecPreOrderInsertionHelper;
+use dom::node::{VecPreOrderInsertionHelper, document_from_node};
 use dom::nodeiterator::NodeIterator;
 use dom::nodelist::NodeList;
 use dom::pagetransitionevent::PageTransitionEvent;
@@ -1874,10 +1874,13 @@ impl Document {
         }
     }
 
-    pub fn notify_constellation_load(&self) {
+    pub fn notify_constellation_load(&self, parent_notified: bool) {
         let global_scope = self.window.upcast::<GlobalScope>();
         let pipeline_id = global_scope.pipeline_id();
-        let load_event = ConstellationMsg::LoadComplete(pipeline_id);
+        let load_event = ConstellationMsg::LoadComplete {
+            loaded_pipeline: pipeline_id,
+            parent_has_been_notified: parent_notified
+        };
         global_scope.constellation_chan().send(load_event).unwrap();
     }
 
@@ -3856,7 +3859,33 @@ impl DocumentProgressHandler {
                       ReflowQueryType::NoQuery,
                       ReflowReason::DocumentLoaded);
 
-        document.notify_constellation_load();
+        let mut parent_notified = false;
+        // If we can synchronously reach the parent document, we can notify it more efficiently
+        // that its child document has loaded. Otherwise, we leave it up to the constellation.
+        if let Some(browsing_context) = document.browsing_context() {
+            if let Some(pipeline) = browsing_context.currently_active() {
+                if pipeline == document.global().pipeline_id() {
+                    let frame_id = browsing_context.frame_id();
+                    // N.B. it's important to retrieve the document for the iframe, then
+                    //      the window via this document. If the iframe has been adopted into
+                    //      a different global than its associated global, the pipeline retrieved
+                    //      will be incorrect if the associated global is used.
+                    let containing_document = browsing_context
+                        .frame_element()
+                        .map(|e| document_from_node(e));
+                    if let Some(containing_document) = containing_document {
+                        let parent_pipeline = containing_document
+                            .window()
+                            .upcast::<GlobalScope>()
+                            .pipeline_id();
+                        ScriptThread::notify_document_loaded(frame_id, parent_pipeline, pipeline);
+                        parent_notified = true;
+                    }
+                }
+            }
+        }
+
+        document.notify_constellation_load(parent_notified);
     }
 }
 
