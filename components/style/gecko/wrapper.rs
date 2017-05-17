@@ -64,7 +64,7 @@ use properties::style_structs::Font;
 use rule_tree::CascadeLevel as ServoCascadeLevel;
 use selector_parser::ElementExt;
 use selectors::Element;
-use selectors::matching::{ElementSelectorFlags, MatchingContext};
+use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode};
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use shared_lock::Locked;
 use sink::Push;
@@ -1055,6 +1055,11 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         parent_node.and_then(|n| n.as_element())
     }
 
+    fn pseudo_element_originating_element(&self) -> Option<Self> {
+        debug_assert!(self.implemented_pseudo_element().is_some());
+        self.closest_non_native_anonymous_ancestor()
+    }
+
     fn first_child_element(&self) -> Option<Self> {
         let mut child = self.as_node().first_child();
         while let Some(child_node) = child {
@@ -1244,6 +1249,20 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         }
     }
 
+    fn match_pseudo_element(&self,
+                            pseudo_element: &PseudoElement,
+                            _context: &mut MatchingContext)
+                            -> bool
+    {
+        // TODO(emilio): I believe we could assert we are a pseudo-element and
+        // match the proper pseudo-element, given how we rulehash the stuff
+        // based on the pseudo.
+        match self.implemented_pseudo_element() {
+            Some(ref pseudo) => pseudo == pseudo_element,
+            None => false,
+        }
+    }
+
     fn get_id(&self) -> Option<Atom> {
         let ptr = unsafe {
             bindings::Gecko_AtomAttrValue(self.0,
@@ -1378,8 +1397,9 @@ impl<'le> ::selectors::MatchAttr for GeckoElement<'le> {
 impl<'le> ElementExt for GeckoElement<'le> {
     #[inline]
     fn is_link(&self) -> bool {
+        let mut context = MatchingContext::new(MatchingMode::Normal, None);
         self.match_non_ts_pseudo_class(&NonTSPseudoClass::AnyLink,
-                                       &mut MatchingContext::default(),
+                                       &mut context,
                                        &mut |_, _| {})
     }
 

@@ -69,28 +69,67 @@ impl ElementSelectorFlags {
     }
 }
 
+/// What kind of selector matching mode we should use.
+///
+/// There are two modes of selector matching. The difference is only noticeable
+/// in presence of pseudo-elements.
+#[derive(Debug, PartialEq)]
+pub enum MatchingMode {
+    /// Don't ignore any pseudo-element selectors.
+    Normal,
+
+    /// Ignores any stateless pseudo-element selectors in the rightmost sequence
+    /// of simple selectors.
+    ///
+    /// This is useful, for example, to match against ::before when you aren't a
+    /// pseudo-element yourself.
+    ///
+    /// For example, in presence of `::before:hover`, it would never match, but
+    /// `::before` would be ignored as in "matching".
+    ///
+    /// It's required for all the selectors you match using this mode to have a
+    /// pseudo-element.
+    ForStatelessPseudoElement,
+}
+
+
 /// Data associated with the matching process for a element.  This context is
 /// used across many selectors for an element, so it's not appropriate for
 /// transient data that applies to only a single selector.
-#[derive(Default)]
-pub struct MatchingContext {
+pub struct MatchingContext<'a> {
     /// Output that records certains relations between elements noticed during
     /// matching (and also extended after matching).
     pub relations: StyleRelations,
+    /// The matching mode we should use when matching selectors.
+    pub matching_mode: MatchingMode,
+    /// The bloom filter used to fast-reject selectors.
+    pub bloom_filter: Option<&'a BloomFilter>,
+}
+
+impl<'a> MatchingContext<'a> {
+    /// Constructs a new `MatchingContext`.
+    pub fn new(matching_mode: MatchingMode,
+               bloom_filter: Option<&'a BloomFilter>)
+               -> Self
+    {
+        Self {
+            relations: StyleRelations::empty(),
+            matching_mode: matching_mode,
+            bloom_filter: bloom_filter,
+        }
+    }
 }
 
 pub fn matches_selector_list<E>(selector_list: &[Selector<E::Impl>],
                                 element: &E,
-                                parent_bf: Option<&BloomFilter>)
+                                context: &mut MatchingContext)
                                 -> bool
     where E: Element
 {
     selector_list.iter().any(|selector| {
-        selector.pseudo_element.is_none() &&
         matches_selector(&selector.inner,
                          element,
-                         parent_bf,
-                         &mut MatchingContext::default(),
+                         context,
                          &mut |_, _| {})
     })
 }
@@ -113,27 +152,6 @@ fn may_match<E>(sel: &SelectorInner<E::Impl>,
     }
 
     true
-}
-
-/// Determines whether the given element matches the given complex selector.
-pub fn matches_selector<E, F>(selector: &SelectorInner<E::Impl>,
-                              element: &E,
-                              parent_bf: Option<&BloomFilter>,
-                              context: &mut MatchingContext,
-                              flags_setter: &mut F)
-                              -> bool
-    where E: Element,
-          F: FnMut(&E, ElementSelectorFlags),
-{
-    // Use the bloom filter to fast-reject.
-    if let Some(filter) = parent_bf {
-        if !may_match::<E>(selector, filter) {
-            return false;
-        }
-    }
-
-    // Match the selector.
-    matches_complex_selector(&selector.complex, element, context, flags_setter)
 }
 
 /// A result of selector matching, includes 3 failure types,
@@ -186,16 +204,65 @@ enum SelectorMatchingResult {
     NotMatchedGlobally,
 }
 
+/// Matches an inner selector.
+pub fn matches_selector<E, F>(selector: &SelectorInner<E::Impl>,
+                              element: &E,
+                              context: &mut MatchingContext,
+                              flags_setter: &mut F)
+                              -> bool
+    where E: Element,
+          F: FnMut(&E, ElementSelectorFlags),
+{
+    // Use the bloom filter to fast-reject.
+    if let Some(filter) = context.bloom_filter {
+        if !may_match::<E>(&selector, filter) {
+            return false;
+        }
+    }
+
+    matches_complex_selector(&selector.complex, element, context, flags_setter)
+}
+
 /// Matches a complex selector.
-pub fn matches_complex_selector<E, F>(selector: &ComplexSelector<E::Impl>,
+///
+/// Use `matches_selector` if you need to skip pseudos.
+pub fn matches_complex_selector<E, F>(complex_selector: &ComplexSelector<E::Impl>,
                                       element: &E,
                                       context: &mut MatchingContext,
                                       flags_setter: &mut F)
                                       -> bool
-     where E: Element,
-           F: FnMut(&E, ElementSelectorFlags),
+    where E: Element,
+          F: FnMut(&E, ElementSelectorFlags),
 {
-    match matches_complex_selector_internal(selector.iter(),
+    let mut iter = complex_selector.iter();
+
+    if cfg!(debug_assertions) {
+        if context.matching_mode == MatchingMode::ForStatelessPseudoElement {
+            assert!(complex_selector.iter().any(|c| {
+                matches!(*c, Component::PseudoElement(..))
+            }));
+        }
+    }
+
+    if context.matching_mode == MatchingMode::ForStatelessPseudoElement {
+        match *iter.next().unwrap() {
+            // Stateful pseudo, just don't match.
+            Component::NonTSPseudoClass(..) => return false,
+            Component::PseudoElement(..) => {
+                // Pseudo, just eat the whole sequence.
+                let next = iter.next();
+                debug_assert!(next.is_none(),
+                              "Someone messed up pseudo-element parsing?");
+
+                if iter.next_sequence().is_none() {
+                    return true;
+                }
+            }
+            _ => panic!("Used MatchingMode::ForStatelessPseudoElement in a non-pseudo selector"),
+        }
+    }
+
+    match matches_complex_selector_internal(iter,
                                             element,
                                             context,
                                             flags_setter) {
@@ -229,12 +296,19 @@ fn matches_complex_selector_internal<E, F>(mut selector_iter: SelectorIter<E::Im
     match combinator {
         None => SelectorMatchingResult::Matched,
         Some(c) => {
-            let (mut next_element, candidate_not_found) = if siblings {
-                (element.prev_sibling_element(),
-                 SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant)
-            } else {
-                (element.parent_element(),
-                 SelectorMatchingResult::NotMatchedGlobally)
+            let (mut next_element, candidate_not_found) = match c {
+                Combinator::NextSibling | Combinator::LaterSibling => {
+                    (element.prev_sibling_element(),
+                     SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant)
+                }
+                Combinator::Child | Combinator::Descendant => {
+                    (element.parent_element(),
+                     SelectorMatchingResult::NotMatchedGlobally)
+                }
+                Combinator::PseudoElement => {
+                    (element.pseudo_element_originating_element(),
+                     SelectorMatchingResult::NotMatchedGlobally)
+                }
             };
 
             loop {
@@ -253,6 +327,7 @@ fn matches_complex_selector_internal<E, F>(mut selector_iter: SelectorIter<E::Im
 
                     // Upgrade the failure status to
                     // NotMatchedAndRestartFromClosestDescendant.
+                    (_, Combinator::PseudoElement) |
                     (_, Combinator::Child) => return SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant,
 
                     // Return the status directly.
@@ -306,6 +381,9 @@ fn matches_simple_selector<E, F>(
 
     match *selector {
         Component::Combinator(_) => unreachable!(),
+        Component::PseudoElement(ref pseudo) => {
+            element.match_pseudo_element(pseudo, context)
+        }
         Component::LocalName(LocalName { ref name, ref lower_name }) => {
             let name = if element.is_html_element_in_html_document() { lower_name } else { name };
             element.get_local_name() == name.borrow()

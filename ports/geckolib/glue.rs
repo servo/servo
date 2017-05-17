@@ -1068,7 +1068,6 @@ fn get_pseudo_style(guard: &SharedRwLockReadGuard,
             d.stylist.lazily_compute_pseudo_element_style(&guards,
                                                           &element,
                                                           &pseudo,
-                                                          ElementState::empty(),
                                                           base,
                                                           &metrics)
                      .map(|s| s.values().clone())

@@ -86,7 +86,7 @@ use net_traits::request::CorsSettings;
 use ref_filter_map::ref_filter_map;
 use script_layout_interface::message::ReflowQueryType;
 use script_thread::Runnable;
-use selectors::matching::{ElementSelectorFlags, MatchingContext, matches_selector_list};
+use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode, matches_selector_list};
 use selectors::matching::{HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use servo_atoms::Atom;
@@ -104,7 +104,7 @@ use style::properties::{Importance, PropertyDeclaration, PropertyDeclarationBloc
 use style::properties::longhands::{self, background_image, border_spacing, font_family, font_size, overflow_x};
 use style::restyle_hints::RESTYLE_SELF;
 use style::rule_tree::CascadeLevel;
-use style::selector_parser::{NonTSPseudoClass, RestyleDamage, SelectorImpl, SelectorParser};
+use style::selector_parser::{NonTSPseudoClass, PseudoElement, RestyleDamage, SelectorImpl, SelectorParser};
 use style::shared_lock::{SharedRwLock, Locked};
 use style::sink::Push;
 use style::stylearc::Arc;
@@ -2058,7 +2058,8 @@ impl ElementMethods for Element {
         match SelectorParser::parse_author_origin_no_namespace(&selectors) {
             Err(()) => Err(Error::Syntax),
             Ok(selectors) => {
-                Ok(matches_selector_list(&selectors.0, &Root::from_ref(self), None))
+                let mut ctx = MatchingContext::new(MatchingMode::Normal, None);
+                Ok(matches_selector_list(&selectors.0, &Root::from_ref(self), &mut ctx))
             }
         }
     }
@@ -2076,8 +2077,8 @@ impl ElementMethods for Element {
                 let root = self.upcast::<Node>();
                 for element in root.inclusive_ancestors() {
                     if let Some(element) = Root::downcast::<Element>(element) {
-                        if matches_selector_list(&selectors.0, &element, None)
-                        {
+                        let mut ctx = MatchingContext::new(MatchingMode::Normal, None);
+                        if matches_selector_list(&selectors.0, &element, &mut ctx) {
                             return Ok(Some(element));
                         }
                     }
@@ -2385,6 +2386,15 @@ impl<'a> ::selectors::Element for Root<Element> {
     fn parent_element(&self) -> Option<Root<Element>> {
         self.upcast::<Node>().GetParentElement()
     }
+
+    fn match_pseudo_element(&self,
+                            _pseudo: &PseudoElement,
+                            _context: &mut MatchingContext)
+                            -> bool
+    {
+        false
+    }
+
 
     fn first_child_element(&self) -> Option<Root<Element>> {
         self.node.child_elements().next()
