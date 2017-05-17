@@ -86,9 +86,10 @@ use net_traits::request::CorsSettings;
 use ref_filter_map::ref_filter_map;
 use script_layout_interface::message::ReflowQueryType;
 use script_thread::Runnable;
+use selectors::attr::AttrSelectorOperation;
 use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode, matches_selector_list};
 use selectors::matching::{HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
-use selectors::parser::{AttrSelector, NamespaceConstraint};
+use selectors::parser::NamespaceConstraint;
 use servo_atoms::Atom;
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
@@ -288,7 +289,7 @@ pub trait RawLayoutElementHelpers {
                                       -> Option<&'a AttrValue>;
     unsafe fn get_attr_val_for_layout<'a>(&'a self, namespace: &Namespace, name: &LocalName)
                                       -> Option<&'a str>;
-    unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &LocalName) -> Vec<&'a str>;
+    unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &LocalName) -> Vec<&'a AttrValue>;
 }
 
 #[inline]
@@ -314,6 +315,7 @@ impl RawLayoutElementHelpers for Element {
         })
     }
 
+    #[inline]
     unsafe fn get_attr_val_for_layout<'a>(&'a self, namespace: &Namespace, name: &LocalName)
                                           -> Option<&'a str> {
         get_attr_for_layout(self, namespace, name).map(|attr| {
@@ -322,12 +324,12 @@ impl RawLayoutElementHelpers for Element {
     }
 
     #[inline]
-    unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &LocalName) -> Vec<&'a str> {
+    unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &LocalName) -> Vec<&'a AttrValue> {
         let attrs = self.attrs.borrow_for_layout();
         attrs.iter().filter_map(|attr| {
             let attr = attr.to_layout();
             if *name == attr.local_name_atom_forever() {
-              Some(attr.value_ref_forever())
+              Some(attr.value_forever())
             } else {
               None
             }
@@ -2352,37 +2354,9 @@ impl VirtualMethods for Element {
     }
 }
 
-impl<'a> ::selectors::MatchAttrGeneric for Root<Element> {
+impl<'a> ::selectors::Element for Root<Element> {
     type Impl = SelectorImpl;
 
-    fn match_attr<F>(&self, attr: &AttrSelector<SelectorImpl>, test: F) -> bool
-        where F: Fn(&str) -> bool
-    {
-        use ::selectors::Element;
-        let local_name = {
-            if self.is_html_element_in_html_document() {
-                &attr.lower_name
-            } else {
-                &attr.name
-            }
-        };
-        match attr.namespace {
-            NamespaceConstraint::Specific(ref ns) => {
-                self.get_attribute(&ns.url, local_name)
-                    .map_or(false, |attr| {
-                        test(&attr.value())
-                    })
-            },
-            NamespaceConstraint::Any => {
-                self.attrs.borrow().iter().any(|attr| {
-                    attr.local_name() == local_name && test(&attr.value())
-                })
-            }
-        }
-    }
-}
-
-impl<'a> ::selectors::Element for Root<Element> {
     fn parent_element(&self) -> Option<Root<Element>> {
         self.upcast::<Node>().GetParentElement()
     }
@@ -2410,6 +2384,25 @@ impl<'a> ::selectors::Element for Root<Element> {
 
     fn next_sibling_element(&self) -> Option<Root<Element>> {
         self.node.following_siblings().filter_map(Root::downcast).next()
+    }
+
+    fn attr_matches(&self,
+                    ns: &NamespaceConstraint<SelectorImpl>,
+                    local_name: &LocalName,
+                    operation: &AttrSelectorOperation<SelectorImpl>)
+                    -> bool {
+        match *ns {
+            NamespaceConstraint::Specific(ref ns) => {
+                self.get_attribute(&ns.url, local_name)
+                    .map_or(false, |attr| attr.value().eval_selector(operation))
+            }
+            NamespaceConstraint::Any => {
+                self.attrs.borrow().iter().any(|attr| {
+                    attr.local_name() == local_name &&
+                    attr.value().eval_selector(operation)
+                })
+            }
+        }
     }
 
     fn is_root(&self) -> bool {

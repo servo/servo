@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use arcslice::ArcSlice;
+use attr::{CaseSensitivity, SELECTOR_WHITESPACE};
 use cssparser::{Token, Parser as CssParser, parse_nth, ToCss, serialize_identifier, CssStringWriter};
 use precomputed_hash::PrecomputedHash;
 use smallvec::SmallVec;
@@ -13,7 +14,6 @@ use std::fmt::{self, Display, Debug, Write};
 use std::iter::Rev;
 use std::ops::Add;
 use std::slice;
-use tree::SELECTOR_WHITESPACE;
 use visitor::SelectorVisitor;
 
 /// A trait that represents a pseudo-element.
@@ -560,7 +560,6 @@ pub enum Component<Impl: SelectorImpl> {
     OnlyOfType,
     NonTSPseudoClass(Impl::NonTSPseudoClass),
     PseudoElement(Impl::PseudoElement),
-    // ...
 }
 
 impl<Impl: SelectorImpl> Component<Impl> {
@@ -604,13 +603,6 @@ impl<Impl: SelectorImpl> Component<Impl> {
         }
     }
 }
-
-#[derive(Eq, PartialEq, Clone, Copy, Debug)]
-pub enum CaseSensitivity {
-    CaseSensitive,  // Selectors spec says language-defined, but HTML says sensitive.
-    AsciiCaseInsensitive,
-}
-
 
 #[derive(Eq, PartialEq, Clone)]
 pub struct LocalName<Impl: SelectorImpl> {
