@@ -2481,18 +2481,6 @@ impl<'a> ::selectors::Element for Root<Element> {
         Element::has_class(&**self, name)
     }
 
-    fn each_class<F>(&self, mut callback: F)
-        where F: FnMut(&Atom)
-    {
-        if let Some(ref attr) = self.get_attribute(&ns!(), &local_name!("class")) {
-            let tokens = attr.value();
-            let tokens = tokens.as_tokens();
-            for token in tokens {
-                callback(token);
-            }
-        }
-    }
-
     fn is_html_element_in_html_document(&self) -> bool {
         self.html_element_in_html_document()
     }

@@ -407,15 +407,6 @@ impl<'a, E> Element for ElementWrapper<'a, E>
         self.element.is_root()
     }
 
-    fn each_class<F>(&self, callback: F)
-        where F: FnMut(&Atom) {
-        match self.snapshot() {
-            Some(snapshot) if snapshot.has_attrs()
-                => snapshot.each_class(callback),
-            _   => self.element.each_class(callback)
-        }
-    }
-
     fn pseudo_element_originating_element(&self) -> Option<Self> {
         self.element.closest_non_native_anonymous_ancestor()
             .map(|e| ElementWrapper::new(e, self.snapshot_map))

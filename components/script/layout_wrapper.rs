@@ -402,6 +402,17 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         self.get_attr(namespace, attr).map_or(false, |x| x == val)
     }
 
+    #[inline(always)]
+    fn each_class<F>(&self, mut callback: F) where F: FnMut(&Atom) {
+        unsafe {
+            if let Some(ref classes) = self.element.get_classes_for_layout() {
+                for class in *classes {
+                    callback(class)
+                }
+            }
+        }
+    }
+
     #[inline]
     fn existing_style_for_restyle_damage<'a>(&'a self,
                                              current_cv: &'a ComputedValues,
@@ -725,17 +736,6 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     fn has_class(&self, name: &Atom) -> bool {
         unsafe {
             self.element.has_class_for_layout(name)
-        }
-    }
-
-    #[inline(always)]
-    fn each_class<F>(&self, mut callback: F) where F: FnMut(&Atom) {
-        unsafe {
-            if let Some(ref classes) = self.element.get_classes_for_layout() {
-                for class in *classes {
-                    callback(class)
-                }
-            }
         }
     }
 
@@ -1098,8 +1098,8 @@ impl<'le> ThreadSafeLayoutElement for ServoThreadSafeLayoutElement<'le> {
 /// i.e., local_name, attributes, so they can only be used for **private**
 /// pseudo-elements (like `::-servo-details-content`).
 ///
-/// Probably a few more of this functions can be implemented (like `has_class`,
-/// `each_class`, etc), but they have no use right now.
+/// Probably a few more of this functions can be implemented (like `has_class`, etc.),
+/// but they have no use right now.
 ///
 /// Note that the element implementation is needed only for selector matching,
 /// not for inheritance (styles are inherited appropiately).
@@ -1206,11 +1206,6 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
     fn is_root(&self) -> bool {
         warn!("ServoThreadSafeLayoutElement::is_root called");
         false
-    }
-
-    fn each_class<F>(&self, _callback: F)
-        where F: FnMut(&Atom) {
-        warn!("ServoThreadSafeLayoutElement::each_class called");
     }
 }
 

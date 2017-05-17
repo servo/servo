@@ -381,6 +381,9 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// Whether an attribute value equals `value`.
     fn attr_equals(&self, namespace: &Namespace, attr: &LocalName, value: &Atom) -> bool;
 
+    /// Internal iterator for the classes of this element.
+    fn each_class<F>(&self, callback: F) where F: FnMut(&Atom);
+
     /// Get the pre-existing style to calculate restyle damage (change hints).
     ///
     /// This needs to be generic since it varies between Servo and Gecko.
