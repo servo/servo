@@ -14,10 +14,8 @@ use gecko_bindings::structs::ServoElementSnapshot;
 use gecko_bindings::structs::ServoElementSnapshotFlags as Flags;
 use gecko_bindings::structs::ServoElementSnapshotTable;
 use restyle_hints::ElementSnapshot;
-use selector_parser::SelectorImpl;
-use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator, CaseSensitivity};
-use selectors::parser::NamespaceConstraint;
-use string_cache::Atom;
+use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator, CaseSensitivity, NamespaceConstraint};
+use string_cache::{Atom, Namespace};
 
 /// A snapshot of a Gecko element.
 pub type GeckoElementSnapshot = ServoElementSnapshot;
@@ -59,9 +57,9 @@ impl GeckoElementSnapshot {
 
     /// selectors::Element::attr_matches
     pub fn attr_matches(&self,
-                        ns: &NamespaceConstraint<SelectorImpl>,
+                        ns: &NamespaceConstraint<&Namespace>,
                         local_name: &Atom,
-                        operation: &AttrSelectorOperation<SelectorImpl>)
+                        operation: &AttrSelectorOperation<&Atom>)
                         -> bool {
         unsafe {
             match *operation {

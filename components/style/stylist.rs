@@ -6,7 +6,7 @@
 
 #![deny(missing_docs)]
 
-use {Atom, LocalName};
+use {Atom, LocalName, Namespace};
 use bit_vec::BitVec;
 use context::QuirksMode;
 use data::ComputedStyle;
@@ -26,10 +26,11 @@ use properties::PropertyDeclarationBlock;
 use restyle_hints::{RestyleHint, DependencySet};
 use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
 use selector_parser::{SelectorImpl, PseudoElement, SnapshotMap};
+use selectors::attr::NamespaceConstraint;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{AFFECTED_BY_STYLE_ATTRIBUTE, AFFECTED_BY_PRESENTATIONAL_HINTS};
 use selectors::matching::{ElementSelectorFlags, matches_selector, MatchingContext, MatchingMode};
-use selectors::parser::{AttrSelector, Combinator, Component, Selector, SelectorInner, SelectorIter};
+use selectors::parser::{Combinator, Component, Selector, SelectorInner, SelectorIter};
 use selectors::parser::{SelectorMethods, LocalName as LocalNameSelector};
 use selectors::visitor::SelectorVisitor;
 use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
@@ -502,7 +503,7 @@ impl Stylist {
     /// Returns whether the given attribute might appear in an attribute
     /// selector of some rule in the stylist.
     pub fn might_have_attribute_dependency(&self,
-                                           local_name: &<SelectorImpl as ::selectors::SelectorImpl>::LocalName)
+                                           local_name: &LocalName)
                                            -> bool {
         #[cfg(feature = "servo")]
         let style_lower_name = local_name!("style");
@@ -1088,17 +1089,19 @@ struct AttributeAndStateDependencyVisitor<'a>(&'a mut Stylist);
 impl<'a> SelectorVisitor for AttributeAndStateDependencyVisitor<'a> {
     type Impl = SelectorImpl;
 
-    fn visit_attribute_selector(&mut self, selector: &AttrSelector<Self::Impl>) -> bool {
+    fn visit_attribute_selector(&mut self, _ns: &NamespaceConstraint<&Namespace>,
+                                name: &LocalName, lower_name: &LocalName)
+                                -> bool {
         #[cfg(feature = "servo")]
         let style_lower_name = local_name!("style");
         #[cfg(feature = "gecko")]
         let style_lower_name = atom!("style");
 
-        if selector.lower_name == style_lower_name {
+        if *lower_name == style_lower_name {
             self.0.style_attribute_dependency = true;
         } else {
-            self.0.attribute_dependencies.insert(&selector.name);
-            self.0.attribute_dependencies.insert(&selector.lower_name);
+            self.0.attribute_dependencies.insert(&name);
+            self.0.attribute_dependencies.insert(&lower_name);
         }
         true
     }
@@ -1157,13 +1160,9 @@ impl SelectorVisitor for RevalidationVisitor {
     /// concerned.
     fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) -> bool {
         match *s {
-            Component::AttrExists(_) |
-            Component::AttrEqual(_, _, _) |
-            Component::AttrIncludes(_, _) |
-            Component::AttrDashMatch(_, _) |
-            Component::AttrPrefixMatch(_, _) |
-            Component::AttrSubstringMatch(_, _) |
-            Component::AttrSuffixMatch(_, _) |
+            Component::AttributeInNoNamespaceExists { .. } |
+            Component::AttributeInNoNamespace { .. } |
+            Component::AttributeOther(_) |
             Component::Empty |
             Component::FirstChild |
             Component::LastChild |

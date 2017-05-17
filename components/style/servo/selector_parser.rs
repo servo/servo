@@ -14,10 +14,10 @@ use element_state::ElementState;
 use fnv::FnvHashMap;
 use restyle_hints::ElementSnapshot;
 use selector_parser::{ElementExt, PseudoElementCascadeType, SelectorParser};
-use selectors::{Element};
-use selectors::attr::AttrSelectorOperation;
+use selectors::Element;
+use selectors::attr::{AttrSelectorOperation, NamespaceConstraint};
 use selectors::matching::{MatchingContext, MatchingMode};
-use selectors::parser::{SelectorMethods, NamespaceConstraint};
+use selectors::parser::SelectorMethods;
 use selectors::visitor::SelectorVisitor;
 use std::borrow::Cow;
 use std::fmt;
@@ -559,14 +559,13 @@ impl ElementSnapshot for ServoElementSnapshot {
 impl ServoElementSnapshot {
     /// selectors::Element::attr_matches
     pub fn attr_matches(&self,
-                        ns: &NamespaceConstraint<SelectorImpl>,
+                        ns: &NamespaceConstraint<&Namespace>,
                         local_name: &LocalName,
-                        operation: &AttrSelectorOperation<SelectorImpl>)
+                        operation: &AttrSelectorOperation<&String>)
                         -> bool {
-        use selectors::parser::NamespaceConstraint;
         match *ns {
             NamespaceConstraint::Specific(ref ns) => {
-                self.get_attr(&ns.url, local_name)
+                self.get_attr(ns, local_name)
                     .map_or(false, |value| value.eval_selector(operation))
             }
             NamespaceConstraint::Any => {

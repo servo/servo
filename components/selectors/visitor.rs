@@ -6,8 +6,8 @@
 
 #![deny(missing_docs)]
 
-use parser::{AttrSelector, Combinator, Component};
-use parser::{SelectorImpl, SelectorIter};
+use attr::NamespaceConstraint;
+use parser::{Combinator, Component, SelectorImpl, SelectorIter};
 
 /// A trait to visit selector properties.
 ///
@@ -20,7 +20,12 @@ pub trait SelectorVisitor {
     /// Visit an attribute selector that may match (there are other selectors
     /// that may never match, like those containing whitespace or the empty
     /// string).
-    fn visit_attribute_selector(&mut self, _: &AttrSelector<Self::Impl>) -> bool {
+    fn visit_attribute_selector(
+        &mut self,
+        _namespace: &NamespaceConstraint<&<Self::Impl as SelectorImpl>::NamespaceUrl>,
+        _local_name: &<Self::Impl as SelectorImpl>::LocalName,
+        _local_name_lower: &<Self::Impl as SelectorImpl>::LocalName,
+    ) -> bool {
         true
     }
 

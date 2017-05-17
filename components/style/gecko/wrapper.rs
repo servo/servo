@@ -64,9 +64,8 @@ use properties::style_structs::Font;
 use rule_tree::CascadeLevel as ServoCascadeLevel;
 use selector_parser::ElementExt;
 use selectors::Element;
-use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator, CaseSensitivity};
+use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator, CaseSensitivity, NamespaceConstraint};
 use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode};
-use selectors::parser::NamespaceConstraint;
 use shared_lock::Locked;
 use sink::Push;
 use std::cell::RefCell;
@@ -1140,9 +1139,9 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     }
 
     fn attr_matches(&self,
-                    ns: &NamespaceConstraint<SelectorImpl>,
+                    ns: &NamespaceConstraint<&Namespace>,
                     local_name: &Atom,
-                    operation: &AttrSelectorOperation<SelectorImpl>)
+                    operation: &AttrSelectorOperation<&Atom>)
                     -> bool {
         unsafe {
             match *operation {
@@ -1413,11 +1412,11 @@ pub trait NamespaceConstraintHelpers {
     fn atom_or_null(&self) -> *mut nsIAtom;
 }
 
-impl NamespaceConstraintHelpers for NamespaceConstraint<SelectorImpl> {
+impl<'a> NamespaceConstraintHelpers for NamespaceConstraint<&'a Namespace> {
     fn atom_or_null(&self) -> *mut nsIAtom {
         match *self {
             NamespaceConstraint::Any => ptr::null_mut(),
-            NamespaceConstraint::Specific(ref ns) => ns.url.0.as_ptr(),
+            NamespaceConstraint::Specific(ref ns) => ns.0.as_ptr(),
         }
     }
 }

@@ -12,7 +12,6 @@ use cssparser::{self, Color, RGBA};
 use euclid::num::Zero;
 use num_traits::ToPrimitive;
 use properties::PropertyDeclarationBlock;
-use selector_parser::SelectorImpl;
 use selectors::attr::AttrSelectorOperation;
 use servo_url::ServoUrl;
 use shared_lock::Locked;
@@ -352,9 +351,10 @@ impl AttrValue {
         }
     }
 
-    pub fn eval_selector(&self, selector: &AttrSelectorOperation<SelectorImpl>) -> bool {
+    pub fn eval_selector(&self, selector: &AttrSelectorOperation<&String>) -> bool {
         // FIXME(SimonSapin) this can be more efficient by matching on `(self, selector)` variants
-        // and doing Atom comparisons instead of string comparisons where possible.
+        // and doing Atom comparisons instead of string comparisons where possible,
+        // with SelectorImpl::AttrValue changed to Atom.
         selector.eval_str(self)
     }
 }

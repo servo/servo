@@ -86,10 +86,9 @@ use net_traits::request::CorsSettings;
 use ref_filter_map::ref_filter_map;
 use script_layout_interface::message::ReflowQueryType;
 use script_thread::Runnable;
-use selectors::attr::AttrSelectorOperation;
+use selectors::attr::{AttrSelectorOperation, NamespaceConstraint};
 use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode, matches_selector_list};
 use selectors::matching::{HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
-use selectors::parser::NamespaceConstraint;
 use servo_atoms::Atom;
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
@@ -2387,13 +2386,13 @@ impl<'a> ::selectors::Element for Root<Element> {
     }
 
     fn attr_matches(&self,
-                    ns: &NamespaceConstraint<SelectorImpl>,
+                    ns: &NamespaceConstraint<&Namespace>,
                     local_name: &LocalName,
-                    operation: &AttrSelectorOperation<SelectorImpl>)
+                    operation: &AttrSelectorOperation<&String>)
                     -> bool {
         match *ns {
             NamespaceConstraint::Specific(ref ns) => {
-                self.get_attribute(&ns.url, local_name)
+                self.get_attribute(ns, local_name)
                     .map_or(false, |attr| attr.value().eval_selector(operation))
             }
             NamespaceConstraint::Any => {

@@ -2,24 +2,54 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cssparser::ToCss;
 use parser::SelectorImpl;
 use std::ascii::AsciiExt;
+use std::fmt;
 
-pub enum AttrSelectorOperation<'a, Impl: SelectorImpl> where Impl::AttrValue: 'a {
+#[derive(Eq, PartialEq, Clone)]
+pub struct AttrSelectorWithNamespace<Impl: SelectorImpl> {
+    pub namespace: NamespaceConstraint<(Impl::NamespacePrefix, Impl::NamespaceUrl)>,
+    pub local_name: Impl::LocalName,
+    pub local_name_lower: Impl::LocalName,
+    pub operation: AttrSelectorOperation<Impl::AttrValue>,
+    pub never_matches: bool,
+}
+
+impl<Impl: SelectorImpl> AttrSelectorWithNamespace<Impl> {
+    pub fn namespace(&self) -> NamespaceConstraint<&Impl::NamespaceUrl> {
+        match self.namespace {
+            NamespaceConstraint::Any => NamespaceConstraint::Any,
+            NamespaceConstraint::Specific((_, ref url)) => {
+                NamespaceConstraint::Specific(url)
+            }
+        }
+    }
+}
+
+#[derive(Eq, PartialEq, Clone)]
+pub enum NamespaceConstraint<NamespaceUrl> {
+    Any,
+
+    /// Empty string for no namespace
+    Specific(NamespaceUrl),
+}
+
+#[derive(Eq, PartialEq, Clone)]
+pub enum AttrSelectorOperation<AttrValue> {
     Exists,
     WithValue {
         operator: AttrSelectorOperator,
         case_sensitivity: CaseSensitivity,
-        expected_value: &'a Impl::AttrValue,
+        expected_value: AttrValue,
     }
 }
 
-impl<'a, Impl: SelectorImpl> AttrSelectorOperation<'a, Impl> {
-    pub fn eval_str(&self, element_attr_value: &str) -> bool
-    where Impl::AttrValue: AsRef<str> {
+impl<AttrValue> AttrSelectorOperation<AttrValue> {
+    pub fn eval_str(&self, element_attr_value: &str) -> bool where AttrValue: AsRef<str> {
         match *self {
             AttrSelectorOperation::Exists => true,
-            AttrSelectorOperation::WithValue { operator, case_sensitivity, expected_value } => {
+            AttrSelectorOperation::WithValue { operator, case_sensitivity, ref expected_value } => {
                 operator.eval_str(element_attr_value, expected_value.as_ref(), case_sensitivity)
             }
         }
@@ -28,12 +58,25 @@ impl<'a, Impl: SelectorImpl> AttrSelectorOperation<'a, Impl> {
 
 #[derive(Eq, PartialEq, Clone, Copy)]
 pub enum AttrSelectorOperator {
-    Equal,  // =
-    Includes,  // ~=
-    DashMatch,  // |=
-    Prefix,  // ^=
-    Substring,  // *=
-    Suffix,  // $=
+    Equal,
+    Includes,
+    DashMatch,
+    Prefix,
+    Substring,
+    Suffix,
+}
+
+impl ToCss for AttrSelectorOperator {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        dest.write_str(match *self {
+            AttrSelectorOperator::Equal => " = ",
+            AttrSelectorOperator::Includes => " ~= ",
+            AttrSelectorOperator::DashMatch => " |= ",
+            AttrSelectorOperator::Prefix => " ^= ",
+            AttrSelectorOperator::Substring => " *= ",
+            AttrSelectorOperator::Suffix => " $= ",
+        })
+    }
 }
 
 impl AttrSelectorOperator {

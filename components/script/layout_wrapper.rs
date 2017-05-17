@@ -50,9 +50,8 @@ use script_layout_interface::{HTMLCanvasData, LayoutNodeType, SVGSVGData, Truste
 use script_layout_interface::{OpaqueStyleAndLayoutData, PartialPersistentLayoutData};
 use script_layout_interface::wrapper_traits::{DangerousThreadSafeLayoutNode, GetLayoutData, LayoutNode};
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
-use selectors::attr::AttrSelectorOperation;
+use selectors::attr::{AttrSelectorOperation, NamespaceConstraint};
 use selectors::matching::{ElementSelectorFlags, MatchingContext};
-use selectors::parser::NamespaceConstraint;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::fmt;
@@ -606,13 +605,13 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     }
 
     fn attr_matches(&self,
-                    ns: &NamespaceConstraint<SelectorImpl>,
+                    ns: &NamespaceConstraint<&Namespace>,
                     local_name: &LocalName,
-                    operation: &AttrSelectorOperation<SelectorImpl>)
+                    operation: &AttrSelectorOperation<&String>)
                     -> bool {
         match *ns {
             NamespaceConstraint::Specific(ref ns) => {
-                self.get_attr_enum(&ns.url, local_name)
+                self.get_attr_enum(ns, local_name)
                     .map_or(false, |value| value.eval_selector(operation))
             }
             NamespaceConstraint::Any => {
@@ -1159,13 +1158,13 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
     }
 
     fn attr_matches(&self,
-                    ns: &NamespaceConstraint<SelectorImpl>,
+                    ns: &NamespaceConstraint<&Namespace>,
                     local_name: &LocalName,
-                    operation: &AttrSelectorOperation<SelectorImpl>)
+                    operation: &AttrSelectorOperation<&String>)
                     -> bool {
         match *ns {
             NamespaceConstraint::Specific(ref ns) => {
-                self.get_attr_enum(&ns.url, local_name)
+                self.get_attr_enum(ns, local_name)
                     .map_or(false, |value| value.eval_selector(operation))
             }
             NamespaceConstraint::Any => {
