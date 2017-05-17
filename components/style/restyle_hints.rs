@@ -8,19 +8,19 @@
 
 use Atom;
 use LocalName;
+use Namespace;
 use dom::TElement;
 use element_state::*;
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs::nsRestyleHint;
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
-use selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl, Snapshot, SnapshotMap};
+use selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl, Snapshot, SnapshotMap, AttrValue};
 use selectors::Element;
-use selectors::attr::AttrSelectorOperation;
+use selectors::attr::{AttrSelectorOperation, NamespaceConstraint};
 use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode};
 use selectors::matching::matches_selector;
-use selectors::parser::{Combinator, Component, Selector};
-use selectors::parser::{SelectorInner, SelectorMethods, NamespaceConstraint};
+use selectors::parser::{Combinator, Component, Selector, SelectorInner, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
 use smallvec::SmallVec;
 use std::borrow::Borrow;
@@ -371,9 +371,9 @@ impl<'a, E> Element for ElementWrapper<'a, E>
     }
 
     fn attr_matches(&self,
-                    ns: &NamespaceConstraint<Self::Impl>,
+                    ns: &NamespaceConstraint<&Namespace>,
                     local_name: &LocalName,
-                    operation: &AttrSelectorOperation<Self::Impl>)
+                    operation: &AttrSelectorOperation<&AttrValue>)
                     -> bool {
         match self.snapshot() {
             Some(snapshot) if snapshot.has_attrs() => {
@@ -437,13 +437,9 @@ fn is_attr_selector(sel: &Component<SelectorImpl>) -> bool {
     match *sel {
         Component::ID(_) |
         Component::Class(_) |
-        Component::AttrExists(_) |
-        Component::AttrEqual(_, _, _) |
-        Component::AttrIncludes(_, _) |
-        Component::AttrDashMatch(_, _) |
-        Component::AttrPrefixMatch(_, _) |
-        Component::AttrSubstringMatch(_, _) |
-        Component::AttrSuffixMatch(_, _) => true,
+        Component::AttributeInNoNamespaceExists { .. } |
+        Component::AttributeInNoNamespace { .. } |
+        Component::AttributeOther(_) => true,
         _ => false,
     }
 }

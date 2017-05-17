@@ -5,9 +5,9 @@
 //! Traits that nodes must implement. Breaks the otherwise-cyclic dependency between layout and
 //! style.
 
-use attr::AttrSelectorOperation;
+use attr::{AttrSelectorOperation, NamespaceConstraint};
 use matching::{ElementSelectorFlags, MatchingContext};
-use parser::{NamespaceConstraint, SelectorImpl};
+use parser::SelectorImpl;
 
 pub trait Element: Sized {
     type Impl: SelectorImpl;
@@ -22,26 +22,29 @@ pub trait Element: Sized {
         self.parent_element()
     }
 
-    // Skips non-element nodes
+    /// Skips non-element nodes
     fn first_child_element(&self) -> Option<Self>;
 
-    // Skips non-element nodes
+    /// Skips non-element nodes
     fn last_child_element(&self) -> Option<Self>;
 
-    // Skips non-element nodes
+    /// Skips non-element nodes
     fn prev_sibling_element(&self) -> Option<Self>;
 
-    // Skips non-element nodes
+    /// Skips non-element nodes
     fn next_sibling_element(&self) -> Option<Self>;
 
     fn is_html_element_in_html_document(&self) -> bool;
+
     fn get_local_name(&self) -> &<Self::Impl as SelectorImpl>::BorrowedLocalName;
+
+    /// Empty string for no namespace
     fn get_namespace(&self) -> &<Self::Impl as SelectorImpl>::BorrowedNamespaceUrl;
 
     fn attr_matches(&self,
-                    ns: &NamespaceConstraint<Self::Impl>,
+                    ns: &NamespaceConstraint<&<Self::Impl as SelectorImpl>::NamespaceUrl>,
                     local_name: &<Self::Impl as SelectorImpl>::LocalName,
-                    operation: &AttrSelectorOperation<Self::Impl>)
+                    operation: &AttrSelectorOperation<&<Self::Impl as SelectorImpl>::AttrValue>)
                     -> bool;
 
     fn match_non_ts_pseudo_class<F>(&self,
@@ -56,6 +59,7 @@ pub trait Element: Sized {
                             -> bool;
 
     fn get_id(&self) -> Option<<Self::Impl as SelectorImpl>::Identifier>;
+
     fn has_class(&self, name: &<Self::Impl as SelectorImpl>::ClassName) -> bool;
 
     /// Returns whether this element matches `:empty`.
