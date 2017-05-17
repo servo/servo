@@ -1241,7 +1241,7 @@ pub trait MatchMethods : TElement {
         }
 
         if self.parent_element().is_none() {
-            debug!("{:?} Cannot share style: element has style attribute", self);
+            debug!("{:?} Cannot share style: element has no parent", self);
             return StyleSharingResult::CannotShare
         }
 
