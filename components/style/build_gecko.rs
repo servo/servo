@@ -193,7 +193,8 @@ mod bindings {
                     // thus not enabled by default with a MSVC-compatibile build)
                     // to exclude hidden symbols from the generated file.
                     .clang_arg("-DHAVE_VISIBILITY_HIDDEN_ATTRIBUTE=1");
-                if cfg!(target_pointer_width = "32") {
+                let pointer_width = env::var("CARGO_CFG_TARGET_POINTER_WIDTH").unwrap();
+                if pointer_width == "32" {
                     builder = builder.clang_arg("--target=i686-pc-win32");
                 } else {
                     builder = builder.clang_arg("--target=x86_64-pc-win32");
