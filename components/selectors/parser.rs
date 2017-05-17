@@ -608,7 +608,7 @@ impl<Impl: SelectorImpl> Component<Impl> {
 #[derive(Eq, PartialEq, Clone, Copy, Debug)]
 pub enum CaseSensitivity {
     CaseSensitive,  // Selectors spec says language-defined, but HTML says sensitive.
-    CaseInsensitive,
+    AsciiCaseInsensitive,
 }
 
 
@@ -754,7 +754,7 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
             AttrEqual(ref a, ref v, case) => {
                 attr_selector_to_css(a, " = ", v, match case {
                     CaseSensitivity::CaseSensitive => None,
-                    CaseSensitivity::CaseInsensitive => Some(" i"),
+                    CaseSensitivity::AsciiCaseInsensitive => Some(" i"),
                 }, dest)
             }
             AttrDashMatch(ref a, ref v) => attr_selector_to_css(a, " |= ", v, None, dest),
@@ -1322,7 +1322,7 @@ fn parse_attribute_flags(input: &mut CssParser) -> Result<CaseSensitivity, ()> {
     match input.next() {
         Err(()) => Ok(CaseSensitivity::CaseSensitive),
         Ok(Token::Ident(ref value)) if value.eq_ignore_ascii_case("i") => {
-            Ok(CaseSensitivity::CaseInsensitive)
+            Ok(CaseSensitivity::AsciiCaseInsensitive)
         }
         _ => Err(())
     }

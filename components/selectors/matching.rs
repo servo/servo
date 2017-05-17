@@ -415,7 +415,7 @@ fn matches_simple_selector<E, F>(
         Component::AttrEqual(ref attr, ref value, case_sensitivity) => {
             match case_sensitivity {
                 CaseSensitivity::CaseSensitive => element.match_attr_equals(attr, value),
-                CaseSensitivity::CaseInsensitive => element.match_attr_equals_ignore_ascii_case(attr, value),
+                CaseSensitivity::AsciiCaseInsensitive => element.match_attr_equals_ignore_ascii_case(attr, value),
             }
         }
         Component::AttrIncludes(ref attr, ref value) => {
