@@ -119,13 +119,29 @@ pub static SELECTOR_WHITESPACE: &'static [char] = &[' ', '\t', '\n', '\r', '\x0C
 pub enum CaseSensitivity {
     CaseSensitive,  // Selectors spec says language-defined, but HTML says sensitive.
     AsciiCaseInsensitive,
+    AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument,
 }
 
 impl CaseSensitivity {
+    pub fn to_definite(self, is_html_element_in_html_document: bool) -> Self {
+        if let CaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument = self {
+            if is_html_element_in_html_document {
+                CaseSensitivity::AsciiCaseInsensitive
+            } else {
+                CaseSensitivity::CaseSensitive
+            }
+        } else {
+            self
+        }
+    }
+
     pub fn eq(self, a: &[u8], b: &[u8]) -> bool {
         match self {
             CaseSensitivity::CaseSensitive => a == b,
-            CaseSensitivity::AsciiCaseInsensitive => a.eq_ignore_ascii_case(b)
+            CaseSensitivity::AsciiCaseInsensitive => a.eq_ignore_ascii_case(b),
+            CaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument => {
+                unreachable!("matching.rs should have called case_sensitivity.to_definite()");
+            }
         }
     }
 
@@ -151,6 +167,9 @@ impl CaseSensitivity {
                     // though these cases should be handled with *NeverMatches and never go here.
                     true
                 }
+            }
+            CaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument => {
+                unreachable!("matching.rs should have called case_sensitivity.to_definite()");
             }
         }
     }

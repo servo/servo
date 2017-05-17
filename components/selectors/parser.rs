@@ -33,6 +33,16 @@ pub trait PseudoElement : Sized + ToCss {
     }
 }
 
+fn to_ascii_lowercase(s: &str) -> Cow<str> {
+    if let Some(first_uppercase) = s.bytes().position(|byte| byte >= b'A' && byte <= b'Z') {
+        let mut string = s.to_owned();
+        string[first_uppercase..].make_ascii_lowercase();
+        string.into()
+    } else {
+        s.into()
+    }
+}
+
 macro_rules! with_all_bounds {
     (
         [ $( $InSelector: tt )* ]
@@ -43,16 +53,6 @@ macro_rules! with_all_bounds {
             match cow {
                 Cow::Borrowed(s) => T::from(s),
                 Cow::Owned(s) => T::from(s),
-            }
-        }
-
-        fn from_ascii_lowercase<T>(s: &str) -> T where T: $($FromStr)* {
-            if let Some(first_uppercase) = s.bytes().position(|byte| byte >= b'A' && byte <= b'Z') {
-                let mut string = s.to_owned();
-                string[first_uppercase..].make_ascii_lowercase();
-                T::from(string)
-            } else {
-                T::from(s)
             }
         }
 
@@ -735,7 +735,8 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
                 write!(CssStringWriter::new(dest), "{}", value)?;
                 dest.write_char('"')?;
                 match case_sensitivity {
-                    CaseSensitivity::CaseSensitive => {},
+                    CaseSensitivity::CaseSensitive |
+                    CaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument => {},
                     CaseSensitivity::AsciiCaseInsensitive => dest.write_str(" i")?,
                 }
                 dest.write_char(']')
@@ -790,7 +791,8 @@ impl<Impl: SelectorImpl> ToCss for AttrSelectorWithNamespace<Impl> {
                 write!(CssStringWriter::new(dest), "{}", expected_value)?;
                 dest.write_char('"')?;
                 match case_sensitivity {
-                    CaseSensitivity::CaseSensitive => {},
+                    CaseSensitivity::CaseSensitive |
+                    CaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument => {},
                     CaseSensitivity::AsciiCaseInsensitive => dest.write_str(" i")?,
                 }
             },
@@ -1078,7 +1080,7 @@ fn parse_type_selector<P, Impl>(parser: &P, input: &mut CssParser, sequence: &mu
             match local_name {
                 Some(name) => {
                     sequence.push(Component::LocalName(LocalName {
-                        lower_name: from_ascii_lowercase(&name),
+                        lower_name: from_cow_str(to_ascii_lowercase(&name)),
                         name: from_cow_str(name),
                     }))
                 }
@@ -1190,13 +1192,11 @@ fn parse_attribute_selector<P, Impl>(parser: &P, input: &mut CssParser)
 {
     let namespace;
     let local_name;
-    let local_name_lower;
     match parse_qualified_name(parser, input, /* in_attr_selector = */ true)? {
         None => return Err(()),
         Some((_, None)) => unreachable!(),
         Some((ns, Some(ln))) => {
-            local_name_lower = from_ascii_lowercase(&ln);
-            local_name = from_cow_str(ln);
+            local_name = ln;
             namespace = match ns {
                 QNamePrefix::ImplicitNoNamespace |
                 QNamePrefix::ExplicitNoNamespace => {
@@ -1222,6 +1222,8 @@ fn parse_attribute_selector<P, Impl>(parser: &P, input: &mut CssParser)
     match input.next() {
         // [foo]
         Err(()) => {
+            let local_name_lower = from_cow_str(to_ascii_lowercase(&local_name));
+            let local_name = from_cow_str(local_name);
             if let Some(namespace) = namespace {
                 return Ok(Component::AttributeOther(Box::new(AttrSelectorWithNamespace {
                     namespace: namespace,
@@ -1277,8 +1279,22 @@ fn parse_attribute_selector<P, Impl>(parser: &P, input: &mut CssParser)
         _ => return Err(())
     }
 
-    let case_sensitivity = parse_attribute_flags(input)?;
+    let mut case_sensitivity = parse_attribute_flags(input)?;
+
     let value = from_cow_str(value);
+    let local_name_lower;
+    {
+        let local_name_lower_cow = to_ascii_lowercase(&local_name);
+        if let CaseSensitivity::CaseSensitive = case_sensitivity {
+            if include!(concat!(env!("OUT_DIR"), "/ascii_case_insensitive_html_attributes.rs"))
+                .contains(&*local_name_lower_cow)
+            {
+                case_sensitivity = CaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument
+            }
+        }
+        local_name_lower = from_cow_str(local_name_lower_cow);
+    }
+    let local_name = from_cow_str(local_name);
     if let Some(namespace) = namespace {
         Ok(Component::AttributeOther(Box::new(AttrSelectorWithNamespace {
             namespace: namespace,

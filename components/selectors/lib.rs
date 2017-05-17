@@ -6,6 +6,7 @@
 #[macro_use] extern crate cssparser;
 #[macro_use] extern crate matches;
 extern crate fnv;
+extern crate phf;
 extern crate precomputed_hash;
 #[cfg(test)] #[macro_use] extern crate size_of_test;
 extern crate smallvec;
