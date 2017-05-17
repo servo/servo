@@ -1670,7 +1670,8 @@ extern "C" {
                                               *const RawServoMediaList,
                                           extra_data:
                                               *mut RawGeckoURLExtraData,
-                                          line_number_offset: u32)
+                                          line_number_offset: u32,
+                                          quirks_mode: nsCompatibility)
      -> RawServoStyleSheetStrong;
 }
 extern "C" {
@@ -1933,7 +1934,8 @@ extern "C" {
     pub fn Servo_ParseProperty(property: nsCSSPropertyID,
                                value: *const nsACString,
                                data: *mut RawGeckoURLExtraData,
-                               parsing_mode: ParsingMode)
+                               parsing_mode: ParsingMode,
+                               quirks_mode: nsCompatibility)
      -> RawServoDeclarationBlockStrong;
 }
 extern "C" {
@@ -2103,7 +2105,8 @@ extern "C" {
                                               value: *const nsACString,
                                               is_important: bool,
                                               data: *mut RawGeckoURLExtraData,
-                                              parsing_mode: ParsingMode)
+                                              parsing_mode: ParsingMode,
+                                              quirks_mode: nsCompatibility)
      -> bool;
 }
 extern "C" {
@@ -2114,7 +2117,9 @@ extern "C" {
                                                   is_important: bool,
                                                   data:
                                                       *mut RawGeckoURLExtraData,
-                                                  parsing_mode: ParsingMode)
+                                                  parsing_mode: ParsingMode,
+                                                  quirks_mode:
+                                                      nsCompatibility)
      -> bool;
 }
 extern "C" {
