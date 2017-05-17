@@ -5,6 +5,7 @@
 // This interface is entirely internal to Servo, and should not be accessible to
 // web pages.
 
-[Exposed=(Window,Worker,Worklet),
- Inline]
-interface GlobalScope : EventTarget {};
+[Global=(Worklet,TestWorklet), Exposed=TestWorklet]
+interface TestWorkletGlobalScope : WorkletGlobalScope {
+    void registerKeyValue(DOMString key, DOMString value);
+};
