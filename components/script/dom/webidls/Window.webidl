@@ -23,7 +23,7 @@
   //[Replaceable] readonly attribute BarProp toolbar;
   attribute DOMString status;
   void close();
-  //readonly attribute boolean closed;
+  readonly attribute boolean closed;
   //void stop();
   //void focus();
   //void blur();
