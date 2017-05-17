@@ -1359,8 +1359,8 @@ impl SelectorMap<Rule> {
 
         let mut rules_list = vec![];
         for rule in self.other.iter() {
-            if rule.selector.inner.complex.iter_raw().next().is_none() {
-                rules_list.push(rule.to_applicable_declaration_block(cascade_level));
+            if rule.selector.is_universal() {
+                rules_list.push(rule.to_applicable_declaration_block(cascade_level))
             }
         }
 
