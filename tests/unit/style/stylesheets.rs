@@ -103,7 +103,7 @@ fn test_parse_stylesheet() {
                                 local_name_lower: local_name!("type"),
                                 operator: AttrSelectorOperator::Equal,
                                 value: "hidden".to_owned(),
-                                case_sensitivity: CaseSensitivity::AsciiCaseInsensitive,
+                                case_sensitivity: ParsedCaseSensitivity::AsciiCaseInsensitive,
                                 never_matches: false,
                             }
                         ]),

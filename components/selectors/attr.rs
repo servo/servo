@@ -12,7 +12,7 @@ pub struct AttrSelectorWithNamespace<Impl: SelectorImpl> {
     pub namespace: NamespaceConstraint<(Impl::NamespacePrefix, Impl::NamespaceUrl)>,
     pub local_name: Impl::LocalName,
     pub local_name_lower: Impl::LocalName,
-    pub operation: AttrSelectorOperation<Impl::AttrValue>,
+    pub operation: ParsedAttrSelectorOperation<Impl::AttrValue>,
     pub never_matches: bool,
 }
 
@@ -33,6 +33,16 @@ pub enum NamespaceConstraint<NamespaceUrl> {
 
     /// Empty string for no namespace
     Specific(NamespaceUrl),
+}
+
+#[derive(Eq, PartialEq, Clone)]
+pub enum ParsedAttrSelectorOperation<AttrValue> {
+    Exists,
+    WithValue {
+        operator: AttrSelectorOperator,
+        case_sensitivity: ParsedCaseSensitivity,
+        expected_value: AttrValue,
+    }
 }
 
 #[derive(Eq, PartialEq, Clone)]
@@ -116,32 +126,39 @@ impl AttrSelectorOperator {
 pub static SELECTOR_WHITESPACE: &'static [char] = &[' ', '\t', '\n', '\r', '\x0C'];
 
 #[derive(Eq, PartialEq, Clone, Copy, Debug)]
-pub enum CaseSensitivity {
+pub enum ParsedCaseSensitivity {
     CaseSensitive,  // Selectors spec says language-defined, but HTML says sensitive.
     AsciiCaseInsensitive,
     AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument,
 }
 
-impl CaseSensitivity {
-    pub fn to_definite(self, is_html_element_in_html_document: bool) -> Self {
-        if let CaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument = self {
-            if is_html_element_in_html_document {
+impl ParsedCaseSensitivity {
+    pub fn to_unconditional(self, is_html_element_in_html_document: bool) -> CaseSensitivity {
+        match self {
+            ParsedCaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument
+            if is_html_element_in_html_document => {
                 CaseSensitivity::AsciiCaseInsensitive
-            } else {
+            }
+            ParsedCaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument => {
                 CaseSensitivity::CaseSensitive
             }
-        } else {
-            self
+            ParsedCaseSensitivity::CaseSensitive => CaseSensitivity::CaseSensitive,
+            ParsedCaseSensitivity::AsciiCaseInsensitive => CaseSensitivity::AsciiCaseInsensitive,
         }
     }
+}
 
+#[derive(Eq, PartialEq, Clone, Copy, Debug)]
+pub enum CaseSensitivity {
+    CaseSensitive,  // Selectors spec says language-defined, but HTML says sensitive.
+    AsciiCaseInsensitive,
+}
+
+impl CaseSensitivity {
     pub fn eq(self, a: &[u8], b: &[u8]) -> bool {
         match self {
             CaseSensitivity::CaseSensitive => a == b,
             CaseSensitivity::AsciiCaseInsensitive => a.eq_ignore_ascii_case(b),
-            CaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument => {
-                unreachable!("matching.rs should have called case_sensitivity.to_definite()");
-            }
         }
     }
 
@@ -167,9 +184,6 @@ impl CaseSensitivity {
                     // though these cases should be handled with *NeverMatches and never go here.
                     true
                 }
-            }
-            CaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument => {
-                unreachable!("matching.rs should have called case_sensitivity.to_definite()");
             }
         }
     }
