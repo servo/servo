@@ -8,7 +8,7 @@ use computed_values::{font_style, font_weight, font_stretch};
 use computed_values::font_family::FamilyName;
 use counter_style;
 use cssparser::UnicodeRange;
-use font_face::{FontFaceRuleData, Source};
+use font_face::{FontFaceRuleData, Source, FontDisplay};
 use gecko_bindings::bindings;
 use gecko_bindings::structs::{self, nsCSSFontFaceRule, nsCSSValue};
 use gecko_bindings::structs::{nsCSSCounterDesc, nsCSSCounterStyleRule};
@@ -112,6 +112,18 @@ impl ToNsCssValue for Vec<UnicodeRange> {
             target[0].set_integer(range.start as i32);
             target[1].set_integer(range.end as i32);
         }
+    }
+}
+
+impl ToNsCssValue for FontDisplay {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
+        nscssvalue.set_enum(match self {
+            FontDisplay::Auto => structs::NS_FONT_DISPLAY_AUTO,
+            FontDisplay::Block => structs::NS_FONT_DISPLAY_BLOCK,
+            FontDisplay::Swap => structs::NS_FONT_DISPLAY_SWAP,
+            FontDisplay::Fallback => structs::NS_FONT_DISPLAY_FALLBACK,
+            FontDisplay::Optional => structs::NS_FONT_DISPLAY_OPTIONAL,
+        } as i32)
     }
 }
 
