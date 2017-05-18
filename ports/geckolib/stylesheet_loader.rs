@@ -3,18 +3,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use style::gecko_bindings::bindings::Gecko_LoadStyleSheet;
-use style::gecko_bindings::structs::{Loader, ServoStyleSheet};
+use style::gecko_bindings::structs::{Loader, ServoStyleSheet, LoaderReusableStyleSheets};
 use style::gecko_bindings::sugar::ownership::{HasArcFFI, FFIArcHelpers};
 use style::media_queries::MediaList;
 use style::shared_lock::Locked;
 use style::stylearc::Arc;
 use style::stylesheets::{ImportRule, Stylesheet, StylesheetLoader as StyleStylesheetLoader};
 
-pub struct StylesheetLoader(*mut Loader, *mut ServoStyleSheet);
+pub struct StylesheetLoader(*mut Loader, *mut ServoStyleSheet, *mut LoaderReusableStyleSheets);
 
 impl StylesheetLoader {
-    pub fn new(loader: *mut Loader, parent: *mut ServoStyleSheet) -> Self {
-        StylesheetLoader(loader, parent)
+    pub fn new(loader: *mut Loader,
+               parent: *mut ServoStyleSheet,
+               reusable_sheets: *mut LoaderReusableStyleSheets) -> Self {
+        StylesheetLoader(loader, parent, reusable_sheets)
     }
 }
 
@@ -37,6 +39,7 @@ impl StyleStylesheetLoader for StylesheetLoader {
         unsafe {
             Gecko_LoadStyleSheet(self.0,
                                  self.1,
+                                 self.2,
                                  Stylesheet::arc_as_borrowed(&import.stylesheet),
                                  base_url_data,
                                  spec_bytes,
