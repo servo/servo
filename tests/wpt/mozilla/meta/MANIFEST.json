@@ -3731,6 +3731,18 @@
      {}
     ]
    ],
+   "css/min_width_percent_root_a.html": [
+    [
+     "/_mozilla/css/min_width_percent_root_a.html",
+     [
+      [
+       "/_mozilla/css/min_width_percent_root_b.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/min_width_simple_a.html": [
     [
      "/_mozilla/css/min_width_simple_a.html",
@@ -8367,6 +8379,11 @@
     ]
    ],
    "css/min_width_float_simple_b.html": [
+    [
+     {}
+    ]
+   ],
+   "css/min_width_percent_root_b.html": [
     [
      {}
     ]
@@ -22658,6 +22675,14 @@
   ],
   "css/min_width_float_simple_b.html": [
    "e8ee634ab6350ad4c870cb1d0ce4f1a88b285581",
+   "support"
+  ],
+  "css/min_width_percent_root_a.html": [
+   "e8c23bc78daed932d5b513b972582e21711ea06a",
+   "reftest"
+  ],
+  "css/min_width_percent_root_b.html": [
+   "4c5b54f6b4e1bb77a15fdf7d99f9be3a47df7e8b",
    "support"
   ],
   "css/min_width_simple_a.html": [
