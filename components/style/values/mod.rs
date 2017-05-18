@@ -11,80 +11,11 @@
 use Atom;
 pub use cssparser::{RGBA, Token, Parser, serialize_identifier, serialize_string};
 use parser::{Parse, ParserContext};
-use properties::animated_properties::Animatable;
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::fmt::{self, Debug};
 use std::hash;
 use style_traits::ToCss;
-
-macro_rules! define_numbered_css_keyword_enum {
-    ($name: ident: $( $css: expr => $variant: ident = $value: expr ),+,) => {
-        define_numbered_css_keyword_enum!($name: $( $css => $variant = $value ),+);
-    };
-    ($name: ident: $( $css: expr => $variant: ident = $value: expr ),+) => {
-        #[allow(non_camel_case_types, missing_docs)]
-        #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
-        pub enum $name {
-            $( $variant = $value ),+
-        }
-
-        impl Parse for $name {
-            #[allow(missing_docs)]
-            fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<$name, ()> {
-                match_ignore_ascii_case! { &try!(input.expect_ident()),
-                    $( $css => Ok($name::$variant), )+
-                    _ => Err(())
-                }
-            }
-        }
-
-        impl ToCss for $name {
-            fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
-                where W: ::std::fmt::Write,
-            {
-                match *self {
-                    $( $name::$variant => dest.write_str($css) ),+
-                }
-            }
-        }
-    }
-}
-
-/// A macro used to implement HasViewportPercentage trait
-/// for a given type that may never contain viewport units.
-macro_rules! no_viewport_percentage {
-    ($name: ident) => {
-        impl $crate::values::HasViewportPercentage for $name {
-            #[inline]
-            fn has_viewport_percentage(&self) -> bool {
-                false
-            }
-        }
-    };
-}
-
-/// A macro for implementing `ComputedValueAsSpecified`, `Parse`
-/// and `HasViewportPercentage` traits for the enums defined
-/// using `define_css_keyword_enum` macro.
-///
-/// NOTE: We should either move `Parse` trait to `style_traits`
-/// or `define_css_keyword_enum` macro to this crate, but that
-/// may involve significant cleanup in both the crates.
-macro_rules! add_impls_for_keyword_enum {
-    ($name:ident) => {
-        impl Parse for $name {
-            #[inline]
-            fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
-                $name::parse(input)
-            }
-        }
-
-        impl ComputedValueAsSpecified for $name {}
-        no_viewport_percentage!($name);
-    };
-}
 
 pub mod computed;
 pub mod generics;
@@ -110,46 +41,6 @@ impl<T: HasViewportPercentage> HasViewportPercentage for Box<T> {
     fn has_viewport_percentage(&self) -> bool {
         (**self).has_viewport_percentage()
     }
-}
-
-use self::computed::ComputedValueAsSpecified;
-
-macro_rules! define_keyword_type {
-    ($name: ident, $css: expr) => {
-        #[derive(Clone, PartialEq, Copy)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        #[allow(missing_docs)]
-        pub struct $name;
-
-        impl ::style_traits::ToCss for $name {
-            fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result where W: ::std::fmt::Write {
-                write!(dest, $css)
-            }
-        }
-
-        impl Animatable for $name {
-            #[inline]
-            fn add_weighted(&self, _other: &Self, _self_progress: f64, _other_progress: f64)
-                -> Result<Self, ()> {
-                Ok($name)
-            }
-        }
-
-        impl fmt::Debug for $name {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                write!(f, $css)
-            }
-        }
-
-        impl Parse for $name {
-            fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<$name, ()> {
-                input.expect_ident_matching($css).map(|_| $name)
-            }
-        }
-
-        impl ComputedValueAsSpecified for $name {}
-        no_viewport_percentage!($name);
-    };
 }
 
 define_keyword_type!(None_, "none");
