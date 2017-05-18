@@ -407,9 +407,6 @@ class MachCommands(CommandBase):
     @Command('build-geckolib',
              description='Build a static library of components used by Gecko',
              category='build')
-    @CommandArgument('--with-gecko',
-                     default=None,
-                     help='Build with Gecko dist directory')
     @CommandArgument('--jobs', '-j',
                      default=None,
                      help='Number of jobs to run in parallel')
@@ -419,7 +416,7 @@ class MachCommands(CommandBase):
     @CommandArgument('--release', '-r',
                      action='store_true',
                      help='Build in release mode')
-    def build_geckolib(self, with_gecko=None, jobs=None, verbose=False, release=False):
+    def build_geckolib(self, jobs=None, verbose=False, release=False):
         self.set_use_stable_rust()
         self.ensure_bootstrapped()
         self.ensure_clobbered()
@@ -429,9 +426,6 @@ class MachCommands(CommandBase):
         ret = None
         opts = []
         features = []
-        if with_gecko is not None:
-            features += ["bindgen"]
-            env["MOZ_DIST"] = path.abspath(path.expanduser(with_gecko))
         if jobs is not None:
             opts += ["-j", jobs]
         if verbose:
