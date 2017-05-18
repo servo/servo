@@ -210,14 +210,14 @@ fn traverse_subtree(element: GeckoElement,
     debug!("Traversing subtree:");
     debug!("{:?}", ShowSubtreeData(element.as_node()));
 
-    let traversal_driver = if global_style_data.style_thread_pool.is_none() {
+    let traversal_driver = if global_style_data.style_thread_pool.is_none() || !element.is_root() {
         TraversalDriver::Sequential
     } else {
         TraversalDriver::Parallel
     };
 
     let traversal = RecalcStyleOnly::new(shared_style_context, traversal_driver);
-    if traversal_driver.is_parallel() && element.is_root() {
+    if traversal_driver.is_parallel() {
         parallel::traverse_dom(&traversal, element, token,
                                global_style_data.style_thread_pool.as_ref().unwrap());
     } else {
