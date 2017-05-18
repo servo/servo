@@ -316,7 +316,6 @@ impl<Impl: SelectorImpl> SelectorMethods for Component<Impl> {
                 }
             }
 
-            AttributeInNoNamespace { ref local_name, ref local_name_lower, .. } |
             AttributeInNoNamespaceExists { ref local_name, ref local_name_lower } => {
                 if !visitor.visit_attribute_selector(
                     &NamespaceConstraint::Specific(&namespace_empty_string::<Impl>()),
@@ -326,7 +325,17 @@ impl<Impl: SelectorImpl> SelectorMethods for Component<Impl> {
                     return false;
                 }
             }
-            AttributeOther(ref attr_selector) => {
+            AttributeInNoNamespace { ref local_name, ref local_name_lower, never_matches, .. }
+            if !never_matches => {
+                if !visitor.visit_attribute_selector(
+                    &NamespaceConstraint::Specific(&namespace_empty_string::<Impl>()),
+                    local_name,
+                    local_name_lower,
+                ) {
+                    return false;
+                }
+            }
+            AttributeOther(ref attr_selector) if !attr_selector.never_matches => {
                 if !visitor.visit_attribute_selector(
                     &attr_selector.namespace(),
                     &attr_selector.local_name,
