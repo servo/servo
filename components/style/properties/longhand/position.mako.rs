@@ -319,6 +319,17 @@ ${helpers.predefined_type("object-position",
                               spec="https://drafts.csswg.org/css-grid/#propdef-grid-auto-%ss" % kind,
                               products="gecko",
                               boxed=True)}
+
+    // NOTE: The spec lists only `none | <track-list> | <auto-track-list>`, but gecko seems to support
+    // `subgrid <line-name-list>?` in addition to this (probably old spec). We should support it soon.
+    ${helpers.predefined_type("grid-template-%ss" % kind,
+                              "TrackListOrNone",
+                              "Either::Second(None_)",
+                              products="gecko",
+                              spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-%ss" % kind,
+                              boxed=True,
+                              animation_value_type="none")}
+
 % endfor
 
 <%helpers:longhand name="grid-auto-flow"

@@ -154,7 +154,7 @@
             GridLine::parse(context, input)?
         } else {
             let mut line = GridLine::default();
-            if start.integer.is_none() && !start.is_span {
+            if start.line_num.is_none() && !start.is_span {
                 line.ident = start.ident.clone();       // ident from start value should be taken
             }
 
@@ -188,7 +188,7 @@
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         fn line_with_ident_from(other: &GridLine) -> GridLine {
             let mut this = GridLine::default();
-            if other.integer.is_none() && !other.is_span {
+            if other.line_num.is_none() && !other.is_span {
                 this.ident = other.ident.clone();
             }
 

@@ -662,7 +662,8 @@ mod bindings {
             .header(add_include("mozilla/ServoBindings.h"))
             .hide_type("nsACString_internal")
             .hide_type("nsAString_internal")
-            .raw_line("pub use nsstring::{nsACString, nsAString, nsString};")
+            .raw_line("pub use nsstring::{nsACString, nsAString, nsString, nsStringRepr};")
+            .raw_line("use gecko_bindings::structs::nsTArray;")
             .raw_line("type nsACString_internal = nsACString;")
             .raw_line("type nsAString_internal = nsAString;")
             .whitelisted_function("Servo_.*")
@@ -859,7 +860,13 @@ mod bindings {
             // type with zero_size_type. If we ever introduce immutable borrow types
             // which _do_ need to be opaque, we'll need a separate mode.
         }
-        write_binding_file(builder, BINDINGS_FILE, &Vec::new());
+        let fixups = vec![
+            Fixup {     // hack for gecko-owned string
+                pat: "<nsString".into(),
+                rep: "<nsStringRepr".into()
+            },
+        ];
+        write_binding_file(builder, BINDINGS_FILE, &fixups);
     }
 
     fn generate_atoms() {
