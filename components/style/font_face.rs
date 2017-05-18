@@ -72,6 +72,17 @@ impl ToCss for UrlSource {
     }
 }
 
+/// A font-display value for a @font-face rule.
+/// The font-display descriptor determines how a font face is displayed based
+/// on whether and when it is downloaded and ready to use.
+define_css_keyword_enum!(FontDisplay:
+                         "auto" => Auto,
+                         "block" => Block,
+                         "swap" => Swap,
+                         "fallback" => Fallback,
+                         "optional" => Optional);
+add_impls_for_keyword_enum!(FontDisplay);
+
 /// Parse the block inside a `@font-face` rule.
 ///
 /// Note that the prelude parsing code lives in the `stylesheets` module.
@@ -332,6 +343,9 @@ font_face_descriptors! {
         /// The stretch of this font face
         "font-stretch" stretch / mStretch: font_stretch::T = font_stretch::T::normal,
 
+        /// The display of this font face
+        "font-display" display / mDisplay: FontDisplay = FontDisplay::Auto,
+
         /// The ranges of code points outside of which this font face should not be used.
         "unicode-range" unicode_range / mUnicodeRange: Vec<UnicodeRange> = vec![
             UnicodeRange { start: 0, end: 0x10FFFF }
@@ -342,7 +356,7 @@ font_face_descriptors! {
             font_feature_settings::T::Normal
         },
 
-        // FIXME: add font-language-override, and font-display.
+        // FIXME: add font-language-override.
     ]
 }
 
