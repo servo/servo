@@ -18,6 +18,10 @@ cd "$(dirname ${0})/../.."
 # etc/doc.servo.org/index.html overwrites $(mach rust-root)/doc/index.html
 cp etc/doc.servo.org/* target/doc/
 
+./mach cargo-geckolib doc
+mkdir target/doc/geckolib
+cp target/geckolib/doc/* target/doc/geckolib/
+
 python components/style/properties/build.py servo html regular
 
 cd components/script
