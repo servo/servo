@@ -485,7 +485,7 @@ pub fn default_opts() -> Opts {
         replace_surrogates: false,
         gc_profile: false,
         load_webfonts_synchronously: false,
-        headless: true,
+        headless: false,
         hard_fail: true,
         bubble_inline_sizes_separately: false,
         show_debug_fragment_borders: false,
