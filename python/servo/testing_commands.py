@@ -517,9 +517,9 @@ class MachCommands(CommandBase):
                      help='Print intermittents to file')
     @CommandArgument('--auth', default=None,
                      help='File containing basic authorization credentials for Github API (format `username:password`)')
-    @CommandArgument('--use-tracker', default=False, action='store_true',
-                     help='Use https://www.joshmatthews.net/intermittent-tracker')
-    def filter_intermittents(self, summary, log_filteredsummary, log_intermittents, auth, use_tracker):
+    @CommandArgument('--tracker-api', default=None, action='store',
+                     help='The API endpoint for tracking known intermittent failures.')
+    def filter_intermittents(self, summary, log_filteredsummary, log_intermittents, auth, tracker_api):
         encoded_auth = None
         if auth:
             with open(auth, "r") as file:
@@ -533,9 +533,14 @@ class MachCommands(CommandBase):
         actual_failures = []
         intermittents = []
         for failure in failures:
-            if use_tracker:
+            if tracker_api:
+                if tracker_api == 'default':
+                    tracker_api = "http://build.servo.org/intermittent-tracker"
+                else if tracker_api.endswith('/'):
+                    tracker_api = tracker_api[0:-1]
+
                 query = urllib2.quote(failure['test'], safe='')
-                request = urllib2.Request("http://build.servo.org/intermittent-tracker/query.py?name=%s" % query)
+                request = urllib2.Request("%s/query.py?name=%s" % (tracker_api, query))
                 search = urllib2.urlopen(request)
                 data = json.load(search)
                 if len(data) == 0:
