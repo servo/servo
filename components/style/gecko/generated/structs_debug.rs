@@ -9620,7 +9620,8 @@ pub mod root {
         pub enum ServoElementSnapshotFlags {
             State = 1,
             Attributes = 2,
-            All = 3,
+            Id = 4,
+            MaybeClass = 8,
         }
         #[repr(C)]
         #[derive(Debug, Copy)]
