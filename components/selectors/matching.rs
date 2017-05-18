@@ -427,44 +427,42 @@ fn matches_simple_selector<E, F>(
             never_matches,
         } => {
             if never_matches {
-                false
-            } else {
-                let is_html = element.is_html_element_in_html_document();
-                element.attr_matches(
-                    &NamespaceConstraint::Specific(&::parser::namespace_empty_string::<E::Impl>()),
-                    select_name(is_html, local_name, local_name_lower),
-                    &AttrSelectorOperation::WithValue {
-                        operator: operator,
-                        case_sensitivity: case_sensitivity.to_unconditional(is_html),
-                        expected_value: value,
-                    }
-                )
+                return false
             }
+            let is_html = element.is_html_element_in_html_document();
+            element.attr_matches(
+                &NamespaceConstraint::Specific(&::parser::namespace_empty_string::<E::Impl>()),
+                select_name(is_html, local_name, local_name_lower),
+                &AttrSelectorOperation::WithValue {
+                    operator: operator,
+                    case_sensitivity: case_sensitivity.to_unconditional(is_html),
+                    expected_value: value,
+                }
+            )
         }
         Component::AttributeOther(ref attr_sel) => {
             if attr_sel.never_matches {
                 return false
-            } else {
-                let is_html = element.is_html_element_in_html_document();
-                element.attr_matches(
-                    &attr_sel.namespace(),
-                    select_name(is_html, &attr_sel.local_name, &attr_sel.local_name_lower),
-                    &match attr_sel.operation {
-                        ParsedAttrSelectorOperation::Exists => AttrSelectorOperation::Exists,
-                        ParsedAttrSelectorOperation::WithValue {
-                            operator,
-                            case_sensitivity,
-                            ref expected_value,
-                        } => {
-                            AttrSelectorOperation::WithValue {
-                                operator: operator,
-                                case_sensitivity: case_sensitivity.to_unconditional(is_html),
-                                expected_value: expected_value,
-                            }
+            }
+            let is_html = element.is_html_element_in_html_document();
+            element.attr_matches(
+                &attr_sel.namespace(),
+                select_name(is_html, &attr_sel.local_name, &attr_sel.local_name_lower),
+                &match attr_sel.operation {
+                    ParsedAttrSelectorOperation::Exists => AttrSelectorOperation::Exists,
+                    ParsedAttrSelectorOperation::WithValue {
+                        operator,
+                        case_sensitivity,
+                        ref expected_value,
+                    } => {
+                        AttrSelectorOperation::WithValue {
+                            operator: operator,
+                            case_sensitivity: case_sensitivity.to_unconditional(is_html),
+                            expected_value: expected_value,
                         }
                     }
-                )
-            }
+                }
+            )
         }
         Component::NonTSPseudoClass(ref pc) => {
             element.match_non_ts_pseudo_class(pc, context, flags_setter)
