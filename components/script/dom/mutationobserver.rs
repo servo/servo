@@ -29,9 +29,10 @@ pub struct MutationObserver {
     record_queue: DOMRefCell<Vec<Root<MutationRecord>>>,
 }
 
-#[derive(Clone)]
-pub enum Mutation {
-    Attribute { name: LocalName, namespace: Namespace, old_value: DOMString }
+pub enum Mutation<'a> {
+    Attribute { name: LocalName, namespace: Namespace, old_value: DOMString },
+    ChildList { added: Option<&'a [&'a Node]>, removed: Option<&'a [&'a Node]>,
+                prev: Option<&'a Node>, next: Option<&'a Node> },
 }
 
 #[derive(HeapSizeOf, JSTraceable)]
@@ -143,6 +144,12 @@ impl MutationObserver {
                             interestedObservers.push((Root::from_ref(&*registered.observer),
                                                       paired_string));
                         }
+                    },
+                    Mutation::ChildList { .. } => {
+                        if !registered.options.child_list {
+                            continue;
+                        }
+                        interestedObservers.push((Root::from_ref(&*registered.observer), None));
                     }
                 }
             }
@@ -159,6 +166,9 @@ impl MutationObserver {
                         None
                     };
                     MutationRecord::attribute_mutated(target, name, namespace, paired_string.clone())
+                },
+                Mutation::ChildList { ref added, ref removed, ref next, ref prev } => {
+                    MutationRecord::child_list_mutated(target, *added, *removed, *next, *prev)
                 }
             };
             // Step 4.8

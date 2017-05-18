@@ -47,6 +47,10 @@ impl NodeList {
         NodeList::new(window, NodeListType::Simple(iter.map(|r| JS::from_ref(&*r)).collect()))
     }
 
+    pub fn new_simple_list_slice(window: &Window, slice: &[&Node]) -> Root<NodeList> {
+        NodeList::new(window, NodeListType::Simple(slice.iter().map(|r| JS::from_ref(*r)).collect()))
+    }
+
     pub fn new_child_list(window: &Window, node: &Node) -> Root<NodeList> {
         NodeList::new(window, NodeListType::Children(ChildrenList::new(node)))
     }
