@@ -1286,7 +1286,8 @@ fn parse_attribute_selector<P, Impl>(parser: &P, input: &mut CssParser)
     {
         let local_name_lower_cow = to_ascii_lowercase(&local_name);
         if let CaseSensitivity::CaseSensitive = case_sensitivity {
-            if include!(concat!(env!("OUT_DIR"), "/ascii_case_insensitive_html_attributes.rs"))
+            if namespace.is_none() &&
+                include!(concat!(env!("OUT_DIR"), "/ascii_case_insensitive_html_attributes.rs"))
                 .contains(&*local_name_lower_cow)
             {
                 case_sensitivity = CaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument
