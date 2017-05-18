@@ -4,7 +4,8 @@
 
 //! Bindings for CSS Rule objects
 
-use computed_values::{font_style, font_weight, font_stretch};
+use byteorder::{BigEndian, WriteBytesExt};
+use computed_values::{font_feature_settings, font_stretch, font_style, font_weight};
 use computed_values::font_family::FamilyName;
 use counter_style;
 use cssparser::UnicodeRange;
@@ -15,7 +16,7 @@ use gecko_bindings::structs::{nsCSSCounterDesc, nsCSSCounterStyleRule};
 use gecko_bindings::sugar::ns_css_value::ToNsCssValue;
 use gecko_bindings::sugar::refptr::{RefPtr, UniqueRefPtr};
 use shared_lock::{ToCssWithGuard, SharedRwLockReadGuard};
-use std::fmt;
+use std::{fmt, str};
 
 /// A @font-face rule
 pub type FontFaceRule = RefPtr<nsCSSFontFaceRule>;
@@ -29,6 +30,27 @@ impl ToNsCssValue for FamilyName {
 impl ToNsCssValue for font_weight::T {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
         nscssvalue.set_integer(self as i32)
+    }
+}
+
+impl ToNsCssValue for font_feature_settings::T {
+    fn convert(self, nscssvalue: &mut nsCSSValue) {
+        match self {
+            font_feature_settings::T::Normal => nscssvalue.set_normal(),
+            font_feature_settings::T::Tag(tags) => {
+                nscssvalue.set_pair_list(tags.into_iter().map(|entry| {
+                    let mut feature = nsCSSValue::null();
+                    let mut raw = [0u8; 4];
+                    (&mut raw[..]).write_u32::<BigEndian>(entry.tag).unwrap();
+                    feature.set_string(str::from_utf8(&raw).unwrap());
+
+                    let mut index = nsCSSValue::null();
+                    index.set_integer(entry.value as i32);
+
+                    (feature, index)
+                }))
+            }
+        }
     }
 }
 

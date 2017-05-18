@@ -1804,14 +1804,14 @@ ${helpers.single_keyword_system("font-variant-position",
         use std::fmt;
         use style_traits::ToCss;
 
-        #[derive(Debug, Clone, PartialEq)]
+        #[derive(Clone, Debug, Eq, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum T {
             Normal,
             Tag(Vec<FeatureTagValue>)
         }
 
-        #[derive(Debug, Clone, PartialEq)]
+        #[derive(Clone, Debug, Eq, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct FeatureTagValue {
             pub tag: u32,
@@ -1834,6 +1834,16 @@ ${helpers.single_keyword_system("font-variant-position",
                         Ok(())
                     }
                 }
+            }
+        }
+
+        impl Parse for T {
+            /// https://www.w3.org/TR/css-fonts-3/#propdef-font-feature-settings
+            fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+                if input.try(|i| i.expect_ident_matching("normal")).is_ok() {
+                    return Ok(T::Normal);
+                }
+                input.parse_comma_separated(|i| FeatureTagValue::parse(context, i)).map(T::Tag)
             }
         }
 
@@ -1909,12 +1919,7 @@ ${helpers.single_keyword_system("font-variant-position",
 
     /// normal | <feature-tag-value>#
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
-            Ok(SpecifiedValue::Value(computed_value::T::Normal))
-        } else {
-            input.parse_comma_separated(|i| computed_value::FeatureTagValue::parse(context, i))
-                 .map(computed_value::T::Tag).map(SpecifiedValue::Value)
-        }
+        computed_value::T::parse(context, input).map(SpecifiedValue::Value)
     }
 </%helpers:longhand>
 

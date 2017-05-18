@@ -9,7 +9,7 @@
 #![deny(missing_docs)]
 
 #[cfg(feature = "gecko")]
-use computed_values::{font_style, font_weight, font_stretch};
+use computed_values::{font_feature_settings, font_stretch, font_style, font_weight};
 use computed_values::font_family::FamilyName;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use cssparser::SourceLocation;
@@ -337,7 +337,12 @@ font_face_descriptors! {
             UnicodeRange { start: 0, end: 0x10FFFF }
         ],
 
-        // FIXME: add font-feature-settings, font-language-override, and font-display
+        /// The feature settings of this font face.
+        "font-feature-settings" feature_settings / mFontFeatureSettings: font_feature_settings::T = {
+            font_feature_settings::T::Normal
+        },
+
+        // FIXME: add font-language-override, and font-display.
     ]
 }
 
