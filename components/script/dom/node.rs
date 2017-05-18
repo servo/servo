@@ -47,7 +47,7 @@ use dom::htmllinkelement::HTMLLinkElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlstyleelement::HTMLStyleElement;
 use dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
-use dom::mutationobserver::RegisteredObserver;
+use dom::mutationobserver::{Mutation, MutationObserver, RegisteredObserver};
 use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::range::WeakRangeVec;
@@ -2448,6 +2448,58 @@ impl VirtualMethods for Node {
         }
         if let Some(list) = self.child_list.get() {
             list.as_children_list().children_changed(mutation);
+        }
+
+        // Queue Mutation Observer records
+        match *mutation {
+            ChildrenMutation::Append { added, prev } => {
+                let mutation = Mutation::ChildList {
+                    added: Some(added),
+                    removed: None,
+                    prev: Some(prev),
+                    next: None,
+                };
+                MutationObserver::queue_a_mutation_record(&self, mutation);
+            },
+            ChildrenMutation::Insert { added, prev, next } => {
+                let mutation = Mutation::ChildList {
+                    added: Some(added),
+                    removed: None,
+                    prev: Some(prev),
+                    next: Some(next),
+                };
+                MutationObserver::queue_a_mutation_record(&self, mutation);
+            },
+            ChildrenMutation::Prepend { added, next } => {
+                let mutation = Mutation::ChildList {
+                    added: Some(added),
+                    removed: None,
+                    prev: None,
+                    next: Some(next),
+                };
+                MutationObserver::queue_a_mutation_record(&self, mutation);
+            },
+            ChildrenMutation::Replace { added, removed, prev, next } => {
+                let removed = [removed];
+                let mutation = Mutation::ChildList {
+                    added: Some(added),
+                    removed: Some(&removed),
+                    prev: prev,
+                    next: next,
+                };
+                MutationObserver::queue_a_mutation_record(&self, mutation);
+            },
+            ChildrenMutation::ReplaceAll { added, removed } => {
+                if !added.is_empty() || !removed.is_empty() {
+                    let mutation = Mutation::ChildList {
+                        added: Some(added),
+                        removed: Some(removed),
+                        prev: None,
+                        next: None,
+                    };
+                    MutationObserver::queue_a_mutation_record(&self, mutation);;
+                }
+            },
         }
     }
 
