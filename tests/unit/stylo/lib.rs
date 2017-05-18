@@ -7,7 +7,6 @@ extern crate cssparser;
 extern crate env_logger;
 extern crate geckoservo;
 #[macro_use] extern crate log;
-extern crate parking_lot;
 extern crate selectors;
 #[macro_use] extern crate style;
 extern crate style_traits;

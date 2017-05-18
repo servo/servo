@@ -907,8 +907,8 @@ impl Fragment {
         // cascading.
         let padding = if flags.contains(INTRINSIC_INLINE_SIZE_INCLUDES_PADDING) {
             let padding = style.logical_padding();
-            (model::specified(padding.inline_start, Au(0)) +
-             model::specified(padding.inline_end, Au(0)))
+            (padding.inline_start.to_used_value(Au(0)) +
+             padding.inline_end.to_used_value(Au(0)))
         } else {
             Au(0)
         };
@@ -935,8 +935,8 @@ impl Fragment {
         if flags.contains(INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED) {
             specified = MaybeAuto::from_style(style.content_inline_size(),
                                               Au(0)).specified_or_zero();
-            specified = max(model::specified(style.min_inline_size(), Au(0)), specified);
-            if let Some(max) = model::specified_or_none(style.max_inline_size(), Au(0)) {
+            specified = max(style.min_inline_size().to_used_value(Au(0)), specified);
+            if let Some(max) = style.max_inline_size().to_used_value(Au(0)) {
                 specified = min(specified, max)
             }
 
@@ -1159,10 +1159,10 @@ impl Fragment {
         let border_width = self.border_width();
         SpeculatedInlineContentEdgeOffsets {
             start: MaybeAuto::from_style(logical_margin.inline_start, Au(0)).specified_or_zero() +
-                model::specified(logical_padding.inline_start, Au(0)) +
+                logical_padding.inline_start.to_used_value(Au(0)) +
                 border_width.inline_start,
             end: MaybeAuto::from_style(logical_margin.inline_end, Au(0)).specified_or_zero() +
-                model::specified(logical_padding.inline_end, Au(0)) +
+                logical_padding.inline_end.to_used_value(Au(0)) +
                 border_width.inline_end,
         }
     }
@@ -1491,10 +1491,10 @@ impl Fragment {
                         // the size constraints work properly.
                         // TODO(stshine): Find a cleaner way to do this.
                         let padding = self.style.logical_padding();
-                        self.border_padding.inline_start = model::specified(padding.inline_start, Au(0));
-                        self.border_padding.inline_end = model::specified(padding.inline_end, Au(0));
-                        self.border_padding.block_start = model::specified(padding.block_start, Au(0));
-                        self.border_padding.block_end = model::specified(padding.block_end, Au(0));
+                        self.border_padding.inline_start = padding.inline_start.to_used_value(Au(0));
+                        self.border_padding.inline_end = padding.inline_end.to_used_value(Au(0));
+                        self.border_padding.block_start = padding.block_start.to_used_value(Au(0));
+                        self.border_padding.block_end = padding.block_end.to_used_value(Au(0));
                         let border = self.border_width();
                         self.border_padding.inline_start += border.inline_start;
                         self.border_padding.inline_end += border.inline_end;
@@ -2847,12 +2847,14 @@ impl Fragment {
 
         let mut transform = Matrix4D::identity();
         let transform_origin = &self.style.get_box().transform_origin;
-        let transform_origin_x = model::specified(transform_origin.horizontal,
-                                                  stacking_relative_border_box.size
-                                                                              .width).to_f32_px();
-        let transform_origin_y = model::specified(transform_origin.vertical,
-                                                  stacking_relative_border_box.size
-                                                                              .height).to_f32_px();
+        let transform_origin_x =
+            transform_origin.horizontal
+                .to_used_value(stacking_relative_border_box.size.width)
+                .to_f32_px();
+        let transform_origin_y =
+            transform_origin.vertical
+                .to_used_value(stacking_relative_border_box.size.height)
+                .to_f32_px();
         let transform_origin_z = transform_origin.depth.to_f32_px();
 
         let pre_transform = Matrix4D::create_translation(transform_origin_x,
@@ -2875,10 +2877,8 @@ impl Fragment {
                     Matrix4D::create_scale(sx, sy, sz)
                 }
                 transform::ComputedOperation::Translate(tx, ty, tz) => {
-                    let tx =
-                        model::specified(tx, stacking_relative_border_box.size.width).to_f32_px();
-                    let ty =
-                        model::specified(ty, stacking_relative_border_box.size.height).to_f32_px();
+                    let tx = tx.to_used_value(stacking_relative_border_box.size.width).to_f32_px();
+                    let ty = ty.to_used_value(stacking_relative_border_box.size.height).to_f32_px();
                     let tz = tz.to_f32_px();
                     Matrix4D::create_translation(tx, ty, tz)
                 }
@@ -2907,10 +2907,13 @@ impl Fragment {
             Either::First(length) => {
                 let perspective_origin = self.style().get_box().perspective_origin;
                 let perspective_origin =
-                    Point2D::new(model::specified(perspective_origin.horizontal,
-                                                  stacking_relative_border_box.size.width).to_f32_px(),
-                                 model::specified(perspective_origin.vertical,
-                                                  stacking_relative_border_box.size.height).to_f32_px());
+                    Point2D::new(
+                        perspective_origin.horizontal
+                            .to_used_value(stacking_relative_border_box.size.width)
+                            .to_f32_px(),
+                        perspective_origin.vertical
+                            .to_used_value(stacking_relative_border_box.size.height)
+                            .to_f32_px());
 
                 let pre_transform = Matrix4D::create_translation(perspective_origin.x,
                                                                  perspective_origin.y,
