@@ -14,13 +14,16 @@ import re
 import sys
 import os
 import os.path as path
+import platform
 import copy
 from collections import OrderedDict
 from time import time
 import json
 import urllib2
+import urllib
 import base64
 import shutil
+import subprocess
 
 from mach.registrar import Registrar
 from mach.decorators import (
@@ -519,7 +522,9 @@ class MachCommands(CommandBase):
                      help='File containing basic authorization credentials for Github API (format `username:password`)')
     @CommandArgument('--tracker-api', default=None, action='store',
                      help='The API endpoint for tracking known intermittent failures.')
-    def filter_intermittents(self, summary, log_filteredsummary, log_intermittents, auth, tracker_api):
+    @CommandArgument('--reporter-api', default=None, action='store',
+                     help='The API endpoint for reporting tracked intermittent failures.')
+    def filter_intermittents(self, summary, log_filteredsummary, log_intermittents, auth, tracker_api, reporter_api):
         encoded_auth = None
         if auth:
             with open(auth, "r") as file:
@@ -536,7 +541,7 @@ class MachCommands(CommandBase):
             if tracker_api:
                 if tracker_api == 'default':
                     tracker_api = "http://build.servo.org/intermittent-tracker"
-                else if tracker_api.endswith('/'):
+                elif tracker_api.endswith('/'):
                     tracker_api = tracker_api[0:-1]
 
                 query = urllib2.quote(failure['test'], safe='')
@@ -560,6 +565,37 @@ class MachCommands(CommandBase):
                     actual_failures += [failure]
                 else:
                     intermittents += [failure]
+
+        if reporter_api:
+            if reporter_api.endswith('/'):
+                reporter_api = reporter_api[0:-1]
+            reported = set()
+
+            proc = subprocess.Popen(
+                ["git", "log", "--merges", "--oneline", "-1"],
+                stdout=subprocess.PIPE)
+            (last_merge, _) = proc.communicate()
+
+            # Extract the issue reference from "abcdef Auto merge of #NNN"
+            pull_request = int(last_merge.split(' ')[4][1:])
+
+            for intermittent in intermittents:
+                if intermittent['test'] in reported:
+                    continue
+                reported.add(intermittent['test'])
+
+                data = {
+                    'test_file': intermittent['test'],
+                    'platform': platform.system(),
+                    'builder': os.environ.get('BUILDER_NAME', 'BUILDER NAME MISSING'),
+                    'number': pull_request,
+                }
+                request = urllib2.Request("%s/record.py" % reporter_api, urllib.urlencode(data))
+                request.add_header('Accept', 'application/json')
+                response = urllib2.urlopen(request)
+                data = json.load(response)
+                if data['status'] != "success":
+                    print('Error reporting test failure: ' + data['error'])
 
         if log_intermittents:
             with open(log_intermittents, "w") as intermittents_file:
