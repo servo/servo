@@ -88,10 +88,19 @@ impl CalcLengthOrPercentage {
         }
     }
 
+    /// Returns this `calc()` as a `<length>`.
+    ///
+    /// Panics in debug mode if a percentage is present in the expression.
     #[inline]
-    #[allow(missing_docs)]
     pub fn length(&self) -> Au {
+        debug_assert!(self.percentage.is_none());
         self.clamping_mode.clamp(self.length)
+    }
+
+    /// Returns the `<length>` component of this `calc()`, unclamped.
+    #[inline]
+    pub fn unclamped_length(&self) -> Au {
+        self.length
     }
 
     #[inline]
@@ -245,7 +254,7 @@ impl LengthOrPercentage {
         match *self {
             Length(l) => (l, NotNaN::new(0.0).unwrap()),
             Percentage(p) => (Au(0), NotNaN::new(p).unwrap()),
-            Calc(c) => (c.length(), NotNaN::new(c.percentage()).unwrap()),
+            Calc(c) => (c.unclamped_length(), NotNaN::new(c.percentage()).unwrap()),
         }
     }
 

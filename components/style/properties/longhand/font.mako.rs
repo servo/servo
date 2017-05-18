@@ -800,8 +800,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                 }
                 SpecifiedValue::Length(LengthOrPercentage::Calc(ref calc)) => {
                     let calc = calc.to_computed_value(context);
-                    calc.length() + base_size.resolve(context)
-                                             .scale_by(calc.percentage())
+                    calc.to_used_value(Some(base_size.resolve(context))).unwrap()
                 }
                 SpecifiedValue::Keyword(ref key, fraction) => {
                     key.to_computed_value(context).scale_by(fraction)
