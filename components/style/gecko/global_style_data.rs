@@ -57,12 +57,25 @@ lazy_static! {
     pub static ref GLOBAL_STYLE_DATA: GlobalStyleData = {
         let stylo_threads = env::var("STYLO_THREADS")
             .map(|s| s.parse::<usize>().expect("invalid STYLO_THREADS value"));
-        let num_threads = match stylo_threads {
+        let mut num_threads = match stylo_threads {
             Ok(num) => num,
             _ => cmp::max(num_cpus::get() * 3 / 4, 1),
         };
 
-        let pool = if num_threads <= 1 {
+        // If num_threads is one, there's no point in creating a thread pool, so
+        // force it to zero.
+        //
+        // We allow developers to force a one-thread pool for testing via a
+        // special environmental variable.
+        if num_threads == 1 {
+            let force_pool = env::var("FORCE_STYLO_THREAD_POOL")
+                .ok().map_or(false, |s| s.parse::<usize>().expect("invalid FORCE_STYLO_THREAD_POOL value") == 1);
+            if !force_pool {
+                num_threads = 0;
+            }
+        }
+
+        let pool = if num_threads < 1 {
             None
         } else {
             let configuration = rayon::Configuration::new()
