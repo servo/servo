@@ -148,7 +148,12 @@ impl ElementSnapshot for GeckoElementSnapshot {
         self.has_any(Flags::Attributes)
     }
 
+    #[inline]
     fn id_attr(&self) -> Option<Atom> {
+        if !self.has_any(Flags::Id) {
+            return None
+        }
+
         let ptr = unsafe {
             bindings::Gecko_SnapshotAtomAttrValue(self,
                                                   atom!("id").as_ptr())
@@ -161,15 +166,25 @@ impl ElementSnapshot for GeckoElementSnapshot {
         }
     }
 
+    #[inline]
     fn has_class(&self, name: &Atom) -> bool {
+        if !self.has_any(Flags::MaybeClass) {
+            return false;
+        }
+
         snapshot_helpers::has_class(self.as_ptr(),
                                     name,
                                     bindings::Gecko_SnapshotClassOrClassList)
     }
 
+    #[inline]
     fn each_class<F>(&self, callback: F)
         where F: FnMut(&Atom)
     {
+        if !self.has_any(Flags::MaybeClass) {
+            return;
+        }
+
         snapshot_helpers::each_class(self.as_ptr(),
                                      callback,
                                      bindings::Gecko_SnapshotClassOrClassList)
