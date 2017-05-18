@@ -16,8 +16,7 @@ size_of_test!(size_of_pseudo_element, gecko_like_types::PseudoElement, 1);
 size_of_test!(size_of_selector_inner, SelectorInner<Impl>, 40);
 size_of_test!(size_of_complex_selector, ComplexSelector<Impl>, 24);
 
-size_of_test!(size_of_component, Component<Impl>, 64);
-size_of_test!(size_of_attr_selector, AttrSelector<Impl>, 48);
+size_of_test!(size_of_component, Component<Impl>, 32);
 size_of_test!(size_of_pseudo_class, PseudoClass, 24);
 
 impl parser::PseudoElement for gecko_like_types::PseudoElement {

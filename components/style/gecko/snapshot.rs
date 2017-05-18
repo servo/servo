@@ -8,15 +8,14 @@
 use dom::TElement;
 use element_state::ElementState;
 use gecko::snapshot_helpers;
-use gecko::wrapper::{AttrSelectorHelpers, GeckoElement};
+use gecko::wrapper::{NamespaceConstraintHelpers, GeckoElement};
 use gecko_bindings::bindings;
 use gecko_bindings::structs::ServoElementSnapshot;
 use gecko_bindings::structs::ServoElementSnapshotFlags as Flags;
 use gecko_bindings::structs::ServoElementSnapshotTable;
 use restyle_hints::ElementSnapshot;
-use selector_parser::SelectorImpl;
-use selectors::parser::AttrSelector;
-use string_cache::Atom;
+use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator, CaseSensitivity, NamespaceConstraint};
+use string_cache::{Atom, Namespace};
 
 /// A snapshot of a Gecko element.
 pub type GeckoElementSnapshot = ServoElementSnapshot;
@@ -48,11 +47,6 @@ impl SnapshotMap {
 
 impl GeckoElementSnapshot {
     #[inline]
-    fn is_html_element_in_html_document(&self) -> bool {
-        self.mIsHTMLElementInHTMLDocument
-    }
-
-    #[inline]
     fn has_any(&self, flags: Flags) -> bool {
         (self.mContains as u8 & flags as u8) != 0
     }
@@ -60,76 +54,67 @@ impl GeckoElementSnapshot {
     fn as_ptr(&self) -> *const Self {
         self
     }
-}
 
-impl ::selectors::MatchAttr for GeckoElementSnapshot {
-    type Impl = SelectorImpl;
-
-    fn match_attr_has(&self, attr: &AttrSelector<SelectorImpl>) -> bool {
+    /// selectors::Element::attr_matches
+    pub fn attr_matches(&self,
+                        ns: &NamespaceConstraint<&Namespace>,
+                        local_name: &Atom,
+                        operation: &AttrSelectorOperation<&Atom>)
+                        -> bool {
         unsafe {
-            bindings::Gecko_SnapshotHasAttr(self,
-                                            attr.ns_or_null(),
-                                            attr.select_name(self.is_html_element_in_html_document()))
-        }
-    }
-
-    fn match_attr_equals(&self, attr: &AttrSelector<SelectorImpl>, value: &Atom) -> bool {
-        unsafe {
-            bindings::Gecko_SnapshotAttrEquals(self,
-                                               attr.ns_or_null(),
-                                               attr.select_name(self.is_html_element_in_html_document()),
-                                               value.as_ptr(),
-                                               /* ignoreCase = */ false)
-        }
-    }
-
-    fn match_attr_equals_ignore_ascii_case(&self, attr: &AttrSelector<SelectorImpl>, value: &Atom) -> bool {
-        unsafe {
-            bindings::Gecko_SnapshotAttrEquals(self,
-                                               attr.ns_or_null(),
-                                               attr.select_name(self.is_html_element_in_html_document()),
-                                               value.as_ptr(),
-                                               /* ignoreCase = */ true)
-        }
-    }
-    fn match_attr_includes(&self, attr: &AttrSelector<SelectorImpl>, value: &Atom) -> bool {
-        unsafe {
-            bindings::Gecko_SnapshotAttrIncludes(self,
-                                                 attr.ns_or_null(),
-                                                 attr.select_name(self.is_html_element_in_html_document()),
-                                                 value.as_ptr())
-        }
-    }
-    fn match_attr_dash(&self, attr: &AttrSelector<SelectorImpl>, value: &Atom) -> bool {
-        unsafe {
-            bindings::Gecko_SnapshotAttrDashEquals(self,
-                                                   attr.ns_or_null(),
-                                                   attr.select_name(self.is_html_element_in_html_document()),
-                                                   value.as_ptr())
-        }
-    }
-    fn match_attr_prefix(&self, attr: &AttrSelector<SelectorImpl>, value: &Atom) -> bool {
-        unsafe {
-            bindings::Gecko_SnapshotAttrHasPrefix(self,
-                                                  attr.ns_or_null(),
-                                                  attr.select_name(self.is_html_element_in_html_document()),
-                                                  value.as_ptr())
-        }
-    }
-    fn match_attr_substring(&self, attr: &AttrSelector<SelectorImpl>, value: &Atom) -> bool {
-        unsafe {
-            bindings::Gecko_SnapshotAttrHasSubstring(self,
-                                                     attr.ns_or_null(),
-                                                     attr.select_name(self.is_html_element_in_html_document()),
-                                                     value.as_ptr())
-        }
-    }
-    fn match_attr_suffix(&self, attr: &AttrSelector<SelectorImpl>, value: &Atom) -> bool {
-        unsafe {
-            bindings::Gecko_SnapshotAttrHasSuffix(self,
-                                                  attr.ns_or_null(),
-                                                  attr.select_name(self.is_html_element_in_html_document()),
-                                                  value.as_ptr())
+            match *operation {
+                AttrSelectorOperation::Exists => {
+                    bindings:: Gecko_SnapshotHasAttr(self,
+                                                     ns.atom_or_null(),
+                                                     local_name.as_ptr())
+                }
+                AttrSelectorOperation::WithValue { operator, case_sensitivity, expected_value } => {
+                    let ignore_case = match case_sensitivity {
+                        CaseSensitivity::CaseSensitive => false,
+                        CaseSensitivity::AsciiCaseInsensitive => true,
+                    };
+                    // FIXME: case sensitivity for operators other than Equal
+                    match operator {
+                        AttrSelectorOperator::Equal => bindings::Gecko_SnapshotAttrEquals(
+                            self,
+                            ns.atom_or_null(),
+                            local_name.as_ptr(),
+                            expected_value.as_ptr(),
+                            ignore_case
+                        ),
+                        AttrSelectorOperator::Includes => bindings::Gecko_SnapshotAttrIncludes(
+                            self,
+                            ns.atom_or_null(),
+                            local_name.as_ptr(),
+                            expected_value.as_ptr(),
+                        ),
+                        AttrSelectorOperator::DashMatch => bindings::Gecko_SnapshotAttrDashEquals(
+                            self,
+                            ns.atom_or_null(),
+                            local_name.as_ptr(),
+                            expected_value.as_ptr(),
+                        ),
+                        AttrSelectorOperator::Prefix => bindings::Gecko_SnapshotAttrHasPrefix(
+                            self,
+                            ns.atom_or_null(),
+                            local_name.as_ptr(),
+                            expected_value.as_ptr(),
+                        ),
+                        AttrSelectorOperator::Suffix => bindings::Gecko_SnapshotAttrHasSuffix(
+                            self,
+                            ns.atom_or_null(),
+                            local_name.as_ptr(),
+                            expected_value.as_ptr(),
+                        ),
+                        AttrSelectorOperator::Substring => bindings::Gecko_SnapshotAttrHasSubstring(
+                            self,
+                            ns.atom_or_null(),
+                            local_name.as_ptr(),
+                            expected_value.as_ptr(),
+                        ),
+                    }
+                }
+            }
         }
     }
 }

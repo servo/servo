@@ -6,6 +6,7 @@ use cssparser::{self, Parser as CssParser, SourcePosition, SourceLocation};
 use html5ever::{Namespace as NsAtom};
 use media_queries::CSSErrorReporterTest;
 use parking_lot::RwLock;
+use selectors::attr::*;
 use selectors::parser::*;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
@@ -97,14 +98,14 @@ fn test_parse_stylesheet() {
                                 name: local_name!("input"),
                                 lower_name: local_name!("input"),
                             }),
-                            Component::AttrEqual(AttrSelector {
-                                name: local_name!("type"),
-                                lower_name: local_name!("type"),
-                                namespace: NamespaceConstraint::Specific(Namespace {
-                                    prefix: None,
-                                    url: ns!()
-                                }),
-                            }, "hidden".to_owned(), CaseSensitivity::CaseInsensitive)
+                            Component::AttributeInNoNamespace {
+                                local_name: local_name!("type"),
+                                local_name_lower: local_name!("type"),
+                                operator: AttrSelectorOperator::Equal,
+                                value: "hidden".to_owned(),
+                                case_sensitivity: ParsedCaseSensitivity::AsciiCaseInsensitive,
+                                never_matches: false,
+                            }
                         ]),
                         (0 << 20) + (1 << 10) + (1 << 0)
                     ),

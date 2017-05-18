@@ -12,6 +12,7 @@ use cssparser::{self, Color, RGBA};
 use euclid::num::Zero;
 use num_traits::ToPrimitive;
 use properties::PropertyDeclarationBlock;
+use selectors::attr::AttrSelectorOperation;
 use servo_url::ServoUrl;
 use shared_lock::Locked;
 use std::ascii::AsciiExt;
@@ -349,6 +350,13 @@ impl AttrValue {
             panic!("Uint not found");
         }
     }
+
+    pub fn eval_selector(&self, selector: &AttrSelectorOperation<&String>) -> bool {
+        // FIXME(SimonSapin) this can be more efficient by matching on `(self, selector)` variants
+        // and doing Atom comparisons instead of string comparisons where possible,
+        // with SelectorImpl::AttrValue changed to Atom.
+        selector.eval_str(self)
+    }
 }
 
 impl ::std::ops::Deref for AttrValue {
@@ -367,6 +375,15 @@ impl ::std::ops::Deref for AttrValue {
                 AttrValue::Declaration(ref value, _) |
                 AttrValue::Dimension(ref value, _) => &value,
             AttrValue::Atom(ref value) => &value,
+        }
+    }
+}
+
+impl PartialEq<Atom> for AttrValue {
+    fn eq(&self, other: &Atom) -> bool {
+        match *self {
+            AttrValue::Atom(ref value) => value == other,
+            _ => other == &**self,
         }
     }
 }

@@ -15,6 +15,7 @@ use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use range::Range;
 use servo_url::ServoUrl;
 use std::fmt::Debug;
+use style::attr::AttrValue;
 use style::computed_values::display;
 use style::context::SharedStyleContext;
 use style::data::ElementData;
@@ -334,6 +335,8 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
 
     #[inline]
     fn get_attr(&self, namespace: &Namespace, name: &LocalName) -> Option<&str>;
+
+    fn get_attr_enum(&self, namespace: &Namespace, name: &LocalName) -> Option<&AttrValue>;
 
     fn get_style_data(&self) -> Option<&AtomicRefCell<ElementData>>;
 

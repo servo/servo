@@ -3,6 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use arcslice::ArcSlice;
+use attr::{AttrSelectorWithNamespace, ParsedAttrSelectorOperation, AttrSelectorOperator};
+use attr::{ParsedCaseSensitivity, SELECTOR_WHITESPACE, NamespaceConstraint};
 use cssparser::{Token, Parser as CssParser, parse_nth, ToCss, serialize_identifier, CssStringWriter};
 use precomputed_hash::PrecomputedHash;
 use smallvec::SmallVec;
@@ -13,7 +15,6 @@ use std::fmt::{self, Display, Debug, Write};
 use std::iter::Rev;
 use std::ops::Add;
 use std::slice;
-use tree::SELECTOR_WHITESPACE;
 use visitor::SelectorVisitor;
 
 /// A trait that represents a pseudo-element.
@@ -32,6 +33,16 @@ pub trait PseudoElement : Sized + ToCss {
     }
 }
 
+fn to_ascii_lowercase(s: &str) -> Cow<str> {
+    if let Some(first_uppercase) = s.bytes().position(|byte| byte >= b'A' && byte <= b'Z') {
+        let mut string = s.to_owned();
+        string[first_uppercase..].make_ascii_lowercase();
+        string.into()
+    } else {
+        s.into()
+    }
+}
+
 macro_rules! with_all_bounds {
     (
         [ $( $InSelector: tt )* ]
@@ -42,16 +53,6 @@ macro_rules! with_all_bounds {
             match cow {
                 Cow::Borrowed(s) => T::from(s),
                 Cow::Owned(s) => T::from(s),
-            }
-        }
-
-        fn from_ascii_lowercase<T>(s: &str) -> T where T: $($FromStr)* {
-            if let Some(first_uppercase) = s.bytes().position(|byte| byte >= b'A' && byte <= b'Z') {
-                let mut string = s.to_owned();
-                string[first_uppercase..].make_ascii_lowercase();
-                T::from(string)
-            } else {
-                T::from(s)
             }
         }
 
@@ -313,18 +314,37 @@ impl<Impl: SelectorImpl> SelectorMethods for Component<Impl> {
                         return false;
                     }
                 }
-            },
-            AttrExists(ref selector) |
-            AttrEqual(ref selector, _, _) |
-            AttrIncludes(ref selector, _) |
-            AttrDashMatch(ref selector, _) |
-            AttrPrefixMatch(ref selector, _) |
-            AttrSubstringMatch(ref selector, _) |
-            AttrSuffixMatch(ref selector, _) => {
-                if !visitor.visit_attribute_selector(selector) {
+            }
+
+            AttributeInNoNamespaceExists { ref local_name, ref local_name_lower } => {
+                if !visitor.visit_attribute_selector(
+                    &NamespaceConstraint::Specific(&namespace_empty_string::<Impl>()),
+                    local_name,
+                    local_name_lower,
+                ) {
                     return false;
                 }
             }
+            AttributeInNoNamespace { ref local_name, ref local_name_lower, never_matches, .. }
+            if !never_matches => {
+                if !visitor.visit_attribute_selector(
+                    &NamespaceConstraint::Specific(&namespace_empty_string::<Impl>()),
+                    local_name,
+                    local_name_lower,
+                ) {
+                    return false;
+                }
+            }
+            AttributeOther(ref attr_selector) if !attr_selector.never_matches => {
+                if !visitor.visit_attribute_selector(
+                    &attr_selector.namespace(),
+                    &attr_selector.local_name,
+                    &attr_selector.local_name_lower,
+                ) {
+                    return false;
+                }
+            }
+
             NonTSPseudoClass(ref pseudo_class) => {
                 if !pseudo_class.visit(visitor) {
                     return false;
@@ -335,6 +355,11 @@ impl<Impl: SelectorImpl> SelectorMethods for Component<Impl> {
 
         true
     }
+}
+
+pub fn namespace_empty_string<Impl: SelectorImpl>() -> Impl::NamespaceUrl {
+    // Rust type’s default, not default namespace
+    Impl::NamespaceUrl::default()
 }
 
 /// A ComplexSelectors stores a sequence of simple selectors and combinators. The
@@ -523,19 +548,20 @@ pub enum Component<Impl: SelectorImpl> {
     ID(Impl::Identifier),
     Class(Impl::ClassName),
 
-    // Attribute selectors
-    AttrExists(AttrSelector<Impl>),  // [foo]
-    AttrEqual(AttrSelector<Impl>, Impl::AttrValue, CaseSensitivity),  // [foo=bar]
-    AttrIncludes(AttrSelector<Impl>, Impl::AttrValue),  // [foo~=bar]
-    AttrDashMatch(AttrSelector<Impl>, Impl::AttrValue), // [foo|=bar]
-    AttrPrefixMatch(AttrSelector<Impl>, Impl::AttrValue),  // [foo^=bar]
-    AttrSubstringMatch(AttrSelector<Impl>, Impl::AttrValue),  // [foo*=bar]
-    AttrSuffixMatch(AttrSelector<Impl>, Impl::AttrValue),  // [foo$=bar]
-
-    AttrIncludesNeverMatch(AttrSelector<Impl>, Impl::AttrValue),  // empty value or with whitespace
-    AttrPrefixNeverMatch(AttrSelector<Impl>, Impl::AttrValue),  // empty value
-    AttrSubstringNeverMatch(AttrSelector<Impl>, Impl::AttrValue),  // empty value
-    AttrSuffixNeverMatch(AttrSelector<Impl>, Impl::AttrValue),  // empty value
+    AttributeInNoNamespaceExists {
+        local_name: Impl::LocalName,
+        local_name_lower: Impl::LocalName,
+    },
+    AttributeInNoNamespace {
+        local_name: Impl::LocalName,
+        local_name_lower: Impl::LocalName,
+        operator: AttrSelectorOperator,
+        value: Impl::AttrValue,
+        case_sensitivity: ParsedCaseSensitivity,
+        never_matches: bool,
+    },
+    // Use a Box in the less common cases with more data to keep size_of::<Component>() small.
+    AttributeOther(Box<AttrSelectorWithNamespace<Impl>>),
 
     // Pseudo-classes
     //
@@ -560,7 +586,6 @@ pub enum Component<Impl: SelectorImpl> {
     OnlyOfType,
     NonTSPseudoClass(Impl::NonTSPseudoClass),
     PseudoElement(Impl::PseudoElement),
-    // ...
 }
 
 impl<Impl: SelectorImpl> Component<Impl> {
@@ -605,47 +630,11 @@ impl<Impl: SelectorImpl> Component<Impl> {
     }
 }
 
-#[derive(Eq, PartialEq, Clone, Copy, Debug)]
-pub enum CaseSensitivity {
-    CaseSensitive,  // Selectors spec says language-defined, but HTML says sensitive.
-    CaseInsensitive,
-}
-
-
 #[derive(Eq, PartialEq, Clone)]
 pub struct LocalName<Impl: SelectorImpl> {
     pub name: Impl::LocalName,
     pub lower_name: Impl::LocalName,
 }
-
-#[derive(Eq, PartialEq, Clone)]
-pub struct AttrSelector<Impl: SelectorImpl> {
-    pub name: Impl::LocalName,
-    pub lower_name: Impl::LocalName,
-    pub namespace: NamespaceConstraint<Impl>,
-}
-
-#[derive(Eq, PartialEq, Clone, Debug)]
-pub enum NamespaceConstraint<Impl: SelectorImpl> {
-    Any,
-    Specific(Namespace<Impl>),
-}
-
-#[derive(Eq, PartialEq, Clone)]
-pub struct Namespace<Impl: SelectorImpl> {
-    pub prefix: Option<Impl::NamespacePrefix>,
-    pub url: Impl::NamespaceUrl,
-}
-
-impl<Impl: SelectorImpl> Default for Namespace<Impl> {
-    fn default() -> Self {
-        Namespace {
-            prefix: None,
-            url: Impl::NamespaceUrl::default(),  // empty string
-        }
-    }
-}
-
 
 impl<Impl: SelectorImpl> Debug for Selector<Impl> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -664,10 +653,7 @@ impl<Impl: SelectorImpl> Debug for ComplexSelector<Impl> {
 impl<Impl: SelectorImpl> Debug for Component<Impl> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.to_css(f) }
 }
-impl<Impl: SelectorImpl> Debug for AttrSelector<Impl> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.to_css(f) }
-}
-impl<Impl: SelectorImpl> Debug for Namespace<Impl> {
+impl<Impl: SelectorImpl> Debug for AttrSelectorWithNamespace<Impl> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.to_css(f) }
 }
 impl<Impl: SelectorImpl> Debug for LocalName<Impl> {
@@ -745,27 +731,26 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
                 dest.write_char('|')
             }
 
-            // Attribute selectors
-            AttrExists(ref a) => {
+            AttributeInNoNamespaceExists { ref local_name, .. } => {
                 dest.write_char('[')?;
-                a.to_css(dest)?;
+                display_to_css_identifier(local_name, dest)?;
                 dest.write_char(']')
             }
-            AttrEqual(ref a, ref v, case) => {
-                attr_selector_to_css(a, " = ", v, match case {
-                    CaseSensitivity::CaseSensitive => None,
-                    CaseSensitivity::CaseInsensitive => Some(" i"),
-                }, dest)
+            AttributeInNoNamespace { ref local_name, operator, ref value, case_sensitivity, .. } => {
+                dest.write_char('[')?;
+                display_to_css_identifier(local_name, dest)?;
+                operator.to_css(dest)?;
+                dest.write_char('"')?;
+                write!(CssStringWriter::new(dest), "{}", value)?;
+                dest.write_char('"')?;
+                match case_sensitivity {
+                    ParsedCaseSensitivity::CaseSensitive |
+                    ParsedCaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument => {},
+                    ParsedCaseSensitivity::AsciiCaseInsensitive => dest.write_str(" i")?,
+                }
+                dest.write_char(']')
             }
-            AttrDashMatch(ref a, ref v) => attr_selector_to_css(a, " |= ", v, None, dest),
-            AttrIncludesNeverMatch(ref a, ref v) |
-            AttrIncludes(ref a, ref v) => attr_selector_to_css(a, " ~= ", v, None, dest),
-            AttrPrefixNeverMatch(ref a, ref v) |
-            AttrPrefixMatch(ref a, ref v) => attr_selector_to_css(a, " ^= ", v, None, dest),
-            AttrSubstringNeverMatch(ref a, ref v) |
-            AttrSubstringMatch(ref a, ref v) => attr_selector_to_css(a, " *= ", v, None, dest),
-            AttrSuffixNeverMatch(ref a, ref v) |
-            AttrSuffixMatch(ref a, ref v) => attr_selector_to_css(a, " $= ", v, None, dest),
+            AttributeOther(ref attr_selector) => attr_selector.to_css(dest),
 
             // Pseudo-classes
             Negation(ref arg) => {
@@ -794,22 +779,36 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
     }
 }
 
-impl<Impl: SelectorImpl> ToCss for AttrSelector<Impl> {
+impl<Impl: SelectorImpl> ToCss for AttrSelectorWithNamespace<Impl> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        if let NamespaceConstraint::Specific(ref ns) = self.namespace {
-            ns.to_css(dest)?;
+        dest.write_char('[')?;
+        match self.namespace {
+            NamespaceConstraint::Specific((ref prefix, _)) => {
+                display_to_css_identifier(prefix, dest)?;
+                dest.write_char('|')?
+            }
+            NamespaceConstraint::Any => {
+                dest.write_str("*|")?
+            }
         }
-        display_to_css_identifier(&self.name, dest)
-    }
-}
-
-impl<Impl: SelectorImpl> ToCss for Namespace<Impl> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        if let Some(ref prefix) = self.prefix {
-            display_to_css_identifier(prefix, dest)?;
-            dest.write_char('|')?;
+        display_to_css_identifier(&self.local_name, dest)?;
+        match self.operation {
+            ParsedAttrSelectorOperation::Exists => {},
+            ParsedAttrSelectorOperation::WithValue {
+                operator, case_sensitivity, ref expected_value
+            } => {
+                operator.to_css(dest)?;
+                dest.write_char('"')?;
+                write!(CssStringWriter::new(dest), "{}", expected_value)?;
+                dest.write_char('"')?;
+                match case_sensitivity {
+                    ParsedCaseSensitivity::CaseSensitive |
+                    ParsedCaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument => {},
+                    ParsedCaseSensitivity::AsciiCaseInsensitive => dest.write_str(" i")?,
+                }
+            },
         }
-        Ok(())
+        dest.write_char(']')
     }
 }
 
@@ -817,26 +816,6 @@ impl<Impl: SelectorImpl> ToCss for LocalName<Impl> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         display_to_css_identifier(&self.name, dest)
     }
-}
-
-fn attr_selector_to_css<Impl, W>(attr: &AttrSelector<Impl>,
-                                 operator: &str,
-                                 value: &Impl::AttrValue,
-                                 modifier: Option<&str>,
-                                 dest: &mut W)
-                                 -> fmt::Result
-where Impl: SelectorImpl, W: fmt::Write
-{
-    dest.write_char('[')?;
-    attr.to_css(dest)?;
-    dest.write_str(operator)?;
-    dest.write_char('"')?;
-    write!(CssStringWriter::new(dest), "{}", value)?;
-    dest.write_char('"')?;
-    if let Some(m) = modifier {
-        dest.write_str(m)?;
-    }
-    dest.write_char(']')
 }
 
 /// Serialize the output of Display as a CSS identifier
@@ -934,18 +913,9 @@ fn complex_selector_specificity<Impl>(selector: &ComplexSelector<Impl>)
                 specificity.id_selectors += 1
             }
             Component::Class(..) |
-            Component::AttrExists(..) |
-            Component::AttrEqual(..) |
-            Component::AttrIncludes(..) |
-            Component::AttrDashMatch(..) |
-            Component::AttrPrefixMatch(..) |
-            Component::AttrSubstringMatch(..) |
-            Component::AttrSuffixMatch(..) |
-
-            Component::AttrIncludesNeverMatch(..) |
-            Component::AttrPrefixNeverMatch(..) |
-            Component::AttrSubstringNeverMatch(..) |
-            Component::AttrSuffixNeverMatch(..) |
+            Component::AttributeInNoNamespace { .. } |
+            Component::AttributeInNoNamespaceExists { .. } |
+            Component::AttributeOther(..) |
 
             Component::FirstChild | Component::LastChild |
             Component::OnlyChild | Component::Root |
@@ -1121,7 +1091,7 @@ fn parse_type_selector<P, Impl>(parser: &P, input: &mut CssParser, sequence: &mu
             match local_name {
                 Some(name) => {
                     sequence.push(Component::LocalName(LocalName {
-                        lower_name: from_ascii_lowercase(&name),
+                        lower_name: from_cow_str(to_ascii_lowercase(&name)),
                         name: from_cow_str(name),
                     }))
                 }
@@ -1231,98 +1201,143 @@ fn parse_attribute_selector<P, Impl>(parser: &P, input: &mut CssParser)
                                      -> Result<Component<Impl>, ()>
     where P: Parser<Impl=Impl>, Impl: SelectorImpl
 {
-    let attr = match parse_qualified_name(parser, input, /* in_attr_selector = */ true)? {
+    let namespace;
+    let local_name;
+    match parse_qualified_name(parser, input, /* in_attr_selector = */ true)? {
         None => return Err(()),
         Some((_, None)) => unreachable!(),
-        Some((namespace, Some(local_name))) => AttrSelector {
-            namespace: match namespace {
+        Some((ns, Some(ln))) => {
+            local_name = ln;
+            namespace = match ns {
                 QNamePrefix::ImplicitNoNamespace |
                 QNamePrefix::ExplicitNoNamespace => {
-                    NamespaceConstraint::Specific(Namespace {
-                        prefix: None,
-                        url: Impl::NamespaceUrl::default(),
-                    })
+                    None
                 }
                 QNamePrefix::ExplicitNamespace(prefix, url) => {
-                    NamespaceConstraint::Specific(Namespace {
-                        prefix: Some(prefix),
-                        url: url,
-                    })
+                    Some(NamespaceConstraint::Specific((prefix, url)))
                 }
                 QNamePrefix::ExplicitAnyNamespace => {
-                    NamespaceConstraint::Any
+                    Some(NamespaceConstraint::Any)
                 }
                 QNamePrefix::ImplicitAnyNamespace |
                 QNamePrefix::ImplicitDefaultNamespace(_) => {
                     unreachable!()  // Not returned with in_attr_selector = true
                 }
-            },
-            lower_name: from_ascii_lowercase(&local_name),
-            name: from_cow_str(local_name),
-        },
-    };
+            }
+        }
+    }
 
+    let operator;
+    let value;
+    let never_matches;
     match input.next() {
         // [foo]
-        Err(()) => Ok(Component::AttrExists(attr)),
+        Err(()) => {
+            let local_name_lower = from_cow_str(to_ascii_lowercase(&local_name));
+            let local_name = from_cow_str(local_name);
+            if let Some(namespace) = namespace {
+                return Ok(Component::AttributeOther(Box::new(AttrSelectorWithNamespace {
+                    namespace: namespace,
+                    local_name: local_name,
+                    local_name_lower: local_name_lower,
+                    operation: ParsedAttrSelectorOperation::Exists,
+                    never_matches: false,
+                })))
+            } else {
+                return Ok(Component::AttributeInNoNamespaceExists {
+                    local_name: local_name,
+                    local_name_lower: local_name_lower,
+                })
+            }
+        }
 
         // [foo=bar]
         Ok(Token::Delim('=')) => {
-            let value = input.expect_ident_or_string()?;
-            let flags = parse_attribute_flags(input)?;
-            Ok(Component::AttrEqual(attr, from_cow_str(value), flags))
+            value = input.expect_ident_or_string()?;
+            never_matches = false;
+            operator = AttrSelectorOperator::Equal;
         }
         // [foo~=bar]
         Ok(Token::IncludeMatch) => {
-            let value = input.expect_ident_or_string()?;
-            if value.is_empty() || value.contains(SELECTOR_WHITESPACE) {
-                Ok(Component::AttrIncludesNeverMatch(attr, from_cow_str(value)))
-            } else {
-                Ok(Component::AttrIncludes(attr, from_cow_str(value)))
-            }
+            value = input.expect_ident_or_string()?;
+            never_matches = value.is_empty() || value.contains(SELECTOR_WHITESPACE);
+            operator = AttrSelectorOperator::Includes;
         }
         // [foo|=bar]
         Ok(Token::DashMatch) => {
-            let value = input.expect_ident_or_string()?;
-            Ok(Component::AttrDashMatch(attr, from_cow_str(value)))
+            value = input.expect_ident_or_string()?;
+            never_matches = false;
+            operator = AttrSelectorOperator::DashMatch;
         }
         // [foo^=bar]
         Ok(Token::PrefixMatch) => {
-            let value = input.expect_ident_or_string()?;
-            if value.is_empty() {
-                Ok(Component::AttrPrefixNeverMatch(attr, from_cow_str(value)))
-            } else {
-                Ok(Component::AttrPrefixMatch(attr, from_cow_str(value)))
-            }
+            value = input.expect_ident_or_string()?;
+            never_matches = value.is_empty();
+            operator = AttrSelectorOperator::Prefix;
         }
         // [foo*=bar]
         Ok(Token::SubstringMatch) => {
-            let value = input.expect_ident_or_string()?;
-            if value.is_empty() {
-                Ok(Component::AttrSubstringNeverMatch(attr, from_cow_str(value)))
-            } else {
-                Ok(Component::AttrSubstringMatch(attr, from_cow_str(value)))
-            }
+            value = input.expect_ident_or_string()?;
+            never_matches = value.is_empty();
+            operator = AttrSelectorOperator::Substring;
         }
         // [foo$=bar]
         Ok(Token::SuffixMatch) => {
-            let value = input.expect_ident_or_string()?;
-            if value.is_empty() {
-                Ok(Component::AttrSuffixNeverMatch(attr, from_cow_str(value)))
-            } else {
-                Ok(Component::AttrSuffixMatch(attr, from_cow_str(value)))
+            value = input.expect_ident_or_string()?;
+            never_matches = value.is_empty();
+            operator = AttrSelectorOperator::Suffix;
+        }
+        _ => return Err(())
+    }
+
+    let mut case_sensitivity = parse_attribute_flags(input)?;
+
+    let value = from_cow_str(value);
+    let local_name_lower;
+    {
+        let local_name_lower_cow = to_ascii_lowercase(&local_name);
+        if let ParsedCaseSensitivity::CaseSensitive = case_sensitivity {
+            if namespace.is_none() &&
+                include!(concat!(env!("OUT_DIR"), "/ascii_case_insensitive_html_attributes.rs"))
+                .contains(&*local_name_lower_cow)
+            {
+                case_sensitivity =
+                    ParsedCaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument
             }
         }
-        _ => Err(())
+        local_name_lower = from_cow_str(local_name_lower_cow);
+    }
+    let local_name = from_cow_str(local_name);
+    if let Some(namespace) = namespace {
+        Ok(Component::AttributeOther(Box::new(AttrSelectorWithNamespace {
+            namespace: namespace,
+            local_name: local_name,
+            local_name_lower: local_name_lower,
+            never_matches: never_matches,
+            operation: ParsedAttrSelectorOperation::WithValue {
+                operator: operator,
+                case_sensitivity: case_sensitivity,
+                expected_value: value,
+            }
+        })))
+    } else {
+        Ok(Component::AttributeInNoNamespace {
+            local_name: local_name,
+            local_name_lower: local_name_lower,
+            operator: operator,
+            value: value,
+            case_sensitivity: case_sensitivity,
+            never_matches: never_matches,
+        })
     }
 }
 
 
-fn parse_attribute_flags(input: &mut CssParser) -> Result<CaseSensitivity, ()> {
+fn parse_attribute_flags(input: &mut CssParser) -> Result<ParsedCaseSensitivity, ()> {
     match input.next() {
-        Err(()) => Ok(CaseSensitivity::CaseSensitive),
+        Err(()) => Ok(ParsedCaseSensitivity::CaseSensitive),
         Ok(Token::Ident(ref value)) if value.eq_ignore_ascii_case("i") => {
-            Ok(CaseSensitivity::CaseInsensitive)
+            Ok(ParsedCaseSensitivity::AsciiCaseInsensitive)
         }
         _ => Err(())
     }
@@ -1853,14 +1868,12 @@ pub mod tests {
         // https://github.com/mozilla/servo/pull/1652
         let mut parser = DummyParser::default();
         assert_eq!(parse_ns("[Foo]", &parser), Ok(SelectorList(vec!(Selector {
-            inner: SelectorInner::from_vec(vec!(
-                Component::AttrExists(AttrSelector {
-                    name: DummyAtom::from("Foo"),
-                    lower_name: DummyAtom::from("foo"),
-                    namespace: NamespaceConstraint::Specific(Namespace {
-                        prefix: None,
-                        url: "".into(),
-                    }) }))),
+            inner: SelectorInner::from_vec(vec![
+                Component::AttributeInNoNamespaceExists {
+                    local_name: DummyAtom::from("Foo"),
+                    local_name_lower: DummyAtom::from("foo"),
+                }
+            ]),
             specificity_and_flags: specificity(0, 1, 0),
         }))));
         assert_eq!(parse_ns("svg|circle", &parser), Err(()));
@@ -1893,14 +1906,10 @@ pub mod tests {
             inner: SelectorInner::from_vec(
                 vec![
                     Component::DefaultNamespace(MATHML.into()),
-                    Component::AttrExists(AttrSelector {
-                        name: DummyAtom::from("Foo"),
-                        lower_name: DummyAtom::from("foo"),
-                        namespace: NamespaceConstraint::Specific(Namespace {
-                            prefix: None,
-                            url: "".into(),
-                        }),
-                    }),
+                    Component::AttributeInNoNamespaceExists {
+                        local_name: DummyAtom::from("Foo"),
+                        local_name_lower: DummyAtom::from("foo"),
+                    },
                 ]),
             specificity_and_flags: specificity(0, 1, 0),
         }))));
@@ -1968,14 +1977,14 @@ pub mod tests {
         assert_eq!(parse("[attr |= \"foo\"]"), Ok(SelectorList(vec![Selector {
             inner: SelectorInner::from_vec(
                 vec![
-                    Component::AttrDashMatch(AttrSelector {
-                        name: DummyAtom::from("attr"),
-                        lower_name: DummyAtom::from("attr"),
-                        namespace: NamespaceConstraint::Specific(Namespace {
-                            prefix: None,
-                            url: "".into(),
-                        }),
-                    }, DummyAtom::from("foo"))
+                    Component::AttributeInNoNamespace {
+                        local_name: DummyAtom::from("attr"),
+                        local_name_lower: DummyAtom::from("attr"),
+                        operator: AttrSelectorOperator::DashMatch,
+                        value: DummyAtom::from("foo"),
+                        never_matches: false,
+                        case_sensitivity: ParsedCaseSensitivity::CaseSensitive,
+                    }
                 ]),
             specificity_and_flags: specificity(0, 1, 0),
         }])));

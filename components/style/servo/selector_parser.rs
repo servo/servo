@@ -14,9 +14,10 @@ use element_state::ElementState;
 use fnv::FnvHashMap;
 use restyle_hints::ElementSnapshot;
 use selector_parser::{ElementExt, PseudoElementCascadeType, SelectorParser};
-use selectors::{Element, MatchAttrGeneric};
+use selectors::Element;
+use selectors::attr::{AttrSelectorOperation, NamespaceConstraint};
 use selectors::matching::{MatchingContext, MatchingMode};
-use selectors::parser::{AttrSelector, SelectorMethods};
+use selectors::parser::SelectorMethods;
 use selectors::visitor::SelectorVisitor;
 use std::borrow::Cow;
 use std::fmt;
@@ -174,6 +175,7 @@ pub enum NonTSPseudoClass {
     ReadWrite,
     ReadOnly,
     ServoNonZeroBorder,
+    ServoCaseSensitiveTypeAttr(Atom),
     Target,
     Visited,
 }
@@ -181,10 +183,18 @@ pub enum NonTSPseudoClass {
 impl ToCss for NonTSPseudoClass {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         use self::NonTSPseudoClass::*;
-        if let Lang(ref lang) = *self {
-            dest.write_str(":lang(")?;
-            serialize_identifier(lang, dest)?;
-            return dest.write_str(")");
+        match *self {
+            Lang(ref lang) => {
+                dest.write_str(":lang(")?;
+                serialize_identifier(lang, dest)?;
+                return dest.write_str(")")
+            }
+            ServoCaseSensitiveTypeAttr(ref value) => {
+                dest.write_str(":-servo-case-sensitive-type-attr(")?;
+                serialize_identifier(value, dest)?;
+                return dest.write_str(")")
+            }
+            _ => {}
         }
 
         dest.write_str(match *self {
@@ -197,7 +207,6 @@ impl ToCss for NonTSPseudoClass {
             Fullscreen => ":fullscreen",
             Hover => ":hover",
             Indeterminate => ":indeterminate",
-            Lang(_) => unreachable!(),
             Link => ":link",
             PlaceholderShown => ":placeholder-shown",
             ReadWrite => ":read-write",
@@ -205,6 +214,8 @@ impl ToCss for NonTSPseudoClass {
             ServoNonZeroBorder => ":-servo-nonzero-border",
             Target => ":target",
             Visited => ":visited",
+            Lang(_) |
+            ServoCaseSensitiveTypeAttr(_) => unreachable!(),
         })
     }
 }
@@ -243,7 +254,8 @@ impl NonTSPseudoClass {
             Lang(_) |
             Link |
             Visited |
-            ServoNonZeroBorder => ElementState::empty(),
+            ServoNonZeroBorder |
+            ServoCaseSensitiveTypeAttr(_) => ElementState::empty(),
         }
     }
 
@@ -312,7 +324,15 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
                                             -> Result<NonTSPseudoClass, ()> {
         use self::NonTSPseudoClass::*;
         let pseudo_class = match_ignore_ascii_case!{ &name,
-            "lang" => Lang(String::from(try!(parser.expect_ident_or_string())).into_boxed_str()),
+            "lang" => {
+                Lang(parser.expect_ident_or_string()?.into_owned().into_boxed_str())
+            }
+            "-servo-case-sensitive-type-attr" => {
+                if !self.in_user_agent_stylesheet() {
+                    return Err(());
+                }
+                ServoCaseSensitiveTypeAttr(Atom::from(parser.expect_ident()?))
+            }
             _ => return Err(())
         };
 
@@ -519,10 +539,10 @@ impl ServoElementSnapshot {
             .map(|&(_, ref v)| v)
     }
 
-    fn get_attr_ignore_ns(&self, name: &LocalName) -> Option<&AttrValue> {
+    fn any_attr_ignore_ns<F>(&self, name: &LocalName, mut f: F) -> bool
+    where F: FnMut(&AttrValue) -> bool {
         self.attrs.as_ref().unwrap().iter()
-                  .find(|&&(ref ident, _)| ident.local_name == *name)
-                  .map(|&(_, ref v)| v)
+                  .any(|&(ref ident, ref v)| ident.local_name == *name && f(v))
     }
 }
 
@@ -555,19 +575,22 @@ impl ElementSnapshot for ServoElementSnapshot {
     }
 }
 
-impl MatchAttrGeneric for ServoElementSnapshot {
-    type Impl = SelectorImpl;
-
-    fn match_attr<F>(&self, attr: &AttrSelector<SelectorImpl>, test: F) -> bool
-        where F: Fn(&str) -> bool
-    {
-        use selectors::parser::NamespaceConstraint;
-        let html = self.is_html_element_in_html_document;
-        let local_name = if html { &attr.lower_name } else { &attr.name };
-        match attr.namespace {
-            NamespaceConstraint::Specific(ref ns) => self.get_attr(&ns.url, local_name),
-            NamespaceConstraint::Any => self.get_attr_ignore_ns(local_name),
-        }.map_or(false, |v| test(v))
+impl ServoElementSnapshot {
+    /// selectors::Element::attr_matches
+    pub fn attr_matches(&self,
+                        ns: &NamespaceConstraint<&Namespace>,
+                        local_name: &LocalName,
+                        operation: &AttrSelectorOperation<&String>)
+                        -> bool {
+        match *ns {
+            NamespaceConstraint::Specific(ref ns) => {
+                self.get_attr(ns, local_name)
+                    .map_or(false, |value| value.eval_selector(operation))
+            }
+            NamespaceConstraint::Any => {
+                self.any_attr_ignore_ns(local_name, |value| value.eval_selector(operation))
+            }
+        }
     }
 }
 

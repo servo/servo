@@ -2457,6 +2457,8 @@ dependencies = [
  "cssparser 0.13.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "matches 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf_codegen 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "precomputed-hash 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "size_of_test 0.0.1",
  "smallvec 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",

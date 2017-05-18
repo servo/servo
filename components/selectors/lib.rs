@@ -6,11 +6,13 @@
 #[macro_use] extern crate cssparser;
 #[macro_use] extern crate matches;
 extern crate fnv;
+extern crate phf;
 extern crate precomputed_hash;
 #[cfg(test)] #[macro_use] extern crate size_of_test;
 extern crate smallvec;
 
 pub mod arcslice;
+pub mod attr;
 pub mod bloom;
 pub mod matching;
 pub mod parser;
@@ -21,4 +23,3 @@ pub mod visitor;
 
 pub use parser::{SelectorImpl, Parser, SelectorList};
 pub use tree::Element;
-pub use tree::{MatchAttr, MatchAttrGeneric};

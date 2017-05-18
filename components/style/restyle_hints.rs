@@ -7,18 +7,20 @@
 #![deny(missing_docs)]
 
 use Atom;
+use LocalName;
+use Namespace;
 use dom::TElement;
 use element_state::*;
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs::nsRestyleHint;
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
-use selector_parser::{AttrValue, NonTSPseudoClass, PseudoElement, SelectorImpl, Snapshot, SnapshotMap};
-use selectors::{Element, MatchAttr};
+use selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl, Snapshot, SnapshotMap, AttrValue};
+use selectors::Element;
+use selectors::attr::{AttrSelectorOperation, NamespaceConstraint};
 use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode};
 use selectors::matching::matches_selector;
-use selectors::parser::{AttrSelector, Combinator, Component, Selector};
-use selectors::parser::{SelectorInner, SelectorMethods};
+use selectors::parser::{Combinator, Component, Selector, SelectorInner, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
 use smallvec::SmallVec;
 use std::borrow::Borrow;
@@ -170,7 +172,7 @@ impl HeapSizeOf for RestyleHint {
 /// still need to take the ElementWrapper approach for attribute-dependent
 /// style. So we do it the same both ways for now to reduce complexity, but it's
 /// worth measuring the performance impact (if any) of the mStateMask approach.
-pub trait ElementSnapshot : Sized + MatchAttr<Impl=SelectorImpl> {
+pub trait ElementSnapshot : Sized {
     /// The state of the snapshot, if any.
     fn state(&self) -> Option<ElementState>;
 
@@ -242,90 +244,6 @@ impl<'a, E> ElementWrapper<'a, E>
     }
 }
 
-impl<'a, E> MatchAttr for ElementWrapper<'a, E>
-    where E: TElement,
-{
-    type Impl = SelectorImpl;
-
-    fn match_attr_has(&self, attr: &AttrSelector<SelectorImpl>) -> bool {
-        match self.snapshot() {
-            Some(snapshot) if snapshot.has_attrs()
-                => snapshot.match_attr_has(attr),
-            _   => self.element.match_attr_has(attr)
-        }
-    }
-
-    fn match_attr_equals(&self,
-                         attr: &AttrSelector<SelectorImpl>,
-                         value: &AttrValue) -> bool {
-        match self.snapshot() {
-            Some(snapshot) if snapshot.has_attrs()
-                => snapshot.match_attr_equals(attr, value),
-            _   => self.element.match_attr_equals(attr, value)
-        }
-    }
-
-    fn match_attr_equals_ignore_ascii_case(&self,
-                                           attr: &AttrSelector<SelectorImpl>,
-                                           value: &AttrValue) -> bool {
-        match self.snapshot() {
-            Some(snapshot) if snapshot.has_attrs()
-                => snapshot.match_attr_equals_ignore_ascii_case(attr, value),
-            _   => self.element.match_attr_equals_ignore_ascii_case(attr, value)
-        }
-    }
-
-    fn match_attr_includes(&self,
-                           attr: &AttrSelector<SelectorImpl>,
-                           value: &AttrValue) -> bool {
-        match self.snapshot() {
-            Some(snapshot) if snapshot.has_attrs()
-                => snapshot.match_attr_includes(attr, value),
-            _   => self.element.match_attr_includes(attr, value)
-        }
-    }
-
-    fn match_attr_dash(&self,
-                       attr: &AttrSelector<SelectorImpl>,
-                       value: &AttrValue) -> bool {
-        match self.snapshot() {
-            Some(snapshot) if snapshot.has_attrs()
-                => snapshot.match_attr_dash(attr, value),
-            _   => self.element.match_attr_dash(attr, value)
-        }
-    }
-
-    fn match_attr_prefix(&self,
-                         attr: &AttrSelector<SelectorImpl>,
-                         value: &AttrValue) -> bool {
-        match self.snapshot() {
-            Some(snapshot) if snapshot.has_attrs()
-                => snapshot.match_attr_prefix(attr, value),
-            _   => self.element.match_attr_prefix(attr, value)
-        }
-    }
-
-    fn match_attr_substring(&self,
-                            attr: &AttrSelector<SelectorImpl>,
-                            value: &AttrValue) -> bool {
-        match self.snapshot() {
-            Some(snapshot) if snapshot.has_attrs()
-                => snapshot.match_attr_substring(attr, value),
-            _   => self.element.match_attr_substring(attr, value)
-        }
-    }
-
-    fn match_attr_suffix(&self,
-                         attr: &AttrSelector<SelectorImpl>,
-                         value: &AttrValue) -> bool {
-        match self.snapshot() {
-            Some(snapshot) if snapshot.has_attrs()
-                => snapshot.match_attr_suffix(attr, value),
-            _   => self.element.match_attr_suffix(attr, value)
-        }
-    }
-}
-
 #[cfg(feature = "gecko")]
 fn dir_selector_to_state(s: &[u16]) -> ElementState {
     // Jump through some hoops to deal with our Box<[u16]> thing.
@@ -345,6 +263,8 @@ fn dir_selector_to_state(s: &[u16]) -> ElementState {
 impl<'a, E> Element for ElementWrapper<'a, E>
     where E: TElement,
 {
+    type Impl = SelectorImpl;
+
     fn match_non_ts_pseudo_class<F>(&self,
                                     pseudo_class: &NonTSPseudoClass,
                                     context: &mut MatchingContext,
@@ -450,6 +370,19 @@ impl<'a, E> Element for ElementWrapper<'a, E>
         self.element.get_namespace()
     }
 
+    fn attr_matches(&self,
+                    ns: &NamespaceConstraint<&Namespace>,
+                    local_name: &LocalName,
+                    operation: &AttrSelectorOperation<&AttrValue>)
+                    -> bool {
+        match self.snapshot() {
+            Some(snapshot) if snapshot.has_attrs() => {
+                snapshot.attr_matches(ns, local_name, operation)
+            }
+            _ => self.element.attr_matches(ns, local_name, operation)
+        }
+    }
+
     fn get_id(&self) -> Option<Atom> {
         match self.snapshot() {
             Some(snapshot) if snapshot.has_attrs()
@@ -474,15 +407,6 @@ impl<'a, E> Element for ElementWrapper<'a, E>
         self.element.is_root()
     }
 
-    fn each_class<F>(&self, callback: F)
-        where F: FnMut(&Atom) {
-        match self.snapshot() {
-            Some(snapshot) if snapshot.has_attrs()
-                => snapshot.each_class(callback),
-            _   => self.element.each_class(callback)
-        }
-    }
-
     fn pseudo_element_originating_element(&self) -> Option<Self> {
         self.element.closest_non_native_anonymous_ancestor()
             .map(|e| ElementWrapper::new(e, self.snapshot_map))
@@ -504,13 +428,9 @@ fn is_attr_selector(sel: &Component<SelectorImpl>) -> bool {
     match *sel {
         Component::ID(_) |
         Component::Class(_) |
-        Component::AttrExists(_) |
-        Component::AttrEqual(_, _, _) |
-        Component::AttrIncludes(_, _) |
-        Component::AttrDashMatch(_, _) |
-        Component::AttrPrefixMatch(_, _) |
-        Component::AttrSubstringMatch(_, _) |
-        Component::AttrSuffixMatch(_, _) => true,
+        Component::AttributeInNoNamespaceExists { .. } |
+        Component::AttributeInNoNamespace { .. } |
+        Component::AttributeOther(_) => true,
         _ => false,
     }
 }
