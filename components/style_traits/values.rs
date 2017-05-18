@@ -173,6 +173,18 @@ macro_rules! __define_css_keyword_enum__actual {
     }
 }
 
+#[macro_export]
+macro_rules! add_parse_impl_for_keyword_enum {
+    ($name:ident) => {
+        impl Parse for $name {
+            #[inline]
+            fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
+                $name::parse(input)
+            }
+        }
+    };
+}
+
 /// Helper types for the handling of specified values.
 pub mod specified {
     use app_units::Au;

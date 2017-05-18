@@ -82,18 +82,7 @@ define_css_keyword_enum!(FontDisplay:
                          "fallback" => Fallback,
                          "optional" => Optional);
 
-impl Parse for FontDisplay {
-    fn parse(_: &ParserContext, input: &mut Parser) -> Result<FontDisplay, ()> {
-        Ok(match_ignore_ascii_case! { &*input.expect_ident()?,
-            "auto" => FontDisplay::Auto,
-            "block" => FontDisplay::Block,
-            "swap" => FontDisplay::Swap,
-            "fallback" => FontDisplay::Fallback,
-            "optional" => FontDisplay::Optional,
-            _ => return Err(())
-        })
-    }
-}
+add_parse_impl_for_keyword_enum!(FontDisplay);
 
 /// Parse the block inside a `@font-face` rule.
 ///
