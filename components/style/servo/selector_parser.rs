@@ -175,6 +175,7 @@ pub enum NonTSPseudoClass {
     ReadWrite,
     ReadOnly,
     ServoNonZeroBorder,
+    ServoCaseSensitiveTypeAttr(Atom),
     Target,
     Visited,
 }
@@ -182,10 +183,18 @@ pub enum NonTSPseudoClass {
 impl ToCss for NonTSPseudoClass {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         use self::NonTSPseudoClass::*;
-        if let Lang(ref lang) = *self {
-            dest.write_str(":lang(")?;
-            serialize_identifier(lang, dest)?;
-            return dest.write_str(")");
+        match *self {
+            Lang(ref lang) => {
+                dest.write_str(":lang(")?;
+                serialize_identifier(lang, dest)?;
+                return dest.write_str(")")
+            }
+            ServoCaseSensitiveTypeAttr(ref value) => {
+                dest.write_str(":-servo-case-sensitive-type-attr(")?;
+                serialize_identifier(value, dest)?;
+                return dest.write_str(")")
+            }
+            _ => {}
         }
 
         dest.write_str(match *self {
@@ -198,7 +207,6 @@ impl ToCss for NonTSPseudoClass {
             Fullscreen => ":fullscreen",
             Hover => ":hover",
             Indeterminate => ":indeterminate",
-            Lang(_) => unreachable!(),
             Link => ":link",
             PlaceholderShown => ":placeholder-shown",
             ReadWrite => ":read-write",
@@ -206,6 +214,8 @@ impl ToCss for NonTSPseudoClass {
             ServoNonZeroBorder => ":-servo-nonzero-border",
             Target => ":target",
             Visited => ":visited",
+            Lang(_) |
+            ServoCaseSensitiveTypeAttr(_) => unreachable!(),
         })
     }
 }
@@ -244,7 +254,8 @@ impl NonTSPseudoClass {
             Lang(_) |
             Link |
             Visited |
-            ServoNonZeroBorder => ElementState::empty(),
+            ServoNonZeroBorder |
+            ServoCaseSensitiveTypeAttr(_) => ElementState::empty(),
         }
     }
 
@@ -313,7 +324,15 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
                                             -> Result<NonTSPseudoClass, ()> {
         use self::NonTSPseudoClass::*;
         let pseudo_class = match_ignore_ascii_case!{ &name,
-            "lang" => Lang(String::from(try!(parser.expect_ident_or_string())).into_boxed_str()),
+            "lang" => {
+                Lang(parser.expect_ident_or_string()?.into_owned().into_boxed_str())
+            }
+            "-servo-case-sensitive-type-attr" => {
+                if !self.in_user_agent_stylesheet() {
+                    return Err(());
+                }
+                ServoCaseSensitiveTypeAttr(Atom::from(parser.expect_ident()?))
+            }
             _ => return Err(())
         };
 

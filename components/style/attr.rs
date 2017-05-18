@@ -379,6 +379,15 @@ impl ::std::ops::Deref for AttrValue {
     }
 }
 
+impl PartialEq<Atom> for AttrValue {
+    fn eq(&self, other: &Atom) -> bool {
+        match *self {
+            AttrValue::Atom(ref value) => value == other,
+            _ => other == &**self,
+        }
+    }
+}
+
 /// https://html.spec.whatwg.org/multipage/#rules-for-parsing-non-zero-dimension-values
 pub fn parse_nonzero_length(value: &str) -> LengthOrPercentageOrAuto {
     match parse_length(value) {

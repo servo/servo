@@ -2451,6 +2451,11 @@ impl<'a> ::selectors::Element for Root<Element> {
                 }
             },
 
+            NonTSPseudoClass::ServoCaseSensitiveTypeAttr(ref expected_value) => {
+                self.get_attribute(&ns!(), &local_name!("type"))
+                    .map_or(false, |attr| attr.value().eq(expected_value))
+            }
+
             // FIXME(#15746): This is wrong, we need to instead use extended filtering as per RFC4647
             //                https://tools.ietf.org/html/rfc4647#section-3.3.2
             NonTSPseudoClass::Lang(ref lang) => extended_filtering(&*self.get_lang(), &*lang),
