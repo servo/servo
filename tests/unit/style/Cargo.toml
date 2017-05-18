@@ -24,6 +24,7 @@ rustc-serialize = "0.3"
 selectors = {path = "../../../components/selectors"}
 servo_atoms = {path = "../../../components/atoms"}
 servo_config = {path = "../../../components/config"}
+servo_url = {path = "../../../components/url"}
+size_of_test = {path = "../../../components/size_of_test"}
 style = {path = "../../../components/style"}
 style_traits = {path = "../../../components/style_traits"}
-servo_url = {path = "../../../components/url"}

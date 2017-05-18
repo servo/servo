@@ -2802,30 +2802,6 @@ macro_rules! longhand_properties_idents {
     }
 }
 
-/// Testing function to check the size of a PropertyDeclaration. We implement
-/// this here so that the code can be used by both servo and stylo unit tests.
-/// This is important because structs can have different sizes in stylo and
-/// servo.
-#[cfg(feature = "testing")]
-pub fn test_size_of_property_declaration() {
-    use std::mem::size_of;
-
-    let old = 32;
-    let new = size_of::<PropertyDeclaration>();
-    if new < old {
-        panic!("Your changes have decreased the stack size of PropertyDeclaration enum from {} to {}. \
-                Good work! Please update the size in components/style/properties/properties.mako.rs.",
-                old, new)
-    } else if new > old {
-        panic!("Your changes have increased the stack size of PropertyDeclaration enum from {} to {}. \
-                These enum is present in large quantities in the style, and increasing the size \
-                may negatively affect style system performance. Please consider using `boxed=\"True\"` in \
-                the longhand If you feel that the increase is necessary, update to the new size in \
-                components/style/properties/properties.mako.rs.",
-                old, new)
-    }
-}
-
 /// Testing function to check the size of all SpecifiedValues.
 #[cfg(feature = "testing")]
 pub fn test_size_of_specified_values() {
