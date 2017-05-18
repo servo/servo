@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use attr::{AttrSelectorOperation, NamespaceConstraint};
+use attr::{ParsedAttrSelectorOperation, AttrSelectorOperation, NamespaceConstraint};
 use bloom::BloomFilter;
 use parser::{Combinator, ComplexSelector, Component, LocalName};
 use parser::{Selector, SelectorInner, SelectorIter};
@@ -435,7 +435,7 @@ fn matches_simple_selector<E, F>(
                     select_name(is_html, local_name, local_name_lower),
                     &AttrSelectorOperation::WithValue {
                         operator: operator,
-                        case_sensitivity: case_sensitivity.to_definite(is_html),
+                        case_sensitivity: case_sensitivity.to_unconditional(is_html),
                         expected_value: value,
                     }
                 )
@@ -450,15 +450,15 @@ fn matches_simple_selector<E, F>(
                     &attr_sel.namespace(),
                     select_name(is_html, &attr_sel.local_name, &attr_sel.local_name_lower),
                     &match attr_sel.operation {
-                        AttrSelectorOperation::Exists => AttrSelectorOperation::Exists,
-                        AttrSelectorOperation::WithValue {
+                        ParsedAttrSelectorOperation::Exists => AttrSelectorOperation::Exists,
+                        ParsedAttrSelectorOperation::WithValue {
                             operator,
                             case_sensitivity,
                             ref expected_value,
                         } => {
                             AttrSelectorOperation::WithValue {
                                 operator: operator,
-                                case_sensitivity: case_sensitivity.to_definite(is_html),
+                                case_sensitivity: case_sensitivity.to_unconditional(is_html),
                                 expected_value: expected_value,
                             }
                         }

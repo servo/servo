@@ -1162,10 +1162,6 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                     let ignore_case = match case_sensitivity {
                         CaseSensitivity::CaseSensitive => false,
                         CaseSensitivity::AsciiCaseInsensitive => true,
-                        CaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument => {
-                            unreachable!("selectors/matching.rs should have \
-                                          called case_sensitivity.to_definite()");
-                        }
                     };
                     // FIXME: case sensitivity for operators other than Equal
                     match operator {

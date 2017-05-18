@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use arcslice::ArcSlice;
-use attr::{AttrSelectorWithNamespace, AttrSelectorOperation, AttrSelectorOperator};
-use attr::{CaseSensitivity, SELECTOR_WHITESPACE, NamespaceConstraint};
+use attr::{AttrSelectorWithNamespace, ParsedAttrSelectorOperation, AttrSelectorOperator};
+use attr::{ParsedCaseSensitivity, SELECTOR_WHITESPACE, NamespaceConstraint};
 use cssparser::{Token, Parser as CssParser, parse_nth, ToCss, serialize_identifier, CssStringWriter};
 use precomputed_hash::PrecomputedHash;
 use smallvec::SmallVec;
@@ -548,7 +548,7 @@ pub enum Component<Impl: SelectorImpl> {
         local_name_lower: Impl::LocalName,
         operator: AttrSelectorOperator,
         value: Impl::AttrValue,
-        case_sensitivity: CaseSensitivity,
+        case_sensitivity: ParsedCaseSensitivity,
         never_matches: bool,
     },
     // Use a Box in the less common cases with more data to keep size_of::<Component>() small.
@@ -735,9 +735,9 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
                 write!(CssStringWriter::new(dest), "{}", value)?;
                 dest.write_char('"')?;
                 match case_sensitivity {
-                    CaseSensitivity::CaseSensitive |
-                    CaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument => {},
-                    CaseSensitivity::AsciiCaseInsensitive => dest.write_str(" i")?,
+                    ParsedCaseSensitivity::CaseSensitive |
+                    ParsedCaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument => {},
+                    ParsedCaseSensitivity::AsciiCaseInsensitive => dest.write_str(" i")?,
                 }
                 dest.write_char(']')
             }
@@ -784,16 +784,18 @@ impl<Impl: SelectorImpl> ToCss for AttrSelectorWithNamespace<Impl> {
         }
         display_to_css_identifier(&self.local_name, dest)?;
         match self.operation {
-            AttrSelectorOperation::Exists => {},
-            AttrSelectorOperation::WithValue { operator, case_sensitivity, ref expected_value } => {
+            ParsedAttrSelectorOperation::Exists => {},
+            ParsedAttrSelectorOperation::WithValue {
+                operator, case_sensitivity, ref expected_value
+            } => {
                 operator.to_css(dest)?;
                 dest.write_char('"')?;
                 write!(CssStringWriter::new(dest), "{}", expected_value)?;
                 dest.write_char('"')?;
                 match case_sensitivity {
-                    CaseSensitivity::CaseSensitive |
-                    CaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument => {},
-                    CaseSensitivity::AsciiCaseInsensitive => dest.write_str(" i")?,
+                    ParsedCaseSensitivity::CaseSensitive |
+                    ParsedCaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument => {},
+                    ParsedCaseSensitivity::AsciiCaseInsensitive => dest.write_str(" i")?,
                 }
             },
         }
@@ -1229,7 +1231,7 @@ fn parse_attribute_selector<P, Impl>(parser: &P, input: &mut CssParser)
                     namespace: namespace,
                     local_name: local_name,
                     local_name_lower: local_name_lower,
-                    operation: AttrSelectorOperation::Exists,
+                    operation: ParsedAttrSelectorOperation::Exists,
                     never_matches: false,
                 })))
             } else {
@@ -1285,12 +1287,13 @@ fn parse_attribute_selector<P, Impl>(parser: &P, input: &mut CssParser)
     let local_name_lower;
     {
         let local_name_lower_cow = to_ascii_lowercase(&local_name);
-        if let CaseSensitivity::CaseSensitive = case_sensitivity {
+        if let ParsedCaseSensitivity::CaseSensitive = case_sensitivity {
             if namespace.is_none() &&
                 include!(concat!(env!("OUT_DIR"), "/ascii_case_insensitive_html_attributes.rs"))
                 .contains(&*local_name_lower_cow)
             {
-                case_sensitivity = CaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument
+                case_sensitivity =
+                    ParsedCaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument
             }
         }
         local_name_lower = from_cow_str(local_name_lower_cow);
@@ -1302,7 +1305,7 @@ fn parse_attribute_selector<P, Impl>(parser: &P, input: &mut CssParser)
             local_name: local_name,
             local_name_lower: local_name_lower,
             never_matches: never_matches,
-            operation: AttrSelectorOperation::WithValue {
+            operation: ParsedAttrSelectorOperation::WithValue {
                 operator: operator,
                 case_sensitivity: case_sensitivity,
                 expected_value: value,
@@ -1321,11 +1324,11 @@ fn parse_attribute_selector<P, Impl>(parser: &P, input: &mut CssParser)
 }
 
 
-fn parse_attribute_flags(input: &mut CssParser) -> Result<CaseSensitivity, ()> {
+fn parse_attribute_flags(input: &mut CssParser) -> Result<ParsedCaseSensitivity, ()> {
     match input.next() {
-        Err(()) => Ok(CaseSensitivity::CaseSensitive),
+        Err(()) => Ok(ParsedCaseSensitivity::CaseSensitive),
         Ok(Token::Ident(ref value)) if value.eq_ignore_ascii_case("i") => {
-            Ok(CaseSensitivity::AsciiCaseInsensitive)
+            Ok(ParsedCaseSensitivity::AsciiCaseInsensitive)
         }
         _ => Err(())
     }
@@ -1971,7 +1974,7 @@ pub mod tests {
                         operator: AttrSelectorOperator::DashMatch,
                         value: DummyAtom::from("foo"),
                         never_matches: false,
-                        case_sensitivity: CaseSensitivity::CaseSensitive,
+                        case_sensitivity: ParsedCaseSensitivity::CaseSensitive,
                     }
                 ]),
             specificity_and_flags: specificity(0, 1, 0),
