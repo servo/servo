@@ -2470,7 +2470,10 @@ impl Fragment {
         if self.style().get_effects().mix_blend_mode != mix_blend_mode::T::normal {
             return true
         }
-        if self.style().get_box().transform.0.is_some() {
+
+        if self.style().get_box().transform.0.is_some() ||
+           self.style().get_box().transform_style == transform_style::T::preserve_3d ||
+           self.style().overrides_transform_style() {
             return true
         }
 
@@ -2483,13 +2486,6 @@ impl Fragment {
         // Fixed position blocks always create stacking contexts.
         if self.style.get_box().position == position::T::fixed {
             return true
-        }
-
-        match self.style().get_used_transform_style() {
-            transform_style::T::flat | transform_style::T::preserve_3d => {
-                return true
-            }
-            transform_style::T::auto => {}
         }
 
         match (self.style().get_box().position,

@@ -12,7 +12,7 @@ use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use gfx::display_list::{BorderDetails, BorderRadii, BoxShadowClipMode, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayList, DisplayListTraversal, StackingContextType};
 use msg::constellation_msg::PipelineId;
-use style::computed_values::{image_rendering, mix_blend_mode};
+use style::computed_values::{image_rendering, mix_blend_mode, transform_style};
 use style::computed_values::filter::{self, Filter};
 use style::values::computed::BorderStyle;
 use webrender_traits::{self, DisplayListBuilder, ExtendMode};
@@ -146,12 +146,12 @@ impl ToBorderRadius for BorderRadii<Au> {
     }
 }
 
-trait ToBlendMode {
-    fn to_blend_mode(&self) -> webrender_traits::MixBlendMode;
+pub trait ToMixBlendMode {
+    fn to_mix_blend_mode(&self) -> webrender_traits::MixBlendMode;
 }
 
-impl ToBlendMode for mix_blend_mode::T {
-    fn to_blend_mode(&self) -> webrender_traits::MixBlendMode {
+impl ToMixBlendMode for mix_blend_mode::T {
+    fn to_mix_blend_mode(&self) -> webrender_traits::MixBlendMode {
         match *self {
             mix_blend_mode::T::normal => webrender_traits::MixBlendMode::Normal,
             mix_blend_mode::T::multiply => webrender_traits::MixBlendMode::Multiply,
@@ -208,6 +208,19 @@ impl ToFilterOps for filter::T {
             }
         }
         result
+    }
+}
+
+pub trait ToTransformStyle {
+    fn to_transform_style(&self) -> webrender_traits::TransformStyle;
+}
+
+impl ToTransformStyle for transform_style::T {
+    fn to_transform_style(&self) -> webrender_traits::TransformStyle {
+        match *self {
+            transform_style::T::auto | transform_style::T::flat => webrender_traits::TransformStyle::Flat,
+            transform_style::T::preserve_3d => webrender_traits::TransformStyle::Preserve3D,
+        }
     }
 }
 
@@ -464,9 +477,9 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 builder.push_stacking_context(stacking_context.scroll_policy,
                                               stacking_context.bounds.to_rectf(),
                                               transform,
-                                              webrender_traits::TransformStyle::Flat,
+                                              stacking_context.transform_style,
                                               perspective,
-                                              stacking_context.blend_mode.to_blend_mode(),
+                                              stacking_context.mix_blend_mode,
                                               stacking_context.filters.to_filter_ops());
             }
             DisplayItem::PopStackingContext(_) => builder.pop_stacking_context(),
