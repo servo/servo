@@ -433,6 +433,14 @@ impl<'le> GeckoElement<'le> {
     }
 
     #[inline]
+    fn get_state_internal(&self) -> u64 {
+        if !self.as_node().get_bool_flag(nsINode_BooleanFlag::ElementHasLockedStyleStates) {
+            return self.0.mState.mStates;
+        }
+        unsafe { Gecko_ElementState(self.0) }
+    }
+
+    #[inline]
     fn may_have_class(&self) -> bool {
         self.as_node().get_bool_flag(nsINode_BooleanFlag::ElementMayHaveClass)
     }
@@ -630,9 +638,7 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn get_state(&self) -> ElementState {
-        unsafe {
-            ElementState::from_bits_truncate(Gecko_ElementState(self.0))
-        }
+        ElementState::from_bits_truncate(self.get_state_internal())
     }
 
     #[inline]
