@@ -83,6 +83,7 @@ fn generate_properties() {
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:out_dir={}", env::var("OUT_DIR").unwrap());
     generate_properties();
     build_gecko::generate();
 }

@@ -17,3 +17,9 @@ mod size_of;
 
 mod servo_function_signatures;
 
+use style::*;
+
+#[allow(dead_code, improper_ctypes)]
+mod bindings {
+    include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+}
