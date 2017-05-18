@@ -83,6 +83,9 @@ extern crate time;
 #[allow(unused_extern_crates)]
 extern crate unicode_segmentation;
 
+#[macro_use]
+mod macros;
+
 pub mod animation;
 #[allow(missing_docs)] // TODO.
 #[cfg(feature = "servo")] pub mod attr;
