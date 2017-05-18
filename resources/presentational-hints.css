@@ -18,11 +18,15 @@ br[clear=right i] { clear: right; }
 br[clear=all i], br[clear=both i] { clear: both; }
 
 
-ol[type=1], li[type=1] { list-style-type: decimal; }
-ol[type=a], li[type=a] { list-style-type: lower-alpha; }
-ol[type=A], li[type=A] { list-style-type: upper-alpha; }
-ol[type=i], li[type=i] { list-style-type: lower-roman; }
-ol[type=I], li[type=I] { list-style-type: upper-roman; }
+ol[type="1"], li[type="1"] { list-style-type: decimal; }
+ol:-servo-case-sensitive-type-attr(a),
+li:-servo-case-sensitive-type-attr(a) { list-style-type: lower-alpha; }
+ol:-servo-case-sensitive-type-attr(A),
+li:-servo-case-sensitive-type-attr(A) { list-style-type: upper-alpha; }
+ol:-servo-case-sensitive-type-attr(i),
+li:-servo-case-sensitive-type-attr(i) { list-style-type: lower-roman; }
+ol:-servo-case-sensitive-type-attr(I),
+li:-servo-case-sensitive-type-attr(I) { list-style-type: upper-roman; }
 ul[type=none i], li[type=none i] { list-style-type: none; }
 ul[type=disc i], li[type=disc i] { list-style-type: disc; }
 ul[type=circle i], li[type=circle i] { list-style-type: circle; }
