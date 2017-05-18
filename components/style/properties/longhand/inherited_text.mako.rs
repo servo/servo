@@ -132,7 +132,8 @@
                             let calc = calc.to_computed_value(context);
                             let fr = specified::FontRelativeLength::Em(calc.percentage());
                             let fr = specified::Length::NoCalc(specified::NoCalcLength::FontRelative(fr));
-                            computed_value::T::Length(calc.length() + fr.to_computed_value(context))
+                            let length = calc.unclamped_length();
+                            computed_value::T::Length(calc.clamping_mode.clamp(length + fr.to_computed_value(context)))
                         }
                     }
                 }

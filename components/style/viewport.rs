@@ -718,8 +718,7 @@ impl MaybeNew for ViewportConstraints {
                                 Some(initial_viewport.$dimension.scale_by(value.0)),
                             LengthOrPercentageOrAuto::Auto => None,
                             LengthOrPercentageOrAuto::Calc(ref calc) => {
-                                let calc = calc.to_computed_value(&context);
-                                Some(initial_viewport.$dimension.scale_by(calc.percentage()) + calc.length())
+                                calc.to_computed_value(&context).to_used_value(Some(initial_viewport.$dimension))
                             }
                         },
                         ViewportLength::ExtendToZoom => {

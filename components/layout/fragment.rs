@@ -1504,7 +1504,11 @@ impl Fragment {
                         result_inline
                     }
                     LengthOrPercentageOrAuto::Length(length) => length,
-                    LengthOrPercentageOrAuto::Calc(calc) => calc.length(),
+                    LengthOrPercentageOrAuto::Calc(calc) => {
+                        // TODO(nox): This is probably wrong, because it accounts neither for
+                        // clamping (not sure if necessary here) nor percentage.
+                        calc.unclamped_length()
+                    },
                 };
 
                 let size_constraint = self.size_constraint(None, Direction::Inline);
@@ -2233,8 +2237,7 @@ impl Fragment {
                     offset -= minimum_line_metrics.space_needed().scale_by(percentage)
                 }
                 vertical_align::T::LengthOrPercentage(LengthOrPercentage::Calc(formula)) => {
-                    offset -= minimum_line_metrics.space_needed().scale_by(formula.percentage()) +
-                        formula.length()
+                    offset -= formula.to_used_value(Some(minimum_line_metrics.space_needed())).unwrap()
                 }
             }
         }

@@ -1035,7 +1035,7 @@ impl Animatable for CalcLengthOrPercentage {
             }
         }
 
-        let length = self.length().add_weighted(&other.length(), self_portion, other_portion)?;
+        let length = self.unclamped_length().add_weighted(&other.unclamped_length(), self_portion, other_portion)?;
         let percentage = add_weighted_half(self.percentage, other.percentage, self_portion, other_portion)?;
         Ok(CalcLengthOrPercentage::with_clamping_mode(length, percentage, self.clamping_mode))
     }
@@ -1047,7 +1047,7 @@ impl Animatable for CalcLengthOrPercentage {
 
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-        let length_diff = (self.length().0 - other.length().0) as f64;
+        let length_diff = (self.unclamped_length().0 - other.unclamped_length().0) as f64;
         let percentage_diff = (self.percentage() - other.percentage()) as f64;
         Ok(length_diff * length_diff + percentage_diff * percentage_diff)
     }
@@ -1112,7 +1112,7 @@ impl Animatable for LengthOrPercentage {
             (this, other) => {
                 let this: CalcLengthOrPercentage = From::from(this);
                 let other: CalcLengthOrPercentage = From::from(other);
-                let length_diff = (this.length().0 - other.length().0) as f64;
+                let length_diff = (this.unclamped_length().0 - other.unclamped_length().0) as f64;
                 let percentage_diff = (this.percentage() - other.percentage()) as f64;
                 Ok(length_diff * length_diff + percentage_diff * percentage_diff)
             }
@@ -1185,12 +1185,12 @@ impl Animatable for LengthOrPercentageOrAuto {
             (this, other) => {
                 let this: Option<CalcLengthOrPercentage> = From::from(this);
                 let other: Option<CalcLengthOrPercentage> = From::from(other);
-                if this.is_none() || other.is_none() {
-                    Err(())
-                } else {
-                    let length_diff = (this.unwrap().length().0 - other.unwrap().length().0) as f64;
-                    let percentage_diff = (this.unwrap().percentage() - other.unwrap().percentage()) as f64;
+                if let (Some(this), Some(other)) = (this, other) {
+                    let length_diff = (this.unclamped_length().0 - other.unclamped_length().0) as f64;
+                    let percentage_diff = (this.percentage() - other.percentage()) as f64;
                     Ok(length_diff * length_diff + percentage_diff * percentage_diff)
+                } else {
+                    Err(())
                 }
             }
         }
