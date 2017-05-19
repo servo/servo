@@ -37,6 +37,10 @@ bitflags! {
         const ANIMATION_ONLY = 0x02,
         /// Traverse without generating any change hints.
         const FOR_RECONSTRUCT = 0x04,
+        /// Traverse triggered by CSS rule changes.
+        /// Traverse and update all elements with CSS animations since
+        /// @keyframes rules may have changed
+        const FOR_CSS_RULE_CHANGES = 0x08,
     }
 }
 
@@ -54,6 +58,11 @@ impl TraversalFlags {
     /// Returns true if the traversal is for a frame reconstruction.
     pub fn for_reconstruct(&self) -> bool {
         self.contains(FOR_RECONSTRUCT)
+    }
+
+    /// Returns true if the traversal is triggered by CSS rule changes.
+    pub fn for_css_rule_changes(&self) -> bool {
+        self.contains(FOR_CSS_RULE_CHANGES)
     }
 }
 
