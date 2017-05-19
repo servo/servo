@@ -1325,6 +1325,7 @@ ${helpers.single_keyword_system("font-kerning",
     }
 </%helpers:longhand>
 
+#[cfg(any(feature = "gecko", feature = "testing"))]
 macro_rules! exclusive_value {
     (($value:ident, $set:expr) => $ident:ident) => {
         if $value.intersects($set) {
