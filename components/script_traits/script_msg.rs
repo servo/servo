@@ -104,9 +104,8 @@ pub enum ScriptMsg {
     LoadUrl(PipelineId, LoadData, bool),
     /// Post a message to the currently active window of a given browsing context.
     PostMessage(BrowsingContextId, Option<ImmutableOrigin>, Vec<u8>),
-    /// Dispatch a mozbrowser event to the parent of this pipeline.
-    /// The first PipelineId is for the parent, the second is for the originating pipeline.
-    MozBrowserEvent(PipelineId, PipelineId, MozBrowserEvent),
+    /// Dispatch a mozbrowser event to the parent of a mozbrowser iframe.
+    MozBrowserEvent(PipelineId, TopLevelBrowsingContextId, MozBrowserEvent),
     /// HTMLIFrameElement Forward or Back traversal.
     TraverseHistory(TopLevelBrowsingContextId, TraversalDirection),
     /// Gets the length of the joint session history from the constellation.
