@@ -1178,7 +1178,6 @@ ${helpers.single_keyword_system("font-variant-caps",
     }
 </%helpers:longhand>
 
-// FIXME: This prop should be animatable
 ${helpers.single_keyword_system("font-stretch",
                                 "normal ultra-condensed extra-condensed condensed \
                                  semi-condensed semi-expanded expanded extra-expanded \
@@ -1187,14 +1186,14 @@ ${helpers.single_keyword_system("font-stretch",
                                 gecko_constant_prefix="NS_FONT_STRETCH",
                                 cast_type='i16',
                                 spec="https://drafts.csswg.org/css-fonts/#propdef-font-stretch",
-                                animation_value_type="none")}
+                                animation_value_type="ComputedValue")}
 
 ${helpers.single_keyword_system("font-kerning",
                                 "auto none normal",
                                 products="gecko",
                                 gecko_ffi_name="mFont.kerning",
                                 gecko_constant_prefix="NS_FONT_KERNING",
-                                spec="https://drafts.csswg.org/css-fonts/#propdef-font-stretch",
+                                spec="https://drafts.csswg.org/css-fonts/#propdef-font-kerning",
                                 animation_value_type="none")}
 
 /// FIXME: Implement proper handling of each values.
