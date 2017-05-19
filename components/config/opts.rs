@@ -190,6 +190,9 @@ pub struct Opts {
     /// True if webrender recording should be enabled.
     pub webrender_record: bool,
 
+    /// True if webrender is allowed to batch draw calls as instances.
+    pub webrender_batch: bool,
+
     /// True to compile all webrender shaders at init time. This is mostly
     /// useful when modifying the shaders, to ensure they all compile
     /// after each change is made.
@@ -306,6 +309,9 @@ pub struct DebugOptions {
     /// Enable webrender recording.
     pub webrender_record: bool,
 
+    /// Enable webrender instanced draw call batching.
+    pub webrender_batch: bool,
+
     /// Use multisample antialiasing in WebRender.
     pub use_msaa: bool,
 
@@ -353,6 +359,7 @@ impl DebugOptions {
                 "wr-stats" => self.webrender_stats = true,
                 "wr-debug" => self.webrender_debug = true,
                 "wr-record" => self.webrender_record = true,
+                "wr-no-batch" => self.webrender_batch = false,
                 "msaa" => self.use_msaa = true,
                 "full-backtraces" => self.full_backtraces = true,
                 "precache-shaders" => self.precache_shaders = true,
@@ -401,6 +408,7 @@ fn print_debug_usage(app: &str) -> ! {
     print_option("msaa", "Use multisample antialiasing in WebRender.");
     print_option("full-backtraces", "Print full backtraces for all errors");
     print_option("wr-debug", "Display webrender tile borders.");
+    print_option("wr-no-batch", "Disable webrender instanced batching.");
     print_option("precache-shaders", "Compile all shaders during init.");
     print_option("signpost", "Emit native OS signposts for profile events (currently macOS only)");
 
@@ -524,6 +532,7 @@ pub fn default_opts() -> Opts {
         is_printing_version: false,
         webrender_debug: false,
         webrender_record: false,
+        webrender_batch: true,
         precache_shaders: false,
         signpost: false,
         certificate_path: None,
@@ -818,6 +827,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         is_printing_version: is_printing_version,
         webrender_debug: debug_options.webrender_debug,
         webrender_record: debug_options.webrender_record,
+        webrender_batch: debug_options.webrender_batch,
         precache_shaders: debug_options.precache_shaders,
         signpost: debug_options.signpost,
         certificate_path: opt_match.opt_str("certificate-path"),

@@ -183,6 +183,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 resource_override_path: Some(resource_path),
                 enable_aa: opts.enable_text_antialiasing,
                 enable_profiler: opts.webrender_stats,
+                enable_batcher: opts.webrender_batch,
                 debug: opts.webrender_debug,
                 recorder: recorder,
                 precache_shaders: opts.precache_shaders,
