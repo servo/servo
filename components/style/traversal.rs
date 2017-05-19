@@ -747,12 +747,12 @@ fn compute_style<E, D>(_traversal: &D,
             element.match_and_cascade(context, &mut data, StyleSharingBehavior::Allow);
         }
         CascadeWithReplacements(hint) => {
-            let _rule_nodes_changed =
-                element.replace_rules(hint, context, &mut data);
-            element.cascade_primary_and_pseudos(context, &mut data);
+            let rules_changed = element.replace_rules(hint, context, &mut data);
+            element.cascade_primary_and_pseudos(context, &mut data,
+                                                rules_changed.important_rules_changed());
         }
         CascadeOnly => {
-            element.cascade_primary_and_pseudos(context, &mut data);
+            element.cascade_primary_and_pseudos(context, &mut data, false);
         }
     };
 }

@@ -250,7 +250,7 @@ pub mod animated_properties {
 }
 
 /// A set of longhand properties
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct LonghandIdSet {
     storage: [u32; (${len(data.longhands)} - 1 + 32) / 32]
 }
