@@ -12,6 +12,7 @@ use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter};
 use error_reporting::ParseErrorReporter;
 use parser::{PARSING_MODE_DEFAULT, ParsingMode, ParserContext, log_css_error};
 use std::fmt;
+use std::slice::Iter;
 use style_traits::ToCss;
 use stylesheets::{CssRuleType, Origin, UrlExtraData};
 use super::*;
@@ -54,6 +55,25 @@ pub struct PropertyDeclarationBlock {
     longhands: LonghandIdSet,
 }
 
+/// Iterator for PropertyDeclaration to be generated from PropertyDeclarationBlock.
+#[derive(Clone)]
+pub struct PropertyDeclarationIterator<'a> {
+    iter: Iter<'a, (PropertyDeclaration, Importance)>,
+}
+
+impl<'a> Iterator for PropertyDeclarationIterator<'a> {
+    type Item = &'a PropertyDeclaration;
+    #[inline]
+    fn next(&mut self) -> Option<&'a PropertyDeclaration> {
+        // we use this function because a closure won't be `Clone`
+        fn get_declaration(dec: &(PropertyDeclaration, Importance))
+            -> &PropertyDeclaration {
+            &dec.0
+        }
+        self.iter.next().map(get_declaration as fn(_) -> _)
+    }
+}
+
 impl fmt::Debug for PropertyDeclarationBlock {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.declarations.fmt(f)
@@ -91,6 +111,13 @@ impl PropertyDeclarationBlock {
     /// The declarations in this block
     pub fn declarations(&self) -> &[(PropertyDeclaration, Importance)] {
         &self.declarations
+    }
+
+    /// Iterate over only PropertyDeclaration.
+    pub fn declarations_iter(&self) -> PropertyDeclarationIterator {
+        PropertyDeclarationIterator {
+            iter: self.declarations.iter(),
+        }
     }
 
     /// Returns whether this block contains any declaration with `!important`.
@@ -369,15 +396,10 @@ impl PropertyDeclarationBlock {
                 }
             }
             Ok(shorthand) => {
-                // we use this function because a closure won't be `Clone`
-                fn get_declaration(dec: &(PropertyDeclaration, Importance))
-                    -> &PropertyDeclaration {
-                    &dec.0
-                }
                 if !self.declarations.iter().all(|decl| decl.0.shorthands().contains(&shorthand)) {
                     return Err(fmt::Error)
                 }
-                let iter = self.declarations.iter().map(get_declaration as fn(_) -> _);
+                let iter = self.declarations_iter();
                 match shorthand.get_shorthand_appendable_value(iter) {
                     Some(AppendableValue::Css { css, .. }) => {
                         dest.write_str(css)
