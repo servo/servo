@@ -8,7 +8,7 @@ use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use context::{SharedStyleContext, StyleContext, ThreadLocalStyleContext};
 use data::{ElementData, ElementStyles, StoredRestyleHint};
 use dom::{DirtyDescendants, NodeInfo, OpaqueNode, TElement, TNode};
-use matching::{MatchMethods, StyleSharingBehavior};
+use matching::{ChildCascadeRequirement, MatchMethods, StyleSharingBehavior};
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_SELF};
 use selector_parser::RestyleDamage;
 #[cfg(feature = "servo")] use servo_config::opts;
@@ -611,7 +611,12 @@ pub fn recalc_style_at<E, D>(traversal: &D,
 
     // Compute style for this element if necessary.
     if compute_self {
-        compute_style(traversal, traversal_data, context, element, &mut data);
+        match compute_style(traversal, traversal_data, context, element, &mut data) {
+            ChildCascadeRequirement::MustCascade => {
+                inherited_style_changed = true;
+            }
+            ChildCascadeRequirement::CanSkipCascade => {}
+        };
 
         // If we're restyling this element to display:none, throw away all style
         // data in the subtree, notify the caller to early-return.
@@ -620,9 +625,6 @@ pub fn recalc_style_at<E, D>(traversal: &D,
                    element);
             clear_descendant_data(element, &|e| unsafe { D::clear_element_data(&e) });
         }
-
-        // FIXME(bholley): Compute this accurately from the call to CalcStyleDifference.
-        inherited_style_changed = true;
     }
 
     // Now that matching and cascading is done, clear the bits corresponding to
@@ -711,7 +713,7 @@ fn compute_style<E, D>(_traversal: &D,
                        traversal_data: &PerLevelTraversalData,
                        context: &mut StyleContext<E>,
                        element: E,
-                       mut data: &mut AtomicRefMut<ElementData>)
+                       mut data: &mut AtomicRefMut<ElementData>) -> ChildCascadeRequirement
     where E: TElement,
           D: DomTraversal<E>,
 {
@@ -727,10 +729,10 @@ fn compute_style<E, D>(_traversal: &D,
         let sharing_result = unsafe {
             element.share_style_if_possible(context, &mut data)
         };
-        if let StyleWasShared(index) = sharing_result {
+        if let StyleWasShared(index, had_damage) = sharing_result {
             context.thread_local.statistics.styles_shared += 1;
             context.thread_local.style_sharing_candidate_cache.touch(index);
-            return;
+            return had_damage;
         }
     }
 
@@ -744,17 +746,28 @@ fn compute_style<E, D>(_traversal: &D,
             context.thread_local.statistics.elements_matched += 1;
 
             // Perform the matching and cascading.
-            element.match_and_cascade(context, &mut data, StyleSharingBehavior::Allow);
+            element.match_and_cascade(
+                context,
+                &mut data,
+                StyleSharingBehavior::Allow
+            )
         }
-        CascadeWithReplacements(hint) => {
-            let rules_changed = element.replace_rules(hint, context, &mut data);
-            element.cascade_primary_and_pseudos(context, &mut data,
-                                                rules_changed.important_rules_changed());
+        CascadeWithReplacements(flags) => {
+            let rules_changed = element.replace_rules(flags, context, &mut data);
+            element.cascade_primary_and_pseudos(
+                context,
+                &mut data,
+                rules_changed.important_rules_changed()
+            )
         }
         CascadeOnly => {
-            element.cascade_primary_and_pseudos(context, &mut data, false);
+            element.cascade_primary_and_pseudos(
+                context,
+                &mut data,
+                /* important_rules_changed = */ false
+            )
         }
-    };
+    }
 }
 
 fn preprocess_children<E, D>(traversal: &D,
