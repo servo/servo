@@ -575,18 +575,14 @@ impl ToCssWithGuard for KeyframesRule {
     where W: fmt::Write {
         try!(dest.write_str("@keyframes "));
         try!(self.name.to_css(dest));
-        try!(dest.write_str(" { "));
+        try!(dest.write_str(" {"));
         let iter = self.keyframes.iter();
-        let mut first = true;
         for lock in iter {
-            if !first {
-                try!(dest.write_str(" "));
-            }
-            first = false;
+            try!(dest.write_str("\n"));
             let keyframe = lock.read_with(&guard);
             try!(keyframe.to_css(guard, dest));
         }
-        dest.write_str(" }")
+        dest.write_str("\n}")
     }
 }
 
