@@ -337,6 +337,18 @@ mod bindings {
         where F: FnMut(Builder, &'a toml::Table) -> Builder {
             self.handle_items(key, |b, item| func(b, item.as_table().unwrap()))
         }
+        fn handle_common(self, fixups: &mut Vec<Fixup>) -> BuilderWithConfig<'a> {
+            self.handle_str_items("headers", |b, item| b.header(add_include(item)))
+                .handle_str_items("raw-lines", |b, item| b.raw_line(item))
+                .handle_str_items("hide-types", |b, item| b.hide_type(item))
+                .handle_table_items("fixups", |builder, item| {
+                    fixups.push(Fixup {
+                        pat: item["pat"].as_str().unwrap().into(),
+                        rep: item["rep"].as_str().unwrap().into(),
+                    });
+                    builder
+                })
+        }
 
         fn get_builder(self) -> Builder {
             for key in self.config.keys() {
@@ -366,7 +378,6 @@ mod bindings {
             }
         }
 
-        let mut fixups = vec![];
         let builder = Builder::get_initial_builder(build_type)
             .enable_cxx_namespaces()
             .with_codegen_config(CodegenConfig {
@@ -374,10 +385,9 @@ mod bindings {
                 vars: true,
                 ..CodegenConfig::nothing()
             });
+        let mut fixups = vec![];
         let builder = BuilderWithConfig::new(builder, CONFIG["structs"].as_table().unwrap())
-            .handle_str_items("headers", |b, item| b.header(add_include(item)))
-            .handle_str_items("raw-lines", |b, item| b.raw_line(item))
-            .handle_str_items("hide-types", |b, item| b.hide_type(item))
+            .handle_common(&mut fixups)
             .handle_str_items("bitfield-enums", |b, item| b.bitfield_enum(item))
             .handle_str_items("constified-enums", |b, item| b.constified_enum(item))
             .handle_str_items("whitelist-vars", |b, item| b.whitelisted_var(item))
@@ -406,13 +416,6 @@ mod bindings {
                 builder.hide_type(gecko)
                     .raw_line(format!("pub type {0}{2} = {1}{2};", gecko_name, servo,
                                       if generic { "<T>" } else { "" }))
-            })
-            .handle_table_items("fixups", |builder, item| {
-                fixups.push(Fixup {
-                    pat: item["pat"].as_str().unwrap().into(),
-                    rep: item["rep"].as_str().unwrap().into(),
-                });
-                builder
             })
             .get_builder();
         write_binding_file(builder, structs_file(build_type), &fixups);
@@ -472,10 +475,9 @@ mod bindings {
             });
         let config = CONFIG["bindings"].as_table().unwrap();
         let mut structs_types = HashSet::new();
+        let mut fixups = vec![];
         let mut builder = BuilderWithConfig::new(builder, config)
-            .handle_str_items("headers", |b, item| b.header(add_include(item)))
-            .handle_str_items("raw-lines", |b, item| b.raw_line(item))
-            .handle_str_items("hide-types", |b, item| b.hide_type(item))
+            .handle_common(&mut fixups)
             .handle_str_items("whitelist-functions", |b, item| b.whitelisted_function(item))
             .handle_str_items("structs-types", |mut builder, ty| {
                 builder = builder.hide_type(ty)
@@ -528,7 +530,7 @@ mod bindings {
                 .borrowed_type(ty)
                 .zero_size_type(ty, &structs_types);
         }
-        write_binding_file(builder, BINDINGS_FILE, &Vec::new());
+        write_binding_file(builder, BINDINGS_FILE, &fixups);
     }
 
     fn generate_atoms() {
