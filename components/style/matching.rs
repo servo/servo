@@ -614,9 +614,21 @@ trait PrivateMatchMethods: TElement {
             self.cascade_internal(context, &styles.primary, Some(pseudo_style));
 
         if let Some(old) = old_values {
-            // ::before and ::after are element-backed in Gecko, so they do
-            // the damage calculation for themselves.
-            if cfg!(feature = "servo") || !pseudo.is_before_or_after() {
+            // ::before and ::after are element-backed in Gecko, so they do the
+            // damage calculation for themselves, when there's an actual pseudo.
+            //
+            // NOTE(emilio): An alternative to this check is to just remove the
+            // pseudo-style entry here if new_values is display: none or has
+            // an ineffective content property...
+            //
+            // I think it's nice to handle it here instead for symmetry with how
+            // we handle display: none elements, but the other approach may be
+            // ok too?
+            let is_unexisting_before_or_after =
+                pseudo.is_before_or_after() &&
+                self.existing_style_for_restyle_damage(&old, Some(pseudo)).is_none();
+
+            if cfg!(feature = "servo") || is_unexisting_before_or_after {
                 self.accumulate_damage(&context.shared,
                                        restyle.unwrap(),
                                        &old,
@@ -802,12 +814,12 @@ trait PrivateMatchMethods: TElement {
             return;
         }
 
-        // Add restyle damage, but only the bits that aren't redundant with respect
-        // to damage applied on our ancestors.
+        // Add restyle damage, but only the bits that aren't redundant with
+        // respect to damage applied on our ancestors.
         //
         // See https://bugzilla.mozilla.org/show_bug.cgi?id=1301258#c12
-        // for followup work to make the optimization here more optimal by considering
-        // each bit individually.
+        // for followup work to make the optimization here more optimal by
+        // considering each bit individually.
         if !restyle.damage.contains(RestyleDamage::reconstruct()) {
             let new_damage = self.compute_restyle_damage(&old_values,
                                                          &new_values,
@@ -1446,23 +1458,41 @@ pub trait MatchMethods : TElement {
                               pseudo: Option<&PseudoElement>)
                               -> RestyleDamage
     {
-        match self.existing_style_for_restyle_damage(old_values, pseudo) {
-            Some(ref source) => RestyleDamage::compute(source, new_values),
-            None => {
-                // If there's no style source, that likely means that Gecko
-                // couldn't find a style context. This happens with display:none
-                // elements, and probably a number of other edge cases that
-                // we don't handle well yet (like display:contents).
-                if new_values.get_box().clone_display() == display::T::none &&
-                    old_values.get_box().clone_display() == display::T::none {
-                    // The style remains display:none. No need for damage.
-                    RestyleDamage::empty()
-                } else {
-                    // Something else. Be conservative for now.
-                    RestyleDamage::reconstruct()
-                }
-            }
+        if let Some(source) = self.existing_style_for_restyle_damage(old_values, pseudo) {
+            return RestyleDamage::compute(source, new_values);
         }
+
+        let new_style_is_display_none =
+            new_values.get_box().clone_display() == display::T::none;
+        let old_style_is_display_none =
+            old_values.get_box().clone_display() == display::T::none;
+
+        // If there's no style source, that likely means that Gecko couldn't
+        // find a style context.
+        //
+        // This happens with display:none elements, and not-yet-existing
+        // pseudo-elements.
+        if new_style_is_display_none && old_style_is_display_none {
+            // The style remains display:none. No need for damage.
+            return RestyleDamage::empty()
+        }
+
+        if pseudo.map_or(false, |p| p.is_before_or_after()) {
+            if (old_style_is_display_none ||
+                old_values.ineffective_content_property()) &&
+               (new_style_is_display_none ||
+                new_values.ineffective_content_property()) {
+                // The pseudo-element will remain undisplayed, so just avoid
+                // triggering any change.
+                return RestyleDamage::empty()
+            }
+            return RestyleDamage::reconstruct()
+        }
+
+        // Something else. Be conservative for now.
+        warn!("Reframing due to lack of old style source: {:?}, pseudo: {:?}",
+               self, pseudo);
+        RestyleDamage::reconstruct()
     }
 
     /// Cascade the eager pseudo-elements of this element.

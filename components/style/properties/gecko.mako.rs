@@ -141,6 +141,13 @@ impl ComputedValues {
         self.get_box().clone_display() == longhands::display::computed_value::T::contents
     }
 
+    /// Returns true if the value of the `content` property would make a
+    /// pseudo-element not rendered.
+    #[inline]
+    pub fn ineffective_content_property(&self) -> bool {
+        self.get_counters().ineffective_content_property()
+    }
+
     % for style_struct in data.style_structs:
     #[inline]
     pub fn clone_${style_struct.name_lower}(&self) -> Arc<style_structs::${style_struct.name}> {
@@ -4204,6 +4211,10 @@ clip-path
 
 <%self:impl_trait style_struct_name="Counters"
                   skip_longhands="content counter-increment counter-reset">
+    pub fn ineffective_content_property(&self) -> bool {
+        self.gecko.mContents.is_empty()
+    }
+
     pub fn set_content(&mut self, v: longhands::content::computed_value::T) {
         use properties::longhands::content::computed_value::T;
         use properties::longhands::content::computed_value::ContentItem;
