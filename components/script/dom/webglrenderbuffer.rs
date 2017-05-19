@@ -11,8 +11,8 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::webglobject::WebGLObject;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
 use std::cell::Cell;
+use std::sync::mpsc::Sender;
 use webrender_traits;
 use webrender_traits::{WebGLCommand, WebGLRenderbufferId, WebGLResult, WebGLError};
 
@@ -25,11 +25,11 @@ pub struct WebGLRenderbuffer {
     size: Cell<Option<(i32, i32)>>,
     internal_format: Cell<Option<u32>>,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
-    renderer: IpcSender<CanvasMsg>,
+    renderer: Sender<CanvasMsg>,
 }
 
 impl WebGLRenderbuffer {
-    fn new_inherited(renderer: IpcSender<CanvasMsg>,
+    fn new_inherited(renderer: Sender<CanvasMsg>,
                      id: WebGLRenderbufferId)
                      -> WebGLRenderbuffer {
         WebGLRenderbuffer {
@@ -43,7 +43,7 @@ impl WebGLRenderbuffer {
         }
     }
 
-    pub fn maybe_new(window: &Window, renderer: IpcSender<CanvasMsg>)
+    pub fn maybe_new(window: &Window, renderer: Sender<CanvasMsg>)
                      -> Option<Root<WebGLRenderbuffer>> {
         let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
         renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateRenderbuffer(sender))).unwrap();
@@ -53,7 +53,7 @@ impl WebGLRenderbuffer {
     }
 
     pub fn new(window: &Window,
-               renderer: IpcSender<CanvasMsg>,
+               renderer: Sender<CanvasMsg>,
                id: WebGLRenderbufferId)
                -> Root<WebGLRenderbuffer> {
         reflect_dom_object(box WebGLRenderbuffer::new_inherited(renderer, id),

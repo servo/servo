@@ -30,7 +30,7 @@ use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use range::*;
-use script_layout_interface::HTMLCanvasData;
+use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
 use script_layout_interface::SVGSVGData;
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use serde::ser::{Serialize, SerializeStruct, Serializer};
@@ -53,6 +53,7 @@ use style::values::{self, Either, Auto};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use text;
 use text::TextRunScanner;
+use webrender_traits;
 use wrapper::ThreadSafeLayoutNodeHelpers;
 
 // From gfxFontConstants.h in Firefox.
@@ -322,17 +323,31 @@ impl InlineAbsoluteFragmentInfo {
 }
 
 #[derive(Clone)]
+pub enum CanvasFragmentSource {
+    WebGL(webrender_traits::WebGLContextId),
+    Image(Option<Arc<Mutex<IpcSender<CanvasMsg>>>>)
+}
+
+#[derive(Clone)]
 pub struct CanvasFragmentInfo {
-    pub ipc_renderer: Option<Arc<Mutex<IpcSender<CanvasMsg>>>>,
+    pub source: CanvasFragmentSource,
     pub dom_width: Au,
     pub dom_height: Au,
 }
 
 impl CanvasFragmentInfo {
     pub fn new(data: HTMLCanvasData) -> CanvasFragmentInfo {
+        let source = match data.source {
+            HTMLCanvasDataSource::WebGL(context_id) => {
+                CanvasFragmentSource::WebGL(context_id)
+            },
+            HTMLCanvasDataSource::Image(ipc_sender) => {
+                CanvasFragmentSource::Image(ipc_sender.map(|renderer| Arc::new(Mutex::new(renderer))))
+            }
+        };
+
         CanvasFragmentInfo {
-            ipc_renderer: data.ipc_renderer
-                              .map(|renderer| Arc::new(Mutex::new(renderer))),
+            source: source,
             dom_width: Au::from_px(data.width as i32),
             dom_height: Au::from_px(data.height as i32),
         }

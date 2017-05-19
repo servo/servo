@@ -12,7 +12,7 @@ use offscreen_gl_context::{GLContextAttributes, NativeGLContext, OSMesaContext};
 use servo_config::opts;
 use std::borrow::ToOwned;
 use std::sync::Arc;
-use std::sync::mpsc::channel;
+use std::sync::mpsc::{self, channel};
 use std::thread;
 use webrender_traits;
 
@@ -105,6 +105,11 @@ enum WebGLPaintTaskData {
     Readback(GLContextWrapper, webrender_traits::RenderApi, Option<webrender_traits::ImageKey>),
 }
 
+pub enum WebGLContextSource {
+    WebRender(webrender_traits::WebGLContextId),
+    Readback(IpcSender<CanvasMsg>),
+}
+
 pub struct WebGLPaintThread {
     size: Size2D<i32>,
     data: WebGLPaintTaskData,
@@ -142,7 +147,7 @@ impl WebGLPaintThread {
                 Ok((painter, limits))
             },
             Err(msg) => {
-                warn!("Initial context creation failed, falling back to readback: {}", msg);
+                error!("Initial context creation failed, falling back to readback: {}", msg);
                 create_readback_painter(size, attrs, wr_api, gl_type)
             }
         }
@@ -177,14 +182,18 @@ impl WebGLPaintThread {
     pub fn start(size: Size2D<i32>,
                  attrs: GLContextAttributes,
                  webrender_api_sender: webrender_traits::RenderApiSender)
-                 -> Result<(IpcSender<CanvasMsg>, GLLimits), String> {
-        let (sender, receiver) = ipc::channel::<CanvasMsg>().unwrap();
+                 -> Result<(mpsc::Sender<CanvasMsg>, GLLimits, WebGLContextSource), String> {
+        let (sender, receiver) = channel::<CanvasMsg>();
         let (result_chan, result_port) = channel();
         thread::Builder::new().name("WebGLThread".to_owned()).spawn(move || {
             let gl_type = gl::GlType::default();
             let mut painter = match WebGLPaintThread::new(size, attrs, webrender_api_sender, gl_type) {
                 Ok((thread, limits)) => {
-                    result_chan.send(Ok(limits)).unwrap();
+                    let id = match thread.data {
+                        WebGLPaintTaskData::WebRender(_, id) => Some(id),
+                        _ => None
+                    };
+                    result_chan.send(Ok((limits, id))).unwrap();
                     thread
                 },
                 Err(e) => {
@@ -224,7 +233,33 @@ impl WebGLPaintThread {
             }
         }).expect("Thread spawning failed");
 
-        result_port.recv().unwrap().map(|limits| (sender, limits))
+        result_port.recv().unwrap().map(|(limits, id)| {
+            if let Some(id) = id {
+                // Webrender is the owner of the context
+                (sender, limits, WebGLContextSource::WebRender(id))
+            } else {
+                // Readback requires an ipc-channel to process SendData message from layout
+                let (ipc_sender, ipc_receiver) = ipc::channel::<CanvasMsg>().unwrap();
+                let sender_clone = sender.clone();
+                thread::Builder::new().name("WebGLThread_Readback".to_owned()).spawn(move || {
+                    loop {
+                        let msg = ipc_receiver.recv().unwrap();
+                        match msg {
+                            CanvasMsg::Common(ref m) => {
+                                match *m {
+                                    CanvasCommonMsg::Close => break,
+                                    _ => {},
+                                }
+                            },
+                            _ => {}
+                        }
+                        sender_clone.send(msg).unwrap();
+                    }
+                }).expect("Thread spawning failed");
+
+                (sender, limits, WebGLContextSource::Readback(ipc_sender))
+            }
+        })
     }
 
     fn send_data(&mut self, chan: IpcSender<CanvasData>) {

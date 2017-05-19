@@ -69,7 +69,6 @@ use bluetooth_traits::BluetoothRequest;
 use browsingcontext::{BrowsingContext, SessionHistoryChange, SessionHistoryEntry};
 use browsingcontext::{FullyActiveBrowsingContextsIterator, AllBrowsingContextsIterator};
 use canvas::canvas_paint_thread::CanvasPaintThread;
-use canvas::webgl_paint_thread::WebGLPaintThread;
 use canvas_traits::CanvasMsg;
 use compositing::SendableFrameTree;
 use compositing::compositor_thread::CompositorProxy;
@@ -93,7 +92,6 @@ use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDi
 use net_traits::{self, IpcSend, ResourceThreads};
 use net_traits::pub_domains::reg_host;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
-use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use pipeline::{InitialPipelineState, Pipeline};
 use profile_traits::mem;
 use profile_traits::time;
@@ -1049,9 +1047,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got create-canvas-paint-thread message");
                 self.handle_create_canvas_paint_thread_msg(&size, sender)
             }
-            FromScriptMsg::CreateWebGLPaintThread(size, attributes, sender) => {
+            FromScriptMsg::RequestWebGLApiSender(sender) => {
                 debug!("constellation got create-WebGL-paint-thread message");
-                self.handle_create_webgl_paint_thread_msg(&size, attributes, sender)
+                self.handle_request_webgl_api_sender_msg(sender);
             }
             FromScriptMsg::NodeStatus(message) => {
                 debug!("constellation got NodeStatus message");
@@ -1984,15 +1982,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn handle_create_webgl_paint_thread_msg(
+    fn handle_request_webgl_api_sender_msg(
             &mut self,
-            size: &Size2D<i32>,
-            attributes: GLContextAttributes,
-            response_sender: IpcSender<Result<(IpcSender<CanvasMsg>, GLLimits), String>>) {
+            response_sender: IpcSender<Result<webrender_traits::RenderApiSender, String>>) {
         let webrender_api = self.webrender_api_sender.clone();
-        let response = WebGLPaintThread::start(*size, attributes, webrender_api);
 
-        if let Err(e) = response_sender.send(response) {
+        if let Err(e) = response_sender.send(Ok(webrender_api)) {
             warn!("Create WebGL paint thread response failed ({})", e);
         }
     }

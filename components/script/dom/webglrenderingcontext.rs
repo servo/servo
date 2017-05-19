@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
+use canvas::webgl_paint_thread::{WebGLContextSource, WebGLPaintThread};
 use canvas_traits::{CanvasCommonMsg, CanvasMsg, byte_swap, multiply_u8_pixel};
 use core::nonzero::NonZero;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
@@ -37,7 +38,7 @@ use dom::webgluniformlocation::WebGLUniformLocation;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use euclid::size::Size2D;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc;
 use js::conversions::ConversionBehavior;
 use js::jsapi::{JSContext, JSObject, Type, Rooted};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UndefinedValue};
@@ -45,8 +46,10 @@ use js::typedarray::{TypedArray, TypedArrayElement, Float32, Int32};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageResponse;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
+use script_layout_interface::HTMLCanvasDataSource;
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::cell::Cell;
+use std::sync::mpsc;
 use webrender_traits;
 use webrender_traits::{WebGLCommand, WebGLError, WebGLFramebufferBindingRequest, WebGLParameter};
 use webrender_traits::WebGLError::*;
@@ -85,7 +88,7 @@ macro_rules! handle_object_deletion {
             }
 
             if let Some(command) = $unbind_command {
-                $self_.ipc_renderer
+                $self_.renderer
                     .send(CanvasMsg::WebGL(command))
                     .unwrap();
             }
@@ -129,7 +132,7 @@ bitflags! {
 pub struct WebGLRenderingContext {
     reflector_: Reflector,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
-    ipc_renderer: IpcSender<CanvasMsg>,
+    renderer: mpsc::Sender<CanvasMsg>,
     #[ignore_heap_size_of = "Defined in offscreen_gl_context"]
     limits: GLLimits,
     canvas: JS<HTMLCanvasElement>,
@@ -150,6 +153,8 @@ pub struct WebGLRenderingContext {
     current_scissor: Cell<(i32, i32, i32, i32)>,
     #[ignore_heap_size_of = "Because it's small"]
     current_clear_color: Cell<(f32, f32, f32, f32)>,
+    #[ignore_heap_size_of = "Defined in webgl_paint_thread"]
+    webgl_context_source: WebGLContextSource
 }
 
 impl WebGLRenderingContext {
@@ -160,14 +165,16 @@ impl WebGLRenderingContext {
                      -> Result<WebGLRenderingContext, String> {
         let (sender, receiver) = ipc::channel().unwrap();
         let constellation_chan = window.upcast::<GlobalScope>().constellation_chan();
-        constellation_chan.send(ConstellationMsg::CreateWebGLPaintThread(size, attrs, sender))
+        constellation_chan.send(ConstellationMsg::RequestWebGLApiSender(sender))
                           .unwrap();
-        let result = receiver.recv().unwrap();
+        let webrender_api = try!(receiver.recv().unwrap());
 
-        result.map(|(ipc_renderer, context_limits)| {
+        let result = WebGLPaintThread::start(size, attrs, webrender_api);
+
+        result.map(|(renderer, context_limits, ctx_source)| {
             WebGLRenderingContext {
                 reflector_: Reflector::new(),
-                ipc_renderer: ipc_renderer,
+                renderer: renderer,
                 limits: context_limits,
                 canvas: JS::from_ref(canvas),
                 last_error: Cell::new(None),
@@ -182,7 +189,8 @@ impl WebGLRenderingContext {
                 current_program: MutNullableJS::new(None),
                 current_vertex_attrib_0: Cell::new((0f32, 0f32, 0f32, 1f32)),
                 current_scissor: Cell::new((0, 0, size.width, size.height)),
-                current_clear_color: Cell::new((0.0, 0.0, 0.0, 0.0))
+                current_clear_color: Cell::new((0.0, 0.0, 0.0, 0.0)),
+                webgl_context_source: ctx_source
             }
         })
     }
@@ -222,12 +230,12 @@ impl WebGLRenderingContext {
     }
 
     pub fn recreate(&self, size: Size2D<i32>) {
-        self.ipc_renderer.send(CanvasMsg::Common(CanvasCommonMsg::Recreate(size))).unwrap();
+        self.renderer.send(CanvasMsg::Common(CanvasCommonMsg::Recreate(size))).unwrap();
 
         // ClearColor needs to be restored because after a resize the GLContext is recreated
         // and the framebuffer is cleared using the default black transparent color.
         let color = self.current_clear_color.get();
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::ClearColor(color.0, color.1, color.2, color.3)))
             .unwrap();
 
@@ -236,13 +244,13 @@ impl WebGLRenderingContext {
         // NativeContext handling library changes the scissor after a resize, so we need to reset the
         // default scissor when the canvas was created or the last scissor that the user set.
         let rect = self.current_scissor.get();
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::Scissor(rect.0, rect.1, rect.2, rect.3)))
             .unwrap()
     }
 
-    pub fn ipc_renderer(&self) -> IpcSender<CanvasMsg> {
-        self.ipc_renderer.clone()
+    pub fn renderer(&self) -> mpsc::Sender<CanvasMsg> {
+        self.renderer.clone()
     }
 
     pub fn webgl_error(&self, err: WebGLError) {
@@ -314,7 +322,7 @@ impl WebGLRenderingContext {
             self.current_vertex_attrib_0.set((x, y, z, w))
         }
 
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::VertexAttrib(indx, x, y, z, w)))
             .unwrap();
     }
@@ -483,12 +491,11 @@ impl WebGLRenderingContext {
 
                 (data, size, false)
             },
-            // TODO(emilio): Getting canvas data is implemented in CanvasRenderingContext2D,
-            // but we need to refactor it moving it to `HTMLCanvasElement` and support
-            // WebGLContext (probably via GetPixels()).
             ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::HTMLCanvasElement(canvas) => {
                 if let Some((mut data, size)) = canvas.fetch_all_data() {
-                    byte_swap(&mut data);
+                    if !canvas.is_webgl() {
+                        byte_swap(&mut data);
+                    }
                     // Pixels got from Canvas have already alpha premultiplied
                     (data, size, true)
                 } else {
@@ -566,10 +573,6 @@ impl WebGLRenderingContext {
                        width: usize,
                        height: usize,
                        unpacking_alignment: usize) -> Vec<u8> {
-        if !self.texture_unpacking_settings.get().contains(FLIP_Y_AXIS) {
-            return pixels;
-        }
-
         let cpp = (data_type.element_size() *
                    internal_format.components() / data_type.components_per_element()) as usize;
 
@@ -695,8 +698,11 @@ impl WebGLRenderingContext {
         }
 
         // FINISHME: Consider doing premultiply and flip in a single mutable Vec.
-        self.flip_teximage_y(pixels, internal_format, data_type,
-                             width as usize, height as usize, unpacking_alignment as usize)
+        if self.texture_unpacking_settings.get().contains(FLIP_Y_AXIS) {
+            pixels = self.flip_teximage_y(pixels, internal_format, data_type,
+                                          width as usize, height as usize, unpacking_alignment as usize)
+        }
+        pixels
     }
 
     fn tex_image_2d(&self,
@@ -724,7 +730,7 @@ impl WebGLRenderingContext {
         // GL_UNPACK_ALIGNMENT, while for textures from images or
         // canvas (produced by rgba8_image_to_tex_image_data()), it
         // will be 1.
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::PixelStorei(constants::UNPACK_ALIGNMENT, unpacking_alignment as i32)))
             .unwrap();
 
@@ -735,7 +741,7 @@ impl WebGLRenderingContext {
                                            internal_format.as_gl_constant(),
                                            data_type.as_gl_constant(), pixels);
 
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(msg))
             .unwrap();
 
@@ -779,7 +785,7 @@ impl WebGLRenderingContext {
         // GL_UNPACK_ALIGNMENT, while for textures from images or
         // canvas (produced by rgba8_image_to_tex_image_data()), it
         // will be 1.
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::PixelStorei(constants::UNPACK_ALIGNMENT, unpacking_alignment as i32)))
             .unwrap();
 
@@ -790,7 +796,7 @@ impl WebGLRenderingContext {
                                               format.as_gl_constant(),
                                               data_type.as_gl_constant(), pixels);
 
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(msg))
             .unwrap()
     }
@@ -807,11 +813,39 @@ impl WebGLRenderingContext {
             },
         }
     }
+
+    pub fn get_pixels(&self) -> Option<Vec<u8>> {
+        let (width, height) =  match self.get_current_framebuffer_size() {
+            Some((w, h)) => (w, h),
+            _ => return None
+        };
+        let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
+        self.renderer
+                .send(CanvasMsg::WebGL(WebGLCommand::ReadPixels(0, 0, width, height,
+                                                                constants::RGBA,
+                                                                constants::UNSIGNED_BYTE,
+                                                                sender)))
+                .unwrap();
+
+        let pixels = receiver.recv().unwrap();
+        Some(self.flip_teximage_y(pixels,
+                                  TexFormat::RGBA,
+                                  TexDataType::UnsignedByte,
+                                  width as usize,
+                                  height as usize,
+                                  1))
+    }
 }
 
 impl Drop for WebGLRenderingContext {
     fn drop(&mut self) {
-        self.ipc_renderer.send(CanvasMsg::Common(CanvasCommonMsg::Close)).unwrap();
+        self.renderer.send(CanvasMsg::Common(CanvasCommonMsg::Close)).unwrap();
+        match self.webgl_context_source {
+            WebGLContextSource::Readback(ref ipc_sender) => {
+                ipc_sender.send(CanvasMsg::Common(CanvasCommonMsg::Close)).unwrap();
+            },
+            _ => {}
+        }
     }
 }
 
@@ -867,7 +901,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn Flush(&self) {
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::Flush))
             .unwrap();
     }
@@ -875,7 +909,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn Finish(&self) {
         let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::Finish(sender)))
             .unwrap();
         receiver.recv().unwrap()
@@ -884,7 +918,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
     fn DrawingBufferWidth(&self) -> i32 {
         let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::DrawingBufferWidth(sender)))
             .unwrap();
         receiver.recv().unwrap()
@@ -893,7 +927,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
     fn DrawingBufferHeight(&self) -> i32 {
         let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::DrawingBufferHeight(sender)))
             .unwrap();
         receiver.recv().unwrap()
@@ -903,7 +937,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     unsafe fn GetBufferParameter(&self, _cx: *mut JSContext, target: u32, parameter: u32) -> JSVal {
         let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::GetBufferParameter(target, parameter, sender)))
             .unwrap();
         match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
@@ -959,7 +993,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
 
         let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::GetParameter(parameter, sender)))
             .unwrap();
         match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
@@ -999,7 +1033,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
 
         // If the send does not succeed, assume context lost
-        if let Err(_) = self.ipc_renderer
+        if let Err(_) = self.renderer
                             .send(CanvasMsg::WebGL(WebGLCommand::GetContextAttributes(sender))) {
             return None;
         }
@@ -1031,12 +1065,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn ActiveTexture(&self, texture: u32) {
-        self.ipc_renderer.send(CanvasMsg::WebGL(WebGLCommand::ActiveTexture(texture))).unwrap();
+        self.renderer.send(CanvasMsg::WebGL(WebGLCommand::ActiveTexture(texture))).unwrap();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn BlendColor(&self, r: f32, g: f32, b: f32, a: f32) {
-        self.ipc_renderer.send(CanvasMsg::WebGL(WebGLCommand::BlendColor(r, g, b, a))).unwrap();
+        self.renderer.send(CanvasMsg::WebGL(WebGLCommand::BlendColor(r, g, b, a))).unwrap();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
@@ -1045,7 +1079,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidEnum);
         }
 
-        self.ipc_renderer.send(CanvasMsg::WebGL(WebGLCommand::BlendEquation(mode))).unwrap();
+        self.renderer.send(CanvasMsg::WebGL(WebGLCommand::BlendEquation(mode))).unwrap();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
@@ -1054,7 +1088,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidEnum);
         }
 
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::BlendEquationSeparate(mode_rgb, mode_alpha)))
             .unwrap();
     }
@@ -1073,7 +1107,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidOperation);
         }
 
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::BlendFunc(src_factor, dest_factor)))
             .unwrap();
     }
@@ -1092,7 +1126,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidOperation);
         }
 
-        self.ipc_renderer.send(
+        self.renderer.send(
             CanvasMsg::WebGL(WebGLCommand::BlendFuncSeparate(src_rgb, dest_rgb, src_alpha, dest_alpha))).unwrap();
     }
 
@@ -1139,7 +1173,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         } else {
             slot.set(None);
             // Unbind the current buffer
-            self.ipc_renderer
+            self.renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::BindBuffer(target, None)))
                 .unwrap()
         }
@@ -1166,7 +1200,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         } else {
             // Bind the default framebuffer
             let cmd = WebGLCommand::BindFramebuffer(target, WebGLFramebufferBindingRequest::Default);
-            self.ipc_renderer.send(CanvasMsg::WebGL(cmd)).unwrap();
+            self.renderer.send(CanvasMsg::WebGL(cmd)).unwrap();
             self.bound_framebuffer.set(framebuffer);
         }
     }
@@ -1188,7 +1222,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             _ => {
                 self.bound_renderbuffer.set(None);
                 // Unbind the currently bound renderbuffer
-                self.ipc_renderer
+                self.renderer
                     .send(CanvasMsg::WebGL(WebGLCommand::BindRenderbuffer(target, None)))
                     .unwrap()
             }
@@ -1211,7 +1245,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         } else {
             slot.set(None);
             // Unbind the currently bound texture
-            self.ipc_renderer
+            self.renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::BindTexture(target, None)))
                 .unwrap()
         }
@@ -1331,7 +1365,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if (offset as usize) + data_vec.len() > bound_buffer.capacity() {
             return Ok(self.webgl_error(InvalidValue));
         }
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::BufferSubData(target, offset as isize, data_vec)))
             .unwrap();
 
@@ -1416,7 +1450,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                                                width as i32, height as i32,
                                                border as i32);
 
-        self.ipc_renderer.send(CanvasMsg::WebGL(msg)).unwrap()
+        self.renderer.send(CanvasMsg::WebGL(msg)).unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
@@ -1460,7 +1494,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                                                   x, y,
                                                   width as i32, height as i32);
 
-        self.ipc_renderer.send(CanvasMsg::WebGL(msg)).unwrap();
+        self.renderer.send(CanvasMsg::WebGL(msg)).unwrap();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
@@ -1469,35 +1503,35 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return;
         }
 
-        self.ipc_renderer.send(CanvasMsg::WebGL(WebGLCommand::Clear(mask))).unwrap();
+        self.renderer.send(CanvasMsg::WebGL(WebGLCommand::Clear(mask))).unwrap();
         self.mark_as_dirty();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn ClearColor(&self, red: f32, green: f32, blue: f32, alpha: f32) {
         self.current_clear_color.set((red, green, blue, alpha));
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::ClearColor(red, green, blue, alpha)))
             .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn ClearDepth(&self, depth: f32) {
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::ClearDepth(depth as f64)))
             .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn ClearStencil(&self, stencil: i32) {
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::ClearStencil(stencil)))
             .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn ColorMask(&self, r: bool, g: bool, b: bool, a: bool) {
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::ColorMask(r, g, b, a)))
             .unwrap()
     }
@@ -1506,7 +1540,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn CullFace(&self, mode: u32) {
         match mode {
             constants::FRONT | constants::BACK | constants::FRONT_AND_BACK =>
-                self.ipc_renderer
+                self.renderer
                     .send(CanvasMsg::WebGL(WebGLCommand::CullFace(mode)))
                     .unwrap(),
             _ => self.webgl_error(InvalidEnum),
@@ -1517,7 +1551,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn FrontFace(&self, mode: u32) {
         match mode {
             constants::CW | constants::CCW =>
-                self.ipc_renderer
+                self.renderer
                     .send(CanvasMsg::WebGL(WebGLCommand::FrontFace(mode)))
                     .unwrap(),
             _ => self.webgl_error(InvalidEnum),
@@ -1530,7 +1564,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::EQUAL | constants::LEQUAL |
             constants::GREATER | constants::NOTEQUAL |
             constants::GEQUAL | constants::ALWAYS =>
-                self.ipc_renderer
+                self.renderer
                     .send(CanvasMsg::WebGL(WebGLCommand::DepthFunc(func)))
                     .unwrap(),
             _ => self.webgl_error(InvalidEnum),
@@ -1539,7 +1573,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn DepthMask(&self, flag: bool) {
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::DepthMask(flag)))
             .unwrap()
     }
@@ -1555,7 +1589,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidOperation);
         }
 
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::DepthRange(near as f64, far as f64)))
             .unwrap()
     }
@@ -1563,7 +1597,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn Enable(&self, cap: u32) {
         if self.validate_feature_enum(cap) {
-            self.ipc_renderer
+            self.renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Enable(cap)))
                 .unwrap();
         }
@@ -1572,7 +1606,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn Disable(&self, cap: u32) {
         if self.validate_feature_enum(cap) {
-            self.ipc_renderer
+            self.renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Disable(cap)))
                 .unwrap()
         }
@@ -1589,27 +1623,27 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // generated objects, either here or in the webgl thread
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn CreateBuffer(&self) -> Option<Root<WebGLBuffer>> {
-        WebGLBuffer::maybe_new(self.global().as_window(), self.ipc_renderer.clone())
+        WebGLBuffer::maybe_new(self.global().as_window(), self.renderer.clone())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn CreateFramebuffer(&self) -> Option<Root<WebGLFramebuffer>> {
-        WebGLFramebuffer::maybe_new(self.global().as_window(), self.ipc_renderer.clone())
+        WebGLFramebuffer::maybe_new(self.global().as_window(), self.renderer.clone())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
     fn CreateRenderbuffer(&self) -> Option<Root<WebGLRenderbuffer>> {
-        WebGLRenderbuffer::maybe_new(self.global().as_window(), self.ipc_renderer.clone())
+        WebGLRenderbuffer::maybe_new(self.global().as_window(), self.renderer.clone())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn CreateTexture(&self) -> Option<Root<WebGLTexture>> {
-        WebGLTexture::maybe_new(self.global().as_window(), self.ipc_renderer.clone())
+        WebGLTexture::maybe_new(self.global().as_window(), self.renderer.clone())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn CreateProgram(&self) -> Option<Root<WebGLProgram>> {
-        WebGLProgram::maybe_new(self.global().as_window(), self.ipc_renderer.clone())
+        WebGLProgram::maybe_new(self.global().as_window(), self.renderer.clone())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
@@ -1621,7 +1655,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 return None;
             }
         }
-        WebGLShader::maybe_new(self.global().as_window(), self.ipc_renderer.clone(), shader_type)
+        WebGLShader::maybe_new(self.global().as_window(), self.renderer.clone(), shader_type)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
@@ -1728,7 +1762,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     return;
                 }
 
-                self.ipc_renderer
+                self.renderer
                     .send(CanvasMsg::WebGL(WebGLCommand::DrawArrays(mode, first, count)))
                     .unwrap();
                 self.mark_as_dirty();
@@ -1794,7 +1828,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::LINE_LOOP | constants::LINES |
             constants::TRIANGLE_STRIP | constants::TRIANGLE_FAN |
             constants::TRIANGLES => {
-                self.ipc_renderer
+                self.renderer
                     .send(CanvasMsg::WebGL(WebGLCommand::DrawElements(mode, count, type_, offset)))
                     .unwrap();
                 self.mark_as_dirty();
@@ -1809,7 +1843,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::EnableVertexAttribArray(attrib_id)))
             .unwrap()
     }
@@ -1820,7 +1854,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::DisableVertexAttribArray(attrib_id)))
             .unwrap()
     }
@@ -1953,7 +1987,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                                 precision_type: u32)
                                 -> Option<Root<WebGLShaderPrecisionFormat>> {
         let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
-        self.ipc_renderer.send(CanvasMsg::WebGL(WebGLCommand::GetShaderPrecisionFormat(shader_type,
+        self.renderer.send(CanvasMsg::WebGL(WebGLCommand::GetShaderPrecisionFormat(shader_type,
                                                                                        precision_type,
                                                                                        sender)))
                                                                                        .unwrap();
@@ -1990,7 +2024,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
 
         let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
-        self.ipc_renderer.send(CanvasMsg::WebGL(WebGLCommand::GetVertexAttrib(index, pname, sender))).unwrap();
+        self.renderer.send(CanvasMsg::WebGL(WebGLCommand::GetVertexAttrib(index, pname, sender))).unwrap();
 
         match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
             WebGLParameter::Int(val) => Int32Value(val),
@@ -2020,7 +2054,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             _ => return self.webgl_error(InvalidEnum),
         }
 
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::Hint(target, mode)))
             .unwrap()
     }
@@ -2035,7 +2069,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn IsEnabled(&self, cap: u32) -> bool {
         if self.validate_feature_enum(cap) {
             let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
-            self.ipc_renderer
+            self.renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::IsEnabled(cap, sender)))
                 .unwrap();
             return receiver.recv().unwrap();
@@ -2075,7 +2109,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::LineWidth(width)))
             .unwrap()
     }
@@ -2133,7 +2167,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn PolygonOffset(&self, factor: f32, units: f32) {
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::PolygonOffset(factor, units)))
             .unwrap()
     }
@@ -2236,7 +2270,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         };
 
         let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::ReadPixels(x, y, width, height, format, pixel_type, sender)))
             .unwrap();
 
@@ -2254,7 +2288,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn SampleCoverage(&self, value: f32, invert: bool) {
-        self.ipc_renderer.send(CanvasMsg::WebGL(WebGLCommand::SampleCoverage(value, invert))).unwrap();
+        self.renderer.send(CanvasMsg::WebGL(WebGLCommand::SampleCoverage(value, invert))).unwrap();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4
@@ -2264,7 +2298,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
 
         self.current_scissor.set((x, y, width, height));
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::Scissor(x, y, width, height)))
             .unwrap()
     }
@@ -2274,7 +2308,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         match func {
             constants::NEVER | constants::LESS | constants::EQUAL | constants::LEQUAL |
             constants::GREATER | constants::NOTEQUAL | constants::GEQUAL | constants::ALWAYS =>
-                self.ipc_renderer
+                self.renderer
                     .send(CanvasMsg::WebGL(WebGLCommand::StencilFunc(func, ref_, mask)))
                     .unwrap(),
             _ => self.webgl_error(InvalidEnum),
@@ -2291,7 +2325,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         match func {
             constants::NEVER | constants::LESS | constants::EQUAL | constants::LEQUAL |
             constants::GREATER | constants::NOTEQUAL | constants::GEQUAL | constants::ALWAYS =>
-                self.ipc_renderer
+                self.renderer
                     .send(CanvasMsg::WebGL(WebGLCommand::StencilFuncSeparate(face, func, ref_, mask)))
                     .unwrap(),
             _ => self.webgl_error(InvalidEnum),
@@ -2300,7 +2334,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn StencilMask(&self, mask: u32) {
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::StencilMask(mask)))
             .unwrap()
     }
@@ -2309,7 +2343,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn StencilMaskSeparate(&self, face: u32, mask: u32) {
         match face {
             constants::FRONT | constants::BACK | constants::FRONT_AND_BACK =>
-                self.ipc_renderer
+                self.renderer
                     .send(CanvasMsg::WebGL(WebGLCommand::StencilMaskSeparate(face, mask)))
                     .unwrap(),
             _ => return self.webgl_error(InvalidEnum),
@@ -2320,7 +2354,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn StencilOp(&self, fail: u32, zfail: u32, zpass: u32) {
         if self.validate_stencil_actions(fail) && self.validate_stencil_actions(zfail) &&
            self.validate_stencil_actions(zpass) {
-                self.ipc_renderer
+                self.renderer
                     .send(CanvasMsg::WebGL(WebGLCommand::StencilOp(fail, zfail, zpass)))
                     .unwrap()
         } else {
@@ -2337,7 +2371,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         if self.validate_stencil_actions(fail) && self.validate_stencil_actions(zfail) &&
            self.validate_stencil_actions(zpass) {
-                self.ipc_renderer
+                self.renderer
                     .send(CanvasMsg::WebGL(WebGLCommand::StencilOpSeparate(face, fail, zfail, zpass)))
                     .unwrap()
         } else {
@@ -2371,7 +2405,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   val: f32) {
         if self.validate_uniform_parameters(uniform, UniformSetterType::Float, &[val]) {
-            self.ipc_renderer
+            self.renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform1f(uniform.unwrap().id(), val)))
                 .unwrap()
         }
@@ -2382,7 +2416,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   val: i32) {
         if self.validate_uniform_parameters(uniform, UniformSetterType::Int, &[val]) {
-            self.ipc_renderer
+            self.renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform1i(uniform.unwrap().id(), val)))
                 .unwrap()
         }
@@ -2398,7 +2432,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let data_vec = try!(typed_array_or_sequence_to_vec::<Int32>(cx, data, ConversionBehavior::Default));
 
         if self.validate_uniform_parameters(uniform, UniformSetterType::Int, &data_vec) {
-            self.ipc_renderer
+            self.renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform1iv(uniform.unwrap().id(), data_vec)))
                 .unwrap()
         }
@@ -2416,7 +2450,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let data_vec = try!(typed_array_or_sequence_to_vec::<Float32>(cx, data, ()));
 
         if self.validate_uniform_parameters(uniform, UniformSetterType::Float, &data_vec) {
-            self.ipc_renderer
+            self.renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform1fv(uniform.unwrap().id(), data_vec)))
                 .unwrap()
         }
@@ -2429,7 +2463,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   x: f32, y: f32) {
         if self.validate_uniform_parameters(uniform, UniformSetterType::FloatVec2, &[x, y]) {
-            self.ipc_renderer
+            self.renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform2f(uniform.unwrap().id(), x, y)))
                 .unwrap()
         }
@@ -2447,7 +2481,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::FloatVec2,
                                             &data_vec) {
-            self.ipc_renderer
+            self.renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform2fv(uniform.unwrap().id(), data_vec)))
                 .unwrap()
         }
@@ -2462,7 +2496,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::IntVec2,
                                             &[x, y]) {
-            self.ipc_renderer
+            self.renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform2i(uniform.unwrap().id(), x, y)))
                 .unwrap()
         }
@@ -2480,7 +2514,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::IntVec2,
                                             &data_vec) {
-            self.ipc_renderer
+            self.renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform2iv(uniform.unwrap().id(), data_vec)))
                 .unwrap()
         }
@@ -2495,7 +2529,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::FloatVec3,
                                             &[x, y, z]) {
-            self.ipc_renderer
+            self.renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform3f(uniform.unwrap().id(), x, y, z)))
                 .unwrap()
         }
@@ -2513,7 +2547,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::FloatVec3,
                                             &data_vec) {
-            self.ipc_renderer
+            self.renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform3fv(uniform.unwrap().id(), data_vec)))
                 .unwrap()
         }
@@ -2528,7 +2562,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::IntVec3,
                                             &[x, y, z]) {
-            self.ipc_renderer
+            self.renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform3i(uniform.unwrap().id(), x, y, z)))
                 .unwrap()
         }
@@ -2546,7 +2580,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::IntVec3,
                                             &data_vec) {
-            self.ipc_renderer
+            self.renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform3iv(uniform.unwrap().id(), data_vec)))
                 .unwrap()
         }
@@ -2561,7 +2595,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::IntVec4,
                                             &[x, y, z, w]) {
-            self.ipc_renderer
+            self.renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform4i(uniform.unwrap().id(), x, y, z, w)))
                 .unwrap()
         }
@@ -2580,7 +2614,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::IntVec4,
                                             &data_vec) {
-            self.ipc_renderer
+            self.renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform4iv(uniform.unwrap().id(), data_vec)))
                 .unwrap()
         }
@@ -2595,7 +2629,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::FloatVec4,
                                             &[x, y, z, w]) {
-            self.ipc_renderer
+            self.renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform4f(uniform.unwrap().id(), x, y, z, w)))
                 .unwrap()
         }
@@ -2613,7 +2647,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::FloatVec4,
                                             &data_vec) {
-            self.ipc_renderer
+            self.renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform4fv(uniform.unwrap().id(), data_vec)))
                 .unwrap()
         }
@@ -2633,7 +2667,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::FloatMat2,
                                             &data_vec) {
-            self.ipc_renderer
+            self.renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::UniformMatrix2fv(uniform.unwrap().id(), transpose, data_vec)))
                 .unwrap()
         }
@@ -2653,7 +2687,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::FloatMat3,
                                             &data_vec) {
-            self.ipc_renderer
+            self.renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::UniformMatrix3fv(uniform.unwrap().id(), transpose, data_vec)))
                 .unwrap()
         }
@@ -2673,7 +2707,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::FloatMat4,
                                             &data_vec) {
-            self.ipc_renderer
+            self.renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::UniformMatrix4fv(uniform.unwrap().id(), transpose, data_vec)))
                 .unwrap()
         }
@@ -2807,7 +2841,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         let msg = CanvasMsg::WebGL(
                     WebGLCommand::VertexAttribPointer(attrib_id, size, data_type, normalized, stride, offset as u32));
-        self.ipc_renderer.send(msg).unwrap()
+        self.renderer.send(msg).unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4
@@ -2816,7 +2850,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidValue)
         }
 
-        self.ipc_renderer
+        self.renderer
             .send(CanvasMsg::WebGL(WebGLCommand::Viewport(x, y, width, height)))
             .unwrap()
     }
@@ -3144,13 +3178,20 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
 pub trait LayoutCanvasWebGLRenderingContextHelpers {
     #[allow(unsafe_code)]
-    unsafe fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg>;
+    unsafe fn canvas_data_source(&self) -> HTMLCanvasDataSource;
 }
 
 impl LayoutCanvasWebGLRenderingContextHelpers for LayoutJS<WebGLRenderingContext> {
     #[allow(unsafe_code)]
-    unsafe fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
-        (*self.unsafe_get()).ipc_renderer.clone()
+    unsafe fn canvas_data_source(&self) -> HTMLCanvasDataSource {
+        match (*self.unsafe_get()).webgl_context_source {
+            WebGLContextSource::WebRender(ref ctx_id) => {
+                HTMLCanvasDataSource::WebGL(ctx_id.clone())
+            },
+            WebGLContextSource::Readback(ref sender) => {
+                HTMLCanvasDataSource::Image(Some(sender.clone()))
+            }
+        }
     }
 }
 

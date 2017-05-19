@@ -377,7 +377,7 @@ impl VRDisplayMethods for VRDisplay {
             return;
         }
 
-        let api_sender = self.layer_ctx.get().unwrap().ipc_renderer();
+        let api_sender = self.layer_ctx.get().unwrap().renderer();
         let display_id = self.display.borrow().display_id as u64;
         let layer = self.layer.borrow();
         let msg = VRCompositorCommand::SubmitFrame(display_id, layer.left_bounds, layer.right_bounds);
@@ -444,7 +444,7 @@ impl VRDisplay {
         *self.frame_data_receiver.borrow_mut() = Some(sync_receiver);
 
         let display_id = self.display.borrow().display_id as u64;
-        let api_sender = self.layer_ctx.get().unwrap().ipc_renderer();
+        let api_sender = self.layer_ctx.get().unwrap().renderer();
         let js_sender = self.global().script_chan();
         let address = Trusted::new(&*self);
         let near_init = self.depth_near.get();
@@ -492,7 +492,7 @@ impl VRDisplay {
         self.presenting.set(false);
         *self.frame_data_receiver.borrow_mut() = None;
 
-        let api_sender = self.layer_ctx.get().unwrap().ipc_renderer();
+        let api_sender = self.layer_ctx.get().unwrap().renderer();
         let display_id = self.display.borrow().display_id as u64;
         let msg = VRCompositorCommand::Release(display_id);
         api_sender.send(CanvasMsg::WebVR(msg)).unwrap();

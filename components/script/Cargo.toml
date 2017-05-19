@@ -32,6 +32,7 @@ base64 = "0.4.2"
 bitflags = "0.7"
 bluetooth_traits = {path = "../bluetooth_traits"}
 byteorder = "1.0"
+canvas = {path = "../canvas"}
 canvas_traits = {path = "../canvas_traits"}
 caseless = "0.1.0"
 cookie = "0.6"

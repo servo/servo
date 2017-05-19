@@ -27,7 +27,6 @@ log = "0.3.5"
 msg = {path = "../msg"}
 net = {path = "../net"}
 net_traits = {path = "../net_traits"}
-offscreen_gl_context = "0.8"
 profile_traits = {path = "../profile_traits"}
 script_traits = {path = "../script_traits"}
 serde = "0.9"

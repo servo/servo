@@ -13,9 +13,9 @@ use dom::bindings::str::DOMString;
 use dom::webglobject::WebGLObject;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
 use std::cell::Cell;
 use std::sync::{ONCE_INIT, Once};
+use std::sync::mpsc::Sender;
 use webrender_traits;
 use webrender_traits::{WebGLCommand, WebGLParameter, WebGLResult, WebGLShaderId};
 
@@ -37,7 +37,7 @@ pub struct WebGLShader {
     attached_counter: Cell<u32>,
     compilation_status: Cell<ShaderCompilationStatus>,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
-    renderer: IpcSender<CanvasMsg>,
+    renderer: Sender<CanvasMsg>,
 }
 
 #[cfg(not(target_os = "android"))]
@@ -49,7 +49,7 @@ const SHADER_OUTPUT_FORMAT: Output = Output::Essl;
 static GLSLANG_INITIALIZATION: Once = ONCE_INIT;
 
 impl WebGLShader {
-    fn new_inherited(renderer: IpcSender<CanvasMsg>,
+    fn new_inherited(renderer: Sender<CanvasMsg>,
                      id: WebGLShaderId,
                      shader_type: u32)
                      -> WebGLShader {
@@ -68,7 +68,7 @@ impl WebGLShader {
     }
 
     pub fn maybe_new(window: &Window,
-                     renderer: IpcSender<CanvasMsg>,
+                     renderer: Sender<CanvasMsg>,
                      shader_type: u32)
                      -> Option<Root<WebGLShader>> {
         let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
@@ -79,7 +79,7 @@ impl WebGLShader {
     }
 
     pub fn new(window: &Window,
-               renderer: IpcSender<CanvasMsg>,
+               renderer: Sender<CanvasMsg>,
                id: WebGLShaderId,
                shader_type: u32)
                -> Root<WebGLShader> {
