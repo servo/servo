@@ -26,6 +26,7 @@ use smallvec::SmallVec;
 use std::borrow::Borrow;
 use std::cell::Cell;
 use std::clone::Clone;
+use std::cmp;
 use stylist::SelectorMap;
 
 /// When the ElementState of an element (like IN_HOVER_STATE) changes,
@@ -111,6 +112,12 @@ impl RestyleDepths {
     /// depths of all the current element's descendants.
     fn for_self_and_descendants() -> Self {
         RestyleDepths(0xff)
+    }
+
+    /// Returns a `RestyleDepths` representing the specified depth, where zero
+    /// is the current element depth, one is its children's depths, etc.
+    fn for_depth(depth: u32) -> Self {
+        RestyleDepths(1u8 << cmp::min(depth, 7))
     }
 
     /// Returns whether this `RestyleDepths` represents the current element
@@ -205,6 +212,19 @@ impl RestyleHint {
     pub fn descendants() -> Self {
         RestyleHint {
             match_under_self: RestyleDepths::for_descendants(),
+            match_later_siblings: false,
+            replacements: RestyleReplacements::empty(),
+        }
+    }
+
+    /// Creates a new `RestyleHint` that indicates selector matching must be
+    /// re-run on the descendants of element at the specified depth, where 0
+    /// indicates the element itself, 1 is its children, 2 its grandchildren,
+    /// etc.
+    #[inline]
+    pub fn descendants_at_depth(depth: u32) -> Self {
+        RestyleHint {
+            match_under_self: RestyleDepths::for_depth(depth),
             match_later_siblings: false,
             replacements: RestyleReplacements::empty(),
         }
@@ -682,22 +702,6 @@ fn is_attr_selector(sel: &Component<SelectorImpl>) -> bool {
     }
 }
 
-fn combinator_to_restyle_hint(combinator: Option<Combinator>) -> RestyleHint {
-    match combinator {
-        None => RestyleHint::for_self(),
-        Some(c) => match c {
-            // NB: RestyleHint::subtree() and not RestyleHint::descendants() is
-            // needed to handle properly eager pseudos, otherwise we may leave
-            // a stale style on the parent.
-            Combinator::PseudoElement => RestyleHint::subtree(),
-            Combinator::Child => RestyleHint::descendants(),
-            Combinator::Descendant => RestyleHint::descendants(),
-            Combinator::NextSibling => RestyleHint::later_siblings(),
-            Combinator::LaterSibling => RestyleHint::later_siblings(),
-        }
-    }
-}
-
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// The aspects of an selector which are sensitive.
@@ -827,6 +831,8 @@ impl DependencySet {
         let mut combinator = None;
         let mut iter = selector.inner.complex.iter();
         let mut index = 0;
+        let mut child_combinators_seen = 0;
+        let mut saw_descendant_combinator = false;
 
         loop {
             let sequence_start = index;
@@ -844,9 +850,34 @@ impl DependencySet {
                 index += 1; // Account for the simple selector.
             }
 
+            // Keep track of how many child combinators we've encountered,
+            // and whether we've encountered a descendant combinator at all.
+            match combinator {
+                Some(Combinator::Child) => child_combinators_seen += 1,
+                Some(Combinator::Descendant) => saw_descendant_combinator = true,
+                _ => {}
+            }
+
             // If we found a sensitivity, add an entry in the dependency set.
             if !visitor.sensitivities.is_empty() {
-                let hint = combinator_to_restyle_hint(combinator);
+                // Compute a RestyleHint given the current combinator and the
+                // tracked number of child combinators and presence of a
+                // descendant combinator.
+                let hint = match combinator {
+                    // NB: RestyleHint::subtree() and not
+                    // RestyleHint::descendants() is needed to handle properly
+                    // eager pseudos, otherwise we may leave a stale style on
+                    // the parent.
+                    Some(Combinator::PseudoElement) => RestyleHint::subtree(),
+                    Some(Combinator::Child) if !saw_descendant_combinator => {
+                        RestyleHint::descendants_at_depth(child_combinators_seen)
+                    }
+                    Some(Combinator::Child) |
+                    Some(Combinator::Descendant) => RestyleHint::descendants(),
+                    Some(Combinator::NextSibling) |
+                    Some(Combinator::LaterSibling) => RestyleHint::later_siblings(),
+                    None => RestyleHint::for_self(),
+                };
 
                 let dep_selector = if sequence_start == 0 {
                     // Reuse the bloom hashes if this is the base selector.
@@ -953,7 +984,7 @@ impl DependencySet {
                 return true;
             }
 
-            // We can ignore the selector replacements, since they would have already
+            // We can ignore the selector flags, since they would have already
             // been set during original matching for any element that might
             // change its matching behavior here.
             let matched_then =
