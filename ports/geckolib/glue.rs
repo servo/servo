@@ -250,18 +250,27 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
     debug!("Servo_TraverseSubtree: {:?}", element);
 
     let traversal_flags = match (root_behavior, restyle_behavior) {
-        (Root::Normal, Restyle::Normal) => TraversalFlags::empty(),
-        (Root::UnstyledChildrenOnly, Restyle::Normal) => UNSTYLED_CHILDREN_ONLY,
+        (Root::Normal, Restyle::Normal) |
+        (Root::Normal, Restyle::ForAnimationOnly)
+          => TraversalFlags::empty(),
+        (Root::UnstyledChildrenOnly, Restyle::Normal) |
+        (Root::UnstyledChildrenOnly, Restyle::ForAnimationOnly)
+          => UNSTYLED_CHILDREN_ONLY,
         (Root::Normal, Restyle::ForReconstruct) => FOR_RECONSTRUCT,
         _ => panic!("invalid combination of TraversalRootBehavior and TraversalRestyleBehavior"),
     };
 
-    if element.has_animation_only_dirty_descendants() ||
-       element.has_animation_restyle_hints() {
+    let needs_animation_only_restyle = element.has_animation_only_dirty_descendants() ||
+                                       element.has_animation_restyle_hints();
+    if needs_animation_only_restyle {
         traverse_subtree(element,
                          raw_data,
                          traversal_flags | ANIMATION_ONLY,
                          unsafe { &*snapshots });
+    }
+
+    if restyle_behavior == Restyle::ForAnimationOnly {
+        return needs_animation_only_restyle;
     }
 
     traverse_subtree(element,
