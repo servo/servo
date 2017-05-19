@@ -218,6 +218,16 @@ impl PropertyDeclarationBlock {
 
     fn extend_common(&mut self, mut drain: SourcePropertyDeclarationDrain,
                      importance: Importance, overwrite_more_important: bool) -> bool {
+        let all_shorthand_len = match drain.all_shorthand {
+            AllShorthand::NotSet => 0,
+            AllShorthand::CSSWideKeyword(_) |
+            AllShorthand::WithVariables(_) => ShorthandId::All.longhands().len()
+        };
+        let push_calls_count = drain.declarations.len() + all_shorthand_len;
+
+        // With deduplication the actual length increase may be less than this.
+        self.declarations.reserve(push_calls_count);
+
         let mut changed = false;
         for decl in &mut drain.declarations {
             changed |= self.push_common(decl, importance, overwrite_more_important);
