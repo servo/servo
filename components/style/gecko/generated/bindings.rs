@@ -1188,6 +1188,9 @@ extern "C" {
     pub fn Gecko_NewCSSValueSharedList(len: u32) -> *mut nsCSSValueSharedList;
 }
 extern "C" {
+    pub fn Gecko_NewNoneTransform() -> *mut nsCSSValueSharedList;
+}
+extern "C" {
     pub fn Gecko_CSSValue_GetArrayItem(css_value: nsCSSValueBorrowedMut,
                                        index: i32) -> nsCSSValueBorrowedMut;
 }
