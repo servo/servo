@@ -51,6 +51,34 @@ fn relations_are_shareable(relations: &StyleRelations) -> bool {
                           AFFECTED_BY_PRESENTATIONAL_HINTS)
 }
 
+/// Represents the result of comparing an element's old and new style.
+pub struct StyleDifference {
+    /// The resulting damage.
+    pub damage: RestyleDamage,
+
+    /// Whether any styles changed.
+    pub change: StyleChange,
+}
+
+impl StyleDifference {
+    /// Creates a new `StyleDifference`.
+    pub fn new(damage: RestyleDamage, change: StyleChange) -> Self {
+        StyleDifference {
+            change: change,
+            damage: damage,
+        }
+    }
+}
+
+/// Represents whether or not the style of an element has changed.
+#[derive(Copy, Clone)]
+pub enum StyleChange {
+    /// The style hasn't changed.
+    Unchanged,
+    /// The style has changed.
+    Changed,
+}
+
 /// Information regarding a style sharing candidate.
 ///
 /// Note that this information is stored in TLS and cleared after the traversal,
@@ -375,8 +403,37 @@ pub enum StyleSharingResult {
     /// We didn't find anybody to share the style with.
     CannotShare,
     /// The node's style can be shared. The integer specifies the index in the
-    /// LRU cache that was hit and the damage that was done.
-    StyleWasShared(usize),
+    /// LRU cache that was hit and the damage that was done. The
+    /// `ChildCascadeRequirement` indicates whether style changes due to using
+    /// the shared style mean we need to recascade to children.
+    StyleWasShared(usize, ChildCascadeRequirement),
+}
+
+/// Whether or not newly computed values for an element need to be cascade
+/// to children.
+pub enum ChildCascadeRequirement {
+    /// Old and new computed values were the same, or we otherwise know that
+    /// we won't bother recomputing style for children, so we can skip cascading
+    /// the new values into child elements.
+    CanSkipCascade,
+    /// Old and new computed values were different, so we must cascade the
+    /// new values to children.
+    ///
+    /// FIXME(heycam) Although this is "must" cascade, in the future we should
+    /// track whether child elements rely specifically on inheriting particular
+    /// property values.  When we do that, we can treat `MustCascade` as "must
+    /// cascade unless we know that changes to these properties can be
+    /// ignored".
+    MustCascade,
+}
+
+impl From<StyleChange> for ChildCascadeRequirement {
+    fn from(change: StyleChange) -> ChildCascadeRequirement {
+        match change {
+            StyleChange::Unchanged => ChildCascadeRequirement::CanSkipCascade,
+            StyleChange::Changed => ChildCascadeRequirement::MustCascade,
+        }
+    }
 }
 
 trait PrivateMatchMethods: TElement {
@@ -536,7 +593,8 @@ trait PrivateMatchMethods: TElement {
     /// setting them on the ElementData.
     fn cascade_primary(&self,
                        context: &mut StyleContext<Self>,
-                       data: &mut ElementData) {
+                       data: &mut ElementData)
+                       -> ChildCascadeRequirement {
         // Collect some values.
         let (mut styles, restyle) = data.styles_and_restyle_mut();
         let mut primary_style = &mut styles.primary;
@@ -554,16 +612,19 @@ trait PrivateMatchMethods: TElement {
                                     primary_style);
         }
 
-        if let Some(old) = old_values {
+        let child_cascade_requirement =
             self.accumulate_damage(&context.shared,
-                                   restyle.unwrap(),
-                                   &old,
+                                   restyle,
+                                   old_values.as_ref().map(|v| v.as_ref()),
                                    &new_values,
                                    None);
-        }
 
         // Set the new computed values.
         primary_style.values = Some(new_values);
+
+        // Return whether the damage indicates we must cascade new inherited
+        // values into children.
+        child_cascade_requirement
     }
 
     fn cascade_eager_pseudo(&self,
@@ -578,16 +639,14 @@ trait PrivateMatchMethods: TElement {
         let new_values =
             self.cascade_internal(context, &styles.primary, Some(pseudo_style));
 
-        if let Some(old) = old_values {
-            // ::before and ::after are element-backed in Gecko, so they do
-            // the damage calculation for themselves.
-            if cfg!(feature = "servo") || !pseudo.is_before_or_after() {
-                self.accumulate_damage(&context.shared,
-                                       restyle.unwrap(),
-                                       &old,
-                                       &new_values,
-                                       Some(pseudo));
-            }
+        // ::before and ::after are element-backed in Gecko, so they do
+        // the damage calculation for themselves.
+        if cfg!(feature = "servo") || !pseudo.is_before_or_after() {
+            self.accumulate_damage(&context.shared,
+                                   restyle,
+                                   old_values.as_ref().map(|v| v.as_ref()),
+                                   &new_values,
+                                   Some(pseudo));
         }
 
         pseudo_style.values = Some(new_values)
@@ -742,54 +801,68 @@ trait PrivateMatchMethods: TElement {
         }
     }
 
-    /// Computes and applies non-redundant damage.
-    #[cfg(feature = "gecko")]
+    /// Computes and applies restyle damage.
     fn accumulate_damage(&self,
                          shared_context: &SharedStyleContext,
-                         restyle: &mut RestyleData,
-                         old_values: &ComputedValues,
+                         restyle: Option<&mut RestyleData>,
+                         old_values: Option<&ComputedValues>,
                          new_values: &Arc<ComputedValues>,
-                         pseudo: Option<&PseudoElement>) {
+                         pseudo: Option<&PseudoElement>)
+                         -> ChildCascadeRequirement {
+        if restyle.is_none() || old_values.is_none() {
+            return ChildCascadeRequirement::MustCascade;
+        }
+
+        self.accumulate_damage_for(shared_context, restyle.unwrap(),
+                                   old_values.unwrap(), new_values, pseudo)
+    }
+
+    /// Computes and applies non-redundant damage.
+    #[cfg(feature = "gecko")]
+    fn accumulate_damage_for(&self,
+                             shared_context: &SharedStyleContext,
+                             restyle: &mut RestyleData,
+                             old_values: &ComputedValues,
+                             new_values: &Arc<ComputedValues>,
+                             pseudo: Option<&PseudoElement>)
+                             -> ChildCascadeRequirement {
         // Don't accumulate damage if we're in a restyle for reconstruction.
         if shared_context.traversal_flags.for_reconstruct() {
-            return;
+            return ChildCascadeRequirement::MustCascade;
         }
 
         // If an ancestor is already getting reconstructed by Gecko's top-down
-        // frame constructor, no need to apply damage.
-        if restyle.damage_handled.contains(RestyleDamage::reconstruct()) {
-            restyle.damage = RestyleDamage::empty();
-            return;
-        }
-
-        // Add restyle damage, but only the bits that aren't redundant with respect
-        // to damage applied on our ancestors.
+        // frame constructor, no need to apply damage.  Similarly if we already
+        // have an explicitly stored ReconstructFrame hint.
         //
         // See https://bugzilla.mozilla.org/show_bug.cgi?id=1301258#c12
         // for followup work to make the optimization here more optimal by considering
         // each bit individually.
-        if !restyle.damage.contains(RestyleDamage::reconstruct()) {
-            let new_damage = self.compute_restyle_damage(&old_values,
-                                                         &new_values,
-                                                         pseudo);
-            if !restyle.damage_handled.contains(new_damage) {
-                restyle.damage |= new_damage;
-            }
+        let skip_applying_damage =
+            restyle.damage_handled.contains(RestyleDamage::reconstruct()) ||
+            restyle.damage.contains(RestyleDamage::reconstruct());
+
+        let difference = self.compute_style_difference(&old_values,
+                                                       &new_values,
+                                                       pseudo);
+        if !skip_applying_damage {
+            restyle.damage |= difference.damage;
         }
+        difference.change.into()
     }
 
     /// Computes and applies restyle damage unless we've already maxed it out.
     #[cfg(feature = "servo")]
-    fn accumulate_damage(&self,
-                         _shared_context: &SharedStyleContext,
-                         restyle: &mut RestyleData,
-                         old_values: &ComputedValues,
-                         new_values: &Arc<ComputedValues>,
-                         pseudo: Option<&PseudoElement>) {
-        if restyle.damage != RestyleDamage::rebuild_and_reflow() {
-            restyle.damage |=
-                self.compute_restyle_damage(&old_values, &new_values, pseudo);
-        }
+    fn accumulate_damage_for(&self,
+                             _shared_context: &SharedStyleContext,
+                             restyle: &mut RestyleData,
+                             old_values: &ComputedValues,
+                             new_values: &Arc<ComputedValues>,
+                             pseudo: Option<&PseudoElement>)
+                             -> ChildCascadeRequirement {
+        let difference = self.compute_style_difference(&old_values, &new_values, pseudo);
+        restyle.damage |= difference.damage;
+        difference.change.into()
     }
 
     #[cfg(feature = "servo")]
@@ -877,7 +950,7 @@ pub trait MatchMethods : TElement {
     fn match_and_cascade(&self,
                          context: &mut StyleContext<Self>,
                          data: &mut ElementData,
-                         sharing: StyleSharingBehavior)
+                         sharing: StyleSharingBehavior) -> ChildCascadeRequirement
     {
         // Perform selector matching for the primary style.
         let mut relations = StyleRelations::empty();
@@ -886,7 +959,7 @@ pub trait MatchMethods : TElement {
                                                     &mut relations);
 
         // Cascade properties and compute primary values.
-        self.cascade_primary(context, data);
+        let child_cascade_requirement = self.cascade_primary(context, data);
 
         // Match and cascade eager pseudo-elements.
         if !data.styles().is_display_none() {
@@ -920,15 +993,18 @@ pub trait MatchMethods : TElement {
                                        relations,
                                        revalidation_match_results);
         }
+
+        child_cascade_requirement
     }
 
     /// Performs the cascade, without matching.
     fn cascade_primary_and_pseudos(&self,
                                    context: &mut StyleContext<Self>,
-                                   mut data: &mut ElementData)
+                                   mut data: &mut ElementData) -> ChildCascadeRequirement
     {
-        self.cascade_primary(context, &mut data);
+        let child_cascade_requirement = self.cascade_primary(context, &mut data);
         self.cascade_pseudos(context, &mut data);
+        child_cascade_requirement
     }
 
     /// Runs selector matching to (re)compute the primary rule node for this element.
@@ -1281,11 +1357,12 @@ pub trait MatchMethods : TElement {
                     debug_assert_eq!(data.has_styles(), data.has_restyle());
                     let old_values = data.get_styles_mut()
                                          .and_then(|s| s.primary.values.take());
-                    if let Some(old) = old_values {
+                    let child_cascade_requirement =
                         self.accumulate_damage(&context.shared,
-                                               data.restyle_mut(), &old,
-                                               shared_style.values(), None);
-                    }
+                                               data.get_restyle_mut(),
+                                               old_values.as_ref().map(|v| v.as_ref()),
+                                               shared_style.values(),
+                                               None);
 
                     // We never put elements with pseudo style into the style
                     // sharing cache, so we can just mint an ElementStyles
@@ -1295,7 +1372,7 @@ pub trait MatchMethods : TElement {
                     let styles = ElementStyles::new(shared_style);
                     data.set_styles(styles);
 
-                    return StyleSharingResult::StyleWasShared(i)
+                    return StyleSharingResult::StyleWasShared(i, child_cascade_requirement)
                 }
                 Err(miss) => {
                     debug!("Cache miss: {:?}", miss);
@@ -1379,14 +1456,14 @@ pub trait MatchMethods : TElement {
     /// Given the old and new style of this element, and whether it's a
     /// pseudo-element, compute the restyle damage used to determine which
     /// kind of layout or painting operations we'll need.
-    fn compute_restyle_damage(&self,
-                              old_values: &ComputedValues,
-                              new_values: &Arc<ComputedValues>,
-                              pseudo: Option<&PseudoElement>)
-                              -> RestyleDamage
+    fn compute_style_difference(&self,
+                                old_values: &ComputedValues,
+                                new_values: &Arc<ComputedValues>,
+                                pseudo: Option<&PseudoElement>)
+                                -> StyleDifference
     {
         match self.existing_style_for_restyle_damage(old_values, pseudo) {
-            Some(ref source) => RestyleDamage::compute(source, new_values),
+            Some(ref source) => RestyleDamage::compute_style_difference(source, new_values),
             None => {
                 // If there's no style source, that likely means that Gecko
                 // couldn't find a style context. This happens with display:none
@@ -1395,16 +1472,19 @@ pub trait MatchMethods : TElement {
                 if new_values.get_box().clone_display() == display::T::none &&
                     old_values.get_box().clone_display() == display::T::none {
                     // The style remains display:none. No need for damage.
-                    RestyleDamage::empty()
+                    // (It doesn't matter what value we use for the StyleChange,
+                    // since we won't traverse into the display:none subtree
+                    // anyway.)
+                    StyleDifference::new(RestyleDamage::empty(), StyleChange::Unchanged)
                 } else {
                     // Something else. Be conservative for now.
-                    RestyleDamage::reconstruct()
+                    StyleDifference::new(RestyleDamage::reconstruct(), StyleChange::Changed)
                 }
             }
         }
     }
 
-    /// Cascade the eager pseudo-elements of this element.
+    /// Performs the cascade for the element's eager pseudos.
     fn cascade_pseudos(&self,
                        context: &mut StyleContext<Self>,
                        mut data: &mut ElementData)
