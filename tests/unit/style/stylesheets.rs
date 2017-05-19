@@ -246,6 +246,10 @@ fn test_parse_stylesheet() {
                     })),
                 ],
                 vendor_prefix: None,
+                source_location: SourceLocation {
+                    line: 16,
+                    column: 19,
+                },
             })))
 
         ], &stylesheet.shared_lock),

@@ -29,6 +29,8 @@ use style::gecko_bindings::bindings;
 use style::gecko_bindings::bindings::{RawGeckoKeyframeListBorrowed, RawGeckoKeyframeListBorrowedMut};
 use style::gecko_bindings::bindings::{RawServoDeclarationBlockBorrowed, RawServoDeclarationBlockStrong};
 use style::gecko_bindings::bindings::{RawServoDocumentRule, RawServoDocumentRuleBorrowed};
+use style::gecko_bindings::bindings::{RawServoKeyframe, RawServoKeyframeBorrowed, RawServoKeyframeStrong};
+use style::gecko_bindings::bindings::{RawServoKeyframesRule, RawServoKeyframesRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoMediaList, RawServoMediaListBorrowed, RawServoMediaListStrong};
 use style::gecko_bindings::bindings::{RawServoMediaRule, RawServoMediaRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoNamespaceRule, RawServoNamespaceRuleBorrowed};
@@ -74,7 +76,7 @@ use style::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasFFI, HasArcFFI, 
 use style::gecko_bindings::sugar::ownership::{HasSimpleFFI, Strong};
 use style::gecko_bindings::sugar::refptr::RefPtr;
 use style::gecko_properties::{self, style_structs};
-use style::keyframes::KeyframesStepValue;
+use style::keyframes::{Keyframe, KeyframeSelector, KeyframesStepValue};
 use style::media_queries::{MediaList, parse_media_query_list};
 use style::parallel;
 use style::parser::{PARSING_MODE_DEFAULT, ParserContext};
@@ -92,7 +94,7 @@ use style::string_cache::Atom;
 use style::style_adjuster::StyleAdjuster;
 use style::stylearc::Arc;
 use style::stylesheets::{CssRule, CssRules, CssRuleType, CssRulesHelpers};
-use style::stylesheets::{ImportRule, MediaRule, NamespaceRule, Origin};
+use style::stylesheets::{ImportRule, KeyframesRule, MediaRule, NamespaceRule, Origin};
 use style::stylesheets::{PageRule, Stylesheet, StyleRule, SupportsRule, DocumentRule};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::supports::parse_condition_or_declaration;
@@ -100,6 +102,7 @@ use style::thread_state;
 use style::timer::Timer;
 use style::traversal::{ANIMATION_ONLY, FOR_RECONSTRUCT, UNSTYLED_CHILDREN_ONLY};
 use style::traversal::{resolve_style, DomTraversal, TraversalDriver, TraversalFlags};
+use style::values::{CustomIdent, KeyframesName};
 use style_traits::ToCss;
 use super::stylesheet_loader::StylesheetLoader;
 
@@ -774,6 +777,28 @@ pub extern "C" fn Servo_CssRules_DeleteRule(rules: ServoCssRulesBorrowed, index:
     })
 }
 
+macro_rules! impl_basic_rule_funcs_without_getter {
+    { ($rule_type:ty, $raw_type:ty),
+        debug: $debug:ident,
+        to_css: $to_css:ident,
+    } => {
+        #[no_mangle]
+        pub extern "C" fn $debug(rule: &$raw_type, result: *mut nsACString) {
+            read_locked_arc(rule, |rule: &$rule_type| {
+                write!(unsafe { result.as_mut().unwrap() }, "{:?}", *rule).unwrap();
+            })
+        }
+
+        #[no_mangle]
+        pub extern "C" fn $to_css(rule: &$raw_type, result: *mut nsAString) {
+            let global_style_data = &*GLOBAL_STYLE_DATA;
+            let guard = global_style_data.shared_lock.read();
+            let rule = Locked::<$rule_type>::as_arc(&rule);
+            rule.read_with(&guard).to_css(&guard, unsafe { result.as_mut().unwrap() }).unwrap();
+        }
+    }
+}
+
 macro_rules! impl_basic_rule_funcs {
     { ($name:ident, $rule_type:ty, $raw_type:ty),
         getter: $getter:ident,
@@ -801,19 +826,9 @@ macro_rules! impl_basic_rule_funcs {
             }
         }
 
-        #[no_mangle]
-        pub extern "C" fn $debug(rule: &$raw_type, result: *mut nsACString) {
-            read_locked_arc(rule, |rule: &$rule_type| {
-                write!(unsafe { result.as_mut().unwrap() }, "{:?}", *rule).unwrap();
-            })
-        }
-
-        #[no_mangle]
-        pub extern "C" fn $to_css(rule: &$raw_type, result: *mut nsAString) {
-            let global_style_data = &*GLOBAL_STYLE_DATA;
-            let guard = global_style_data.shared_lock.read();
-            let rule = Locked::<$rule_type>::as_arc(&rule);
-            rule.read_with(&guard).to_css(&guard, unsafe { result.as_mut().unwrap() }).unwrap();
+        impl_basic_rule_funcs_without_getter! { ($rule_type, $raw_type),
+            debug: $debug,
+            to_css: $to_css,
         }
     }
 }
@@ -838,6 +853,17 @@ impl_basic_rule_funcs! { (Style, StyleRule, RawServoStyleRule),
     getter: Servo_CssRules_GetStyleRuleAt,
     debug: Servo_StyleRule_Debug,
     to_css: Servo_StyleRule_GetCssText,
+}
+
+impl_basic_rule_funcs_without_getter! { (Keyframe, RawServoKeyframe),
+    debug: Servo_Keyframe_Debug,
+    to_css: Servo_Keyframe_GetCssText,
+}
+
+impl_basic_rule_funcs! { (Keyframes, KeyframesRule, RawServoKeyframesRule),
+    getter: Servo_CssRules_GetKeyframesRuleAt,
+    debug: Servo_KeyframesRule_Debug,
+    to_css: Servo_KeyframesRule_GetCssText,
 }
 
 impl_group_rule_funcs! { (Media, MediaRule, RawServoMediaRule),
@@ -915,6 +941,99 @@ pub extern "C" fn Servo_StyleRule_SetStyle(rule: RawServoStyleRuleBorrowed,
 pub extern "C" fn Servo_StyleRule_GetSelectorText(rule: RawServoStyleRuleBorrowed, result: *mut nsAString) {
     read_locked_arc(rule, |rule: &StyleRule| {
         rule.selectors.to_css(unsafe { result.as_mut().unwrap() }).unwrap();
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_Keyframe_GetKeyText(keyframe: RawServoKeyframeBorrowed, result: *mut nsAString) {
+    read_locked_arc(keyframe, |keyframe: &Keyframe| {
+        keyframe.selector.to_css(unsafe { result.as_mut().unwrap() }).unwrap()
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_Keyframe_SetKeyText(keyframe: RawServoKeyframeBorrowed, text: *const nsACString) -> bool {
+    let text = unsafe { text.as_ref().unwrap().as_str_unchecked() };
+    if let Ok(selector) = Parser::new(&text).parse_entirely(KeyframeSelector::parse) {
+        write_locked_arc(keyframe, |keyframe: &mut Keyframe| {
+            keyframe.selector = selector;
+        });
+        true
+    } else {
+        false
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_Keyframe_GetStyle(keyframe: RawServoKeyframeBorrowed) -> RawServoDeclarationBlockStrong {
+    read_locked_arc(keyframe, |keyframe: &Keyframe| keyframe.block.clone().into_strong())
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_Keyframe_SetStyle(keyframe: RawServoKeyframeBorrowed,
+                                          declarations: RawServoDeclarationBlockBorrowed) {
+    let declarations = Locked::<PropertyDeclarationBlock>::as_arc(&declarations);
+    write_locked_arc(keyframe, |keyframe: &mut Keyframe| {
+        keyframe.block = declarations.clone();
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_KeyframesRule_GetName(rule: RawServoKeyframesRuleBorrowed) -> *mut nsIAtom {
+    read_locked_arc(rule, |rule: &KeyframesRule| rule.name.as_atom().as_ptr())
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_KeyframesRule_SetName(rule: RawServoKeyframesRuleBorrowed, name: *mut nsIAtom) {
+    write_locked_arc(rule, |rule: &mut KeyframesRule| {
+        rule.name = KeyframesName::Ident(CustomIdent(unsafe { Atom::from_addrefed(name) }));
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_KeyframesRule_GetCount(rule: RawServoKeyframesRuleBorrowed) -> u32 {
+    read_locked_arc(rule, |rule: &KeyframesRule| rule.keyframes.len() as u32)
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_KeyframesRule_GetKeyframe(rule: RawServoKeyframesRuleBorrowed, index: u32)
+                                                  -> RawServoKeyframeStrong {
+    read_locked_arc(rule, |rule: &KeyframesRule| {
+        rule.keyframes[index as usize].clone().into_strong()
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_KeyframesRule_FindRule(rule: RawServoKeyframesRuleBorrowed,
+                                               key: *const nsACString) -> u32 {
+    let key = unsafe { key.as_ref().unwrap().as_str_unchecked() };
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    Locked::<KeyframesRule>::as_arc(&rule).read_with(&guard)
+        .find_rule(&guard, key).map(|index| index as u32)
+        .unwrap_or(u32::max_value())
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_KeyframesRule_AppendRule(rule: RawServoKeyframesRuleBorrowed,
+                                                 sheet: RawServoStyleSheetBorrowed,
+                                                 css: *const nsACString) -> bool {
+    let css = unsafe { css.as_ref().unwrap().as_str_unchecked() };
+    let sheet = Stylesheet::as_arc(&sheet);
+    if let Ok(keyframe) = Keyframe::parse(css, sheet) {
+        write_locked_arc(rule, |rule: &mut KeyframesRule| {
+            rule.keyframes.push(keyframe);
+        });
+        true
+    } else {
+        false
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_KeyframesRule_DeleteRule(rule: RawServoKeyframesRuleBorrowed, index: u32) {
+    write_locked_arc(rule, |rule: &mut KeyframesRule| {
+        rule.keyframes.remove(index as usize);
     })
 }
 

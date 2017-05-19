@@ -71,8 +71,21 @@ impl KeyframePercentage {
 
 /// A keyframes selector is a list of percentages or from/to symbols, which are
 /// converted at parse time to percentages.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct KeyframeSelector(Vec<KeyframePercentage>);
+
+impl ToCss for KeyframeSelector {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        let mut iter = self.0.iter();
+        iter.next().unwrap().to_css(dest)?;
+        for percentage in iter {
+            write!(dest, ", ")?;
+            percentage.to_css(dest)?;
+        }
+        Ok(())
+    }
+}
+
 impl KeyframeSelector {
     /// Return the list of percentages this selector contains.
     #[inline]
@@ -108,19 +121,13 @@ pub struct Keyframe {
 impl ToCssWithGuard for Keyframe {
     fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
     where W: fmt::Write {
-        let mut iter = self.selector.percentages().iter();
-        try!(iter.next().unwrap().to_css(dest));
-        for percentage in iter {
-            try!(write!(dest, ", "));
-            try!(percentage.to_css(dest));
-        }
+        self.selector.to_css(dest)?;
         try!(dest.write_str(" { "));
         try!(self.block.read_with(guard).to_css(dest));
         try!(dest.write_str(" }"));
         Ok(())
     }
 }
-
 
 impl Keyframe {
     /// Parse a CSS keyframe.

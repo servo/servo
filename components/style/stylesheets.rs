@@ -25,7 +25,7 @@ pub use gecko::rules::{CounterStyleRule, FontFaceRule};
 use gecko_bindings::structs::URLExtraData;
 #[cfg(feature = "gecko")]
 use gecko_bindings::sugar::refptr::RefPtr;
-use keyframes::{Keyframe, parse_keyframe_list};
+use keyframes::{Keyframe, KeyframeSelector, parse_keyframe_list};
 use media_queries::{Device, MediaList, parse_media_query_list};
 use parking_lot::RwLock;
 use parser::{PARSING_MODE_DEFAULT, Parse, ParserContext, log_css_error};
@@ -565,6 +565,8 @@ pub struct KeyframesRule {
     pub keyframes: Vec<Arc<Locked<Keyframe>>>,
     /// Vendor prefix type the @keyframes has.
     pub vendor_prefix: Option<VendorPrefix>,
+    /// The line and column of the rule's source code.
+    pub source_location: SourceLocation,
 }
 
 impl ToCssWithGuard for KeyframesRule {
@@ -573,18 +575,32 @@ impl ToCssWithGuard for KeyframesRule {
     where W: fmt::Write {
         try!(dest.write_str("@keyframes "));
         try!(self.name.to_css(dest));
-        try!(dest.write_str(" { "));
+        try!(dest.write_str(" {"));
         let iter = self.keyframes.iter();
-        let mut first = true;
         for lock in iter {
-            if !first {
-                try!(dest.write_str(" "));
-            }
-            first = false;
+            try!(dest.write_str("\n"));
             let keyframe = lock.read_with(&guard);
             try!(keyframe.to_css(guard, dest));
         }
-        dest.write_str(" }")
+        dest.write_str("\n}")
+    }
+}
+
+impl KeyframesRule {
+    /// Returns the index of the last keyframe that matches the given selector.
+    /// If the selector is not valid, or no keyframe is found, returns None.
+    ///
+    /// Related spec:
+    /// https://drafts.csswg.org/css-animations-1/#interface-csskeyframesrule-findrule
+    pub fn find_rule(&self, guard: &SharedRwLockReadGuard, selector: &str) -> Option<usize> {
+        if let Ok(selector) = Parser::new(selector).parse_entirely(KeyframeSelector::parse) {
+            for (i, keyframe) in self.keyframes.iter().enumerate().rev() {
+                if keyframe.read_with(guard).selector == selector {
+                    return Some(i);
+                }
+            }
+        }
+        None
     }
 }
 
@@ -1032,7 +1048,7 @@ enum AtRulePrelude {
     /// A @viewport rule prelude.
     Viewport,
     /// A @keyframes rule, with its animation name and vendor prefix if exists.
-    Keyframes(KeyframesName, Option<VendorPrefix>),
+    Keyframes(KeyframesName, Option<VendorPrefix>, SourceLocation),
     /// A @page rule prelude.
     Page(SourceLocation),
     /// A @document rule, with its conditional.
@@ -1257,7 +1273,7 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                 }
                 let name = KeyframesName::parse(self.context, input)?;
 
-                Ok(AtRuleType::WithBlock(AtRulePrelude::Keyframes(name, prefix)))
+                Ok(AtRuleType::WithBlock(AtRulePrelude::Keyframes(name, prefix, location)))
             },
             "page" => {
                 if cfg!(feature = "gecko") {
@@ -1311,12 +1327,13 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                 Ok(CssRule::Viewport(Arc::new(self.shared_lock.wrap(
                    try!(ViewportRule::parse(&context, input))))))
             }
-            AtRulePrelude::Keyframes(name, prefix) => {
+            AtRulePrelude::Keyframes(name, prefix, location) => {
                 let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::Keyframes));
                 Ok(CssRule::Keyframes(Arc::new(self.shared_lock.wrap(KeyframesRule {
                     name: name,
                     keyframes: parse_keyframe_list(&context, input, self.shared_lock),
                     vendor_prefix: prefix,
+                    source_location: location,
                 }))))
             }
             AtRulePrelude::Page(location) => {

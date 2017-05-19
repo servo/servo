@@ -229,6 +229,16 @@ pub struct RawServoImportRule(RawServoImportRuleVoid);
 pub type RawServoAnimationValueStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoAnimationValue>;
 pub type RawServoAnimationValueBorrowed<'a> = &'a RawServoAnimationValue;
 pub type RawServoAnimationValueBorrowedOrNull<'a> = Option<&'a RawServoAnimationValue>;
+pub type RawServoKeyframeStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoKeyframe>;
+pub type RawServoKeyframeBorrowed<'a> = &'a RawServoKeyframe;
+pub type RawServoKeyframeBorrowedOrNull<'a> = Option<&'a RawServoKeyframe>;
+enum RawServoKeyframeVoid { }
+pub struct RawServoKeyframe(RawServoKeyframeVoid);
+pub type RawServoKeyframesRuleStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoKeyframesRule>;
+pub type RawServoKeyframesRuleBorrowed<'a> = &'a RawServoKeyframesRule;
+pub type RawServoKeyframesRuleBorrowedOrNull<'a> = Option<&'a RawServoKeyframesRule>;
+enum RawServoKeyframesRuleVoid { }
+pub struct RawServoKeyframesRule(RawServoKeyframesRuleVoid);
 pub type RawServoMediaListStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoMediaList>;
 pub type RawServoMediaListBorrowed<'a> = &'a RawServoMediaList;
 pub type RawServoMediaListBorrowedOrNull<'a> = Option<&'a RawServoMediaList>;
@@ -394,6 +404,18 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_AnimationValue_Release(ptr: RawServoAnimationValueBorrowed);
+}
+extern "C" {
+    pub fn Servo_Keyframe_AddRef(ptr: RawServoKeyframeBorrowed);
+}
+extern "C" {
+    pub fn Servo_Keyframe_Release(ptr: RawServoKeyframeBorrowed);
+}
+extern "C" {
+    pub fn Servo_KeyframesRule_AddRef(ptr: RawServoKeyframesRuleBorrowed);
+}
+extern "C" {
+    pub fn Servo_KeyframesRule_Release(ptr: RawServoKeyframesRuleBorrowed);
 }
 extern "C" {
     pub fn Servo_MediaList_AddRef(ptr: RawServoMediaListBorrowed);
@@ -1805,6 +1827,28 @@ extern "C" {
                                       result: *mut nsAString);
 }
 extern "C" {
+    pub fn Servo_Keyframe_Debug(rule: RawServoKeyframeBorrowed,
+                                result: *mut nsACString);
+}
+extern "C" {
+    pub fn Servo_Keyframe_GetCssText(rule: RawServoKeyframeBorrowed,
+                                     result: *mut nsAString);
+}
+extern "C" {
+    pub fn Servo_CssRules_GetKeyframesRuleAt(rules: ServoCssRulesBorrowed,
+                                             index: u32, line: *mut u32,
+                                             column: *mut u32)
+     -> RawServoKeyframesRuleStrong;
+}
+extern "C" {
+    pub fn Servo_KeyframesRule_Debug(rule: RawServoKeyframesRuleBorrowed,
+                                     result: *mut nsACString);
+}
+extern "C" {
+    pub fn Servo_KeyframesRule_GetCssText(rule: RawServoKeyframesRuleBorrowed,
+                                          result: *mut nsAString);
+}
+extern "C" {
     pub fn Servo_CssRules_GetMediaRuleAt(rules: ServoCssRulesBorrowed,
                                          index: u32, line: *mut u32,
                                          column: *mut u32)
@@ -1908,6 +1952,54 @@ extern "C" {
 extern "C" {
     pub fn Servo_StyleRule_GetSelectorText(rule: RawServoStyleRuleBorrowed,
                                            result: *mut nsAString);
+}
+extern "C" {
+    pub fn Servo_Keyframe_GetKeyText(keyframe: RawServoKeyframeBorrowed,
+                                     result: *mut nsAString);
+}
+extern "C" {
+    pub fn Servo_Keyframe_SetKeyText(keyframe: RawServoKeyframeBorrowed,
+                                     text: *const nsACString) -> bool;
+}
+extern "C" {
+    pub fn Servo_Keyframe_GetStyle(keyframe: RawServoKeyframeBorrowed)
+     -> RawServoDeclarationBlockStrong;
+}
+extern "C" {
+    pub fn Servo_Keyframe_SetStyle(keyframe: RawServoKeyframeBorrowed,
+                                   declarations:
+                                       RawServoDeclarationBlockBorrowed);
+}
+extern "C" {
+    pub fn Servo_KeyframesRule_GetName(rule: RawServoKeyframesRuleBorrowed)
+     -> *mut nsIAtom;
+}
+extern "C" {
+    pub fn Servo_KeyframesRule_SetName(rule: RawServoKeyframesRuleBorrowed,
+                                       name: *mut nsIAtom);
+}
+extern "C" {
+    pub fn Servo_KeyframesRule_GetCount(rule: RawServoKeyframesRuleBorrowed)
+     -> u32;
+}
+extern "C" {
+    pub fn Servo_KeyframesRule_GetKeyframe(rule:
+                                               RawServoKeyframesRuleBorrowed,
+                                           index: u32)
+     -> RawServoKeyframeStrong;
+}
+extern "C" {
+    pub fn Servo_KeyframesRule_FindRule(rule: RawServoKeyframesRuleBorrowed,
+                                        key: *const nsACString) -> u32;
+}
+extern "C" {
+    pub fn Servo_KeyframesRule_AppendRule(rule: RawServoKeyframesRuleBorrowed,
+                                          sheet: RawServoStyleSheetBorrowed,
+                                          css: *const nsACString) -> bool;
+}
+extern "C" {
+    pub fn Servo_KeyframesRule_DeleteRule(rule: RawServoKeyframesRuleBorrowed,
+                                          index: u32);
 }
 extern "C" {
     pub fn Servo_MediaRule_GetMedia(rule: RawServoMediaRuleBorrowed)
