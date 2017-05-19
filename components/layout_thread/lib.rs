@@ -1100,7 +1100,7 @@ impl LayoutThread {
                         let el = node.as_element().unwrap();
                         if let Some(mut d) = element.mutate_data() {
                             if d.has_styles() {
-                                d.ensure_restyle().hint.insert(&StoredRestyleHint::subtree());
+                                d.ensure_restyle().hint.insert(StoredRestyleHint::subtree());
                             }
                         }
                         if let Some(p) = el.parent_element() {
@@ -1136,7 +1136,7 @@ impl LayoutThread {
         if needs_dirtying {
             if let Some(mut d) = element.mutate_data() {
                 if d.has_styles() {
-                    d.ensure_restyle().hint.insert(&StoredRestyleHint::subtree());
+                    d.ensure_restyle().hint.insert(StoredRestyleHint::subtree());
                 }
             }
         }
@@ -1184,7 +1184,7 @@ impl LayoutThread {
             let mut restyle_data = style_data.ensure_restyle();
 
             // Stash the data on the element for processing by the style system.
-            restyle_data.hint.insert(&restyle.hint.into());
+            restyle_data.hint.insert(restyle.hint.into());
             restyle_data.damage = restyle.damage;
             debug!("Noting restyle for {:?}: {:?}", el, restyle_data);
         }

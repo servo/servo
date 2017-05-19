@@ -19,7 +19,7 @@ use font_metrics::FontMetricsProvider;
 use log::LogLevel::Trace;
 use properties::{CascadeFlags, ComputedValues, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
 use properties::longhands::display::computed_value as display;
-use restyle_hints::{RESTYLE_CSS_ANIMATIONS, RESTYLE_CSS_TRANSITIONS, RestyleHint};
+use restyle_hints::{RESTYLE_CSS_ANIMATIONS, RESTYLE_CSS_TRANSITIONS, RestyleReplacements};
 use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RESTYLE_SMIL};
 use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode};
 use selector_parser::{PseudoElement, RestyleDamage, SelectorImpl};
@@ -1243,7 +1243,7 @@ pub trait MatchMethods : TElement {
     /// Updates the rule nodes without re-running selector matching, using just
     /// the rule tree. Returns true if the rule nodes changed.
     fn replace_rules(&self,
-                     hint: RestyleHint,
+                     replacements: RestyleReplacements,
                      context: &StyleContext<Self>,
                      data: &mut AtomicRefMut<ElementData>)
                      -> bool {
@@ -1271,10 +1271,10 @@ pub trait MatchMethods : TElement {
             //
             // Non-animation restyle hints will be processed in a subsequent
             // normal traversal.
-            if hint.intersects(RestyleHint::for_animations()) {
+            if replacements.intersects(RestyleReplacements::for_animations()) {
                 debug_assert!(context.shared.traversal_flags.for_animation_only());
 
-                if hint.contains(RESTYLE_SMIL) {
+                if replacements.contains(RESTYLE_SMIL) {
                     replace_rule_node(CascadeLevel::SMILOverride,
                                       self.get_smil_override(),
                                       primary_rules);
@@ -1290,16 +1290,16 @@ pub trait MatchMethods : TElement {
 
                 // Apply Transition rules and Animation rules if the corresponding restyle hint
                 // is contained.
-                if hint.contains(RESTYLE_CSS_TRANSITIONS) {
+                if replacements.contains(RESTYLE_CSS_TRANSITIONS) {
                     replace_rule_node_for_animation(CascadeLevel::Transitions,
                                                     primary_rules);
                 }
 
-                if hint.contains(RESTYLE_CSS_ANIMATIONS) {
+                if replacements.contains(RESTYLE_CSS_ANIMATIONS) {
                     replace_rule_node_for_animation(CascadeLevel::Animations,
                                                     primary_rules);
                 }
-            } else if hint.contains(RESTYLE_STYLE_ATTRIBUTE) {
+            } else if replacements.contains(RESTYLE_STYLE_ATTRIBUTE) {
                 let style_attribute = self.style_attribute();
                 replace_rule_node(CascadeLevel::StyleAttributeNormal,
                                   style_attribute,
