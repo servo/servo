@@ -32,7 +32,7 @@ pub enum Image<Gradient, ImageRect> {
 
 /// A CSS gradient.
 /// https://drafts.csswg.org/css-images/#gradients
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Gradient<LineDirection, Length, LengthOrPercentage, Position, Color> {
     /// Gradients can be linear or radial.
@@ -45,7 +45,7 @@ pub struct Gradient<LineDirection, Length, LengthOrPercentage, Position, Color> 
     pub compat_mode: CompatMode,
 }
 
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// Whether we used the modern notation or the compatibility `-webkit` prefix.
 pub enum CompatMode {
@@ -56,7 +56,7 @@ pub enum CompatMode {
 }
 
 /// A gradient kind.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum GradientKind<LineDirection, Length, LengthOrPercentage, Position> {
     /// A linear gradient.
@@ -66,7 +66,7 @@ pub enum GradientKind<LineDirection, Length, LengthOrPercentage, Position> {
 }
 
 /// A radial gradient's ending shape.
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum EndingShape<Length, LengthOrPercentage> {
     /// A circular gradient.
@@ -76,7 +76,7 @@ pub enum EndingShape<Length, LengthOrPercentage> {
 }
 
 /// A circle shape.
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Circle<Length> {
     /// A circle radius.
@@ -86,7 +86,7 @@ pub enum Circle<Length> {
 }
 
 /// An ellipse shape.
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Ellipse<LengthOrPercentage> {
     /// An ellipse pair of radii.
@@ -104,10 +104,11 @@ define_css_keyword_enum!(ShapeExtent:
     "contain" => Contain,
     "cover" => Cover
 );
+no_viewport_percentage!(ShapeExtent);
 
 /// A gradient item.
 /// https://drafts.csswg.org/css-images-4/#color-stop-syntax
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum GradientItem<Color, LengthOrPercentage> {
     /// A color stop.
@@ -118,7 +119,7 @@ pub enum GradientItem<Color, LengthOrPercentage> {
 
 /// A color stop.
 /// https://drafts.csswg.org/css-images/#typedef-color-stop-list
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct ColorStop<Color, LengthOrPercentage> {
     /// The color of this stop.
@@ -281,17 +282,6 @@ impl<D, L, LoP, P, C> ToCss for Gradient<D, L, LoP, P, C>
     }
 }
 
-impl<D, L, LoP, P, C> HasViewportPercentage for Gradient<D, L, LoP, P, C>
-    where L: HasViewportPercentage,
-          LoP: HasViewportPercentage,
-          P: HasViewportPercentage,
-{
-    fn has_viewport_percentage(&self) -> bool {
-        self.kind.has_viewport_percentage() ||
-        self.items.iter().any(|i| i.has_viewport_percentage())
-    }
-}
-
 impl<D, L, LoP, P, C> ToComputedValue for Gradient<D, L, LoP, P, C>
     where D: ToComputedValue,
           L: ToComputedValue,
@@ -329,21 +319,6 @@ impl<D, L, LoP, P> GradientKind<D, L, LoP, P> {
         match *self {
             GradientKind::Linear(..) => "linear",
             GradientKind::Radial(..) => "radial",
-        }
-    }
-}
-
-impl<D, L, LoP, P> HasViewportPercentage for GradientKind<D, L, LoP, P>
-    where L: HasViewportPercentage,
-          LoP: HasViewportPercentage,
-          P: HasViewportPercentage
-{
-    fn has_viewport_percentage(&self) -> bool {
-        match *self {
-            GradientKind::Linear(_) => false,
-            GradientKind::Radial(ref shape, ref position) => {
-                shape.has_viewport_percentage() || position.has_viewport_percentage()
-            },
         }
     }
 }
@@ -423,22 +398,6 @@ impl<L, LoP> ToCss for EndingShape<L, LoP>
     }
 }
 
-impl<L, LoP> HasViewportPercentage for EndingShape<L, LoP>
-    where L: HasViewportPercentage, LoP: HasViewportPercentage,
-{
-    fn has_viewport_percentage(&self) -> bool {
-        match *self {
-            EndingShape::Circle(Circle::Radius(ref length)) => {
-                length.has_viewport_percentage()
-            },
-            EndingShape::Ellipse(Ellipse::Radii(ref x, ref y)) => {
-                x.has_viewport_percentage() || y.has_viewport_percentage()
-            },
-            _ => false,
-        }
-    }
-}
-
 impl<L, LoP> ToComputedValue for EndingShape<L, LoP>
     where L: ToComputedValue, LoP: ToComputedValue,
 {
@@ -497,17 +456,6 @@ impl<C, L> ToCss for GradientItem<C, L>
     }
 }
 
-impl<C, L> HasViewportPercentage for GradientItem<C, L>
-    where L: HasViewportPercentage,
-{
-    fn has_viewport_percentage(&self) -> bool {
-        match *self {
-            GradientItem::ColorStop(ref stop) => stop.has_viewport_percentage(),
-            GradientItem::InterpolationHint(ref hint) => hint.has_viewport_percentage(),
-        }
-    }
-}
-
 impl<C, L> ToComputedValue for GradientItem<C, L>
     where C: ToComputedValue, L: ToComputedValue,
 {
@@ -559,14 +507,6 @@ impl<C, L> ToCss for ColorStop<C, L>
             position.to_css(dest)?;
         }
         Ok(())
-    }
-}
-
-impl<C, L> HasViewportPercentage for ColorStop<C, L>
-    where L: HasViewportPercentage,
-{
-    fn has_viewport_percentage(&self) -> bool {
-        self.position.as_ref().map_or(false, HasViewportPercentage::has_viewport_percentage)
     }
 }
 

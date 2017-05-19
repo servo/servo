@@ -221,7 +221,7 @@ impl<L: ToComputedValue> ToComputedValue for TrackBreadth<L> {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// A `<track-size>` type for explicit grid track sizing. Like `<track-breadth>`, this is
 /// generic only to avoid code bloat. It only takes `<length-percentage>`
@@ -317,17 +317,6 @@ impl<L: ToCss> ToCss for TrackSize<L> {
                 lop.to_css(dest)?;
                 dest.write_str(")")
             },
-        }
-    }
-}
-
-impl HasViewportPercentage for TrackSize<LengthOrPercentage> {
-    #[inline]
-    fn has_viewport_percentage(&self) -> bool {
-        match *self {
-            TrackSize::Breadth(ref b) => b.has_viewport_percentage(),
-            TrackSize::MinMax(ref inf_b, ref b) => inf_b.has_viewport_percentage() || b.has_viewport_percentage(),
-            TrackSize::FitContent(ref lop) => lop.has_viewport_percentage(),
         }
     }
 }

@@ -175,7 +175,7 @@ impl<T> ToComputedValue for T
 }
 
 /// A computed `<angle>` value.
-#[derive(Clone, PartialEq, PartialOrd, Copy, Debug)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
 pub enum Angle {
     /// An angle with degree unit

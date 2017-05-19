@@ -38,19 +38,6 @@ macro_rules! define_numbered_css_keyword_enum {
     }
 }
 
-/// A macro used to implement HasViewportPercentage trait
-/// for a given type that may never contain viewport units.
-macro_rules! no_viewport_percentage {
-    ($name: ident) => {
-        impl $crate::values::HasViewportPercentage for $name {
-            #[inline]
-            fn has_viewport_percentage(&self) -> bool {
-                false
-            }
-        }
-    };
-}
-
 /// A macro for implementing `ComputedValueAsSpecified`, `Parse`
 /// and `HasViewportPercentage` traits for the enums defined
 /// using `define_css_keyword_enum` macro.

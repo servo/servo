@@ -208,17 +208,6 @@ ${helpers.predefined_type("border-image-source", "ImageLayer",
     use values::HasViewportPercentage;
     use values::specified::{LengthOrNumber, Number};
 
-    impl HasViewportPercentage for SpecifiedValue {
-        fn has_viewport_percentage(&self) -> bool {
-            let mut viewport_percentage = false;
-            for value in self.0.iter() {
-                let vp = value.has_viewport_percentage();
-                viewport_percentage = vp || viewport_percentage;
-            }
-            viewport_percentage
-        }
-    }
-
     pub mod computed_value {
         use values::computed::LengthOrNumber;
         #[derive(Debug, Clone, PartialEq)]
@@ -227,7 +216,7 @@ ${helpers.predefined_type("border-image-source", "ImageLayer",
                      pub LengthOrNumber, pub LengthOrNumber);
     }
 
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(pub Vec<LengthOrNumber>);
 
@@ -402,20 +391,6 @@ ${helpers.predefined_type("border-image-source", "ImageLayer",
     use values::HasViewportPercentage;
     use values::specified::{LengthOrPercentage, Number};
 
-    impl HasViewportPercentage for SpecifiedValue {
-        fn has_viewport_percentage(&self) -> bool {
-            let mut viewport_percentage = false;
-            for value in self.0.clone() {
-                let vp = match value {
-                    SingleSpecifiedValue::LengthOrPercentage(len) => len.has_viewport_percentage(),
-                    _ => false,
-                };
-                viewport_percentage = vp || viewport_percentage;
-            }
-            viewport_percentage
-        }
-    }
-
     pub mod computed_value {
         use values::computed::{LengthOrPercentage, Number};
         #[derive(Debug, Clone, PartialEq)]
@@ -432,7 +407,7 @@ ${helpers.predefined_type("border-image-source", "ImageLayer",
         }
     }
 
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(pub Vec<SingleSpecifiedValue>);
 
@@ -458,7 +433,7 @@ ${helpers.predefined_type("border-image-source", "ImageLayer",
         }
     }
 
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SingleSpecifiedValue {
         LengthOrPercentage(LengthOrPercentage),

@@ -181,17 +181,11 @@ ${helpers.predefined_type("flex-basis",
                 use values::HasViewportPercentage;
                 use values::specified::{AllowQuirks, ${MinMax}Length};
 
-                impl HasViewportPercentage for SpecifiedValue {
-                    fn has_viewport_percentage(&self) -> bool {
-                        self.0.has_viewport_percentage()
-                    }
-                }
-
                 pub mod computed_value {
                     pub type T = ::values::computed::${MinMax}Length;
                 }
 
-                #[derive(PartialEq, Clone, Debug)]
+                #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
                 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
                 pub struct SpecifiedValue(${MinMax}Length);
 

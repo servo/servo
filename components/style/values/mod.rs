@@ -16,6 +16,7 @@ use std::borrow::Cow;
 use std::fmt::{self, Debug};
 use std::hash;
 use style_traits::ToCss;
+pub use style_traits::HasViewportPercentage;
 
 pub mod computed;
 pub mod generics;
@@ -30,24 +31,11 @@ pub type CSSInteger = i32;
 /// The default font size.
 pub const FONT_MEDIUM_PX: i32 = 16;
 
-/// A trait used to query whether this value has viewport units.
-pub trait HasViewportPercentage {
-    /// Returns true if this value has viewport units.
-    fn has_viewport_percentage(&self) -> bool;
-}
-
-impl<T: HasViewportPercentage> HasViewportPercentage for Box<T> {
-    #[inline]
-    fn has_viewport_percentage(&self) -> bool {
-        (**self).has_viewport_percentage()
-    }
-}
-
 define_keyword_type!(None_, "none");
 define_keyword_type!(Auto, "auto");
 define_keyword_type!(Normal, "normal");
 
-#[derive(Clone, PartialEq, Copy)]
+#[derive(Clone, Copy, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// A struct representing one of two kinds of values.
 pub enum Either<A, B> {
@@ -71,15 +59,6 @@ impl<A: ToCss, B: ToCss> ToCss for Either<A, B> {
         match *self {
             Either::First(ref v) => v.to_css(dest),
             Either::Second(ref v) => v.to_css(dest),
-        }
-    }
-}
-
-impl<A: HasViewportPercentage, B: HasViewportPercentage> HasViewportPercentage for Either<A, B> {
-    fn has_viewport_percentage(&self) -> bool {
-        match *self {
-            Either::First(ref v) => v.has_viewport_percentage(),
-            Either::Second(ref v) => v.has_viewport_percentage(),
         }
     }
 }
@@ -209,3 +188,4 @@ define_css_keyword_enum!(ExtremumLength:
                          "-moz-min-content" => MinContent,
                          "-moz-fit-content" => FitContent,
                          "-moz-available" => FillAvailable);
+no_viewport_percentage!(ExtremumLength);

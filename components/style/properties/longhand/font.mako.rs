@@ -2108,7 +2108,6 @@ ${helpers.single_keyword_system("font-variant-position",
     pub use self::computed_value::T as SpecifiedValue;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
-    no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
         pub type T = f32;
@@ -2235,7 +2234,7 @@ ${helpers.single_keyword("-moz-math-variant",
     use values::computed::ComputedValueAsSpecified;
     use values::specified::length::{AU_PER_PT, FontBaseSize, NoCalcLength};
 
-    #[derive(Clone, PartialEq, Debug)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     pub struct SpecifiedValue(pub NoCalcLength);
 
     pub mod computed_value {
@@ -2270,12 +2269,6 @@ ${helpers.single_keyword("-moz-math-variant",
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             self.0.to_css(dest)
-        }
-    }
-
-    impl HasViewportPercentage for SpecifiedValue {
-        fn has_viewport_percentage(&self) -> bool {
-            self.0.has_viewport_percentage()
         }
     }
 

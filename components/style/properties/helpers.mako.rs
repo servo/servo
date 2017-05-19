@@ -81,13 +81,6 @@
             use values::HasViewportPercentage;
             use style_traits::ToCss;
 
-            impl HasViewportPercentage for SpecifiedValue {
-                fn has_viewport_percentage(&self) -> bool {
-                    let &SpecifiedValue(ref vec) = self;
-                    vec.iter().any(|ref x| x.has_viewport_percentage())
-                }
-            }
-
             pub mod single_value {
                 use cssparser::Parser;
                 use parser::{Parse, ParserContext};
@@ -168,7 +161,7 @@
             }
 
             /// The specified value of ${name}.
-            #[derive(Debug, Clone, PartialEq)]
+            #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
             #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
             pub struct SpecifiedValue(pub Vec<single_value::SpecifiedValue>);
 

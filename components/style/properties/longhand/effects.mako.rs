@@ -98,13 +98,7 @@ ${helpers.predefined_type("clip",
     use values::specified::{Angle, CSSColor, Length, Shadow};
     use values::specified::url::SpecifiedUrl;
 
-    impl HasViewportPercentage for SpecifiedValue {
-        fn has_viewport_percentage(&self) -> bool {
-            self.0.iter().any(|ref x| x.has_viewport_percentage())
-        }
-    }
-
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(pub Vec<SpecifiedFilter>);
 

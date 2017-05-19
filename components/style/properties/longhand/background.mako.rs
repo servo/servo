@@ -236,13 +236,7 @@ ${helpers.single_keyword("background-origin",
         }
     }
 
-    impl HasViewportPercentage for ExplicitSize {
-        fn has_viewport_percentage(&self) -> bool {
-            return self.width.has_viewport_percentage() || self.height.has_viewport_percentage();
-        }
-    }
-
-    #[derive(Clone, PartialEq, Debug)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     #[allow(missing_docs)]
     pub struct ExplicitSize {
@@ -266,16 +260,7 @@ ${helpers.single_keyword("background-origin",
         }
     }
 
-    impl HasViewportPercentage for SpecifiedValue {
-        fn has_viewport_percentage(&self) -> bool {
-            match *self {
-                SpecifiedValue::Explicit(ref explicit_size) => explicit_size.has_viewport_percentage(),
-                _ => false
-            }
-        }
-    }
-
-    #[derive(Clone, PartialEq, Debug)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Explicit(ExplicitSize),

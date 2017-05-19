@@ -531,7 +531,7 @@ impl NoCalcLength {
 /// This is commonly used for the `<length>` values.
 ///
 /// https://drafts.csswg.org/css-values/#lengths
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Length {
     /// The internal length type that cannot parse `calc`
@@ -546,15 +546,6 @@ impl From<NoCalcLength> for Length {
     #[inline]
     fn from(len: NoCalcLength) -> Self {
         Length::NoCalc(len)
-    }
-}
-
-impl HasViewportPercentage for Length {
-    fn has_viewport_percentage(&self) -> bool {
-        match *self {
-            Length::NoCalc(ref inner) => inner.has_viewport_percentage(),
-            Length::Calc(ref calc) => calc.has_viewport_percentage(),
-        }
     }
 }
 
@@ -713,7 +704,7 @@ impl<T: Parse> Either<Length, T> {
 /// As of today, only `-moz-image-rect` supports percentages without length.
 /// This is not a regression, and that's a non-standard extension anyway, so I'm
 /// not implementing it for now.
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Percentage(pub CSSFloat);
 
@@ -754,7 +745,7 @@ impl Parse for Percentage {
 impl ComputedValueAsSpecified for Percentage {}
 
 /// A length or a percentage value.
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub enum LengthOrPercentage {
@@ -783,16 +774,6 @@ impl From<Percentage> for LengthOrPercentage {
     #[inline]
     fn from(pc: Percentage) -> Self {
         LengthOrPercentage::Percentage(pc)
-    }
-}
-
-impl HasViewportPercentage for LengthOrPercentage {
-    fn has_viewport_percentage(&self) -> bool {
-        match *self {
-            LengthOrPercentage::Length(ref length) => length.has_viewport_percentage(),
-            LengthOrPercentage::Calc(ref calc) => calc.has_viewport_percentage(),
-            _ => false
-        }
     }
 }
 
@@ -914,7 +895,7 @@ impl LengthOrPercentage {
 }
 
 /// Either a `<length>`, a `<percentage>`, or the `auto` keyword.
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub enum LengthOrPercentageOrAuto {
@@ -935,16 +916,6 @@ impl From<Percentage> for LengthOrPercentageOrAuto {
     #[inline]
     fn from(pc: Percentage) -> Self {
         LengthOrPercentageOrAuto::Percentage(pc)
-    }
-}
-
-impl HasViewportPercentage for LengthOrPercentageOrAuto {
-    fn has_viewport_percentage(&self) -> bool {
-        match *self {
-            LengthOrPercentageOrAuto::Length(ref length) => length.has_viewport_percentage(),
-            LengthOrPercentageOrAuto::Calc(ref calc) => calc.has_viewport_percentage(),
-            _ => false
-        }
     }
 }
 
@@ -1036,7 +1007,7 @@ impl LengthOrPercentageOrAuto {
 }
 
 /// Either a `<length>`, a `<percentage>`, or the `none` keyword.
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub enum LengthOrPercentageOrNone {
@@ -1044,16 +1015,6 @@ pub enum LengthOrPercentageOrNone {
     Percentage(Percentage),
     Calc(Box<CalcLengthOrPercentage>),
     None,
-}
-
-impl HasViewportPercentage for LengthOrPercentageOrNone {
-    fn has_viewport_percentage(&self) -> bool {
-        match *self {
-            LengthOrPercentageOrNone::Length(ref length) => length.has_viewport_percentage(),
-            LengthOrPercentageOrNone::Calc(ref calc) => calc.has_viewport_percentage(),
-            _ => false
-        }
-    }
 }
 
 impl ToCss for LengthOrPercentageOrNone {
@@ -1133,7 +1094,7 @@ pub type LengthOrAuto = Either<Length, Auto>;
 
 /// Either a `<length>` or a `<percentage>` or the `auto` keyword or the
 /// `content` keyword.
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum LengthOrPercentageOrAutoOrContent {
     /// A `<length>`.
@@ -1185,16 +1146,6 @@ impl LengthOrPercentageOrAutoOrContent {
     }
 }
 
-impl HasViewportPercentage for LengthOrPercentageOrAutoOrContent {
-    fn has_viewport_percentage(&self) -> bool {
-        match *self {
-            LengthOrPercentageOrAutoOrContent::Length(ref length) => length.has_viewport_percentage(),
-            LengthOrPercentageOrAutoOrContent::Calc(ref calc) => calc.has_viewport_percentage(),
-            _ => false
-        }
-    }
-}
-
 impl ToCss for LengthOrPercentageOrAutoOrContent {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
@@ -1227,22 +1178,13 @@ impl LengthOrNumber {
 /// A value suitable for a `min-width` or `min-height` property.
 /// Unlike `max-width` or `max-height` properties, a MinLength can be
 /// `auto`, and cannot be `none`.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub enum MinLength {
     LengthOrPercentage(LengthOrPercentage),
     Auto,
     ExtremumLength(ExtremumLength),
-}
-
-impl HasViewportPercentage for MinLength {
-    fn has_viewport_percentage(&self) -> bool {
-        match *self {
-            MinLength::LengthOrPercentage(ref lop) => lop.has_viewport_percentage(),
-            _ => false
-        }
-    }
 }
 
 impl ToCss for MinLength {
@@ -1277,7 +1219,7 @@ impl MinLength {
 }
 
 /// A value suitable for a `max-width` or `max-height` property.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub enum MaxLength {
@@ -1286,14 +1228,6 @@ pub enum MaxLength {
     ExtremumLength(ExtremumLength),
 }
 
-impl HasViewportPercentage for MaxLength {
-    fn has_viewport_percentage(&self) -> bool {
-        match *self {
-            MaxLength::LengthOrPercentage(ref lop) => lop.has_viewport_percentage(),
-            _ => false
-        }
-    }
-}
 
 impl ToCss for MaxLength {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {

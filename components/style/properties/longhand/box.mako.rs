@@ -274,18 +274,9 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
 
     ${helpers.gecko_keyword_conversion(vertical_align.keyword)}
 
-    impl HasViewportPercentage for SpecifiedValue {
-        fn has_viewport_percentage(&self) -> bool {
-            match *self {
-                SpecifiedValue::LengthOrPercentage(ref length) => length.has_viewport_percentage(),
-                _ => false
-            }
-        }
-    }
-
     /// The `vertical-align` value.
     #[allow(non_camel_case_types)]
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         % for keyword in vertical_align_keywords:
@@ -1048,15 +1039,6 @@ ${helpers.single_keyword("animation-fill-mode",
     use values::HasViewportPercentage;
     use values::specified::LengthOrPercentage;
 
-    impl HasViewportPercentage for SpecifiedValue {
-        fn has_viewport_percentage(&self) -> bool {
-            match *self {
-                SpecifiedValue::Repeat(ref length) => length.has_viewport_percentage(),
-                _ => false
-            }
-        }
-    }
-
     pub mod computed_value {
         use values::computed::LengthOrPercentage;
 
@@ -1065,7 +1047,7 @@ ${helpers.single_keyword("animation-fill-mode",
         pub struct T(pub Option<LengthOrPercentage>);
     }
 
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         None,
@@ -1253,7 +1235,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
     /// Multiple transform functions compose a transformation.
     ///
     /// Some transformations can be expressed by other more general functions.
-    #[derive(Clone, Debug, PartialEq)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedOperation {
         /// Represents a 2D 2x3 matrix.
@@ -1328,41 +1310,6 @@ ${helpers.predefined_type("scroll-snap-coordinate",
         }
     }
 
-    impl HasViewportPercentage for SpecifiedOperation {
-        fn has_viewport_percentage(&self) -> bool {
-            match *self {
-                SpecifiedOperation::Translate(ref l1, None) |
-                SpecifiedOperation::TranslateX(ref l1) |
-                SpecifiedOperation::TranslateY(ref l1)  => {
-                    l1.has_viewport_percentage()
-                }
-                SpecifiedOperation::TranslateZ(ref l1) => {
-                    l1.has_viewport_percentage()
-                }
-                SpecifiedOperation::Translate(ref l1, Some(ref l2)) => {
-                    l1.has_viewport_percentage() ||
-                    l2.has_viewport_percentage()
-                }
-                SpecifiedOperation::Translate3D(ref l1, ref l2, ref l3) => {
-                    l1.has_viewport_percentage() ||
-                    l2.has_viewport_percentage() ||
-                    l3.has_viewport_percentage()
-                },
-                SpecifiedOperation::Perspective(ref length) => length.has_viewport_percentage(),
-                SpecifiedOperation::PrefixedMatrix{ ref e, ref f, .. } => {
-                    e.has_viewport_percentage() ||
-                    f.has_viewport_percentage()
-                },
-                SpecifiedOperation::PrefixedMatrix3D{ ref m41, ref m42, ref m43, .. } => {
-                    m41.has_viewport_percentage() ||
-                    m42.has_viewport_percentage() ||
-                    m43.has_viewport_percentage()
-                },
-                _ => false
-            }
-        }
-    }
-
     impl ToCss for SpecifiedOperation {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             use self::SpecifiedOperation::*;
@@ -1422,14 +1369,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
         }
     }
 
-    impl HasViewportPercentage for SpecifiedValue {
-        fn has_viewport_percentage(&self) -> bool {
-            let &SpecifiedValue(ref specified_ops) = self;
-            specified_ops.iter().any(|ref x| x.has_viewport_percentage())
-        }
-    }
-
-    #[derive(Clone, Debug, PartialEq)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(Vec<SpecifiedOperation>);
 
@@ -2223,15 +2163,7 @@ ${helpers.single_keyword("transform-style",
         }
     }
 
-    impl HasViewportPercentage for SpecifiedValue {
-        fn has_viewport_percentage(&self) -> bool {
-            self.horizontal.has_viewport_percentage() ||
-            self.vertical.has_viewport_percentage() ||
-            self.depth.has_viewport_percentage()
-        }
-    }
-
-    #[derive(Clone, Debug, PartialEq)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue {
         horizontal: LengthOrPercentage,

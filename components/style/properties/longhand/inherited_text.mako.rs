@@ -12,16 +12,7 @@
     use style_traits::ToCss;
     use values::HasViewportPercentage;
 
-    impl HasViewportPercentage for SpecifiedValue {
-        fn has_viewport_percentage(&self) -> bool {
-            match *self {
-                SpecifiedValue::LengthOrPercentage(ref length) => length.has_viewport_percentage(),
-                _ => false
-            }
-        }
-    }
-
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Normal,
@@ -415,16 +406,7 @@ ${helpers.single_keyword("text-align-last",
     use values::HasViewportPercentage;
     use values::specified::AllowQuirks;
 
-    impl HasViewportPercentage for SpecifiedValue {
-        fn has_viewport_percentage(&self) -> bool {
-            match *self {
-                SpecifiedValue::Specified(ref length) => length.has_viewport_percentage(),
-                _ => false
-            }
-        }
-    }
-
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Normal,
@@ -501,16 +483,7 @@ ${helpers.single_keyword("text-align-last",
     use values::HasViewportPercentage;
     use values::specified::AllowQuirks;
 
-    impl HasViewportPercentage for SpecifiedValue {
-        fn has_viewport_percentage(&self) -> bool {
-            match *self {
-                SpecifiedValue::Specified(ref length) => length.has_viewport_percentage(),
-                _ => false
-            }
-        }
-    }
-
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Normal,
@@ -722,26 +695,11 @@ ${helpers.single_keyword("text-align-last",
     use values::specified::Shadow;
     use values::HasViewportPercentage;
 
-    impl HasViewportPercentage for SpecifiedValue {
-        fn has_viewport_percentage(&self) -> bool {
-            let &SpecifiedValue(ref vec) = self;
-            vec.iter().any(|ref x| x.has_viewport_percentage())
-        }
-    }
-
-    #[derive(Clone, PartialEq, Debug)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(Vec<SpecifiedTextShadow>);
 
-    impl HasViewportPercentage for SpecifiedTextShadow {
-        fn has_viewport_percentage(&self) -> bool {
-            self.offset_x.has_viewport_percentage() ||
-            self.offset_y.has_viewport_percentage() ||
-            self.blur_radius.has_viewport_percentage()
-        }
-    }
-
-    #[derive(Clone, PartialEq, Debug)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedTextShadow {
         pub offset_x: specified::Length,

@@ -81,16 +81,10 @@ ${helpers.predefined_type("outline-color", "CSSColor", "computed::CSSColor::Curr
         specified::parse_border_width(context, input).map(SpecifiedValue)
     }
 
-    impl HasViewportPercentage for SpecifiedValue {
-        fn has_viewport_percentage(&self) -> bool {
-            let &SpecifiedValue(ref length) = self;
-            length.has_viewport_percentage()
-        }
-    }
-
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(pub specified::Length);
+
     pub mod computed_value {
         use app_units::Au;
         pub type T = Au;
