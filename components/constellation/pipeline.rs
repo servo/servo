@@ -492,6 +492,7 @@ impl UnprivilegedPipelineContent {
         }, self.load_data.clone());
 
         LTF::create(self.id,
+                    self.top_level_browsing_context_id,
                     self.load_data.url,
                     self.parent_info.is_some(),
                     layout_pair,

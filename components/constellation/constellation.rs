@@ -682,9 +682,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         self.pipelines.insert(pipeline_id, pipeline);
     }
 
-    /// Get an iterator for browsing contexts. Specify self.root_browsing context_id to
-    /// iterate the entire tree, or a specific browsing context id to iterate only that sub-tree.
-    /// Iterates over the fully active browsing contexts in the tree.
+    /// Get an iterator for the fully active browsing contexts in a subtree.
     fn fully_active_descendant_browsing_contexts_iter(&self, browsing_context_id: BrowsingContextId)
                                                       -> FullyActiveBrowsingContextsIterator
     {
@@ -695,18 +693,14 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    /// Get an iterator for browsing contexts. Specify self.root_browsing context_id to
-    /// iterate the entire tree, or a specific browsing context id to iterate only that sub-tree.
-    /// Iterates over the fully active browsing contexts in the tree.
+    /// Get an iterator for the fully active browsing contexts in a tree.
     fn fully_active_browsing_contexts_iter(&self, top_level_browsing_context_id: TopLevelBrowsingContextId)
                                            -> FullyActiveBrowsingContextsIterator
     {
         self.fully_active_descendant_browsing_contexts_iter(BrowsingContextId::from(top_level_browsing_context_id))
     }
 
-    /// Get an iterator for browsing contexts. Specify self.root_browsing_context_id to
-    /// iterate the entire tree, or a specific browsing context id to iterate only that sub-tree.
-    /// Iterates over all browsing contexts in the tree.
+    /// Get an iterator for the browsing contexts in a subtree.
     fn all_descendant_browsing_contexts_iter(&self, browsing_context_id: BrowsingContextId)
                                              -> AllBrowsingContextsIterator
     {
@@ -717,9 +711,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    /// Get an iterator for browsing contexts. Specify self.root_browsing_context_id to
-    /// iterate the entire tree, or a specific browsing context id to iterate only that sub-tree.
-    /// Iterates over all browsing contexts in the tree.
+    /// Get an iterator for the browsing contexts in a tree.
     fn all_browsing_contexts_iter(&self, top_level_browsing_context_id: TopLevelBrowsingContextId)
                                   -> AllBrowsingContextsIterator
     {
