@@ -14,7 +14,7 @@ doctest = false
 
 [features]
 gecko = ["nsstring_vendor", "rayon/unstable", "num_cpus", "style_traits/gecko"]
-use_bindgen = ["bindgen", "regex"]
+use_bindgen = ["bindgen", "regex", "toml"]
 servo = ["serde", "serde_derive", "heapsize", "heapsize_derive",
          "style_traits/servo", "servo_atoms", "servo_config", "html5ever",
          "cssparser/heapsize", "cssparser/serde", "encoding", "smallvec/heapsizeof",
@@ -69,3 +69,4 @@ log = "0.3"
 bindgen = { version = "0.25", optional = true }
 regex = {version = "0.2", optional = true}
 walkdir = "1.0"
+toml = {version = "0.2.1", optional = true, default-features = false}

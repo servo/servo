@@ -10,6 +10,8 @@ extern crate bindgen;
 extern crate log;
 #[cfg(feature = "bindgen")]
 extern crate regex;
+#[cfg(feature = "bindgen")]
+extern crate toml;
 extern crate walkdir;
 
 use std::env;
