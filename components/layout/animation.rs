@@ -160,7 +160,9 @@ pub fn recalc_style_for_animations(context: &LayoutContext,
                                            animation,
                                            &mut fragment.style,
                                            &ServoMetricsProvider);
-                damage |= RestyleDamage::compute(&old_style, &fragment.style);
+                let difference =
+                    RestyleDamage::compute_style_difference(&old_style, &fragment.style);
+                damage |= difference.damage;
             }
         }
     });
