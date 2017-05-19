@@ -25,7 +25,7 @@ pub use gecko::rules::{CounterStyleRule, FontFaceRule};
 use gecko_bindings::structs::URLExtraData;
 #[cfg(feature = "gecko")]
 use gecko_bindings::sugar::refptr::RefPtr;
-use keyframes::{Keyframe, parse_keyframe_list};
+use keyframes::{Keyframe, KeyframeSelector, parse_keyframe_list};
 use media_queries::{Device, MediaList, parse_media_query_list};
 use parking_lot::RwLock;
 use parser::{PARSING_MODE_DEFAULT, Parse, ParserContext, log_css_error};
@@ -583,6 +583,24 @@ impl ToCssWithGuard for KeyframesRule {
             try!(keyframe.to_css(guard, dest));
         }
         dest.write_str("\n}")
+    }
+}
+
+impl KeyframesRule {
+    /// Returns the index of the last keyframe that matches the given selector.
+    /// If the selector is not valid, or no keyframe is found, returns None.
+    ///
+    /// Related spec:
+    /// https://drafts.csswg.org/css-animations-1/#interface-csskeyframesrule-findrule
+    pub fn find_rule(&self, guard: &SharedRwLockReadGuard, selector: &str) -> Option<usize> {
+        if let Ok(selector) = Parser::new(selector).parse_entirely(KeyframeSelector::parse) {
+            for (i, keyframe) in self.keyframes.iter().enumerate().rev() {
+                if keyframe.read_with(guard).selector == selector {
+                    return Some(i);
+                }
+            }
+        }
+        None
     }
 }
 
