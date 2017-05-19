@@ -954,7 +954,7 @@ impl PropertyId {
         }
     }
 
-    /// Returns a property id from Gecko's nsCSSPropertyID.
+    /// Returns an nsCSSPropertyID.
     #[cfg(feature = "gecko")]
     #[allow(non_upper_case_globals)]
     pub fn to_nscsspropertyid(&self) -> Result<nsCSSPropertyID, ()> {
