@@ -366,6 +366,7 @@ trait PrivateMatchMethods: TElement {
 
     #[cfg(feature = "gecko")]
     fn needs_animations_update(&self,
+                               context: &mut StyleContext<Self>,
                                old_values: Option<&Arc<ComputedValues>>,
                                new_values: &ComputedValues)
                                -> bool {
@@ -378,7 +379,10 @@ trait PrivateMatchMethods: TElement {
             let old_box_style = old.get_box();
             let old_display_style = old_box_style.clone_display();
             let new_display_style = new_box_style.clone_display();
-            // FIXME: Bug 1344581: We still need to compare keyframe rules.
+
+            // If the traverse is triggered by CSS rule changes,
+            // we need to try to update all CSS animations.
+            context.shared.traversal_flags.for_css_rule_changes() ||
             !old_box_style.animations_equals(&new_box_style) ||
              (old_display_style == display::T::none &&
               new_display_style != display::T::none &&
@@ -400,7 +404,7 @@ trait PrivateMatchMethods: TElement {
         use context::UpdateAnimationsTasks;
 
         let mut tasks = UpdateAnimationsTasks::empty();
-        if self.needs_animations_update(old_values.as_ref(), new_values) {
+        if self.needs_animations_update(context, old_values.as_ref(), new_values) {
             tasks.insert(CSS_ANIMATIONS);
         }
 
