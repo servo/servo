@@ -748,8 +748,8 @@
         #[allow(unused_imports)]
         use cssparser::Parser;
         use parser::ParserContext;
-        use properties::{PropertyDeclaration, ParsedDeclaration, MaybeBoxed};
-        use properties::{ShorthandId, UnparsedValue, longhands};
+        use properties::{PropertyDeclaration, SourcePropertyDeclaration, MaybeBoxed};
+        use properties::{ShorthandId, LonghandId, UnparsedValue, longhands};
         use std::fmt;
         use stylearc::Arc;
         use style_traits::ToCss;
@@ -824,7 +824,8 @@
 
         /// Parse the given shorthand and fill the result into the
         /// `declarations` vector.
-        pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<ParsedDeclaration, ()> {
+        pub fn parse_into(declarations: &mut SourcePropertyDeclaration,
+                     context: &ParserContext, input: &mut Parser) -> Result<(), ()> {
             input.look_for_var_functions();
             let start = input.position();
             let value = input.parse_entirely(|input| parse_value(context, input));
@@ -833,17 +834,29 @@
             }
             let var = input.seen_var_functions();
             if let Ok(value) = value {
-                Ok(ParsedDeclaration::${shorthand.camel_case}(value))
+                % for sub_property in shorthand.sub_properties:
+                    declarations.push(PropertyDeclaration::${sub_property.camel_case}(
+                        value.${sub_property.ident}
+                    ));
+                % endfor
+                Ok(())
             } else if var {
                 input.reset(start);
                 let (first_token_type, css) = try!(
                     ::custom_properties::parse_non_custom_with_var(input));
-                Ok(ParsedDeclaration::${shorthand.camel_case}WithVariables(Arc::new(UnparsedValue {
+                let unparsed = Arc::new(UnparsedValue {
                     css: css.into_owned(),
                     first_token_type: first_token_type,
                     url_data: context.url_data.clone(),
                     from_shorthand: Some(ShorthandId::${shorthand.camel_case}),
-                })))
+                });
+                % for sub_property in shorthand.sub_properties:
+                    declarations.push(PropertyDeclaration::WithVariables(
+                        LonghandId::${sub_property.camel_case},
+                        unparsed.clone()
+                    ));
+                % endfor
+                Ok(())
             } else {
                 Err(())
             }

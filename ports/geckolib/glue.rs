@@ -80,11 +80,11 @@ use style::keyframes::{Keyframe, KeyframeSelector, KeyframesStepValue};
 use style::media_queries::{MediaList, parse_media_query_list};
 use style::parallel;
 use style::parser::{PARSING_MODE_DEFAULT, ParserContext};
-use style::properties::{CascadeFlags, ComputedValues, Importance, ParsedDeclaration, StyleBuilder};
-use style::properties::{LonghandIdSet, PropertyDeclarationBlock, PropertyId};
+use style::properties::{CascadeFlags, ComputedValues, Importance, SourcePropertyDeclaration};
+use style::properties::{LonghandIdSet, PropertyDeclarationBlock, PropertyId, StyleBuilder};
 use style::properties::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
 use style::properties::animated_properties::{Animatable, AnimationValue, TransitionProperty};
-use style::properties::parse_one_declaration;
+use style::properties::parse_one_declaration_into;
 use style::restyle_hints::{self, RestyleHint};
 use style::rule_tree::StyleSource;
 use style::selector_parser::PseudoElementCascadeType;
@@ -1252,22 +1252,25 @@ pub extern "C" fn Servo_StyleSet_Drop(data: RawServoStyleSetOwned) {
     let _ = data.into_box::<PerDocumentStyleData>();
 }
 
-fn parse_property(property_id: PropertyId,
-                  value: *const nsACString,
-                  data: *mut URLExtraData,
-                  parsing_mode: structs::ParsingMode,
-                  quirks_mode: QuirksMode) -> Result<ParsedDeclaration, ()> {
+fn parse_property_into(declarations: &mut SourcePropertyDeclaration,
+                       property_id: PropertyId,
+                       value: *const nsACString,
+                       data: *mut URLExtraData,
+                       parsing_mode: structs::ParsingMode,
+                       quirks_mode: QuirksMode) -> Result<(), ()> {
     use style::parser::ParsingMode;
     let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
     let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
     let parsing_mode = ParsingMode::from_bits_truncate(parsing_mode);
 
-    parse_one_declaration(property_id,
-                          value,
-                          url_data,
-                          &RustLogReporter,
-                          parsing_mode,
-                          quirks_mode)
+    parse_one_declaration_into(
+        declarations,
+        property_id,
+        value,
+        url_data,
+        &RustLogReporter,
+        parsing_mode,
+        quirks_mode)
 }
 
 #[no_mangle]
@@ -1278,11 +1281,13 @@ pub extern "C" fn Servo_ParseProperty(property: nsCSSPropertyID, value: *const n
                                       -> RawServoDeclarationBlockStrong {
     let id = get_property_id_from_nscsspropertyid!(property,
                                                    RawServoDeclarationBlockStrong::null());
-    match parse_property(id, value, data, parsing_mode, quirks_mode.into()) {
-        Ok(parsed) => {
+    let mut declarations = SourcePropertyDeclaration::new();
+    match parse_property_into(&mut declarations, id, value, data,
+                              parsing_mode, quirks_mode.into()) {
+        Ok(()) => {
             let global_style_data = &*GLOBAL_STYLE_DATA;
             let mut block = PropertyDeclarationBlock::new();
-            parsed.expand_push_into(&mut block, Importance::Normal);
+            block.extend(declarations.drain(), Importance::Normal);
             Arc::new(global_style_data.shared_lock.wrap(block)).into_strong()
         }
         Err(_) => RawServoDeclarationBlockStrong::null()
@@ -1439,11 +1444,13 @@ fn set_property(declarations: RawServoDeclarationBlockBorrowed, property_id: Pro
                 value: *const nsACString, is_important: bool, data: *mut URLExtraData,
                 parsing_mode: structs::ParsingMode,
                 quirks_mode: QuirksMode) -> bool {
-    match parse_property(property_id, value, data, parsing_mode, quirks_mode) {
-        Ok(parsed) => {
+    let mut source_declarations = SourcePropertyDeclaration::new();
+    match parse_property_into(&mut source_declarations, property_id, value, data,
+                              parsing_mode, quirks_mode) {
+        Ok(()) => {
             let importance = if is_important { Importance::Important } else { Importance::Normal };
             write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
-                parsed.expand_set_into(decls, importance)
+                decls.extend_reset(source_declarations.drain(), importance)
             })
         },
         Err(_) => false,
@@ -1968,11 +1975,15 @@ pub extern "C" fn Servo_CSSSupports2(property: *const nsACString,
                                      value: *const nsACString) -> bool {
     let id = get_property_id_from_property!(property, false);
 
-    parse_property(id,
-                   value,
-                   unsafe { DUMMY_URL_DATA },
-                   structs::ParsingMode_Default,
-                   QuirksMode::NoQuirks).is_ok()
+    let mut declarations = SourcePropertyDeclaration::new();
+    parse_property_into(
+        &mut declarations,
+        id,
+        value,
+        unsafe { DUMMY_URL_DATA },
+        structs::ParsingMode_Default,
+        QuirksMode::NoQuirks
+    ).is_ok()
 }
 
 #[no_mangle]
