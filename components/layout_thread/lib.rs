@@ -457,7 +457,7 @@ impl LayoutThread {
         for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
             add_font_face_rules(stylesheet,
                                 &guard,
-                                &stylist.device,
+                                stylist.device(),
                                 &font_cache_thread,
                                 &ipc_font_cache_sender,
                                 &outstanding_web_fonts_counter);
@@ -789,10 +789,10 @@ impl LayoutThread {
 
         let rw_data = possibly_locked_rw_data.lock();
         let guard = stylesheet.shared_lock.read();
-        if stylesheet.is_effective_for_device(&self.stylist.device, &guard) {
+        if stylesheet.is_effective_for_device(self.stylist.device(), &guard) {
             add_font_face_rules(&*stylesheet,
                                 &guard,
-                                &self.stylist.device,
+                                self.stylist.device(),
                                 &self.font_cache_thread,
                                 &self.font_cache_sender,
                                 &self.outstanding_web_fonts);
@@ -1255,11 +1255,11 @@ impl LayoutThread {
         }
 
         if opts::get().dump_rule_tree {
-            layout_context.style_context.stylist.rule_tree.dump_stdout(&guards);
+            layout_context.style_context.stylist.rule_tree().dump_stdout(&guards);
         }
 
         // GC the rule tree if some heuristics are met.
-        unsafe { layout_context.style_context.stylist.rule_tree.maybe_gc(); }
+        unsafe { layout_context.style_context.stylist.rule_tree().maybe_gc(); }
 
         // Perform post-style recalculation layout passes.
         if let Some(mut root_flow) = self.root_flow.borrow().clone() {
