@@ -565,6 +565,8 @@ pub struct KeyframesRule {
     pub keyframes: Vec<Arc<Locked<Keyframe>>>,
     /// Vendor prefix type the @keyframes has.
     pub vendor_prefix: Option<VendorPrefix>,
+    /// The line and column of the rule's source code.
+    pub source_location: SourceLocation,
 }
 
 impl ToCssWithGuard for KeyframesRule {
@@ -1032,7 +1034,7 @@ enum AtRulePrelude {
     /// A @viewport rule prelude.
     Viewport,
     /// A @keyframes rule, with its animation name and vendor prefix if exists.
-    Keyframes(KeyframesName, Option<VendorPrefix>),
+    Keyframes(KeyframesName, Option<VendorPrefix>, SourceLocation),
     /// A @page rule prelude.
     Page(SourceLocation),
     /// A @document rule, with its conditional.
@@ -1257,7 +1259,7 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                 }
                 let name = KeyframesName::parse(self.context, input)?;
 
-                Ok(AtRuleType::WithBlock(AtRulePrelude::Keyframes(name, prefix)))
+                Ok(AtRuleType::WithBlock(AtRulePrelude::Keyframes(name, prefix, location)))
             },
             "page" => {
                 if cfg!(feature = "gecko") {
@@ -1311,12 +1313,13 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                 Ok(CssRule::Viewport(Arc::new(self.shared_lock.wrap(
                    try!(ViewportRule::parse(&context, input))))))
             }
-            AtRulePrelude::Keyframes(name, prefix) => {
+            AtRulePrelude::Keyframes(name, prefix, location) => {
                 let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::Keyframes));
                 Ok(CssRule::Keyframes(Arc::new(self.shared_lock.wrap(KeyframesRule {
                     name: name,
                     keyframes: parse_keyframe_list(&context, input, self.shared_lock),
                     vendor_prefix: prefix,
+                    source_location: location,
                 }))))
             }
             AtRulePrelude::Page(location) => {
