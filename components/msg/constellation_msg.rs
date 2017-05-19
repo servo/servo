@@ -318,6 +318,18 @@ impl From<TopLevelBrowsingContextId> for BrowsingContextId {
     }
 }
 
+impl PartialEq<TopLevelBrowsingContextId> for BrowsingContextId {
+    fn eq(&self, rhs: &TopLevelBrowsingContextId) -> bool {
+        self.eq(&rhs.0)
+    }
+}
+
+impl PartialEq<BrowsingContextId> for TopLevelBrowsingContextId {
+    fn eq(&self, rhs: &BrowsingContextId) -> bool {
+        self.0.eq(rhs)
+    }
+}
+
 // We provide ids just for unit testing.
 pub const TEST_NAMESPACE: PipelineNamespaceId = PipelineNamespaceId(1234);
 pub const TEST_PIPELINE_INDEX: PipelineIndex = PipelineIndex(5678);
