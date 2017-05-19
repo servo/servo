@@ -148,7 +148,7 @@ impl<T: ThreadSafeLayoutNode> ThreadSafeLayoutNodeHelpers for T {
             let style = self.as_element().unwrap().resolved_style();
 
             return match style.as_ref().get_counters().content {
-                content::T::Content(ref value) if !value.is_empty() => {
+                content::T::Items(ref value) if !value.is_empty() => {
                     TextContent::GeneratedContent((*value).clone())
                 }
                 _ => TextContent::GeneratedContent(vec![]),

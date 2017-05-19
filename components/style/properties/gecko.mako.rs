@@ -4238,8 +4238,8 @@ clip-path
         }
 
         match v {
-            T::none |
-            T::normal => {
+            T::None |
+            T::Normal => {
                 // Ensure destructors run, otherwise we could leak.
                 if !self.gecko.mContents.is_empty() {
                     unsafe {
@@ -4247,7 +4247,14 @@ clip-path
                     }
                 }
             },
-            T::Content(items) => {
+            T::MozAltContent => {
+                unsafe {
+                    Gecko_ClearAndResizeStyleContents(&mut self.gecko, 1);
+                    *self.gecko.mContents[0].mContent.mString.as_mut() = ptr::null_mut();
+                }
+                self.gecko.mContents[0].mType = eStyleContentType_AltContent;
+            },
+            T::Items(items) => {
                 unsafe {
                     Gecko_ClearAndResizeStyleContents(&mut self.gecko,
                                                       items.len() as u32);
@@ -4289,8 +4296,6 @@ clip-path
                             => self.gecko.mContents[i].mType = eStyleContentType_NoOpenQuote,
                         ContentItem::NoCloseQuote
                             => self.gecko.mContents[i].mType = eStyleContentType_NoCloseQuote,
-                        ContentItem::MozAltContent
-                            => self.gecko.mContents[i].mType = eStyleContentType_AltContent,
                         ContentItem::Counter(name, style) => {
                             unsafe {
                                 bindings::Gecko_SetContentDataArray(&mut self.gecko.mContents[i],

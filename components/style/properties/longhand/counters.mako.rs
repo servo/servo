@@ -55,8 +55,6 @@
             NoCloseQuote,
 
             % if product == "gecko":
-                /// `-moz-alt-content`
-                MozAltContent,
                 /// `attr([namespace? `|`]? ident)`
                 Attr(Option<String>, String),
                 /// `url(url)`
@@ -92,7 +90,6 @@
                     ContentItem::NoCloseQuote => dest.write_str("no-close-quote"),
 
                     % if product == "gecko":
-                        ContentItem::MozAltContent => dest.write_str("-moz-alt-content"),
                         ContentItem::Attr(ref ns, ref attr) => {
                             dest.write_str("attr(")?;
                             if let Some(ref ns) = *ns {
@@ -108,21 +105,25 @@
             }
         }
 
-        #[allow(non_camel_case_types)]
         #[derive(Debug, PartialEq, Eq, Clone)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum T {
-            normal,
-            none,
-            Content(Vec<ContentItem>),
+            Normal,
+            None,
+            #[cfg(feature = "gecko")]
+            MozAltContent,
+            Items(Vec<ContentItem>),
         }
 
         impl ToCss for T {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 match *self {
-                    T::normal => dest.write_str("normal"),
-                    T::none => dest.write_str("none"),
-                    T::Content(ref content) => {
+                    T::Normal => dest.write_str("normal"),
+                    T::None => dest.write_str("none"),
+                    % if product == "gecko":
+                        T::MozAltContent => dest.write_str("-moz-alt-content"),
+                    % endif
+                    T::Items(ref content) => {
                         let mut iter = content.iter();
                         try!(iter.next().unwrap().to_css(dest));
                         for c in iter {
@@ -136,8 +137,8 @@
         }
     }
     #[inline]
-    pub fn get_initial_value() -> computed_value::T  {
-        computed_value::T::normal
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T::Normal
     }
 
     #[cfg(feature = "servo")]
@@ -162,11 +163,17 @@
     pub fn parse(context: &ParserContext, input: &mut Parser)
                  -> Result<SpecifiedValue, ()> {
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
-            return Ok(SpecifiedValue::normal)
+            return Ok(SpecifiedValue::Normal)
         }
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            return Ok(SpecifiedValue::none)
+            return Ok(SpecifiedValue::None)
         }
+        % if product == "gecko":
+            if input.try(|input| input.expect_ident_matching("-moz-alt-content")).is_ok() {
+                return Ok(SpecifiedValue::MozAltContent)
+            }
+        % endif
+
         let mut content = vec![];
         loop {
             % if product == "gecko":
@@ -233,10 +240,6 @@
                         "no-open-quote" => content.push(ContentItem::NoOpenQuote),
                         "no-close-quote" => content.push(ContentItem::NoCloseQuote),
 
-                        % if product == "gecko":
-                            "-moz-alt-content" => content.push(ContentItem::MozAltContent),
-                        % endif
-
                         _ => return Err(())
                     }
                 }
@@ -244,11 +247,10 @@
                 _ => return Err(())
             }
         }
-        if !content.is_empty() {
-            Ok(SpecifiedValue::Content(content))
-        } else {
-            Err(())
+        if content.is_empty() {
+            return Err(());
         }
+        Ok(SpecifiedValue::Items(content))
     }
 </%helpers:longhand>
 
