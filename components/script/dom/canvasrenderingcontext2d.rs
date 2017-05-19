@@ -15,6 +15,7 @@ use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFil
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineCap;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineJoin;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
+use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementBinding::HTMLImageElementMethods;
 use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::UnionTypes::HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D;
@@ -32,7 +33,7 @@ use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcanvaselement::utils as canvas_utils;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::imagedata::ImageData;
-use dom::node::{Node, NodeDamage, window_from_node};
+use dom::node::{document_from_node, Node, NodeDamage, window_from_node};
 use dom_struct::dom_struct;
 use euclid::matrix2d::Matrix2D;
 use euclid::point::Point2D;
@@ -228,16 +229,11 @@ impl CanvasRenderingContext2D {
             }
             HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::CanvasRenderingContext2D(image) =>
                 image.origin_is_clean(),
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::HTMLImageElement(image) =>
-                match image.get_url() {
-                    None => true,
-                    Some(url) => {
-                        // TODO(zbarsky): we should check the origin of the image against
-                        // the entry settings object, but for now check it against the canvas' doc.
-                        let node: &Node = &*self.canvas.upcast();
-                        url.origin() == node.owner_doc().url().origin()
-                    }
-                }
+            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::HTMLImageElement(image) => {
+                let image_origin = image.get_origin().expect("Image's origin is missing");
+                let document = document_from_node(&*self.canvas);
+                document.url().clone().origin() == image_origin
+            }
         }
     }
 
@@ -432,7 +428,7 @@ impl CanvasRenderingContext2D {
             ImageResponse::Loaded(img) => img,
             ImageResponse::PlaceholderLoaded(_) |
             ImageResponse::None |
-            ImageResponse::MetadataLoaded(_) => {
+            ImageResponse::MetadataLoaded(_, _) => {
                 return None;
             }
         };
