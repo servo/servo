@@ -185,9 +185,6 @@ pub mod root {
     pub const NS_FONT_SUB_SUPER_LARGE_SIZE: f64 = 45.;
     pub const NS_FONT_VARIANT_NORMAL: ::std::os::raw::c_uint = 0;
     pub const NS_FONT_VARIANT_SMALL_CAPS: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_STACK_SIZING_IGNORE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_STACK_SIZING_STRETCH_TO_FIT: ::std::os::raw::c_uint =
-        1;
     pub const NS_STYLE_AZIMUTH_LEFT_SIDE: ::std::os::raw::c_uint = 0;
     pub const NS_STYLE_AZIMUTH_FAR_LEFT: ::std::os::raw::c_uint = 1;
     pub const NS_STYLE_AZIMUTH_LEFT: ::std::os::raw::c_uint = 2;
@@ -6118,6 +6115,14 @@ pub mod root {
             URL = 1,
             Shape = 2,
             Box = 3,
+        }
+        #[repr(u8)]
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        pub enum StyleStackSizing {
+            Ignore = 0,
+            StretchToFit = 1,
+            IgnoreHorizontal = 2,
+            IgnoreVertical = 3,
         }
         #[repr(u8)]
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -30008,7 +30013,7 @@ pub mod root {
         pub mBoxDirection: root::mozilla::StyleBoxDirection,
         pub mBoxOrient: root::mozilla::StyleBoxOrient,
         pub mBoxPack: root::mozilla::StyleBoxPack,
-        pub mStretchStack: bool,
+        pub mStackSizing: root::mozilla::StyleStackSizing,
     }
     #[test]
     fn bindgen_test_layout_nsStyleXUL() {
@@ -30047,10 +30052,10 @@ pub mod root {
                     "Alignment of field: " , stringify ! ( nsStyleXUL ) , "::"
                     , stringify ! ( mBoxPack ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsStyleXUL ) ) . mStretchStack as *
+                    & ( * ( 0 as * const nsStyleXUL ) ) . mStackSizing as *
                     const _ as usize } , 12usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleXUL ) , "::"
-                    , stringify ! ( mStretchStack ) ));
+                    , stringify ! ( mStackSizing ) ));
     }
     #[repr(C)]
     #[derive(Debug)]
