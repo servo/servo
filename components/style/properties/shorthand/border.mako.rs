@@ -6,7 +6,8 @@
 <% from data import to_rust_ident, ALL_SIDES, PHYSICAL_SIDES, maybe_moz_logical_alias %>
 
 ${helpers.four_sides_shorthand("border-color", "border-%s-color", "specified::CSSColor::parse",
-                               spec="https://drafts.csswg.org/css-backgrounds/#border-color")}
+                               spec="https://drafts.csswg.org/css-backgrounds/#border-color",
+                               allow_quirks=True)}
 
 ${helpers.four_sides_shorthand("border-style", "border-%s-style",
                                "specified::BorderStyle::parse",
