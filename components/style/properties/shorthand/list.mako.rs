@@ -70,35 +70,35 @@
         // long as we parsed something.
         match (any, nones, list_style_type, image) {
             (true, 2, None, None) => {
-                Ok(Longhands {
+                Ok(expanded! {
                     list_style_position: position,
                     list_style_image: list_style_image::SpecifiedValue(Either::Second(None_)),
                     list_style_type: list_style_type_none(),
                 })
             }
             (true, 1, None, Some(image)) => {
-                Ok(Longhands {
+                Ok(expanded! {
                     list_style_position: position,
                     list_style_image: image,
                     list_style_type: list_style_type_none(),
                 })
             }
             (true, 1, Some(list_style_type), None) => {
-                Ok(Longhands {
+                Ok(expanded! {
                     list_style_position: position,
                     list_style_image: list_style_image::SpecifiedValue(Either::Second(None_)),
                     list_style_type: list_style_type,
                 })
             }
             (true, 1, None, None) => {
-                Ok(Longhands {
+                Ok(expanded! {
                     list_style_position: position,
                     list_style_image: list_style_image::SpecifiedValue(Either::Second(None_)),
                     list_style_type: list_style_type_none(),
                 })
             }
             (true, 0, list_style_type, image) => {
-                Ok(Longhands {
+                Ok(expanded! {
                     list_style_position: position,
                     list_style_image: unwrap_or_initial!(list_style_image, image),
                     list_style_type: unwrap_or_initial!(list_style_type),

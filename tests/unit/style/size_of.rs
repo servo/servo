@@ -5,7 +5,7 @@
 use style::properties;
 
 size_of_test!(test_size_of_property_declaration, properties::PropertyDeclaration, 32);
-size_of_test!(test_size_of_parsed_declaration, properties::ParsedDeclaration, 456);
+size_of_test!(test_size_of_parsed_declaration, properties::ParsedDeclaration, 272);
 
 #[test]
 fn size_of_specified_values() {

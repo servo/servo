@@ -29,7 +29,7 @@
             break
         }
         if color.is_some() || style.is_some() {
-            Ok(Longhands {
+            Ok(expanded! {
                 text_emphasis_color: unwrap_or_initial!(text_emphasis_color, color),
                 text_emphasis_style: unwrap_or_initial!(text_emphasis_style, style),
             })
@@ -77,7 +77,7 @@
         }
 
         if color.is_some() || width.is_some() {
-            Ok(Longhands {
+            Ok(expanded! {
                 _webkit_text_stroke_color: unwrap_or_initial!(_webkit_text_stroke_color, color),
                 _webkit_text_stroke_width: unwrap_or_initial!(_webkit_text_stroke_width, width),
             })

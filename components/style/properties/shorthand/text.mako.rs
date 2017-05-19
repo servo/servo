@@ -50,7 +50,7 @@
             return Err(());
         }
 
-        Ok(Longhands {
+        Ok(expanded! {
             text_decoration_line: unwrap_or_initial!(text_decoration_line, line),
 
             % if product == "gecko" or data.testing:

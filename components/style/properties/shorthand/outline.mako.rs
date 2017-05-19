@@ -41,7 +41,7 @@
             break
         }
         if any {
-            Ok(Longhands {
+            Ok(expanded! {
                 outline_color: unwrap_or_initial!(outline_color, color),
                 outline_style: unwrap_or_initial!(outline_style, style),
                 outline_width: unwrap_or_initial!(outline_width, width),
@@ -73,7 +73,7 @@
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         // Re-use border-radius parsing.
         shorthands::border_radius::parse_value(context, input).map(|longhands| {
-            Longhands {
+            expanded! {
                 % for corner in ["top_left", "top_right", "bottom_right", "bottom_left"]:
                 _moz_outline_radius_${corner.replace("_", "")}: longhands.border_${corner}_radius,
                 % endfor

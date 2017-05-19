@@ -20,7 +20,7 @@ fn size_of_selectors_dummy_types() {
 }
 
 size_of_test!(test_size_of_property_declaration, style::properties::PropertyDeclaration, 32);
-size_of_test!(test_size_of_parsed_declaration, style::properties::ParsedDeclaration, 584);
+size_of_test!(test_size_of_parsed_declaration, style::properties::ParsedDeclaration, 400);
 
 #[test]
 fn size_of_specified_values() {

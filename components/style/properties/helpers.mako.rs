@@ -748,7 +748,7 @@
         #[allow(unused_imports)]
         use cssparser::Parser;
         use parser::ParserContext;
-        use properties::{PropertyDeclaration, ParsedDeclaration};
+        use properties::{PropertyDeclaration, ParsedDeclaration, MaybeBoxed};
         use properties::{ShorthandId, UnparsedValue, longhands};
         use std::fmt;
         use stylearc::Arc;
@@ -756,7 +756,15 @@
 
         pub struct Longhands {
             % for sub_property in shorthand.sub_properties:
-                pub ${sub_property.ident}: longhands::${sub_property.ident}::SpecifiedValue,
+                pub ${sub_property.ident}:
+                    % if sub_property.boxed:
+                        Box<
+                    % endif
+                    longhands::${sub_property.ident}::SpecifiedValue
+                    % if sub_property.boxed:
+                        >
+                    % endif
+                    ,
             % endfor
         }
 
@@ -865,7 +873,7 @@
                 try!(parse_four_sides(input, ${parser_function}));
                 let _unused = context;
             % endif
-            Ok(Longhands {
+            Ok(expanded! {
                 % for side in ["top", "right", "bottom", "left"]:
                     ${to_rust_ident(sub_property_pattern % side)}: ${side},
                 % endfor

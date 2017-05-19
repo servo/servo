@@ -13,7 +13,7 @@
         use parser::Parse;
         let url = UrlOrNone::parse(context, input)?;
 
-        Ok(Longhands {
+        Ok(expanded! {
             marker_start: url.clone(),
             marker_mid: url.clone(),
             marker_end: url,

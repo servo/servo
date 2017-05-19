@@ -58,6 +58,35 @@ macro_rules! property_name {
 #[path="${repr(os.path.join(os.path.dirname(__file__), 'declaration_block.rs'))[1:-1]}"]
 pub mod declaration_block;
 
+/// Conversion with fewer impls than From/Into
+pub trait MaybeBoxed<Out> {
+    /// Convert
+    fn maybe_boxed(self) -> Out;
+}
+
+impl<T> MaybeBoxed<T> for T {
+    #[inline]
+    fn maybe_boxed(self) -> T { self }
+}
+
+impl<T> MaybeBoxed<Box<T>> for T {
+    #[inline]
+    fn maybe_boxed(self) -> Box<T> { Box::new(self) }
+}
+
+macro_rules! expanded {
+    ( $( $name: ident: $value: expr ),+ ) => {
+        expanded!( $( $name: $value, )+ )
+    };
+    ( $( $name: ident: $value: expr, )+ ) => {
+        Longhands {
+            $(
+                $name: MaybeBoxed::maybe_boxed($value),
+            )+
+        }
+    }
+}
+
 /// A module with all the code for longhand properties.
 #[allow(missing_docs)]
 pub mod longhands {
@@ -405,11 +434,7 @@ impl PropertyDeclarationIdSet {
                                     Some(ShorthandId::${shorthand.camel_case}) => {
                                         shorthands::${shorthand.ident}::parse_value(&context, input)
                                         .map(|result| {
-                                            % if property.boxed:
-                                                DeclaredValueOwned::Value(Box::new(result.${property.ident}))
-                                            % else:
-                                                DeclaredValueOwned::Value(result.${property.ident})
-                                            % endif
+                                            DeclaredValueOwned::Value(result.${property.ident})
                                         })
                                     }
                                 % endif
@@ -1039,11 +1064,7 @@ impl ParsedDeclaration {
                     % for sub_property in shorthand.sub_properties:
                         changed |= block.push_common(
                             PropertyDeclaration::${sub_property.camel_case}(
-                                % if sub_property.boxed:
-                                    Box::new(${sub_property.ident})
-                                % else:
-                                    ${sub_property.ident}
-                                % endif
+                                ${sub_property.ident}
                             ),
                             importance,
                             overwrite_more_important,

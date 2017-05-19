@@ -107,7 +107,7 @@
             }
         }));
 
-        Ok(Longhands {
+        Ok(expanded! {
             % for name in "image mode position_x position_y size repeat origin clip composite".split():
                 mask_${name}: mask_${name},
             % endfor
@@ -196,7 +196,7 @@
             return Err(());
         }
 
-        Ok(Longhands {
+        Ok(expanded! {
             mask_position_x: position_x,
             mask_position_y: position_y,
         })
