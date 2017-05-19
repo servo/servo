@@ -43,7 +43,9 @@ domobject_derive = {path = "../domobject_derive"}
 encoding = "0.2"
 euclid = "0.11"
 fnv = "1.0"
+gleam = "0.4"
 gfx_traits = {path = "../gfx_traits"}
+half = "1.0"
 heapsize = "0.3.6"
 heapsize_derive = "0.1"
 html5ever = {version = "0.16", features = ["heap_size", "unstable"]}
