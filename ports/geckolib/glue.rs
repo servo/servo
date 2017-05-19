@@ -1377,6 +1377,29 @@ pub extern "C" fn Servo_DeclarationBlock_SerializeOneValue(
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_SerializeFontValueForCanvas(
+    declarations: RawServoDeclarationBlockBorrowed,
+    buffer: *mut nsAString) {
+    use style::properties::ShorthandId;
+    use style::properties::shorthands::font;
+
+    read_locked_arc(declarations, |decls: &PropertyDeclarationBlock| {
+        debug_assert!(decls.declarations().iter().all(|decl| decl.0.shorthands().contains(&ShorthandId::Font)),
+                      "Should have only font shorthand");
+        if !decls.declarations().iter().all(|decl| decl.0.shorthands().contains(&ShorthandId::Font)) {
+            return;
+        }
+
+        let mut string = String::new();
+        let iter = decls.declarations_iter();
+        let rv = font::LonghandsToSerialize::from_iter(iter).unwrap().to_css_for_canvas(&mut string);
+        debug_assert!(rv.is_ok());
+
+        write!(unsafe { &mut *buffer }, "{}", string).expect("Failed to copy string");
+    })
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_Count(declarations: RawServoDeclarationBlockBorrowed) -> u32 {
     read_locked_arc(declarations, |decls: &PropertyDeclarationBlock| {
         decls.declarations().len() as u32
