@@ -45,6 +45,7 @@ use style::gecko_bindings::bindings::Gecko_AddPropertyToSet;
 use style::gecko_bindings::bindings::Gecko_GetOrCreateFinalKeyframe;
 use style::gecko_bindings::bindings::Gecko_GetOrCreateInitialKeyframe;
 use style::gecko_bindings::bindings::Gecko_GetOrCreateKeyframeAtStart;
+use style::gecko_bindings::bindings::Gecko_NewNoneTransform;
 use style::gecko_bindings::bindings::RawGeckoAnimationPropertySegmentBorrowed;
 use style::gecko_bindings::bindings::RawGeckoCSSPropertyIDListBorrowed;
 use style::gecko_bindings::bindings::RawGeckoComputedKeyframeValuesListBorrowedMut;
@@ -451,7 +452,15 @@ pub extern "C" fn Servo_AnimationValue_GetTransform(value: RawServoAnimationValu
 {
     let value = AnimationValue::as_arc(&value);
     if let AnimationValue::Transform(ref servo_list) = **value {
-        style_structs::Box::convert_transform(servo_list.0.clone().unwrap(), unsafe { &mut *list });
+        let list = unsafe { &mut *list };
+        match servo_list.0 {
+            Some(ref servo_list) => {
+                style_structs::Box::convert_transform(servo_list.clone(), list);
+            },
+            None => unsafe {
+                list.set_move(RefPtr::from_addrefed(Gecko_NewNoneTransform()));
+            }
+        }
     } else {
         panic!("The AnimationValue should be transform");
     }
