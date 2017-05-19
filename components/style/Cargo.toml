@@ -21,7 +21,11 @@ use_bindgen = ["bindgen", "regex", "toml"]
 servo = ["serde", "serde_derive", "heapsize", "heapsize_derive",
          "style_traits/servo", "servo_atoms", "servo_config", "html5ever",
          "cssparser/heapsize", "cssparser/serde", "encoding", "smallvec/heapsizeof",
-         "rayon/unstable", "servo_url", "arrayvec/use_union"]
+
+         # FIXME: Uncomment when https://github.com/servo/servo/pull/16953 has landed:
+         #"arrayvec/use_union"
+
+         "rayon/unstable", "servo_url"]
 testing = []
 gecko_debug = ["nsstring_vendor/gecko_debug"]
 
