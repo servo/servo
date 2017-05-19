@@ -16,6 +16,7 @@ use context::{CurrentElementInfo, SelectorFlagsMap, SharedStyleContext, StyleCon
 use data::{ComputedStyle, ElementData, ElementStyles, RestyleData};
 use dom::{AnimationRules, SendElement, TElement, TNode};
 use font_metrics::FontMetricsProvider;
+use log::LogLevel::Trace;
 use properties::{CascadeFlags, ComputedValues, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
 use properties::longhands::display::computed_value as display;
 use restyle_hints::{RESTYLE_CSS_ANIMATIONS, RESTYLE_CSS_TRANSITIONS, RestyleHint};
@@ -1090,6 +1091,15 @@ pub trait MatchMethods : TElement {
             compute_rule_node::<Self>(&stylist.rule_tree,
                                       &mut applicable_declarations,
                                       &context.shared.guards);
+
+        if log_enabled!(Trace) {
+            trace!("Matched rules:");
+            for rn in primary_rule_node.self_and_ancestors() {
+                if let Some(source) = rn.style_source() {
+                    trace!(" > {:?}", source);
+                }
+            }
+        }
 
         return data.set_primary_rules(primary_rule_node);
     }
