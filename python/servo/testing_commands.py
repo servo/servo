@@ -288,9 +288,11 @@ class MachCommands(CommandBase):
     @Command('test-stylo',
              description='Run stylo unit tests',
              category='testing')
+    @CommandArgument('test_name', nargs=argparse.REMAINDER,
+                     help="Only run tests that match this pattern or file path")
     @CommandArgument('--release', default=False, action="store_true",
                      help="Run with a release build of servo")
-    def test_stylo(self, release=False):
+    def test_stylo(self, release=False, test_name=None):
         self.set_use_stable_rust()
         self.ensure_bootstrapped()
 
@@ -298,9 +300,10 @@ class MachCommands(CommandBase):
         env["RUST_BACKTRACE"] = "1"
         env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "target", "geckolib").encode("UTF-8")
 
-        release = ["--release"] if release else []
+        args = (["cargo", "test", "-p", "stylo_tests", "--features", "testing"] +
+                (["--release"] if release else []) + (test_name or []))
         with cd(path.join("ports", "geckolib")):
-            return call(["cargo", "test", "-p", "stylo_tests", "--features", "testing"] + release, env=env)
+            return call(args, env=env)
 
     @Command('test-compiletest',
              description='Run compiletests',

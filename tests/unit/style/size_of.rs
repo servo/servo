@@ -6,6 +6,10 @@ use style::properties;
 
 size_of_test!(test_size_of_property_declaration, properties::PropertyDeclaration, 32);
 
+// This is huge, but we allocate it on the stack and then never move it,
+// we only pass `&mut SourcePropertyDeclaration` references around.
+size_of_test!(test_size_of_parsed_declaration, properties::SourcePropertyDeclaration, 576);
+
 #[test]
 fn size_of_specified_values() {
     ::style::properties::test_size_of_specified_values();

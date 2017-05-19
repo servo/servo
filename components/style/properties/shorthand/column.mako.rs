@@ -42,7 +42,7 @@
         if values == 0 || values > 2 {
             Err(())
         } else {
-            Ok(Longhands {
+            Ok(expanded! {
                 column_count: unwrap_or_initial!(column_count),
                 column_width: unwrap_or_initial!(column_width),
             })
@@ -86,7 +86,7 @@
             break
         }
         if any {
-            Ok(Longhands {
+            Ok(expanded! {
                 column_rule_width: unwrap_or_initial!(column_rule_width),
                 column_rule_style: unwrap_or_initial!(column_rule_style),
                 column_rule_color: unwrap_or_initial!(column_rule_color),

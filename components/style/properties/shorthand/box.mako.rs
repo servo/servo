@@ -16,19 +16,19 @@
             let moz_kw_found = input.try(|i| match_ignore_ascii_case! {
                 &i.expect_ident()?,
                 "-moz-scrollbars-horizontal" => {
-                    Ok(Longhands {
+                    Ok(expanded! {
                         overflow_x: SpecifiedValue::scroll,
                         overflow_y: SpecifiedValue::hidden,
                     })
                 }
                 "-moz-scrollbars-vertical" => {
-                    Ok(Longhands {
+                    Ok(expanded! {
                         overflow_x: SpecifiedValue::hidden,
                         overflow_y: SpecifiedValue::scroll,
                     })
                 }
                 "-moz-scrollbars-none" => {
-                    Ok(Longhands {
+                    Ok(expanded! {
                         overflow_x: SpecifiedValue::hidden,
                         overflow_y: SpecifiedValue::hidden,
                     })
@@ -40,7 +40,7 @@
             }
         % endif
         let overflow = try!(parse_overflow(context, input));
-        Ok(Longhands {
+        Ok(expanded! {
             overflow_x: overflow,
             overflow_y: overflow,
         })
@@ -148,7 +148,7 @@ macro_rules! try_parse_one {
             % endfor
         }
 
-        Ok(Longhands {
+        Ok(expanded! {
             % for prop in "property duration timing_function delay".split():
             transition_${prop}: transition_${prop}::SpecifiedValue(${prop}s),
             % endfor
@@ -259,7 +259,7 @@ macro_rules! try_parse_one {
             % endfor
         }
 
-        Ok(Longhands {
+        Ok(expanded! {
             % for prop in props:
             animation_${prop}: animation_${prop}::SpecifiedValue(${prop}s),
             % endfor
@@ -305,7 +305,7 @@ macro_rules! try_parse_one {
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let result = try!(scroll_snap_type_x::parse(context, input));
-        Ok(Longhands {
+        Ok(expanded! {
             scroll_snap_type_x: result,
             scroll_snap_type_y: result,
         })
@@ -332,7 +332,7 @@ macro_rules! try_parse_one {
     use properties::longhands::transform;
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
-        Ok(Longhands {
+        Ok(expanded! {
             transform: transform::parse_prefixed(context, input)?,
         })
     }

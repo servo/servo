@@ -30,7 +30,7 @@
         if direction.is_none() && wrap.is_none() {
             return Err(())
         }
-        Ok(Longhands {
+        Ok(expanded! {
             flex_direction: unwrap_or_initial!(flex_direction, direction),
             flex_wrap: unwrap_or_initial!(flex_wrap, wrap),
         })
@@ -63,7 +63,7 @@
         let mut basis = None;
 
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            return Ok(Longhands {
+            return Ok(expanded! {
                 flex_grow: Number::new(0.0),
                 flex_shrink: Number::new(0.0),
                 flex_basis: longhands::flex_basis::SpecifiedValue::auto(),
@@ -89,7 +89,7 @@
         if grow.is_none() && basis.is_none() {
             return Err(())
         }
-        Ok(Longhands {
+        Ok(expanded! {
             flex_grow: grow.unwrap_or(Number::new(1.0)),
             flex_shrink: shrink.unwrap_or(Number::new(1.0)),
             flex_basis: basis.unwrap_or(longhands::flex_basis::SpecifiedValue::zero()),
@@ -118,7 +118,7 @@
       let row_gap = grid_row_gap::parse(context, input)?;
       let column_gap = input.try(|input| grid_column_gap::parse(context, input)).unwrap_or(row_gap.clone());
 
-      Ok(Longhands {
+      Ok(expanded! {
         grid_row_gap: row_gap,
         grid_column_gap: column_gap,
       })
@@ -161,7 +161,7 @@
             line
         };
 
-        Ok(Longhands {
+        Ok(expanded! {
             grid_${kind}_start: start,
             grid_${kind}_end: end,
         })
@@ -219,7 +219,7 @@
             (line.clone(), line.clone(), line)
         };
 
-        Ok(Longhands {
+        Ok(expanded! {
             grid_row_start: row_start,
             grid_row_end: row_end,
             grid_column_start: column_start,
@@ -258,7 +258,7 @@
             return Err(());
         }
 
-        Ok(Longhands {
+        Ok(expanded! {
             align_content: align,
             justify_content: justify,
         })
@@ -292,7 +292,7 @@
             return Err(());
         }
 
-        Ok(Longhands {
+        Ok(expanded! {
             align_self: align,
             justify_self: justify,
         })
@@ -334,7 +334,7 @@
             return Err(());
         }
 
-        Ok(Longhands {
+        Ok(expanded! {
             align_items: align,
             justify_items: justify,
         })

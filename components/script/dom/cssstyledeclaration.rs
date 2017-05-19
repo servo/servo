@@ -19,7 +19,7 @@ use std::ascii::AsciiExt;
 use style::attr::AttrValue;
 use style::parser::PARSING_MODE_DEFAULT;
 use style::properties::{Importance, PropertyDeclarationBlock, PropertyId, LonghandId, ShorthandId};
-use style::properties::{parse_one_declaration, parse_style_attribute};
+use style::properties::{parse_one_declaration_into, parse_style_attribute, SourcePropertyDeclaration};
 use style::selector_parser::PseudoElement;
 use style::shared_lock::Locked;
 use style::stylearc::Arc;
@@ -239,12 +239,12 @@ impl CSSStyleDeclaration {
 
         self.owner.mutate_associated_block(|ref mut pdb, mut changed| {
             if value.is_empty() {
-                // Step 4
+                // Step 3
                 *changed = pdb.remove_property(&id);
                 return Ok(());
             }
 
-            // Step 5
+            // Step 4
             let importance = match &*priority {
                 "" => Importance::Normal,
                 p if p.eq_ignore_ascii_case("important") => Importance::Important,
@@ -254,27 +254,26 @@ impl CSSStyleDeclaration {
                 }
             };
 
-            // Step 6
+            // Step 5
             let window = self.owner.window();
             let quirks_mode = window.Document().quirks_mode();
-            let result =
-                parse_one_declaration(id, &value, &self.owner.base_url(),
-                                      window.css_error_reporter(),
-                                      PARSING_MODE_DEFAULT,
-                                      quirks_mode);
+            let mut declarations = SourcePropertyDeclaration::new();
+            let result = parse_one_declaration_into(
+                &mut declarations, id, &value, &self.owner.base_url(),
+                window.css_error_reporter(), PARSING_MODE_DEFAULT, quirks_mode);
 
-            // Step 7
-            let parsed = match result {
-                Ok(parsed) => parsed,
+            // Step 6
+            match result {
+                Ok(()) => {},
                 Err(_) => {
                     *changed = false;
                     return Ok(());
                 }
-            };
+            }
 
+            // Step 7
             // Step 8
-            // Step 9
-            *changed = parsed.expand_set_into(pdb, importance);
+            *changed = pdb.extend_reset(declarations.drain(), importance);
 
             Ok(())
         })

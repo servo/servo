@@ -44,7 +44,7 @@
         let size;
         % if product == "gecko":
             if let Ok(sys) = input.try(SystemFont::parse) {
-                return Ok(Longhands {
+                return Ok(expanded! {
                      % for name in SYSTEM_FONT_LONGHANDS:
                          ${name}: ${name}::SpecifiedValue::system_font(sys),
                      % endfor
@@ -102,7 +102,7 @@
             None
         };
         let family = FontFamily::parse(input)?;
-        Ok(Longhands {
+        Ok(expanded! {
             % for name in "style weight stretch size variant_caps".split():
                 font_${name}: unwrap_or_initial!(font_${name}, ${name}),
             % endfor
@@ -236,7 +236,7 @@
         if count == 0 || count > 1 {
             return Err(())
         }
-        Ok(Longhands {
+        Ok(expanded! {
             font_variant_caps: unwrap_or_initial!(font_variant_caps, caps),
             // FIXME: Bug 1356134 - parse all sub properties.
             % if product == "gecko" or data.testing:

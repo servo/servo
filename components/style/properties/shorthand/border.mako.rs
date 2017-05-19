@@ -24,7 +24,7 @@ ${helpers.four_sides_shorthand("border-style", "border-%s-style",
         let (top, right, bottom, left) = try!(parse_four_sides(input, |i| {
             BorderWidth::parse_quirky(context, i, AllowQuirks::Yes)
         }));
-        Ok(Longhands {
+        Ok(expanded! {
             % for side in PHYSICAL_SIDES:
                 ${to_rust_ident('border-%s-width' % side)}: ${side},
             % endfor
@@ -103,7 +103,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let (color, style, width) = try!(super::parse_border(context, input));
-        Ok(Longhands {
+        Ok(expanded! {
             border_${to_rust_ident(side)}_color: color,
             border_${to_rust_ident(side)}_style: style,
             border_${to_rust_ident(side)}_width: width
@@ -144,7 +144,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
         use properties::longhands::{border_image_source, border_image_width};
 
         let (color, style, width) = try!(super::parse_border(context, input));
-        Ok(Longhands {
+        Ok(expanded! {
             % for side in PHYSICAL_SIDES:
                 border_${side}_color: color.clone(),
                 border_${side}_style: style,
@@ -211,7 +211,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let radii = try!(BorderRadius::parse(context, input));
-        Ok(Longhands {
+        Ok(expanded! {
             border_top_left_radius: radii.top_left,
             border_top_right_radius: radii.top_right,
             border_bottom_right_radius: radii.bottom_right,
@@ -303,7 +303,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
             }
         }));
 
-        Ok(Longhands {
+        Ok(expanded! {
             % for name in "outset repeat slice source width".split():
                 border_image_${name}: border_image_${name},
             % endfor

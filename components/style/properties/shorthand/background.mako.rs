@@ -108,7 +108,7 @@
             }
         }));
 
-        Ok(Longhands {
+        Ok(expanded! {
              background_color: background_color.unwrap_or(CSSColor::transparent()),
              background_image: background_image,
              background_position_x: background_position_x,
@@ -207,7 +207,7 @@
             return Err(());
         }
 
-        Ok(Longhands {
+        Ok(expanded! {
             background_position_x: position_x,
             background_position_y: position_y,
         })

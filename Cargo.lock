@@ -2824,6 +2824,7 @@ name = "style"
 version = "0.0.1"
 dependencies = [
  "app_units 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "arrayvec 0.3.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "atomic_refcell 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bindgen 0.25.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bit-vec 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
