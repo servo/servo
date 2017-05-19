@@ -677,8 +677,8 @@ impl WebGLRenderingContext {
                 let window = window_from_node(&*self.canvas);
 
                 let img = match canvas_utils::request_image_from_cache(&window, img_url) {
-                    ImageResponse::Loaded(img) => img,
-                    ImageResponse::PlaceholderLoaded(_) | ImageResponse::None |
+                    ImageResponse::Loaded(img, _) => img,
+                    ImageResponse::PlaceholderLoaded(_, _) | ImageResponse::None |
                     ImageResponse::MetadataLoaded(_)
                         => return Err(()),
                 };

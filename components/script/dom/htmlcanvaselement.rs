@@ -371,8 +371,8 @@ pub mod utils {
                                                UsePlaceholder::No,
                                                CanRequestImages::No);
         match response {
-            Ok(ImageOrMetadataAvailable::ImageAvailable(image)) =>
-                ImageResponse::Loaded(image),
+            Ok(ImageOrMetadataAvailable::ImageAvailable(image, url)) =>
+                ImageResponse::Loaded(image, url),
             _ => ImageResponse::None,
         }
     }

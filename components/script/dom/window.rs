@@ -390,8 +390,8 @@ impl Window {
         }
         match response.response {
             ImageResponse::MetadataLoaded(_) => {}
-            ImageResponse::Loaded(_) |
-            ImageResponse::PlaceholderLoaded(_) |
+            ImageResponse::Loaded(_, _) |
+            ImageResponse::PlaceholderLoaded(_, _) |
             ImageResponse::None => { nodes.remove(); }
         }
         self.add_pending_reflow();
