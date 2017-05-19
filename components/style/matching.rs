@@ -16,6 +16,7 @@ use context::{CurrentElementInfo, SelectorFlagsMap, SharedStyleContext, StyleCon
 use data::{ComputedStyle, ElementData, ElementStyles, RestyleData};
 use dom::{AnimationRules, SendElement, TElement, TNode};
 use font_metrics::FontMetricsProvider;
+use log::LogLevel::Trace;
 use properties::{CascadeFlags, ComputedValues, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
 use properties::longhands::display::computed_value as display;
 use restyle_hints::{RESTYLE_CSS_ANIMATIONS, RESTYLE_CSS_TRANSITIONS, RestyleHint};
@@ -1163,10 +1164,22 @@ pub trait MatchMethods : TElement {
                                       &mut applicable_declarations,
                                       &context.shared.guards);
 
-        let important_rules_changed = self.has_animations() &&
-                                      data.has_styles() &&
-                                      data.important_rules_are_different(&primary_rule_node,
-                                                                         &context.shared.guards);
+        if log_enabled!(Trace) {
+            trace!("Matched rules:");
+            for rn in primary_rule_node.self_and_ancestors() {
+                if let Some(source) = rn.style_source() {
+                    trace!(" > {:?}", source);
+                }
+            }
+        }
+
+        let important_rules_changed =
+            self.has_animations() &&
+            data.has_styles() &&
+            data.important_rules_are_different(
+                &primary_rule_node,
+                &context.shared.guards
+            );
 
         RulesMatchedResult {
             rule_nodes_changed: data.set_primary_rules(primary_rule_node),
