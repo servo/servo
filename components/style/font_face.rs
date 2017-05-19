@@ -9,7 +9,7 @@
 #![deny(missing_docs)]
 
 #[cfg(feature = "gecko")]
-use computed_values::{font_style, font_weight, font_stretch};
+use computed_values::{font_feature_settings, font_stretch, font_style, font_weight};
 use computed_values::font_family::FamilyName;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use cssparser::SourceLocation;
@@ -71,6 +71,17 @@ impl ToCss for UrlSource {
         dest.write_str(self.url.as_str())
     }
 }
+
+/// A font-display value for a @font-face rule.
+/// The font-display descriptor determines how a font face is displayed based
+/// on whether and when it is downloaded and ready to use.
+define_css_keyword_enum!(FontDisplay:
+                         "auto" => Auto,
+                         "block" => Block,
+                         "swap" => Swap,
+                         "fallback" => Fallback,
+                         "optional" => Optional);
+add_impls_for_keyword_enum!(FontDisplay);
 
 /// Parse the block inside a `@font-face` rule.
 ///
@@ -332,12 +343,20 @@ font_face_descriptors! {
         /// The stretch of this font face
         "font-stretch" stretch / mStretch: font_stretch::T = font_stretch::T::normal,
 
+        /// The display of this font face
+        "font-display" display / mDisplay: FontDisplay = FontDisplay::Auto,
+
         /// The ranges of code points outside of which this font face should not be used.
         "unicode-range" unicode_range / mUnicodeRange: Vec<UnicodeRange> = vec![
             UnicodeRange { start: 0, end: 0x10FFFF }
         ],
 
-        // FIXME: add font-feature-settings, font-language-override, and font-display
+        /// The feature settings of this font face.
+        "font-feature-settings" feature_settings / mFontFeatureSettings: font_feature_settings::T = {
+            font_feature_settings::T::Normal
+        },
+
+        // FIXME: add font-language-override.
     ]
 }
 
