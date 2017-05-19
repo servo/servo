@@ -7,6 +7,9 @@ publish = false
 
 build = "build.rs"
 
+# https://github.com/rust-lang/cargo/issues/3544
+links = "for some reason the links key is required to pass data around between build scripts"
+
 [lib]
 name = "style"
 path = "lib.rs"

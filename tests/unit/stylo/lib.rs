@@ -8,6 +8,7 @@ extern crate env_logger;
 extern crate geckoservo;
 #[macro_use] extern crate log;
 extern crate selectors;
+#[macro_use] extern crate size_of_test;
 #[macro_use] extern crate style;
 extern crate style_traits;
 
@@ -16,3 +17,9 @@ mod size_of;
 
 mod servo_function_signatures;
 
+use style::*;
+
+#[allow(dead_code, improper_ctypes)]
+mod bindings {
+    include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+}

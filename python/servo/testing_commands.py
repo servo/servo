@@ -299,13 +299,8 @@ class MachCommands(CommandBase):
         env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "target", "geckolib").encode("UTF-8")
 
         release = ["--release"] if release else []
-        ret = 0
         with cd(path.join("ports", "geckolib")):
-            ret = call(["cargo", "test", "-p", "stylo_tests", "--features", "testing"] + release, env=env)
-        if ret != 0:
-            return ret
-        with cd(path.join("ports", "geckolib")):
-            return call(["cargo", "test", "-p", "style"] + release, env=env)
+            return call(["cargo", "test", "-p", "stylo_tests", "--features", "testing"] + release, env=env)
 
     @Command('test-compiletest',
              description='Run compiletests',

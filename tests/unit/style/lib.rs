@@ -17,6 +17,7 @@ extern crate selectors;
 extern crate servo_atoms;
 extern crate servo_config;
 extern crate servo_url;
+#[macro_use] extern crate size_of_test;
 extern crate style;
 extern crate style_traits;
 extern crate test;

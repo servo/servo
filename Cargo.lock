@@ -2882,6 +2882,7 @@ dependencies = [
  "servo_atoms 0.0.1",
  "servo_config 0.0.1",
  "servo_url 0.0.1",
+ "size_of_test 0.0.1",
  "style 0.0.1",
  "style_traits 0.0.1",
 ]
@@ -2911,6 +2912,7 @@ dependencies = [
  "libc 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "selectors 0.18.0",
+ "size_of_test 0.0.1",
  "style 0.0.1",
  "style_traits 0.0.1",
 ]
