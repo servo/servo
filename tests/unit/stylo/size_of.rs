@@ -20,7 +20,10 @@ fn size_of_selectors_dummy_types() {
 }
 
 size_of_test!(test_size_of_property_declaration, style::properties::PropertyDeclaration, 32);
-size_of_test!(test_size_of_parsed_declaration, style::properties::ParsedDeclaration, 400);
+
+// This is huge, but we allocate it on the stack and then never move it,
+// we only pass `&mut SourcePropertyDeclaration` references around.
+size_of_test!(test_size_of_parsed_declaration, style::properties::SourcePropertyDeclaration, 704);
 
 #[test]
 fn size_of_specified_values() {
