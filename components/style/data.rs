@@ -4,13 +4,11 @@
 
 //! Per-node data used in style calculation.
 
-#![deny(missing_docs)]
-
-use context::SharedStyleContext;
+use context::{SharedStyleContext, ThreadLocalStyleContext};
 use dom::TElement;
 use properties::ComputedValues;
 use properties::longhands::display::computed_value as display;
-use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
+use restyle_hints::{HintComputationContext, RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
 use rule_tree::StrongRuleNode;
 use selector_parser::{EAGER_PSEUDO_COUNT, PseudoElement, RestyleDamage};
 #[cfg(feature = "servo")] use std::collections::HashMap;
@@ -369,15 +367,16 @@ impl ElementData {
     /// explicit sibling restyle hints from the stored restyle hint.
     ///
     /// Returns true if later siblings must be restyled.
-    pub fn compute_final_hint<E: TElement>(
+    pub fn compute_final_hint<'a, E: TElement>(
         &mut self,
         element: E,
-        context: &SharedStyleContext)
+        shared_context: &SharedStyleContext,
+        hint_context: HintComputationContext<'a, E>)
         -> bool
     {
         debug!("compute_final_hint: {:?}, {:?}",
                element,
-               context.traversal_flags);
+               shared_context.traversal_flags);
 
         let mut hint = match self.get_restyle() {
             Some(r) => r.hint.0,
@@ -392,7 +391,9 @@ impl ElementData {
                 element.implemented_pseudo_element());
 
         if element.has_snapshot() && !element.handled_snapshot() {
-            hint |= context.stylist.compute_restyle_hint(&element, context.snapshot_map);
+            hint |= shared_context.stylist.compute_restyle_hint(&element,
+                                                                shared_context,
+                                                                hint_context);
             unsafe { element.set_handled_snapshot() }
             debug_assert!(element.handled_snapshot());
         }
