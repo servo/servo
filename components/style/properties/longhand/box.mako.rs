@@ -31,7 +31,6 @@
     %>
     use values::computed::ComputedValueAsSpecified;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
     no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
@@ -170,7 +169,6 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
                                   gecko_inexhaustive="True"
                                   gecko_ffi_name="mFloat"
                                   spec="https://drafts.csswg.org/css-box/#propdef-float">
-    use values::HasViewportPercentage;
     no_viewport_percentage!(SpecifiedValue);
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
@@ -209,7 +207,6 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
                                   gecko_enum_prefix="StyleClear"
                                   gecko_ffi_name="mBreakType"
                                   spec="https://www.w3.org/TR/CSS2/visuren.html#flow-control">
-    use values::HasViewportPercentage;
     no_viewport_percentage!(SpecifiedValue);
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
@@ -263,7 +260,6 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
                    spec="https://www.w3.org/TR/CSS2/visudet.html#propdef-vertical-align">
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
     use values::specified::AllowQuirks;
 
     <% vertical_align = data.longhands_by_name["vertical-align"] %>
@@ -312,10 +308,9 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
 
     /// The computed value for `vertical-align`.
     pub mod computed_value {
-        use app_units::Au;
         use std::fmt;
         use style_traits::ToCss;
-        use values::{CSSFloat, computed};
+        use values::computed;
 
         /// The keywords are the same, and the `LengthOrPercentage` is computed
         /// here.
@@ -417,7 +412,6 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     use values::specified::Time;
 
     pub use values::specified::Time as SpecifiedValue;
-    use values::HasViewportPercentage;
     no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
@@ -449,7 +443,6 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     use values::specified::Number;
     use euclid::point::{Point2D, TypedPoint2D};
     use std::fmt;
-    use std::marker::PhantomData;
     use style_traits::ToCss;
 
     // FIXME: This could use static variables and const functions when they are available.
@@ -490,7 +483,6 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
     pub mod computed_value {
         use euclid::point::Point2D;
-        use parser::{Parse, ParserContext};
         use std::fmt;
         use style_traits::ToCss;
         use super::FunctionKeyword;
@@ -755,7 +747,6 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         }
     }
 
-    use values::HasViewportPercentage;
     no_viewport_percentage!(SpecifiedValue);
 
     #[inline]
@@ -786,8 +777,6 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     pub use properties::animated_properties::TransitionProperty as SpecifiedValue;
 
     pub mod computed_value {
-        use std::fmt;
-        use style_traits::ToCss;
         // NB: Can't generate the type here because it needs all the longhands
         // generated beforehand.
         pub use super::SpecifiedValue as T;
@@ -801,7 +790,6 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         TransitionProperty::All
     }
 
-    use values::HasViewportPercentage;
     no_viewport_percentage!(SpecifiedValue);
 
     impl ComputedValueAsSpecified for SpecifiedValue { }
@@ -830,10 +818,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                           spec="https://drafts.csswg.org/css-animations/#propdef-animation-name">
     use Atom;
     use std::fmt;
-    use std::ops::Deref;
     use style_traits::ToCss;
     use values::computed::ComputedValueAsSpecified;
-    use values::{HasViewportPercentage, KeyframesName};
+    use values::KeyframesName;
 
     pub mod computed_value {
         pub use super::SpecifiedValue as T;
@@ -928,7 +915,6 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     use std::fmt;
     use style_traits::ToCss;
     use values::computed::ComputedValueAsSpecified;
-    use values::HasViewportPercentage;
 
     pub mod computed_value {
         pub use super::SpecifiedValue as T;
@@ -1036,7 +1022,6 @@ ${helpers.single_keyword("animation-fill-mode",
                    spec="Nonstandard (https://www.w3.org/TR/2015/WD-css-snappoints-1-20150326/#scroll-snap-points)">
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
     use values::specified::LengthOrPercentage;
 
     pub mod computed_value {
@@ -1157,9 +1142,8 @@ ${helpers.predefined_type("scroll-snap-coordinate",
     use values::specified::{LengthOrNumber, LengthOrPercentageOrNumber as LoPoNumber, Number};
     use style_traits::ToCss;
     use style_traits::values::Css;
-    use values::HasViewportPercentage;
 
-    use std::fmt::{self, Display};
+    use std::fmt;
 
     pub mod computed_value {
         use app_units::Au;
@@ -2121,7 +2105,6 @@ ${helpers.single_keyword("transform-style",
     use app_units::Au;
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
     use values::specified::{NoCalcLength, LengthOrPercentage, Percentage};
 
     pub mod computed_value {
@@ -2239,7 +2222,6 @@ ${helpers.single_keyword("transform-style",
                    spec="https://drafts.csswg.org/css-contain/#contain-property">
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -2392,7 +2374,6 @@ ${helpers.single_keyword("-moz-orient",
     use cssparser::serialize_identifier;
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -2465,7 +2446,6 @@ ${helpers.predefined_type("shape-outside", "basic_shape::ShapeWithShapeBox",
     use gecko_bindings::structs;
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}

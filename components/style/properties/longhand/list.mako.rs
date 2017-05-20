@@ -36,7 +36,6 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
         use std::fmt;
         use style_traits::ToCss;
         use values::CustomIdent;
-        use values::HasViewportPercentage;
         use values::computed::ComputedValueAsSpecified;
         use values::generics::CounterStyleOrNone;
 
@@ -105,7 +104,6 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
                    boxed="${product == 'gecko'}"
                    spec="https://drafts.csswg.org/css-lists/#propdef-list-style-image">
     use std::fmt;
-    use values::HasViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
     use values::specified::UrlOrNone;
     pub use self::computed_value::T as SpecifiedValue;
@@ -158,7 +156,6 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
     use std::fmt;
     use style_traits::ToCss;
     use values::computed::ComputedValueAsSpecified;
-    use values::HasViewportPercentage;
 
     pub use self::computed_value::T as SpecifiedValue;
 

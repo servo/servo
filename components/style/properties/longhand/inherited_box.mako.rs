@@ -68,7 +68,6 @@ ${helpers.single_keyword("image-rendering",
     use style_traits::ToCss;
     use values::specified::Angle;
 
-    use values::HasViewportPercentage;
     no_viewport_percentage!(SpecifiedValue);
 
     use std::f32::consts::PI;
@@ -207,7 +206,6 @@ ${helpers.single_keyword("image-rendering",
     use std::fmt;
     use style_traits::ToCss;
     use values::computed::ComputedValueAsSpecified;
-    use values::HasViewportPercentage;
 
     no_viewport_percentage!(SpecifiedValue);
 

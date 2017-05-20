@@ -25,7 +25,6 @@ ${helpers.single_keyword("caption-side", "top bottom",
     use app_units::Au;
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
     use values::specified::{AllowQuirks, Length};
 
     pub mod computed_value {

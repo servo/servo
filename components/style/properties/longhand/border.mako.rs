@@ -62,7 +62,6 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
                        products="gecko">
         use std::fmt;
         use style_traits::ToCss;
-        use values::HasViewportPercentage;
         use values::specified::CSSColor;
         no_viewport_percentage!(SpecifiedValue);
 
@@ -205,7 +204,6 @@ ${helpers.predefined_type("border-image-source", "ImageLayer",
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-outset">
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
     use values::specified::{LengthOrNumber, Number};
 
     pub mod computed_value {
@@ -310,13 +308,11 @@ ${helpers.predefined_type("border-image-source", "ImageLayer",
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-repeat">
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
 
     no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
         pub use super::RepeatKeyword;
-        use values::computed;
 
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -388,7 +384,6 @@ ${helpers.predefined_type("border-image-source", "ImageLayer",
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-width">
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
     use values::specified::{LengthOrPercentage, Number};
 
     pub mod computed_value {
@@ -574,7 +569,6 @@ ${helpers.predefined_type("border-image-source", "ImageLayer",
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-slice">
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
     use values::computed::NumberOrPercentage as ComputedNumberOrPercentage;
     use values::specified::{NumberOrPercentage, Percentage};
 

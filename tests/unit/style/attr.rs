@@ -5,7 +5,6 @@
 use app_units::Au;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_length};
 use style::values::computed::CalcLengthOrPercentage;
-use style_traits::values::specified::AllowedLengthType;
 
 #[test]
 fn test_length_calc() {

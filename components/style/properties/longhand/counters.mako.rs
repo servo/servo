@@ -9,12 +9,11 @@
 <%helpers:longhand name="content" boxed="True" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-content/#propdef-content">
     use cssparser::Token;
-    use std::ascii::AsciiExt;
     use values::computed::ComputedValueAsSpecified;
     #[cfg(feature = "gecko")]
     use values::generics::CounterStyleOrNone;
+    #[cfg(feature = "gecko")]
     use values::specified::url::SpecifiedUrl;
-    use values::HasViewportPercentage;
 
     #[cfg(feature = "servo")]
     use super::list_style_type;
@@ -29,6 +28,7 @@
         use cssparser;
         use std::fmt;
         use style_traits::ToCss;
+        #[cfg(feature = "gecko")]
         use values::specified::url::SpecifiedUrl;
 
         #[cfg(feature = "servo")]
@@ -256,11 +256,9 @@
                    spec="https://drafts.csswg.org/css-lists/#propdef-counter-increment">
     use std::fmt;
     use style_traits::ToCss;
-    use super::content;
-    use values::{HasViewportPercentage, CustomIdent};
+    use values::CustomIdent;
 
-    use cssparser::{Token, serialize_identifier};
-    use std::borrow::{Cow, ToOwned};
+    use cssparser::Token;
 
     #[derive(Debug, Clone, PartialEq)]
     pub struct SpecifiedValue(pub Vec<(CustomIdent, specified::Integer)>);
@@ -278,7 +276,6 @@
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result
                 where W: fmt::Write,
             {
-                use cssparser::serialize_identifier;
                 if self.0.is_empty() {
                     return dest.write_str("none")
                 }
@@ -348,8 +345,6 @@
     }
 
     pub fn parse_common(context: &ParserContext, default_value: i32, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        use std::ascii::AsciiExt;
-
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(SpecifiedValue(Vec::new()))
         }

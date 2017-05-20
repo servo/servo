@@ -9,8 +9,8 @@
 <%helpers:longhand name="cursor" boxed="${product == 'gecko'}" animation_value_type="none"
   spec="https://drafts.csswg.org/css-ui/#cursor">
     pub use self::computed_value::T as SpecifiedValue;
-    use values::HasViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
+    #[cfg(feature = "gecko")]
     use values::specified::url::SpecifiedUrl;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -20,6 +20,7 @@
         use std::fmt;
         use style_traits::cursor::Cursor;
         use style_traits::ToCss;
+        #[cfg(feature = "gecko")]
         use values::specified::url::SpecifiedUrl;
 
         #[derive(Clone, PartialEq, Copy, Debug)]

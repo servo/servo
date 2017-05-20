@@ -10,7 +10,6 @@
                    spec="https://drafts.csswg.org/css2/visudet.html#propdef-line-height">
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
 
     #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -66,7 +65,6 @@
     }
     pub mod computed_value {
         use app_units::Au;
-        use std::fmt;
         use values::CSSFloat;
         #[derive(PartialEq, Copy, Clone, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -203,7 +201,6 @@ ${helpers.single_keyword("word-break",
                                   gecko_enum_prefix="StyleTextJustify"
                                   animation_value_type="none"
                                   spec="https://drafts.csswg.org/css-text/#propdef-text-justify">
-    use values::HasViewportPercentage;
     no_viewport_percentage!(SpecifiedValue);
 
     impl ToComputedValue for SpecifiedValue {
@@ -247,8 +244,6 @@ ${helpers.single_keyword("text-align-last",
 // TODO make this a shorthand and implement text-align-last/text-align-all
 <%helpers:longhand name="text-align" animation_value_type="none" need_clone="True"
                    spec="https://drafts.csswg.org/css-text/#propdef-text-align">
-    use values::computed::ComputedValueAsSpecified;
-    use values::HasViewportPercentage;
     no_viewport_percentage!(SpecifiedValue);
     pub mod computed_value {
         use style_traits::ToCss;
@@ -391,6 +386,7 @@ ${helpers.single_keyword("text-align-last",
             }
         }
     % else:
+        use values::computed::ComputedValueAsSpecified;
         impl ComputedValueAsSpecified for SpecifiedValue {}
         pub use self::computed_value::T as SpecifiedValue;
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
@@ -403,7 +399,6 @@ ${helpers.single_keyword("text-align-last",
                    spec="https://drafts.csswg.org/css-text/#propdef-letter-spacing">
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
     use values::specified::AllowQuirks;
 
     #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
@@ -480,7 +475,6 @@ ${helpers.single_keyword("text-align-last",
                    spec="https://drafts.csswg.org/css-text/#propdef-word-spacing">
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
     use values::specified::AllowQuirks;
 
     #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
@@ -561,7 +555,6 @@ ${helpers.single_keyword("text-align-last",
     use cssparser::RGBA;
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -647,7 +640,6 @@ ${helpers.single_keyword("text-align-last",
                                   animation_value_type="none"
                                   spec="https://drafts.csswg.org/css-text/#propdef-white-space">
     use values::computed::ComputedValueAsSpecified;
-    use values::HasViewportPercentage;
     impl ComputedValueAsSpecified for SpecifiedValue {}
     no_viewport_percentage!(SpecifiedValue);
 
@@ -693,7 +685,6 @@ ${helpers.single_keyword("text-align-last",
     use std::fmt;
     use style_traits::ToCss;
     use values::specified::Shadow;
-    use values::HasViewportPercentage;
 
     #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -849,7 +840,6 @@ ${helpers.single_keyword("text-align-last",
     use std::fmt;
     use style_traits::ToCss;
     use unicode_segmentation::UnicodeSegmentation;
-    use values::HasViewportPercentage;
 
     no_viewport_percentage!(SpecifiedValue);
 
@@ -1055,7 +1045,6 @@ ${helpers.single_keyword("text-align-last",
                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-position">
     use std::fmt;
     use values::computed::ComputedValueAsSpecified;
-    use values::HasViewportPercentage;
     use style_traits::ToCss;
 
     define_css_keyword_enum!(HorizontalWritingModeValue:

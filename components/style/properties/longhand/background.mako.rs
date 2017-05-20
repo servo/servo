@@ -34,7 +34,6 @@ ${helpers.predefined_type("background-image", "ImageLayer",
                           spec="https://drafts.csswg.org/css-backgrounds/#the-background-repeat">
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
 
     define_css_keyword_enum!(RepeatKeyword:
                              "repeat" => Repeat,
@@ -163,11 +162,8 @@ ${helpers.single_keyword("background-origin",
 
 <%helpers:vector_longhand name="background-size" animation_value_type="ComputedValue" extra_prefixes="webkit"
                           spec="https://drafts.csswg.org/css-backgrounds/#the-background-size">
-    use cssparser::Token;
-    use std::ascii::AsciiExt;
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
 
     #[allow(missing_docs)]
     pub mod computed_value {
