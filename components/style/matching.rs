@@ -816,7 +816,6 @@ trait PrivateMatchMethods: TElement {
 
         self.accumulate_damage_for(shared_context, restyle.unwrap(),
                                    old_values.unwrap(), new_values, pseudo)
-        
     }
 
     /// Computes and applies non-redundant damage.

@@ -8,8 +8,8 @@ use gecko_bindings::bindings;
 use gecko_bindings::structs;
 use gecko_bindings::structs::{nsChangeHint, nsStyleContext};
 use gecko_bindings::sugar::ownership::FFIArcHelpers;
-use properties::ComputedValues;
 use matching::{StyleChange, StyleDifference};
+use properties::ComputedValues;
 use std::ops::{BitAnd, BitOr, BitOrAssign, Not};
 use stylearc::Arc;
 

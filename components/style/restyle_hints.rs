@@ -393,10 +393,10 @@ impl From<nsRestyleHint> for RestyleReplacements {
 #[cfg(feature = "gecko")]
 impl From<nsRestyleHint> for RestyleHint {
     fn from(raw: nsRestyleHint) -> Self {
-        use gecko_bindings::structs::nsRestyleHint_eRestyle_Self as eRestyle_Self;
-        use gecko_bindings::structs::nsRestyleHint_eRestyle_Subtree as eRestyle_Subtree;
-        use gecko_bindings::structs::nsRestyleHint_eRestyle_SomeDescendants as eRestyle_SomeDescendants;
         use gecko_bindings::structs::nsRestyleHint_eRestyle_LaterSiblings as eRestyle_LaterSiblings;
+        use gecko_bindings::structs::nsRestyleHint_eRestyle_Self as eRestyle_Self;
+        use gecko_bindings::structs::nsRestyleHint_eRestyle_SomeDescendants as eRestyle_SomeDescendants;
+        use gecko_bindings::structs::nsRestyleHint_eRestyle_Subtree as eRestyle_Subtree;
 
         let mut match_under_self = RestyleDepths::empty();
         if (raw.0 & (eRestyle_Self.0 | eRestyle_Subtree.0)) != 0 {
