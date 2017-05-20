@@ -2241,7 +2241,7 @@ fn static_assert() {
             % endfor
         }
     </%def>
-    pub fn convert_transform(input: Vec<longhands::transform::computed_value::ComputedOperation>,
+    pub fn convert_transform(input: &[longhands::transform::computed_value::ComputedOperation],
                              output: &mut structs::root::RefPtr<structs::root::nsCSSValueSharedList>) {
         use gecko_bindings::structs::nsCSSKeyword::*;
         use gecko_bindings::sugar::refptr::RefPtr;
@@ -2261,7 +2261,7 @@ fn static_assert() {
             let servo = iter.next().expect("Gecko_NewCSSValueSharedList should create a shared \
                                             value list of the same length as the transform vector");
             unsafe {
-                match servo {
+                match *servo {
                     ${transform_function_arm("Matrix", "matrix3d", ["number"] * 16)}
                     ${transform_function_arm("MatrixWithPercents", "matrix3d", ["number"] * 12 + ["lop"] * 2
                                              + ["length"] + ["number"])}
@@ -2287,7 +2287,7 @@ fn static_assert() {
             }
             return;
         };
-        Self::convert_transform(vec, &mut self.gecko.mSpecifiedTransform);
+        Self::convert_transform(&vec, &mut self.gecko.mSpecifiedTransform);
     }
 
     pub fn copy_transform_from(&mut self, other: &Self) {

@@ -8,7 +8,7 @@
 
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
-use properties::{Importance, PropertyDeclarationBlock};
+use properties::{Importance, LonghandIdSet, PropertyDeclarationBlock};
 use shared_lock::{Locked, StylesheetGuards, SharedRwLockReadGuard};
 use smallvec::SmallVec;
 use std::io::{self, Write};
@@ -1091,6 +1091,42 @@ impl StrongRuleNode {
         self.self_and_ancestors()
             .take_while(|node| node.cascade_level() >= CascadeLevel::SMILOverride)
             .any(|node| node.cascade_level().is_animation())
+    }
+
+    /// Get a set of properties whose CascadeLevel are higher than Animations but not equal to
+    /// Transitions. If there are any custom properties, we set the boolean value of the returned
+    /// tuple to true.
+    pub fn get_properties_overriding_animations(&self, guards: &StylesheetGuards)
+                                                -> (LonghandIdSet, bool) {
+        use properties::PropertyDeclarationId;
+
+        // We want to iterate over cascade levels that override the animations level, i.e.
+        // !important levels and the transitions level. However, we actually want to skip the
+        // transitions level because although it is higher in the cascade than animations, when
+        // both transitions and animations are present for a given element and property, transitions
+        // are suppressed so that they don't actually override animations.
+        let iter = self.self_and_ancestors()
+                       .skip_while(|node| node.cascade_level() == CascadeLevel::Transitions)
+                       .take_while(|node| node.cascade_level() > CascadeLevel::Animations);
+        let mut result = (LonghandIdSet::new(), false);
+        for node in iter {
+            let style = node.style_source().unwrap();
+            for &(ref decl, important) in style.read(node.cascade_level().guard(guards))
+                                               .declarations()
+                                               .iter() {
+                // Although we are only iterating over cascade levels that override animations,
+                // in a given property declaration block we can have a mixture of !important and
+                // non-!important declarations but only the !important declarations actually
+                // override animations.
+                if important.important() {
+                    match decl.id() {
+                        PropertyDeclarationId::Longhand(id) => result.0.insert(id),
+                        PropertyDeclarationId::Custom(_) => result.1 = true
+                    }
+                }
+            }
+        }
+        result
     }
 }
 

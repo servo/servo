@@ -40,11 +40,14 @@ use style::gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedV
 use style::gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedValuesStrong};
 use style::gecko_bindings::bindings::{RawServoSupportsRule, RawServoSupportsRuleBorrowed};
 use style::gecko_bindings::bindings::{ServoCssRulesBorrowed, ServoCssRulesStrong};
-use style::gecko_bindings::bindings::{nsACString, nsAString};
+use style::gecko_bindings::bindings::{nsACString, nsAString, nsCSSPropertyIDSetBorrowedMut};
+use style::gecko_bindings::bindings::Gecko_AddPropertyToSet;
 use style::gecko_bindings::bindings::Gecko_GetOrCreateFinalKeyframe;
 use style::gecko_bindings::bindings::Gecko_GetOrCreateInitialKeyframe;
 use style::gecko_bindings::bindings::Gecko_GetOrCreateKeyframeAtStart;
+use style::gecko_bindings::bindings::Gecko_NewNoneTransform;
 use style::gecko_bindings::bindings::RawGeckoAnimationPropertySegmentBorrowed;
+use style::gecko_bindings::bindings::RawGeckoCSSPropertyIDListBorrowed;
 use style::gecko_bindings::bindings::RawGeckoComputedKeyframeValuesListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoComputedTimingBorrowed;
 use style::gecko_bindings::bindings::RawGeckoElementBorrowed;
@@ -247,18 +250,27 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
     debug!("Servo_TraverseSubtree: {:?}", element);
 
     let traversal_flags = match (root_behavior, restyle_behavior) {
-        (Root::Normal, Restyle::Normal) => TraversalFlags::empty(),
-        (Root::UnstyledChildrenOnly, Restyle::Normal) => UNSTYLED_CHILDREN_ONLY,
+        (Root::Normal, Restyle::Normal) |
+        (Root::Normal, Restyle::ForAnimationOnly)
+          => TraversalFlags::empty(),
+        (Root::UnstyledChildrenOnly, Restyle::Normal) |
+        (Root::UnstyledChildrenOnly, Restyle::ForAnimationOnly)
+          => UNSTYLED_CHILDREN_ONLY,
         (Root::Normal, Restyle::ForReconstruct) => FOR_RECONSTRUCT,
         _ => panic!("invalid combination of TraversalRootBehavior and TraversalRestyleBehavior"),
     };
 
-    if element.has_animation_only_dirty_descendants() ||
-       element.has_animation_restyle_hints() {
+    let needs_animation_only_restyle = element.has_animation_only_dirty_descendants() ||
+                                       element.has_animation_restyle_hints();
+    if needs_animation_only_restyle {
         traverse_subtree(element,
                          raw_data,
                          traversal_flags | ANIMATION_ONLY,
                          unsafe { &*snapshots });
+    }
+
+    if restyle_behavior == Restyle::ForAnimationOnly {
+        return needs_animation_only_restyle;
     }
 
     traverse_subtree(element,
@@ -449,7 +461,15 @@ pub extern "C" fn Servo_AnimationValue_GetTransform(value: RawServoAnimationValu
 {
     let value = AnimationValue::as_arc(&value);
     if let AnimationValue::Transform(ref servo_list) = **value {
-        style_structs::Box::convert_transform(servo_list.0.clone().unwrap(), unsafe { &mut *list });
+        let list = unsafe { &mut *list };
+        match servo_list.0 {
+            Some(ref servo_list) => {
+                style_structs::Box::convert_transform(servo_list, list);
+            },
+            None => unsafe {
+                list.set_move(RefPtr::from_addrefed(Gecko_NewNoneTransform()));
+            }
+        }
     } else {
         panic!("The AnimationValue should be transform");
     }
@@ -1316,6 +1336,38 @@ pub extern "C" fn Servo_ParseEasing(easing: *const nsAString,
             true
         },
         Err(_) => false
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_GetProperties_Overriding_Animation(element: RawGeckoElementBorrowed,
+                                                           list: RawGeckoCSSPropertyIDListBorrowed,
+                                                           set: nsCSSPropertyIDSetBorrowedMut) {
+    let element = GeckoElement(element);
+    let element_data = match element.borrow_data() {
+        Some(data) => data,
+        None => return
+    };
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let guards = StylesheetGuards::same(&guard);
+    let (overridden, custom) =
+        element_data.styles().primary.rules.get_properties_overriding_animations(&guards);
+    for p in list.iter() {
+        match PropertyId::from_nscsspropertyid(*p) {
+            Ok(property) => {
+                if let PropertyId::Longhand(id) = property {
+                    if overridden.contains(id) {
+                        unsafe { Gecko_AddPropertyToSet(set, *p) };
+                    }
+                }
+            },
+            Err(_) => {
+                if *p == nsCSSPropertyID::eCSSPropertyExtra_variable && custom {
+                    unsafe { Gecko_AddPropertyToSet(set, *p) };
+                }
+            }
+        }
     }
 }
 

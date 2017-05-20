@@ -379,6 +379,39 @@ pub enum StyleSharingResult {
     StyleWasShared(usize),
 }
 
+/// The result status for match primary rules.
+#[derive(Debug)]
+pub struct RulesMatchedResult {
+    /// Indicate that the rule nodes are changed.
+    rule_nodes_changed: bool,
+    /// Indicate that there are any changes of important rules overriding animations.
+    important_rules_overriding_animation_changed: bool,
+}
+
+bitflags! {
+    /// Flags that represent the result of replace_rules.
+    pub flags RulesChanged: u8 {
+        /// Normal rules are changed.
+        const NORMAL_RULES_CHANGED = 0x01,
+        /// Important rules are changed.
+        const IMPORTANT_RULES_CHANGED = 0x02,
+    }
+}
+
+impl RulesChanged {
+    /// Return true if there are any normal rules changed.
+    #[inline]
+    pub fn normal_rules_changed(&self) -> bool {
+        self.contains(NORMAL_RULES_CHANGED)
+    }
+
+    /// Return true if there are any important rules changed.
+    #[inline]
+    pub fn important_rules_changed(&self) -> bool {
+        self.contains(IMPORTANT_RULES_CHANGED)
+    }
+}
+
 trait PrivateMatchMethods: TElement {
     /// Returns the closest parent element that doesn't have a display: contents
     /// style (and thus generates a box).
@@ -536,7 +569,8 @@ trait PrivateMatchMethods: TElement {
     /// setting them on the ElementData.
     fn cascade_primary(&self,
                        context: &mut StyleContext<Self>,
-                       data: &mut ElementData) {
+                       data: &mut ElementData,
+                       important_rules_changed: bool) {
         // Collect some values.
         let (mut styles, restyle) = data.styles_and_restyle_mut();
         let mut primary_style = &mut styles.primary;
@@ -551,7 +585,8 @@ trait PrivateMatchMethods: TElement {
             self.process_animations(context,
                                     &mut old_values,
                                     &mut new_values,
-                                    primary_style);
+                                    primary_style,
+                                    important_rules_changed);
         }
 
         if let Some(old) = old_values {
@@ -647,8 +682,9 @@ trait PrivateMatchMethods: TElement {
                           context: &mut StyleContext<Self>,
                           old_values: &mut Option<Arc<ComputedValues>>,
                           new_values: &mut Arc<ComputedValues>,
-                          primary_style: &ComputedStyle) {
-        use context::{CSS_ANIMATIONS, CSS_TRANSITIONS, EFFECT_PROPERTIES};
+                          primary_style: &ComputedStyle,
+                          important_rules_changed: bool) {
+        use context::{CASCADE_RESULTS, CSS_ANIMATIONS, CSS_TRANSITIONS, EFFECT_PROPERTIES};
         use context::UpdateAnimationsTasks;
 
         let mut tasks = UpdateAnimationsTasks::empty();
@@ -694,6 +730,9 @@ trait PrivateMatchMethods: TElement {
 
         if self.has_animations() {
             tasks.insert(EFFECT_PROPERTIES);
+            if important_rules_changed {
+                tasks.insert(CASCADE_RESULTS);
+            }
         }
 
         if !tasks.is_empty() {
@@ -709,7 +748,8 @@ trait PrivateMatchMethods: TElement {
                           context: &mut StyleContext<Self>,
                           old_values: &mut Option<Arc<ComputedValues>>,
                           new_values: &mut Arc<ComputedValues>,
-                          _primary_style: &ComputedStyle) {
+                          _primary_style: &ComputedStyle,
+                          _important_rules_changed: bool) {
         use animation;
 
         let possibly_expired_animations =
@@ -881,17 +921,14 @@ pub trait MatchMethods : TElement {
     {
         // Perform selector matching for the primary style.
         let mut relations = StyleRelations::empty();
-        let _rule_node_changed = self.match_primary(context,
-                                                    data,
-                                                    &mut relations);
+        let result = self.match_primary(context, data, &mut relations);
 
         // Cascade properties and compute primary values.
-        self.cascade_primary(context, data);
+        self.cascade_primary(context, data, result.important_rules_overriding_animation_changed);
 
         // Match and cascade eager pseudo-elements.
         if !data.styles().is_display_none() {
-            let _pseudo_rule_nodes_changed =
-                self.match_pseudos(context, data);
+            let _pseudo_rule_nodes_changed = self.match_pseudos(context, data);
             self.cascade_pseudos(context, data);
         }
 
@@ -925,20 +962,22 @@ pub trait MatchMethods : TElement {
     /// Performs the cascade, without matching.
     fn cascade_primary_and_pseudos(&self,
                                    context: &mut StyleContext<Self>,
-                                   mut data: &mut ElementData)
+                                   mut data: &mut ElementData,
+                                   important_rules_changed: bool)
     {
-        self.cascade_primary(context, &mut data);
+        self.cascade_primary(context, &mut data, important_rules_changed);
         self.cascade_pseudos(context, &mut data);
     }
 
     /// Runs selector matching to (re)compute the primary rule node for this element.
     ///
-    /// Returns whether the primary rule node changed.
+    /// Returns RulesMatchedResult which indicates whether the primary rule node changed
+    /// and whether the change includes important rules.
     fn match_primary(&self,
                      context: &mut StyleContext<Self>,
                      data: &mut ElementData,
                      relations: &mut StyleRelations)
-                     -> bool
+                     -> RulesMatchedResult
     {
         let implemented_pseudo = self.implemented_pseudo_element();
         if let Some(ref pseudo) = implemented_pseudo {
@@ -977,7 +1016,16 @@ pub trait MatchMethods : TElement {
                     }
                 }
 
-                return data.set_primary_rules(rules);
+                let important_rules_changed =
+                    self.has_animations() &&
+                    data.has_styles() &&
+                    data.important_rules_are_different(&rules,
+                                                       &context.shared.guards);
+
+                return RulesMatchedResult {
+                    rule_nodes_changed: data.set_primary_rules(rules),
+                    important_rules_overriding_animation_changed: important_rules_changed,
+                };
             }
         }
 
@@ -1015,7 +1063,15 @@ pub trait MatchMethods : TElement {
                                       &mut applicable_declarations,
                                       &context.shared.guards);
 
-        return data.set_primary_rules(primary_rule_node);
+        let important_rules_changed = self.has_animations() &&
+                                      data.has_styles() &&
+                                      data.important_rules_are_different(&primary_rule_node,
+                                                                         &context.shared.guards);
+
+        RulesMatchedResult {
+            rule_nodes_changed: data.set_primary_rules(primary_rule_node),
+            important_rules_overriding_animation_changed: important_rules_changed,
+        }
     }
 
     /// Runs selector matching to (re)compute eager pseudo-element rule nodes
@@ -1155,18 +1211,19 @@ pub trait MatchMethods : TElement {
     }
 
     /// Updates the rule nodes without re-running selector matching, using just
-    /// the rule tree. Returns true if the rule nodes changed.
+    /// the rule tree. Returns RulesChanged which indicates whether the rule nodes changed
+    /// and whether the important rules changed.
     fn replace_rules(&self,
                      hint: RestyleHint,
                      context: &StyleContext<Self>,
                      data: &mut AtomicRefMut<ElementData>)
-                     -> bool {
+                     -> RulesChanged {
         use properties::PropertyDeclarationBlock;
         use shared_lock::Locked;
 
         let element_styles = &mut data.styles_mut();
         let primary_rules = &mut element_styles.primary.rules;
-        let mut rule_node_changed = false;
+        let mut result = RulesChanged::empty();
 
         {
             let mut replace_rule_node = |level: CascadeLevel,
@@ -1176,7 +1233,11 @@ pub trait MatchMethods : TElement {
                     .update_rule_at_level(level, pdb, path, &context.shared.guards);
                 if let Some(n) = new_node {
                     *path = n;
-                    rule_node_changed = true;
+                    if level.is_important() {
+                        result.insert(IMPORTANT_RULES_CHANGED);
+                    } else {
+                        result.insert(NORMAL_RULES_CHANGED);
+                    }
                 }
             };
 
@@ -1224,7 +1285,7 @@ pub trait MatchMethods : TElement {
             }
         }
 
-        rule_node_changed
+        result
     }
 
     /// Attempts to share a style with another node. This method is unsafe

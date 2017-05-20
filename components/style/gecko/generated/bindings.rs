@@ -10,6 +10,7 @@ use gecko_bindings::structs::mozilla::css::URLValue;
 use gecko_bindings::structs::mozilla::Side;
 use gecko_bindings::structs::RawGeckoAnimationPropertySegment;
 use gecko_bindings::structs::RawGeckoComputedTiming;
+use gecko_bindings::structs::RawGeckoCSSPropertyIDList;
 use gecko_bindings::structs::RawGeckoDocument;
 use gecko_bindings::structs::RawGeckoElement;
 use gecko_bindings::structs::RawGeckoKeyframeList;
@@ -48,6 +49,7 @@ use gecko_bindings::structs::nsCSSCounterStyleRule;
 use gecko_bindings::structs::nsCSSFontFaceRule;
 use gecko_bindings::structs::nsCSSKeyword;
 use gecko_bindings::structs::nsCSSPropertyID;
+use gecko_bindings::structs::nsCSSPropertyIDSet;
 use gecko_bindings::structs::nsCSSShadowArray;
 use gecko_bindings::structs::nsCSSUnit;
 use gecko_bindings::structs::nsCSSValue;
@@ -316,6 +318,10 @@ pub type RawGeckoPresContextBorrowed<'a> = &'a RawGeckoPresContext;
 pub type RawGeckoPresContextBorrowedOrNull<'a> = Option<&'a RawGeckoPresContext>;
 pub type RawGeckoStyleAnimationListBorrowed<'a> = &'a RawGeckoStyleAnimationList;
 pub type RawGeckoStyleAnimationListBorrowedOrNull<'a> = Option<&'a RawGeckoStyleAnimationList>;
+pub type nsCSSPropertyIDSetBorrowed<'a> = &'a nsCSSPropertyIDSet;
+pub type nsCSSPropertyIDSetBorrowedOrNull<'a> = Option<&'a nsCSSPropertyIDSet>;
+pub type nsCSSPropertyIDSetBorrowedMut<'a> = &'a mut nsCSSPropertyIDSet;
+pub type nsCSSPropertyIDSetBorrowedMutOrNull<'a> = Option<&'a mut nsCSSPropertyIDSet>;
 pub type nsCSSValueBorrowed<'a> = &'a nsCSSValue;
 pub type nsCSSValueBorrowedOrNull<'a> = Option<&'a nsCSSValue>;
 pub type nsCSSValueBorrowedMut<'a> = &'a mut nsCSSValue;
@@ -352,6 +358,10 @@ pub type RawGeckoServoStyleRuleListBorrowed<'a> = &'a RawGeckoServoStyleRuleList
 pub type RawGeckoServoStyleRuleListBorrowedOrNull<'a> = Option<&'a RawGeckoServoStyleRuleList>;
 pub type RawGeckoServoStyleRuleListBorrowedMut<'a> = &'a mut RawGeckoServoStyleRuleList;
 pub type RawGeckoServoStyleRuleListBorrowedMutOrNull<'a> = Option<&'a mut RawGeckoServoStyleRuleList>;
+pub type RawGeckoCSSPropertyIDListBorrowed<'a> = &'a RawGeckoCSSPropertyIDList;
+pub type RawGeckoCSSPropertyIDListBorrowedOrNull<'a> = Option<&'a RawGeckoCSSPropertyIDList>;
+pub type RawGeckoCSSPropertyIDListBorrowedMut<'a> = &'a mut RawGeckoCSSPropertyIDList;
+pub type RawGeckoCSSPropertyIDListBorrowedMutOrNull<'a> = Option<&'a mut RawGeckoCSSPropertyIDList>;
 
 extern "C" {
     pub fn Gecko_EnsureTArrayCapacity(aArray: *mut ::std::os::raw::c_void,
@@ -1178,6 +1188,9 @@ extern "C" {
     pub fn Gecko_NewCSSValueSharedList(len: u32) -> *mut nsCSSValueSharedList;
 }
 extern "C" {
+    pub fn Gecko_NewNoneTransform() -> *mut nsCSSValueSharedList;
+}
+extern "C" {
     pub fn Gecko_CSSValue_GetArrayItem(css_value: nsCSSValueBorrowedMut,
                                        index: i32) -> nsCSSValueBorrowedMut;
 }
@@ -1362,6 +1375,10 @@ extern "C" {
                                       type_: CSSPseudoClassType,
                                       ident: *const u16,
                                       set_slow_selector: *mut bool) -> bool;
+}
+extern "C" {
+    pub fn Gecko_AddPropertyToSet(arg1: nsCSSPropertyIDSetBorrowedMut,
+                                  arg2: nsCSSPropertyID);
 }
 extern "C" {
     pub fn Gecko_Construct_Default_nsStyleFont(ptr: *mut nsStyleFont,
@@ -2075,6 +2092,14 @@ extern "C" {
 extern "C" {
     pub fn Servo_Property_IsDiscreteAnimatable(property: nsCSSPropertyID)
      -> bool;
+}
+extern "C" {
+    pub fn Servo_GetProperties_Overriding_Animation(arg1:
+                                                        RawGeckoElementBorrowed,
+                                                    arg2:
+                                                        RawGeckoCSSPropertyIDListBorrowed,
+                                                    arg3:
+                                                        nsCSSPropertyIDSetBorrowedMut);
 }
 extern "C" {
     pub fn Servo_AnimationValues_Interpolate(from:

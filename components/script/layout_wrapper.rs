@@ -486,7 +486,10 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 
     fn has_animations(&self) -> bool {
-        unreachable!("this should be only called on gecko");
+        // We use this function not only for Gecko but also for Servo to know if this element has
+        // animations, so we maybe try to get the important rules of this element. This is used for
+        // off-main thread animations, but we don't support it on Servo, so return false directly.
+        false
     }
 
     fn has_css_animations(&self) -> bool {

@@ -250,7 +250,7 @@ pub mod animated_properties {
 }
 
 /// A set of longhand properties
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct LonghandIdSet {
     storage: [u32; (${len(data.longhands)} - 1 + 32) / 32]
 }
@@ -954,7 +954,7 @@ impl PropertyId {
         }
     }
 
-    /// Returns a property id from Gecko's nsCSSPropertyID.
+    /// Returns an nsCSSPropertyID.
     #[cfg(feature = "gecko")]
     #[allow(non_upper_case_globals)]
     pub fn to_nscsspropertyid(&self) -> Result<nsCSSPropertyID, ()> {
