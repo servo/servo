@@ -121,6 +121,7 @@ pub mod rule_tree;
 pub mod scoped_tls;
 pub mod selector_parser;
 pub mod shared_lock;
+pub mod sharing;
 pub mod stylist;
 #[cfg(feature = "servo")] #[allow(unsafe_code)] pub mod servo;
 pub mod sequential;

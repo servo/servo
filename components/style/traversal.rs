@@ -8,9 +8,10 @@ use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use context::{SharedStyleContext, StyleContext, ThreadLocalStyleContext};
 use data::{ElementData, ElementStyles, StoredRestyleHint};
 use dom::{DirtyDescendants, NodeInfo, OpaqueNode, TElement, TNode};
-use matching::{ChildCascadeRequirement, MatchMethods, StyleSharingBehavior};
+use matching::{ChildCascadeRequirement, MatchMethods};
 use restyle_hints::{HintComputationContext, RestyleHint};
 use selector_parser::RestyleDamage;
+use sharing::StyleSharingBehavior;
 #[cfg(feature = "servo")] use servo_config::opts;
 use std::borrow::BorrowMut;
 
@@ -723,7 +724,7 @@ fn compute_style<E, D>(_traversal: &D,
           D: DomTraversal<E>,
 {
     use data::RestyleKind::*;
-    use matching::StyleSharingResult::*;
+    use sharing::StyleSharingResult::*;
 
     context.thread_local.statistics.elements_styled += 1;
     let kind = data.restyle_kind();
