@@ -178,20 +178,16 @@ ${helpers.predefined_type("flex-basis",
 
                 use std::fmt;
                 use style_traits::ToCss;
-                use values::HasViewportPercentage;
-                use values::specified::{AllowQuirks, ${MinMax}Length};
-
-                impl HasViewportPercentage for SpecifiedValue {
-                    fn has_viewport_percentage(&self) -> bool {
-                        self.0.has_viewport_percentage()
-                    }
-                }
+                % if not logical:
+                    use values::specified::AllowQuirks;
+                % endif
+                use values::specified::${MinMax}Length;
 
                 pub mod computed_value {
                     pub type T = ::values::computed::${MinMax}Length;
                 }
 
-                #[derive(PartialEq, Clone, Debug)]
+                #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
                 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
                 pub struct SpecifiedValue(${MinMax}Length);
 
@@ -225,7 +221,9 @@ ${helpers.predefined_type("flex-basis",
                     type ComputedValue = computed_value::T;
                     #[inline]
                     fn to_computed_value(&self, context: &Context) -> computed_value::T {
-                        use values::computed::${MinMax}Length;
+                        % if not logical or "block" in size:
+                            use values::computed::${MinMax}Length;
+                        % endif
                         let computed = self.0.to_computed_value(context);
 
                         // filter out keyword values in the block direction
@@ -338,7 +336,6 @@ ${helpers.predefined_type("object-position",
         animation_value_type="none">
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
 
     pub type SpecifiedValue = computed_value::T;
@@ -430,8 +427,6 @@ ${helpers.predefined_type("object-position",
     use std::ops::Range;
     use str::HTML_SPACE_CHARACTERS;
     use style_traits::ToCss;
-    use style_traits::values::Css;
-    use values::HasViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
 
     pub mod computed_value {

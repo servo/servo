@@ -25,7 +25,6 @@ ${helpers.single_keyword("caption-side", "top bottom",
     use app_units::Au;
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
     use values::specified::{AllowQuirks, Length};
 
     pub mod computed_value {
@@ -65,14 +64,7 @@ ${helpers.single_keyword("caption-side", "top bottom",
         }
     }
 
-    impl HasViewportPercentage for SpecifiedValue {
-        fn has_viewport_percentage(&self) -> bool {
-            self.horizontal.has_viewport_percentage() ||
-            self.vertical.as_ref().map_or(false, |v| v.has_viewport_percentage())
-        }
-    }
-
-    #[derive(Clone, Debug, PartialEq)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue {
         pub horizontal: Length,

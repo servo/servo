@@ -34,7 +34,6 @@ ${helpers.predefined_type("background-image", "ImageLayer",
                           spec="https://drafts.csswg.org/css-backgrounds/#the-background-repeat">
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
 
     define_css_keyword_enum!(RepeatKeyword:
                              "repeat" => Repeat,
@@ -163,11 +162,8 @@ ${helpers.single_keyword("background-origin",
 
 <%helpers:vector_longhand name="background-size" animation_value_type="ComputedValue" extra_prefixes="webkit"
                           spec="https://drafts.csswg.org/css-backgrounds/#the-background-size">
-    use cssparser::Token;
-    use std::ascii::AsciiExt;
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
 
     #[allow(missing_docs)]
     pub mod computed_value {
@@ -236,13 +232,7 @@ ${helpers.single_keyword("background-origin",
         }
     }
 
-    impl HasViewportPercentage for ExplicitSize {
-        fn has_viewport_percentage(&self) -> bool {
-            return self.width.has_viewport_percentage() || self.height.has_viewport_percentage();
-        }
-    }
-
-    #[derive(Clone, PartialEq, Debug)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     #[allow(missing_docs)]
     pub struct ExplicitSize {
@@ -266,16 +256,7 @@ ${helpers.single_keyword("background-origin",
         }
     }
 
-    impl HasViewportPercentage for SpecifiedValue {
-        fn has_viewport_percentage(&self) -> bool {
-            match *self {
-                SpecifiedValue::Explicit(ref explicit_size) => explicit_size.has_viewport_percentage(),
-                _ => false
-            }
-        }
-    }
-
-    #[derive(Clone, PartialEq, Debug)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Explicit(ExplicitSize),

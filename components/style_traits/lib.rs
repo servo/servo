@@ -63,6 +63,8 @@ pub enum CSSPixel {}
 pub mod cursor;
 #[macro_use]
 pub mod values;
+#[macro_use]
 pub mod viewport;
 
 pub use values::{ToCss, OneOrMoreCommaSeparated};
+pub use viewport::HasViewportPercentage;

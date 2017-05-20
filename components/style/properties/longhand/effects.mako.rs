@@ -18,10 +18,8 @@ ${helpers.predefined_type("opacity",
                           animation_value_type="IntermediateBoxShadowList"
                           extra_prefixes="webkit"
                           spec="https://drafts.csswg.org/css-backgrounds/#box-shadow">
-    use cssparser;
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
 
     pub type SpecifiedValue = specified::Shadow;
 
@@ -47,9 +45,6 @@ ${helpers.predefined_type("opacity",
     }
 
     pub mod computed_value {
-        use app_units::Au;
-        use std::fmt;
-        use values::computed;
         use values::computed::Shadow;
 
         pub type T = Shadow;
@@ -91,20 +86,16 @@ ${helpers.predefined_type("clip",
                    flags="CREATES_STACKING_CONTEXT FIXPOS_CB"
                    spec="https://drafts.fxtf.org/filters/#propdef-filter">
     //pub use self::computed_value::T as SpecifiedValue;
-    use cssparser;
     use std::fmt;
-    use style_traits::{self, ToCss};
+    use style_traits::ToCss;
     use values::{CSSFloat, HasViewportPercentage};
-    use values::specified::{Angle, CSSColor, Length, Shadow};
+    use values::specified::{Angle, Length};
+    #[cfg(feature = "gecko")]
+    use values::specified::Shadow;
+    #[cfg(feature = "gecko")]
     use values::specified::url::SpecifiedUrl;
 
-    impl HasViewportPercentage for SpecifiedValue {
-        fn has_viewport_percentage(&self) -> bool {
-            self.0.iter().any(|ref x| x.has_viewport_percentage())
-        }
-    }
-
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(pub Vec<SpecifiedFilter>);
 
@@ -139,8 +130,10 @@ ${helpers.predefined_type("clip",
     pub mod computed_value {
         use app_units::Au;
         use values::CSSFloat;
-        use values::computed::{CSSColor, Shadow};
+        #[cfg(feature = "gecko")]
+        use values::computed::Shadow;
         use values::computed::Angle;
+        #[cfg(feature = "gecko")]
         use values::specified::url::SpecifiedUrl;
 
         #[derive(Clone, PartialEq, Debug)]

@@ -79,6 +79,8 @@ extern crate selectors;
 #[cfg(feature = "servo")] extern crate servo_url;
 extern crate smallvec;
 #[macro_use]
+extern crate style_derive;
+#[macro_use]
 extern crate style_traits;
 extern crate time;
 #[allow(unused_extern_crates)]

@@ -5,10 +5,9 @@
 //! Generic types for CSS handling of specified and computed values of
 //! [`position`](https://drafts.csswg.org/css-backgrounds-3/#position)
 
-use values::HasViewportPercentage;
 use values::computed::{Context, ToComputedValue};
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// A generic type for representing a CSS [position](https://drafts.csswg.org/css-values/#position).
 pub struct Position<H, V> {
@@ -25,13 +24,6 @@ impl<H, V> Position<H, V> {
             horizontal: horizontal,
             vertical: vertical,
         }
-    }
-}
-
-impl<H: HasViewportPercentage, V: HasViewportPercentage> HasViewportPercentage for Position<H, V> {
-    #[inline]
-    fn has_viewport_percentage(&self) -> bool {
-        self.horizontal.has_viewport_percentage() || self.vertical.has_viewport_percentage()
     }
 }
 

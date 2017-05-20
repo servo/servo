@@ -14,7 +14,7 @@
     use cssparser::RGBA;
     use std::fmt;
     use style_traits::ToCss;
-    use values::specified::{AllowQuirks, Color, CSSColor, CSSRGBA};
+    use values::specified::{AllowQuirks, Color, CSSColor};
 
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
@@ -122,6 +122,7 @@
 
         impl SystemColor {
             pub fn parse(input: &mut Parser) -> Result<Self, ()> {
+                #[cfg(feature = "gecko")]
                 use std::ascii::AsciiExt;
                 static PARSE_ARRAY: &'static [(&'static str, SystemColor); ${len(system_colors)}] = &[
                     % for color in system_colors:

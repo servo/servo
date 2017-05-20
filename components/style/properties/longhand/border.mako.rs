@@ -62,7 +62,6 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
                        products="gecko">
         use std::fmt;
         use style_traits::ToCss;
-        use values::HasViewportPercentage;
         use values::specified::CSSColor;
         no_viewport_percentage!(SpecifiedValue);
 
@@ -205,19 +204,7 @@ ${helpers.predefined_type("border-image-source", "ImageLayer",
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-outset">
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
     use values::specified::{LengthOrNumber, Number};
-
-    impl HasViewportPercentage for SpecifiedValue {
-        fn has_viewport_percentage(&self) -> bool {
-            let mut viewport_percentage = false;
-            for value in self.0.iter() {
-                let vp = value.has_viewport_percentage();
-                viewport_percentage = vp || viewport_percentage;
-            }
-            viewport_percentage
-        }
-    }
 
     pub mod computed_value {
         use values::computed::LengthOrNumber;
@@ -227,7 +214,7 @@ ${helpers.predefined_type("border-image-source", "ImageLayer",
                      pub LengthOrNumber, pub LengthOrNumber);
     }
 
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(pub Vec<LengthOrNumber>);
 
@@ -321,13 +308,11 @@ ${helpers.predefined_type("border-image-source", "ImageLayer",
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-repeat">
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
 
     no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
         pub use super::RepeatKeyword;
-        use values::computed;
 
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -399,22 +384,7 @@ ${helpers.predefined_type("border-image-source", "ImageLayer",
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-width">
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
     use values::specified::{LengthOrPercentage, Number};
-
-    impl HasViewportPercentage for SpecifiedValue {
-        fn has_viewport_percentage(&self) -> bool {
-            let mut viewport_percentage = false;
-            for value in self.0.clone() {
-                let vp = match value {
-                    SingleSpecifiedValue::LengthOrPercentage(len) => len.has_viewport_percentage(),
-                    _ => false,
-                };
-                viewport_percentage = vp || viewport_percentage;
-            }
-            viewport_percentage
-        }
-    }
 
     pub mod computed_value {
         use values::computed::{LengthOrPercentage, Number};
@@ -432,7 +402,7 @@ ${helpers.predefined_type("border-image-source", "ImageLayer",
         }
     }
 
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(pub Vec<SingleSpecifiedValue>);
 
@@ -458,7 +428,7 @@ ${helpers.predefined_type("border-image-source", "ImageLayer",
         }
     }
 
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SingleSpecifiedValue {
         LengthOrPercentage(LengthOrPercentage),
@@ -599,7 +569,6 @@ ${helpers.predefined_type("border-image-source", "ImageLayer",
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-slice">
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
     use values::computed::NumberOrPercentage as ComputedNumberOrPercentage;
     use values::specified::{NumberOrPercentage, Percentage};
 

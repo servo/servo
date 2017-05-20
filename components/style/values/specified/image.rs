@@ -54,7 +54,7 @@ pub type GradientKind = GenericGradientKind<
 >;
 
 /// A specified gradient line direction.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum LineDirection {
     /// An angular direction.

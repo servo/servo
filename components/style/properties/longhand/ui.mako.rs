@@ -35,10 +35,8 @@ ${helpers.single_keyword("-moz-window-dragging", "default drag no-drag", product
                    products="gecko"
                    animation_value_type="none"
                    spec="None (Nonstandard Firefox-only property)">
-    use cssparser::Token;
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
 
     no_viewport_percentage!(SpecifiedValue);

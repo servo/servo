@@ -605,7 +605,7 @@ name = "deny_public_fields"
 version = "0.0.1"
 dependencies = [
  "syn 0.11.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "synstructure 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "synstructure 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1146,7 +1146,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "quote 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn 0.11.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "synstructure 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "synstructure 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1346,7 +1346,7 @@ version = "0.0.1"
 dependencies = [
  "quote 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn 0.11.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "synstructure 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "synstructure 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2860,11 +2860,21 @@ dependencies = [
  "servo_config 0.0.1",
  "servo_url 0.0.1",
  "smallvec 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "style_derive 0.0.1",
  "style_traits 0.0.1",
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
  "toml 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-segmentation 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "walkdir 1.0.7 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "style_derive"
+version = "0.0.1"
+dependencies = [
+ "quote 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn 0.11.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "synstructure 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2946,7 +2956,7 @@ dependencies = [
 
 [[package]]
 name = "synstructure"
-version = "0.5.0"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "quote 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3651,7 +3661,7 @@ dependencies = [
 "checksum swapper 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)" = "3ca610b32bb8bfc5e7f705480c3a1edfeb70b6582495d343872c8bee0dcf758c"
 "checksum syn 0.11.11 (registry+https://github.com/rust-lang/crates.io-index)" = "d3b891b9015c88c576343b9b3e41c2c11a51c219ef067b264bd9c8aa9b441dad"
 "checksum synom 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)" = "a393066ed9010ebaed60b9eafa373d4b1baac186dd7e008555b0f702b51945b6"
-"checksum synstructure 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "5ccc9780bf1aa601943988c2876ab22413c01ad1739689aa6af18d0aa0b3f38b"
+"checksum synstructure 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)" = "cf318c34a2f8381a4f3d4db2c91b45bca2b1cd8cbe56caced900647be164800c"
 "checksum syntex 0.58.1 (registry+https://github.com/rust-lang/crates.io-index)" = "a8f5e3aaa79319573d19938ea38d068056b826db9883a5d47f86c1cecc688f0e"
 "checksum syntex_errors 0.58.1 (registry+https://github.com/rust-lang/crates.io-index)" = "867cc5c2d7140ae7eaad2ae9e8bf39cb18a67ca651b7834f88d46ca98faadb9c"
 "checksum syntex_pos 0.58.1 (registry+https://github.com/rust-lang/crates.io-index)" = "13ad4762fe52abc9f4008e85c4fb1b1fe3aa91ccb99ff4826a439c7c598e1047"

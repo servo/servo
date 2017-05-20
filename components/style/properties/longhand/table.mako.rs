@@ -14,7 +14,6 @@ ${helpers.single_keyword("table-layout", "auto fixed",
                    spec="Internal-only (for `<col span>` pres attr)"
                    animation_value_type="none"
                    internal="True">
-    use values::HasViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}

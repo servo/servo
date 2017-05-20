@@ -17,11 +17,7 @@ ${helpers.predefined_type("outline-color", "CSSColor", "computed::CSSColor::Curr
 
 <%helpers:longhand name="outline-style" need_clone="True" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-ui/#propdef-outline-style">
-
-    use std::fmt;
-    use style_traits::ToCss;
     use values::specified::BorderStyle;
-    use values::computed::ComputedValueAsSpecified;
 
     pub type SpecifiedValue = Either<Auto, BorderStyle>;
 
@@ -66,10 +62,8 @@ ${helpers.predefined_type("outline-color", "CSSColor", "computed::CSSColor::Curr
 
 <%helpers:longhand name="outline-width" animation_value_type="ComputedValue"
                    spec="https://drafts.csswg.org/css-ui/#propdef-outline-width">
-    use app_units::Au;
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -81,16 +75,10 @@ ${helpers.predefined_type("outline-color", "CSSColor", "computed::CSSColor::Curr
         specified::parse_border_width(context, input).map(SpecifiedValue)
     }
 
-    impl HasViewportPercentage for SpecifiedValue {
-        fn has_viewport_percentage(&self) -> bool {
-            let &SpecifiedValue(ref length) = self;
-            length.has_viewport_percentage()
-        }
-    }
-
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(pub specified::Length);
+
     pub mod computed_value {
         use app_units::Au;
         pub type T = Au;

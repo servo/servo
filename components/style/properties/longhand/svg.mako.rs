@@ -77,7 +77,6 @@ ${helpers.single_keyword("mask-mode",
     pub use properties::longhands::background_repeat::single_value::SpecifiedValue;
     pub use properties::longhands::background_repeat::single_value::computed_value;
     pub use properties::longhands::background_repeat::single_value::RepeatKeyword;
-    use properties::longhands::background_repeat::single_value;
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {

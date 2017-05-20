@@ -144,7 +144,6 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
     use values::computed::ComputedValueAsSpecified;
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
 
     pub const NORMAL: u8 = 0;
     pub const FILL: u8 = 1;

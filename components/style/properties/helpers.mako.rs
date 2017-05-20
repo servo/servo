@@ -13,8 +13,11 @@
     <%def name="predefined_type_inner(name, type, initial_value, parse_method)">
         #[allow(unused_imports)]
         use app_units::Au;
+        #[allow(unused_imports)]
         use cssparser::{Color as CSSParserColor, RGBA};
+        #[allow(unused_imports)]
         use values::specified::AllowQuirks;
+        #[allow(unused_imports)]
         use smallvec::SmallVec;
         pub use values::specified::${type} as SpecifiedValue;
         pub mod computed_value {
@@ -78,22 +81,22 @@
         % if not gecko_only:
             use smallvec::SmallVec;
             use std::fmt;
+            #[allow(unused_imports)]
             use values::HasViewportPercentage;
             use style_traits::ToCss;
 
-            impl HasViewportPercentage for SpecifiedValue {
-                fn has_viewport_percentage(&self) -> bool {
-                    let &SpecifiedValue(ref vec) = self;
-                    vec.iter().any(|ref x| x.has_viewport_percentage())
-                }
-            }
-
             pub mod single_value {
+                #[allow(unused_imports)]
                 use cssparser::Parser;
+                #[allow(unused_imports)]
                 use parser::{Parse, ParserContext};
+                #[allow(unused_imports)]
                 use properties::ShorthandId;
+                #[allow(unused_imports)]
                 use values::computed::{Context, ToComputedValue};
+                #[allow(unused_imports)]
                 use values::{computed, specified};
+                #[allow(unused_imports)]
                 use values::{Auto, Either, None_, Normal};
                 ${caller.body()}
             }
@@ -168,7 +171,7 @@
             }
 
             /// The specified value of ${name}.
-            #[derive(Debug, Clone, PartialEq)]
+            #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
             #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
             pub struct SpecifiedValue(pub Vec<single_value::SpecifiedValue>);
 
@@ -205,6 +208,7 @@
             }
 
             pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+                #[allow(unused_imports)]
                 use parser::parse_space_or_comma_separated;
 
                 <%
@@ -260,22 +264,35 @@
     %>
     /// ${property.spec}
     pub mod ${property.ident} {
-        #![allow(unused_imports)]
         % if not property.derived_from:
+            #[allow(unused_imports)]
             use cssparser::Parser;
+            #[allow(unused_imports)]
             use parser::{Parse, ParserContext};
+            #[allow(unused_imports)]
             use properties::{UnparsedValue, ShorthandId};
         % endif
+        #[allow(unused_imports)]
         use values::{Auto, Either, None_, Normal};
+        #[allow(unused_imports)]
         use cascade_info::CascadeInfo;
+        #[allow(unused_imports)]
         use error_reporting::ParseErrorReporter;
+        #[allow(unused_imports)]
         use properties::longhands;
+        #[allow(unused_imports)]
         use properties::{DeclaredValue, LonghandId, LonghandIdSet};
+        #[allow(unused_imports)]
         use properties::{CSSWideKeyword, ComputedValues, PropertyDeclaration};
+        #[allow(unused_imports)]
         use properties::style_structs;
+        #[allow(unused_imports)]
         use stylearc::Arc;
+        #[allow(unused_imports)]
         use values::computed::{Context, ToComputedValue};
+        #[allow(unused_imports)]
         use values::{computed, generics, specified};
+        #[allow(unused_imports)]
         use Atom;
         ${caller.body()}
         #[allow(unused_variables)]
@@ -461,7 +478,6 @@
         keyword = keyword=Keyword(name, values, **keyword_kwargs)
     %>
     <%call expr="longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
-        use values::HasViewportPercentage;
         use properties::longhands::system_font::SystemFont;
         use std::fmt;
         use style_traits::ToCss;
@@ -583,7 +599,6 @@
             impl ComputedValueAsSpecified for SpecifiedValue {}
         % endif
 
-        use values::HasViewportPercentage;
         no_viewport_percentage!(SpecifiedValue);
     </%call>
 </%def>
@@ -745,7 +760,6 @@
     % if shorthand:
     /// ${shorthand.spec}
     pub mod ${shorthand.ident} {
-        #[allow(unused_imports)]
         use cssparser::Parser;
         use parser::ParserContext;
         use properties::{PropertyDeclaration, SourcePropertyDeclaration, MaybeBoxed};

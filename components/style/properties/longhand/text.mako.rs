@@ -16,7 +16,6 @@
                    spec="https://drafts.csswg.org/css-ui/#propdef-text-overflow">
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
     use cssparser;
 
@@ -107,7 +106,6 @@ ${helpers.single_keyword("unicode-bidi",
                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-line">
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -237,7 +235,6 @@ ${helpers.predefined_type(
                    spec="https://drafts.csswg.org/css-inline/#sizing-drop-initials">
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
     use values::specified::{Number, Integer};
 
