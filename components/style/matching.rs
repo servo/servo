@@ -1388,55 +1388,6 @@ pub trait MatchMethods : TElement {
         StyleSharingResult::CannotShare
     }
 
-    // The below two functions are copy+paste because I can't figure out how to
-    // write a function which takes a generic function. I don't think it can
-    // be done.
-    //
-    // Ideally, I'd want something like:
-    //
-    //   > fn with_really_simple_selectors(&self, f: <H: Hash>|&H|);
-
-
-    // In terms of `Component`s, these two functions will insert and remove:
-    //   - `Component::LocalName`
-    //   - `Component::Namepace`
-    //   - `Component::ID`
-    //   - `Component::Class`
-
-    /// Inserts and removes the matching `Descendant` selectors from a bloom
-    /// filter. This is used to speed up CSS selector matching to remove
-    /// unnecessary tree climbs for `Descendant` queries.
-    ///
-    /// A bloom filter of the local names, namespaces, IDs, and classes is kept.
-    /// Therefore, each node must have its matching selectors inserted _after_
-    /// its own selector matching and _before_ its children start.
-    fn insert_into_bloom_filter(&self, bf: &mut BloomFilter) {
-        bf.insert_hash(self.get_local_name().get_hash());
-        bf.insert_hash(self.get_namespace().get_hash());
-        if let Some(id) = self.get_id() {
-            bf.insert_hash(id.get_hash());
-        }
-        // TODO: case-sensitivity depends on the document type and quirks mode
-        self.each_class(|class| {
-            bf.insert_hash(class.get_hash())
-        });
-    }
-
-    /// After all the children are done css selector matching, this must be
-    /// called to reset the bloom filter after an `insert`.
-    fn remove_from_bloom_filter(&self, bf: &mut BloomFilter) {
-        bf.remove_hash(self.get_local_name().get_hash());
-        bf.remove_hash(self.get_namespace().get_hash());
-        if let Some(id) = self.get_id() {
-            bf.remove_hash(id.get_hash());
-        }
-
-        // TODO: case-sensitivity depends on the document type and quirks mode
-        self.each_class(|class| {
-            bf.remove_hash(class.get_hash())
-        });
-    }
-
     /// Given the old and new style of this element, and whether it's a
     /// pseudo-element, compute the restyle damage used to determine which
     /// kind of layout or painting operations we'll need.

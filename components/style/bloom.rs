@@ -8,7 +8,6 @@
 #![deny(missing_docs)]
 
 use dom::{SendElement, TElement};
-use matching::MatchMethods;
 use selectors::bloom::BloomFilter;
 
 /// A struct that allows us to fast-reject deep descendant selectors avoiding
@@ -50,6 +49,26 @@ pub struct StyleBloom<E: TElement> {
     elements: Vec<SendElement<E>>,
 }
 
+fn each_relevant_element_hash<E, F>(element: E, mut f: F)
+    where E: TElement,
+          F: FnMut(u32),
+{
+    f(element.get_local_name().get_hash());
+    f(element.get_namespace().get_hash());
+
+    if let Some(id) = element.get_id() {
+        f(id.get_hash());
+    }
+
+    // TODO: case-sensitivity depends on the document type and quirks mode.
+    //
+    // TODO(emilio): It's not clear whether that's relevant here though?
+    // Classes and ids should be normalized already I think.
+    element.each_class(|class| {
+        f(class.get_hash())
+    });
+}
+
 impl<E: TElement> StyleBloom<E> {
     /// Create an empty `StyleBloom`.
     pub fn new() -> Self {
@@ -72,15 +91,26 @@ impl<E: TElement> StyleBloom<E> {
                 assert!(element.parent_element().is_none());
             }
         }
-        element.insert_into_bloom_filter(&mut *self.filter);
+        self.push_internal(element);
+    }
+
+    /// Same as `push`, but without asserting, in order to use it from
+    /// `rebuild`.
+    fn push_internal(&mut self, element: E) {
+        each_relevant_element_hash(element, |hash| {
+            self.filter.insert_hash(hash);
+        });
         self.elements.push(unsafe { SendElement::new(element) });
     }
 
     /// Pop the last element in the bloom filter and return it.
     fn pop(&mut self) -> Option<E> {
         let popped = self.elements.pop().map(|el| *el);
+
         if let Some(popped) = popped {
-            popped.remove_from_bloom_filter(&mut self.filter);
+            each_relevant_element_hash(popped, |hash| {
+                self.filter.remove_hash(hash);
+            })
         }
 
         popped
@@ -103,8 +133,7 @@ impl<E: TElement> StyleBloom<E> {
         self.clear();
 
         while let Some(parent) = element.parent_element() {
-            parent.insert_into_bloom_filter(&mut *self.filter);
-            self.elements.push(unsafe { SendElement::new(parent) });
+            self.push_internal(parent);
             element = parent;
         }
 
