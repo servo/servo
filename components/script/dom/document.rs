@@ -131,7 +131,7 @@ use std::rc::Rc;
 use std::time::{Duration, Instant};
 use style::attr::AttrValue;
 use style::context::{QuirksMode, ReflowGoal};
-use style::restyle_hints::{RestyleHint, RESTYLE_SELF, RESTYLE_STYLE_ATTRIBUTE};
+use style::restyle_hints::{RestyleHint, RestyleReplacements, RESTYLE_STYLE_ATTRIBUTE};
 use style::selector_parser::{RestyleDamage, Snapshot};
 use style::shared_lock::SharedRwLock as StyleSharedRwLock;
 use style::str::{HTML_SPACE_CHARACTERS, split_html_space_chars, str_join};
@@ -2361,14 +2361,14 @@ impl Document {
             entry.snapshot = Some(Snapshot::new(el.html_element_in_html_document()));
         }
         if attr.local_name() == &local_name!("style") {
-            entry.hint |= RESTYLE_STYLE_ATTRIBUTE;
+            entry.hint.insert(RestyleHint::for_replacements(RESTYLE_STYLE_ATTRIBUTE));
         }
 
         // FIXME(emilio): This should become something like
         // element.is_attribute_mapped(attr.local_name()).
         if attr.local_name() == &local_name!("width") ||
            attr.local_name() == &local_name!("height") {
-            entry.hint |= RESTYLE_SELF;
+            entry.hint.insert(RestyleHint::for_self());
         }
 
         let mut snapshot = entry.snapshot.as_mut().unwrap();

@@ -2116,16 +2116,16 @@ pub extern "C" fn Servo_NoteExplicitHints(element: RawGeckoElementBorrowed,
            element, restyle_hint, change_hint);
 
     let restyle_hint: RestyleHint = restyle_hint.into();
-    debug_assert!(RestyleHint::for_animations().contains(restyle_hint) ||
-                  !RestyleHint::for_animations().intersects(restyle_hint),
+    debug_assert!(!(restyle_hint.has_animation_hint() &&
+                    restyle_hint.has_non_animation_hint()),
                   "Animation restyle hints should not appear with non-animation restyle hints");
 
     let mut maybe_data = element.mutate_data();
     let maybe_restyle_data = maybe_data.as_mut().and_then(|d| unsafe {
-        maybe_restyle(d, element, restyle_hint.intersects(RestyleHint::for_animations()))
+        maybe_restyle(d, element, restyle_hint.has_animation_hint())
     });
     if let Some(restyle_data) = maybe_restyle_data {
-        restyle_data.hint.insert(&restyle_hint.into());
+        restyle_data.hint.insert(restyle_hint.into());
         restyle_data.damage |= damage;
     } else {
         debug!("(Element not styled, discarding hints)");

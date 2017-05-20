@@ -1813,6 +1813,19 @@ impl ComputedValues {
     /// Since this isn't supported in Servo, this is always false for Servo.
     pub fn is_display_contents(&self) -> bool { false }
 
+    #[inline]
+    /// Returns whether the "content" property for the given style is completely
+    /// ineffective, and would yield an empty `::before` or `::after`
+    /// pseudo-element.
+    pub fn ineffective_content_property(&self) -> bool {
+        use properties::longhands::content::computed_value::T;
+        match self.get_counters().content {
+            T::normal |
+            T::none => true,
+            T::Content(ref items) => items.is_empty(),
+        }
+    }
+
     /// Whether the current style is multicolumn.
     #[inline]
     pub fn is_multicol(&self) -> bool {
