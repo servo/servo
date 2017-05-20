@@ -1,0 +1,34 @@
+<iframe id="test"></iframe>
+<script>
+var t = opener.t;
+var f = document.getElementById("test");
+var l = opener.document.getElementById("step_log");
+
+var log = function(t) {l.textContent += ("\n" + t)}
+var navigated = false;
+var steps = [
+  () => f.src = "browsing_context_name-1.html",
+  () => {
+    navigated = true;
+    opener.assert_equals(f.contentWindow.name, "test", "Initial load");
+    f.src = f.src.replace("http://", "http://www.").replace("browsing_context_name-1", "browsing_context_name-2");
+  },
+  () => {
+    // Can't test .name easily here because it's cross-origin
+    opener.assert_equals(history.length, 2);
+    history.back()
+  },
+  () => {
+    opener.assert_equals(f.contentWindow.name, "test", "After navigation");
+    t.done();
+  }
+].map((x, i) => t.step_func(() => {log("Step " + (i+1)); x()}));
+
+next = () => steps.shift()();
+
+onload = () => {
+  log("page load");
+  f.onload = () => {log("iframe onload"); next()};
+  setTimeout(next, 0);
+};
+</script>

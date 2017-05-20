@@ -3,10 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use basedir::default_config_dir;
+use num_cpus;
 use opts;
 use resource_files::resources_dir_path;
 use rustc_serialize::json::{Json, ToJson};
 use std::borrow::ToOwned;
+use std::cmp::max;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Read, Write, stderr};
@@ -15,13 +17,15 @@ use std::sync::{Arc, RwLock};
 
 lazy_static! {
     pub static ref PREFS: Preferences = {
-        let prefs = read_prefs().ok().unwrap_or_else(HashMap::new);
-        Preferences(Arc::new(RwLock::new(prefs)))
+        let defaults = default_prefs();
+        if let Ok(prefs) = read_prefs() {
+            defaults.extend(prefs);
+        }
+        defaults
     };
 }
 
-#[derive(PartialEq, Clone, Debug)]
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(PartialEq, Clone, Debug, Deserialize, Serialize)]
 pub enum PrefValue {
     Boolean(bool),
     String(String),
@@ -92,8 +96,7 @@ impl ToJson for PrefValue {
     }
 }
 
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum Pref {
     NoDefault(Arc<PrefValue>),
     WithDefault(Arc<PrefValue>, Option<Arc<PrefValue>>)
@@ -144,6 +147,13 @@ impl ToJson for Pref {
     fn to_json(&self) -> Json {
         self.value().to_json()
     }
+}
+
+pub fn default_prefs() -> Preferences {
+    let prefs = Preferences(Arc::new(RwLock::new(HashMap::new())));
+    prefs.set("layout.threads", PrefValue::Number(
+        max(num_cpus::get() * 3 / 4, 1) as f64));
+    prefs
 }
 
 pub fn read_prefs_from_file<T>(mut file: T)

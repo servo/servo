@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: List-style-position set to 'inherit'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-list-style-position" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#list-style" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'list-style-position' property set to 'inherit' retrieves its value from its parent element." />
+        <style type="text/css">
+            div
+            {
+                border: 1px solid blue;
+                list-style-position: inside;
+                padding-left: 50px;
+            }
+            span
+            {
+                display: list-item;
+                list-style-position: outside;
+            }
+            div span
+            {
+                list-style-position: inherit;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the second line of text in the blue box is shifted to the left and is underneath the bullet.</p>
+        <div>
+            <span>
+                Filler Text Filler Text Filler Text<br />
+                Filler Text Filler Text Filler Text
+            </span>
+        </div>
+    </body>
+</html>

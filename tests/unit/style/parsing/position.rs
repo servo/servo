@@ -2,11 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::Parser;
-use media_queries::CSSErrorReporterTest;
-use parsing::parse;
-use style::parser::{Parse, ParserContext};
-use style::stylesheets::Origin;
+use parsing::{assert_computed_serialization, parse, parse_entirely};
+use style::parser::Parse;
 use style::values::specified::position::*;
 use style_traits::ToCss;
 
@@ -31,8 +28,8 @@ fn test_position() {
     assert_roundtrip_with_context!(Position::parse, "right 10%", "right 10%");
 
     // Only keywords can be reordered
-    assert!(parse(Position::parse, "top 40%").is_err());
-    assert!(parse(Position::parse, "40% left").is_err());
+    assert!(parse_entirely(Position::parse, "top 40%").is_err());
+    assert!(parse_entirely(Position::parse, "40% left").is_err());
 
     // 3 and 4 value serialization
     assert_roundtrip_with_context!(Position::parse, "left 10px top 15px", "left 10px top 15px");
@@ -48,27 +45,32 @@ fn test_position() {
     assert_roundtrip_with_context!(Position::parse, "center right 10px", "right 10px center");
     assert_roundtrip_with_context!(Position::parse, "center bottom 10px", "center bottom 10px");
 
+    // Invalid 3 value positions
+    assert!(parse_entirely(Position::parse, "20px 30px 20px").is_err());
+    assert!(parse_entirely(Position::parse, "top 30px 20px").is_err());
+    assert!(parse_entirely(Position::parse, "50% bottom 20%").is_err());
+
     // Only horizontal and vertical keywords can have positions
-    assert!(parse(Position::parse, "center 10px left 15px").is_err());
-    assert!(parse(Position::parse, "center 10px 15px").is_err());
-    assert!(parse(Position::parse, "center 10px bottom").is_err());
+    assert!(parse_entirely(Position::parse, "center 10px left 15px").is_err());
+    assert!(parse_entirely(Position::parse, "center 10px 15px").is_err());
+    assert!(parse_entirely(Position::parse, "center 10px bottom").is_err());
 
     // "Horizontal Horizontal" or "Vertical Vertical" positions cause error
-    assert!(parse(Position::parse, "left right").is_err());
-    assert!(parse(Position::parse, "left 10px right").is_err());
-    assert!(parse(Position::parse, "left 10px right 15%").is_err());
-    assert!(parse(Position::parse, "top bottom").is_err());
-    assert!(parse(Position::parse, "top 10px bottom").is_err());
-    assert!(parse(Position::parse, "top 10px bottom 15%").is_err());
+    assert!(parse_entirely(Position::parse, "left right").is_err());
+    assert!(parse_entirely(Position::parse, "left 10px right").is_err());
+    assert!(parse_entirely(Position::parse, "left 10px right 15%").is_err());
+    assert!(parse_entirely(Position::parse, "top bottom").is_err());
+    assert!(parse_entirely(Position::parse, "top 10px bottom").is_err());
+    assert!(parse_entirely(Position::parse, "top 10px bottom 15%").is_err());
 
-    // Logical keywords are not supported in Position yet
+    // Logical keywords are not supported in Position yet.
     assert!(parse(Position::parse, "x-start").is_err());
     assert!(parse(Position::parse, "y-end").is_err());
     assert!(parse(Position::parse, "x-start y-end").is_err());
     assert!(parse(Position::parse, "x-end 10px").is_err());
     assert!(parse(Position::parse, "y-start 20px").is_err());
     assert!(parse(Position::parse, "x-start bottom 10%").is_err());
-    assert!(parse(Position::parse, "left y-start 10%").is_err());
+    assert!(parse_entirely(Position::parse, "left y-start 10%").is_err());
     assert!(parse(Position::parse, "x-start 20px y-end 10%").is_err());
 }
 
@@ -80,29 +82,31 @@ fn test_horizontal_position() {
     assert_roundtrip_with_context!(HorizontalPosition::parse, "center", "center");
     assert_roundtrip_with_context!(HorizontalPosition::parse, "left", "left");
     assert_roundtrip_with_context!(HorizontalPosition::parse, "right", "right");
-    assert_roundtrip_with_context!(HorizontalPosition::parse, "x-start", "x-start");
-    assert_roundtrip_with_context!(HorizontalPosition::parse, "x-end", "x-end");
 
     // Two value serializations.
     assert_roundtrip_with_context!(HorizontalPosition::parse, "right 10px", "right 10px");
-    assert_roundtrip_with_context!(HorizontalPosition::parse, "10px left", "left 10px");
-    assert_roundtrip_with_context!(HorizontalPosition::parse, "x-end 20%", "x-end 20%");
-    assert_roundtrip_with_context!(HorizontalPosition::parse, "20px x-start", "x-start 20px");
 
     // Invalid horizontal positions.
     assert!(parse(HorizontalPosition::parse, "top").is_err());
     assert!(parse(HorizontalPosition::parse, "bottom").is_err());
     assert!(parse(HorizontalPosition::parse, "y-start").is_err());
     assert!(parse(HorizontalPosition::parse, "y-end").is_err());
-    assert!(parse(HorizontalPosition::parse, "20px y-end").is_err());
     assert!(parse(HorizontalPosition::parse, "y-end 20px ").is_err());
     assert!(parse(HorizontalPosition::parse, "bottom 20px").is_err());
-    assert!(parse(HorizontalPosition::parse, "20px top").is_err());
-    assert!(parse(HorizontalPosition::parse, "left center").is_err());
     assert!(parse(HorizontalPosition::parse, "bottom top").is_err());
-    assert!(parse(HorizontalPosition::parse, "left top").is_err());
-    assert!(parse(HorizontalPosition::parse, "left right").is_err());
-    assert!(parse(HorizontalPosition::parse, "20px 30px").is_err());
+    assert!(parse_entirely(HorizontalPosition::parse, "20px y-end").is_err());
+    assert!(parse_entirely(HorizontalPosition::parse, "20px top").is_err());
+    assert!(parse_entirely(HorizontalPosition::parse, "left center").is_err());
+    assert!(parse_entirely(HorizontalPosition::parse, "left top").is_err());
+    assert!(parse_entirely(HorizontalPosition::parse, "left right").is_err());
+    assert!(parse_entirely(HorizontalPosition::parse, "20px 30px").is_err());
+    assert!(parse_entirely(HorizontalPosition::parse, "10px left").is_err());
+    assert!(parse_entirely(HorizontalPosition::parse, "x-end 20%").is_err());
+    assert!(parse_entirely(HorizontalPosition::parse, "20px x-start").is_err());
+
+    // Logical keywords are not supported in Position yet.
+    assert!(parse(HorizontalPosition::parse, "x-start").is_err());
+    assert!(parse(HorizontalPosition::parse, "x-end").is_err());
 }
 
 #[test]
@@ -113,27 +117,119 @@ fn test_vertical_position() {
     assert_roundtrip_with_context!(VerticalPosition::parse, "center", "center");
     assert_roundtrip_with_context!(VerticalPosition::parse, "top", "top");
     assert_roundtrip_with_context!(VerticalPosition::parse, "bottom", "bottom");
-    assert_roundtrip_with_context!(VerticalPosition::parse, "y-start", "y-start");
-    assert_roundtrip_with_context!(VerticalPosition::parse, "y-end", "y-end");
 
     // Two value serializations.
     assert_roundtrip_with_context!(VerticalPosition::parse, "bottom 10px", "bottom 10px");
-    assert_roundtrip_with_context!(VerticalPosition::parse, "10px top", "top 10px");
-    assert_roundtrip_with_context!(VerticalPosition::parse, "y-end 20%", "y-end 20%");
-    assert_roundtrip_with_context!(VerticalPosition::parse, "20px y-start", "y-start 20px");
 
     // Invalid vertical positions.
     assert!(parse(VerticalPosition::parse, "left").is_err());
     assert!(parse(VerticalPosition::parse, "right").is_err());
     assert!(parse(VerticalPosition::parse, "x-start").is_err());
     assert!(parse(VerticalPosition::parse, "x-end").is_err());
-    assert!(parse(VerticalPosition::parse, "20px x-end").is_err());
-    assert!(parse(VerticalPosition::parse, "x-end 20px ").is_err());
+    assert!(parse(VerticalPosition::parse, "x-end 20px").is_err());
     assert!(parse(VerticalPosition::parse, "left 20px").is_err());
-    assert!(parse(VerticalPosition::parse, "20px right").is_err());
     assert!(parse(VerticalPosition::parse, "left center").is_err());
-    assert!(parse(VerticalPosition::parse, "bottom top").is_err());
     assert!(parse(VerticalPosition::parse, "left top").is_err());
     assert!(parse(VerticalPosition::parse, "left right").is_err());
-    assert!(parse(VerticalPosition::parse, "20px 30px").is_err());
+    assert!(parse_entirely(VerticalPosition::parse, "20px x-end").is_err());
+    assert!(parse_entirely(VerticalPosition::parse, "20px right").is_err());
+    assert!(parse_entirely(VerticalPosition::parse, "bottom top").is_err());
+    assert!(parse_entirely(VerticalPosition::parse, "20px 30px").is_err());
+    assert!(parse_entirely(VerticalPosition::parse, "10px top").is_err());
+    assert!(parse_entirely(VerticalPosition::parse, "y-end 20%").is_err());
+    assert!(parse_entirely(VerticalPosition::parse, "20px y-start").is_err());
+
+    // Logical keywords are not supported in Position yet.
+    assert!(parse(VerticalPosition::parse, "y-start").is_err());
+    assert!(parse(VerticalPosition::parse, "y-end").is_err());
+}
+
+#[test]
+fn test_grid_auto_flow() {
+    use style::properties::longhands::grid_auto_flow;
+
+    assert_roundtrip_with_context!(grid_auto_flow::parse, "row dense", "row dense");
+    assert_roundtrip_with_context!(grid_auto_flow::parse, "dense row", "row dense");
+    assert_roundtrip_with_context!(grid_auto_flow::parse, "column dense", "column dense");
+    assert_roundtrip_with_context!(grid_auto_flow::parse, "dense column", "column dense");
+    assert_roundtrip_with_context!(grid_auto_flow::parse, "dense", "row dense");
+    assert_roundtrip_with_context!(grid_auto_flow::parse, "row", "row");
+    assert_roundtrip_with_context!(grid_auto_flow::parse, "column", "column");
+
+    // Neither row, column or dense can be repeated
+    assert!(parse(grid_auto_flow::parse, "dense dense").is_err());
+    assert!(parse(grid_auto_flow::parse, "row row").is_err());
+    assert!(parse(grid_auto_flow::parse, "column column").is_err());
+    assert!(parse(grid_auto_flow::parse, "row dense dense").is_err());
+    assert!(parse(grid_auto_flow::parse, "column dense dense").is_err());
+
+    // Only row, column, dense idents are allowed
+    assert!(parse(grid_auto_flow::parse, "dense 1").is_err());
+    assert!(parse(grid_auto_flow::parse, "column 'dense'").is_err());
+    assert!(parse(grid_auto_flow::parse, "column 2px dense").is_err());
+}
+
+#[test]
+fn test_grid_auto_rows_columns() {
+    use style::properties::longhands::grid_auto_rows;
+
+    // the grammar is <track-size>+ but gecko supports only a single value, so we've clamped ourselves
+    assert_roundtrip_with_context!(grid_auto_rows::parse, "55%");
+    assert_roundtrip_with_context!(grid_auto_rows::parse, "0.5fr");
+    assert_roundtrip_with_context!(grid_auto_rows::parse, "fit-content(11%)");
+    // only <inflexible-breadth> is allowed in first arg of minmax
+    assert!(parse(grid_auto_rows::parse, "minmax(1fr, max-content)").is_err());
+}
+
+#[test]
+fn test_grid_template_rows_columns() {
+    use style::properties::longhands::grid_template_rows;
+
+    assert_roundtrip_with_context!(grid_template_rows::parse, "none");      // none keyword
+    // <track-size>{2} with `<track-breadth> minmax(<inflexible-breadth>, <track-breadth>)`
+    assert_roundtrip_with_context!(grid_template_rows::parse, "1fr minmax(min-content, 1fr)");
+    // <track-size> with <track-breadth> as <length-percentage>
+    assert_roundtrip_with_context!(grid_template_rows::parse, "calc(4em + 5px)");
+    // <track-size> with <length> followed by <track-repeat> with `<track-size>{3}` (<flex>, auto, minmax)
+    assert_roundtrip_with_context!(grid_template_rows::parse, "10px repeat(2, 1fr auto minmax(200px, 1fr))");
+    // <track-repeat> with `<track-size> <line-names>` followed by <track-size>
+    assert_roundtrip_with_context!(grid_template_rows::parse, "repeat(4, 10px [col-start] 250px [col-end]) 10px");
+    // mixture of <track-size>, <track-repeat> and <line-names>
+    assert_roundtrip_with_context!(grid_template_rows::parse,
+        "[a] auto [b] minmax(min-content, 1fr) [b c d] repeat(2, [e] 40px) repeat(5, [f g] auto [h]) [i]");
+
+    // no span allowed in <line-names>
+    assert!(parse(grid_template_rows::parse, "[a span] 10px").is_err());
+    // <track-list> needs at least one <track-size> | <track-repeat>
+    assert!(parse(grid_template_rows::parse, "[a b c]").is_err());
+    // at least one argument of <fixed-size> should be a <fixed-breadth> (i.e., <length-percentage>)
+    assert!(parse(grid_template_rows::parse, "[a b] repeat(auto-fill, 50px) minmax(auto, 1fr)").is_err());
+    // fit-content is not a <fixed-size>
+    assert!(parse(grid_template_rows::parse, "[a b] repeat(auto-fill, fit-content(20%))").is_err());
+    // <auto-track-list> only allows <fixed-size> | <fixed-repeat>
+    assert!(parse(grid_template_rows::parse, "[a] repeat(2, auto) repeat(auto-fill, 10px)").is_err());
+    // only <inflexible-breadth> allowed in <auto-track-repeat>
+    assert!(parse(grid_template_rows::parse, "[a] repeat(auto-fill, 1fr)").is_err());
+    // <auto-track-repeat> is allowed only once
+    assert!(parse(grid_template_rows::parse, "[a] repeat(auto-fit, [b] 8px) [c] repeat(auto-fill, [c] 8px)").is_err());
+}
+
+#[test]
+fn test_computed_grid_template_rows_colums() {
+    use style::properties::longhands::grid_template_rows;
+
+    assert_computed_serialization(grid_template_rows::parse,
+        "[a] repeat(calc(1 + 1), [b] auto)", "[a b] auto [b] auto");
+
+    assert_computed_serialization(grid_template_rows::parse,
+        "[a] repeat(2, [b c] auto [e] auto [d])",
+        "[a b c] auto [e] auto [d b c] auto [e] auto [d]");
+
+    assert_computed_serialization(grid_template_rows::parse,
+        "[a] 50px [b] 10% [b c d] repeat(2, [e] 40px [f]) [g] repeat(auto-fill, [h i] 20px [j]) [k] 10px [l]",
+        "[a] 50px [b] 10% [b c d e] 40px [f e] 40px [f g] repeat(auto-fill, [h i] 20px [j]) [k] 10px [l]");
+
+    assert_computed_serialization(grid_template_rows::parse,
+        "10px repeat(2, 1fr auto minmax(200px, 1fr))",
+        "10px minmax(auto, 1fr) auto minmax(200px, 1fr) minmax(auto, 1fr) auto minmax(200px, 1fr)");
 }

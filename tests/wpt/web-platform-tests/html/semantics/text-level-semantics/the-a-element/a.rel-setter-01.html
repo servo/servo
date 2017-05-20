@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>HTMLAnchorElement.rel setter</title>
+<link rel="author" title="TheKK" href="mailto:thumbd03803@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-a-rel">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<div>
+<a id="test" href="a"></a>
+</div>
+<script>
+test(function() {
+  var a = document.getElementById("test");
+
+  test(function() {
+    a.rel = "noreferrer"
+    assert_equals(a.rel, "noreferrer");
+  }, "Test anchor's rel setter");
+});
+</script>

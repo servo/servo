@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Reference File</title>
+  <link rel="author" title="Bert Bos" href="mailto:bert@w3.org/" />
+
+  <style type="text/css">
+  #container {width: 20em; background: green; text-align: center}
+
+  #child3 {display: inline}
+  #grandchild3 {width: 20em; height: 1.2em; background: green;
+    vertical-align: bottom}
+
+  #child4 {table-layout: fixed; width: 20em; border-collapse: collapse}
+  #grandchild4 {width: 20em}
+  </style>
+ </head>
+
+ <body>
+
+   <p>There should be no red.</p>
+
+   <div id="container">
+     <div id="child1">
+       <div id="grandchild1">
+	 Block 1
+       </div>
+     </div>
+
+     <div id="child2">
+       <div id="grandchild2">
+	 Block 2
+       </div>
+     </div>
+
+     <div id="child3">
+       <img id="grandchild3" src="../support/1x1-green.png" alt="green" />
+     </div>
+
+     <table id="child4">
+       <caption id="grandchild4">
+	 Block 4a
+       </caption>
+       <tr><td>Block 4b</td></tr>
+     </table>
+   </div>
+ </body>
+</html>

@@ -2,22 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use {OpaqueStyleAndLayoutData, TrustedNodeAddress};
+use {OpaqueStyleAndLayoutData, TrustedNodeAddress, PendingImage};
 use app_units::Au;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::PipelineId;
-use net_traits::image_cache_thread::ImageCacheThread;
+use net_traits::image_cache::ImageCache;
 use profile_traits::mem::ReportsChan;
 use rpc::LayoutRPC;
-use script_traits::{ConstellationControlMsg, LayoutControlMsg};
-use script_traits::{LayoutMsg as ConstellationMsg, StackingContextScrollState, WindowSizeData};
+use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
+use script_traits::{ScrollState, UntrustedNodeAddress, WindowSizeData};
 use servo_url::ServoUrl;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender};
-use style::context::ReflowGoal;
+use style::context::{QuirksMode, ReflowGoal};
 use style::properties::PropertyId;
 use style::selector_parser::PseudoElement;
 use style::stylesheets::Stylesheet;
@@ -25,10 +25,10 @@ use style::stylesheets::Stylesheet;
 /// Asynchronous messages that script can send to layout.
 pub enum Msg {
     /// Adds the given stylesheet to the document.
-    AddStylesheet(Arc<Stylesheet>),
+    AddStylesheet(::style::stylearc::Arc<Stylesheet>),
 
-    /// Puts a document into quirks mode, causing the quirks mode stylesheet to be loaded.
-    SetQuirksMode,
+    /// Change the quirks mode.
+    SetQuirksMode(QuirksMode),
 
     /// Requests a reflow.
     Reflow(ScriptReflow),
@@ -44,9 +44,6 @@ pub enum Msg {
     /// The inner field is the number of *milliseconds* to advance, and the bool
     /// field is whether animations should be force-ticked.
     AdvanceClockMs(i32, bool),
-
-    /// Requests that the layout thread reflow with a newly-loaded Web font.
-    ReflowWithNewlyLoadedWebFont,
 
     /// Destroys layout data associated with a DOM node.
     ///
@@ -82,7 +79,11 @@ pub enum Msg {
     SetFinalUrl(ServoUrl),
 
     /// Tells layout about the new scrolling offsets of each scrollable stacking context.
-    SetStackingContextScrollStates(Vec<StackingContextScrollState>),
+    SetScrollStates(Vec<ScrollState>),
+
+    /// Tells layout about a single new scrolling offset from the script. The rest will
+    /// remain untouched and layout won't forward this back to script.
+    UpdateScrollStateFromScript(ScrollState),
 }
 
 
@@ -93,7 +94,7 @@ pub enum ReflowQueryType {
     ContentBoxQuery(TrustedNodeAddress),
     ContentBoxesQuery(TrustedNodeAddress),
     NodeOverflowQuery(TrustedNodeAddress),
-    HitTestQuery(Point2D<f32>, Point2D<f32>, bool),
+    HitTestQuery(Point2D<f32>, bool),
     NodeScrollRootIdQuery(TrustedNodeAddress),
     NodeGeometryQuery(TrustedNodeAddress),
     NodeScrollGeometryQuery(TrustedNodeAddress),
@@ -101,6 +102,7 @@ pub enum ReflowQueryType {
     OffsetParentQuery(TrustedNodeAddress),
     MarginStyleQuery(TrustedNodeAddress),
     TextIndexQuery(TrustedNodeAddress, i32, i32),
+    NodesFromPoint(Point2D<f32>),
 }
 
 /// Information needed for a reflow.
@@ -111,6 +113,15 @@ pub struct Reflow {
     pub page_clip_rect: Rect<Au>,
 }
 
+/// Information derived from a layout pass that needs to be returned to the script thread.
+#[derive(Default)]
+pub struct ReflowComplete {
+    /// The list of images that were encountered that are in progress.
+    pub pending_images: Vec<PendingImage>,
+    /// The list of nodes that initiated a CSS transition.
+    pub newly_transitioning_nodes: Vec<UntrustedNodeAddress>,
+}
+
 /// Information needed for a script-initiated reflow.
 pub struct ScriptReflow {
     /// General reflow data.
@@ -118,23 +129,17 @@ pub struct ScriptReflow {
     /// The document node.
     pub document: TrustedNodeAddress,
     /// The document's list of stylesheets.
-    pub document_stylesheets: Vec<Arc<Stylesheet>>,
+    pub document_stylesheets: Vec<::style::stylearc::Arc<Stylesheet>>,
     /// Whether the document's stylesheets have changed since the last script reflow.
     pub stylesheets_changed: bool,
     /// The current window size.
     pub window_size: WindowSizeData,
     /// The channel that we send a notification to.
-    pub script_join_chan: Sender<()>,
+    pub script_join_chan: Sender<ReflowComplete>,
     /// The type of query if any to perform during this reflow.
     pub query_type: ReflowQueryType,
     /// The number of objects in the dom #10110
     pub dom_count: u32,
-}
-
-impl Drop for ScriptReflow {
-    fn drop(&mut self) {
-        self.script_join_chan.send(()).unwrap();
-    }
 }
 
 pub struct NewLayoutThreadInfo {
@@ -145,7 +150,7 @@ pub struct NewLayoutThreadInfo {
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
     pub constellation_chan: IpcSender<ConstellationMsg>,
     pub script_chan: IpcSender<ConstellationControlMsg>,
-    pub image_cache_thread: ImageCacheThread,
+    pub image_cache: Arc<ImageCache>,
     pub content_process_shutdown_chan: Option<IpcSender<()>>,
     pub layout_threads: usize,
 }

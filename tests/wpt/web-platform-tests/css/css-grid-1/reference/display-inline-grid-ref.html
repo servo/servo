@@ -1,0 +1,62 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>CSS Grid Layout: Reference File</title>
+  <link rel="author" title="swain" href="mailto:swainet@126.com"/>
+  <link rel="reviewer" title="Dayang Shen" href="mailto:shendayang@baidu.com"/> <!-- 2013-09-17 -->
+  <style type="text/css">
+    #container {
+      position:relative;
+    }
+
+    #table {
+      width:400px;
+      height:100px;
+      border-collapse:collapse;
+    }
+
+    #table td {
+      padding:0;
+      vertical-align:top;
+    }
+
+    #table td:first-child {
+      width:100px;
+    }
+
+    #table tr:last-child td {
+      height:30px;
+    }
+
+    #table-wrapper {
+      display:inline-block;
+      clear:right;
+    }
+
+    span {
+      vertical-align:top;
+    }
+  </style>
+</head>
+<body>
+<p>Test passes if there are 4 green rectangles and no red.</p>
+
+<div id="container">
+  <div id="table-wrapper">
+    <table id="table">
+      <tbody>
+      <tr>
+        <td style="background-color:green">cell1</td>
+        <td style="background-color:limegreen">cell2</td>
+      </tr>
+      <tr>
+        <td style="background-color:limegreen">cell3</td>
+        <td style="background-color:green">cell4</td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+  <span>Inline</span>
+</div>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Inheritance of em units</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-04-14 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/fonts/line-height/005.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#line-height" />
+  <link rel="match" href="line-height-125-ref.xht" />
+
+  <style type="text/css">
+   .fontsize { font-size: 10px; }
+   .lineheight { line-height: 1em; }
+   .test { font-size: 50px; width: 200px; padding-top: 10px; }
+   .fail { color: red; }
+   .pass { color: white; background: green; padding-top: 10px; }
+  </style>
+ </head>
+ <body>
+  <p>There should be one word on the line below, clearly saying "pass".</p>
+  <div class="fontsize">
+   <div class="lineheight">
+    <div class="test"><span class="fail">FAIL</span> <span class="pass">PASS</span></div>
+   </div>
+  </div>
+ </body>
+</html>

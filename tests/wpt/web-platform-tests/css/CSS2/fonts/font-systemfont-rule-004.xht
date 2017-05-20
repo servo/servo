@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Font shorthand property reset to default values if not explicitly set</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-shorthand" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-prop"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'font' shorthand property resets any property not explicitly given a value to its initial value." />
+        <style type="text/css">
+            #div1
+            {
+                font: 14pt serif;
+            }
+            .test
+            {
+                font-size: 96px;
+                font-style: italic;
+                font-weight: bold;
+            }
+            #div2
+            {
+                font: 14pt serif;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the lines of "Filler Text" below match.</p>
+        <div id="div1">Filler Text</div>
+        <div id="div2" class="test">Filler Text</div>
+    </body>
+</html>

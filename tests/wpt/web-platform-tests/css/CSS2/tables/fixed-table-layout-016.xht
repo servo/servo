@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Fixed table width is maximum between table and sum of column 'width' (sum of columns' widths wins)</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#fixed-table-layout" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="A fixed layout table's width will be the sum of its columns' widths if that number is greater than the table's specified width." />
+        <style type="text/css">
+            table
+            {
+                border-spacing: 0;
+                table-layout: fixed;
+                width: 75px;
+            }
+            td
+            {
+                background: black;
+                padding: 0;
+                width: 25px;
+            }
+            #div1
+            {
+                background: blue;
+                width: 100px;
+            }
+            #div1, td
+            {
+                height: 1em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the boxes below are the same width.</p>
+        <table>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+        </table>
+        <div id="div1"></div>
+    </body>
+</html>

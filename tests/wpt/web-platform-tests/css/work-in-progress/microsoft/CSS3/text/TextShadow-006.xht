@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: The 'text-shadow' property set via OM</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-text/#text-shadow" />
+        <meta name="flags" content="dom" />
+        <meta name="assert" content="Setting the 'text-shadow' property via the OM is supported." />
+        <style type="text/css">
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is green visible on the page.</p>
+        <div id="test">Filler Text</div>
+        <div>
+        </div>
+        <script type="text/javascript">
+            try
+             {
+                var elem = document.getElementById("test");
+                elem.style.textShadow = "green 96px 96px";
+            }
+            catch (ex) 
+            {
+                alert("FAIL", " ERROR: " + ex.message);
+            }
+        </script>
+    </body>
+</html>

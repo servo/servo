@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: URLs</title>
+  <meta name="flags" content="image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#url"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="stylesheet" href="support/css1test64a.css"/>
+  <link rel="match" href="c64-uri-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   @import url(support/css1test64b.css);
+   p.zero {background: red url(support/swatch-green.png);color:white;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#uri" title="4.3.4 URLs and URIs"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#at-import" title="6.3 The @import rule"/>
+ </head>
+ <body>
+  <p>Test passes if there are 3 sentences with a green background.</p>
+  <p class="zero"> This sentence should have a green background. </p>
+  <p class="one"> This sentence should have a green background. </p>
+  <p class="two"> This sentence should have a green background. </p>
+ </body>
+</html>

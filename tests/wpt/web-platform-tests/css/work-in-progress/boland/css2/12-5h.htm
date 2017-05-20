@@ -1,0 +1,56 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Ninth Test of Section 12.5 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+ol {counter-reset: item}
+li {display: block}
+li:before {content: counters(item, ". "); counter-increment: item}
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Ninth Testable Statement of Sec 12.5 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+9. The counters() function generates a string composed of the values of all
+counters with the same name, separated by a given string.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p>
+If statement #9 above is passed, then
+<p>
+<ol>
+List
+<li>
+First list
+<li>
+Second list
+</ol>
+Nested list items are numbered as "1", "1.1", etc.
+Rules applied are "ol { counter-reset: item }",
+"li { display: block }",
+"li:before {content: counters(item, ". "); counter-increment: item }
+<p>
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

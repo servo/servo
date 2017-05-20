@@ -14,11 +14,10 @@ use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
+use html5ever::{LocalName, Prefix};
 use servo_atoms::Atom;
 use style::attr::AttrValue;
 use style::str::{HTML_SPACE_CHARACTERS, read_numbers};
-use style::values::specified;
 
 #[dom_struct]
 pub struct HTMLFontElement {
@@ -27,7 +26,7 @@ pub struct HTMLFontElement {
 
 
 impl HTMLFontElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLFontElement {
+    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLFontElement {
         HTMLFontElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
@@ -35,7 +34,7 @@ impl HTMLFontElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLFontElement> {
         Node::reflect_node(box HTMLFontElement::new_inherited(local_name, prefix, document),
                            document,
@@ -62,8 +61,7 @@ impl HTMLFontElementMethods for HTMLFontElement {
     // https://html.spec.whatwg.org/multipage/#dom-font-size
     fn SetSize(&self, value: DOMString) {
         let element = self.upcast::<Element>();
-        let length = parse_length(&value);
-        element.set_attribute(&local_name!("size"), AttrValue::Length(value.into(), length));
+        element.set_attribute(&local_name!("size"), parse_size(&value));
     }
 }
 
@@ -76,10 +74,7 @@ impl VirtualMethods for HTMLFontElement {
         match name {
             &local_name!("face") => AttrValue::from_atomic(value.into()),
             &local_name!("color") => AttrValue::from_legacy_color(value.into()),
-            &local_name!("size") => {
-                let length = parse_length(&value);
-                AttrValue::Length(value.into(), length)
-            },
+            &local_name!("size") => parse_size(&value),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
@@ -88,7 +83,7 @@ impl VirtualMethods for HTMLFontElement {
 pub trait HTMLFontElementLayoutHelpers {
     fn get_color(&self) -> Option<RGBA>;
     fn get_face(&self) -> Option<Atom>;
-    fn get_size(&self) -> Option<specified::Length>;
+    fn get_size(&self) -> Option<u32>;
 }
 
 impl HTMLFontElementLayoutHelpers for LayoutJS<HTMLFontElement> {
@@ -113,18 +108,21 @@ impl HTMLFontElementLayoutHelpers for LayoutJS<HTMLFontElement> {
     }
 
     #[allow(unsafe_code)]
-    fn get_size(&self) -> Option<specified::Length> {
-        unsafe {
+    fn get_size(&self) -> Option<u32> {
+        let size = unsafe {
             (*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("size"))
-                .and_then(AttrValue::as_length)
-                .cloned()
+        };
+        match size {
+            Some(&AttrValue::UInt(_, s)) => Some(s),
+            _ => None,
         }
     }
 }
 
 /// https://html.spec.whatwg.org/multipage/#rules-for-parsing-a-legacy-font-size
-fn parse_length(mut input: &str) -> Option<specified::Length> {
+fn parse_size(mut input: &str) -> AttrValue {
+    let original_input = input;
     // Steps 1 & 2 are not relevant
 
     // Step 3
@@ -138,7 +136,7 @@ fn parse_length(mut input: &str) -> Option<specified::Length> {
     let mut input_chars = input.chars().peekable();
     let parse_mode = match input_chars.peek() {
         // Step 4
-        None => return None,
+        None => return AttrValue::String(original_input.into()),
 
         // Step 5
         Some(&'+') => {
@@ -155,7 +153,7 @@ fn parse_length(mut input: &str) -> Option<specified::Length> {
     // Steps 6, 7, 8
     let mut value = match read_numbers(input_chars) {
         (Some(v), _) if v >= 0 => v,
-        _ => return None,
+        _ => return AttrValue::String(original_input.into()),
     };
 
     // Step 9
@@ -166,5 +164,5 @@ fn parse_length(mut input: &str) -> Option<specified::Length> {
     }
 
     // Steps 10, 11, 12
-    Some(specified::Length::from_font_size_int(value as u8))
+    AttrValue::UInt(original_input.into(), value as u32)
 }

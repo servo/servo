@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>CSS Regions: JavaScript event handlers for elements in a region's hidden overflow</title>
+	<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+	<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+	<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+	<meta name="assert" content="For regions that have hidden overflow, JavaScript events on elements that are in the hidden overflow should not trigger">
+	<meta name="flags" content="dom interact">
+	<style>
+	p {
+		margin: 0;
+	}
+	input {
+		width: 100px;
+	}
+	#content {
+		font-family: monospace;
+		font-size: 20px;
+		line-height: 1em;
+		flow-into: f;
+	}
+	.spacer {
+		width: 100%;
+		height: 80px;
+		display: block;
+	}
+	.highlite {
+		color: deepskyblue;
+		display: inline-block;
+		height: 50px;
+
+	}
+	#parent {
+		height: 200px;
+	}
+	#region {
+		border: 2px solid black;
+		background-color: lightgray;
+		width: 100px;
+		height: 100px;
+		flow-from: f;
+		overflow: hidden;
+	}
+	#region p {
+		background-color: red;
+		width: 100%;
+		height: 50%;
+	}
+	#result {
+		color: green;
+		font-weight: bold;
+	}
+	</style>
+</head>
+<body>
+	This tests that elements displayed in a region's visible overflow handle mouse events.
+	<ol>
+		<li>You should not see any red before or during this test.</li>
+		<li>You should only see one word (<em>This</em>) at the bottom of the gray square.</li>
+		<li>You shouldn't be able to scroll or make visible more text in the gray square.</li> <!-- yeah, I know it's fishy but don't have a better idea for negative testing :) -->
+	</ol>
+	<div id="content"><span class="spacer"></span>This text has <span class="highlite">overflow</span></div>
+	<div id="result">&nbsp;</div>
+	<div id="parent">
+		<div id="region">
+			<p></p>
+		</div>
+	</div>
+	<script type="text/javascript">
+	var word = document.querySelector(".highlite");
+	word.addEventListener("click", function(evt) {
+		document.querySelector("#result").innerHTML = "FAIL";
+		finishTest();
+	});
+
+	var parent = document.querySelector("#parent");
+	parent.addEventListener("click", function(evt) {
+		var result = document.querySelector("#result");
+		if (result.innerHTML == "&nbsp;") {
+			document.querySelector("#result").innerHTML = "PASS";
+		}
+
+		finishTest();
+	})
+
+	function finishTest() {
+		if (window.testRunner) {
+			testRunner.notifyDone();
+		}
+	}
+
+	function runScript() {
+		if (window.testRunner) {
+			testRunner.dumpAsText();
+			testRunner.waitUntilDone();
+
+			var boxLocation = document.querySelector("#region").getBoundingClientRect();
+			eventSender.mouseMoveTo(boxLocation.left + boxLocation.width/2, boxLocation.top + boxLocation.height + 35);
+
+			eventSender.mouseDown();
+			eventSender.mouseUp();
+		}
+	}
+
+	runScript();
+	</script>
+</body>
+</html>

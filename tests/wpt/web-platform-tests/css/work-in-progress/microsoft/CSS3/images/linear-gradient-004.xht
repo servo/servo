@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: 'linear-gradient' value assigned with shorthand 'background' property</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="https://drafts.csswg.org/css3-images/#gradients" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Applying 'linear-gradient' to 'background' shorthand property is supported." />
+        <style type="text/css">
+            #reference
+            {
+                background-image: linear-gradient(top, blue, yellow);
+                display: inline-block;
+                height: 100px;
+                width: 100px;
+            }
+            #test
+            {
+                background: linear-gradient(top, blue, yellow);
+                display: inline-block;
+                height: 100px;
+                width: 100px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are two identical squares placed side by side.</p>
+        <div id="reference"></div>
+        <div id="test"></div>
+    </body>
+</html>

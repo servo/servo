@@ -11,18 +11,18 @@ use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::cssrule::CSSRule;
 use dom::element::Element;
-use dom::node::{Node, window_from_node};
+use dom::node::{Node, window_from_node, document_from_node};
 use dom::window::Window;
 use dom_struct::dom_struct;
-use parking_lot::RwLock;
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
-use std::sync::Arc;
 use style::attr::AttrValue;
-use style::parser::ParserContextExtraData;
+use style::parser::PARSING_MODE_DEFAULT;
 use style::properties::{Importance, PropertyDeclarationBlock, PropertyId, LonghandId, ShorthandId};
-use style::properties::{parse_one_declaration, parse_style_attribute};
+use style::properties::{parse_one_declaration_into, parse_style_attribute, SourcePropertyDeclaration};
 use style::selector_parser::PseudoElement;
+use style::shared_lock::Locked;
+use style::stylearc::Arc;
 use style_traits::ToCss;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
@@ -40,7 +40,7 @@ pub enum CSSStyleOwner {
     Element(JS<Element>),
     CSSRule(JS<CSSRule>,
             #[ignore_heap_size_of = "Arc"]
-            Arc<RwLock<PropertyDeclarationBlock>>),
+            Arc<Locked<PropertyDeclarationBlock>>),
 }
 
 impl CSSStyleOwner {
@@ -55,24 +55,24 @@ impl CSSStyleOwner {
         let mut changed = true;
         match *self {
             CSSStyleOwner::Element(ref el) => {
+                let document = document_from_node(&**el);
+                let shared_lock = document.style_shared_lock();
                 let mut attr = el.style_attribute().borrow_mut().take();
                 let result = if attr.is_some() {
                     let lock = attr.as_ref().unwrap();
-                    let mut pdb = lock.write();
+                    let mut guard = shared_lock.write();
+                    let mut pdb = lock.write_with(&mut guard);
                     let result = f(&mut pdb, &mut changed);
                     result
                 } else {
-                    let mut pdb = PropertyDeclarationBlock {
-                        important_count: 0,
-                        declarations: vec![],
-                    };
+                    let mut pdb = PropertyDeclarationBlock::new();
                     let result = f(&mut pdb, &mut changed);
 
                     // Here `changed` is somewhat silly, because we know the
                     // exact conditions under it changes.
-                    changed = !pdb.declarations.is_empty();
+                    changed = !pdb.declarations().is_empty();
                     if changed {
-                        attr = Some(Arc::new(RwLock::new(pdb)));
+                        attr = Some(Arc::new(shared_lock.wrap(pdb)));
                     }
 
                     result
@@ -86,7 +86,8 @@ impl CSSStyleOwner {
                     //
                     // [1]: https://github.com/whatwg/html/issues/2306
                     if let Some(pdb) = attr {
-                        let serialization = pdb.read().to_css_string();
+                        let guard = shared_lock.read();
+                        let serialization = pdb.read_with(&guard).to_css_string();
                         el.set_attribute(&local_name!("style"),
                                          AttrValue::Declaration(serialization,
                                                                 pdb));
@@ -99,7 +100,10 @@ impl CSSStyleOwner {
                 result
             }
             CSSStyleOwner::CSSRule(ref rule, ref pdb) => {
-                let result = f(&mut *pdb.write(), &mut changed);
+                let result = {
+                    let mut guard = rule.shared_lock().write();
+                    f(&mut *pdb.write_with(&mut guard), &mut changed)
+                };
                 if changed {
                     rule.global().as_window().Document().invalidate_stylesheets();
                 }
@@ -114,18 +118,20 @@ impl CSSStyleOwner {
         match *self {
             CSSStyleOwner::Element(ref el) => {
                 match *el.style_attribute().borrow() {
-                    Some(ref pdb) => f(&pdb.read()),
+                    Some(ref pdb) => {
+                        let document = document_from_node(&**el);
+                        let guard = document.style_shared_lock().read();
+                        f(pdb.read_with(&guard))
+                    }
                     None => {
-                        let pdb = PropertyDeclarationBlock {
-                            important_count: 0,
-                            declarations: vec![],
-                        };
+                        let pdb = PropertyDeclarationBlock::new();
                         f(&pdb)
                     }
                 }
             }
-            CSSStyleOwner::CSSRule(_, ref pdb) => {
-                f(&pdb.read())
+            CSSStyleOwner::CSSRule(ref rule, ref pdb) => {
+                let guard = rule.shared_lock().read();
+                f(pdb.read_with(&guard))
             }
         }
     }
@@ -141,7 +147,7 @@ impl CSSStyleOwner {
         match *self {
             CSSStyleOwner::Element(ref el) => window_from_node(&**el).Document().base_url(),
             CSSStyleOwner::CSSRule(ref rule, _) => {
-                rule.parent_stylesheet().style_stylesheet().base_url.clone()
+                rule.parent_stylesheet().style_stylesheet().url_data.clone()
             }
         }
     }
@@ -218,7 +224,7 @@ impl CSSStyleDeclaration {
 
         let mut string = String::new();
 
-        self.owner.with_block(|ref pdb| {
+        self.owner.with_block(|pdb| {
             pdb.property_value_to_css(&id, &mut string).unwrap();
         });
 
@@ -233,12 +239,12 @@ impl CSSStyleDeclaration {
 
         self.owner.mutate_associated_block(|ref mut pdb, mut changed| {
             if value.is_empty() {
-                // Step 4
+                // Step 3
                 *changed = pdb.remove_property(&id);
                 return Ok(());
             }
 
-            // Step 5
+            // Step 4
             let importance = match &*priority {
                 "" => Importance::Normal,
                 p if p.eq_ignore_ascii_case("important") => Importance::Important,
@@ -248,30 +254,26 @@ impl CSSStyleDeclaration {
                 }
             };
 
-            // Step 6
+            // Step 5
             let window = self.owner.window();
-            let declarations =
-                parse_one_declaration(id, &value, &self.owner.base_url(),
-                                      window.css_error_reporter(),
-                                      ParserContextExtraData::default());
+            let quirks_mode = window.Document().quirks_mode();
+            let mut declarations = SourcePropertyDeclaration::new();
+            let result = parse_one_declaration_into(
+                &mut declarations, id, &value, &self.owner.base_url(),
+                window.css_error_reporter(), PARSING_MODE_DEFAULT, quirks_mode);
 
-            // Step 7
-            let declarations = match declarations {
-                Ok(declarations) => declarations,
+            // Step 6
+            match result {
+                Ok(()) => {},
                 Err(_) => {
                     *changed = false;
                     return Ok(());
                 }
-            };
-
-            // Step 8
-            // Step 9
-            // We could try to be better I guess?
-            *changed = !declarations.is_empty();
-            for declaration in declarations {
-                // TODO(emilio): We could check it changed
-                pdb.set_parsed_declaration(declaration.0, importance);
             }
+
+            // Step 7
+            // Step 8
+            *changed = pdb.extend_reset(declarations.drain(), importance);
 
             Ok(())
         })
@@ -281,8 +283,8 @@ impl CSSStyleDeclaration {
 impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-length
     fn Length(&self) -> u32 {
-        self.owner.with_block(|ref pdb| {
-            pdb.declarations.len() as u32
+        self.owner.with_block(|pdb| {
+            pdb.declarations().len() as u32
         })
     }
 
@@ -311,7 +313,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             return DOMString::new()
         };
 
-        self.owner.with_block(|ref pdb| {
+        self.owner.with_block(|pdb| {
             if pdb.property_priority(&id).important() {
                 DOMString::from("important")
             } else {
@@ -406,8 +408,8 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
     fn IndexedGetter(&self, index: u32) -> Option<DOMString> {
-        self.owner.with_block(|ref pdb| {
-            pdb.declarations.get(index as usize).map(|entry| {
+        self.owner.with_block(|pdb| {
+            pdb.declarations().get(index as usize).map(|entry| {
                 let (ref declaration, importance) = *entry;
                 let mut css = declaration.to_css_string();
                 if importance.important() {
@@ -420,7 +422,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-csstext
     fn CssText(&self) -> DOMString {
-        self.owner.with_block(|ref pdb| {
+        self.owner.with_block(|pdb| {
             DOMString::from(pdb.to_css_string())
         })
     }
@@ -434,12 +436,13 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             return Err(Error::NoModificationAllowed);
         }
 
+        let quirks_mode = window.Document().quirks_mode();
         self.owner.mutate_associated_block(|mut pdb, mut _changed| {
             // Step 3
             *pdb = parse_style_attribute(&value,
                                          &self.owner.base_url(),
                                          window.css_error_reporter(),
-                                         ParserContextExtraData::default());
+                                         quirks_mode);
         });
 
         Ok(())

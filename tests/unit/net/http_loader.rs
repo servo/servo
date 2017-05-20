@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use content_blocker::parse_list;
 use cookie_rs::Cookie as CookiePair;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
@@ -13,8 +12,8 @@ use flate2::Compression;
 use flate2::write::{DeflateEncoder, GzEncoder};
 use hyper::LanguageTag;
 use hyper::header::{Accept, AcceptEncoding, ContentEncoding, ContentLength, Cookie as CookieHeader};
-use hyper::header::{AcceptLanguage, Authorization, Basic, Date};
-use hyper::header::{Encoding, Headers, Host, Location, Quality, QualityItem, SetCookie, qitem};
+use hyper::header::{AcceptLanguage, AccessControlAllowOrigin, Authorization, Basic, Date};
+use hyper::header::{Encoding, Headers, Host, Location, Origin, Quality, QualityItem, SetCookie, qitem};
 use hyper::header::{StrictTransportSecurity, UserAgent};
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
@@ -26,14 +25,15 @@ use msg::constellation_msg::TEST_PIPELINE_ID;
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
 use net::resource_thread::AuthCacheEntry;
+use net::test::replace_host_table;
 use net_traits::{CookieSource, NetworkError};
-use net_traits::hosts::replace_host_table;
-use net_traits::request::{Request, RequestInit, CredentialsMode, Destination};
+use net_traits::request::{Request, RequestInit, RequestMode, CredentialsMode, Destination};
 use net_traits::response::ResponseBody;
 use new_fetch_context;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::io::{Read, Write};
+use std::str::FromStr;
 use std::sync::{Arc, Mutex, RwLock, mpsc};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
@@ -50,7 +50,7 @@ fn read_response(reader: &mut Read) -> String {
     }
 }
 
-fn assert_cookie_for_domain(cookie_jar: Arc<RwLock<CookieStorage>>, domain: &str, cookie: Option<&str>) {
+fn assert_cookie_for_domain(cookie_jar: &RwLock<CookieStorage>, domain: &str, cookie: Option<&str>) {
     let mut cookie_jar = cookie_jar.write().unwrap();
     let url = ServoUrl::parse(&*domain).unwrap();
     let cookies = cookie_jar.cookies_for_url(&url, CookieSource::HTTP);
@@ -134,7 +134,7 @@ fn test_check_default_headers_loaded_in_every_request() {
     *expected_headers.lock().unwrap() = Some(headers.clone());
 
     // Testing for method.GET
-    let request = Request::from_init(RequestInit {
+    let mut request = Request::from_init(RequestInit {
         url: url.clone(),
         method: Method::Get,
         destination: Destination::Document,
@@ -142,13 +142,18 @@ fn test_check_default_headers_loaded_in_every_request() {
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
-    let response = fetch(request, None);
+    let response = fetch(&mut request, None);
     assert!(response.status.unwrap().is_success());
 
     // Testing for method.POST
-    headers.set(ContentLength(0 as u64));
-    *expected_headers.lock().unwrap() = Some(headers.clone());
-    let request = Request::from_init(RequestInit {
+    let mut post_headers = headers.clone();
+    post_headers.set(ContentLength(0 as u64));
+    let url_str = url.as_str();
+    // request gets header "Origin: http://example.com" but expected_headers has
+    // "Origin: http://example.com/" which do not match for equality so strip trailing '/'
+    post_headers.set(Origin::from_str(&url_str[..url_str.len()-1]).unwrap());
+    *expected_headers.lock().unwrap() = Some(post_headers);
+    let mut request = Request::from_init(RequestInit {
         url: url.clone(),
         method: Method::Post,
         destination: Destination::Document,
@@ -156,7 +161,7 @@ fn test_check_default_headers_loaded_in_every_request() {
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
-    let response = fetch(request, None);
+    let response = fetch(&mut request, None);
     assert!(response.status.unwrap().is_success());
 
     let _ = server.close();
@@ -169,7 +174,7 @@ fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length
     };
     let (mut server, url) = make_server(handler);
 
-    let request = Request::from_init(RequestInit {
+    let mut request = Request::from_init(RequestInit {
         url: url.clone(),
         method: Method::Post,
         body: None,
@@ -178,7 +183,7 @@ fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
-    let response = fetch(request, None);
+    let response = fetch(&mut request, None);
     assert!(response.status.unwrap().is_success());
 
     let _ = server.close();
@@ -194,7 +199,7 @@ fn test_request_and_response_data_with_network_messages() {
 
     let mut request_headers = Headers::new();
     request_headers.set(Host { hostname: "bar.foo".to_owned(), port: None });
-    let request = Request::from_init(RequestInit {
+    let mut request = Request::from_init(RequestInit {
         url: url.clone(),
         method: Method::Get,
         headers: request_headers,
@@ -205,7 +210,7 @@ fn test_request_and_response_data_with_network_messages() {
         .. RequestInit::default()
     });
     let (devtools_chan, devtools_port) = mpsc::channel();
-    let response = fetch(request, Some(devtools_chan));
+    let response = fetch(&mut request, Some(devtools_chan));
     assert!(response.status.unwrap().is_success());
 
     let _ = server.close();
@@ -283,7 +288,7 @@ fn test_request_and_response_message_from_devtool_without_pipeline_id() {
     };
     let (mut server, url) = make_server(handler);
 
-    let request = Request::from_init(RequestInit {
+    let mut request = Request::from_init(RequestInit {
         url: url.clone(),
         method: Method::Get,
         destination: Destination::Document,
@@ -292,7 +297,7 @@ fn test_request_and_response_message_from_devtool_without_pipeline_id() {
         .. RequestInit::default()
     });
     let (devtools_chan, devtools_port) = mpsc::channel();
-    let response = fetch(request, Some(devtools_chan));
+    let response = fetch(&mut request, Some(devtools_chan));
     assert!(response.status.unwrap().is_success());
 
     let _ = server.close();
@@ -318,7 +323,7 @@ fn test_redirected_request_to_devtools() {
     };
     let (mut pre_server, pre_url) = make_server(pre_handler);
 
-    let request = Request::from_init(RequestInit {
+    let mut request = Request::from_init(RequestInit {
         url: pre_url.clone(),
         method: Method::Post,
         destination: Destination::Document,
@@ -327,7 +332,7 @@ fn test_redirected_request_to_devtools() {
         .. RequestInit::default()
     });
     let (devtools_chan, devtools_port) = mpsc::channel();
-    fetch(request, Some(devtools_chan));
+    fetch(&mut request, Some(devtools_chan));
 
     let _ = pre_server.close();
     let _ = post_server.close();
@@ -366,7 +371,7 @@ fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
     };
     let (mut pre_server, pre_url) = make_server(pre_handler);
 
-    let request = Request::from_init(RequestInit {
+    let mut request = Request::from_init(RequestInit {
         url: pre_url.clone(),
         method: Method::Post,
         destination: Destination::Document,
@@ -374,7 +379,7 @@ fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
-    let response = fetch(request, None);
+    let response = fetch(&mut request, None);
 
     let _ = pre_server.close();
     let _ = post_server.close();
@@ -393,7 +398,7 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
     };
     let (mut server, url) = make_server(handler);
 
-    let request = Request::from_init(RequestInit {
+    let mut request = Request::from_init(RequestInit {
         url: url.clone(),
         method: Method::Get,
         body: None,
@@ -402,7 +407,7 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
-    let response = fetch(request, None);
+    let response = fetch(&mut request, None);
 
     let _ = server.close();
 
@@ -422,7 +427,7 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
     };
     let (mut server, url) = make_server(handler);
 
-    let request = Request::from_init(RequestInit {
+    let mut request = Request::from_init(RequestInit {
         url: url.clone(),
         method: Method::Get,
         body: None,
@@ -431,7 +436,7 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
-    let response = fetch(request, None);
+    let response = fetch(&mut request, None);
 
     let _ = server.close();
 
@@ -460,7 +465,7 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
     };
     let (mut pre_server, pre_url) = make_server(pre_handler);
 
-    let request = Request::from_init(RequestInit {
+    let mut request = Request::from_init(RequestInit {
         url: pre_url.clone(),
         body: Some(b"Body on POST!".to_vec()),
         method: Method::Post,
@@ -469,7 +474,7 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
-    let response = fetch(request, None);
+    let response = fetch(&mut request, None);
 
     let _ = pre_server.close();
     let _ = post_server.close();
@@ -485,7 +490,7 @@ fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_ar
     };
     let (mut server, url) = make_server(handler);
 
-    let request = Request::from_init(RequestInit {
+    let mut request = Request::from_init(RequestInit {
         url: url.clone(),
         method: Method::Get,
         body: None,
@@ -495,7 +500,7 @@ fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_ar
         .. RequestInit::default()
     });
     let context = new_fetch_context(None);
-    let response = fetch_with_context(request, &context);
+    let response = fetch_with_context(&mut request, &context);
 
     let _ = server.close();
 
@@ -506,16 +511,16 @@ fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_ar
 #[test]
 fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_in_response() {
     let handler = move |_: HyperRequest, mut response: HyperResponse| {
-        response.headers_mut().set(SetCookie(vec![CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned())]));
+        response.headers_mut().set(SetCookie(vec!["mozillaIs=theBest".to_owned()]));
         response.send(b"Yay!").unwrap();
     };
     let (mut server, url) = make_server(handler);
 
     let context = new_fetch_context(None);
 
-    assert_cookie_for_domain(context.state.cookie_jar.clone(), url.as_str(), None);
+    assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), None);
 
-    let request = Request::from_init(RequestInit {
+    let mut request = Request::from_init(RequestInit {
         url: url.clone(),
         method: Method::Get,
         body: None,
@@ -525,20 +530,20 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
     });
-    let response = fetch_with_context(request, &context);
+    let response = fetch_with_context(&mut request, &context);
 
     let _ = server.close();
 
     assert!(response.status.unwrap().is_success());
 
-    assert_cookie_for_domain(context.state.cookie_jar.clone(), url.as_str(), Some("mozillaIs=theBest"));
+    assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), Some("mozillaIs=theBest"));
 }
 
 #[test]
 fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_resource_manager() {
     let handler = move |request: HyperRequest, response: HyperResponse| {
         assert_eq!(request.headers.get::<CookieHeader>(),
-                   Some(&CookieHeader(vec![CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned())])));
+                   Some(&CookieHeader(vec!["mozillaIs=theBest".to_owned()])));
         response.send(b"Yay!").unwrap();
     };
     let (mut server, url) = make_server(handler);
@@ -555,7 +560,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
         cookie_jar.push(cookie, &url, CookieSource::HTTP);
     }
 
-    let request = Request::from_init(RequestInit {
+    let mut request = Request::from_init(RequestInit {
         url: url.clone(),
         method: Method::Get,
         body: None,
@@ -565,7 +570,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
     });
-    let response = fetch_with_context(request, &context);
+    let response = fetch_with_context(&mut request, &context);
 
     let _ = server.close();
 
@@ -576,7 +581,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
 fn test_load_sends_cookie_if_nonhttp() {
     let handler = move |request: HyperRequest, response: HyperResponse| {
         assert_eq!(request.headers.get::<CookieHeader>(),
-                   Some(&CookieHeader(vec![CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned())])));
+                   Some(&CookieHeader(vec!["mozillaIs=theBest".to_owned()])));
         response.send(b"Yay!").unwrap();
     };
     let (mut server, url) = make_server(handler);
@@ -593,7 +598,7 @@ fn test_load_sends_cookie_if_nonhttp() {
         cookie_jar.push(cookie, &url, CookieSource::HTTP);
     }
 
-    let request = Request::from_init(RequestInit {
+    let mut request = Request::from_init(RequestInit {
         url: url.clone(),
         method: Method::Get,
         body: None,
@@ -603,7 +608,7 @@ fn test_load_sends_cookie_if_nonhttp() {
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
     });
-    let response = fetch_with_context(request, &context);
+    let response = fetch_with_context(&mut request, &context);
 
     let _ = server.close();
 
@@ -613,18 +618,17 @@ fn test_load_sends_cookie_if_nonhttp() {
 #[test]
 fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl() {
     let handler = move |_: HyperRequest, mut response: HyperResponse| {
-        let mut pair = CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned());
-        pair.httponly = true;
-        response.headers_mut().set(SetCookie(vec![pair]));
+        let pair = vec!["mozillaIs=theBest; HttpOnly".to_owned()];
+        response.headers_mut().set(SetCookie(pair));
         response.send(b"Yay!").unwrap();
     };
     let (mut server, url) = make_server(handler);
 
     let context = new_fetch_context(None);
 
-    assert_cookie_for_domain(context.state.cookie_jar.clone(), url.as_str(), None);
+    assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), None);
 
-    let request = Request::from_init(RequestInit {
+    let mut request = Request::from_init(RequestInit {
         url: url.clone(),
         method: Method::Get,
         body: None,
@@ -634,13 +638,13 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
     });
-    let response = fetch_with_context(request, &context);
+    let response = fetch_with_context(&mut request, &context);
 
     let _ = server.close();
 
     assert!(response.status.unwrap().is_success());
 
-    assert_cookie_for_domain(context.state.cookie_jar.clone(), url.as_str(), Some("mozillaIs=theBest"));
+    assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), Some("mozillaIs=theBest"));
     let mut cookie_jar = context.state.cookie_jar.write().unwrap();
     assert!(cookie_jar.cookies_for_url(&url, CookieSource::NonHTTP).is_none());
 }
@@ -648,18 +652,17 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
 #[test]
 fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
     let handler = move |_: HyperRequest, mut response: HyperResponse| {
-        let mut pair = CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned());
-        pair.secure = true;
-        response.headers_mut().set(SetCookie(vec![pair]));
+        let pair = vec!["mozillaIs=theBest; Secure".to_owned()];
+        response.headers_mut().set(SetCookie(pair));
         response.send(b"Yay!").unwrap();
     };
     let (mut server, url) = make_server(handler);
 
     let context = new_fetch_context(None);
 
-    assert_cookie_for_domain(context.state.cookie_jar.clone(), url.as_str(), None);
+    assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), None);
 
-    let request = Request::from_init(RequestInit {
+    let mut request = Request::from_init(RequestInit {
         url: url.clone(),
         method: Method::Get,
         body: None,
@@ -669,13 +672,13 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
     });
-    let response = fetch_with_context(request, &context);
+    let response = fetch_with_context(&mut request, &context);
 
     let _ = server.close();
 
     assert!(response.status.unwrap().is_success());
 
-    assert_cookie_for_domain(context.state.cookie_jar.clone(), url.as_str(), None);
+    assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), None);
 }
 
 #[test]
@@ -688,7 +691,7 @@ fn test_load_sets_content_length_to_length_of_request_body() {
     };
     let (mut server, url) = make_server(handler);
 
-    let request = Request::from_init(RequestInit {
+    let mut request = Request::from_init(RequestInit {
         url: url.clone(),
         method: Method::Post,
         body: Some(content.to_vec()),
@@ -697,7 +700,7 @@ fn test_load_sets_content_length_to_length_of_request_body() {
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
-    let response = fetch(request, None);
+    let response = fetch(&mut request, None);
 
     let _ = server.close();
 
@@ -716,7 +719,7 @@ fn test_load_uses_explicit_accept_from_headers_in_load_data() {
 
     let mut accept_headers = Headers::new();
     accept_headers.set(accept);
-    let request = Request::from_init(RequestInit {
+    let mut request = Request::from_init(RequestInit {
         url: url.clone(),
         method: Method::Get,
         headers: accept_headers,
@@ -725,7 +728,7 @@ fn test_load_uses_explicit_accept_from_headers_in_load_data() {
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
-    let response = fetch(request, None);
+    let response = fetch(&mut request, None);
 
     let _ = server.close();
 
@@ -739,12 +742,13 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
             qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
             qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
             QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), Quality(900)),
+            QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800)),
         ])));
         response.send(b"Yay!").unwrap();
     };
     let (mut server, url) = make_server(handler);
 
-    let request = Request::from_init(RequestInit {
+    let mut request = Request::from_init(RequestInit {
         url: url.clone(),
         method: Method::Get,
         destination: Destination::Document,
@@ -752,7 +756,7 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
-    let response = fetch(request, None);
+    let response = fetch(&mut request, None);
 
     let _ = server.close();
 
@@ -771,7 +775,7 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
 
     let mut accept_encoding_headers = Headers::new();
     accept_encoding_headers.set(accept_encoding);
-    let request = Request::from_init(RequestInit {
+    let mut request = Request::from_init(RequestInit {
         url: url.clone(),
         method: Method::Get,
         headers: accept_encoding_headers,
@@ -780,7 +784,7 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
-    let response = fetch(request, None);
+    let response = fetch(&mut request, None);
 
     let _ = server.close();
 
@@ -799,7 +803,7 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
     };
     let (mut server, url) = make_server(handler);
 
-    let request = Request::from_init(RequestInit {
+    let mut request = Request::from_init(RequestInit {
         url: url.clone(),
         method: Method::Get,
         destination: Destination::Document,
@@ -807,7 +811,7 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
-    let response = fetch(request, None);
+    let response = fetch(&mut request, None);
 
     let _ = server.close();
 
@@ -835,7 +839,7 @@ fn test_load_errors_when_there_a_redirect_loop() {
 
     *url_b_for_a.lock().unwrap() = Some(url_b.clone());
 
-    let request = Request::from_init(RequestInit {
+    let mut request = Request::from_init(RequestInit {
         url: url_a.clone(),
         method: Method::Get,
         destination: Destination::Document,
@@ -843,7 +847,7 @@ fn test_load_errors_when_there_a_redirect_loop() {
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
-    let response = fetch(request, None);
+    let response = fetch(&mut request, None);
 
     let _ = server_a.close();
     let _ = server_b.close();
@@ -878,7 +882,7 @@ fn test_load_succeeds_with_a_redirect_loop() {
 
     *url_b_for_a.lock().unwrap() = Some(url_b.clone());
 
-    let request = Request::from_init(RequestInit {
+    let mut request = Request::from_init(RequestInit {
         url: url_a.clone(),
         method: Method::Get,
         destination: Destination::Document,
@@ -886,14 +890,13 @@ fn test_load_succeeds_with_a_redirect_loop() {
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
-    let response = fetch(request, None);
+    let response = fetch(&mut request, None);
 
     let _ = server_a.close();
     let _ = server_b.close();
 
     let response = response.to_actual();
-    assert_eq!(*response.url_list.borrow(),
-               [url_a.clone(), url_b, url_a]);
+    assert_eq!(response.url_list, [url_a.clone(), url_b, url_a]);
     assert_eq!(*response.body.lock().unwrap(),
                ResponseBody::Done(b"Success".to_vec()));
 }
@@ -915,7 +918,7 @@ fn test_load_follows_a_redirect() {
     };
     let (mut pre_server, pre_url) = make_server(pre_handler);
 
-    let request = Request::from_init(RequestInit {
+    let mut request = Request::from_init(RequestInit {
         url: pre_url.clone(),
         method: Method::Get,
         destination: Destination::Document,
@@ -923,7 +926,7 @@ fn test_load_follows_a_redirect() {
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
-    let response = fetch(request, None);
+    let response = fetch(&mut request, None);
 
     let _ = pre_server.close();
     let _ = post_server.close();
@@ -945,14 +948,14 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
         };
         if path == "/com/" {
             assert_eq!(request.headers.get(),
-                       Some(&CookieHeader(vec![CookiePair::new("mozillaIsNot".to_owned(), "dotOrg".to_owned())])));
+                       Some(&CookieHeader(vec!["mozillaIsNot=dotOrg".to_owned()])));
             let location = shared_url_y.lock().unwrap().as_ref().unwrap().to_string();
             response.headers_mut().set(Location(location));
             *response.status_mut() = StatusCode::MovedPermanently;
             response.send(b"").unwrap();
         } else if path == "/org/" {
             assert_eq!(request.headers.get(),
-                       Some(&CookieHeader(vec![CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned())])));
+                       Some(&CookieHeader(vec!["mozillaIs=theBest".to_owned()])));
             response.send(b"Yay!").unwrap();
         } else {
             panic!("unexpected path {:?}", path)
@@ -992,7 +995,7 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
         cookie_jar.push(cookie_y, &url_y, CookieSource::HTTP);
     }
 
-    let request = Request::from_init(RequestInit {
+    let mut request = Request::from_init(RequestInit {
         url: url_x.clone(),
         method: Method::Get,
         destination: Destination::Document,
@@ -1001,7 +1004,7 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
     });
-    let response = fetch_with_context(request, &context);
+    let response = fetch_with_context(&mut request, &context);
 
     let _ = server.close();
 
@@ -1026,7 +1029,7 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
             response.send(b"").unwrap();
         } else if path == "/subsequent/" {
             assert_eq!(request.headers.get(),
-                       Some(&CookieHeader(vec![CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned())])));
+                       Some(&CookieHeader(vec!["mozillaIs=theBest".to_owned()])));
             response.send(b"Yay!").unwrap();
         } else {
             panic!("unexpected path {:?}", path)
@@ -1036,7 +1039,7 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
 
     let url = url.join("/initial/").unwrap();
 
-    let request = Request::from_init(RequestInit {
+    let mut request = Request::from_init(RequestInit {
         url: url.clone(),
         method: Method::Get,
         destination: Destination::Document,
@@ -1045,7 +1048,7 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
     });
-    let response = fetch(request, None);
+    let response = fetch(&mut request, None);
 
     let _ = server.close();
 
@@ -1067,7 +1070,7 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
     };
     let (mut server, url) = make_server(handler);
 
-    let request = Request::from_init(RequestInit {
+    let mut request = Request::from_init(RequestInit {
         url: url.clone(),
         method: Method::Get,
         body: None,
@@ -1086,7 +1089,7 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
 
     context.state.auth_cache.write().unwrap().entries.insert(url.origin().clone().ascii_serialization(), auth_entry);
 
-    let response = fetch_with_context(request, &context);
+    let response = fetch_with_context(&mut request, &context);
 
     let _ = server.close();
 
@@ -1101,7 +1104,7 @@ fn test_auth_ui_needs_www_auth() {
     };
     let (mut server, url) = make_server(handler);
 
-    let request = Request::from_init(RequestInit {
+    let mut request = Request::from_init(RequestInit {
         url: url.clone(),
         method: Method::Get,
         body: None,
@@ -1112,7 +1115,7 @@ fn test_auth_ui_needs_www_auth() {
         .. RequestInit::default()
     });
 
-    let response = fetch(request, None);
+    let response = fetch(&mut request, None);
 
     let _ = server.close();
 
@@ -1120,76 +1123,59 @@ fn test_auth_ui_needs_www_auth() {
 }
 
 #[test]
-fn test_content_blocked() {
-    let handler = move |_: HyperRequest, response: HyperResponse| {
-        response.send(b"Yay!").unwrap();
+fn test_origin_set() {
+    let origin_header = Arc::new(Mutex::new(None));
+    let origin_header_clone = origin_header.clone();
+    let handler = move |request: HyperRequest, mut resp: HyperResponse| {
+        let origin_header_clone = origin_header.clone();
+        resp.headers_mut().set(AccessControlAllowOrigin::Any);
+        match request.headers.get::<Origin>() {
+            None => assert_eq!(origin_header_clone.lock().unwrap().take(), None),
+            Some(h) => assert_eq!(*h, origin_header_clone.lock().unwrap().take().unwrap()),
+        }
     };
     let (mut server, url) = make_server(handler);
 
-    let url_filter = url.as_str().replace("http://", "https?://");
-    let blocked_content_list = format!("[{{ \
-        \"trigger\": {{ \"url-filter\": \"{}\" }}, \
-        \"action\": {{ \"type\": \"block\" }} \
-    }}]", url_filter);
+    let mut origin = Origin::new(url.scheme(), url.host_str().unwrap(), url.port());
+    *origin_header_clone.lock().unwrap() = Some(origin.clone());
+    let mut request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Post,
+        body: None,
+        origin: url.clone(),
+        .. RequestInit::default()
+    });
+    let response = fetch(&mut request, None);
+    assert!(response.status.unwrap().is_success());
 
-    let mut context = new_fetch_context(None);
-    context.state.blocked_content = Arc::new(Some(parse_list(&blocked_content_list).unwrap()));
-
-    let request = Request::from_init(RequestInit {
+    let origin_url = ServoUrl::parse("http://example.com").unwrap();
+    origin = Origin::new(origin_url.scheme(), origin_url.host_str().unwrap(), origin_url.port());
+    // Test Origin header is set on Get request with CORS mode
+    let mut request = Request::from_init(RequestInit {
         url: url.clone(),
         method: Method::Get,
+        mode: RequestMode::CorsMode,
         body: None,
-        destination: Destination::Document,
+        origin: origin_url.clone(),
+        .. RequestInit::default()
+    });
+
+    *origin_header_clone.lock().unwrap() = Some(origin.clone());
+    let response = fetch(&mut request, None);
+    assert!(response.status.unwrap().is_success());
+
+    // Test Origin header is not set on method Head
+    let mut request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Head,
+        body: None,
         origin: url.clone(),
         .. RequestInit::default()
     });
 
-    let response = fetch_with_context(request, &context);
+    *origin_header_clone.lock().unwrap() = None;
+    let response = fetch(&mut request, None);
+    assert!(response.status.unwrap().is_success());
 
     let _ = server.close();
-
-    // TODO(#14307): this should fail.
-    assert!(response.status.unwrap().is_success());
-}
-
-#[test]
-fn test_cookies_blocked() {
-    let handler = move |request: HyperRequest, response: HyperResponse| {
-        assert_eq!(request.headers.get::<CookieHeader>(), None);
-        response.send(b"hi").unwrap();
-    };
-    let (mut server, url) = make_server(handler);
-
-    let url_filter = url.as_str().replace("http://", "https?://");
-    let blocked_content_list = format!("[{{ \
-        \"trigger\": {{ \"url-filter\": \"{}\" }}, \
-        \"action\": {{ \"type\": \"block-cookies\" }} \
-    }}]", url_filter);
-
-    let mut context = new_fetch_context(None);
-    context.state.blocked_content = Arc::new(Some(parse_list(&blocked_content_list).unwrap()));
-    {
-        let mut cookie_jar = context.state.cookie_jar.write().unwrap();
-        let cookie = Cookie::new_wrapped(
-            CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned()),
-            &url,
-            CookieSource::HTTP
-        ).unwrap();
-        cookie_jar.push(cookie, &url, CookieSource::HTTP);
-    }
-
-    let request = Request::from_init(RequestInit {
-        url: url.clone(),
-        method: Method::Get,
-        body: None,
-        destination: Destination::Document,
-        origin: url.clone(),
-        .. RequestInit::default()
-    });
-
-    let response = fetch_with_context(request, &context);
-
-    let _ = server.close();
-
-    assert!(response.status.unwrap().is_success());
 }

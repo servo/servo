@@ -130,14 +130,11 @@
                              '#ref{border-style:solid;position:relative;{prop}:{ref};}';
 
         tests.forEach(function(t) {
-            var test_q = async_test(t.input + ' (quirks)');
-            var test_a = async_test(t.input + ' (almost standards)');
-            var test_s = async_test(t.input + ' (standards)');
             for (var i in props) {
                 if (t.shorthand && !(props[i].check_also)) {
                     continue;
                 }
-                test_q.step(function() {
+                test(function() {
                     q.style.textContent = style_template.replace('{test}', t.input)
                                 .replace('{ref}', t.q).replace(/\{prop\}/g, props[i].prop)
                                 .replace(/clip:[^;]+/g, function(match) {
@@ -153,8 +150,8 @@
                                           props[i].prop + ', checking ' + props[i].check_also[j]);
                         }
                     }
-                });
-                test_a.step(function() {
+                }, props[i].prop + ": " + t.input + ' (quirks)');
+                test(function() {
                     a.style.textContent = style_template.replace('{test}', t.input)
                                 .replace('{ref}', t.s).replace(/\{prop\}/g, props[i].prop)
                                 .replace(/clip:[^;]+/g, function(match) {
@@ -170,8 +167,8 @@
                                           props[i].prop + ', checking ' + props[i].check_also[j]);
                         }
                     }
-                });
-                test_s.step(function() {
+                }, props[i].prop + ": " + t.input + ' (almost standards)');
+                test(function() {
                     s.style.textContent = style_template.replace('{test}', t.input)
                                 .replace('{ref}', t.s).replace(/\{prop\}/g, props[i].prop)
                                 .replace(/clip:[^;]+/g, function(match) {
@@ -187,12 +184,8 @@
                                           props[i].prop + ', checking ' + props[i].check_also[j]);
                         }
                     }
-                });
+                }, props[i].prop + ": " + t.input + ' (standards)');
             }
-            test_q.done();
-            test_a.done();
-            test_s.done();
-
         });
 
         var other_tests = [

@@ -2,34 +2,34 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
- <%namespace name="helpers" file="/helpers.mako.rs" />
+<%namespace name="helpers" file="/helpers.mako.rs" />
 
 <% data.new_style_struct("InheritedTable", inherited=True, gecko_name="TableBorder") %>
 
 ${helpers.single_keyword("border-collapse", "separate collapse",
                          gecko_constant_prefix="NS_STYLE_BORDER",
-                         animatable=False,
+                         animation_value_type="none",
                          spec="https://drafts.csswg.org/css-tables/#propdef-border-collapse")}
 ${helpers.single_keyword("empty-cells", "show hide",
                          gecko_constant_prefix="NS_STYLE_TABLE_EMPTY_CELLS",
-                         animatable=False,
+                         animation_value_type="none",
                          spec="https://drafts.csswg.org/css-tables/#propdef-empty-cells")}
 ${helpers.single_keyword("caption-side", "top bottom",
                          extra_gecko_values="right left top-outside bottom-outside",
                          needs_conversion="True",
-                         animatable=False,
+                         animation_value_type="none",
                          spec="https://drafts.csswg.org/css-tables/#propdef-caption-side")}
 
-<%helpers:longhand name="border-spacing" animatable="False" boxed="True"
+<%helpers:longhand name="border-spacing" animation_value_type="ComputedValue" boxed="True"
                    spec="https://drafts.csswg.org/css-tables/#propdef-border-spacing">
     use app_units::Au;
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
+    use values::specified::{AllowQuirks, Length};
 
     pub mod computed_value {
         use app_units::Au;
-        use properties::animated_properties::Interpolate;
+        use properties::animated_properties::Animatable;
 
         #[derive(Clone, Copy, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -39,28 +39,36 @@ ${helpers.single_keyword("caption-side", "top bottom",
         }
 
         /// https://drafts.csswg.org/css-transitions/#animtype-simple-list
-        impl Interpolate for T {
+        impl Animatable for T {
             #[inline]
-            fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+            fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
+                -> Result<Self, ()> {
                 Ok(T {
-                    horizontal: try!(self.horizontal.interpolate(&other.horizontal, time)),
-                    vertical: try!(self.vertical.interpolate(&other.vertical, time)),
+                    horizontal: try!(self.horizontal.add_weighted(&other.horizontal,
+                                                                  self_portion, other_portion)),
+                    vertical: try!(self.vertical.add_weighted(&other.vertical,
+                                                              self_portion, other_portion)),
                 })
+            }
+
+            #[inline]
+            fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+                self.compute_squared_distance(other).map(|sd| sd.sqrt())
+            }
+
+            #[inline]
+            fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+                Ok(try!(self.horizontal.compute_squared_distance(&other.horizontal)) +
+                   try!(self.vertical.compute_squared_distance(&other.vertical)))
             }
         }
     }
 
-    impl HasViewportPercentage for SpecifiedValue {
-        fn has_viewport_percentage(&self) -> bool {
-            return self.horizontal.has_viewport_percentage() || self.vertical.has_viewport_percentage()
-        }
-    }
-
-    #[derive(Clone, Debug, PartialEq)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue {
-        pub horizontal: specified::Length,
-        pub vertical: specified::Length,
+        pub horizontal: Length,
+        pub vertical: Option<Length>,
     }
 
     #[inline]
@@ -72,10 +80,15 @@ ${helpers.single_keyword("caption-side", "top bottom",
     }
 
     impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+            where W: fmt::Write,
+        {
             try!(self.horizontal.to_css(dest));
-            try!(dest.write_str(" "));
-            self.vertical.to_css(dest)
+            if let Some(vertical) = self.vertical.as_ref() {
+                try!(dest.write_str(" "));
+                vertical.to_css(dest)?;
+            }
+            Ok(())
         }
     }
 
@@ -92,9 +105,10 @@ ${helpers.single_keyword("caption-side", "top bottom",
 
         #[inline]
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
+            let horizontal = self.horizontal.to_computed_value(context);
             computed_value::T {
-                horizontal: self.horizontal.to_computed_value(context),
-                vertical: self.vertical.to_computed_value(context),
+                horizontal: horizontal,
+                vertical: self.vertical.as_ref().map_or(horizontal, |v| v.to_computed_value(context)),
             }
         }
 
@@ -102,19 +116,19 @@ ${helpers.single_keyword("caption-side", "top bottom",
         fn from_computed_value(computed: &computed_value::T) -> Self {
             SpecifiedValue {
                 horizontal: ToComputedValue::from_computed_value(&computed.horizontal),
-                vertical: ToComputedValue::from_computed_value(&computed.vertical),
+                vertical: Some(ToComputedValue::from_computed_value(&computed.vertical)),
             }
         }
     }
 
-    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
         let mut first = None;
         let mut second = None;
-        match specified::Length::parse_non_negative(input) {
+        match Length::parse_non_negative_quirky(context, input, AllowQuirks::Yes) {
             Err(()) => (),
             Ok(length) => {
                 first = Some(length);
-                if let Ok(len) = input.try(|input| specified::Length::parse_non_negative(input)) {
+                if let Ok(len) = input.try(|i| Length::parse_non_negative_quirky(context, i, AllowQuirks::Yes)) {
                     second = Some(len);
                 }
             }
@@ -123,17 +137,17 @@ ${helpers.single_keyword("caption-side", "top bottom",
             (None, None) => Err(()),
             (Some(length), None) => {
                 Ok(SpecifiedValue {
-                    horizontal: length.clone(),
-                    vertical: length,
+                    horizontal: length,
+                    vertical: None,
                 })
             }
             (Some(horizontal), Some(vertical)) => {
                 Ok(SpecifiedValue {
                     horizontal: horizontal,
-                    vertical: vertical,
+                    vertical: Some(vertical),
                 })
             }
-            (None, Some(_)) => panic!("shouldn't happen"),
+            (None, Some(_)) => unreachable!(),
         }
     }
 </%helpers:longhand>

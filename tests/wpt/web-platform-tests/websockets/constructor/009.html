@@ -13,11 +13,11 @@ async_test(function(t) {
   ws.onmessage = t.step_func(function(e) {
     assert_equals(ws.protocol, 'foobar');
     ws.onclose = t.step_func(function(e) {
-      ws.onclose = t.step_func(function() {assert_unreached()});
-      setTimeout(t.step_func(function() {t.done()}), 50);
+      ws.onclose = t.unreached_func();
+      t.step_timeout(() => t.done(), 50);
     })
     ws.close();
   })
-  ws.onerror = t.step_func(function() {assert_unreached()});
+  ws.onerror = t.unreached_func();
 });
 </script>

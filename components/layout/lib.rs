@@ -22,7 +22,7 @@ extern crate fnv;
 extern crate gfx;
 extern crate gfx_traits;
 extern crate heapsize;
-#[macro_use] extern crate html5ever_atoms;
+#[macro_use] extern crate html5ever;
 extern crate ipc_channel;
 extern crate libc;
 #[macro_use]
@@ -73,7 +73,7 @@ mod linked_list;
 mod list_item;
 mod model;
 mod multicol;
-mod opaque_node;
+pub mod opaque_node;
 pub mod parallel;
 mod persistent_list;
 pub mod query;
@@ -93,3 +93,16 @@ pub mod wrapper;
 // For unit tests:
 pub use fragment::Fragment;
 pub use fragment::SpecificFragmentInfo;
+pub use self::data::PersistentLayoutData;
+
+/// Returns whether the two arguments point to the same value.
+///
+/// FIXME: Remove this and use Arc::ptr_eq once we require Rust 1.17
+#[inline]
+pub fn arc_ptr_eq<T: 'static>(a: &::std::sync::Arc<T>, b: &::std::sync::Arc<T>) -> bool {
+    ::style::ptr_eq::<T>(&**a, &**b)
+}
+
+// We can't use stylearc for everything in layout, because the Flow stuff uses
+// weak references.
+use style::stylearc::Arc as StyleArc;

@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+
+  <style type="text/css"><![CDATA[
+  div
+  {
+  background-color: black;
+  height: 20px;
+  margin-bottom: 10px;
+  width: 80px;
+  }
+
+  div#first {margin-top: 21px;}
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>PREREQUISITE: Operating system needs to have the '<a href="support/AHEM_whitespace.ttf" type="application/x-font-ttf">White Space</a>' font installed.</p>
+
+  <p>Post Test: Remove test font after running the test.</p>
+
+  <p>Test passes if there are 6 short black stripes.</p>
+
+  <div id="first"></div>
+
+  <div></div>
+
+  <div></div>
+
+  <div></div>
+
+  <div></div>
+
+  <div></div>
+
+ </body>
+</html>

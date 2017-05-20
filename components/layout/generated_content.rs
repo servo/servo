@@ -16,7 +16,6 @@ use gfx::display_list::OpaqueNode;
 use script_layout_interface::wrapper_traits::PseudoElementType;
 use smallvec::SmallVec;
 use std::collections::{HashMap, LinkedList};
-use std::sync::Arc;
 use style::computed_values::{display, list_style_type};
 use style::computed_values::content::ContentItem;
 use style::properties::ServoComputedValues;
@@ -97,7 +96,7 @@ static KATAKANA_IROHA: [char; 47] = [
 /// The generated content resolution traversal.
 pub struct ResolveGeneratedContent<'a> {
     /// The layout context.
-    layout_context: &'a LayoutContext,
+    layout_context: &'a LayoutContext<'a>,
     /// The counter representing an ordered list item.
     list_item: Counter,
     /// Named CSS counters.
@@ -273,6 +272,7 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
         self.traversal.list_item.truncate_to_level(self.level);
 
         for &(ref counter_name, value) in &fragment.style().get_counters().counter_reset.0 {
+            let counter_name = &*counter_name.0;
             if let Some(ref mut counter) = self.traversal.counters.get_mut(counter_name) {
                  counter.reset(self.level, value);
                  continue
@@ -280,10 +280,11 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
 
             let mut counter = Counter::new();
             counter.reset(self.level, value);
-            self.traversal.counters.insert((*counter_name).clone(), counter);
+            self.traversal.counters.insert(counter_name.to_owned(), counter);
         }
 
         for &(ref counter_name, value) in &fragment.style().get_counters().counter_increment.0 {
+            let counter_name = &*counter_name.0;
             if let Some(ref mut counter) = self.traversal.counters.get_mut(counter_name) {
                 counter.increment(self.level, value);
                 continue
@@ -291,7 +292,7 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
 
             let mut counter = Counter::new();
             counter.increment(self.level, value);
-            self.traversal.counters.insert((*counter_name).clone(), counter);
+            self.traversal.counters.insert(counter_name.to_owned(), counter);
         }
 
         self.incremented = true
@@ -367,7 +368,7 @@ impl Counter {
               layout_context: &LayoutContext,
               node: OpaqueNode,
               pseudo: PseudoElementType<()>,
-              style: Arc<ServoComputedValues>,
+              style: ::StyleArc<ServoComputedValues>,
               list_style_type: list_style_type::T,
               mode: RenderingMode)
               -> Option<SpecificFragmentInfo> {
@@ -430,7 +431,7 @@ struct CounterValue {
 fn render_text(layout_context: &LayoutContext,
                node: OpaqueNode,
                pseudo: PseudoElementType<()>,
-               style: Arc<ServoComputedValues>,
+               style: ::StyleArc<ServoComputedValues>,
                string: String)
                -> Option<SpecificFragmentInfo> {
     let mut fragments = LinkedList::new();

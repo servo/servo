@@ -1,0 +1,21 @@
+<csstest def="NEGATED type element selector" module="W3C Selectors" modulename="css3-modsel" number="47" rev="1.1" date="12-november-2001" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns:html="http://www.w3.org/1999/xhtml" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<author>Ian Hickson</author>
+
+<cssrules>div.stub span, div.stub address, div.stub *|q, div.stub *|r { background-color: red; }
+address, *|q, *|r { display: block; margin: 1em; }
+div.stub *:not(p) { background-color: lime; }</cssrules>
+
+<code>
+ <div class="stub" xmlns="http://www.w3.org/1999/xhtml">
+  <p>
+   <span>The text in this paragraph should have a green background</span>
+  </p>
+  <address>This address should have a green background</address>
+  <q xmlns="http://www.example.org/a">This element in another namespace should have a green background.</q>
+  <r xmlns="">This element without a namespace should have a green background.</r>
+  <p>This paragraph should be unstyled.</p>
+ </div>
+</code>
+</csstest>

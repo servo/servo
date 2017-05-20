@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Writing Modes Test: 'writing-mode: horizontal-tb' set to body element propagates to viewport</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#principal-flow" title="8. The Principal Writing Mode" />
+  <link rel="match" href="wm-propagation-body-003-ref.xht" />
+
+  <meta name="flags" content="image" />
+  <meta name="assert" content="This test checks that when the root element has a &lt;body&gt; child element, then the principal writing mode is instead taken from the values of writing-mode and direction on the first such child element instead of taken from the root element." />
+
+  <style type="text/css"><![CDATA[
+  html
+    {
+      writing-mode: vertical-rl;
+    }
+
+  body
+    {
+      writing-mode: horizontal-tb;
+    }
+
+  img#orange-square
+    {
+      height: 100px;
+      padding-right: 1em;
+      vertical-align: top;
+      width: 100px;
+    }
+  ]]></style>
+ </head>
+
+ <body>
+
+  <div><img id="orange-square" src="support/swatch-orange.png" alt="Image download support must be enabled" /><img src="support/wm-propagation-body-003-exp-res.png" width="340" height="37" alt="Image download support must be enabled" /></div>
+
+  <!--
+  The image says:
+  Test passes if there is an orange square
+  in the <strong>upper-left corner</strong> of the page.
+  -->
+
+ </body>
+</html>

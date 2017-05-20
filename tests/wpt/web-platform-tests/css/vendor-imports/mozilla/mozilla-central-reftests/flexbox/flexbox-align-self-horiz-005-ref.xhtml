@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Reference case for align-items / align-self behavior with auto
+     margins in play. This reference case uses fixed margin-top values
+     in place of the testcase's auto margins. -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <style>
+      .flexbox {
+        border: 1px dashed blue;
+        height: 140px;
+        width: 400px;
+        display: flex;
+        font-size: 10px;
+        line-height: 10px;
+        margin-bottom: 10px;
+      }
+
+      .kidsAutoTop > div      { margin-top: 130px;   }
+      .kidsAutoTop > div.big  { margin-top: 60px;   }
+      .kidsAutoBoth > div     { margin-top: 65px; }
+      .kidsAutoBoth > div.big { margin-top: 30px; }
+
+      .flexbox > div {
+        width: 40px;
+        height: 10px;
+      }
+
+      .flexbox > div.big {
+        height: 80px;
+        font-size: 20px;
+        line-height: 20px;
+      }
+
+      /* Classes for each of the various align-self values */
+      .flex-start {
+        background: lime;
+      }
+      .flex-end {
+        background: orange;
+      }
+      .center {
+        background: lightblue;
+      }
+      .baseline {
+        background: teal;
+      }
+      .stretch {
+        background: pink;
+      }
+   </style>
+  </head>
+  <body>
+    <div class="flexbox kidsAutoTop">
+      <div class="flex-start">start</div>
+      <div class="flex-start big">a b c d e f</div>
+      <div class="flex-end">end</div>
+      <div class="flex-end big">a b c d e f</div>
+      <div class="center">center</div>
+      <div class="center big">a b c d e f</div>
+      <div class="baseline">base</div>
+      <div class="baseline big">a b c d e f</div>
+      <div class="stretch">stretch</div>
+      <div class="stretch big">a b c d e f</div>
+    </div>
+
+    <div class="flexbox kidsAutoBottom">
+      <div class="flex-start">start</div>
+      <div class="flex-start big">a b c d e f</div>
+      <div class="flex-end">end</div>
+      <div class="flex-end big">a b c d e f</div>
+      <div class="center">center</div>
+      <div class="center big">a b c d e f</div>
+      <div class="baseline">base</div>
+      <div class="baseline big">a b c d e f</div>
+      <div class="stretch">stretch</div>
+      <div class="stretch big">a b c d e f</div>
+    </div>
+
+    <div class="flexbox kidsAutoBoth">
+      <div class="flex-start">start</div>
+      <div class="flex-start big">a b c d e f</div>
+      <div class="flex-end">end</div>
+      <div class="flex-end big">a b c d e f</div>
+      <div class="center">center</div>
+      <div class="center big">a b c d e f</div>
+      <div class="baseline">base</div>
+      <div class="baseline big">a b c d e f</div>
+      <div class="stretch">stretch</div>
+      <div class="stretch big">a b c d e f</div>
+    </div>
+  </body>
+</html>

@@ -21,7 +21,7 @@ Please select your operating system:
 * [Arch Linux](#on-arch-linux)
 * [openSUSE](#on-opensuse-linux)
 * [Gentoo Linux](#on-gentoo-linux)
-* [Microsoft Windows](#on-windows-msvc--mingw)
+* [Microsoft Windows](#on-windows-msvc)
 * [Android](#cross-compilation-for-android)
 
 #### OS X
@@ -59,6 +59,8 @@ sudo apt install git curl freeglut3-dev autoconf \
     libglu1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev
 ```
 
+If you using a version prior to **Ubuntu 17.04** or **Debian Sid**, replace `libssl1.0-dev` with `libssl-dev`.
+
 If you are on **Ubuntu 14.04** and encountered errors on installing these dependencies involving `libcheese`, see [#6158](https://github.com/servo/servo/issues/6158) for a workaround.
 
 If `virtualenv` does not exist, try `python-virtualenv`.
@@ -70,7 +72,7 @@ sudo dnf install curl freeglut-devel libtool gcc-c++ libXi-devel \
     freetype-devel mesa-libGL-devel mesa-libEGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
     fontconfig-devel cabextract ttmkfdir python python-virtualenv python-pip expat-devel \
     rpm-build openssl-devel cmake bzip2-devel libXcursor-devel libXmu-devel mesa-libOSMesa-devel \
-    dbus-devel
+    dbus-devel ncurses-devel
 ```
 #### On openSUSE Linux
 ``` sh
@@ -92,9 +94,9 @@ sudo emerge net-misc/curl media-libs/freeglut \
     dev-python/virtualenv dev-python/pip dev-libs/openssl \
     x11-libs/libXmu media-libs/glu x11-base/xorg-server
 ```
-#### On Windows (MSVC & MinGW)
+#### On Windows (MSVC)
 
-1. Install Python for Windows (https://www.python.org/downloads/release/python-2711/). The windows x86-64 MSI installer is fine.
+1. Install Python for Windows (https://www.python.org/downloads/release/python-2711/). The Windows x86-64 MSI installer is fine.
 You should change the installation to install the "Add python.exe to Path" feature.
 
 2. Install virtualenv.
@@ -105,38 +107,11 @@ pip install virtualenv
 ```
  If this does not work, you may need to reboot for the changed PATH settings (by the python installer) to take effect.
 
-3. __(MSVC only)__ Install Git for Windows (https://git-scm.com/download/win). DO allow it to add git.exe to the PATH (default
+3. Install Git for Windows (https://git-scm.com/download/win). DO allow it to add git.exe to the PATH (default
 settings for the installer are fine).
 
-4. __(MSVC only)__ Install Visual Studio 2015 Community Edition (https://www.visualstudio.com/). You MUST add "Visual C++" to the
+4. Install Visual Studio 2015 Community Edition (https://www.visualstudio.com/). You MUST add "Visual C++" to the
 list of installed components. It is not on by default.
-
-5. __(MinGW only)__ Install MSYS2 (https://msys2.github.io/). After you have done so, open an MSYS shell
-window and update the core libraries and install new packages. The extra step at the end is to
-downgrade GCC to 5.4, as the GCC6 versions in mingw currently fail to compile some of our
-dependencies. We are upgrading to a gcc-free build on Windows as soon as possible:
-
- ```sh
-pacman -Su
-pacman -Sy git mingw-w64-x86_64-toolchain mingw-w64-x86_64-icu \
-    mingw-w64-x86_64-nspr mingw-w64-x86_64-ca-certificates \
-    mingw-w64-x86_64-expat mingw-w64-x86_64-cmake tar diffutils patch \
-    patchutils make python2-setuptools
-export GCC_URL=http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-gcc
-export GCC_EXT=5.4.0-1-any.pkg.tar.xz
-pacman -U --noconfirm $GCC_URL-$GCC_EXT $GCC_URL-ada-$GCC_EXT \
-    $GCC_URL-fortran-$GCC_EXT $GCC_URL-libgfortran-$GCC_EXT $GCC_URL-libs-$GCC_EXT \
-    $GCC_URL-objc-$GCC_EXT
-```
-
- Add the following line to the end of `.profile` in your home directory:
-
- ```
-export PATH=/c/Python27:/c/Python27/Scripts:$PATH
-```
-
- Now, open a MINGW64 (not MSYS!) shell window, and you should be able to build
-servo as usual!
 
 #### Cross-compilation for Android
 
@@ -153,11 +128,10 @@ If you'd like to know which nightly build of Rust we use, see
 
 ## Building
 
-Servo is built with Cargo, the Rust package manager. We also use Mozilla's
+Servo is built with [Cargo](https://crates.io/), the Rust package manager. We also use Mozilla's
 Mach tools to orchestrate the build and other tasks.
 
 ### Normal build
-
 
 To build Servo in development mode.  This is useful for development, but
 the resulting binary is very slow.
@@ -183,6 +157,20 @@ real-world use, add the `--release` flag to create an optimized build:
 ./mach build --release
 ./mach run --release tests/html/about-mozilla.html
 ```
+
+### Checking for build errors, without building
+
+If you’re making changes to one crate that cause build errors in another crate,
+consider this instead of a full build:
+
+```sh
+./mach check
+```
+
+It will run `cargo check`, which runs the analysis phase of the compiler
+(and so shows build errors if any) but skips the code generation phase.
+This can be a lot faster than a full build,
+though of course it doesn’t produce a binary you can run.
 
 ### Building for Android target
 
@@ -210,7 +198,13 @@ cp servobuild.example .servobuild
 
 ## Running
 
-Use `./mach run [url]` to run Servo. Also, don't miss the info on the [browserhtml page](https://github.com/browserhtml/browserhtml) on how to run the Browser.html
+Use `./mach run [url]` to run Servo. Like so,
+
+``` shell
+./mach run https://www.google.com
+```
+
+Also, don't miss the info on the [browserhtml page](https://github.com/browserhtml/browserhtml) on how to run the Browser.html
 full tech demo (it provides a more browser-like experience than just browsing a single
 URL with servo).
 

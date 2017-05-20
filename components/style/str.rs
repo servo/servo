@@ -8,7 +8,6 @@
 
 use num_traits::ToPrimitive;
 use std::ascii::AsciiExt;
-use std::borrow::Cow;
 use std::convert::AsRef;
 use std::iter::{Filter, Peekable};
 use std::str::Split;
@@ -147,11 +146,8 @@ pub fn str_join<I, T>(strs: I, join: &str) -> String
     })
 }
 
-/// Like AsciiExt::to_ascii_lowercase, but avoids allocating when the input is already lower-case.
-pub fn cow_into_ascii_lowercase<'a, S: Into<Cow<'a, str>>>(s: S) -> Cow<'a, str> {
-    let mut cow = s.into();
-    if let Some(first_uppercase) = cow.bytes().position(|byte| byte >= b'A' && byte <= b'Z') {
-        cow.to_mut()[first_uppercase..].make_ascii_lowercase();
-    }
-    cow
+/// Returns true if a given string has a given prefix with case-insensitive match.
+pub fn starts_with_ignore_ascii_case(string: &str, prefix: &str) -> bool {
+    string.len() > prefix.len() &&
+      string[0..prefix.len()].eq_ignore_ascii_case(prefix)
 }

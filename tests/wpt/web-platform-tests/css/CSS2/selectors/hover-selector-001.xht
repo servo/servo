@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Hover selector on a simple element</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#dynamic-pseudo-classes" />
+        <meta name="flags" content="interact" />
+        <meta name="assert" content="The :hover pseudo-class selects an element which is being hovered by the mouse cursor." />
+        <style type="text/css">
+            div:hover
+            {
+                color: green;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below turns green when it is hovered over.</p>
+        <div>Filler Text</div>
+    </body>
+</html>

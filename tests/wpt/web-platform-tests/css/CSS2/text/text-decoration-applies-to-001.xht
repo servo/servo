@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Text-decoration application on an 'inline' element</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#propdef-text-decoration" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#lining-striking-props" />
+        <link rel="match" href="../../reference/pass_if_filler_text_underlined.html"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'text-decoration' property applies to an 'inline' element." />
+        <style type="text/css">
+            div
+            {
+                display: inline;
+                text-decoration: underline;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below has a line under it.</p>
+        <div>Filler Text</div>
+    </body>
+</html>

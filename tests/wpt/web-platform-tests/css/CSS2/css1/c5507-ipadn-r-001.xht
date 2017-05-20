@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: padding-right</title>
+  <meta name="flags" content="ahem image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#padding-right"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c5502-imrgn-r-001-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   div { font: 15px/1 Ahem; margin: 1em; }
+   .two { width: 13em; height: 3em; background: green; }
+   .two p { color: white; background: white url(support/swatch-red.png) 3em 0 no-repeat; }
+   .two span { padding-right: 4em; color: white; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#padding-properties" title="8.4 Padding properties: 'padding-top', 'padding-right', 'padding-bottom', 'padding-left', and 'padding'"/>
+ </head>
+ <body>
+  <p>Test passes if there is a green horizontal bar and no red.</p>
+  <div class="two">
+   <p>x <span>xxxxx xxxxx</span> x</p>
+  </div>
+ </body>
+</html>

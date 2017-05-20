@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Cascade: Basic ordering test (with data:)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/cascade/import/001.html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#at-import"/>
+  <link rel="help" href="http://www.ietf.org/rfc/rfc2397.txt"/>
+  <style type="text/css">
+   @import url(data:text/css,@import%20url\(data:text/css,.test%2520%257B%2520background:%2520maroon;%2520color:%2520white;%2520%257D\);%0D%0A.test.test%20%7B%20background:%20green;%20color:%20white;%20%7D);
+   p { color: yellow; background: red; }
+  </style>
+ </head>
+ <body>
+  <p class="test">This line should be green.</p>
+
+
+</body>
+</html>

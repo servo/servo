@@ -6,38 +6,62 @@
 
 #![deny(missing_docs)]
 
-use {Atom, LocalName};
+use {Atom, LocalName, Namespace};
+use bit_vec::BitVec;
+use context::QuirksMode;
 use data::ComputedStyle;
-use dom::{AnimationRules, PresentationalHintsSynthetizer, TElement};
-use error_reporting::StdoutErrorReporter;
+use dom::{AnimationRules, TElement};
+use element_state::ElementState;
+use error_reporting::RustLogReporter;
+use font_metrics::FontMetricsProvider;
+#[cfg(feature = "gecko")]
+use gecko_bindings::structs::nsIAtom;
 use keyframes::KeyframesAnimation;
 use media_queries::Device;
-use parking_lot::RwLock;
 use pdqsort::sort_by;
-use properties::{self, CascadeFlags, ComputedValues, INHERIT_ALL};
+use properties::{self, CascadeFlags, ComputedValues};
+#[cfg(feature = "servo")]
+use properties::INHERIT_ALL;
 use properties::PropertyDeclarationBlock;
 use restyle_hints::{RestyleHint, DependencySet};
 use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
-use selector_parser::{SelectorImpl, PseudoElement, Snapshot};
-use selectors::Element;
+use selector_parser::{SelectorImpl, PseudoElement, SnapshotMap};
+use selectors::attr::NamespaceConstraint;
 use selectors::bloom::BloomFilter;
-use selectors::matching::{AFFECTED_BY_ANIMATIONS, AFFECTED_BY_TRANSITIONS};
 use selectors::matching::{AFFECTED_BY_STYLE_ATTRIBUTE, AFFECTED_BY_PRESENTATIONAL_HINTS};
-use selectors::matching::{ElementSelectorFlags, StyleRelations, matches_complex_selector};
-use selectors::parser::{Selector, SimpleSelector, LocalName as LocalNameSelector, ComplexSelector};
+use selectors::matching::{ElementSelectorFlags, matches_selector, MatchingContext, MatchingMode};
+use selectors::parser::{Combinator, Component, Selector, SelectorInner, SelectorIter};
+use selectors::parser::{SelectorMethods, LocalName as LocalNameSelector};
+use selectors::visitor::SelectorVisitor;
+use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use sink::Push;
-use smallvec::VecLike;
+use smallvec::{SmallVec, VecLike};
 use std::borrow::Borrow;
 use std::collections::HashMap;
-use std::fmt;
 use std::hash::Hash;
-use std::sync::Arc;
+#[cfg(feature = "servo")]
+use std::marker::PhantomData;
 use style_traits::viewport::ViewportConstraints;
-use stylesheets::{CssRule, Origin, StyleRule, Stylesheet, UserAgentStylesheets};
+use stylearc::Arc;
+#[cfg(feature = "gecko")]
+use stylesheets::{CounterStyleRule, FontFaceRule};
+use stylesheets::{CssRule, Origin};
+use stylesheets::{StyleRule, Stylesheet, UserAgentStylesheets};
+#[cfg(feature = "servo")]
+use stylesheets::NestedRulesResult;
 use thread_state;
 use viewport::{self, MaybeNew, ViewportRule};
 
 pub use ::fnv::FnvHashMap;
+
+/// List of applicable declaration. This is a transient structure that shuttles
+/// declarations between selector matching and inserting into the rule tree, and
+/// therefore we want to avoid heap-allocation where possible.
+///
+/// In measurements on wikipedia, we pretty much never have more than 8 applicable
+/// declarations, so we could consider making this 8 entries instead of 16.
+/// However, it may depend a lot on workload, and stack space is cheap.
+pub type ApplicableDeclarationList = SmallVec<[ApplicableDeclarationBlock; 16]>;
 
 /// This structure holds all the selectors and device characteristics
 /// for a given document. The selectors are converted into `Rule`s
@@ -70,10 +94,14 @@ pub struct Stylist {
     viewport_constraints: Option<ViewportConstraints>,
 
     /// If true, the quirks-mode stylesheet is applied.
-    quirks_mode: bool,
+    quirks_mode: QuirksMode,
 
     /// If true, the device has changed, and the stylist needs to be updated.
     is_device_dirty: bool,
+
+    /// If true, the stylist is in a cleared state (e.g. just-constructed, or
+    /// had clear() called on it with no following rebuild()).
+    is_cleared: bool,
 
     /// The current selector maps, after evaluating media
     /// rules against the current device.
@@ -103,27 +131,100 @@ pub struct Stylist {
     rules_source_order: usize,
 
     /// Selector dependencies used to compute restyle hints.
-    state_deps: DependencySet,
+    dependencies: DependencySet,
 
-    /// Selectors in the page affecting siblings
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    sibling_affecting_selectors: Vec<Selector<SelectorImpl>>,
+    /// The attribute local names that appear in attribute selectors.  Used
+    /// to avoid taking element snapshots when an irrelevant attribute changes.
+    /// (We don't bother storing the namespace, since namespaced attributes
+    /// are rare.)
+    ///
+    /// FIXME(heycam): This doesn't really need to be a counting Bloom filter.
+    #[cfg_attr(feature = "servo", ignore_heap_size_of = "just an array")]
+    attribute_dependencies: BloomFilter,
 
-    /// Selectors in the page matching elements with non-common style-affecting
-    /// attributes.
+    /// Whether `"style"` appears in an attribute selector.  This is not common,
+    /// and by tracking this explicitly, we can avoid taking an element snapshot
+    /// in the common case of style=""` changing due to modifying
+    /// `element.style`.  (We could track this in `attribute_dependencies`, like
+    /// all other attributes, but we should probably not risk incorrectly
+    /// returning `true` for `"style"` just due to a hash collision.)
+    style_attribute_dependency: bool,
+
+    /// The element state bits that are relied on by selectors.  Like
+    /// `attribute_dependencies`, this is used to avoid taking element snapshots
+    /// when an irrelevant element state bit changes.
+    state_dependencies: ElementState,
+
+    /// Selectors that require explicit cache revalidation (i.e. which depend
+    /// on state that is not otherwise visible to the cache, like attributes or
+    /// tree-structural state like child index and pseudos).
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    non_common_style_affecting_attributes_selectors: Vec<Selector<SelectorImpl>>,
+    selectors_for_cache_revalidation: SelectorMap<SelectorInner<SelectorImpl>>,
+
+    /// The total number of selectors.
+    num_selectors: usize,
+
+    /// The total number of declarations.
+    num_declarations: usize,
+
+    /// The total number of times the stylist has been rebuilt.
+    num_rebuilds: usize,
+}
+
+/// This struct holds data which user of Stylist may want to extract
+/// from stylesheets which can be done at the same time as updating.
+#[cfg(feature = "gecko")]
+pub struct ExtraStyleData<'a> {
+    /// A list of effective font-face rules and their origin.
+    pub font_faces: &'a mut Vec<(Arc<Locked<FontFaceRule>>, Origin)>,
+    /// A map of effective counter-style rules.
+    pub counter_styles: &'a mut HashMap<Atom, Arc<Locked<CounterStyleRule>>>,
+}
+
+#[cfg(feature = "gecko")]
+impl<'a> ExtraStyleData<'a> {
+    /// Clear the internal data.
+    fn clear(&mut self) {
+        self.font_faces.clear();
+        self.counter_styles.clear();
+    }
+
+    /// Add the given @font-face rule.
+    fn add_font_face(&mut self, rule: &Arc<Locked<FontFaceRule>>, origin: Origin) {
+        self.font_faces.push((rule.clone(), origin));
+    }
+
+    /// Add the given @counter-style rule.
+    fn add_counter_style(&mut self, guard: &SharedRwLockReadGuard,
+                         rule: &Arc<Locked<CounterStyleRule>>) {
+        let name = rule.read_with(guard).mName.raw::<nsIAtom>().into();
+        self.counter_styles.insert(name, rule.clone());
+    }
+}
+
+#[allow(missing_docs)]
+#[cfg(feature = "servo")]
+pub struct ExtraStyleData<'a> {
+    pub marker: PhantomData<&'a usize>,
+}
+
+#[cfg(feature = "servo")]
+impl<'a> ExtraStyleData<'a> {
+    fn clear(&mut self) {}
 }
 
 impl Stylist {
-    /// Construct a new `Stylist`, using a given `Device`.
+    /// Construct a new `Stylist`, using given `Device` and `QuirksMode`.
+    /// If more members are added here, think about whether they should
+    /// be reset in clear().
     #[inline]
-    pub fn new(device: Device) -> Self {
+    pub fn new(device: Device, quirks_mode: QuirksMode) -> Self {
         let mut stylist = Stylist {
             viewport_constraints: None,
             device: Arc::new(device),
             is_device_dirty: true,
-            quirks_mode: false,
+            is_cleared: true,
+            quirks_mode: quirks_mode,
 
             element_map: PerPseudoElementSelectorMap::new(),
             pseudos_map: Default::default(),
@@ -131,11 +232,14 @@ impl Stylist {
             precomputed_pseudo_element_decls: Default::default(),
             rules_source_order: 0,
             rule_tree: RuleTree::new(),
-            state_deps: DependencySet::new(),
-
-            // XXX remember resetting them!
-            sibling_affecting_selectors: vec![],
-            non_common_style_affecting_attributes_selectors: vec![]
+            dependencies: DependencySet::new(),
+            attribute_dependencies: BloomFilter::new(),
+            style_attribute_dependency: false,
+            state_dependencies: ElementState::empty(),
+            selectors_for_cache_revalidation: SelectorMap::new(),
+            num_selectors: 0,
+            num_declarations: 0,
+            num_rebuilds: 0,
         };
 
         SelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
@@ -147,74 +251,139 @@ impl Stylist {
         stylist
     }
 
-    /// Update the stylist for the given document stylesheets, and optionally
+    /// Returns the number of selectors.
+    pub fn num_selectors(&self) -> usize {
+        self.num_selectors
+    }
+
+    /// Returns the number of declarations.
+    pub fn num_declarations(&self) -> usize {
+        self.num_declarations
+    }
+
+    /// Returns the number of times the stylist has been rebuilt.
+    pub fn num_rebuilds(&self) -> usize {
+        self.num_rebuilds
+    }
+
+    /// Returns the number of dependencies in the DependencySet.
+    pub fn num_dependencies(&self) -> usize {
+        self.dependencies.len()
+    }
+
+    /// Returns the number of revalidation_selectors.
+    pub fn num_revalidation_selectors(&self) -> usize {
+        self.selectors_for_cache_revalidation.len()
+    }
+
+    /// Clear the stylist's state, effectively resetting it to more or less
+    /// the state Stylist::new creates.
+    ///
+    /// We preserve the state of the following members:
+    ///   device: Someone might have set this on us.
+    ///   quirks_mode: Again, someone might have set this on us.
+    ///   num_rebuilds: clear() followed by rebuild() should just increment this
+    ///
+    /// We don't just use struct update syntax with Stylist::new(self.device)
+    /// beause for some of our members we can clear them instead of creating new
+    /// objects.  This does cause unfortunate code duplication with
+    /// Stylist::new.
+    pub fn clear(&mut self) {
+        if self.is_cleared {
+            return
+        }
+
+        self.is_cleared = true;
+
+        self.viewport_constraints = None;
+        // preserve current device
+        self.is_device_dirty = true;
+        // preserve current quirks_mode value
+        self.element_map = PerPseudoElementSelectorMap::new();
+        self.pseudos_map = Default::default();
+        self.animations.clear(); // Or set to Default::default()?
+        self.precomputed_pseudo_element_decls = Default::default();
+        self.rules_source_order = 0;
+        // We want to keep rule_tree around across stylist rebuilds.
+        self.dependencies.clear();
+        self.attribute_dependencies.clear();
+        self.style_attribute_dependency = false;
+        self.state_dependencies = ElementState::empty();
+        self.selectors_for_cache_revalidation = SelectorMap::new();
+        self.num_selectors = 0;
+        self.num_declarations = 0;
+        // preserve num_rebuilds value, since it should stay across
+        // clear()/rebuild() cycles.
+    }
+
+    /// rebuild the stylist for the given document stylesheets, and optionally
     /// with a set of user agent stylesheets.
     ///
     /// This method resets all the style data each time the stylesheets change
     /// (which is indicated by the `stylesheets_changed` parameter), or the
     /// device is dirty, which means we need to re-evaluate media queries.
-    pub fn update(&mut self,
-                  doc_stylesheets: &[Arc<Stylesheet>],
-                  ua_stylesheets: Option<&UserAgentStylesheets>,
-                  stylesheets_changed: bool) -> bool {
+    pub fn rebuild<'a, 'b, I>(&mut self,
+                              doc_stylesheets: I,
+                              guards: &StylesheetGuards,
+                              ua_stylesheets: Option<&UserAgentStylesheets>,
+                              stylesheets_changed: bool,
+                              author_style_disabled: bool,
+                              extra_data: &mut ExtraStyleData<'a>) -> bool
+        where I: Iterator<Item = &'b Arc<Stylesheet>> + Clone,
+    {
+        debug_assert!(!self.is_cleared || self.is_device_dirty);
+
+        self.is_cleared = false;
+
         if !(self.is_device_dirty || stylesheets_changed) {
             return false;
         }
 
+        self.num_rebuilds += 1;
+
         let cascaded_rule = ViewportRule {
-            declarations: viewport::Cascade::from_stylesheets(doc_stylesheets, &self.device).finish(),
+            declarations: viewport::Cascade::from_stylesheets(
+                doc_stylesheets.clone(), guards.author, &self.device
+            ).finish(),
         };
 
         self.viewport_constraints =
-            ViewportConstraints::maybe_new(&self.device, &cascaded_rule);
+            ViewportConstraints::maybe_new(&self.device, &cascaded_rule, self.quirks_mode);
 
         if let Some(ref constraints) = self.viewport_constraints {
             Arc::get_mut(&mut self.device).unwrap()
                 .account_for_viewport_rule(constraints);
         }
 
-        self.element_map = PerPseudoElementSelectorMap::new();
-        self.pseudos_map = Default::default();
-        self.animations = Default::default();
         SelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
             self.pseudos_map.insert(pseudo, PerPseudoElementSelectorMap::new());
         });
 
-        self.precomputed_pseudo_element_decls = Default::default();
-        self.rules_source_order = 0;
-        self.state_deps.clear();
-        self.animations.clear();
-
-        self.sibling_affecting_selectors.clear();
-        self.non_common_style_affecting_attributes_selectors.clear();
+        extra_data.clear();
 
         if let Some(ua_stylesheets) = ua_stylesheets {
             for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
-                self.add_stylesheet(&stylesheet);
+                self.add_stylesheet(&stylesheet, guards.ua_or_user, extra_data);
             }
 
-            if self.quirks_mode {
-                self.add_stylesheet(&ua_stylesheets.quirks_mode_stylesheet);
+            if self.quirks_mode != QuirksMode::NoQuirks {
+                self.add_stylesheet(&ua_stylesheets.quirks_mode_stylesheet,
+                                    guards.ua_or_user, extra_data);
             }
         }
 
-        for ref stylesheet in doc_stylesheets.iter() {
-            self.add_stylesheet(stylesheet);
-        }
+        // Only use author stylesheets if author styles are enabled.
+        let sheets_to_add = doc_stylesheets.filter(|s| {
+            !author_style_disabled || s.origin != Origin::Author
+        });
 
-        debug!("Stylist stats:");
-        debug!(" - Got {} sibling-affecting selectors",
-               self.sibling_affecting_selectors.len());
-        debug!(" - Got {} non-common-style-attribute-affecting selectors",
-               self.non_common_style_affecting_attributes_selectors.len());
-        debug!(" - Got {} deps for style-hint calculation",
-               self.state_deps.len());
+        for ref stylesheet in sheets_to_add {
+            self.add_stylesheet(stylesheet, guards.author, extra_data);
+        }
 
         SelectorImpl::each_precomputed_pseudo_element(|pseudo| {
             if let Some(map) = self.pseudos_map.remove(&pseudo) {
-                let declarations =
-                    map.user_agent.get_universal_rules(CascadeLevel::UANormal,
-                                                       CascadeLevel::UAImportant);
+                let declarations = map.user_agent.get_universal_rules(CascadeLevel::UANormal);
                 self.precomputed_pseudo_element_decls.insert(pseudo, declarations);
             }
         });
@@ -223,58 +392,80 @@ impl Stylist {
         true
     }
 
-    fn add_stylesheet(&mut self, stylesheet: &Stylesheet) {
-        if stylesheet.disabled() || !stylesheet.is_effective_for_device(&self.device) {
+    /// clear the stylist and then rebuild it.  Chances are, you want to use
+    /// either clear() or rebuild(), with the latter done lazily, instead.
+    pub fn update<'a, 'b, I>(&mut self,
+                             doc_stylesheets: I,
+                             guards: &StylesheetGuards,
+                             ua_stylesheets: Option<&UserAgentStylesheets>,
+                             stylesheets_changed: bool,
+                             author_style_disabled: bool,
+                             extra_data: &mut ExtraStyleData<'a>) -> bool
+        where I: Iterator<Item = &'b Arc<Stylesheet>> + Clone,
+    {
+        debug_assert!(!self.is_cleared || self.is_device_dirty);
+
+        // We have to do a dirtiness check before clearing, because if
+        // we're not actually dirty we need to no-op here.
+        if !(self.is_device_dirty || stylesheets_changed) {
+            return false;
+        }
+        self.clear();
+        self.rebuild(doc_stylesheets, guards, ua_stylesheets, stylesheets_changed,
+                     author_style_disabled, extra_data)
+    }
+
+    fn add_stylesheet<'a>(&mut self,
+                          stylesheet: &Stylesheet,
+                          guard: &SharedRwLockReadGuard,
+                          extra_data: &mut ExtraStyleData<'a>) {
+        if stylesheet.disabled() || !stylesheet.is_effective_for_device(&self.device, guard) {
             return;
         }
 
         // Cheap `Arc` clone so that the closure below can borrow `&mut Stylist`.
         let device = self.device.clone();
 
-        stylesheet.effective_rules(&device, |rule| {
+        stylesheet.effective_rules(&device, guard, |rule| {
             match *rule {
-                CssRule::Style(ref style_rule) => {
-                    let guard = style_rule.read();
-                    for selector in &guard.selectors.0 {
-                        let map = if let Some(ref pseudo) = selector.pseudo_element {
-                            self.pseudos_map
-                                .entry(pseudo.clone())
-                                .or_insert_with(PerPseudoElementSelectorMap::new)
-                                .borrow_for_origin(&stylesheet.origin)
-                        } else {
-                            self.element_map.borrow_for_origin(&stylesheet.origin)
-                        };
-
-                        map.insert(Rule {
-                            selector: selector.complex_selector.clone(),
-                            style_rule: style_rule.clone(),
-                            specificity: selector.specificity,
-                            source_order: self.rules_source_order,
-                        });
+                CssRule::Style(ref locked) => {
+                    let style_rule = locked.read_with(&guard);
+                    self.num_declarations += style_rule.block.read_with(&guard).len();
+                    for selector in &style_rule.selectors.0 {
+                        self.num_selectors += 1;
+                        self.add_rule_to_map(selector, locked, stylesheet);
+                        self.dependencies.note_selector(selector);
+                        self.note_for_revalidation(selector);
+                        self.note_attribute_and_state_dependencies(selector);
                     }
                     self.rules_source_order += 1;
-
-                    for selector in &guard.selectors.0 {
-                        self.state_deps.note_selector(&selector.complex_selector);
-                        if selector.affects_siblings() {
-                            self.sibling_affecting_selectors.push(selector.clone());
-                        }
-
-                        if selector.matches_non_common_style_affecting_attribute() {
-                            self.non_common_style_affecting_attributes_selectors.push(selector.clone());
-                        }
-                    }
                 }
                 CssRule::Import(ref import) => {
-                    let import = import.read();
-                    self.add_stylesheet(&import.stylesheet)
+                    let import = import.read_with(guard);
+                    self.add_stylesheet(&import.stylesheet, guard, extra_data)
                 }
                 CssRule::Keyframes(ref keyframes_rule) => {
-                    let keyframes_rule = keyframes_rule.read();
+                    let keyframes_rule = keyframes_rule.read_with(guard);
                     debug!("Found valid keyframes rule: {:?}", *keyframes_rule);
-                    let animation = KeyframesAnimation::from_keyframes(&keyframes_rule.keyframes);
-                    debug!("Found valid keyframe animation: {:?}", animation);
-                    self.animations.insert(keyframes_rule.name.clone(), animation);
+
+                    // Don't let a prefixed keyframes animation override a non-prefixed one.
+                    let needs_insertion = keyframes_rule.vendor_prefix.is_none() ||
+                        self.animations.get(keyframes_rule.name.as_atom()).map_or(true, |rule|
+                            rule.vendor_prefix.is_some());
+                    if needs_insertion {
+                        let animation = KeyframesAnimation::from_keyframes(
+                            &keyframes_rule.keyframes, keyframes_rule.vendor_prefix.clone(), guard);
+                        debug!("Found valid keyframe animation: {:?}", animation);
+                        self.animations.insert(keyframes_rule.name.as_atom().clone(), animation);
+                    }
+                }
+                #[cfg(feature = "gecko")]
+                CssRule::FontFace(ref rule) => {
+                    extra_data.add_font_face(&rule, stylesheet.origin);
+                }
+                #[cfg(feature = "gecko")]
+                CssRule::CounterStyle(ref rule) => {
+                    extra_data.add_counter_style(guard, &rule);
                 }
                 // We don't care about any other rule.
                 _ => {}
@@ -282,6 +473,60 @@ impl Stylist {
         });
     }
 
+    #[inline]
+    fn add_rule_to_map(&mut self,
+                       selector: &Selector<SelectorImpl>,
+                       rule: &Arc<Locked<StyleRule>>,
+                       stylesheet: &Stylesheet)
+    {
+        let map = if let Some(pseudo) = selector.pseudo_element() {
+            self.pseudos_map
+                .entry(pseudo.clone())
+                .or_insert_with(PerPseudoElementSelectorMap::new)
+                .borrow_for_origin(&stylesheet.origin)
+        } else {
+            self.element_map.borrow_for_origin(&stylesheet.origin)
+        };
+
+        map.insert(Rule::new(selector.clone(),
+                             rule.clone(),
+                             self.rules_source_order));
+    }
+
+    #[inline]
+    fn note_for_revalidation(&mut self, selector: &Selector<SelectorImpl>) {
+        if needs_revalidation(selector) {
+            self.selectors_for_cache_revalidation.insert(selector.inner.clone());
+        }
+    }
+
+    /// Returns whether the given attribute might appear in an attribute
+    /// selector of some rule in the stylist.
+    pub fn might_have_attribute_dependency(&self,
+                                           local_name: &LocalName)
+                                           -> bool {
+        #[cfg(feature = "servo")]
+        let style_lower_name = local_name!("style");
+        #[cfg(feature = "gecko")]
+        let style_lower_name = atom!("style");
+
+        if *local_name == style_lower_name {
+            self.style_attribute_dependency
+        } else {
+            self.attribute_dependencies.might_contain(local_name)
+        }
+    }
+
+    /// Returns whether the given ElementState bit is relied upon by a selector
+    /// of some rule in the stylist.
+    pub fn has_state_dependency(&self, state: ElementState) -> bool {
+        self.state_dependencies.intersects(state)
+    }
+
+    #[inline]
+    fn note_attribute_and_state_dependencies(&mut self, selector: &Selector<SelectorImpl>) {
+        selector.visit(&mut AttributeAndStateDependencyVisitor(self));
+    }
 
     /// Computes the style for a given "precomputed" pseudo-element, taking the
     /// universal rules and applying them.
@@ -291,27 +536,24 @@ impl Stylist {
     /// values. The flow constructor uses this flag when constructing anonymous
     /// flows.
     pub fn precomputed_values_for_pseudo(&self,
+                                         guards: &StylesheetGuards,
                                          pseudo: &PseudoElement,
                                          parent: Option<&Arc<ComputedValues>>,
-                                         default: &Arc<ComputedValues>,
-                                         inherit_all: bool)
+                                         cascade_flags: CascadeFlags,
+                                         font_metrics: &FontMetricsProvider)
                                          -> ComputedStyle {
-        debug_assert!(SelectorImpl::pseudo_element_cascade_type(pseudo).is_precomputed());
+        debug_assert!(pseudo.is_precomputed());
 
         let rule_node = match self.precomputed_pseudo_element_decls.get(pseudo) {
             Some(declarations) => {
                 // FIXME(emilio): When we've taken rid of the cascade we can just
                 // use into_iter.
-                self.rule_tree.insert_ordered_rules(
-                    declarations.into_iter().map(|a| (a.source.clone(), a.level)))
+                self.rule_tree.insert_ordered_rules_with_important(
+                    declarations.into_iter().map(|a| (a.source.clone(), a.level)),
+                    guards)
             }
             None => self.rule_tree.root(),
         };
-
-        let mut flags = CascadeFlags::empty();
-        if inherit_all {
-            flags.insert(INHERIT_ALL)
-        }
 
         // NOTE(emilio): We skip calculating the proper layout parent style
         // here.
@@ -328,33 +570,40 @@ impl Stylist {
         // the actual used value, and the computed value of it would need
         // blockification.
         let computed =
-            properties::cascade(self.device.au_viewport_size(),
+            properties::cascade(&self.device,
                                 &rule_node,
+                                guards,
                                 parent.map(|p| &**p),
                                 parent.map(|p| &**p),
-                                default,
                                 None,
-                                Box::new(StdoutErrorReporter),
-                                flags);
+                                &RustLogReporter,
+                                font_metrics,
+                                cascade_flags,
+                                self.quirks_mode);
         ComputedStyle::new(rule_node, Arc::new(computed))
     }
 
     /// Returns the style for an anonymous box of the given type.
     #[cfg(feature = "servo")]
-    pub fn style_for_anonymous_box(&self,
-                                   pseudo: &PseudoElement,
-                                   parent_style: &Arc<ComputedValues>,
-                                   default_style: &Arc<ComputedValues>)
-                                   -> Arc<ComputedValues> {
+    pub fn style_for_anonymous(&self,
+                               guards: &StylesheetGuards,
+                               pseudo: &PseudoElement,
+                               parent_style: &Arc<ComputedValues>)
+                               -> Arc<ComputedValues> {
+        use font_metrics::ServoMetricsProvider;
+
         // For most (but not all) pseudo-elements, we inherit all values from the parent.
         let inherit_all = match *pseudo {
+            PseudoElement::ServoText |
             PseudoElement::ServoInputText => false,
             PseudoElement::ServoAnonymousBlock |
             PseudoElement::ServoAnonymousTable |
             PseudoElement::ServoAnonymousTableCell |
             PseudoElement::ServoAnonymousTableRow |
             PseudoElement::ServoAnonymousTableWrapper |
-            PseudoElement::ServoTableWrapper => true,
+            PseudoElement::ServoTableWrapper |
+            PseudoElement::ServoInlineBlockWrapper |
+            PseudoElement::ServoInlineAbsolute => true,
             PseudoElement::Before |
             PseudoElement::After |
             PseudoElement::Selection |
@@ -363,7 +612,12 @@ impl Stylist {
                 unreachable!("That pseudo doesn't represent an anonymous box!")
             }
         };
-        self.precomputed_values_for_pseudo(&pseudo, Some(parent_style), default_style, inherit_all)
+        let mut cascade_flags = CascadeFlags::empty();
+        if inherit_all {
+            cascade_flags.insert(INHERIT_ALL);
+        }
+        self.precomputed_values_for_pseudo(guards, &pseudo, Some(parent_style), cascade_flags,
+                                           &ServoMetricsProvider)
             .values.unwrap()
     }
 
@@ -375,56 +629,64 @@ impl Stylist {
     /// Check the documentation on lazy pseudo-elements in
     /// docs/components/style.md
     pub fn lazily_compute_pseudo_element_style<E>(&self,
+                                                  guards: &StylesheetGuards,
                                                   element: &E,
                                                   pseudo: &PseudoElement,
                                                   parent: &Arc<ComputedValues>,
-                                                  default: &Arc<ComputedValues>)
+                                                  font_metrics: &FontMetricsProvider)
                                                   -> Option<ComputedStyle>
-        where E: TElement +
-                 fmt::Debug +
-                 PresentationalHintsSynthetizer
+        where E: TElement,
     {
-        debug_assert!(SelectorImpl::pseudo_element_cascade_type(pseudo).is_lazy());
-        if self.pseudos_map.get(pseudo).is_none() {
-            return None;
-        }
-
-        let mut declarations = vec![];
-
-        let mut flags = ElementSelectorFlags::empty();
-        self.push_applicable_declarations(element,
-                                          None,
-                                          None,
-                                          AnimationRules(None, None),
-                                          Some(pseudo),
-                                          &mut declarations,
-                                          &mut flags);
-
         let rule_node =
-            self.rule_tree.insert_ordered_rules(
-                declarations.into_iter().map(|a| (a.source, a.level)));
+            match self.lazy_pseudo_rules(guards, element, pseudo) {
+                Some(rule_node) => rule_node,
+                None => return None
+            };
 
         // Read the comment on `precomputed_values_for_pseudo` to see why it's
         // difficult to assert that display: contents nodes never arrive here
         // (tl;dr: It doesn't apply for replaced elements and such, but the
         // computed value is still "contents").
         let computed =
-            properties::cascade(self.device.au_viewport_size(),
+            properties::cascade(&self.device,
                                 &rule_node,
+                                guards,
                                 Some(&**parent),
                                 Some(&**parent),
-                                default,
                                 None,
-                                Box::new(StdoutErrorReporter),
-                                CascadeFlags::empty());
+                                &RustLogReporter,
+                                font_metrics,
+                                CascadeFlags::empty(),
+                                self.quirks_mode);
 
-        // Apply the selector flags. We should be in sequential mode already,
-        // so we can directly apply the parent flags.
-        if cfg!(feature = "servo") {
-            // Servo calls this function from the worker, but only for internal
-            // pseudos, so we should never generate selector flags here.
-            debug_assert!(flags.is_empty());
-        } else {
+        Some(ComputedStyle::new(rule_node, Arc::new(computed)))
+    }
+
+    /// Computes the rule node for a lazily-cascaded pseudo-element.
+    ///
+    /// See the documentation on lazy pseudo-elements in
+    /// docs/components/style.md
+    pub fn lazy_pseudo_rules<E>(&self,
+                                guards: &StylesheetGuards,
+                                element: &E,
+                                pseudo: &PseudoElement)
+                                -> Option<StrongRuleNode>
+        where E: TElement
+    {
+        debug_assert!(pseudo.is_lazy());
+        if self.pseudos_map.get(pseudo).is_none() {
+            return None
+        }
+
+        // Apply the selector flags. We should be in sequential mode
+        // already, so we can directly apply the parent flags.
+        let mut set_selector_flags = |element: &E, flags: ElementSelectorFlags| {
+            if cfg!(feature = "servo") {
+                // Servo calls this function from the worker, but only for internal
+                // pseudos, so we should never generate selector flags here.
+                unreachable!("internal pseudo generated slow selector flags?");
+            }
+
             // Gecko calls this from sequential mode, so we can directly apply
             // the flags.
             debug_assert!(thread_state::get() == thread_state::LAYOUT);
@@ -438,9 +700,32 @@ impl Stylist {
                     unsafe { p.set_selector_flags(parent_flags); }
                 }
             }
+        };
+
+        let mut declarations = ApplicableDeclarationList::new();
+        let mut matching_context =
+            MatchingContext::new(MatchingMode::ForStatelessPseudoElement, None);
+        self.push_applicable_declarations(element,
+                                          Some(pseudo),
+                                          None,
+                                          None,
+                                          AnimationRules(None, None),
+                                          &mut declarations,
+                                          &mut matching_context,
+                                          &mut set_selector_flags);
+        if declarations.is_empty() {
+            return None
         }
 
-        Some(ComputedStyle::new(rule_node, Arc::new(computed)))
+        let rule_node =
+            self.rule_tree.insert_ordered_rules_with_important(
+                declarations.into_iter().map(|a| (a.source, a.level)),
+                guards);
+        if rule_node == self.rule_tree.root() {
+            None
+        } else {
+            Some(rule_node)
+        }
     }
 
     /// Set a given device, which may change the styles that apply to the
@@ -464,27 +749,42 @@ impl Stylist {
     /// FIXME(emilio): The semantics of the device for Servo and Gecko are
     /// different enough we may want to unify them.
     #[cfg(feature = "servo")]
-    pub fn set_device(&mut self, mut device: Device, stylesheets: &[Arc<Stylesheet>]) {
+    pub fn set_device(&mut self,
+                      mut device: Device,
+                      guard: &SharedRwLockReadGuard,
+                      stylesheets: &[Arc<Stylesheet>]) {
         let cascaded_rule = ViewportRule {
-            declarations: viewport::Cascade::from_stylesheets(stylesheets, &device).finish(),
+            declarations: viewport::Cascade::from_stylesheets(stylesheets.iter(), guard, &device).finish(),
         };
 
         self.viewport_constraints =
-            ViewportConstraints::maybe_new(&device, &cascaded_rule);
+            ViewportConstraints::maybe_new(&device, &cascaded_rule, self.quirks_mode);
 
         if let Some(ref constraints) = self.viewport_constraints {
             device.account_for_viewport_rule(constraints);
         }
 
-        fn mq_eval_changed(rules: &[CssRule], before: &Device, after: &Device) -> bool {
+        fn mq_eval_changed(guard: &SharedRwLockReadGuard, rules: &[CssRule],
+                           before: &Device, after: &Device, quirks_mode: QuirksMode) -> bool {
             for rule in rules {
-                let changed = rule.with_nested_rules_and_mq(|rules, mq| {
-                    if let Some(mq) = mq {
-                        if mq.evaluate(before) != mq.evaluate(after) {
-                            return true
-                        }
-                    }
-                    mq_eval_changed(rules, before, after)
+                let changed = rule.with_nested_rules_mq_and_doc_rule(guard,
+                                                                     |result| {
+                    let rules = match result {
+                        NestedRulesResult::Rules(rules) => rules,
+                        NestedRulesResult::RulesWithMediaQueries(rules, mq) => {
+                            if mq.evaluate(before, quirks_mode) != mq.evaluate(after, quirks_mode) {
+                                return true;
+                            }
+                            rules
+                        },
+                        NestedRulesResult::RulesWithDocument(rules, doc_rule) => {
+                            if !doc_rule.condition.evaluate(before) {
+                                return false;
+                            }
+                            rules
+                        },
+                    };
+                    mq_eval_changed(guard, rules, before, after, quirks_mode)
                 });
                 if changed {
                     return true
@@ -493,12 +793,12 @@ impl Stylist {
             false
         }
         self.is_device_dirty |= stylesheets.iter().any(|stylesheet| {
-            let mq = stylesheet.media.read();
-            if mq.evaluate(&self.device) != mq.evaluate(&device) {
+            let mq = stylesheet.media.read_with(guard);
+            if mq.evaluate(&self.device, self.quirks_mode) != mq.evaluate(&device, self.quirks_mode) {
                 return true
             }
 
-            mq_eval_changed(&stylesheet.rules.read().0, &self.device, &device)
+            mq_eval_changed(guard, &stylesheet.rules.read_with(guard).0, &self.device, &device, self.quirks_mode)
         });
 
         self.device = Arc::new(device);
@@ -510,176 +810,169 @@ impl Stylist {
         self.viewport_constraints.as_ref()
     }
 
+    /// Returns the Quirks Mode of the document.
+    pub fn quirks_mode(&self) -> QuirksMode {
+        self.quirks_mode
+    }
+
     /// Sets the quirks mode of the document.
-    pub fn set_quirks_mode(&mut self, enabled: bool) {
+    pub fn set_quirks_mode(&mut self, quirks_mode: QuirksMode) {
         // FIXME(emilio): We don't seem to change the quirks mode dynamically
         // during multiple layout passes, but this is totally bogus, in the
         // sense that it's updated asynchronously.
         //
         // This should probably be an argument to `update`, and use the quirks
         // mode info in the `SharedLayoutContext`.
-        self.quirks_mode = enabled;
+        self.quirks_mode = quirks_mode;
     }
 
     /// Returns the applicable CSS declarations for the given element.
     ///
     /// This corresponds to `ElementRuleCollector` in WebKit.
     ///
-    /// The returned `StyleRelations` indicate hints about which kind of rules
-    /// have matched.
-    pub fn push_applicable_declarations<E, V>(
+    /// The `StyleRelations` recorded in `MatchingContext` indicate hints about
+    /// which kind of rules have matched.
+    pub fn push_applicable_declarations<E, V, F>(
                                         &self,
                                         element: &E,
-                                        parent_bf: Option<&BloomFilter>,
-                                        style_attribute: Option<&Arc<RwLock<PropertyDeclarationBlock>>>,
-                                        animation_rules: AnimationRules,
                                         pseudo_element: Option<&PseudoElement>,
+                                        style_attribute: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
+                                        smil_override: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
+                                        animation_rules: AnimationRules,
                                         applicable_declarations: &mut V,
-                                        flags: &mut ElementSelectorFlags) -> StyleRelations
-        where E: TElement +
-                 fmt::Debug +
-                 PresentationalHintsSynthetizer,
-              V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock>
+                                        context: &mut MatchingContext,
+                                        flags_setter: &mut F)
+        where E: TElement,
+              V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock> + ::std::fmt::Debug,
+              F: FnMut(&E, ElementSelectorFlags),
     {
         debug_assert!(!self.is_device_dirty);
-        debug_assert!(style_attribute.is_none() || pseudo_element.is_none(),
+        // Gecko definitely has pseudo-elements with style attributes, like
+        // ::-moz-color-swatch.
+        debug_assert!(cfg!(feature = "gecko") ||
+                      style_attribute.is_none() || pseudo_element.is_none(),
                       "Style attributes do not apply to pseudo-elements");
-        debug_assert!(pseudo_element.is_none() ||
-                      !SelectorImpl::pseudo_element_cascade_type(pseudo_element.as_ref().unwrap())
-                        .is_precomputed());
+        debug_assert!(pseudo_element.map_or(true, |p| !p.is_precomputed()));
 
         let map = match pseudo_element {
-            Some(ref pseudo) => self.pseudos_map.get(pseudo).unwrap(),
+            Some(pseudo) => self.pseudos_map.get(pseudo).unwrap(),
             None => &self.element_map,
         };
 
-        let mut relations = StyleRelations::empty();
+        let is_implemented_pseudo =
+            element.implemented_pseudo_element().is_some();
 
-        debug!("Determining if style is shareable: pseudo: {}", pseudo_element.is_some());
+        // NB: This causes use to rule has pseudo selectors based on the
+        // properties of the originating element (which is fine, given the
+        // find_first_from_right usage).
+        let rule_hash_target = if is_implemented_pseudo {
+            element.closest_non_native_anonymous_ancestor().unwrap()
+        } else {
+            *element
+        };
+
+        debug!("Determining if style is shareable: pseudo: {}",
+               pseudo_element.is_some());
+
         // Step 1: Normal user-agent rules.
         map.user_agent.get_all_matching_rules(element,
-                                              parent_bf,
+                                              &rule_hash_target,
                                               applicable_declarations,
-                                              &mut relations,
-                                              flags,
+                                              context,
+                                              flags_setter,
                                               CascadeLevel::UANormal);
-        debug!("UA normal: {:?}", relations);
+        debug!("UA normal: {:?}", context.relations);
 
-        // Step 2: Presentational hints.
-        let length_before_preshints = applicable_declarations.len();
-        element.synthesize_presentational_hints_for_legacy_attributes(applicable_declarations);
-        if applicable_declarations.len() != length_before_preshints {
-            if cfg!(debug_assertions) {
-                for declaration in &applicable_declarations[length_before_preshints..] {
-                    assert_eq!(declaration.level, CascadeLevel::PresHints);
+        if pseudo_element.is_none() {
+            // Step 2: Presentational hints.
+            let length_before_preshints = applicable_declarations.len();
+            element.synthesize_presentational_hints_for_legacy_attributes(applicable_declarations);
+            if applicable_declarations.len() != length_before_preshints {
+                if cfg!(debug_assertions) {
+                    for declaration in &applicable_declarations[length_before_preshints..] {
+                        assert_eq!(declaration.level, CascadeLevel::PresHints);
+                    }
                 }
+                // Never share style for elements with preshints
+                context.relations |= AFFECTED_BY_PRESENTATIONAL_HINTS;
             }
-            // Never share style for elements with preshints
-            relations |= AFFECTED_BY_PRESENTATIONAL_HINTS;
+            debug!("preshints: {:?}", context.relations);
         }
-        debug!("preshints: {:?}", relations);
 
-        if element.matches_user_and_author_rules() {
+        // NB: the following condition, although it may look somewhat
+        // inaccurate, would be equivalent to something like:
+        //
+        //     element.matches_user_and_author_rules() ||
+        //     (is_implemented_pseudo &&
+        //      rule_hash_target.matches_user_and_author_rules())
+        //
+        // Which may be more what you would probably expect.
+        if rule_hash_target.matches_user_and_author_rules() {
             // Step 3: User and author normal rules.
             map.user.get_all_matching_rules(element,
-                                            parent_bf,
+                                            &rule_hash_target,
                                             applicable_declarations,
-                                            &mut relations,
-                                            flags,
+                                            context,
+                                            flags_setter,
                                             CascadeLevel::UserNormal);
-            debug!("user normal: {:?}", relations);
+            debug!("user normal: {:?}", context.relations);
             map.author.get_all_matching_rules(element,
-                                              parent_bf,
+                                              &rule_hash_target,
                                               applicable_declarations,
-                                              &mut relations,
-                                              flags,
+                                              context,
+                                              flags_setter,
                                               CascadeLevel::AuthorNormal);
-            debug!("author normal: {:?}", relations);
+            debug!("author normal: {:?}", context.relations);
 
             // Step 4: Normal style attributes.
             if let Some(sa) = style_attribute {
-                if sa.read().any_normal() {
-                    relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
-                    Push::push(
-                        applicable_declarations,
-                        ApplicableDeclarationBlock::from_declarations(sa.clone(),
-                                                                      CascadeLevel::StyleAttributeNormal));
-                }
+                context.relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
+                Push::push(
+                    applicable_declarations,
+                    ApplicableDeclarationBlock::from_declarations(sa.clone(),
+                                                                  CascadeLevel::StyleAttributeNormal));
             }
 
-            debug!("style attr: {:?}", relations);
+            debug!("style attr: {:?}", context.relations);
 
-            // Step 5: Animations.
+            // Step 5: SMIL override.
+            // Declarations from SVG SMIL animation elements.
+            if let Some(so) = smil_override {
+                Push::push(
+                    applicable_declarations,
+                    ApplicableDeclarationBlock::from_declarations(so.clone(),
+                                                                  CascadeLevel::SMILOverride));
+            }
+            debug!("SMIL: {:?}", context.relations);
+
+            // Step 6: Animations.
             // The animations sheet (CSS animations, script-generated animations,
             // and CSS transitions that are no longer tied to CSS markup)
             if let Some(anim) = animation_rules.0 {
-                relations |= AFFECTED_BY_ANIMATIONS;
                 Push::push(
                     applicable_declarations,
-                    ApplicableDeclarationBlock::from_declarations(anim.clone(),
+                    ApplicableDeclarationBlock::from_declarations(anim,
                                                                   CascadeLevel::Animations));
             }
-            debug!("animation: {:?}", relations);
-
-            // Step 6: Author-supplied `!important` rules.
-            map.author.get_all_matching_rules(element,
-                                              parent_bf,
-                                              applicable_declarations,
-                                              &mut relations,
-                                              flags,
-                                              CascadeLevel::AuthorImportant);
-
-            debug!("author important: {:?}", relations);
-
-            // Step 7: `!important` style attributes.
-            if let Some(sa) = style_attribute {
-                if sa.read().any_important() {
-                    relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
-                    Push::push(
-                        applicable_declarations,
-                        ApplicableDeclarationBlock::from_declarations(sa.clone(),
-                                                                      CascadeLevel::StyleAttributeImportant));
-                }
-            }
-
-            debug!("style attr important: {:?}", relations);
-
-            // Step 8: User `!important` rules.
-            map.user.get_all_matching_rules(element,
-                                            parent_bf,
-                                            applicable_declarations,
-                                            &mut relations,
-                                            flags,
-                                            CascadeLevel::UserImportant);
-
-            debug!("user important: {:?}", relations);
+            debug!("animation: {:?}", context.relations);
         } else {
             debug!("skipping non-agent rules");
         }
 
-        // Step 9: UA `!important` rules.
-        map.user_agent.get_all_matching_rules(element,
-                                              parent_bf,
-                                              applicable_declarations,
-                                              &mut relations,
-                                              flags,
-                                              CascadeLevel::UAImportant);
+        //
+        // Steps 7-10 correspond to !important rules, and are handled during
+        // rule tree insertion.
+        //
 
-        debug!("UA important: {:?}", relations);
-
-        // Step 10: Transitions.
+        // Step 11: Transitions.
         // The transitions sheet (CSS transitions that are tied to CSS markup)
         if let Some(anim) = animation_rules.1 {
-            relations |= AFFECTED_BY_TRANSITIONS;
             Push::push(
                 applicable_declarations,
-                ApplicableDeclarationBlock::from_declarations(anim.clone(), CascadeLevel::Transitions));
+                ApplicableDeclarationBlock::from_declarations(anim, CascadeLevel::Transitions));
         }
-        debug!("transition: {:?}", relations);
-
-        debug!("push_applicable_declarations: shareable: {:?}", relations);
-
-        relations
+        debug!("transition: {:?}", context.relations);
+        debug!("push_applicable_declarations: shareable: {:?}", context.relations);
     }
 
     /// Return whether the device is dirty, that is, whether the screen size or
@@ -695,95 +988,82 @@ impl Stylist {
         &self.animations
     }
 
-    /// Whether two elements match the same not-common style-affecting attribute
-    /// rules.
-    ///
-    /// This is used to test elements and candidates in the style-sharing
-    /// candidate cache.
-    pub fn match_same_not_common_style_affecting_attributes_rules<E>(&self,
-                                                                     element: &E,
-                                                                     candidate: &E) -> bool
-        where E: TElement,
-    {
-        use selectors::matching::StyleRelations;
-        use selectors::matching::matches_complex_selector;
-        // TODO(emilio): we can probably do better, the candidate should already
-        // know what rules it matches. Also, we should only match until we find
-        // a descendant combinator, the rest should be ok, since the parent is
-        // the same.
-        //
-        // TODO(emilio): Use the bloom filter, since they contain the element's
-        // ancestor chain and it's correct for the candidate too.
-        for ref selector in self.non_common_style_affecting_attributes_selectors.iter() {
-            let element_matches =
-                matches_complex_selector(&selector.complex_selector, element,
-                                         None, &mut StyleRelations::empty(),
-                                         &mut ElementSelectorFlags::empty());
-            let candidate_matches =
-                matches_complex_selector(&selector.complex_selector, candidate,
-                                         None, &mut StyleRelations::empty(),
-                                         &mut ElementSelectorFlags::empty());
-
-            if element_matches != candidate_matches {
-                return false;
-            }
-        }
-
-        true
-    }
-
     /// Returns the rule root node.
     #[inline]
     pub fn rule_tree_root(&self) -> StrongRuleNode {
         self.rule_tree.root()
     }
 
-    /// Returns whether two elements match the same sibling-affecting rules.
-    ///
-    /// This is also for the style sharing candidate cache.
-    pub fn match_same_sibling_affecting_rules<E>(&self,
-                                                 element: &E,
-                                                 candidate: &E) -> bool
+    /// Computes the match results of a given element against the set of
+    /// revalidation selectors.
+    pub fn match_revalidation_selectors<E, F>(&self,
+                                              element: &E,
+                                              bloom: &BloomFilter,
+                                              flags_setter: &mut F)
+                                              -> BitVec
         where E: TElement,
+              F: FnMut(&E, ElementSelectorFlags),
     {
-        use selectors::matching::StyleRelations;
-        use selectors::matching::matches_complex_selector;
-        // TODO(emilio): we can probably do better, the candidate should already
-        // know what rules it matches.
-        //
-        // TODO(emilio): Use the bloom filter, since they contain the element's
-        // ancestor chain and it's correct for the candidate too.
-        for ref selector in self.sibling_affecting_selectors.iter() {
-            let element_matches =
-                matches_complex_selector(&selector.complex_selector, element,
-                                         None, &mut StyleRelations::empty(),
-                                         &mut ElementSelectorFlags::empty());
+        // NB: `MatchingMode` doesn't really matter, given we don't share style
+        // between pseudos.
+        let mut matching_context =
+            MatchingContext::new(MatchingMode::Normal, Some(bloom));
 
-            let candidate_matches =
-                matches_complex_selector(&selector.complex_selector, candidate,
-                                         None, &mut StyleRelations::empty(),
-                                         &mut ElementSelectorFlags::empty());
+        // Note that, by the time we're revalidating, we're guaranteed that the
+        // candidate and the entry have the same id, classes, and local name.
+        // This means we're guaranteed to get the same rulehash buckets for all
+        // the lookups, which means that the bitvecs are comparable. We verify
+        // this in the caller by asserting that the bitvecs are same-length.
+        let mut results = BitVec::new();
+        self.selectors_for_cache_revalidation.lookup(*element, &mut |selector| {
+            results.push(matches_selector(selector,
+                                          element,
+                                          &mut matching_context,
+                                          flags_setter));
+            true
+        });
 
-            if element_matches != candidate_matches {
-                debug!("match_same_sibling_affecting_rules: Failure due to {:?}",
-                       selector.complex_selector);
-                return false;
-            }
-        }
-
-        true
+        results
     }
 
-    /// Given an element, and a snapshot that represents a previous state of the
-    /// element, compute the appropriate restyle hint, that is, the kind of
+    /// Given an element, and a snapshot table that represents a previous state
+    /// of the tree, compute the appropriate restyle hint, that is, the kind of
     /// restyle we need to do.
     pub fn compute_restyle_hint<E>(&self,
                                    element: &E,
-                                   snapshot: &Snapshot)
+                                   snapshots: &SnapshotMap)
                                    -> RestyleHint
         where E: TElement,
     {
-        self.state_deps.compute_hint(element, snapshot)
+        self.dependencies.compute_hint(element, snapshots)
+    }
+
+    /// Computes styles for a given declaration with parent_style.
+    pub fn compute_for_declarations(&self,
+                                    guards: &StylesheetGuards,
+                                    parent_style: &Arc<ComputedValues>,
+                                    declarations: Arc<Locked<PropertyDeclarationBlock>>)
+                                    -> Arc<ComputedValues> {
+        use font_metrics::get_metrics_provider_for_product;
+
+        let v = vec![
+            ApplicableDeclarationBlock::from_declarations(declarations.clone(),
+                                                          CascadeLevel::StyleAttributeNormal)
+        ];
+        let rule_node =
+            self.rule_tree.insert_ordered_rules(v.into_iter().map(|a| (a.source, a.level)));
+
+        let metrics = get_metrics_provider_for_product();
+        Arc::new(properties::cascade(&self.device,
+                                     &rule_node,
+                                     guards,
+                                     Some(parent_style),
+                                     Some(parent_style),
+                                     None,
+                                     &RustLogReporter,
+                                     &metrics,
+                                     CascadeFlags::empty(),
+                                     self.quirks_mode))
     }
 }
 
@@ -802,17 +1082,127 @@ impl Drop for Stylist {
     }
 }
 
+/// Visitor to collect names that appear in attribute selectors and any
+/// dependencies on ElementState bits.
+struct AttributeAndStateDependencyVisitor<'a>(&'a mut Stylist);
+
+impl<'a> SelectorVisitor for AttributeAndStateDependencyVisitor<'a> {
+    type Impl = SelectorImpl;
+
+    fn visit_attribute_selector(&mut self, _ns: &NamespaceConstraint<&Namespace>,
+                                name: &LocalName, lower_name: &LocalName)
+                                -> bool {
+        #[cfg(feature = "servo")]
+        let style_lower_name = local_name!("style");
+        #[cfg(feature = "gecko")]
+        let style_lower_name = atom!("style");
+
+        if *lower_name == style_lower_name {
+            self.0.style_attribute_dependency = true;
+        } else {
+            self.0.attribute_dependencies.insert(&name);
+            self.0.attribute_dependencies.insert(&lower_name);
+        }
+        true
+    }
+
+    fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) -> bool {
+        if let Component::NonTSPseudoClass(ref p) = *s {
+            self.0.state_dependencies.insert(p.state_flag());
+        }
+        true
+    }
+}
+
+/// Visitor determine whether a selector requires cache revalidation.
+///
+/// Note that we just check simple selectors and eagerly return when the first
+/// need for revalidation is found, so we don't need to store state on the
+/// visitor.
+///
+/// Also, note that it's important to check the whole selector, due to cousins
+/// sharing arbitrarily deep in the DOM, not just the rightmost part of it
+/// (unfortunately, though).
+///
+/// With cousin sharing, we not only need to care about selectors in stuff like
+/// foo:first-child, but also about selectors like p:first-child foo, since the
+/// two parents may have shared style, and in that case we can test cousins
+/// whose matching depends on the selector up in the chain.
+///
+/// TODO(emilio): We can optimize when matching only siblings to only match the
+/// rightmost selector until a descendant combinator is found, I guess, and in
+/// general when we're sharing at depth `n`, to the `n + 1` sequences of
+/// descendant combinators.
+///
+/// I don't think that in presence of the bloom filter it's worth it, though.
+struct RevalidationVisitor;
+
+impl SelectorVisitor for RevalidationVisitor {
+    type Impl = SelectorImpl;
+
+
+    fn visit_complex_selector(&mut self,
+                              _: SelectorIter<SelectorImpl>,
+                              combinator: Option<Combinator>) -> bool {
+        let is_sibling_combinator =
+            combinator.map_or(false, |c| c.is_sibling());
+
+        !is_sibling_combinator
+    }
+
+
+    /// Check whether sequence of simple selectors containing this simple
+    /// selector to be explicitly matched against both the style sharing cache
+    /// entry and the candidate.
+    ///
+    /// We use this for selectors that can have different matching behavior
+    /// between siblings that are otherwise identical as far as the cache is
+    /// concerned.
+    fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) -> bool {
+        match *s {
+            Component::AttributeInNoNamespaceExists { .. } |
+            Component::AttributeInNoNamespace { .. } |
+            Component::AttributeOther(_) |
+            Component::Empty |
+            Component::FirstChild |
+            Component::LastChild |
+            Component::OnlyChild |
+            Component::NthChild(..) |
+            Component::NthLastChild(..) |
+            Component::NthOfType(..) |
+            Component::NthLastOfType(..) |
+            Component::FirstOfType |
+            Component::LastOfType |
+            Component::OnlyOfType => {
+                false
+            },
+            Component::NonTSPseudoClass(ref p) => {
+                !p.needs_cache_revalidation()
+            },
+            _ => {
+                true
+            }
+        }
+    }
+}
+
+/// Returns true if the given selector needs cache revalidation.
+pub fn needs_revalidation(selector: &Selector<SelectorImpl>) -> bool {
+    let mut visitor = RevalidationVisitor;
+    !selector.visit(&mut visitor)
+}
 
 /// Map that contains the CSS rules for a specific PseudoElement
 /// (or lack of PseudoElement).
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Debug)]
 struct PerPseudoElementSelectorMap {
     /// Rules from user agent stylesheets
-    user_agent: SelectorMap,
+    user_agent: SelectorMap<Rule>,
     /// Rules from author stylesheets
-    author: SelectorMap,
+    author: SelectorMap<Rule>,
     /// Rules from user stylesheets
-    user: SelectorMap,
+    user: SelectorMap<Rule>,
 }
 
 impl PerPseudoElementSelectorMap {
@@ -826,7 +1216,7 @@ impl PerPseudoElementSelectorMap {
     }
 
     #[inline]
-    fn borrow_for_origin(&mut self, origin: &Origin) -> &mut SelectorMap {
+    fn borrow_for_origin(&mut self, origin: &Origin) -> &mut SelectorMap<Rule> {
         match *origin {
             Origin::UserAgent => &mut self.user_agent,
             Origin::Author => &mut self.author,
@@ -835,42 +1225,41 @@ impl PerPseudoElementSelectorMap {
     }
 }
 
-/// Map element data to Rules whose last simple selector starts with them.
+/// Map element data to selector-providing objects for which the last simple
+/// selector starts with them.
 ///
 /// e.g.,
-/// "p > img" would go into the set of Rules corresponding to the
+/// "p > img" would go into the set of selectors corresponding to the
 /// element "img"
-/// "a .foo .bar.baz" would go into the set of Rules corresponding to
+/// "a .foo .bar.baz" would go into the set of selectors corresponding to
 /// the class "bar"
 ///
-/// Because we match Rules right-to-left (i.e., moving up the tree
+/// Because we match selectors right-to-left (i.e., moving up the tree
 /// from an element), we need to compare the last simple selector in the
-/// Rule with the element.
+/// selector with the element.
 ///
 /// So, if an element has ID "id1" and classes "foo" and "bar", then all
 /// the rules it matches will have their last simple selector starting
 /// either with "#id1" or with ".foo" or with ".bar".
 ///
 /// Hence, the union of the rules keyed on each of element's classes, ID,
-/// element name, etc. will contain the Rules that actually match that
+/// element name, etc. will contain the Selectors that actually match that
 /// element.
 ///
 /// TODO: Tune the initial capacity of the HashMap
+#[derive(Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct SelectorMap {
+pub struct SelectorMap<T: Clone + Borrow<SelectorInner<SelectorImpl>>> {
     /// A hash from an ID to rules which contain that ID selector.
-    pub id_hash: FnvHashMap<Atom, Vec<Rule>>,
+    pub id_hash: FnvHashMap<Atom, Vec<T>>,
     /// A hash from a class name to rules which contain that class selector.
-    pub class_hash: FnvHashMap<Atom, Vec<Rule>>,
+    pub class_hash: FnvHashMap<Atom, Vec<T>>,
     /// A hash from local name to rules which contain that local name selector.
-    pub local_name_hash: FnvHashMap<LocalName, Vec<Rule>>,
-    /// Same as local_name_hash, but keys are lower-cased.
-    /// For HTML elements in HTML documents.
-    pub lower_local_name_hash: FnvHashMap<LocalName, Vec<Rule>>,
+    pub local_name_hash: FnvHashMap<LocalName, Vec<T>>,
     /// Rules that don't have ID, class, or element selectors.
-    pub other_rules: Vec<Rule>,
-    /// Whether this hash is empty.
-    pub empty: bool,
+    pub other: Vec<T>,
+    /// The number of entries in this map.
+    pub count: usize,
 }
 
 #[inline]
@@ -878,81 +1267,84 @@ fn sort_by_key<T, F: Fn(&T) -> K, K: Ord>(v: &mut [T], f: F) {
     sort_by(v, |a, b| f(a).cmp(&f(b)))
 }
 
-impl SelectorMap {
+impl<T> SelectorMap<T> where T: Clone + Borrow<SelectorInner<SelectorImpl>> {
     /// Trivially constructs an empty `SelectorMap`.
     pub fn new() -> Self {
         SelectorMap {
             id_hash: HashMap::default(),
             class_hash: HashMap::default(),
             local_name_hash: HashMap::default(),
-            lower_local_name_hash: HashMap::default(),
-            other_rules: Vec::new(),
-            empty: true,
+            other: Vec::new(),
+            count: 0,
         }
     }
 
+    /// Returns whether there are any entries in the map.
+    pub fn is_empty(&self) -> bool {
+        self.count == 0
+    }
+
+    /// Returns the number of entries.
+    pub fn len(&self) -> usize {
+        self.count
+    }
+}
+
+impl SelectorMap<Rule> {
     /// Append to `rule_list` all Rules in `self` that match element.
     ///
     /// Extract matching rules as per element's ID, classes, tag name, etc..
     /// Sort the Rules at the end to maintain cascading order.
-    pub fn get_all_matching_rules<E, V>(&self,
-                                        element: &E,
-                                        parent_bf: Option<&BloomFilter>,
-                                        matching_rules_list: &mut V,
-                                        relations: &mut StyleRelations,
-                                        flags: &mut ElementSelectorFlags,
-                                        cascade_level: CascadeLevel)
-        where E: Element<Impl=SelectorImpl>,
-              V: VecLike<ApplicableDeclarationBlock>
+    pub fn get_all_matching_rules<E, V, F>(&self,
+                                           element: &E,
+                                           rule_hash_target: &E,
+                                           matching_rules_list: &mut V,
+                                           context: &mut MatchingContext,
+                                           flags_setter: &mut F,
+                                           cascade_level: CascadeLevel)
+        where E: TElement,
+              V: VecLike<ApplicableDeclarationBlock>,
+              F: FnMut(&E, ElementSelectorFlags),
     {
-        if self.empty {
+        if self.is_empty() {
             return
         }
 
         // At the end, we're going to sort the rules that we added, so remember where we began.
         let init_len = matching_rules_list.len();
-        if let Some(id) = element.get_id() {
+        if let Some(id) = rule_hash_target.get_id() {
             SelectorMap::get_matching_rules_from_hash(element,
-                                                      parent_bf,
                                                       &self.id_hash,
                                                       &id,
                                                       matching_rules_list,
-                                                      relations,
-                                                      flags,
+                                                      context,
+                                                      flags_setter,
                                                       cascade_level)
         }
 
-        element.each_class(|class| {
+        rule_hash_target.each_class(|class| {
             SelectorMap::get_matching_rules_from_hash(element,
-                                                      parent_bf,
                                                       &self.class_hash,
                                                       class,
                                                       matching_rules_list,
-                                                      relations,
-                                                      flags,
+                                                      context,
+                                                      flags_setter,
                                                       cascade_level);
         });
 
-        let local_name_hash = if element.is_html_element_in_html_document() {
-            &self.lower_local_name_hash
-        } else {
-            &self.local_name_hash
-        };
         SelectorMap::get_matching_rules_from_hash(element,
-                                                  parent_bf,
-                                                  local_name_hash,
-                                                  element.get_local_name(),
+                                                  &self.local_name_hash,
+                                                  rule_hash_target.get_local_name(),
                                                   matching_rules_list,
-                                                  relations,
-                                                  flags,
+                                                  context,
+                                                  flags_setter,
                                                   cascade_level);
 
         SelectorMap::get_matching_rules(element,
-                                        parent_bf,
-                                        &self.other_rules,
+                                        &self.other,
                                         matching_rules_list,
-                                        relations,
-                                        flags,
+                                        context,
+                                        flags_setter,
                                         cascade_level);
 
         // Sort only the rules we just added.
@@ -963,163 +1355,285 @@ impl SelectorMap {
     /// Append to `rule_list` all universal Rules (rules with selector `*|*`) in
     /// `self` sorted by specificity and source order.
     pub fn get_universal_rules(&self,
-                               cascade_level: CascadeLevel,
-                               important_cascade_level: CascadeLevel)
+                               cascade_level: CascadeLevel)
                                -> Vec<ApplicableDeclarationBlock> {
         debug_assert!(!cascade_level.is_important());
-        debug_assert!(important_cascade_level.is_important());
-        if self.empty {
+        if self.is_empty() {
             return vec![];
         }
 
-        let mut matching_rules_list = vec![];
-
-        // We need to insert important rules _after_ normal rules for this to be
-        // correct, and also to not trigger rule tree assertions.
-        let mut important = vec![];
-        for rule in self.other_rules.iter() {
-            if rule.selector.compound_selector.is_empty() &&
-               rule.selector.next.is_none() {
-                let guard = rule.style_rule.read();
-                let block = guard.block.read();
-                if block.any_normal() {
-                    matching_rules_list.push(
-                        rule.to_applicable_declaration_block(cascade_level));
-                }
-                if block.any_important() {
-                    important.push(
-                        rule.to_applicable_declaration_block(important_cascade_level));
-                }
+        let mut rules_list = vec![];
+        for rule in self.other.iter() {
+            if rule.selector.is_universal() {
+                rules_list.push(rule.to_applicable_declaration_block(cascade_level))
             }
         }
 
-        let normal_len = matching_rules_list.len();
-        matching_rules_list.extend(important.into_iter());
-
-        sort_by_key(&mut matching_rules_list[0..normal_len],
-                    |block| (block.specificity, block.source_order));
-        sort_by_key(&mut matching_rules_list[normal_len..],
+        sort_by_key(&mut rules_list,
                     |block| (block.specificity, block.source_order));
 
-        matching_rules_list
+        rules_list
     }
 
-    fn get_matching_rules_from_hash<E, Str, BorrowedStr: ?Sized, Vector>(
+    fn get_matching_rules_from_hash<E, Str, BorrowedStr: ?Sized, Vector, F>(
         element: &E,
-        parent_bf: Option<&BloomFilter>,
         hash: &FnvHashMap<Str, Vec<Rule>>,
         key: &BorrowedStr,
         matching_rules: &mut Vector,
-        relations: &mut StyleRelations,
-        flags: &mut ElementSelectorFlags,
+        context: &mut MatchingContext,
+        flags_setter: &mut F,
         cascade_level: CascadeLevel)
-        where E: Element<Impl=SelectorImpl>,
+        where E: TElement,
               Str: Borrow<BorrowedStr> + Eq + Hash,
               BorrowedStr: Eq + Hash,
-              Vector: VecLike<ApplicableDeclarationBlock>
+              Vector: VecLike<ApplicableDeclarationBlock>,
+              F: FnMut(&E, ElementSelectorFlags),
     {
         if let Some(rules) = hash.get(key) {
             SelectorMap::get_matching_rules(element,
-                                            parent_bf,
                                             rules,
                                             matching_rules,
-                                            relations,
-                                            flags,
+                                            context,
+                                            flags_setter,
                                             cascade_level)
         }
     }
 
     /// Adds rules in `rules` that match `element` to the `matching_rules` list.
-    fn get_matching_rules<E, V>(element: &E,
-                                parent_bf: Option<&BloomFilter>,
-                                rules: &[Rule],
-                                matching_rules: &mut V,
-                                relations: &mut StyleRelations,
-                                flags: &mut ElementSelectorFlags,
-                                cascade_level: CascadeLevel)
-        where E: Element<Impl=SelectorImpl>,
-              V: VecLike<ApplicableDeclarationBlock>
+    fn get_matching_rules<E, V, F>(element: &E,
+                                   rules: &[Rule],
+                                   matching_rules: &mut V,
+                                   context: &mut MatchingContext,
+                                   flags_setter: &mut F,
+                                   cascade_level: CascadeLevel)
+        where E: TElement,
+              V: VecLike<ApplicableDeclarationBlock>,
+              F: FnMut(&E, ElementSelectorFlags),
     {
-        for rule in rules.iter() {
-            let guard = rule.style_rule.read();
-            let block = guard.block.read();
-            let any_declaration_for_importance = if cascade_level.is_important() {
-                block.any_important()
-            } else {
-                block.any_normal()
-            };
-            if any_declaration_for_importance &&
-               matches_complex_selector(&*rule.selector, element, parent_bf,
-                                        relations, flags) {
+        for rule in rules {
+            if matches_selector(&rule.selector.inner,
+                                element,
+                                context,
+                                flags_setter) {
                 matching_rules.push(
                     rule.to_applicable_declaration_block(cascade_level));
             }
         }
     }
+}
 
-    /// Insert rule into the correct hash.
-    /// Order in which to try: id_hash, class_hash, local_name_hash, other_rules.
-    pub fn insert(&mut self, rule: Rule) {
-        self.empty = false;
+impl<T> SelectorMap<T> where T: Clone + Borrow<SelectorInner<SelectorImpl>> {
+    /// Inserts into the correct hash, trying id, class, and localname.
+    pub fn insert(&mut self, entry: T) {
+        self.count += 1;
 
-        if let Some(id_name) = SelectorMap::get_id_name(&rule) {
-            find_push(&mut self.id_hash, id_name, rule);
+        if let Some(id_name) = get_id_name(entry.borrow()) {
+            find_push(&mut self.id_hash, id_name, entry);
             return;
         }
 
-        if let Some(class_name) = SelectorMap::get_class_name(&rule) {
-            find_push(&mut self.class_hash, class_name, rule);
+        if let Some(class_name) = get_class_name(entry.borrow()) {
+            find_push(&mut self.class_hash, class_name, entry);
             return;
         }
 
-        if let Some(LocalNameSelector { name, lower_name }) = SelectorMap::get_local_name(&rule) {
-            find_push(&mut self.local_name_hash, name, rule.clone());
-            find_push(&mut self.lower_local_name_hash, lower_name, rule);
+        if let Some(LocalNameSelector { name, lower_name }) = get_local_name(entry.borrow()) {
+            // If the local name in the selector isn't lowercase, insert it into
+            // the rule hash twice. This means that, during lookup, we can always
+            // find the rules based on the local name of the element, regardless
+            // of whether it's an html element in an html document (in which case
+            // we match against lower_name) or not (in which case we match against
+            // name).
+            //
+            // In the case of a non-html-element-in-html-document with a
+            // lowercase localname and a non-lowercase selector, the rulehash
+            // lookup may produce superfluous selectors, but the subsequent
+            // selector matching work will filter them out.
+            if name != lower_name {
+                find_push(&mut self.local_name_hash, lower_name, entry.clone());
+            }
+            find_push(&mut self.local_name_hash, name, entry);
+
             return;
         }
 
-        self.other_rules.push(rule);
+        self.other.push(entry);
     }
 
-    /// Retrieve the first ID name in Rule, or None otherwise.
-    pub fn get_id_name(rule: &Rule) -> Option<Atom> {
-        for ss in &rule.selector.compound_selector {
-            // TODO(pradeep): Implement case-sensitivity based on the
-            // document type and quirks mode.
-            if let SimpleSelector::ID(ref id) = *ss {
-                return Some(id.clone());
+    /// Looks up entries by id, class, local name, and other (in order).
+    ///
+    /// Each entry is passed to the callback, which returns true to continue
+    /// iterating entries, or false to terminate the lookup.
+    ///
+    /// Returns false if the callback ever returns false.
+    ///
+    /// FIXME(bholley) This overlaps with SelectorMap<Rule>::get_all_matching_rules,
+    /// but that function is extremely hot and I'd rather not rearrange it.
+    #[inline]
+    pub fn lookup<E, F>(&self, element: E, f: &mut F) -> bool
+        where E: TElement,
+              F: FnMut(&T) -> bool
+    {
+        // Id.
+        if let Some(id) = element.get_id() {
+            if let Some(v) = self.id_hash.get(&id) {
+                for entry in v.iter() {
+                    if !f(&entry) {
+                        return false;
+                    }
+                }
             }
         }
 
-        None
-    }
+        // Class.
+        let mut done = false;
+        element.each_class(|class| {
+            if !done {
+                if let Some(v) = self.class_hash.get(class) {
+                    for entry in v.iter() {
+                        if !f(&entry) {
+                            done = true;
+                            return;
+                        }
+                    }
+                }
+            }
+        });
+        if done {
+            return false;
+        }
 
-    /// Retrieve the FIRST class name in Rule, or None otherwise.
-    pub fn get_class_name(rule: &Rule) -> Option<Atom> {
-        for ss in &rule.selector.compound_selector {
-            // TODO(pradeep): Implement case-sensitivity based on the
-            // document type and quirks mode.
-            if let SimpleSelector::Class(ref class) = *ss {
-                return Some(class.clone());
+        // Local name.
+        if let Some(v) = self.local_name_hash.get(element.get_local_name()) {
+            for entry in v.iter() {
+                if !f(&entry) {
+                    return false;
+                }
             }
         }
 
-        None
-    }
-
-    /// Retrieve the name if it is a type selector, or None otherwise.
-    pub fn get_local_name(rule: &Rule) -> Option<LocalNameSelector<SelectorImpl>> {
-        for ss in &rule.selector.compound_selector {
-            if let SimpleSelector::LocalName(ref n) = *ss {
-                return Some(LocalNameSelector {
-                    name: n.name.clone(),
-                    lower_name: n.lower_name.clone(),
-                })
+        // Other.
+        for entry in self.other.iter() {
+            if !f(&entry) {
+                return false;
             }
         }
 
-        None
+        true
     }
+
+    /// Performs a normal lookup, and also looks up entries for the passed-in
+    /// id and classes.
+    ///
+    /// Each entry is passed to the callback, which returns true to continue
+    /// iterating entries, or false to terminate the lookup.
+    ///
+    /// Returns false if the callback ever returns false.
+    #[inline]
+    pub fn lookup_with_additional<E, F>(&self,
+                                        element: E,
+                                        additional_id: Option<Atom>,
+                                        additional_classes: &[Atom],
+                                        f: &mut F)
+                                        -> bool
+        where E: TElement,
+              F: FnMut(&T) -> bool
+    {
+        // Do the normal lookup.
+        if !self.lookup(element, f) {
+            return false;
+        }
+
+        // Check the additional id.
+        if let Some(id) = additional_id {
+            if let Some(v) = self.id_hash.get(&id) {
+                for entry in v.iter() {
+                    if !f(&entry) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        // Check the additional classes.
+        for class in additional_classes {
+            if let Some(v) = self.class_hash.get(class) {
+                for entry in v.iter() {
+                    if !f(&entry) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        true
+    }
+}
+
+/// Searches the selector from right to left, beginning to the left of the
+/// ::pseudo-element (if any), and ending at the first combinator.
+///
+/// The first non-None value returned from |f| is returned.
+///
+/// Effectively, pseudo-elements are ignored, given only state pseudo-classes
+/// may appear before them.
+fn find_from_right<F, R>(selector: &SelectorInner<SelectorImpl>, mut f: F) -> Option<R>
+    where F: FnMut(&Component<SelectorImpl>) -> Option<R>,
+{
+    let mut iter = selector.complex.iter();
+    for ss in &mut iter {
+        if let Some(r) = f(ss) {
+            return Some(r)
+        }
+    }
+
+    if iter.next_sequence() == Some(Combinator::PseudoElement) {
+        for ss in &mut iter {
+            if let Some(r) = f(ss) {
+                return Some(r)
+            }
+        }
+    }
+
+    None
+}
+
+/// Retrieve the first ID name in the selector, or None otherwise.
+pub fn get_id_name(selector: &SelectorInner<SelectorImpl>) -> Option<Atom> {
+    find_from_right(selector, |ss| {
+        // TODO(pradeep): Implement case-sensitivity based on the
+        // document type and quirks mode.
+        if let Component::ID(ref id) = *ss {
+            return Some(id.clone());
+        }
+        None
+    })
+}
+
+/// Retrieve the FIRST class name in the selector, or None otherwise.
+pub fn get_class_name(selector: &SelectorInner<SelectorImpl>) -> Option<Atom> {
+    find_from_right(selector, |ss| {
+        // TODO(pradeep): Implement case-sensitivity based on the
+        // document type and quirks mode.
+        if let Component::Class(ref class) = *ss {
+            return Some(class.clone());
+        }
+        None
+    })
+}
+
+/// Retrieve the name if it is a type selector, or None otherwise.
+pub fn get_local_name(selector: &SelectorInner<SelectorImpl>)
+                      -> Option<LocalNameSelector<SelectorImpl>> {
+    find_from_right(selector, |ss| {
+        if let Component::LocalName(ref n) = *ss {
+            return Some(LocalNameSelector {
+                name: n.name.clone(),
+                lower_name: n.lower_name.clone(),
+            })
+        }
+        None
+    })
 }
 
 /// A rule, that wraps a style rule, but represents a single selector of the
@@ -1127,33 +1641,50 @@ impl SelectorMap {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug)]
 pub struct Rule {
-    /// The selector this struct represents.
-    /// This is an Arc because Rule will essentially be cloned for every element
-    /// that it matches. Selector contains an owned vector (through
-    /// ComplexSelector) and we want to avoid the allocation.
-    ///
-    /// FIXME(emilio): We should be able to get rid of it and just use the style
-    /// rule? This predates the time where the rule was in `selectors`, and the
-    /// style rule was a generic parameter to it. It's not trivial though, due
-    /// to the specificity.
+    /// The selector this struct represents. We store this and the
+    /// any_{important,normal} booleans inline in the Rule to avoid
+    /// pointer-chasing when gathering applicable declarations, which
+    /// can ruin performance when there are a lot of rules.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    pub selector: Arc<ComplexSelector<SelectorImpl>>,
+    pub selector: Selector<SelectorImpl>,
     /// The actual style rule.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    pub style_rule: Arc<RwLock<StyleRule>>,
+    pub style_rule: Arc<Locked<StyleRule>>,
     /// The source order this style rule appears in.
     pub source_order: usize,
-    /// The specificity of the rule this selector represents.
-    pub specificity: u32,
+}
+
+impl Borrow<SelectorInner<SelectorImpl>> for Rule {
+    fn borrow(&self) -> &SelectorInner<SelectorImpl> {
+        &self.selector.inner
+    }
 }
 
 impl Rule {
+    /// Returns the specificity of the rule.
+    pub fn specificity(&self) -> u32 {
+        self.selector.specificity()
+    }
+
     fn to_applicable_declaration_block(&self, level: CascadeLevel) -> ApplicableDeclarationBlock {
         ApplicableDeclarationBlock {
             source: StyleSource::Style(self.style_rule.clone()),
             level: level,
             source_order: self.source_order,
-            specificity: self.specificity,
+            specificity: self.specificity(),
+        }
+    }
+
+    /// Creates a new Rule.
+    pub fn new(selector: Selector<SelectorImpl>,
+               style_rule: Arc<Locked<StyleRule>>,
+               source_order: usize)
+               -> Self
+    {
+        Rule {
+            selector: selector,
+            style_rule: style_rule,
+            source_order: source_order,
         }
     }
 }
@@ -1181,7 +1712,7 @@ impl ApplicableDeclarationBlock {
     /// Constructs an applicable declaration block from a given property
     /// declaration block and importance.
     #[inline]
-    pub fn from_declarations(declarations: Arc<RwLock<PropertyDeclarationBlock>>,
+    pub fn from_declarations(declarations: Arc<Locked<PropertyDeclarationBlock>>,
                              level: CascadeLevel)
                              -> Self {
         ApplicableDeclarationBlock {
@@ -1194,7 +1725,8 @@ impl ApplicableDeclarationBlock {
 }
 
 #[inline]
-fn find_push<Str: Eq + Hash>(map: &mut FnvHashMap<Str, Vec<Rule>>, key: Str,
-                             value: Rule) {
+fn find_push<Str: Eq + Hash, V>(map: &mut FnvHashMap<Str, Vec<V>>,
+                                key: Str,
+                                value: V) {
     map.entry(key).or_insert_with(Vec::new).push(value)
 }

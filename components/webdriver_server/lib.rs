@@ -7,6 +7,7 @@
 
 #![deny(unsafe_code)]
 
+extern crate base64;
 extern crate cookie as cookie_rs;
 extern crate euclid;
 extern crate hyper;
@@ -31,10 +32,9 @@ use hyper::method::Method::{self, Post};
 use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use keys::keycodes_to_keys;
-use msg::constellation_msg::{FrameId, PipelineId, TraversalDirection};
+use msg::constellation_msg::{BrowsingContextId, PipelineId, TraversalDirection};
 use net_traits::image::base::PixelFormat;
 use regex::Captures;
-use rustc_serialize::base64::{CharacterSet, Config, Newline, ToBase64};
 use rustc_serialize::json::{Json, ToJson};
 use script_traits::{ConstellationMsg, LoadData, WebDriverCommandMsg};
 use script_traits::webdriver_msg::{LoadStatus, WebDriverCookieError, WebDriverFrameId};
@@ -69,16 +69,22 @@ fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
 
 fn cookie_msg_to_cookie(cookie: cookie_rs::Cookie) -> Cookie {
     Cookie {
-        name: cookie.name,
-        value: cookie.value,
-        path: cookie.path.map(Nullable::Value).unwrap_or(Nullable::Null),
-        domain: cookie.domain.map(Nullable::Value).unwrap_or(Nullable::Null),
-        expiry: match cookie.expires {
+        name: cookie.name().to_owned(),
+        value: cookie.value().to_owned(),
+        path: match cookie.path() {
+            Some(path) => Nullable::Value(path.to_string()),
+            None => Nullable::Null
+        },
+        domain: match cookie.domain() {
+            Some(domain) => Nullable::Value(domain.to_string()),
+            None => Nullable::Null
+        },
+        expiry: match cookie.expires() {
             Some(time) => Nullable::Value(Date::new(time.to_timespec().sec as u64)),
             None => Nullable::Null
         },
-        secure: cookie.secure,
-        httpOnly: cookie.httponly,
+        secure: cookie.secure(),
+        httpOnly: cookie.http_only(),
     }
 }
 
@@ -89,36 +95,36 @@ pub fn start_server(port: u16, constellation_chan: Sender<ConstellationMsg>) {
         match server::start(SocketAddr::V4(address), handler, &extension_routes()) {
             Ok(listening) => info!("WebDriver server listening on {}", listening.socket),
             Err(_) => panic!("Unable to start WebDriver HTTPD server"),
-         }
+        }
     }).expect("Thread spawning failed");
 }
 
 /// Represents the current WebDriver session and holds relevant session state.
 struct WebDriverSession {
     id: Uuid,
-    frame_id: Option<FrameId>,
+    browsing_context_id: Option<BrowsingContextId>,
 
     /// Time to wait for injected scripts to run before interrupting them.  A [`None`] value
     /// specifies that the script should run indefinitely.
-    script_timeout: Option<u32>,
+    script_timeout: Option<u64>,
 
     /// Time to wait for a page to finish loading upon navigation.
-    load_timeout: u32,
+    load_timeout: Option<u64>,
 
     /// Time to wait for the element location strategy when retrieving elements, and when
     /// waiting for an element to become interactable.
-    implicit_wait_timeout: u32,
+    implicit_wait_timeout: Option<u64>,
 }
 
 impl WebDriverSession {
     pub fn new() -> WebDriverSession {
         WebDriverSession {
             id: Uuid::new_v4(),
-            frame_id: None,
+            browsing_context_id: None,
 
             script_timeout: Some(30_000),
-            load_timeout: 300_000,
-            implicit_wait_timeout: 0,
+            load_timeout: Some(300_000),
+            implicit_wait_timeout: Some(0),
         }
     }
 }
@@ -258,7 +264,7 @@ impl Handler {
         }
     }
 
-    fn pipeline_id(&self, frame_id: Option<FrameId>) -> WebDriverResult<PipelineId> {
+    fn pipeline_id(&self, frame_id: Option<BrowsingContextId>) -> WebDriverResult<PipelineId> {
         let interval = 20;
         let iterations = 30_000 / interval;
         let (sender, receiver) = ipc::channel().unwrap();
@@ -282,7 +288,7 @@ impl Handler {
     }
 
     fn frame_pipeline(&self) -> WebDriverResult<PipelineId> {
-        self.pipeline_id(self.session.as_ref().and_then(|session| session.frame_id))
+        self.pipeline_id(self.session.as_ref().and_then(|session| session.browsing_context_id))
     }
 
     fn session(&self) -> WebDriverResult<&WebDriverSession> {
@@ -293,10 +299,10 @@ impl Handler {
         }
     }
 
-    fn set_frame_id(&mut self, frame_id: Option<FrameId>) -> WebDriverResult<()> {
+    fn set_browsing_context_id(&mut self, browsing_context_id: Option<BrowsingContextId>) -> WebDriverResult<()> {
         match self.session {
             Some(ref mut x) => {
-                x.frame_id = frame_id;
+                x.browsing_context_id = browsing_context_id;
                 Ok(())
             },
             None => Err(WebDriverError::new(ErrorStatus::SessionNotCreated,
@@ -351,7 +357,7 @@ impl Handler {
 
         let (sender, receiver) = ipc::channel().unwrap();
 
-        let load_data = LoadData::new(url, None, None);
+        let load_data = LoadData::new(url, Some(pipeline_id), None, None);
         let cmd_msg = WebDriverCommandMsg::LoadUrl(pipeline_id, load_data, sender.clone());
         self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
 
@@ -369,7 +375,7 @@ impl Handler {
         let timeout = session.load_timeout;
         let timeout_chan = sender;
         thread::spawn(move || {
-            thread::sleep(Duration::from_millis(timeout as u64));
+            thread::sleep(Duration::from_millis(timeout.unwrap()));
             let _ = timeout_chan.send(LoadStatus::LoadTimeout);
         });
 
@@ -519,7 +525,7 @@ impl Handler {
         use webdriver::common::FrameId;
         let frame_id = match parameters.id {
             FrameId::Null => {
-                self.set_frame_id(None).unwrap();
+                self.set_browsing_context_id(None).unwrap();
                 return Ok(WebDriverResponse::Void)
             },
             FrameId::Short(ref x) => WebDriverFrameId::Short(*x),
@@ -541,16 +547,16 @@ impl Handler {
         }
         let pipeline_id = try!(self.frame_pipeline());
         let (sender, receiver) = ipc::channel().unwrap();
-        let cmd = WebDriverScriptCommand::GetFrameId(frame_id, sender);
+        let cmd = WebDriverScriptCommand::GetPipelineId(frame_id, sender);
         {
             self.constellation_chan.send(ConstellationMsg::WebDriverCommand(
                 WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd))).unwrap();
         }
 
-        let frame = match receiver.recv().unwrap() {
+        let context_id = match receiver.recv().unwrap() {
             Ok(Some(pipeline_id)) => {
                 let (sender, receiver) = ipc::channel().unwrap();
-                self.constellation_chan.send(ConstellationMsg::GetFrame(pipeline_id, sender)).unwrap();
+                self.constellation_chan.send(ConstellationMsg::GetBrowsingContext(pipeline_id, sender)).unwrap();
                 receiver.recv().unwrap()
             },
             Ok(None) => None,
@@ -560,7 +566,7 @@ impl Handler {
             }
         };
 
-        self.set_frame_id(frame).unwrap();
+        self.set_browsing_context_id(context_id).unwrap();
         Ok(WebDriverResponse::Void)
     }
 
@@ -671,17 +677,19 @@ impl Handler {
 
     fn handle_add_cookie(&self, params: &AddCookieParameters) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
-        let cookie = cookie_rs::Cookie {
-            name: params.name.to_owned(),
-            value: params.value.to_owned(),
-            path: params.path.to_owned().into(),
-            domain: params.domain.to_owned().into(),
-            expires: None,
-            max_age: None,
-            secure: params.secure,
-            httponly: params.httpOnly,
-            custom: BTreeMap::new()
+
+        let cookie = cookie_rs::Cookie::build(params.name.to_owned(), params.value.to_owned())
+            .secure(params.secure)
+            .http_only(params.httpOnly);
+        let cookie = match params.domain {
+            Nullable::Value(ref domain) => cookie.domain(domain.to_owned()),
+            _ => cookie,
         };
+        let cookie = match params.path {
+            Nullable::Value(ref path) => cookie.path(path.to_owned()).finish(),
+            _ => cookie.finish(),
+        };
+
         try!(self.frame_script_command(WebDriverScriptCommand::AddCookie(cookie, sender)));
         match receiver.recv().unwrap() {
             Ok(_) => Ok(WebDriverResponse::Void),
@@ -701,17 +709,10 @@ impl Handler {
             .as_mut()
             .ok_or(WebDriverError::new(ErrorStatus::SessionNotCreated, "")));
 
-        // TODO: this conversion is crazy, spec should limit these to u32 and check upstream
-        let value = parameters.ms as u32;
-        match &parameters.type_[..] {
-            "script" => session.script_timeout = Some(value),
-            "page load" => session.load_timeout = value,
-            "implicit" => session.implicit_wait_timeout = value,
-            x => {
-                return Err(WebDriverError::new(ErrorStatus::InvalidSelector,
-                                               format!("Unknown timeout type {}", x)))
-            }
-        }
+        session.script_timeout = parameters.script;
+        session.load_timeout = parameters.page_load;
+        session.implicit_wait_timeout = parameters.implicit;
+
         Ok(WebDriverResponse::Void)
     }
 
@@ -831,13 +832,7 @@ impl Handler {
         let mut png_data = Vec::new();
         DynamicImage::ImageRgb8(rgb).save(&mut png_data, ImageFormat::PNG).unwrap();
 
-        let config = Config {
-            char_set: CharacterSet::Standard,
-            newline: Newline::LF,
-            pad: true,
-            line_length: None
-        };
-        let encoded = png_data.to_base64(config);
+        let encoded = base64::encode(&png_data);
         Ok(WebDriverResponse::Generic(ValueResponse::new(encoded.to_json())))
     }
 

@@ -118,7 +118,7 @@ test(function() {
                         test = test;
 
                         /* Wait until the preflight cache age is old (and thus cleared) */
-                        setTimeout(test.step_func(function(){
+                        test.step_timeout(() => {
                             dothing(request_url,
                             'third', true, function() {
                                 test = test;
@@ -129,7 +129,7 @@ test(function() {
                                     test.done()
                                 })
                             })
-                        }), 1500)
+                        }, 1500)
                     })
                 })
             })

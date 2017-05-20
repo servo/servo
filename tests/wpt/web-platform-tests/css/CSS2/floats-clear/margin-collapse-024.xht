@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Margin collapsing - in-flow block-level margin adjoining child's margin</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins" />
+        <link rel="match" href="margin-collapse-024-ref.xht" />
+
+        <meta name="flags" content="ahem image" />
+        <meta name="assert" content="When an in-flow block-level element (#div3) is adjoining its in-flow block-level child's top margin and the child has no top border, no top padding or no clearance applied to it, then such top margins collapse." />
+        <style type="text/css">
+            div
+            {
+                font: 20px/1em Ahem;
+                width: 5em;
+            }
+            #div1
+            {
+                background: url('support/margin-collapse-2em-space.png');
+                height: 4em;
+            }
+            #div2, #div4
+            {
+                background: green;
+                height: 1em;
+            }
+            #div3
+            {
+                background: red;
+            }
+            #div3, #div4
+            {
+                margin-top: 2em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red.</p>
+        <div id="div1">
+            <div id="div2"></div>
+            <div id="div3">
+                <div id="div4"></div>
+            </div>
+        </div>
+    </body>
+</html>

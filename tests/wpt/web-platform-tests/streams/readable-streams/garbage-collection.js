@@ -70,6 +70,6 @@ promise_test(() => {
   return delay(50).then(() => assert_throws(new TypeError(), () => rs.getReader(),
     'old reader should still be locking the stream even after garbage collection'));
 
-}, 'Garbage-collecting a ReadableStreamReader should not unlock its stream');
+}, 'Garbage-collecting a ReadableStreamDefaultReader should not unlock its stream');
 
 done();

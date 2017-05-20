@@ -4,18 +4,20 @@
 
 #![deny(unsafe_code)]
 #![feature(box_syntax)]
-#![feature(mpsc_select)]
+#![feature(step_by)]
 
+extern crate base64;
 extern crate brotli;
-extern crate content_blocker as content_blocker_parser;
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
 extern crate flate2;
 extern crate hyper;
+extern crate hyper_openssl;
 extern crate hyper_serde;
 extern crate immeta;
 extern crate ipc_channel;
-#[macro_use] extern crate lazy_static;
+#[macro_use]
+extern crate lazy_static;
 #[macro_use] extern crate log;
 #[macro_use] #[no_link] extern crate matches;
 #[macro_use]
@@ -24,16 +26,14 @@ extern crate mime_guess;
 extern crate msg;
 extern crate net_traits;
 extern crate openssl;
-extern crate openssl_verify;
+extern crate parse_hosts;
 extern crate profile_traits;
-extern crate rustc_serialize;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
 extern crate servo_config;
 extern crate servo_url;
-extern crate threadpool;
 extern crate time;
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 extern crate tinyfiledialogs;
@@ -45,15 +45,15 @@ extern crate websocket;
 
 mod blob_loader;
 mod chrome_loader;
-mod connector;
-mod content_blocker;
+pub mod connector;
 pub mod cookie;
 pub mod cookie_storage;
 mod data_loader;
 pub mod filemanager_thread;
+mod hosts;
 pub mod hsts;
 mod http_loader;
-pub mod image_cache_thread;
+pub mod image_cache;
 pub mod mime_classifier;
 pub mod resource_thread;
 mod storage_thread;
@@ -69,4 +69,5 @@ pub mod fetch {
 pub mod test {
     pub use chrome_loader::resolve_chrome_url;
     pub use http_loader::HttpState;
+    pub use hosts::{replace_host_table, parse_hostsfile};
 }

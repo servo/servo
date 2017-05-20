@@ -1,0 +1,51 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: Scrolling Backgrounds</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/background/block/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background" />
+  <meta name="flags" content="image interact scroll"/>
+  <style type="text/css">
+   div {
+     background: red -5px -5px url(support/bordered-rectangle.png) scroll;
+     border: 10px dotted silver;
+     overflow: auto; height: 90px; width: 190px;
+     white-space: pre; font-size: 16px;
+   }
+   ul { color: navy; }
+  </style>
+ </head>
+ <body>
+
+  <ul>
+   <li>There should be a gray dotted box below.</li>
+   <li>There should be a teal border underneath the dotted box.</li>
+   <li>The box should be painted aqua inside the border.</li>
+   <li>There should be no red.</li>
+   <li>As you scroll the element through the numbers, the aqua, teal, and gray colors should not change position.</li>
+  </ul>
+
+  <div>   1
+   2
+   3
+   4
+   5
+   6
+   7
+   8
+   9
+  10
+  11
+  12
+  13
+  14
+  15
+  16
+  17
+  18
+  19
+  20  </div>
+ </body>
+</html>

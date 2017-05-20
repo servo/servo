@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Counter-increment with an identifier and a number set to negative zero, ident -0, grouped thirty-two times</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#propdef-counter-increment" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#counters" />
+        <link rel="match" href="../reference/pass-if-number-0-30px.xht"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'counter-increment' property with an identifier and an integer value set to negative zero, grouped thirty-two times." />
+        <style type="text/css">
+            div
+            {
+                counter-increment: ident -0 ident -0 ident -0 ident -0 ident -0 ident -0 ident -0 ident -0 ident -0 ident -0 ident -0 ident -0 ident -0 ident -0 ident -0 ident -0 ident -0 ident -0 ident -0 ident -0 ident -0 ident -0 ident -0 ident -0 ident -0 ident -0 ident -0 ident -0 ident -0 ident -0 ident -0 ident -0;
+            }
+            div:before
+            {
+                font-size: 30px;
+                content: counter(ident);
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the number '0' appears below.</p>
+        <div></div>
+    </body>
+</html>

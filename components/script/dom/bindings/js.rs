@@ -31,8 +31,7 @@ use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::trace_reflector;
 use dom::node::Node;
 use heapsize::HeapSizeOf;
-use js::jsapi::{Heap, JSObject, JSTracer};
-use js::jsval::JSVal;
+use js::jsapi::{JSObject, JSTracer};
 use script_layout_interface::TrustedNodeAddress;
 use script_thread::STACK_ROOTS;
 use std::cell::UnsafeCell;
@@ -101,7 +100,7 @@ impl<T: DomObject> Deref for JS<T> {
         debug_assert!(thread_state::get().is_script());
         // We can only have &JS<T> from a rooted thing, so it's safe to deref
         // it to &T.
-        unsafe { &**self.ptr }
+        unsafe { &*self.ptr.get() }
     }
 }
 
@@ -116,7 +115,7 @@ unsafe impl<T: DomObject> JSTraceable for JS<T> {
 
         trace_reflector(trc,
                         trace_info,
-                        (**self.ptr).reflector());
+                        (*self.ptr.get()).reflector());
     }
 }
 
@@ -134,7 +133,7 @@ impl<T: Castable> LayoutJS<T> {
               T: DerivedFrom<U>
     {
         debug_assert!(thread_state::get().is_layout());
-        let ptr: *const T = *self.ptr;
+        let ptr: *const T = self.ptr.get();
         LayoutJS {
             ptr: unsafe { NonZero::new(ptr as *const U) },
         }
@@ -147,7 +146,7 @@ impl<T: Castable> LayoutJS<T> {
         debug_assert!(thread_state::get().is_layout());
         unsafe {
             if (*self.unsafe_get()).is::<U>() {
-                let ptr: *const T = *self.ptr;
+                let ptr: *const T = self.ptr.get();
                 Some(LayoutJS {
                     ptr: NonZero::new(ptr as *const U),
                 })
@@ -162,7 +161,7 @@ impl<T: DomObject> LayoutJS<T> {
     /// Get the reflector.
     pub unsafe fn get_jsobject(&self) -> *mut JSObject {
         debug_assert!(thread_state::get().is_layout());
-        (**self.ptr).reflector().get_jsobject().get()
+        (*self.ptr.get()).reflector().get_jsobject().get()
     }
 }
 
@@ -228,49 +227,6 @@ impl LayoutJS<Node> {
         }
     }
 }
-
-/// A holder that provides interior mutability for GC-managed JSVals.
-///
-/// Must be used in place of traditional interior mutability to ensure proper
-/// GC barriers are enforced.
-#[must_root]
-#[derive(JSTraceable)]
-pub struct MutHeapJSVal {
-    val: UnsafeCell<Heap<JSVal>>,
-}
-
-impl MutHeapJSVal {
-    /// Create a new `MutHeapJSVal`.
-    pub fn new() -> MutHeapJSVal {
-        debug_assert!(thread_state::get().is_script());
-        MutHeapJSVal {
-            val: UnsafeCell::new(Heap::default()),
-        }
-    }
-
-    /// Set this `MutHeapJSVal` to the given value, calling write barriers as
-    /// appropriate.
-    pub fn set(&self, val: JSVal) {
-        debug_assert!(thread_state::get().is_script());
-        unsafe {
-            let cell = self.val.get();
-            (*cell).set(val);
-        }
-    }
-
-    /// Get the value in this `MutHeapJSVal`, calling read barriers as appropriate.
-    pub fn get(&self) -> JSVal {
-        debug_assert!(thread_state::get().is_script());
-        unsafe { (*self.val.get()).get() }
-    }
-
-    /// Get the underlying unsafe pointer to the contained value.
-    pub unsafe fn get_unsafe(&self) -> *mut JSVal {
-        debug_assert!(thread_state::get().is_script());
-        (*self.val.get()).get_unsafe()
-    }
-}
-
 
 /// A holder that provides interior mutability for GC-managed values such as
 /// `JS<T>`.  Essentially a `Cell<JS<T>>`, but safer.
@@ -441,7 +397,7 @@ impl<T: DomObject> LayoutJS<T> {
     /// this is unsafe is what necessitates the layout wrappers.)
     pub unsafe fn unsafe_get(&self) -> *const T {
         debug_assert!(thread_state::get().is_layout());
-        *self.ptr
+        self.ptr.get()
     }
 
     /// Returns a reference to the interior of this JS object. This method is
@@ -449,7 +405,7 @@ impl<T: DomObject> LayoutJS<T> {
     /// mutate DOM nodes.
     pub fn get_for_script(&self) -> &T {
         debug_assert!(thread_state::get().is_script());
-        unsafe { &**self.ptr }
+        unsafe { &*self.ptr.get() }
     }
 }
 
@@ -588,7 +544,7 @@ impl<T: DomObject> Root<T> {
         debug_assert!(thread_state::get().is_script());
         STACK_ROOTS.with(|ref collection| {
             let RootCollectionPtr(collection) = collection.get().unwrap();
-            unsafe { (*collection).root(&*(**unrooted).reflector()) }
+            unsafe { (*collection).root(&*(*unrooted.get()).reflector()) }
             Root {
                 ptr: unrooted,
                 root_list: collection,
@@ -598,7 +554,7 @@ impl<T: DomObject> Root<T> {
 
     /// Generate a new root from a reference
     pub fn from_ref(unrooted: &T) -> Root<T> {
-        Root::new(unsafe { NonZero::new(&*unrooted) })
+        Root::new(unsafe { NonZero::new(unrooted) })
     }
 }
 
@@ -613,7 +569,7 @@ impl<T: DomObject> Deref for Root<T> {
     type Target = T;
     fn deref(&self) -> &T {
         debug_assert!(thread_state::get().is_script());
-        unsafe { &**self.ptr.deref() }
+        unsafe { &*self.ptr.get() }
     }
 }
 

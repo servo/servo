@@ -42,6 +42,9 @@ pub struct WebGLTexture {
     /// Face count can only be 1 or 6
     face_count: Cell<u8>,
     base_mipmap_level: u32,
+    // Store information for min and mag filters
+    min_filter: Cell<Option<u32>>,
+    mag_filter: Cell<Option<u32>>,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     renderer: IpcSender<CanvasMsg>,
 }
@@ -57,6 +60,8 @@ impl WebGLTexture {
             is_deleted: Cell::new(false),
             face_count: Cell::new(0),
             base_mipmap_level: 0,
+            min_filter: Cell::new(None),
+            mag_filter: Cell::new(None),
             image_info_array: DOMRefCell::new([ImageInfo::new(); MAX_LEVEL_COUNT * MAX_FACE_COUNT]),
             renderer: renderer,
         }
@@ -209,6 +214,7 @@ impl WebGLTexture {
                     constants::LINEAR_MIPMAP_NEAREST |
                     constants::NEAREST_MIPMAP_LINEAR |
                     constants::LINEAR_MIPMAP_LINEAR => {
+                        self.min_filter.set(Some(int_value as u32));
                         self.renderer
                             .send(CanvasMsg::WebGL(WebGLCommand::TexParameteri(target, name, int_value)))
                             .unwrap();
@@ -222,6 +228,7 @@ impl WebGLTexture {
                 match int_value as u32 {
                     constants::NEAREST |
                     constants::LINEAR => {
+                        self.mag_filter.set(Some(int_value as u32));
                         self.renderer
                             .send(CanvasMsg::WebGL(WebGLCommand::TexParameteri(target, name, int_value)))
                             .unwrap();
@@ -249,6 +256,19 @@ impl WebGLTexture {
 
             _ => Err(WebGLError::InvalidEnum),
         }
+    }
+
+    pub fn is_using_linear_filtering(&self) -> bool {
+        let filters = [self.min_filter.get(), self.mag_filter.get()];
+        filters.iter().any(|filter| {
+            match *filter {
+                Some(constants::LINEAR) |
+                Some(constants::NEAREST_MIPMAP_LINEAR) |
+                Some(constants::LINEAR_MIPMAP_NEAREST) |
+                Some(constants::LINEAR_MIPMAP_LINEAR) => true,
+                _=> false
+            }
+        })
     }
 
     pub fn populate_mip_chain(&self, first_level: u32, last_level: u32) -> WebGLResult<()> {
@@ -408,7 +428,7 @@ impl ImageInfo {
         self.depth.is_power_of_two()
     }
 
-    fn is_initialized(&self) -> bool {
+    pub fn is_initialized(&self) -> bool {
         self.is_initialized
     }
 

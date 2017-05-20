@@ -1,0 +1,16 @@
+<!doctype html>
+<head>
+	<title>CSS Reftest Ellipsis Reference</title>
+	<style>
+		div { font-size:10px; }
+		span { font-family:Ahem; font-size:30px; }
+	</style>
+</head>
+<body>
+	<p>PREREQUISITE: The font used must have a glyph for the U+2026 character.</p>
+	<p>Test passes if there is <strong>ellipsis</strong> after a black square.</p>
+	<div>
+		<span>A</span>&#x2026;
+	</div>
+</body>
+</html>

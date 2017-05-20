@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>multicol-rule-000</title>
+<link rel="author" title="Hakon Wium Lie" href="mailto:howcome@opera.com"/>
+<link rel="match" href="reftest/multicol-rule-000.xht"/>
+<style type="text/css">
+div {
+  font: 10px/10px Ahem;
+  margin: 1em 0;
+  color: black;
+  width: 602px;
+}
+
+div.multicol { 
+  columns: 3;
+  column-gap: 1px;
+  column-rule: 1px solid lime;
+}
+
+div.ref span { 
+  border-left: 1px solid lime;
+  border-right: 1px solid lime;
+}
+</style>
+</head>
+<body>
+The two horizontal bars below should be identical.
+<div class="multicol">01234567890123456789<br/>01234567890123456789<br/>01234567890123456789</div>
+<div class="ref">01234567890123456789<span>01234567890123456789</span>01234567890123456789</div>
+</body>
+</html>

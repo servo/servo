@@ -1,0 +1,109 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: Background Position: bottom right and the scrolling viewport</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/background/bg-pos-3.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins"/>
+  <meta content="image scroll" name="flags" />
+<style type="text/css">
+   html { background: bottom right url(support/swatch-orange.png) scroll white no-repeat; color: black; }
+   html, body { margin: 0; border: 0; padding: 0; }
+   p { margin-top: 0; margin-bottom: 2em; }
+   .inner { line-height: 3em; letter-spacing: 3em; color: silver; white-space: normal; margin: -5em; }
+   .platform { background: yellow; height: 3em; margin-right: 5em; }
+   .inner { background: bottom right url(support/swatch-blue.png) no-repeat; }
+</style>
+
+</head>
+<body>
+<p>Scroll to the bottom right of the page, where there should be
+a single blue square tucked precisely into the corner. There must
+also be a single orange square sitting on top of the large yellow box,
+aligned exactly at its rightmost edge.</p>
+
+<div class="inner">this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text this is filler text this is filler text this is filler text this
+is filler text this is filler text this is filler text this is filler
+text<div class="platform"></div><p></p>
+</div></body>
+</html>

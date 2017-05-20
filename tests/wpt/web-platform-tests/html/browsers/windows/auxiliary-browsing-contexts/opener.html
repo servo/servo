@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Auxiliary Browing Contexts: window.opener</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/PrefixedLocalStorage.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+    var prefixedLocalStorage;
+    setup (() => {
+      window.name = 'topWindow';
+      prefixedLocalStorage = new PrefixedLocalStorageTest();
+    });
+
+    function cleanup () {
+      prefixedLocalStorage.setItem('closeAll', 'true');
+      prefixedLocalStorage.clear();
+    }
+
+    function testOpener (t, target) {
+      t.add_cleanup(cleanup);
+      window.addEventListener('message', t.step_func(e => {
+        if (e.data.name === target) {
+          // The opener IDL attribute...must return the WindowProxy object of the
+          // browsing context from which the current browsing context was created
+          assert_equals(e.data.openerName, 'topWindow');
+          // Auxiliary browsing contexts are always top-level browsing contexts
+          assert_equals(e.data.isTop, true);
+          t.done();
+        }
+      }));
+    }
+
+    async_test(t => {
+      var target = 'windowOpenerA';
+      var a      = document.createElement('a');
+      a.href     = prefixedLocalStorage.url('resources/message-window-opener.html');
+      a.target   = target;
+      document.body.appendChild(a);
+      testOpener(t, target);
+      a.click();
+    }, 'Newly-created auxiliary browsing context should report `window.opener`');
+
+    async_test(t => {
+      var target = 'windowOpenerB';
+      testOpener(t, target);
+      window.open(prefixedLocalStorage.url('resources/message-window-opener.html'),
+        target);
+    }, 'Browsing context created with `window.open` should report `window.opener`');
+    </script>
+  </body>
+</html>

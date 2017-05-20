@@ -3,28 +3,36 @@
 <script src=/resources/testharnessreport.js></script>
 <div id=log></div>
 <script>
-  var fails = ["", "?type=", "?type=x", "?type=x/x"],
-      passes = ["?type=text/css", "?type=text/css;blah"]
+  var fails = [null, "", "x", "x/x"],
+      passes = ["text/css", "text/css;charset=utf-8", "text/css;blah"]
 
-  fails.forEach(function(urlpart) {
+  const get_url = (mime) => {
+    let url = "resources/css.py"
+    if (mime != null) {
+        url += "?type=" + encodeURIComponent(mime)
+    }
+    return url
+  }
+
+  fails.forEach(function(mime) {
     async_test(function(t) {
       var link = document.createElement("link")
       link.rel = "stylesheet"
       link.onerror = t.step_func_done(function(){})
       link.onload = t.unreached_func("Unexpected load event")
-      link.href = "resources/css.py" + urlpart
+      link.href = get_url(mime)
       document.body.appendChild(link)
-    }, "URL query: " + urlpart)
+    }, "URL query: " + mime)
   })
 
-  passes.forEach(function(urlpart) {
+  passes.forEach(function(mime) {
     async_test(function(t) {
       var link = document.createElement("link")
       link.rel = "stylesheet"
       link.onerror = t.unreached_func("Unexpected error event")
       link.onload = t.step_func_done(function(){})
-      link.href = "resources/css.py" + urlpart
+      link.href = get_url(mime)
       document.body.appendChild(link)
-    }, "URL query: " + urlpart)
+    }, "URL query: " + mime)
   })
 </script>

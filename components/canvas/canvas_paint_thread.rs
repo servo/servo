@@ -18,6 +18,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use num_traits::ToPrimitive;
 use std::borrow::ToOwned;
 use std::mem;
+use std::sync::Arc;
 use std::thread;
 use webrender_traits;
 
@@ -60,7 +61,7 @@ pub struct CanvasPaintThread<'a> {
     state: CanvasPaintState<'a>,
     saved_states: Vec<CanvasPaintState<'a>>,
     webrender_api: webrender_traits::RenderApi,
-    webrender_image_key: webrender_traits::ImageKey,
+    image_key: Option<webrender_traits::ImageKey>,
 }
 
 #[derive(Clone)]
@@ -106,14 +107,13 @@ impl<'a> CanvasPaintThread<'a> {
         let draw_target = CanvasPaintThread::create(size);
         let path_builder = draw_target.create_path_builder();
         let webrender_api = webrender_api_sender.create_api();
-        let webrender_image_key = webrender_api.alloc_image();
         CanvasPaintThread {
             drawtarget: draw_target,
             path_builder: path_builder,
             state: CanvasPaintState::new(antialias),
             saved_states: vec![],
             webrender_api: webrender_api,
-            webrender_image_key: webrender_image_key,
+            image_key: None,
         }
     }
 
@@ -558,18 +558,35 @@ impl<'a> CanvasPaintThread<'a> {
     fn send_data(&mut self, chan: IpcSender<CanvasData>) {
         self.drawtarget.snapshot().get_data_surface().with_data(|element| {
             let size = self.drawtarget.get_size();
-            self.webrender_api.update_image(self.webrender_image_key,
-                                            webrender_traits::ImageDescriptor {
-                                                width: size.width as u32,
-                                                height: size.height as u32,
-                                                stride: None,
-                                                format: webrender_traits::ImageFormat::RGBA8,
-                                                is_opaque: false,
-                                            },
-                                            element.into());
+
+            let descriptor = webrender_traits::ImageDescriptor {
+                width: size.width as u32,
+                height: size.height as u32,
+                stride: None,
+                format: webrender_traits::ImageFormat::RGBA8,
+                offset: 0,
+                is_opaque: false,
+            };
+            let data = webrender_traits::ImageData::Raw(Arc::new(element.into()));
+
+            match self.image_key {
+                Some(image_key) => {
+                    self.webrender_api.update_image(image_key,
+                                                    descriptor,
+                                                    data,
+                                                    None);
+                }
+                None => {
+                    self.image_key = Some(self.webrender_api.generate_image_key());
+                    self.webrender_api.add_image(self.image_key.unwrap(),
+                                                 descriptor,
+                                                 data,
+                                                 None);
+                }
+            }
 
             let data = CanvasImageData {
-                image_key: self.webrender_image_key,
+                image_key: self.image_key.unwrap(),
             };
             chan.send(CanvasData::Image(data)).unwrap();
         })
@@ -726,7 +743,9 @@ impl<'a> CanvasPaintThread<'a> {
 
 impl<'a> Drop for CanvasPaintThread<'a> {
     fn drop(&mut self) {
-        self.webrender_api.delete_image(self.webrender_image_key);
+        if let Some(image_key) = self.image_key {
+            self.webrender_api.delete_image(image_key);
+        }
     }
 }
 
@@ -745,7 +764,7 @@ fn crop_image(image_data: Vec<u8>,
     // (consecutive elements in a pixel row of the image are contiguous in memory)
     let stride = image_size.width * 4;
     let image_bytes_length = image_size.height * image_size.width * 4;
-    let crop_area_bytes_length = crop_rect.size.height * crop_rect.size.height * 4;
+    let crop_area_bytes_length = crop_rect.size.height * crop_rect.size.width * 4;
     // If the image size is less or equal than the crop area we do nothing
     if image_bytes_length <= crop_area_bytes_length {
         return image_data;

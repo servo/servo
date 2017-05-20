@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Visibility 'collapse' on non-table row or column elements</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#visibility" />
+        <link rel="match" href="../reference/no-red-on-blank-page-ref.xht"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'visibility' property set to 'collapse' acts like 'hidden' when applied to non-table row or column elements." />
+        <style type="text/css">
+            div
+            {
+                visibility: collapse;
+                color: red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div>This test fails if this text is visible on the page.</div>
+    </body>
+</html>

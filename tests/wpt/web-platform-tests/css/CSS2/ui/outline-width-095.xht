@@ -1,0 +1,61 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Outline-width set to 'inherit'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#propdef-outline-width" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#dynamic-outlines" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'outline-width' property supports a value of 'inherit' and gets its computed value from its parent." />
+        <style type="text/css">
+            #parent
+            {
+                margin: 5em 0 0 1em;
+                position: relative;
+            }
+            #abs
+            {
+                border: 1em solid white;
+                position: absolute;
+                top: -2em;
+                left: -1em;
+                height: 4em;
+                width: 22em;
+            }
+            div div
+            {
+                width: 20em;
+            }
+            #div1
+            {
+                margin-left: 1em;
+                outline-color: invert;
+                outline-style: solid;
+                outline-width: 1em;
+            }
+            #div1 div
+            {
+                outline-color: orange;
+                outline-style: solid;
+                outline-width: inherit;
+                height: 2em;
+            }
+            #div2
+            {
+                border: solid blue 1em;
+                margin-top: 3em;
+                height: 2em;
+            }
+        </style>
+    </head>
+    <body>
+    <p>Test passes if there the two boxes are the same size and the bottom box is blue and the top box is blue or black.</p>
+        <div id="parent">
+            <div id="abs"></div>
+            <div id="div1">
+                <div>Filler Text</div>
+            </div>
+            <div id="div2">Filler Text</div>
+        </div>
+    </body>
+</html>

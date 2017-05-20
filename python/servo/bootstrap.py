@@ -5,17 +5,50 @@
 from __future__ import absolute_import, print_function
 
 from distutils.spawn import find_executable
+from distutils.version import StrictVersion
 import json
 import os
 import platform
 import shutil
 import subprocess
+from subprocess import PIPE
 
 import servo.packages as packages
 from servo.util import extract, download_file, host_triple
 
 
+def run_as_root(command):
+    if os.geteuid() != 0:
+        command.insert(0, 'sudo')
+    return subprocess.call(command)
+
+
+def install_salt_dependencies(context, force):
+    install = False
+    if context.distro == 'Ubuntu':
+        pkgs = ['build-essential', 'libssl-dev', 'libffi-dev', 'python-dev']
+        command = ['apt-get', 'install']
+        if subprocess.call(['dpkg', '-s'] + pkgs, stdout=PIPE, stderr=PIPE) != 0:
+            install = True
+    elif context.distro in ['CentOS', 'CentOS Linux', 'Fedora']:
+        installed_pkgs = str(subprocess.check_output(['rpm', '-qa'])).replace('\n', '|')
+        pkgs = ['gcc', 'libffi-devel', 'python-devel', 'openssl-devel']
+        for p in pkgs:
+            command = ['dnf', 'install']
+            if "|{}".format(p) not in installed_pkgs:
+                install = True
+                break
+
+    if install:
+        if force:
+            command.append('-y')
+        print("Installing missing Salt dependencies...")
+        run_as_root(command + pkgs)
+
+
 def salt(context, force=False):
+    # Ensure Salt dependencies are installed
+    install_salt_dependencies(context, force)
     # Ensure Salt is installed in the virtualenv
     # It's not instaled globally because it's a large, non-required dependency,
     # and the installation fails on Windows
@@ -23,8 +56,8 @@ def salt(context, force=False):
     reqs_path = os.path.join(context.topdir, 'python', 'requirements-salt.txt')
     process = subprocess.Popen(
         ["pip", "install", "-q", "-I", "-r", reqs_path],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
+        stdout=PIPE,
+        stderr=PIPE
     )
     process.wait()
     if process.returncode:
@@ -45,18 +78,28 @@ def salt(context, force=False):
     # Hence, dynamically generate the config with an appropriate `root_dir`
     # and serialize it as JSON (which is valid YAML).
     config = {
-        'fileserver_backend': ['git'],
-        'gitfs_env_whitelist': 'base',
-        'gitfs_provider': 'gitpython',
-        'gitfs_remotes': [
-            'https://github.com/servo/saltfs.git',
-        ],
         'hash_type': 'sha384',
         'master': 'localhost',
         'root_dir': salt_root,
         'state_output': 'changes',
         'state_tabular': True,
     }
+    if 'SERVO_SALTFS_ROOT' in os.environ:
+        config.update({
+            'fileserver_backend': ['roots'],
+            'file_roots': {
+                'base': [os.path.abspath(os.environ['SERVO_SALTFS_ROOT'])],
+            },
+        })
+    else:
+        config.update({
+            'fileserver_backend': ['git'],
+            'gitfs_env_whitelist': 'base',
+            'gitfs_provider': 'gitpython',
+            'gitfs_remotes': [
+                'https://github.com/servo/saltfs.git',
+            ],
+        })
 
     if not os.path.exists(config_dir):
         os.makedirs(config_dir, mode=0o700)
@@ -86,7 +129,6 @@ def salt(context, force=False):
             pillar_file.write(json.dumps(pillar[filename]) + '\n')
 
     cmd = [
-        'sudo',
         # sudo escapes from the venv, need to use full path
         find_executable('salt-call'),
         '--local',
@@ -106,7 +148,7 @@ def salt(context, force=False):
         # the actual highstate.
         # Hence `--retcode-passthrough` is not helpful in dry-run mode,
         # so only detect failures of the actual salt-call binary itself.
-        retcode = subprocess.call(cmd + ['test=True'])
+        retcode = run_as_root(cmd + ['test=True'])
         if retcode != 0:
             print('Something went wrong while bootstrapping')
             return retcode
@@ -120,7 +162,7 @@ def salt(context, force=False):
         print('')
 
     print('Running Salt bootstrap')
-    retcode = subprocess.call(cmd + ['--retcode-passthrough'])
+    retcode = run_as_root(cmd + ['--retcode-passthrough'])
     if retcode == 0:
         print('Salt bootstrapping complete')
     else:
@@ -128,44 +170,11 @@ def salt(context, force=False):
     return retcode
 
 
-def windows_gnu(context, force=False):
-    '''Bootstrapper for msys2 based environments for building in Windows.'''
-
-    if not find_executable('pacman'):
-        print(
-            'The Windows GNU bootstrapper only works with msys2 with pacman. '
-            'Get msys2 at http://msys2.github.io/'
-        )
-        return 1
-
-    # Ensure repositories are up to date
-    command = ['pacman', '--sync', '--refresh']
-    subprocess.check_call(command)
-
-    # Install packages
-    command = ['pacman', '--sync', '--needed']
-    if force:
-        command.append('--noconfirm')
-    subprocess.check_call(command + list(packages.WINDOWS_GNU))
-
-    # Downgrade GCC to 5.4.0-1
-    gcc_pkgs = ["gcc", "gcc-ada", "gcc-fortran", "gcc-libgfortran", "gcc-libs", "gcc-objc"]
-    gcc_version = "5.4.0-1"
-    mingw_url = "http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-{}-{}-any.pkg.tar.xz"
-    gcc_list = [mingw_url.format(gcc, gcc_version) for gcc in gcc_pkgs]
-
-    # Note: `--upgrade` also does downgrades
-    downgrade_command = ['pacman', '--upgrade']
-    if force:
-        downgrade_command.append('--noconfirm')
-    subprocess.check_call(downgrade_command + gcc_list)
-
-
 def windows_msvc(context, force=False):
     '''Bootstrapper for MSVC building on Windows.'''
 
     deps_dir = os.path.join(context.sharedir, "msvc-dependencies")
-    deps_url = "https://servo-rust.s3.amazonaws.com/msvc-deps/"
+    deps_url = "https://servo-deps.s3.amazonaws.com/msvc-deps/"
 
     def version(package):
         return packages.WINDOWS_MSVC[package]
@@ -173,10 +182,19 @@ def windows_msvc(context, force=False):
     def package_dir(package):
         return os.path.join(deps_dir, package, version(package))
 
+    def check_cmake(version):
+        cmake_path = find_executable("cmake")
+        if cmake_path:
+            cmake = subprocess.Popen([cmake_path, "--version"], stdout=PIPE)
+            cmake_version = cmake.stdout.read().splitlines()[0].replace("cmake version ", "")
+            if StrictVersion(cmake_version) >= StrictVersion(version):
+                return True
+        return False
+
     to_install = {}
     for package in packages.WINDOWS_MSVC:
         # Don't install CMake if it already exists in PATH
-        if package == "cmake" and find_executable(package):
+        if package == "cmake" and check_cmake(version("cmake")):
             continue
 
         if not os.path.isdir(package_dir(package)):
@@ -213,13 +231,18 @@ def bootstrap(context, force=False):
 
     bootstrapper = None
 
-    if "windows-gnu" in host_triple():
-        bootstrapper = windows_gnu
-    elif "windows-msvc" in host_triple():
+    if "windows-msvc" in host_triple():
         bootstrapper = windows_msvc
     elif "linux-gnu" in host_triple():
         distro, version, _ = platform.linux_distribution()
-        if distro == 'Ubuntu' and version == '14.04':
+        if distro.lower() in [
+            'centos',
+            'centos linux',
+            'debian',
+            'fedora',
+            'ubuntu',
+        ]:
+            context.distro = distro
             bootstrapper = salt
 
     if bootstrapper is None:

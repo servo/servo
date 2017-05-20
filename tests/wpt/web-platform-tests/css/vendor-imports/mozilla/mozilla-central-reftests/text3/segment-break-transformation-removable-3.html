@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text 4.1.2. Segment Break Transformation Rules</title>
+<link rel="author" title="Chun-Min (Jeremy) Chen" href="mailto:jeremychen@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#line-break-transform">
+<link rel="stylesheet" type="text/css" href="support/ahem.css">
+<link rel="match" href="segment-break-transformation-removable-ref.html">
+<meta name="assert" content="Test checks that a sequence which consists of a collapsible segment break
+surrounded by multiple white spaces should be removed correctly,
+if the character immediately before/after the sequence is the zero-width space character (U+200B),
+or both the character before/after the sequence is F, W, or H (not A), and neither side is Hangul.">
+<style> p { line-height: 1; font-family: ahem; } </style>
+</head>
+<body>
+<div>Test passes if there is <b>no</b> white space between 2nd and 3rd CJK character.
+<!--Some[WS][WS][LF][WS][WS]Chinese-->
+<p>&#x4e00;&#x4e9b;&#x0020;&#x0020;&#x000a;&#x0020;&#x0020;&#x4e2d;&#x6587;</p>
+<!--Some[ZWSP][WS][WS][LF][WS][WS]Chinese-->
+<p>&#x4e00;&#x4e9b;&#x200b;&#x0020;&#x0020;&#x000a;&#x0020;&#x0020;&#x4e2d;&#x6587;</p>
+<!--Some[WS][WS][LF][WS][WS][ZWSP]Chinese-->
+<p>&#x4e00;&#x4e9b;&#x0020;&#x0020;&#x000a;&#x0020;&#x0020;&#x200b;&#x4e2d;&#x6587;</p>
+<!--Some[ZWSP][WS][WS][LF][WS][WS]Hangul-->
+<p>&#x4e00;&#x4e9b;&#x200b;&#x0020;&#x0020;&#x000a;&#x0020;&#x0020;&#xc5b8;&#xbb38;</p>
+</div>
+</body>
+</html>

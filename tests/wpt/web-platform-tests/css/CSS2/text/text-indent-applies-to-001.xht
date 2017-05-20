@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Text-indent application on a 'display: inline' element</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#propdef-text-indent" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#indentation-prop" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'text-indent' property is not applied to 'display: inline' elements." />
+        <style type="text/css">
+            div
+            {
+                font: 16px/1em Ahem;
+            }
+            #div1
+            {
+                display: inline;
+                text-indent: 10em;
+            }
+            #div2
+            {
+                background: blue;
+                height: 1em;
+                width: 5em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the black box below is directly above the blue box. (Note that the two boxes do not need to be touching.)</p>
+        <div id="div1">XXXXX</div>
+        <div id="div2"></div>
+    </body>
+</html>

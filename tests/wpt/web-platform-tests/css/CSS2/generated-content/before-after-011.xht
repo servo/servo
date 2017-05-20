@@ -1,0 +1,35 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS table model and generated content: Basics</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/table/generated-content/001.xml" type="application/xhtml+xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#content" />
+  <link rel="match" href="before-after-011-ref.xht" />
+
+  <style type="text/css">
+   .table { display: table; border-spacing: 0; background: red; color: green; }
+   .row { display: table-row; }
+   .cell, .row.test:before, .row.test:after { display: table-cell; background: white; border: solid white; }
+   .row.test:before { content: "P"; }
+   .row.test:after { content: "S"; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if the word <strong>PASS appear twice</strong> and if there is no red.</p>
+  <div class="table">
+    <div class="row">
+     <div class="cell">P</div>
+     <div class="cell">A</div>
+     <div class="cell">S</div>
+     <div class="cell">S</div>
+    </div>
+    <div class="row test">
+     <!--<div class="cell">P</div>-->
+     <div class="cell">A</div>
+     <div class="cell">S</div>
+     <!--<div class="cell">S</div>-->
+    </div>
+  </div>
+ </body>
+</html>

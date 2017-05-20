@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Text-indent with 'direction' set to 'rtl'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#indentation-prop" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The 'text-indent' property on an element with 'direction: rtl' indents from the right instead of left." />
+        <style type="text/css">
+            #div1
+            {
+                direction: rtl;
+                font-family: Ahem;
+                line-height: 1em;
+                text-indent: 5em;
+            }
+            #div2
+            {
+                background: blue;
+                height: 1em;
+                float: right;
+                margin-right: 5em;
+                width: 5em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the black box below is directly above the blue box.</p>
+        <div id="div1">XXXXX</div>
+        <div id="div2"></div>
+    </body>
+</html>

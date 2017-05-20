@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Positioning in paged media: Initial containing block</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/absolute/paged/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-intro" />
+  <meta name="flags" content="paged"/>
+  <style type="text/css">
+   div { page-break-after: always; }
+   h1 { position: absolute; top: 2em; left: 1em; font: 6em monospace; }
+  </style>
+ </head>
+ <body>
+  <p>Display this in a paged media. The word PASS should display below
+  (followed by three mostly-blank pages).</p>
+  <div><h1>P</h1></div>
+  <div><h1>&nbsp;A</h1>Blank Page 1</div>
+  <div><h1>&nbsp;&nbsp;S</h1>Blank Page 2</div>
+  <div><h1>&nbsp;&nbsp;&nbsp;S</h1>Blank Page 3</div>
+ </body>
+</html>

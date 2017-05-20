@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<style>
+		article {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+			width: 240px;
+			background: red;
+		}
+		.flow {
+			color: blue;
+		}
+		.float {
+			float: left;
+			color: green;
+			border: 10px solid lightgreen;
+		}
+
+		.region {
+			overflow: hidden;
+			border: 10px solid lightblue;
+		}
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if you see two squares flush side by side.<br>
+			The left square should be green with a light green border and the right one should be
+			blue with a light blue border.<br>
+			You should see no red.
+		</p>
+
+		<article>
+			<div class="float">
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx<br>
+				xxxxx
+			</div>
+			<div class="region">
+				<div class="flow">
+					xxxxx<br>
+					xxxxx<br>
+					xxxxx<br>
+					xxxxx<br>
+					xxxxx
+				</div>
+			</div>
+		</article>
+	</body>
+</html>

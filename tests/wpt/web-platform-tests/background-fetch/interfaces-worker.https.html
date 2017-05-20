@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Background Fetch API IDL tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+
+<h1>idlharness test</h1>
+<p>This test validates the WebIDL included in the Background Fetch API (Service Workers).</p>
+
+<script>
+'use strict';
+
+service_worker_test('interfaces.worker.js', 'Service Worker-scoped tests.');
+</script>

@@ -8,13 +8,12 @@ use app_units::{Au, AU_PER_PX};
 use ordered_float::NotNaN;
 use std::fmt;
 use style_traits::ToCss;
+use style_traits::values::specified::AllowedLengthType;
 use super::{Number, ToComputedValue, Context};
 use values::{Auto, CSSFloat, Either, ExtremumLength, None_, Normal, specified};
-use values::specified::length::{FontRelativeLength, ViewportPercentageLength};
+use values::specified::length::{AbsoluteLength, FontBaseSize, FontRelativeLength, ViewportPercentageLength};
 
-pub use cssparser::Color as CSSColor;
-pub use super::image::{EndingShape as GradientShape, Gradient, GradientKind, Image};
-pub use super::image::{LengthOrKeyword, LengthOrPercentageOrKeyword};
+pub use super::image::Image;
 pub use values::specified::{Angle, BorderStyle, Time, UrlOrNone};
 
 impl ToComputedValue for specified::NoCalcLength {
@@ -23,19 +22,23 @@ impl ToComputedValue for specified::NoCalcLength {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Au {
         match *self {
-            specified::NoCalcLength::Absolute(length) => length,
+            specified::NoCalcLength::Absolute(length) =>
+                length.to_computed_value(context),
             specified::NoCalcLength::FontRelative(length) =>
-                length.to_computed_value(context, /* use inherited */ false),
+                length.to_computed_value(context, FontBaseSize::CurrentStyle),
             specified::NoCalcLength::ViewportPercentage(length) =>
                 length.to_computed_value(context.viewport_size()),
             specified::NoCalcLength::ServoCharacterWidth(length) =>
-                length.to_computed_value(context.style().get_font().clone_font_size())
+                length.to_computed_value(context.style().get_font().clone_font_size()),
+            #[cfg(feature = "gecko")]
+            specified::NoCalcLength::Physical(length) =>
+                length.to_computed_value(context),
         }
     }
 
     #[inline]
     fn from_computed_value(computed: &Au) -> Self {
-        specified::NoCalcLength::Absolute(*computed)
+        specified::NoCalcLength::Absolute(AbsoluteLength::Px(computed.to_f32_px()))
     }
 }
 
@@ -46,7 +49,7 @@ impl ToComputedValue for specified::Length {
     fn to_computed_value(&self, context: &Context) -> Au {
         match *self {
             specified::Length::NoCalc(l) => l.to_computed_value(context),
-            specified::Length::Calc(ref calc, range) => range.clamp(calc.to_computed_value(context).length()),
+            specified::Length::Calc(ref calc) => calc.to_computed_value(context).length(),
         }
     }
 
@@ -60,14 +63,43 @@ impl ToComputedValue for specified::Length {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub struct CalcLengthOrPercentage {
-    pub length: Au,
+    pub clamping_mode: AllowedLengthType,
+    length: Au,
     pub percentage: Option<CSSFloat>,
 }
 
 impl CalcLengthOrPercentage {
+    /// Returns a new `CalcLengthOrPercentage`.
     #[inline]
-    #[allow(missing_docs)]
+    pub fn new(length: Au, percentage: Option<CSSFloat>) -> Self {
+        Self::with_clamping_mode(length, percentage, AllowedLengthType::All)
+    }
+
+    /// Returns a new `CalcLengthOrPercentage` with a specific clamping mode.
+    #[inline]
+    pub fn with_clamping_mode(length: Au,
+                              percentage: Option<CSSFloat>,
+                              clamping_mode: AllowedLengthType)
+                              -> Self {
+        Self {
+            clamping_mode: clamping_mode,
+            length: length,
+            percentage: percentage,
+        }
+    }
+
+    /// Returns this `calc()` as a `<length>`.
+    ///
+    /// Panics in debug mode if a percentage is present in the expression.
+    #[inline]
     pub fn length(&self) -> Au {
+        debug_assert!(self.percentage.is_none());
+        self.clamping_mode.clamp(self.length)
+    }
+
+    /// Returns the `<length>` component of this `calc()`, unclamped.
+    #[inline]
+    pub fn unclamped_length(&self) -> Au {
         self.length
     }
 
@@ -76,22 +108,28 @@ impl CalcLengthOrPercentage {
     pub fn percentage(&self) -> CSSFloat {
         self.percentage.unwrap_or(0.)
     }
+
+    /// If there are special rules for computing percentages in a value (e.g. the height property),
+    /// they apply whenever a calc() expression contains percentages.
+    pub fn to_used_value(&self, container_len: Option<Au>) -> Option<Au> {
+        match (container_len, self.percentage) {
+            (Some(len), Some(percent)) => {
+                Some(self.clamping_mode.clamp(self.length + len.scale_by(percent)))
+            },
+            (_, None) => Some(self.length()),
+            _ => None,
+        }
+    }
 }
 
 impl From<LengthOrPercentage> for CalcLengthOrPercentage {
     fn from(len: LengthOrPercentage) -> CalcLengthOrPercentage {
         match len {
             LengthOrPercentage::Percentage(this) => {
-                CalcLengthOrPercentage {
-                    length: Au(0),
-                    percentage: Some(this),
-                }
+                CalcLengthOrPercentage::new(Au(0), Some(this))
             }
             LengthOrPercentage::Length(this) => {
-                CalcLengthOrPercentage {
-                    length: this,
-                    percentage: None,
-                }
+                CalcLengthOrPercentage::new(this, None)
             }
             LengthOrPercentage::Calc(this) => {
                 this
@@ -104,16 +142,10 @@ impl From<LengthOrPercentageOrAuto> for Option<CalcLengthOrPercentage> {
     fn from(len: LengthOrPercentageOrAuto) -> Option<CalcLengthOrPercentage> {
         match len {
             LengthOrPercentageOrAuto::Percentage(this) => {
-                Some(CalcLengthOrPercentage {
-                    length: Au(0),
-                    percentage: Some(this),
-                })
+                Some(CalcLengthOrPercentage::new(Au(0), Some(this)))
             }
             LengthOrPercentageOrAuto::Length(this) => {
-                Some(CalcLengthOrPercentage {
-                    length: this,
-                    percentage: None,
-                })
+                Some(CalcLengthOrPercentage::new(this, None))
             }
             LengthOrPercentageOrAuto::Calc(this) => {
                 Some(this)
@@ -159,11 +191,12 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
                      self.ex.map(FontRelativeLength::Ex),
                      self.rem.map(FontRelativeLength::Rem)] {
             if let Some(val) = *val {
-                length += val.to_computed_value(context, /* use inherited */ false);
+                length += val.to_computed_value(context, FontBaseSize::CurrentStyle);
             }
         }
 
         CalcLengthOrPercentage {
+            clamping_mode: self.clamping_mode,
             length: length,
             percentage: self.percentage,
         }
@@ -172,6 +205,7 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
     #[inline]
     fn from_computed_value(computed: &CalcLengthOrPercentage) -> Self {
         specified::CalcLengthOrPercentage {
+            clamping_mode: computed.clamping_mode,
             absolute: Some(computed.length),
             percentage: computed.percentage,
             ..Default::default()
@@ -208,8 +242,9 @@ impl LengthOrPercentage {
     pub fn is_definitely_zero(&self) -> bool {
         use self::LengthOrPercentage::*;
         match *self {
-            Length(Au(0)) | Percentage(0.0) => true,
-            Length(_) | Percentage(_) | Calc(_) => false
+            Length(Au(0)) => true,
+            Percentage(p) => p == 0.0,
+            Length(_) | Calc(_) => false
         }
     }
 
@@ -219,7 +254,18 @@ impl LengthOrPercentage {
         match *self {
             Length(l) => (l, NotNaN::new(0.0).unwrap()),
             Percentage(p) => (Au(0), NotNaN::new(p).unwrap()),
-            Calc(c) => (c.length(), NotNaN::new(c.percentage()).unwrap()),
+            Calc(c) => (c.unclamped_length(), NotNaN::new(c.percentage()).unwrap()),
+        }
+    }
+
+    /// Returns the used value.
+    pub fn to_used_value(&self, containing_length: Au) -> Au {
+        match *self {
+            LengthOrPercentage::Length(length) => length,
+            LengthOrPercentage::Percentage(p) => containing_length.scale_by(p),
+            LengthOrPercentage::Calc(ref calc) => {
+                calc.to_used_value(Some(containing_length)).unwrap()
+            },
         }
     }
 }
@@ -299,8 +345,9 @@ impl LengthOrPercentageOrAuto {
     pub fn is_definitely_zero(&self) -> bool {
         use self::LengthOrPercentageOrAuto::*;
         match *self {
-            Length(Au(0)) | Percentage(0.0) => true,
-            Length(_) | Percentage(_) | Calc(_) | Auto => false
+            Length(Au(0)) => true,
+            Percentage(p) => p == 0.0,
+            Length(_) | Calc(_) | Auto => false
         }
     }
 }
@@ -465,6 +512,18 @@ pub enum LengthOrPercentageOrNone {
     Percentage(CSSFloat),
     Calc(CalcLengthOrPercentage),
     None,
+}
+
+impl LengthOrPercentageOrNone {
+    /// Returns the used value.
+    pub fn to_used_value(&self, containing_length: Au) -> Option<Au> {
+        match *self {
+            LengthOrPercentageOrNone::None => None,
+            LengthOrPercentageOrNone::Length(length) => Some(length),
+            LengthOrPercentageOrNone::Percentage(percent) => Some(containing_length.scale_by(percent)),
+            LengthOrPercentageOrNone::Calc(ref calc) => calc.to_used_value(Some(containing_length)),
+        }
+    }
 }
 
 impl fmt::Debug for LengthOrPercentageOrNone {

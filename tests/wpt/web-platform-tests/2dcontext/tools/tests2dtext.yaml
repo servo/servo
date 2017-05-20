@@ -418,7 +418,7 @@
 # Hanging baseline      is 0.500em above alphabetic
 
 # WebKit doesn't block onload on font loads, so we try to make it a bit more reliable
-# by waiting with setTimeout after load before drawing
+# by waiting with step_timeout after load before drawing
 
 - name: 2d.text.draw.fill.maxWidth.fontface
   desc: fillText works on @font-face fonts
@@ -429,7 +429,7 @@
   code: |
     ctx.font = '50px CanvasTest';
     deferTest();
-    setTimeout(t.step_func_done(function () {
+    step_timeout(t.step_func_done(function () {
         ctx.fillStyle = '#0f0';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#f00';
@@ -450,7 +450,7 @@
   code: |
     ctx.font = '50px CanvasTest';
     deferTest();
-    setTimeout(t.step_func_done(function () {
+    step_timeout(t.step_func_done(function () {
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -470,7 +470,7 @@
   code: |
     ctx.font = '67px CanvasTest';
     deferTest();
-    setTimeout(t.step_func_done(function () {
+    step_timeout(t.step_func_done(function () {
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -496,7 +496,7 @@
     ctx.fillStyle = '#0f0';
     ctx.fillText('AA', 0, 50);
     deferTest();
-    setTimeout(t.step_func_done(function () {
+    step_timeout(t.step_func_done(function () {
         ctx.fillText('AA', 0, 50);
         @assert pixel 5,5 ==~ 0,255,0,255;
         @assert pixel 95,5 ==~ 0,255,0,255;
@@ -515,7 +515,7 @@
   code: |
     ctx.font = '67px CanvasTest';
     deferTest();
-    setTimeout(t.step_func_done(function () {
+    step_timeout(t.step_func_done(function () {
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -536,7 +536,7 @@
   code: |
     ctx.font = '50px CanvasTest';
     deferTest();
-    setTimeout(t.step_func_done(function () {
+    step_timeout(t.step_func_done(function () {
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -560,7 +560,7 @@
   code: |
     ctx.font = '50px CanvasTest';
     deferTest();
-    setTimeout(t.step_func_done(function () {
+    step_timeout(t.step_func_done(function () {
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -584,7 +584,7 @@
   code: |
     ctx.font = '50px CanvasTest';
     deferTest();
-    setTimeout(t.step_func_done(function () {
+    step_timeout(t.step_func_done(function () {
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -607,7 +607,7 @@
   code: |
     ctx.font = '50px CanvasTest';
     deferTest();
-    setTimeout(t.step_func_done(function () {
+    step_timeout(t.step_func_done(function () {
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -630,7 +630,7 @@
   code: |
     ctx.font = '50px CanvasTest';
     deferTest();
-    setTimeout(t.step_func_done(function () {
+    step_timeout(t.step_func_done(function () {
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -653,7 +653,7 @@
   code: |
     ctx.font = '50px CanvasTest';
     deferTest();
-    setTimeout(t.step_func_done(function () {
+    step_timeout(t.step_func_done(function () {
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -677,7 +677,7 @@
   code: |
     ctx.font = '50px CanvasTest';
     deferTest();
-    setTimeout(t.step_func_done(function () {
+    step_timeout(t.step_func_done(function () {
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -701,7 +701,7 @@
   code: |
     ctx.font = '50px CanvasTest';
     deferTest();
-    setTimeout(t.step_func_done(function () {
+    step_timeout(t.step_func_done(function () {
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -726,7 +726,7 @@
   code: |
     ctx.font = '50px CanvasTest';
     deferTest();
-    setTimeout(t.step_func_done(function () {
+    step_timeout(t.step_func_done(function () {
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -752,7 +752,7 @@
   code: |
     ctx.font = '50px CanvasTest';
     deferTest();
-    setTimeout(t.step_func_done(function () {
+    step_timeout(t.step_func_done(function () {
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -777,7 +777,7 @@
   code: |
     ctx.font = '50px CanvasTest';
     deferTest();
-    setTimeout(t.step_func_done(function () {
+    step_timeout(t.step_func_done(function () {
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -803,7 +803,7 @@
   code: |
     ctx.font = '50px CanvasTest';
     deferTest();
-    setTimeout(t.step_func_done(function () {
+    step_timeout(t.step_func_done(function () {
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -827,7 +827,7 @@
   code: |
     ctx.font = '50px CanvasTest';
     deferTest();
-    setTimeout(t.step_func_done(function () {
+    step_timeout(t.step_func_done(function () {
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -852,7 +852,7 @@
   code: |
     ctx.font = '50px CanvasTest';
     deferTest();
-    setTimeout(t.step_func_done(function () {
+    step_timeout(t.step_func_done(function () {
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -871,7 +871,7 @@
   code: |
     ctx.font = '50px CanvasTest';
     deferTest();
-    setTimeout(t.step_func_done(function () {
+    step_timeout(t.step_func_done(function () {
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -890,7 +890,7 @@
   code: |
     ctx.font = '50px CanvasTest';
     deferTest();
-    setTimeout(t.step_func_done(function () {
+    step_timeout(t.step_func_done(function () {
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -909,7 +909,7 @@
   code: |
     ctx.font = '50px CanvasTest';
     deferTest();
-    setTimeout(t.step_func_done(function () {
+    step_timeout(t.step_func_done(function () {
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -928,7 +928,7 @@
   code: |
     ctx.font = '50px CanvasTest';
     deferTest();
-    setTimeout(t.step_func_done(function () {
+    step_timeout(t.step_func_done(function () {
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -947,7 +947,7 @@
   code: |
     ctx.font = '50px CanvasTest';
     deferTest();
-    setTimeout(t.step_func_done(function () {
+    step_timeout(t.step_func_done(function () {
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -968,7 +968,7 @@
     - CanvasTest
   code: |
     deferTest();
-    setTimeout(t.step_func_done(function () {
+    step_timeout(t.step_func_done(function () {
         ctx.font = '50px CanvasTest';
         @assert ctx.measureText('A').width === 50;
         @assert ctx.measureText('AA').width === 100;
@@ -986,7 +986,7 @@
     - CanvasTest
   code: |
     deferTest();
-    setTimeout(t.step_func_done(function () {
+    step_timeout(t.step_func_done(function () {
         ctx.font = '50px CanvasTest';
         @assert ctx.measureText("").width === 0;
     }), 500);
@@ -999,7 +999,7 @@
     - CanvasTest
   code: |
     deferTest();
-    setTimeout(t.step_func_done(function () {
+    step_timeout(t.step_func_done(function () {
         ctx.font = '50px CanvasTest';
         @assert ctx.measureText('A B').width === 150;
         @assert ctx.measureText('A  B').width === 150; @moz-todo

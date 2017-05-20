@@ -7,14 +7,14 @@ use dom::bindings::codegen::Bindings::PopStateEventBinding;
 use dom::bindings::codegen::Bindings::PopStateEventBinding::PopStateEventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutHeapJSVal, Root};
+use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::RootedTraceableBox;
 use dom::event::Event;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use js::jsapi::{HandleValue, JSContext};
+use js::jsapi::{Heap, HandleValue, JSContext};
 use js::jsval::JSVal;
 use servo_atoms::Atom;
 
@@ -23,14 +23,14 @@ use servo_atoms::Atom;
 pub struct PopStateEvent {
     event: Event,
     #[ignore_heap_size_of = "Defined in rust-mozjs"]
-    state: MutHeapJSVal,
+    state: Heap<JSVal>,
 }
 
 impl PopStateEvent {
     fn new_inherited() -> PopStateEvent {
         PopStateEvent {
             event: Event::new_inherited(),
-            state: MutHeapJSVal::new(),
+            state: Heap::default(),
         }
     }
 

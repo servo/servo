@@ -19,7 +19,7 @@ extern crate euclid;
 extern crate gfx_traits;
 extern crate heapsize;
 #[macro_use] extern crate heapsize_derive;
-#[macro_use] extern crate html5ever_atoms;
+#[macro_use] extern crate html5ever;
 extern crate ipc_channel;
 extern crate libc;
 #[macro_use]
@@ -32,6 +32,7 @@ extern crate script_traits;
 extern crate selectors;
 extern crate servo_url;
 extern crate style;
+extern crate webrender_traits;
 
 pub mod message;
 pub mod reporter;
@@ -43,12 +44,13 @@ use canvas_traits::CanvasMsg;
 use core::nonzero::NonZero;
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
-use net_traits::image_cache_thread::PendingImageId;
+use net_traits::image_cache::PendingImageId;
 use script_traits::UntrustedNodeAddress;
 use servo_url::ServoUrl;
 use std::sync::atomic::AtomicIsize;
 use style::data::ElementData;
 
+#[repr(C)]
 pub struct PartialPersistentLayoutData {
     /// Data that the style system associates with a node. When the
     /// style system is being used standalone, this is all that hangs
@@ -58,6 +60,9 @@ pub struct PartialPersistentLayoutData {
 
     /// Information needed during parallel traversals.
     pub parallel: DomParallelInfo,
+
+    // Required alignment for safe transmutes between PersistentLayoutData and PartialPersistentLayoutData.
+    _align: [u64; 0]
 }
 
 impl PartialPersistentLayoutData {
@@ -65,6 +70,7 @@ impl PartialPersistentLayoutData {
         PartialPersistentLayoutData {
             style_data: ElementData::new(None),
             parallel: DomParallelInfo::new(),
+            _align: [],
         }
     }
 }

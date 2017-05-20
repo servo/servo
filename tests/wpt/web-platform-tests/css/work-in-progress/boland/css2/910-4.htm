@@ -1,0 +1,53 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Fourth Test of Section 9.10 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+#id1 {direction: ltr}
+#id2 {direction: rtl}
+#id3 {direction: inherit}
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Fourth Testable Statement of Sec 9.10 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+4. The "direction" property has possible values of "ltr|rtl|inherit".
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p id="id1" >
+If statement #4 above is passed, then
+this paragraph should be written left to right.
+The rules applied are "#id1 {direction: ltr; }".
+<p id="id2">
+This paragraph should be written right to left (if applicable).
+The rules applied are "#id3 {direction: rtl}".
+<p id="id3">
+This paragraph should have direction of inherit (if applicable).
+The rule applied is "#id3 {direction: inherit}".
+<p>
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

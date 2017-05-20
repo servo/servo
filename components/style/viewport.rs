@@ -10,11 +10,15 @@
 #![deny(missing_docs)]
 
 use app_units::Au;
+use context::QuirksMode;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, parse_important};
 use cssparser::ToCss as ParserToCss;
 use euclid::size::TypedSize2D;
+use font_metrics::get_metrics_provider_for_product;
 use media_queries::Device;
-use parser::{ParserContext, log_css_error};
+use parser::{Parse, ParserContext, log_css_error};
+use properties::StyleBuilder;
+use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::fmt;
@@ -22,6 +26,7 @@ use std::iter::Enumerate;
 use std::str::Chars;
 use style_traits::{PinchZoomFactor, ToCss};
 use style_traits::viewport::{Orientation, UserZoom, ViewportConstraints, Zoom};
+use stylearc::Arc;
 use stylesheets::{Stylesheet, Origin};
 use values::computed::{Context, ToComputedValue};
 use values::specified::{NoCalcLength, LengthOrPercentageOrAuto, ViewportPercentageLength};
@@ -164,10 +169,10 @@ impl FromMeta for ViewportLength {
 }
 
 impl ViewportLength {
-    fn parse(input: &mut Parser) -> Result<ViewportLength, ()> {
-        // we explicitly do not accept 'extend-to-zoom', since it is a UA internal value
-        // for <META> viewport translation
-        LengthOrPercentageOrAuto::parse_non_negative(input).map(ViewportLength::Specified)
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        // we explicitly do not accept 'extend-to-zoom', since it is a UA
+        // internal value for <META> viewport translation
+        LengthOrPercentageOrAuto::parse_non_negative(context, input).map(ViewportLength::Specified)
     }
 }
 
@@ -243,9 +248,9 @@ impl ToCss for ViewportDescriptorDeclaration {
     }
 }
 
-fn parse_shorthand(input: &mut Parser) -> Result<(ViewportLength, ViewportLength), ()> {
-    let min = try!(ViewportLength::parse(input));
-    match input.try(|input| ViewportLength::parse(input)) {
+fn parse_shorthand(context: &ParserContext, input: &mut Parser) -> Result<(ViewportLength, ViewportLength), ()> {
+    let min = try!(ViewportLength::parse(context, input));
+    match input.try(|i| ViewportLength::parse(context, i)) {
         Err(()) => Ok((min.clone(), min)),
         Ok(max) => Ok((min, max))
     }
@@ -261,7 +266,7 @@ impl<'a, 'b> DeclarationParser for ViewportRuleParser<'a, 'b> {
 
     fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<Vec<ViewportDescriptorDeclaration>, ()> {
         macro_rules! declaration {
-            ($declaration:ident($parse:path)) => {
+            ($declaration:ident($parse:expr)) => {
                 declaration!($declaration(value: try!($parse(input)),
                                           important: input.try(parse_important).is_ok()))
             };
@@ -274,11 +279,11 @@ impl<'a, 'b> DeclarationParser for ViewportRuleParser<'a, 'b> {
         }
 
         macro_rules! ok {
-            ($declaration:ident($parse:path)) => {
+            ($declaration:ident($parse:expr)) => {
                 Ok(vec![declaration!($declaration($parse))])
             };
             (shorthand -> [$min:ident, $max:ident]) => {{
-                let shorthand = try!(parse_shorthand(input));
+                let shorthand = try!(parse_shorthand(self.context, input));
                 let important = input.try(parse_important).is_ok();
 
                 Ok(vec![declaration!($min(value: shorthand.0, important: important)),
@@ -286,33 +291,18 @@ impl<'a, 'b> DeclarationParser for ViewportRuleParser<'a, 'b> {
             }}
         }
 
-        match name {
-            n if n.eq_ignore_ascii_case("min-width") =>
-                ok!(MinWidth(ViewportLength::parse)),
-            n if n.eq_ignore_ascii_case("max-width") =>
-                ok!(MaxWidth(ViewportLength::parse)),
-            n if n.eq_ignore_ascii_case("width") =>
-                ok!(shorthand -> [MinWidth, MaxWidth]),
-
-            n if n.eq_ignore_ascii_case("min-height") =>
-                ok!(MinHeight(ViewportLength::parse)),
-            n if n.eq_ignore_ascii_case("max-height") =>
-                ok!(MaxHeight(ViewportLength::parse)),
-            n if n.eq_ignore_ascii_case("height") =>
-                ok!(shorthand -> [MinHeight, MaxHeight]),
-
-            n if n.eq_ignore_ascii_case("zoom") =>
-                ok!(Zoom(Zoom::parse)),
-            n if n.eq_ignore_ascii_case("min-zoom") =>
-                ok!(MinZoom(Zoom::parse)),
-            n if n.eq_ignore_ascii_case("max-zoom") =>
-                ok!(MaxZoom(Zoom::parse)),
-
-            n if n.eq_ignore_ascii_case("user-zoom") =>
-                ok!(UserZoom(UserZoom::parse)),
-            n if n.eq_ignore_ascii_case("orientation") =>
-                ok!(Orientation(Orientation::parse)),
-
+        match_ignore_ascii_case! { name,
+            "min-width" => ok!(MinWidth(|i| ViewportLength::parse(self.context, i))),
+            "max-width" => ok!(MaxWidth(|i| ViewportLength::parse(self.context, i))),
+            "width" => ok!(shorthand -> [MinWidth, MaxWidth]),
+            "min-height" => ok!(MinHeight(|i| ViewportLength::parse(self.context, i))),
+            "max-height" => ok!(MaxHeight(|i| ViewportLength::parse(self.context, i))),
+            "height" => ok!(shorthand -> [MinHeight, MaxHeight]),
+            "zoom" => ok!(Zoom(Zoom::parse)),
+            "min-zoom" => ok!(MinZoom(Zoom::parse)),
+            "max-zoom" => ok!(MaxZoom(Zoom::parse)),
+            "user-zoom" => ok!(UserZoom(UserZoom::parse)),
+            "orientation" => ok!(Orientation(Orientation::parse)),
             _ => Err(()),
         }
     }
@@ -339,11 +329,8 @@ fn is_whitespace_separator_or_equals(c: &char) -> bool {
     WHITESPACE.contains(c) || SEPARATOR.contains(c) || *c == '='
 }
 
-impl ViewportRule {
-    #[allow(missing_docs)]
-    pub fn parse(input: &mut Parser, context: &ParserContext)
-                     -> Result<ViewportRule, ()>
-    {
+impl Parse for ViewportRule {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         let parser = ViewportRuleParser { context: context };
 
         let mut cascade = Cascade::new();
@@ -365,7 +352,9 @@ impl ViewportRule {
         }
         Ok(ViewportRule { declarations: cascade.finish() })
     }
+}
 
+impl ViewportRule {
     #[allow(missing_docs)]
     pub fn from_meta(content: &str) -> Option<ViewportRule> {
         let mut declarations = vec![None; VIEWPORT_DESCRIPTOR_VARIANTS];
@@ -504,9 +493,10 @@ impl ViewportRule {
     }
 }
 
-impl ToCss for ViewportRule {
+impl ToCssWithGuard for ViewportRule {
     // Serialization of ViewportRule is not specced.
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, _guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
+    where W: fmt::Write {
         try!(dest.write_str("@viewport { "));
         let mut iter = self.declarations.iter();
         try!(iter.next().unwrap().to_css(dest));
@@ -555,13 +545,15 @@ impl Cascade {
         }
     }
 
-    pub fn from_stylesheets<'a, I>(stylesheets: I, device: &Device) -> Self
-        where I: IntoIterator,
-              I::Item: AsRef<Stylesheet>,
+    pub fn from_stylesheets<'a, I>(stylesheets: I,
+                                   guard: &SharedRwLockReadGuard,
+                                   device: &Device)
+                                   -> Self
+        where I: Iterator<Item = &'a Arc<Stylesheet>>,
     {
         let mut cascade = Self::new();
         for stylesheet in stylesheets {
-            stylesheet.as_ref().effective_viewport_rules(device, |rule| {
+            stylesheet.effective_viewport_rules(device, guard, |rule| {
                 for declaration in &rule.declarations {
                     cascade.add(Cow::Borrowed(declaration))
                 }
@@ -599,13 +591,15 @@ pub trait MaybeNew {
     /// Create a ViewportConstraints from a viewport size and a `@viewport`
     /// rule.
     fn maybe_new(device: &Device,
-                 rule: &ViewportRule)
+                 rule: &ViewportRule,
+                 quirks_mode: QuirksMode)
                  -> Option<ViewportConstraints>;
 }
 
 impl MaybeNew for ViewportConstraints {
     fn maybe_new(device: &Device,
-                 rule: &ViewportRule)
+                 rule: &ViewportRule,
+                 quirks_mode: QuirksMode)
                  -> Option<ViewportConstraints>
     {
         use std::cmp;
@@ -684,14 +678,21 @@ impl MaybeNew for ViewportConstraints {
         // resolved against initial values
         let initial_viewport = device.au_viewport_size();
 
+        let provider = get_metrics_provider_for_product();
+
+        let default_values = device.default_computed_values();
+
         // TODO(emilio): Stop cloning `ComputedValues` around!
         let context = Context {
             is_root_element: false,
-            viewport_size: initial_viewport,
-            inherited_style: device.default_values(),
-            layout_parent_style: device.default_values(),
-            style: device.default_values().clone(),
-            font_metrics_provider: None, // TODO: Should have!
+            device: device,
+            inherited_style: default_values,
+            layout_parent_style: default_values,
+            style: StyleBuilder::for_derived_style(default_values),
+            font_metrics_provider: &provider,
+            cached_system_font: None,
+            in_media_query: false,
+            quirks_mode: quirks_mode,
         };
 
         // DEVICE-ADAPT § 9.3 Resolving 'extend-to-zoom'
@@ -717,8 +718,7 @@ impl MaybeNew for ViewportConstraints {
                                 Some(initial_viewport.$dimension.scale_by(value.0)),
                             LengthOrPercentageOrAuto::Auto => None,
                             LengthOrPercentageOrAuto::Calc(ref calc) => {
-                                let calc = calc.to_computed_value(&context);
-                                Some(initial_viewport.$dimension.scale_by(calc.percentage()) + calc.length())
+                                calc.to_computed_value(&context).to_used_value(Some(initial_viewport.$dimension))
                             }
                         },
                         ViewportLength::ExtendToZoom => {

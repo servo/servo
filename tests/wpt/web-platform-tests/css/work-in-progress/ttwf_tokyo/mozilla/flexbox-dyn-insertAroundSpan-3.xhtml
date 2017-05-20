@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!--
+     This test verifies that we reconstruct frames as necessary, after content
+     (including whitespace & spans) is dynamically inserted as a child of a
+     flexbox.  (Note that in cases where we know the whitespace is going to be
+     dropped, we don't bother reconstructing frames. This test is to be sure we
+     aren't overzealous with that optimization.)
+-->
+<html xmlns="http://www.w3.org/1999/xhtml"
+      class="reftest-wait">
+  <head>
+    <style>
+      body {
+        font-size: 10px;
+      }
+
+      span.inserted {
+        background: teal; /* To make inserted span elements stand out. */
+      }
+
+      div.flexbox {
+        border: 1px dashed blue;
+        width: 300px;
+        display: flex;
+        justify-content: space-around;
+        margin-bottom: 1px;
+        white-space: pre;
+      }
+    </style>
+    <script>
+      function insertNodeAtPosnInElem(aNodeToInsert, aPosn, aParentId) {
+        var parent = document.getElementById(aParentId);
+        var insertBeforeTarget = parent.firstChild;
+        for (var i = 0; i &lt; aPosn; i++) {
+          insertBeforeTarget = insertBeforeTarget.nextSibling;
+        }
+        parent.insertBefore(aNodeToInsert, insertBeforeTarget);
+      }
+
+      function createSpanElem() {
+        var span = document.createElement("span");
+        span.setAttribute("class", "inserted");
+        span.appendChild(document.createTextNode("[NewSpan]"));
+        return span;
+      }
+
+      function tweak() {
+        // Inserting span, on either side of existing content
+        // --------------------------------------------------
+        insertNodeAtPosnInElem(createSpanElem(), 0, "f0");
+        insertNodeAtPosnInElem(createSpanElem(), 1, "f1");
+
+        // Inserting span and whitespace, before existing content
+        // ------------------------------------------------------
+        insertNodeAtPosnInElem(document.createTextNode("  "), 0, "f2");
+        insertNodeAtPosnInElem(createSpanElem(),              0, "f2");
+
+        insertNodeAtPosnInElem(createSpanElem(),              0, "f3");
+        insertNodeAtPosnInElem(document.createTextNode("  "), 0, "f3");
+
+        // Inserting span and whitespace, after existing content
+        // -----------------------------------------------------
+        insertNodeAtPosnInElem(document.createTextNode("  "), 1, "f4");
+        insertNodeAtPosnInElem(createSpanElem(),              1, "f4");
+
+        insertNodeAtPosnInElem(createSpanElem(),              1, "f5");
+        insertNodeAtPosnInElem(document.createTextNode("  "), 1, "f5");
+
+        // Inserting span and text, before existing content
+        // ------------------------------------------------
+        insertNodeAtPosnInElem(document.createTextNode("[NewText]"), 0, "f6");
+        insertNodeAtPosnInElem(createSpanElem(),                     0, "f6");
+
+        insertNodeAtPosnInElem(createSpanElem(),                     0, "f7");
+        insertNodeAtPosnInElem(document.createTextNode("[NewText]"), 0, "f7");
+
+        // Inserting span and text, after existing content
+        // -----------------------------------------------
+        insertNodeAtPosnInElem(document.createTextNode("[NewText]"), 1, "f8");
+        insertNodeAtPosnInElem(createSpanElem(),                     1, "f8");
+
+        insertNodeAtPosnInElem(createSpanElem(),                     1, "f9");
+        insertNodeAtPosnInElem(document.createTextNode("[NewText]"), 1, "f9");
+
+        document.documentElement.removeAttribute("class");
+      }
+
+      window.addEventListener("MozReftestInvalidate", tweak, false);
+    </script>
+  </head>
+  <body>
+    <div class="flexbox" id="f0"><span>[OldText]</span></div>
+    <div class="flexbox" id="f1"><span>[OldText]</span></div>
+    <div class="flexbox" id="f2"><span>[OldText]</span></div>
+    <div class="flexbox" id="f3"><span>[OldText]</span></div>
+    <div class="flexbox" id="f4"><span>[OldText]</span></div>
+    <div class="flexbox" id="f5"><span>[OldText]</span></div>
+    <div class="flexbox" id="f6"><span>[OldText]</span></div>
+    <div class="flexbox" id="f7"><span>[OldText]</span></div>
+    <div class="flexbox" id="f8"><span>[OldText]</span></div>
+    <div class="flexbox" id="f9"><span>[OldText]</span></div>
+  </body>
+</html>

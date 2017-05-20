@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Click event is a MouseEvent</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id='clicktarget'></div>
+    <div id="log"></div>
+    <script type="text/javascript">
+    var clicktarget = document.querySelector("#clicktarget");
+    var t = async_test("synthetic click event is a MouseEvent");
+    clicktarget.addEventListener('click', t.step_func(function (e) {
+      assert_equals(e.constructor, window.MouseEvent);
+      assert_true(e instanceof window.MouseEvent);
+      t.done();
+    }));
+    document.querySelector('#clicktarget').click();
+    </script>
+  </body>
+</html>

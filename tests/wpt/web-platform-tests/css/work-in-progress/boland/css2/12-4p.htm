@@ -1,0 +1,60 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Fourth Test of Section 1.2 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+h3#a1 {color: yellow}
+p.example {color: green}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Fourth Testable Statement of Sec 1.2 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+4. This reference defines what may go into a CSS2 stylesheet and how UAs must
+interpret those styles in order to claim conformance.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p class="example">
+If statement #4 above is passed, then
+this paragraph should have a color of green.
+The rule specified is "p.example {color: green}", where this paragraph
+has class example.
+<p>
+This paragraph should have color of UA-default, unlike above, because it
+doesn't have class example.
+<h3 id="a1">
+This h3 heading ref should be yellow, because it has an id reference
+The rule applied is "h3 id="a1" {color: yellow}".
+</h3>
+<h3>
+This h3 heading should have a color of UA-default, unlike above, because
+there is no id attribute included
+</h3>
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

@@ -234,17 +234,22 @@ impl TextRunScanner {
                     let flush_run = run_info.font_index != font_index ||
                                     run_info.bidi_level != bidi_level ||
                                     !compatible_script;
-                    let flush_mapping = flush_run || mapping.selected != selected;
+                    let new_mapping_needed = flush_run || mapping.selected != selected;
 
-                    if flush_mapping {
-                        mapping.flush(&mut mappings,
-                                      &mut run_info,
-                                      &**text,
-                                      compression,
-                                      text_transform,
-                                      &mut last_whitespace,
-                                      &mut start_position,
-                                      end_position);
+                    if new_mapping_needed {
+                        // We ignore empty mappings at the very start of a fragment.
+                        // The run info values are uninitialized at this point so
+                        // flushing an empty mapping is pointless.
+                        if end_position > 0 {
+                            mapping.flush(&mut mappings,
+                                          &mut run_info,
+                                          &**text,
+                                          compression,
+                                          text_transform,
+                                          &mut last_whitespace,
+                                          &mut start_position,
+                                          end_position);
+                        }
                         if run_info.text.len() > 0 {
                             if flush_run {
                                 run_info.flush(&mut run_info_list, &mut insertion_point);
@@ -430,7 +435,7 @@ fn bounding_box_for_run_metrics(metrics: &RunMetrics, writing_mode: WritingMode)
 ///
 /// `#[inline]` because often the caller only needs a few fields from the font metrics.
 #[inline]
-pub fn font_metrics_for_style(font_context: &mut FontContext, font_style: Arc<style_structs::Font>)
+pub fn font_metrics_for_style(font_context: &mut FontContext, font_style: ::StyleArc<style_structs::Font>)
                               -> FontMetrics {
     let fontgroup = font_context.layout_font_group_for_style(font_style);
     // FIXME(https://github.com/rust-lang/rust/issues/23338)

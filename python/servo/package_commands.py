@@ -9,25 +9,19 @@
 
 from __future__ import print_function, unicode_literals
 
-import sys
-import os.path as path
-sys.path.append(path.join(path.dirname(sys.argv[0]), "components", "style", "properties", "Mako-0.9.1.zip"))
-
 import json
 import os
+import os.path as path
 import shutil
 import subprocess
-import mako.template
-
-from mach.registrar import Registrar
 
 from mach.decorators import (
     CommandArgument,
     CommandProvider,
     Command,
 )
-
-from mako.template import Template
+from mach.registrar import Registrar
+# Note: mako cannot be imported at the top level because it breaks mach bootstrap
 
 from servo.command_base import (
     archive_deterministically,
@@ -38,14 +32,7 @@ from servo.command_base import (
     is_windows,
     get_browserhtml_path,
 )
-from servo.command_base import find_dep_path_newest
-
-
-def delete(path):
-    try:
-        os.remove(path)         # Succeeds if path was a file
-    except OSError:             # Or, if path was a directory...
-        shutil.rmtree(path)     # Remove it and all its contents.
+from servo.util import delete
 
 
 def otool(s):
@@ -107,25 +94,12 @@ def copy_dependencies(binary_path, lib_path):
 
 
 def copy_windows_dependencies(binary_path, destination):
-    try:
-        [shutil.copy(path.join(binary_path, d), destination) for d in ["libeay32md.dll", "ssleay32md.dll"]]
-    except:
-        deps = [
-            "libstdc++-6.dll",
-            "libwinpthread-1.dll",
-            "libbz2-1.dll",
-            "libgcc_s_seh-1.dll",
-            "libexpat-1.dll",
-            "zlib1.dll",
-            "libiconv-2.dll",
-            "libintl-8.dll",
-            "libeay32.dll",
-            "ssleay32.dll",
-        ]
-        for d in deps:
-            dep_path = path.join("C:\\msys64\\mingw64\\bin", d)
-            if path.exists(dep_path):
-                shutil.copy(dep_path, path.join(destination, d))
+    deps = [
+        "libcryptoMD.dll",
+        "libsslMD.dll",
+    ]
+    for d in deps:
+        shutil.copy(path.join(binary_path, d), destination)
 
 
 def change_prefs(resources_path, platform):
@@ -167,35 +141,23 @@ class PackageCommands(CommandBase):
         dir_to_root = self.get_top_dir()
         target_dir = path.dirname(binary_path)
         if android:
+            android_target = self.config["android"]["target"]
+            if "aarch64" in android_target:
+                build_type = "Arm64"
+            elif "armv7" in android_target:
+                build_type = "Armv7"
+            else:
+                build_type = "Arm"
+
             if dev:
-                env["NDK_DEBUG"] = "1"
-                env["ANT_FLAVOR"] = "debug"
-                dev_flag = "-d"
+                build_mode = "Debug"
             else:
-                env["ANT_FLAVOR"] = "release"
-                dev_flag = ""
+                build_mode = "Release"
 
-            output_apk = "{}.apk".format(binary_path)
-
-            dir_to_apk = path.join(target_dir, "apk")
-            if path.exists(dir_to_apk):
-                print("Cleaning up from previous packaging")
-                delete(dir_to_apk)
-            shutil.copytree(path.join(dir_to_root, "support", "android", "apk"), dir_to_apk)
-
-            blurdroid_path = find_dep_path_newest('blurdroid', binary_path)
-            if blurdroid_path is None:
-                print("Could not find blurdroid package; perhaps you haven't built Servo.")
-                return 1
-            else:
-                dir_to_libs = path.join(dir_to_apk, "libs")
-                if not path.exists(dir_to_libs):
-                    os.makedirs(dir_to_libs)
-                shutil.copy2(blurdroid_path + '/out/blurdroid.jar', dir_to_libs)
+            task_name = "assemble" + build_type + build_mode
             try:
-                with cd(path.join("support", "android", "build-apk")):
-                    subprocess.check_call(["cargo", "run", "--", dev_flag, "-o", output_apk, "-t", target_dir,
-                                           "-r", dir_to_root], env=env)
+                with cd(path.join("support", "android", "apk")):
+                    subprocess.check_call(["./gradlew", "--no-daemon", task_name], env=env)
             except subprocess.CalledProcessError as e:
                 print("Packaging Android exited with return value %d" % e.returncode)
                 return e.returncode
@@ -234,6 +196,7 @@ class PackageCommands(CommandBase):
                 raise Exception("Error occurred when getting Servo version: " + stderr)
             version = "Nightly version: " + version
 
+            import mako.template
             template_path = path.join(dir_to_resources, 'Credits.rtf.mako')
             credits_path = path.join(dir_to_resources, 'Credits.rtf')
             with open(template_path) as template_file:
@@ -255,6 +218,10 @@ class PackageCommands(CommandBase):
             print("Creating dmg")
             os.symlink('/Applications', path.join(dir_to_dmg, 'Applications'))
             dmg_path = path.join(target_dir, "servo-tech-demo.dmg")
+
+            if path.exists(dmg_path):
+                print("Deleting existing dmg")
+                os.remove(dmg_path)
 
             try:
                 subprocess.check_call(['hdiutil', 'create', '-volname', 'Servo', dmg_path, '-srcfolder', dir_to_dmg])
@@ -308,8 +275,9 @@ class PackageCommands(CommandBase):
             change_prefs(dir_to_resources, "windows")
 
             # generate Servo.wxs
+            import mako.template
             template_path = path.join(dir_to_root, "support", "windows", "Servo.wxs.mako")
-            template = Template(open(template_path).read())
+            template = mako.template.Template(open(template_path).read())
             wxs_path = path.join(dir_to_msi, "Servo.wxs")
             open(wxs_path, "w").write(template.render(
                 exe_path=target_dir,

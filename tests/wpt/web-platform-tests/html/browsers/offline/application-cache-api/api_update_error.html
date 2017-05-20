@@ -1,16 +1,11 @@
 <!DOCTYPE HTML>
-<html manifest="../resources/manifest/clock.manifest">
+<html manifest="./non-existent-file.manifest">
   <head>
     <title>Offline Application Cache - API_update_error</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
   </head>
   <body>
-    <ol>
-      <li>Remove the manifest file (manifest/clock.manifest) from the server.</li>
-      <li>Refresh the page, then calling update() will throw InvalidStateError exception.</li>
-    </ol>
-
     <div id="log"></div>
 
     <script>

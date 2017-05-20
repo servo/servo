@@ -1,0 +1,51 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: z-index - integer value</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="author" title="James Hopkins" href="http://idreamincode.co.uk/css21testsuite" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#z-index" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#numbers" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#parsing-errors" />
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+  <meta content="invalid" name="flags" />
+  <meta content="Besides 'auto' and 'inherit' keyword values, z-index property can only accept an integer value. An integer consists of one or more digits '0' to '9'." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div
+  {
+  height: 100px;
+  position: absolute;
+  width: 100px;
+  }
+
+  #invalid-zindex
+  {
+  background-color: red;
+  z-index: 100%;
+  }
+
+  #valid-zindex
+  {
+  background-color: green;
+  z-index: auto;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div id="invalid-zindex"></div>
+
+  <div id="valid-zindex"></div>
+
+ </body>
+</html>

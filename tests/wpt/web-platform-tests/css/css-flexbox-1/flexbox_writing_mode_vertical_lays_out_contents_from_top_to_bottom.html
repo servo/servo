@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>CSS Flexbox Test: Align content flex-start with writing mode vertical-rl.</title>
+    <link rel="author" title="Ryuichi Nonaka" href="mailto:ryuichi1com@gmail.com">
+    <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#flow-order">
+    <link rel="match" href="reference/flexbox_writing_mode_vertical_lays_out_contents_from_top_to_bottom-ref.html">
+    <meta name="assert" content="In vertical Japanese, for example, a row flexbox lays out its contents from top to bottom.">
+    <style type="text/css">
+        .container {
+            display: flex;
+
+            flex-wrap: wrap;
+            align-content: flex-start;
+
+            writing-mode: vertical-rl;
+
+            width: 200px;
+            height: 200px;
+        }
+        .item {
+            width: 100px;
+            height: 100px;
+        }
+
+        .item.one
+        {
+            background: red;
+        }
+
+        .item.two
+        {
+            background: yellow;
+        }
+
+        .item.three
+        {
+            background: green;
+        }
+
+        .item.four
+        {
+            background: blue;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if you see green and red top, blue and yellow bottom.</p>
+    <!-- PAGE CONTENT -->
+    <div id="test">
+        <div class="container">
+            <div class="item one"></div>
+            <div class="item two"></div>
+            <div class="item three"></div>
+            <div class="item four"></div>
+        </div>
+    </div>
+</body>
+</html>

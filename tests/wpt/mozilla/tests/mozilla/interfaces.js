@@ -56,7 +56,7 @@ function test_interfaces(interfaceNamesInGlobalScope) {
     var sources = [
       ecmaGlobals,
       interfaceNamesInGlobalScope,
-      ["EventWatcher"],
+      ["AssertionError", "EventWatcher"],
     ];
 
     var interfaceMap = {};

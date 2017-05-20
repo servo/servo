@@ -19,9 +19,9 @@ fn assert_parse(url:          &'static str,
                 data:         Option<&[u8]>) {
     let url = ServoUrl::parse(url).unwrap();
     let origin = Origin::Origin(url.origin());
-    let request = Request::new(url, Some(origin), false, None);
+    let mut request = Request::new(url, Some(origin), false, None);
 
-    let response = fetch(request, None);
+    let response = fetch(&mut request, None);
 
     match data {
         Some(data) => {

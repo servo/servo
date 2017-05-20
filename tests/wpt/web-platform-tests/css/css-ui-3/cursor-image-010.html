@@ -1,0 +1,18 @@
+﻿<!DOCTYPE html>
+<title>CSS Basic User Interface Test: Cursor property, url value</title>
+<link rel="author" title="Chris Lilley" href="mailto:chris@w3.org">
+<link rel="help" href="http://www.w3.org/TR/css3-ui/#cursor">
+<meta name="flags" content="interact image">
+<meta charset="UTF-8">
+<meta name="assert" content="Test checks that a GIF image is supported as a custom cursor.">
+
+<style>
+	div.test{background: #D2B48C; border: 2px solid #555;
+	cursor:url(support/cursors/basn0g08.gif), help;
+	width: 128px; height: 128px}
+</style>
+<body>
+  <p>The test passes if, when moved inside the colored rectangle, the cursor looks like gray stripes AND is not gray stripes when outside.</p>
+  <p>If inside the rectangle the cursor does not change, or looks like a help cursor, the test fails.</p>
+  <div class="test"> </div>
+</body>

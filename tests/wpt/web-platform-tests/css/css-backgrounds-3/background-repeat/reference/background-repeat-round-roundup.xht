@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test Reference: background-repeat:round, rounding up</title>
+    <link rel="author" title="Jeffrey Carl Faden" href="http://www.jeffreyatw.com/" />
+    <style type="text/css">
+      <![CDATA[
+      div {
+        height: 212px;
+        width: 252px;
+      }
+      div > img {
+        float: left;
+        height: 53px;
+        width: 84px;
+      }
+      ]]>
+    </style>
+  </head>
+  <body>
+    <p><img src="support/rectangle-96x60.png" alt="Image download support must be enabled"/></p>
+    <p>Test passes if the above image repeats in the below rectangle 12 times exactly: 3 columns, 4 rows. The top border of the containing rectangle should be orange, the right border yellow, the bottom border green, and the left border blue.</p>
+    <p>Test fails if the above image repeats in below rectangle less than 12 times, with partial images lining the right and the bottom.</p>
+    <div>
+      <img src="support/rectangle-96x60.png" alt="Image download support must be enabled"/>
+      <img src="support/rectangle-96x60.png" alt="Image download support must be enabled"/>
+      <img src="support/rectangle-96x60.png" alt="Image download support must be enabled"/>
+      <img src="support/rectangle-96x60.png" alt="Image download support must be enabled"/>
+      <img src="support/rectangle-96x60.png" alt="Image download support must be enabled"/>
+      <img src="support/rectangle-96x60.png" alt="Image download support must be enabled"/>
+      <img src="support/rectangle-96x60.png" alt="Image download support must be enabled"/>
+      <img src="support/rectangle-96x60.png" alt="Image download support must be enabled"/>
+      <img src="support/rectangle-96x60.png" alt="Image download support must be enabled"/>
+      <img src="support/rectangle-96x60.png" alt="Image download support must be enabled"/>
+      <img src="support/rectangle-96x60.png" alt="Image download support must be enabled"/>
+      <img src="support/rectangle-96x60.png" alt="Image download support must be enabled"/>
+    </div>
+  </body>
+</html>

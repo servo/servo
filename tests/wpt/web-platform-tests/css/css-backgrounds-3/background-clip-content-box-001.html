@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Backgrounds and Borders Test: background-clip Reference</title>
+    <link rel="author" title="James Wang" href="mailto:wangjian@ucweb.com">
+	<link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-clip" />
+    <meta name="flags" content="">
+    <meta name="assert" content="background-clip with content-box means paint the background within the content box">
+
+    <link rel="match" href="reference/background-clip-content-box-ref.html">
+
+    <style type="text/css">
+    	* { padding: 0; margin: 0; }
+    	#test-color-blue {
+    		background-color: blue;
+    		height: 200px;
+            position: absolute;
+    		width: 200px;
+    	}
+    	#test-color-green {
+    		background-clip: content-box;
+    		background-color: rgba(0, 255, 0, 1);
+    		height: 180px;
+    		padding: 10px;
+            position: absolute;
+    		width: 180px;
+    	}
+    </style>
+</head>
+<body>
+    <p>Test pass if the green box has a 10px width red edge</p>
+    <!-- background -->
+    <div id="test-color-blue"></div>
+    <div id="test-color-green"></div>
+</body>
+</html>

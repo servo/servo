@@ -1,0 +1,68 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Empty line box influence</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-04-04 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#propdef-line-height" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#leading" />
+        <link rel="match" href="empty-inline-002-ref.xht" />
+
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="Empty inline elements still influence calculation just like elements with content." />
+        <style type="text/css">
+            div, span
+            {
+                font: 100px/1em Ahem;
+            }
+            #div1
+            {
+                margin-top: 100px;
+            }
+            #div2, #div3
+            {
+                width: 500px;
+            }
+            #div2
+            {
+                border: 25px solid green;
+            }
+            span
+            {
+                background: green;
+                border: 25px solid green;
+                margin: 100px;
+                padding: 100px;
+            }
+            #div3
+            {
+                border: 25px solid red;
+                height: 100px;
+                position: relative;
+                top: -150px;
+                z-index: -1;
+            }
+            #div3 div
+            {
+                background: red;
+                border: 25px solid red;
+                height: 300px;
+                margin: 0 100px;
+                position: relative;
+                top: -125px;
+                width: 200px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is <strong>no red</strong>.</p>
+        <div id="div1">
+            <div id="div2">
+                <span></span>
+            </div>
+            <div id="div3">
+                <div></div>
+            </div>
+        </div>
+    </body>
+</html>

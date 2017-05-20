@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<head>
+   <title>CSS OM: media.matchMedium</title>
+   <meta name="description" content="Test: CSSOM media interface: matchMedium function">
+  <style type="text/css">
+
+   @media  screen and (width: 100px) {
+      p.test { background-color: #6f6; }
+ }
+  </style>
+
+
+
+ </head>
+ <body>
+ <div>Interface media: matchMedium</div>
+ <p>Test passes if the word "PASS" appears below.</p>
+ <div id="testresult">Fail</div>
+ <script type="text/javascript">
+    try
+     {
+      var isMinColor = media.matchMedium("(min-color:1)");
+      if(isMinColor == true)
+        {
+          document.getElementById("testresult").innerHTML = "PASS";
+        }
+      else
+        {
+          document.getElementById("testresult").innerHTML = "FAIL";
+        }
+      }
+   catch (ex)
+    {
+      document.getElementById("testresult").innerHTML = "FAIL";
+   }
+            
+ </script>
+
+</body>
+ 
+</html>

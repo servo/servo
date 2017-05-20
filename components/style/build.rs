@@ -2,19 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#[cfg(feature = "gecko")]
 #[macro_use]
 extern crate lazy_static;
 #[cfg(feature = "bindgen")]
 extern crate bindgen;
 #[cfg(feature = "bindgen")]
+extern crate log;
+#[cfg(feature = "bindgen")]
 extern crate regex;
+#[cfg(feature = "bindgen")]
+extern crate toml;
 extern crate walkdir;
-extern crate phf_codegen;
 
 use std::env;
-use std::fs::File;
-use std::io::{BufWriter, BufReader, BufRead, Write};
 use std::path::Path;
 use std::process::{Command, exit};
 use walkdir::WalkDir;
@@ -54,6 +54,10 @@ fn find_python() -> String {
     }.to_owned()
 }
 
+lazy_static! {
+    pub static ref PYTHON: String = env::var("PYTHON").ok().unwrap_or_else(find_python);
+}
+
 fn generate_properties() {
     for entry in WalkDir::new("properties") {
         let entry = entry.unwrap();
@@ -65,10 +69,9 @@ fn generate_properties() {
         }
     }
 
-    let python = env::var("PYTHON").ok().unwrap_or_else(find_python);
     let script = Path::new(file!()).parent().unwrap().join("properties").join("build.py");
     let product = if cfg!(feature = "gecko") { "gecko" } else { "servo" };
-    let status = Command::new(python)
+    let status = Command::new(&*PYTHON)
         .arg(&script)
         .arg(product)
         .arg("style-crate")
@@ -78,27 +81,11 @@ fn generate_properties() {
     if !status.success() {
         exit(1)
     }
-
-    let path = Path::new(&env::var("OUT_DIR").unwrap()).join("static_ids.rs");
-    let static_ids = Path::new(&env::var("OUT_DIR").unwrap()).join("static_ids.txt");
-    let mut file = BufWriter::new(File::create(&path).unwrap());
-    let static_ids = BufReader::new(File::open(&static_ids).unwrap());
-
-    write!(&mut file, "static STATIC_IDS: ::phf::Map<&'static str, StaticId> = ").unwrap();
-    let mut map = phf_codegen::Map::new();
-    for result in static_ids.lines() {
-        let line = result.unwrap();
-        let mut split = line.split('\t');
-        let key = split.next().unwrap().to_owned();
-        let value = split.next().unwrap();
-        map.entry(key, value);
-    }
-    map.build(&mut file).unwrap();
-    write!(&mut file, ";\n").unwrap();
 }
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:out_dir={}", env::var("OUT_DIR").unwrap());
     generate_properties();
     build_gecko::generate();
 }

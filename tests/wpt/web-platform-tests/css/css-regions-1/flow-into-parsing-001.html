@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Regions Parsing Test: Parse flow-into property</title>
+        <link rel="author" title="Jacob Goldstein" href="mailto:jacobg@adobe.com">
+    <link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com"/>
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property"/>
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from"/>
+        <meta name="flags" content="dom">
+        <meta name="assert" content="Value specified for the flow-into property should be parsed correctly.">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+
+    <body>
+        <div id="log"></div>
+
+        <script type="text/javascript">
+            function testParse(declaration) {
+                var div = document.createElement("div");
+                div.setAttribute("style", declaration);
+                return div.style.flowInto;
+            }
+
+            function testComputedStyle(value) {
+                var div = document.createElement("div");
+                document.body.appendChild(div);
+                div.style.setProperty("flow-into", value);
+                var flowComputedValue = getComputedStyle(div).getPropertyValue("flow-into");
+                document.body.removeChild(div);
+                return flowComputedValue;
+            }
+
+            function testNotInherited(parentValue, childValue) {
+                var parentDiv = document.createElement("div");
+                document.body.appendChild(parentDiv);
+                parentDiv.style.setProperty("flow-into", parentValue);
+                var childDiv = document.createElement("div");
+                parentDiv.appendChild(childDiv);
+                childDiv.style.setProperty("flow-into", childValue);
+                var childFlowComputedValue = getComputedStyle(childDiv).getPropertyValue("flow-into");
+                parentDiv.removeChild(childDiv);
+                document.body.removeChild(parentDiv);
+                return childFlowComputedValue;
+            }
+
+            test(function() {assert_equals(testParse("flow-into: none"), "none")}, "Test Parse none");
+            test(function() {assert_equals(testParse("flow-into: first-flow"), "first-flow")}, "Test Parse first-flow");
+            test(function() {assert_equals(testParse("flow-into: \'first flow\'"), "")}, "Test Parse 'first-flow'");
+            test(function() {assert_equals(testParse("flow-into: ;"), "")}, "Test Parse ;");
+            test(function() {assert_equals(testParse("flow-into: 1"), "")}, "Test Parse 1");
+            test(function() {assert_equals(testParse("flow-into: 1.2"), "")}, "Test Parse 1.2");
+            test(function() {assert_equals(testParse("flow-into: -1"), "")}, "Test Parse -1");
+            test(function() {assert_equals(testParse("flow-into: 12px"), "")}, "Test Parse 12px");
+
+            test(function() {assert_equals(testComputedStyle("none"), "none")}, "Test Computed Style none");
+            test(function() {assert_equals(testComputedStyle(""), "none")}, "Test Computed Style ''");
+            test(function() {assert_equals(testComputedStyle("\'first-flow\'"), "none")}, "Test Computed Style 'first-flow'");
+            test(function() {assert_equals(testComputedStyle("first-flow"), "first-flow")}, "Test Computed Style first-flow");
+            test(function() {assert_equals(testComputedStyle("12px"), "none")}, "Test Computed Style 12px ");
+
+            test(function() {assert_equals(testNotInherited("none", "none"), "none")}, "Test Non-Inherited none, none");
+            test(function() {assert_equals(testNotInherited("none", "child-flow"), "child-flow")}, "Test Non-Inherited none, child-flow");
+            test(function() {assert_equals(testNotInherited("parent-flow", "none"), "none")}, "Test Non-Inherited parent-flow, none");
+            test(function() {assert_equals(testNotInherited("parent-flow", "child-flow"), "child-flow")}, "Test Non-Inherited parent-flow, child-flow");
+        </script>
+    </body>
+</html>

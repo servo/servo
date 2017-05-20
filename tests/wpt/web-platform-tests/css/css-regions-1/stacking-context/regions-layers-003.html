@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Test: flowing content in regions that are absolutely positioned and have visual overflow</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+		<meta name="flags" content="ahem">
+		<meta name="assert" content="Test checks that region's visual overflow is displayed when region
+		is absolutely positioned and has visual overflow.">
+		<link rel="match" href="reference/regions-layers-003-ref.html">
+		<style>
+		#content {
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+			color: green;
+			flow-into: f;
+		}
+		#behind-region {
+			background-color: red;
+			width: 100px;
+			height: 100px;
+			position: absolute;
+			top: 100px;
+			left: 60px;
+		}
+		#region {
+			position: absolute;
+			top: 100px;
+			left: 50px;
+			width: 100px;
+			height: 50px;
+			border: 10px solid lime;
+			border-bottom-width: 0;
+			flow-from: f;
+		}
+		#region p {
+			height: 50%;
+			background-color: red;
+		}
+		</style>
+	</head>
+	<body>
+		<ol>
+			<li>You should see no red.</li>
+			<li>Test passes if you see a dark green square with a light green border around its top half.</li>
+		</ol>
+		<div id="content">
+			xxxxx<br>
+			xxxxx<br>
+			xxxxx<br>
+			xxxxx<br>
+			xxxxx
+		</div>
+		<div id="behind-region"></div>
+		<div id="region">
+			<p>&nbsp;</p>
+		</div>
+	</body>
+</html>

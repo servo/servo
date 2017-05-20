@@ -1,0 +1,62 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>First Test of Section 18.5 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+#id1 {position: absolute;
+   width: 20px;
+   height: 30px;}
+#id2 {position: absolute;
+      height: 60px;
+      width: 40px;}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing First Testable Statement of Sec 18.5 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+1. When magnifying a page, UAs should preserve the relationships between
+positioned elements.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA (overlapping text):
+</h2>
+<p ID=id1 >
+If statement #1 above is passed, then
+this paragraph should be absolutely positioned with width of 20px and
+height ot 30px.
+The rule applied is "#id1 {position: absolute;
+                           width: 20px;
+                           height: 30px;}".
+<p ID=id2>
+This paragraph should also be absolutely positioned, and should look like
+the paragraph above with width of 40px and height of 60px.
+The rule applied is "#id2 {position: absolute;
+                           width: 40px; height: 60px;}".
+<p>
+Should be overlapping text.
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

@@ -1,0 +1,60 @@
+
+<HTML>
+<HEAD>
+<TITLE>Eighth Test of Section 4.1.2 of CSS1 Spec</TITLE>
+
+
+<STYLE TYPE="text/css">
+UL {width: 10px;
+   }
+LI {margin-left: auto;
+    border-left: 1px solid;
+    padding-left: 1px;
+    width: 1px;
+    margin-right: 1px;
+    border-right: 1px solid;
+    padding-right: 1px;
+    }
+   }
+</STYLE>
+</HEAD>
+
+
+<BODY>
+
+<h1 >Testing Statement #8 Below of Section 4.1.2 of CSS1 Spec</h1>
+
+
+
+<p>
+8. IF exactly one of "margin-left", "width", or "margin-right" is "auto", the
+UA will assign that property a value that will make the sum of the seven equal
+to the parent's width.
+
+
+<h2>PASS CRITERIA:
+</h2>
+<p>
+If statement #8 above is passed, then:
+<ul>
+<li>
+This list item should have a width of 10px.
+The rule is "li {margin-left: auto;
+                 border-left: 1px solid;
+                 padding-left: 1px;
+                 width: 1px;
+                 margin-right: 1px;
+                 border-right: 1px solid;
+                 padding-right: 1px;
+                 }"
+Exactly one is "auto", so the width will be that of the parent "ul".
+The "ul" rule is "ul {width: 10px}".
+All other properties should be UA-default.
+</ul>
+
+
+
+To move directly to the next test, click<a href="412-9.htm"> here</a>
+
+</BODY>
+</HTML>

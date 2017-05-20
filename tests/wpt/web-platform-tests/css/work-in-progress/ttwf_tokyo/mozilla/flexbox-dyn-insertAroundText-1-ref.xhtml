@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!--
+     This reference case is like its textcase, but with the testcase's dynamic
+     modifications already performed.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <style>
+      body { font-size: 10px; }
+
+      div.flexbox {
+        border: 1px dashed blue;
+        width: 300px;
+        display: flex;
+        justify-content: space-around;
+        margin-bottom: 1px;
+        white-space: pre;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="flexbox" id="f0">  [OldText]</div>
+    <div class="flexbox" id="f1">[OldText]  </div>
+    <div class="flexbox" id="f2">[NewText][OldText]</div>
+    <div class="flexbox" id="f3">[NewText]  [OldText]</div>
+    <div class="flexbox" id="f4">  [NewText][OldText]</div>
+    <div class="flexbox" id="f5">[OldText][NewText]</div>
+    <div class="flexbox" id="f6">[OldText][NewText]  </div>
+    <div class="flexbox" id="f7">[OldText]  [NewText]</div>
+    <div class="flexbox" id="f8">[NewText]  [OldText]</div>
+    <div class="flexbox" id="f9">  [NewText][OldText]</div>
+    <div class="flexbox" id="f10">[OldText][NewText]  </div>
+    <div class="flexbox" id="f11">[OldText]  [NewText]</div>
+  </body>
+</html>

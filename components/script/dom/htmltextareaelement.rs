@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{LayoutJS, Root};
+use dom::bindings::js::{LayoutJS, MutNullableJS, Root};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
@@ -26,10 +26,11 @@ use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
+use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc::IpcSender;
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::cell::Cell;
+use std::default::Default;
 use std::ops::Range;
 use style::attr::AttrValue;
 use style::element_state::*;
@@ -43,6 +44,7 @@ pub struct HTMLTextAreaElement {
     placeholder: DOMRefCell<DOMString>,
     // https://html.spec.whatwg.org/multipage/#concept-textarea-dirty
     value_changed: Cell<bool>,
+    form_owner: MutNullableJS<HTMLFormElement>,
 }
 
 pub trait LayoutHTMLTextAreaElementHelpers {
@@ -105,7 +107,7 @@ static DEFAULT_ROWS: u32 = 2;
 
 impl HTMLTextAreaElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> HTMLTextAreaElement {
         let chan = document.window().upcast::<GlobalScope>().constellation_chan().clone();
         HTMLTextAreaElement {
@@ -116,12 +118,13 @@ impl HTMLTextAreaElement {
             textinput: DOMRefCell::new(TextInput::new(
                     Lines::Multiple, DOMString::new(), chan, None, None, SelectionDirection::None)),
             value_changed: Cell::new(false),
+            form_owner: Default::default(),
         }
     }
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLTextAreaElement> {
         Node::reflect_node(box HTMLTextAreaElement::new_inherited(local_name, prefix, document),
                            document,
@@ -342,7 +345,10 @@ impl VirtualMethods for HTMLTextAreaElement {
                         el.set_read_write_state(!el.disabled_state());
                     }
                 }
-            }
+            },
+            local_name!("form") => {
+                self.form_attribute_mutated(mutation);
+            },
             _ => {},
         }
     }
@@ -435,7 +441,19 @@ impl VirtualMethods for HTMLTextAreaElement {
     }
 }
 
-impl FormControl for HTMLTextAreaElement {}
+impl FormControl for HTMLTextAreaElement {
+    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner.get()
+    }
+
+    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+        self.form_owner.set(form);
+    }
+
+    fn to_element<'a>(&'a self) -> &'a Element {
+        self.upcast::<Element>()
+    }
+}
 
 
 impl Validatable for HTMLTextAreaElement {}

@@ -2,26 +2,40 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{self, Parser as CssParser, SourcePosition};
-use html5ever_atoms::{Namespace as NsAtom};
+use cssparser::{self, Parser as CssParser, SourcePosition, SourceLocation};
+use html5ever::{Namespace as NsAtom};
 use media_queries::CSSErrorReporterTest;
 use parking_lot::RwLock;
+use selectors::attr::*;
 use selectors::parser::*;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
-use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
+use style::context::QuirksMode;
 use style::error_reporting::ParseErrorReporter;
 use style::keyframes::{Keyframe, KeyframeSelector, KeyframePercentage};
-use style::parser::ParserContextExtraData;
+use style::media_queries::MediaList;
 use style::properties::Importance;
-use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, DeclaredValue, longhands};
+use style::properties::{CSSWideKeyword, DeclaredValueOwned, PropertyDeclaration, PropertyDeclarationBlock};
+use style::properties::longhands;
 use style::properties::longhands::animation_play_state;
+use style::shared_lock::SharedRwLock;
+use style::stylearc::Arc;
 use style::stylesheets::{Origin, Namespaces};
 use style::stylesheets::{Stylesheet, NamespaceRule, CssRule, CssRules, StyleRule, KeyframesRule};
-use style::values::specified::{LengthOrPercentageOrAuto, Percentage};
+use style::values::{KeyframesName, CustomIdent};
+use style::values::specified::{LengthOrPercentageOrAuto, Percentage, PositionComponent};
+
+pub fn block_from<I>(iterable: I) -> PropertyDeclarationBlock
+where I: IntoIterator<Item=(PropertyDeclaration, Importance)> {
+    let mut block = PropertyDeclarationBlock::new();
+    for (d, i) in iterable {
+        block.push(d, i)
+    }
+    block
+}
 
 #[test]
 fn test_parse_stylesheet() {
@@ -51,229 +65,201 @@ fn test_parse_stylesheet() {
             }
         }";
     let url = ServoUrl::parse("about::test").unwrap();
-    let stylesheet = Stylesheet::from_str(css, url.clone(), Origin::UserAgent, Default::default(),
-                                          None,
-                                          Box::new(CSSErrorReporterTest),
-                                          ParserContextExtraData::default());
+    let lock = SharedRwLock::new();
+    let media = Arc::new(lock.wrap(MediaList::empty()));
+    let stylesheet = Stylesheet::from_str(css, url.clone(), Origin::UserAgent, media, lock,
+                                          None, &CSSErrorReporterTest, QuirksMode::NoQuirks, 0u64);
     let mut namespaces = Namespaces::default();
     namespaces.default = Some(ns!(html));
     let expected = Stylesheet {
         origin: Origin::UserAgent,
-        media: Default::default(),
+        media: Arc::new(stylesheet.shared_lock.wrap(MediaList::empty())),
+        shared_lock: stylesheet.shared_lock.clone(),
         namespaces: RwLock::new(namespaces),
-        base_url: url,
+        url_data: url,
         dirty_on_viewport_size_change: AtomicBool::new(false),
         disabled: AtomicBool::new(false),
+        quirks_mode: QuirksMode::NoQuirks,
         rules: CssRules::new(vec![
-            CssRule::Namespace(Arc::new(RwLock::new(NamespaceRule {
+            CssRule::Namespace(Arc::new(stylesheet.shared_lock.wrap(NamespaceRule {
                 prefix: None,
-                url: NsAtom::from("http://www.w3.org/1999/xhtml")
+                url: NsAtom::from("http://www.w3.org/1999/xhtml"),
+                source_location: SourceLocation {
+                    line: 1,
+                    column: 19,
+                },
             }))),
-            CssRule::Style(Arc::new(RwLock::new(StyleRule {
+            CssRule::Style(Arc::new(stylesheet.shared_lock.wrap(StyleRule {
                 selectors: SelectorList(vec![
-                    Selector {
-                        complex_selector: Arc::new(ComplexSelector {
-                            compound_selector: vec![
-                                SimpleSelector::Namespace(Namespace {
-                                    prefix: None,
-                                    url: NsAtom::from("http://www.w3.org/1999/xhtml")
-                                }),
-                                SimpleSelector::LocalName(LocalName {
-                                    name: local_name!("input"),
-                                    lower_name: local_name!("input"),
-                                }),
-                                SimpleSelector::AttrEqual(AttrSelector {
-                                    name: local_name!("type"),
-                                    lower_name: local_name!("type"),
-                                    namespace: NamespaceConstraint::Specific(Namespace {
-                                        prefix: None,
-                                        url: ns!()
-                                    }),
-                                }, "hidden".to_owned(), CaseSensitivity::CaseInsensitive)
-                            ],
-                            next: None,
-                        }),
-                        pseudo_element: None,
-                        specificity: (0 << 20) + (1 << 10) + (1 << 0),
-                    },
-                ]),
-                block: Arc::new(RwLock::new(PropertyDeclarationBlock {
-                    declarations: vec![
-                        (PropertyDeclaration::Display(DeclaredValue::Value(
-                            longhands::display::SpecifiedValue::none)),
-                         Importance::Important),
-                        (PropertyDeclaration::Custom(Atom::from("a"), DeclaredValue::Inherit),
-                         Importance::Important),
-                    ],
-                    important_count: 2,
-                })),
-            }))),
-            CssRule::Style(Arc::new(RwLock::new(StyleRule {
-                selectors: SelectorList(vec![
-                    Selector {
-                        complex_selector: Arc::new(ComplexSelector {
-                            compound_selector: vec![
-                                SimpleSelector::Namespace(Namespace {
-                                    prefix: None,
-                                    url: NsAtom::from("http://www.w3.org/1999/xhtml")
-                                }),
-                                SimpleSelector::LocalName(LocalName {
-                                    name: local_name!("html"),
-                                    lower_name: local_name!("html"),
-                                }),
-                            ],
-                            next: None,
-                        }),
-                        pseudo_element: None,
-                        specificity: (0 << 20) + (0 << 10) + (1 << 0),
-                    },
-                    Selector {
-                        complex_selector: Arc::new(ComplexSelector {
-                            compound_selector: vec![
-                                SimpleSelector::Namespace(Namespace {
-                                    prefix: None,
-                                    url: NsAtom::from("http://www.w3.org/1999/xhtml")
-                                }),
-                                SimpleSelector::LocalName(LocalName {
-                                    name: local_name!("body"),
-                                    lower_name: local_name!("body"),
-                                }),
-                            ],
-                            next: None,
-                        }),
-                        pseudo_element: None,
-                        specificity: (0 << 20) + (0 << 10) + (1 << 0),
-                    },
-                ]),
-                block: Arc::new(RwLock::new(PropertyDeclarationBlock {
-                    declarations: vec![
-                        (PropertyDeclaration::Display(DeclaredValue::Value(
-                            longhands::display::SpecifiedValue::block)),
-                         Importance::Normal),
-                    ],
-                    important_count: 0,
-                })),
-            }))),
-            CssRule::Style(Arc::new(RwLock::new(StyleRule {
-                selectors: SelectorList(vec![
-                    Selector {
-                        complex_selector: Arc::new(ComplexSelector {
-                            compound_selector: vec![
-                                SimpleSelector::Namespace(Namespace {
-                                    prefix: None,
-                                    url: NsAtom::from("http://www.w3.org/1999/xhtml")
-                                }),
-                                SimpleSelector::Class(Atom::from("ok")),
-                            ],
-                            next: Some((Arc::new(ComplexSelector {
-                                compound_selector: vec![
-                                    SimpleSelector::Namespace(Namespace {
-                                        prefix: None,
-                                        url: NsAtom::from("http://www.w3.org/1999/xhtml")
-                                    }),
-                                    SimpleSelector::ID(Atom::from("d1")),
-                                ],
-                                next: None,
-                            }), Combinator::Child)),
-                        }),
-                        pseudo_element: None,
-                        specificity: (1 << 20) + (1 << 10) + (0 << 0),
-                    },
-                ]),
-                block: Arc::new(RwLock::new(PropertyDeclarationBlock {
-                    declarations: vec![
-                        (PropertyDeclaration::BackgroundColor(DeclaredValue::Value(
-                            longhands::background_color::SpecifiedValue {
-                                authored: Some("blue".to_owned().into_boxed_str()),
-                                parsed: cssparser::Color::RGBA(cssparser::RGBA::new(0, 0, 255, 255)),
+                    Selector::new_for_unit_testing(
+                        SelectorInner::from_vec(vec![
+                            Component::DefaultNamespace(NsAtom::from("http://www.w3.org/1999/xhtml")),
+                            Component::LocalName(LocalName {
+                                name: local_name!("input"),
+                                lower_name: local_name!("input"),
+                            }),
+                            Component::AttributeInNoNamespace {
+                                local_name: local_name!("type"),
+                                local_name_lower: local_name!("type"),
+                                operator: AttrSelectorOperator::Equal,
+                                value: "hidden".to_owned(),
+                                case_sensitivity: ParsedCaseSensitivity::AsciiCaseInsensitive,
+                                never_matches: false,
                             }
-                         )),
-                         Importance::Normal),
-                        (PropertyDeclaration::BackgroundPositionX(DeclaredValue::Value(
-                            longhands::background_position_x::SpecifiedValue(
-                            vec![longhands::background_position_x::single_value
-                                                       ::get_initial_position_value()]))),
-                        Importance::Normal),
-                        (PropertyDeclaration::BackgroundPositionY(DeclaredValue::Value(
-                            longhands::background_position_y::SpecifiedValue(
-                            vec![longhands::background_position_y::single_value
-                                                       ::get_initial_position_value()]))),
-                         Importance::Normal),
-                        (PropertyDeclaration::BackgroundRepeat(DeclaredValue::Value(
-                            longhands::background_repeat::SpecifiedValue(
-                            vec![longhands::background_repeat::single_value
-                                                       ::get_initial_specified_value()]))),
-                         Importance::Normal),
-                        (PropertyDeclaration::BackgroundAttachment(DeclaredValue::Value(
-                            longhands::background_attachment::SpecifiedValue(
-                            vec![longhands::background_attachment::single_value
-                                                       ::get_initial_specified_value()]))),
-                         Importance::Normal),
-                        (PropertyDeclaration::BackgroundImage(DeclaredValue::Value(
-                            longhands::background_image::SpecifiedValue(
-                            vec![longhands::background_image::single_value
-                                                       ::get_initial_specified_value()]))),
-                         Importance::Normal),
-                        (PropertyDeclaration::BackgroundSize(DeclaredValue::Value(
-                            longhands::background_size::SpecifiedValue(
-                            vec![longhands::background_size::single_value
-                                                       ::get_initial_specified_value()]))),
-                         Importance::Normal),
-                        (PropertyDeclaration::BackgroundOrigin(DeclaredValue::Value(
-                            longhands::background_origin::SpecifiedValue(
-                            vec![longhands::background_origin::single_value
-                                                       ::get_initial_specified_value()]))),
-                         Importance::Normal),
-                        (PropertyDeclaration::BackgroundClip(DeclaredValue::Value(
-                            longhands::background_clip::SpecifiedValue(
-                            vec![longhands::background_clip::single_value
-                                                       ::get_initial_specified_value()]))),
-                         Importance::Normal),
-                    ],
-                    important_count: 0,
-                })),
+                        ]),
+                        (0 << 20) + (1 << 10) + (1 << 0)
+                    ),
+                ]),
+                block: Arc::new(stylesheet.shared_lock.wrap(block_from(vec![
+                    (PropertyDeclaration::Display(longhands::display::SpecifiedValue::none),
+                     Importance::Important),
+                    (PropertyDeclaration::Custom(Atom::from("a"),
+                     DeclaredValueOwned::CSSWideKeyword(CSSWideKeyword::Inherit)),
+                     Importance::Important),
+                ]))),
+                source_location: SourceLocation {
+                    line: 3,
+                    column: 31,
+                },
             }))),
-            CssRule::Keyframes(Arc::new(RwLock::new(KeyframesRule {
-                name: "foo".into(),
+            CssRule::Style(Arc::new(stylesheet.shared_lock.wrap(StyleRule {
+                selectors: SelectorList(vec![
+                    Selector::new_for_unit_testing(
+                        SelectorInner::from_vec(vec![
+                            Component::DefaultNamespace(NsAtom::from("http://www.w3.org/1999/xhtml")),
+                            Component::LocalName(LocalName {
+                                name: local_name!("html"),
+                                lower_name: local_name!("html"),
+                            }),
+                        ]),
+                        (0 << 20) + (0 << 10) + (1 << 0)
+                    ),
+                    Selector::new_for_unit_testing(
+                        SelectorInner::from_vec(vec![
+                            Component::DefaultNamespace(NsAtom::from("http://www.w3.org/1999/xhtml")),
+                            Component::LocalName(LocalName {
+                                name: local_name!("body"),
+                                lower_name: local_name!("body"),
+                            }),
+                        ]),
+                        (0 << 20) + (0 << 10) + (1 << 0)
+                    ),
+                ]),
+                block: Arc::new(stylesheet.shared_lock.wrap(block_from(vec![
+                    (PropertyDeclaration::Display(longhands::display::SpecifiedValue::block),
+                     Importance::Normal),
+                ]))),
+                source_location: SourceLocation {
+                    line: 11,
+                    column: 27,
+                },
+            }))),
+            CssRule::Style(Arc::new(stylesheet.shared_lock.wrap(StyleRule {
+                selectors: SelectorList(vec![
+                    Selector::new_for_unit_testing(
+                        SelectorInner::from_vec(vec![
+                            Component::DefaultNamespace(NsAtom::from("http://www.w3.org/1999/xhtml")),
+                            Component::ID(Atom::from("d1")),
+                            Component::Combinator(Combinator::Child),
+                            Component::DefaultNamespace(NsAtom::from("http://www.w3.org/1999/xhtml")),
+                            Component::Class(Atom::from("ok")),
+                        ]),
+                        (1 << 20) + (1 << 10) + (0 << 0)
+                    ),
+                ]),
+                block: Arc::new(stylesheet.shared_lock.wrap(block_from(vec![
+                    (PropertyDeclaration::BackgroundColor(
+                        longhands::background_color::SpecifiedValue {
+                            authored: Some("blue".to_owned().into_boxed_str()),
+                            parsed: cssparser::Color::RGBA(cssparser::RGBA::new(0, 0, 255, 255)),
+                        }
+                     ),
+                     Importance::Normal),
+                    (PropertyDeclaration::BackgroundPositionX(
+                        longhands::background_position_x::SpecifiedValue(
+                        vec![PositionComponent::zero()])),
+                     Importance::Normal),
+                    (PropertyDeclaration::BackgroundPositionY(
+                        longhands::background_position_y::SpecifiedValue(
+                        vec![PositionComponent::zero()])),
+                     Importance::Normal),
+                    (PropertyDeclaration::BackgroundRepeat(
+                        longhands::background_repeat::SpecifiedValue(
+                        vec![longhands::background_repeat::single_value
+                                                   ::get_initial_specified_value()])),
+                     Importance::Normal),
+                    (PropertyDeclaration::BackgroundAttachment(
+                        longhands::background_attachment::SpecifiedValue(
+                        vec![longhands::background_attachment::single_value
+                                                   ::get_initial_specified_value()])),
+                     Importance::Normal),
+                    (PropertyDeclaration::BackgroundImage(
+                        longhands::background_image::SpecifiedValue(
+                        vec![longhands::background_image::single_value
+                                                   ::get_initial_specified_value()])),
+                     Importance::Normal),
+                    (PropertyDeclaration::BackgroundSize(
+                        longhands::background_size::SpecifiedValue(
+                        vec![longhands::background_size::single_value
+                                                   ::get_initial_specified_value()])),
+                     Importance::Normal),
+                    (PropertyDeclaration::BackgroundOrigin(
+                        longhands::background_origin::SpecifiedValue(
+                        vec![longhands::background_origin::single_value
+                                                   ::get_initial_specified_value()])),
+                     Importance::Normal),
+                    (PropertyDeclaration::BackgroundClip(
+                        longhands::background_clip::SpecifiedValue(
+                        vec![longhands::background_clip::single_value
+                                                   ::get_initial_specified_value()])),
+                     Importance::Normal),
+                ]))),
+                source_location: SourceLocation {
+                    line: 15,
+                    column: 20,
+                },
+            }))),
+            CssRule::Keyframes(Arc::new(stylesheet.shared_lock.wrap(KeyframesRule {
+                name: KeyframesName::Ident(CustomIdent("foo".into())),
                 keyframes: vec![
-                    Arc::new(RwLock::new(Keyframe {
+                    Arc::new(stylesheet.shared_lock.wrap(Keyframe {
                         selector: KeyframeSelector::new_for_unit_testing(
                                       vec![KeyframePercentage::new(0.)]),
-                        block: Arc::new(RwLock::new(PropertyDeclarationBlock {
-                            declarations: vec![
-                                (PropertyDeclaration::Width(DeclaredValue::Value(
-                                    LengthOrPercentageOrAuto::Percentage(Percentage(0.)))),
-                                 Importance::Normal),
-                            ],
-                            important_count: 0,
-                        }))
+                        block: Arc::new(stylesheet.shared_lock.wrap(block_from(vec![
+                            (PropertyDeclaration::Width(
+                                LengthOrPercentageOrAuto::Percentage(Percentage(0.))),
+                             Importance::Normal),
+                        ])))
                     })),
-                    Arc::new(RwLock::new(Keyframe {
+                    Arc::new(stylesheet.shared_lock.wrap(Keyframe {
                         selector: KeyframeSelector::new_for_unit_testing(
                                       vec![KeyframePercentage::new(1.)]),
-                        block: Arc::new(RwLock::new(PropertyDeclarationBlock {
-                            declarations: vec![
-                                (PropertyDeclaration::Width(DeclaredValue::Value(
-                                    LengthOrPercentageOrAuto::Percentage(Percentage(1.)))),
-                                 Importance::Normal),
-                                (PropertyDeclaration::AnimationPlayState(DeclaredValue::Value(
-                                    animation_play_state::SpecifiedValue(
-                                        vec![animation_play_state::SingleSpecifiedValue::running]))),
-                                 Importance::Normal),
-                            ],
-                            important_count: 0,
-                        })),
+                        block: Arc::new(stylesheet.shared_lock.wrap(block_from(vec![
+                            (PropertyDeclaration::Width(
+                                LengthOrPercentageOrAuto::Percentage(Percentage(1.))),
+                             Importance::Normal),
+                            (PropertyDeclaration::AnimationPlayState(
+                                animation_play_state::SpecifiedValue(
+                                    vec![animation_play_state::SingleSpecifiedValue::running])),
+                             Importance::Normal),
+                        ]))),
                     })),
-                ]
+                ],
+                vendor_prefix: None,
+                source_location: SourceLocation {
+                    line: 16,
+                    column: 19,
+                },
             })))
 
-        ]),
+        ], &stylesheet.shared_lock),
     };
 
     assert_eq!(format!("{:#?}", stylesheet), format!("{:#?}", expected));
 }
 
 struct CSSError {
+    pub url : ServoUrl,
     pub line: usize,
     pub column: usize,
     pub message: String
@@ -292,25 +278,23 @@ impl CSSInvalidErrorReporterTest {
 }
 
 impl ParseErrorReporter for CSSInvalidErrorReporterTest {
-    fn report_error(&self, input: &mut CssParser, position: SourcePosition, message: &str) {
+    fn report_error(&self,
+                    input: &mut CssParser,
+                    position: SourcePosition,
+                    message: &str,
+                    url: &ServoUrl,
+                    line_number_offset: u64) {
+
         let location = input.source_location(position);
+        let line_offset = location.line + line_number_offset as usize;
 
-        let errors = self.errors.clone();
-        let mut errors = errors.lock().unwrap();
-
+        let mut errors = self.errors.lock().unwrap();
         errors.push(
             CSSError{
-                line: location.line,
+                url: url.clone(),
+                line: line_offset,
                 column: location.column,
                 message: message.to_owned()
-            }
-        );
-    }
-
-    fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {
-        return Box::new(
-            CSSInvalidErrorReporterTest{
-                errors: self.errors.clone()
             }
         );
     }
@@ -327,24 +311,27 @@ fn test_report_error_stylesheet() {
     }
     ";
     let url = ServoUrl::parse("about::test").unwrap();
-    let error_reporter = Box::new(CSSInvalidErrorReporterTest::new());
+    let error_reporter = CSSInvalidErrorReporterTest::new();
 
     let errors = error_reporter.errors.clone();
 
-    Stylesheet::from_str(css, url, Origin::UserAgent, Default::default(),
-                         None,
-                         error_reporter,
-                         ParserContextExtraData::default());
+    let lock = SharedRwLock::new();
+    let media = Arc::new(lock.wrap(MediaList::empty()));
+    Stylesheet::from_str(css, url.clone(), Origin::UserAgent, media, lock,
+                         None, &error_reporter, QuirksMode::NoQuirks, 5u64);
 
     let mut errors = errors.lock().unwrap();
 
     let error = errors.pop().unwrap();
     assert_eq!("Unsupported property declaration: 'invalid: true;'", error.message);
-    assert_eq!(5, error.line);
+    assert_eq!(10, error.line);
     assert_eq!(9, error.column);
 
     let error = errors.pop().unwrap();
     assert_eq!("Unsupported property declaration: 'display: invalid;'", error.message);
-    assert_eq!(4, error.line);
+    assert_eq!(9, error.line);
     assert_eq!(9, error.column);
+
+    // testing for the url
+    assert_eq!(url, error.url);
 }

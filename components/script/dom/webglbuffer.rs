@@ -4,6 +4,7 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use canvas_traits::CanvasMsg;
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::WebGLBufferBinding;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
@@ -12,8 +13,9 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use std::cell::Cell;
+use std::collections::HashSet;
 use webrender_traits;
-use webrender_traits::{WebGLBufferId, WebGLCommand, WebGLError, WebGLResult};
+use webrender_traits::{WebGLBufferId, WebGLCommand, WebGLError, WebGLResult, WebGLVertexArrayId};
 
 #[dom_struct]
 pub struct WebGLBuffer {
@@ -23,6 +25,9 @@ pub struct WebGLBuffer {
     target: Cell<Option<u32>>,
     capacity: Cell<usize>,
     is_deleted: Cell<bool>,
+    // The Vertex Array Objects that are referencing this buffer
+    vao_references: DOMRefCell<Option<HashSet<WebGLVertexArrayId>>>,
+    pending_delete: Cell<bool>,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     renderer: IpcSender<CanvasMsg>,
 }
@@ -37,6 +42,8 @@ impl WebGLBuffer {
             target: Cell::new(None),
             capacity: Cell::new(0),
             is_deleted: Cell::new(false),
+            vao_references: DOMRefCell::new(None),
+            pending_delete: Cell::new(false),
             renderer: renderer,
         }
     }
@@ -111,6 +118,36 @@ impl WebGLBuffer {
 
     pub fn target(&self) -> Option<u32> {
         self.target.get()
+    }
+
+    pub fn is_attached_to_vao(&self) -> bool {
+        self.vao_references.borrow().as_ref().map_or(false, |vaos| !vaos.is_empty())
+    }
+
+    pub fn set_pending_delete(&self) {
+        self.pending_delete.set(true);
+    }
+
+    pub fn add_vao_reference(&self, id: WebGLVertexArrayId) {
+        let mut vao_refs = self.vao_references.borrow_mut();
+        if let Some(ref mut vao_refs) = *vao_refs {
+            vao_refs.insert(id);
+            return;
+        }
+
+        let mut map = HashSet::new();
+        map.insert(id);
+        *vao_refs = Some(map);
+    }
+
+    pub fn remove_vao_reference(&self, id: WebGLVertexArrayId) {
+        if let Some(ref mut vao_refs) = *self.vao_references.borrow_mut() {
+            if vao_refs.take(&id).is_some() && self.pending_delete.get() {
+                // WebGL spec: The deleted buffers should no longer be valid when the VAOs are deleted
+                let _ = self.renderer.send(CanvasMsg::WebGL(WebGLCommand::DeleteBuffer(self.id)));
+                self.is_deleted.set(true);
+            }
+        }
     }
 }
 

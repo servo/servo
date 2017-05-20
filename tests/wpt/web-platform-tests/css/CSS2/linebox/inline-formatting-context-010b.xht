@@ -1,0 +1,110 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: line-height - line box height calculations</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#line-height" title="10.8 Line height calculations: the 'line-height' and 'vertical-align' properties" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#inline-formatting" title="9.4.2 Inline formatting contexts" />
+
+  <meta content="text/javascript" http-equiv="Content-Script-Type" />
+  <meta content="ahem dom image interact" name="flags" />
+  <meta content="A line box is always tall enough for all of the boxes it contains. A line box can be as tall as the tallest inline non-replaced box it contains." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  body
+  {
+  background: white url("support/ruler-v-100px-200px.png") no-repeat;
+  margin: 8px 8px 8px 55px;
+  /*
+
+    16px : margin collapsing between body's margin-top and p's margin-top == max(8px, 16px)
+  +
+    20px : first line of p
+  +
+    20px : second line box of p
+  +
+    20px : third line box of p
+  +
+    24px : margin-bottom of p
+  =======
+   100px
+
+  */
+  }
+
+  p
+  {
+  font: 1em/1.25 serif;
+  margin: 1em 0.5em 1.5em;
+  }
+
+  div
+  {
+  background-color: orange; /* The line box will be painted orange */
+  font-family: Ahem;
+  line-height: 0;
+  }
+
+  span
+  {
+  color: black;
+  line-height: 1;
+  vertical-align: baseline;
+  }
+
+  span#twenty {font-size: 20px; display: none;}
+
+  span#thirty {font-size: 30px; display: none;}
+
+  span#forty {font-size: 40px; display: none;}
+
+  span#fifty {font-size: 50px; display: none;}
+
+  span#sixty {font-size: 60px; display: none;}
+
+  span#eighty {font-size: 80px; display: none;}
+
+  span#one-hundred {font-size: 100px; display: none;}
+  ]]></style>
+
+  <script type="text/javascript"><![CDATA[
+  function resetChkboxes()
+  {
+  var collectionOfCheckboxes = document.getElementsByTagName("input");
+  for (var iterator = 0; iterator < collectionOfCheckboxes.length; iterator++)
+    {
+    collectionOfCheckboxes.item(iterator).checked = false;
+    };
+  }
+
+  function updateLinebox(chkbox)
+  {
+  if(chkbox.checked)
+    {
+    document.getElementById(chkbox.id.slice(3)).style.display = "inline";
+    }
+  else
+    {
+    document.getElementById(chkbox.id.slice(3)).style.display = "none";
+    };
+  }
+  ]]></script>
+
+ </head>
+
+ <body onload="resetChkboxes();">
+
+  <p>Check or uncheck as many checkboxes as you want.<br />
+  Test passes if the orange rectangle is always just<br />
+  tall enough to contain the tallest black square in it.</p>
+
+  <div><span id="twenty">2</span> <span id="thirty">3</span> <span id="forty">4</span> <span id="fifty">5</span> <span id="sixty">6</span> <span id="eighty">8</span> <span id="one-hundred">1</span></div>
+
+  <p><input type="checkbox" id="chktwenty" value="20" onclick="updateLinebox(this);" /><input type="checkbox" id="chkthirty" value="30" onclick="updateLinebox(this);" /><input type="checkbox" id="chkforty" value="40" onclick="updateLinebox(this);" /><input type="checkbox" id="chkfifty" value="50" onclick="updateLinebox(this);" /><input type="checkbox" id="chksixty" value="60" onclick="updateLinebox(this);" /><input type="checkbox" id="chkeighty" value="80" onclick="updateLinebox(this);" /><input type="checkbox" id="chkone-hundred" value="100" onclick="updateLinebox(this);" /></p>
+
+ </body>
+</html>

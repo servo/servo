@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Case-sensitivity of counter names</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#characters"/>
+  <link rel="match" href="case-sensitive-005-ref.xht"/>
+  <meta name="assert" content="Counter names are case-sensitive."/>
+  <style type="text/css">
+    .reset { counter-reset: test 5 tEsT 9; }
+    .incr  { counter-reset: TEST 0 tEsT 0; counter-increment: TEST 5 tEsT 9; }
+    span:before { content: counter(tEsT); }
+    span { color: blue; font: larger bold monospace; }
+  </style>
+
+ </head>
+ <body>
+
+  <p>The number 99 must appear below.</p>
+
+  <p><span class="reset"></span><span class="incr"></span></p>
+
+ </body>
+</html>

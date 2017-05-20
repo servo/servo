@@ -38,7 +38,7 @@ impl test {
         }
     }
 
-    fn test_fun2(y : &String, z : &Vec<f32>, r: &Root<isize>) -> f32 {
+    fn test_fun2(y : &String, z : &Vec<f32>, r: &Root<isize>) -> () {
         let x = true;
         x
             && x;
@@ -63,4 +63,13 @@ impl test {
 
     let var
         = "val";
+
+    fn test_fun4()
+       {
+     }
+    let var = if true {
+          "true"
+      } else { // Should not trigger
+          "false"
+      } // Should not trigger
 }

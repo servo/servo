@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: First-letter and valid properties</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#first-letter" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The color, font-size, text-decoration, text-transform, background and border properties apply to :first-letter." />
+        <style type="text/css">
+            div p:first-letter, span
+            {
+                border: 3px solid black;
+                color: silver;
+                font-size: 36px;
+                text-decoration: underline;
+                text-transform: lowercase;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the letters below have the same background, border, underline, are the same size, and are in lowercase.</p>
+        <div>
+            <span>T</span>
+            <p>T</p>
+        </div>
+    </body>
+</html>

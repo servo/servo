@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Content with multiple content values</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#content" />
+        <link rel="match" href="../../reference/pass_if_pass_below.html"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="When 'content' property values produce no visual effect or are invalid in the current context the other 'content' property values still apply." />
+        <style type="text/css">
+            div:before
+            {
+                content: no-open-quote "P" "A" "S" "S";
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is the word "PASS" below.</p>
+        <div></div>
+    </body>
+</html>

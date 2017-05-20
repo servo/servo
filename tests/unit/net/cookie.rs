@@ -69,7 +69,7 @@ fn fn_cookie_constructor() {
     let cookie = cookie_rs::Cookie::parse(" baz = bar; Domain =  ").unwrap();
     assert!(Cookie::new_wrapped(cookie.clone(), url, CookieSource::HTTP).is_some());
     let cookie = Cookie::new_wrapped(cookie, url, CookieSource::HTTP).unwrap();
-    assert!(&**cookie.cookie.domain.as_ref().unwrap() == "example.com");
+    assert!(&**cookie.cookie.domain().as_ref().unwrap() == "example.com");
 
     // cookie public domains test
     let cookie = cookie_rs::Cookie::parse(" baz = bar; Domain =  gov.ac").unwrap();
@@ -88,11 +88,11 @@ fn fn_cookie_constructor() {
 
     let cookie = cookie_rs::Cookie::parse(" baz = bar ; Secure; Path = /foo/bar/").unwrap();
     let cookie = Cookie::new_wrapped(cookie, url, CookieSource::HTTP).unwrap();
-    assert!(cookie.cookie.value == "bar");
-    assert!(cookie.cookie.name == "baz");
-    assert!(cookie.cookie.secure);
-    assert!(&cookie.cookie.path.as_ref().unwrap()[..] == "/foo/bar/");
-    assert!(&cookie.cookie.domain.as_ref().unwrap()[..] == "example.com");
+    assert!(cookie.cookie.value() == "bar");
+    assert!(cookie.cookie.name() == "baz");
+    assert!(cookie.cookie.secure());
+    assert!(&cookie.cookie.path().as_ref().unwrap()[..] == "/foo/bar/");
+    assert!(&cookie.cookie.domain().as_ref().unwrap()[..] == "example.com");
     assert!(cookie.host_only);
 
     let u = &ServoUrl::parse("http://example.com/foobar").unwrap();
@@ -125,7 +125,7 @@ fn test_sort_order() {
     let b = cookie_rs::Cookie::parse("baz=bar;Path=/foo/bar/baz/").unwrap();
     let b = Cookie::new_wrapped(b, url, CookieSource::HTTP).unwrap();
 
-    assert!(b.cookie.path.as_ref().unwrap().len() > a.cookie.path.as_ref().unwrap().len());
+    assert!(b.cookie.path().as_ref().unwrap().len() > a.cookie.path().as_ref().unwrap().len());
     assert!(CookieStorage::cookie_comparator(&a, &b) == Ordering::Greater);
     assert!(CookieStorage::cookie_comparator(&b, &a) == Ordering::Less);
     assert!(CookieStorage::cookie_comparator(&a, &a_prime) == Ordering::Less);
@@ -136,7 +136,8 @@ fn test_sort_order() {
 fn add_cookie_to_storage(storage: &mut CookieStorage, url: &ServoUrl, cookie_str: &str)
 {
     let source = CookieSource::HTTP;
-    let cookie = Cookie::new_wrapped(cookie_rs::Cookie::parse(cookie_str).unwrap(), url, source).unwrap();
+    let cookie = cookie_rs::Cookie::parse(cookie_str.to_owned()).unwrap();
+    let cookie = Cookie::new_wrapped(cookie, url, source).unwrap();
     storage.push(cookie, url, source);
 }
 
@@ -261,7 +262,7 @@ fn add_retrieve_cookies(set_location: &str,
         let header = Header::parse_header(&[bytes]).unwrap();
         let SetCookie(cookies) = header;
         for bare_cookie in cookies {
-            let cookie = Cookie::new_wrapped(bare_cookie, &url, source).unwrap();
+            let cookie = Cookie::from_cookie_string(bare_cookie, &url, source).unwrap();
             storage.push(cookie, &url, source);
         }
     }

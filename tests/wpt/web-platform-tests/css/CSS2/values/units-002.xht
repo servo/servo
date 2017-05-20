@@ -1,0 +1,22 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: Units: ex</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-06-29 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/units/002.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#length-units" />
+  <link rel="match" href="units-002-ref.xht" />
+
+  <meta name="flags" content="ahem" />
+
+  <style type="text/css">
+   .test { font: 250px/1 Ahem; margin: 0; color: navy; }
+   img { height: 1ex; }
+  </style>
+ </head>
+ <body>
+  <p>Test passes if the top and the bottom of a filled orange square are exactly flush with, respectively, the top and the bottom of 2 navy rectangles.</p>
+  <div class="test">É<img src="support/swatch-orange.png" alt=" This test needs images." />É</div>
+ </body>
+</html>

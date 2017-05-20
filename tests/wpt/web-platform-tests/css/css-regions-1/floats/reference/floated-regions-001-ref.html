@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<style>
+		article {
+		}
+		.blue {
+			color: blue;
+			border-color: blue;
+		}
+
+		.green {
+			color: green;
+			border-color: green;
+		}
+
+		#region-container {
+			/* Inherited properties from test (old `article` selector) */
+			font-family: Ahem;
+			font-size: 20px;
+			line-height: 1em;
+			/* Own properties from test */
+			border: 10px solid black;
+			overflow: hidden;
+		}
+
+		.right {
+			border-left-width: 20px;
+			border-left-style: solid;
+			float: right;
+		}
+
+		.left {
+			border-right-width: 20px;
+			border-right-style: solid;
+			float: left;
+		}
+		</style>
+	</head>
+	<body>
+		<p>
+			Test passes if you see a horizontal, black-bordered rectangle with a green square at its
+			left end and a blue square at its right end. The rectangle should be approximately as
+			wide as the page.<br>
+			You should see no red.
+		</p>
+		<div id="region-container">
+			<div class="region right blue">
+				<div class="blue">
+					xxxx<br>
+					xxxx<br>
+					xxxx<br>
+					xxxx<br>
+					xxxx
+				</div>
+			</div>
+			<div class="region left green">
+				<div class="green break">
+					xxxx<br>
+					xxxx<br>
+					xxxx<br>
+					xxxx<br>
+					xxxx
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: cascade mechanism has precedence over inheritance - font styling</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="author" title="James Hopkins" href="http://idreamincode.co.uk/css21testsuite" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#specified-value" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#inheritance" />
+  <meta content="" name="flags" />
+  <meta content="When determining the specified value of a property, the cascade mechanism of (user agent, author, user) style sheets has precedence. If no value results from such mechanism, then the property may inherit from its parent. In this testcase, it is presumed that i elements are specified in the user agents style sheets to italicize their text content." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div {font-style: normal;}
+  ]]></style>
+ </head>
+
+ <body>
+
+  <p>Test passes if the sentence below is italic.</p>
+
+  <div><i>This text should be italic.</i></div>
+
+ </body>
+</html>

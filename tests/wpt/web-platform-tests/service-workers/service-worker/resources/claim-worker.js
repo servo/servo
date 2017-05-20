@@ -12,3 +12,7 @@ self.addEventListener('message', function(event) {
           event.data.port.postMessage('FAIL: exception: ' + error.name);
         });
   });
+
+self.addEventListener('fetch', function(event) {
+    event.respondWith(new Response('Intercepted!'));
+});

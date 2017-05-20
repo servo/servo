@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<style>
+		ol, ul {
+			margin: 0;
+			padding: 0;
+		}
+		.region {
+			width: 200px;
+			background-color: lightgray;
+			margin: 1em 2em;
+		}
+		</style>
+	</head>
+	<body>
+		<p>This test passes if there are two gray rectangles, each with a 4 items list in it.<br>
+		The first list should not be numbered and the second should be numbered, starting at 1.<br>
+		Both the list markers for the first list and the numbers for the second list should be outside of the gray rectangles.
+		</p>
+		<div class="region">
+			<ul>
+				<li>Unordered list, item 1</li>
+				<li>Unordered list, item 2</li>
+				<li>Unordered list, item 3</li>
+				<li>Unordered list, item 4</li>
+			</ul>
+		</div>
+		<div class="region">
+			<ol>
+				<li>Ordered list, item 1</li>
+				<li>Ordered list, item 2</li>
+				<li>Ordered list, item 3</li>
+				<li>Ordered list, item 4</li>
+			</ol>
+		</div>
+	</body>
+</html>

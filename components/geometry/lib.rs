@@ -6,7 +6,7 @@ extern crate app_units;
 extern crate euclid;
 #[macro_use] extern crate heapsize;
 
-use app_units::{Au, MAX_AU};
+use app_units::{Au, MAX_AU, MIN_AU};
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
@@ -38,7 +38,7 @@ known_heap_size!(0, DeviceIndependentPixel);
 
 #[inline(always)]
 pub fn max_rect() -> Rect<Au> {
-    Rect::new(Point2D::new(Au(i32::MIN / 2), Au(i32::MIN / 2)), Size2D::new(MAX_AU, MAX_AU))
+    Rect::new(Point2D::new(MIN_AU / 2, MIN_AU / 2), Size2D::new(MAX_AU, MAX_AU))
 }
 
 /// A helper function to convert a rect of `f32` pixels to a rect of app units.

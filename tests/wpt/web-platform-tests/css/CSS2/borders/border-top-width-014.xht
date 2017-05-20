@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border-top-width using points with a minimum plus one value, 1pt</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#propdef-border-top-width" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-width-properties" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'border-top-width' property supports a minimum plus one length value in points that sets the width of the top border." />
+        <style type="text/css">
+            #wrapper
+            {
+                background: red;
+                height: 1pt;
+            }
+            #test
+            {
+                border-top-style: solid;
+                border-top-width: 1pt;
+                height: 0;
+            }
+            p
+            {
+                height: 40px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a wide horizontal black line and <strong>no red</strong>.</p>
+        <div id="wrapper">
+            <div id="test"></div>
+        </div>
+    </body>
+</html>

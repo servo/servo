@@ -7,7 +7,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding::HTMLObjectElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
@@ -18,31 +18,34 @@ use dom::validation::Validatable;
 use dom::validitystate::{ValidityState, ValidationFlags};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
+use html5ever::{LocalName, Prefix};
 use net_traits::image::base::Image;
-use std::sync::Arc;
+use std::default::Default;
+use style::stylearc::Arc;
 
 #[dom_struct]
 pub struct HTMLObjectElement {
     htmlelement: HTMLElement,
     #[ignore_heap_size_of = "Arc"]
     image: DOMRefCell<Option<Arc<Image>>>,
+    form_owner: MutNullableJS<HTMLFormElement>,
 }
 
 impl HTMLObjectElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> HTMLObjectElement {
         HTMLObjectElement {
             htmlelement:
                 HTMLElement::new_inherited(local_name, prefix, document),
             image: DOMRefCell::new(None),
+            form_owner: Default::default(),
         }
     }
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLObjectElement> {
         Node::reflect_node(box HTMLObjectElement::new_inherited(local_name, prefix, document),
                            document,
@@ -114,9 +117,24 @@ impl VirtualMethods for HTMLObjectElement {
                     self.process_data_url();
                 }
             },
+            &local_name!("form") => {
+                self.form_attribute_mutated(mutation);
+            },
             _ => {},
         }
     }
 }
 
-impl FormControl for HTMLObjectElement {}
+impl FormControl for HTMLObjectElement {
+    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner.get()
+    }
+
+    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+        self.form_owner.set(form);
+    }
+
+    fn to_element<'a>(&'a self) -> &'a Element {
+        self.upcast::<Element>()
+    }
+}

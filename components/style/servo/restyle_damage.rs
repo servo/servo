@@ -9,9 +9,9 @@
 
 use computed_values::display;
 use heapsize::HeapSizeOf;
+use matching::{StyleChange, StyleDifference};
 use properties::ServoComputedValues;
 use std::fmt;
-use std::sync::Arc;
 
 bitflags! {
     #[doc = "Individual layout actions that may be necessary after restyling."]
@@ -58,18 +58,21 @@ impl HeapSizeOf for ServoRestyleDamage {
 }
 
 impl ServoRestyleDamage {
-    /// Compute the appropriate restyle damage for a given style change between
-    /// `old` and `new`.
-    pub fn compute(old: &Arc<ServoComputedValues>,
-                   new: &Arc<ServoComputedValues>) -> ServoRestyleDamage {
-        compute_damage(old, new)
+    /// Compute the `StyleDifference` (including the appropriate restyle damage)
+    /// for a given style change between `old` and `new`.
+    pub fn compute_style_difference(old: &ServoComputedValues,
+                                    new: &ServoComputedValues)
+                                    -> StyleDifference {
+        let damage = compute_damage(old, new);
+        let change = if damage.is_empty() { StyleChange::Unchanged } else { StyleChange::Changed };
+        StyleDifference::new(damage, change)
     }
 
     /// Returns a bitmask that represents a flow that needs to be rebuilt and
     /// reflowed.
     ///
-    /// FIXME(bholley): Do we ever actually need this? Shouldn't RECONSTRUCT_FLOW
-    /// imply everything else?
+    /// FIXME(bholley): Do we ever actually need this? Shouldn't
+    /// RECONSTRUCT_FLOW imply everything else?
     pub fn rebuild_and_reflow() -> ServoRestyleDamage {
         REPAINT | REPOSITION | STORE_OVERFLOW | BUBBLE_ISIZES | REFLOW_OUT_OF_FLOW | REFLOW |
             RECONSTRUCT_FLOW
@@ -201,10 +204,10 @@ fn compute_damage(old: &ServoComputedValues, new: &ServoComputedValues) -> Servo
         get_inheritedtext.text_transform, get_inheritedtext.word_spacing,
         get_inheritedtext.overflow_wrap, get_inheritedtext.text_justify,
         get_inheritedtext.white_space, get_inheritedtext.word_break, get_text.text_overflow,
-        get_font.font_family, get_font.font_style, get_font.font_variant, get_font.font_weight,
+        get_font.font_family, get_font.font_style, get_font.font_variant_caps, get_font.font_weight,
         get_font.font_size, get_font.font_stretch,
         get_inheritedbox.direction, get_inheritedbox.writing_mode,
-        get_text.text_decoration, get_text.unicode_bidi,
+        get_text.text_decoration_line, get_text.unicode_bidi,
         get_inheritedtable.empty_cells, get_inheritedtable.caption_side,
         get_column.column_width, get_column.column_count
     ]) || (new.get_box().display == display::T::inline &&

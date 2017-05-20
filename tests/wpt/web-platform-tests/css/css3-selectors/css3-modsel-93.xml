@@ -1,0 +1,13 @@
+<csstest def="Type element selector without declared namespace" module="W3C Selectors" modulename="css3-modsel" number="93" rev="1.1" date="13-november-2001" xmlns:a="http://www.example.org/a" xmlns:b="http://www.example.org/b" xmlns="http://www.example.org/css3tests">
+
+<author>Daniel Glazman</author>
+<author>Ian Hickson</author>
+
+<cssrules>@namespace test url(http://www.example.org/b);
+*|testA { background-color : red }
+|testA {background-color : lime }</cssrules>
+
+<code>
+<testA xmlns="">This paragraph has no declared namespace and should have a green background.</testA>
+</code>
+</csstest>

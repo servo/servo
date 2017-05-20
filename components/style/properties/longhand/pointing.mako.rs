@@ -6,10 +6,11 @@
 
 <% data.new_style_struct("Pointing", inherited=True, gecko_name="UserInterface") %>
 
-<%helpers:longhand name="cursor" animatable="False" spec="https://drafts.csswg.org/css-ui/#cursor">
+<%helpers:longhand name="cursor" boxed="${product == 'gecko'}" animation_value_type="none"
+  spec="https://drafts.csswg.org/css-ui/#cursor">
     pub use self::computed_value::T as SpecifiedValue;
-    use values::HasViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
+    #[cfg(feature = "gecko")]
     use values::specified::url::SpecifiedUrl;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -19,6 +20,7 @@
         use std::fmt;
         use style_traits::cursor::Cursor;
         use style_traits::ToCss;
+        #[cfg(feature = "gecko")]
         use values::specified::url::SpecifiedUrl;
 
         #[derive(Clone, PartialEq, Copy, Debug)]
@@ -130,7 +132,10 @@
         let mut images = vec![];
         loop {
             match input.try(|input| parse_image(context, input)) {
-                Ok(image) => images.push(image),
+                Ok(mut image) => {
+                    image.url.build_image_value();
+                    images.push(image)
+                }
                 Err(()) => break,
             }
             try!(input.expect_comma());
@@ -146,21 +151,22 @@
 // NB: `pointer-events: auto` (and use of `pointer-events` in anything that isn't SVG, in fact)
 // is nonstandard, slated for CSS4-UI.
 // TODO(pcwalton): SVG-only values.
-${helpers.single_keyword("pointer-events", "auto none", animatable=False,
+${helpers.single_keyword("pointer-events", "auto none", animation_value_type="none",
+                         extra_gecko_values="visiblepainted visiblefill visiblestroke visible painted fill stroke all",
                          spec="https://www.w3.org/TR/SVG11/interact.html#PointerEventsProperty")}
 
 ${helpers.single_keyword("-moz-user-input", "auto none enabled disabled",
                          products="gecko", gecko_ffi_name="mUserInput",
                          gecko_enum_prefix="StyleUserInput",
                          gecko_inexhaustive=True,
-                         animatable=False,
+                         animation_value_type="none",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-user-input)")}
 
 ${helpers.single_keyword("-moz-user-modify", "read-only read-write write-only",
                          products="gecko", gecko_ffi_name="mUserModify",
                          gecko_enum_prefix="StyleUserModify",
                          needs_conversion=True,
-                         animatable=False,
+                         animation_value_type="none",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-user-modify)")}
 
 ${helpers.single_keyword("-moz-user-focus",
@@ -168,5 +174,13 @@ ${helpers.single_keyword("-moz-user-focus",
                          products="gecko", gecko_ffi_name="mUserFocus",
                          gecko_enum_prefix="StyleUserFocus",
                          gecko_inexhaustive=True,
-                         animatable=False,
+                         animation_value_type="none",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-user-focus)")}
+
+${helpers.predefined_type("caret-color",
+                          "ColorOrAuto",
+                          "Either::Second(Auto)",
+                          spec="https://drafts.csswg.org/css-ui/#caret-color",
+                          animation_value_type="Either<IntermediateColor, Auto>",
+                          boxed=True,
+                          products="gecko")}

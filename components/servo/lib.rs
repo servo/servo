@@ -82,7 +82,6 @@ use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcSender};
 use log::{Log, LogMetadata, LogRecord};
-use net::image_cache_thread::new_image_cache_thread;
 use net::resource_thread::new_resource_threads;
 use net_traits::IpcSend;
 use profile::mem as profile_mem;
@@ -99,6 +98,7 @@ use std::cmp::max;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
+use webrender::renderer::RendererKind;
 use webvr::{WebVRThread, WebVRCompositorHandler};
 
 pub use gleam::gl;
@@ -126,6 +126,8 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 
+        // Make sure the gl context is made current.
+        window.prepare_for_composite(0, 0);
 
         // Get both endpoints of a special channel for communication between
         // the client window and the compositor. This channel is unique because
@@ -159,9 +161,9 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
             };
 
             let renderer_kind = if opts::get().should_use_osmesa() {
-                webrender_traits::RendererKind::OSMesa
+                RendererKind::OSMesa
             } else {
-                webrender_traits::RendererKind::Native
+                RendererKind::Native
             };
 
             let recorder = if opts.webrender_record {
@@ -172,7 +174,11 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 None
             };
 
-            webrender::Renderer::new(webrender::RendererOptions {
+            let framebuffer_size = window.framebuffer_size();
+            let framebuffer_size = webrender_traits::DeviceUintSize::new(framebuffer_size.width,
+                                                                         framebuffer_size.height);
+
+            webrender::Renderer::new(window.gl(), webrender::RendererOptions {
                 device_pixel_ratio: device_pixel_ratio,
                 resource_override_path: Some(resource_path),
                 enable_aa: opts.enable_text_antialiasing,
@@ -184,7 +190,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 renderer_kind: renderer_kind,
                 enable_subpixel_aa: opts.enable_subpixel_text_antialiasing,
                 ..Default::default()
-            }).expect("Unable to initialize webrender!")
+            }, framebuffer_size).expect("Unable to initialize webrender!")
         };
 
         // Important that this call is done in a single-threaded fashion, we
@@ -237,6 +243,10 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         self.compositor.handle_events(events)
     }
 
+    pub fn set_webrender_profiler_enabled(&mut self, enabled: bool) {
+        self.compositor.set_webrender_profiler_enabled(enabled);
+    }
+
     pub fn repaint_synchronously(&mut self) {
         self.compositor.repaint_synchronously()
     }
@@ -281,7 +291,6 @@ fn create_constellation(user_agent: Cow<'static, str>,
                              devtools_chan.clone(),
                              time_profiler_chan.clone(),
                              config_dir);
-    let image_cache_thread = new_image_cache_thread(webrender_api_sender.create_api());
     let font_cache_thread = FontCacheThread::new(public_resource_threads.sender(),
                                                  Some(webrender_api_sender.create_api()));
 
@@ -292,7 +301,6 @@ fn create_constellation(user_agent: Cow<'static, str>,
         debugger_chan: debugger_chan,
         devtools_chan: devtools_chan,
         bluetooth_thread: bluetooth_thread,
-        image_cache_thread: image_cache_thread,
         font_cache_thread: font_cache_thread,
         public_resource_threads: public_resource_threads,
         private_resource_threads: private_resource_threads,

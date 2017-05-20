@@ -1,0 +1,24 @@
+<!-- Quirks. See ../015.html -->
+<html>
+ <head>
+  <title>Inline box model: space taken by images in cells</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/inline/compat/001.html"/>
+    <style type="text/css">
+   div { background: lime; height: 64px; width: 128px; }
+   table { background: red; padding: 0; border: 0; border-spacing: 0; margin: 0; }
+   td { padding: 0; border: 0; font-size: 32px; }
+   img { height: 1px; width: 64px; }
+  </style>
+ </head>
+ <body>
+  <p>There should be no red below.</p>
+  <div>
+   <table>
+    <tr>
+     <td><img src="http://www.hixie.ch/resources/images/1x1-green"></td>
+    </tr>
+   </table>
+  </div>
+ </body>
+</html>

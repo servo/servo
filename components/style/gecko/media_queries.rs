@@ -5,21 +5,24 @@
 //! Gecko's media-query device and expression representation.
 
 use app_units::Au;
+use context::QuirksMode;
 use cssparser::{CssStringWriter, Parser, Token};
 use euclid::Size2D;
+use font_metrics::get_metrics_provider_for_product;
 use gecko_bindings::bindings;
-use gecko_bindings::structs::{nsCSSValue, nsCSSUnit, nsStringBuffer};
+use gecko_bindings::structs::{nsCSSKeyword, nsCSSProps_KTableEntry, nsCSSValue, nsCSSUnit, nsStringBuffer};
 use gecko_bindings::structs::{nsMediaExpression_Range, nsMediaFeature};
 use gecko_bindings::structs::{nsMediaFeature_ValueType, nsMediaFeature_RangeType, nsMediaFeature_RequirementFlags};
 use gecko_bindings::structs::RawGeckoPresContextOwned;
 use media_queries::MediaType;
-use properties::ComputedValues;
-use std::ascii::AsciiExt;
+use parser::ParserContext;
+use properties::{ComputedValues, StyleBuilder};
 use std::fmt::{self, Write};
-use std::sync::Arc;
+use str::starts_with_ignore_ascii_case;
 use string_cache::Atom;
 use style_traits::ToCss;
 use style_traits::viewport::ViewportConstraints;
+use stylearc::Arc;
 use values::{CSSFloat, specified};
 use values::computed::{self, ToComputedValue};
 
@@ -29,7 +32,7 @@ pub struct Device {
     /// NB: The pres context lifetime is tied to the styleset, who owns the
     /// stylist, and thus the `Device`, so having a raw pres context pointer
     /// here is fine.
-    pres_context: RawGeckoPresContextOwned,
+    pub pres_context: RawGeckoPresContextOwned,
     default_values: Arc<ComputedValues>,
     viewport_override: Option<ViewportConstraints>,
 }
@@ -54,8 +57,14 @@ impl Device {
 
     /// Returns the default computed values as a reference, in order to match
     /// Servo.
-    pub fn default_values(&self) -> &ComputedValues {
+    pub fn default_computed_values(&self) -> &ComputedValues {
         &*self.default_values
+    }
+
+    /// Returns the default computed values, but wrapped in an arc for cheap
+    /// cloning.
+    pub fn default_computed_values_arc(&self) -> &Arc<ComputedValues> {
+        &self.default_values
     }
 
     /// Returns the default computed values as an `Arc`, in order to avoid
@@ -94,10 +103,10 @@ impl Device {
         self.viewport_override.as_ref().map(|v| {
             Size2D::new(Au::from_f32_px(v.size.width),
                         Au::from_f32_px(v.size.height))
-        }).unwrap_or_else(|| {
-            // TODO(emilio): Grab from pres context.
-            Size2D::new(Au::from_f32_px(1024.0),
-                        Au::from_f32_px(768.0))
+        }).unwrap_or_else(|| unsafe {
+            // TODO(emilio): Need to take into account scrollbars.
+            Size2D::new(Au((*self.pres_context).mVisibleArea.width),
+                        Au((*self.pres_context).mVisibleArea.height))
         })
     }
 }
@@ -130,15 +139,22 @@ impl ToCss for Expression {
 
         if let Some(ref val) = self.value {
             dest.write_str(": ")?;
-            val.to_css(dest)?;
+            val.to_css(dest, self)?;
         }
 
         dest.write_str(")")
     }
 }
 
+impl PartialEq for Expression {
+    fn eq(&self, other: &Expression) -> bool {
+        self.feature.mName == other.feature.mName &&
+            self.value == other.value && self.range == other.range
+    }
+}
+
 /// A resolution.
-#[derive(Debug, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Resolution {
     /// Dots per inch.
     Dpi(CSSFloat),
@@ -165,7 +181,7 @@ impl Resolution {
             _ => return Err(()),
         };
 
-        Ok(match_ignore_ascii_case! { unit,
+        Ok(match_ignore_ascii_case! { &unit,
             "dpi" => Resolution::Dpi(value),
             "dppx" => Resolution::Dppx(value),
             "dpcm" => Resolution::Dpcm(value),
@@ -200,7 +216,7 @@ unsafe fn string_from_ns_string_buffer(buffer: *const nsStringBuffer) -> String 
 }
 
 /// A value found or expected in a media expression.
-#[derive(Debug, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum MediaExpressionValue {
     /// A length.
     Length(specified::Length),
@@ -217,7 +233,7 @@ pub enum MediaExpressionValue {
     Resolution(Resolution),
     /// An enumerated value, defined by the variant keyword table in the
     /// feature's `mData` member.
-    Enumerated(u32),
+    Enumerated(i16),
     /// An identifier.
     ///
     /// TODO(emilio): Maybe atomize?
@@ -258,10 +274,8 @@ impl MediaExpressionValue {
                 Some(MediaExpressionValue::Resolution(Resolution::Dpi(css_value.float_unchecked())))
             }
             nsMediaFeature_ValueType::eEnumerated => {
-                debug_assert!(css_value.mUnit == nsCSSUnit::eCSSUnit_Enumerated);
-                let value = css_value.integer_unchecked();
-                debug_assert!(value >= 0);
-                Some(MediaExpressionValue::Enumerated(value as u32))
+                let value = css_value.integer_unchecked() as i16;
+                Some(MediaExpressionValue::Enumerated(value))
             }
             nsMediaFeature_ValueType::eIdent => {
                 debug_assert!(css_value.mUnit == nsCSSUnit::eCSSUnit_Ident);
@@ -283,8 +297,8 @@ impl MediaExpressionValue {
     }
 }
 
-impl ToCss for MediaExpressionValue {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+impl MediaExpressionValue {
+    fn to_css<W>(&self, dest: &mut W, for_expr: &Expression) -> fmt::Result
         where W: fmt::Write,
     {
         match *self {
@@ -301,17 +315,30 @@ impl ToCss for MediaExpressionValue {
             MediaExpressionValue::Ident(ref ident) => {
                 CssStringWriter::new(dest).write_str(ident)
             }
-            MediaExpressionValue::Enumerated(..) => {
-                // TODO(emilio): Use the CSS keyword table.
-                unimplemented!()
+            MediaExpressionValue::Enumerated(value) => unsafe {
+                use std::{slice, str};
+                use std::os::raw::c_char;
+
+                // NB: All the keywords on nsMediaFeatures are static,
+                // well-formed utf-8.
+                let mut length = 0;
+
+                let (keyword, _value) =
+                    find_in_table(*for_expr.feature.mData.mKeywordTable.as_ref(),
+                                  |_kw, val| val == value)
+                        .expect("Value not found in the keyword table?");
+
+                let buffer: *const c_char =
+                    bindings::Gecko_CSSKeywordString(keyword, &mut length);
+                let buffer =
+                    slice::from_raw_parts(buffer as *const u8, length as usize);
+
+                let string = str::from_utf8_unchecked(buffer);
+
+                dest.write_str(string)
             }
         }
     }
-}
-
-fn starts_with_ignore_ascii_case(string: &str, prefix: &str) -> bool {
-    string.len() > prefix.len() &&
-      string[0..prefix.len()].eq_ignore_ascii_case(prefix)
 }
 
 fn find_feature<F>(mut f: F) -> Option<&'static nsMediaFeature>
@@ -335,6 +362,27 @@ fn find_feature<F>(mut f: F) -> Option<&'static nsMediaFeature>
     None
 }
 
+unsafe fn find_in_table<F>(mut current_entry: *const nsCSSProps_KTableEntry,
+                           mut f: F)
+                           -> Option<(nsCSSKeyword, i16)>
+    where F: FnMut(nsCSSKeyword, i16) -> bool
+{
+    loop {
+        let value = (*current_entry).mValue;
+        let keyword = (*current_entry).mKeyword;
+
+        if value == -1 {
+            return None; // End of the table.
+        }
+
+        if f(keyword, value) {
+            return Some((keyword, value));
+        }
+
+        current_entry = current_entry.offset(1);
+    }
+}
+
 impl Expression {
     /// Trivially construct a new expression.
     fn new(feature: &'static nsMediaFeature,
@@ -352,7 +400,7 @@ impl Expression {
     /// ```
     /// (media-feature: media-value)
     /// ```
-    pub fn parse(input: &mut Parser) -> Result<Self, ()> {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         try!(input.expect_parenthesis_block());
         input.parse_nested_block(|input| {
             let ident = try!(input.expect_ident());
@@ -395,18 +443,19 @@ impl Expression {
             // If there's no colon, this is a media query of the form
             // '(<feature>)', that is, there's no value specified.
             //
-            // FIXME(emilio): We need to check for range operators too here when
-            // we support them, see:
-            //
-            // https://drafts.csswg.org/mediaqueries/#mq-ranges
+            // Gecko doesn't allow ranged expressions without a value, so just
+            // reject them here too.
             if input.try(|i| i.expect_colon()).is_err() {
+                if range != nsMediaExpression_Range::eEqual {
+                    return Err(())
+                }
                 return Ok(Expression::new(feature, None, range));
             }
 
             let value = match feature.mValueType {
                 nsMediaFeature_ValueType::eLength => {
                     MediaExpressionValue::Length(
-                        specified::Length::parse_non_negative(input)?)
+                        specified::Length::parse_non_negative(context, input)?)
                 },
                 nsMediaFeature_ValueType::eInteger => {
                     let i = input.expect_integer()?;
@@ -443,9 +492,25 @@ impl Expression {
                     MediaExpressionValue::Resolution(Resolution::parse(input)?)
                 }
                 nsMediaFeature_ValueType::eEnumerated => {
-                    // TODO(emilio): Use Gecko's CSS keyword table to parse
-                    // this.
-                    return Err(())
+                    let keyword = input.expect_ident()?;
+                    let keyword = unsafe {
+                        bindings::Gecko_LookupCSSKeyword(keyword.as_bytes().as_ptr(),
+                                                         keyword.len() as u32)
+                    };
+
+                    let first_table_entry: *const nsCSSProps_KTableEntry = unsafe {
+                        *feature.mData.mKeywordTable.as_ref()
+                    };
+
+                    let value =
+                        match unsafe { find_in_table(first_table_entry, |kw, _| kw == keyword) } {
+                            Some((_kw, value)) => {
+                                value
+                            }
+                            None => return Err(()),
+                        };
+
+                    MediaExpressionValue::Enumerated(value)
                 }
                 nsMediaFeature_ValueType::eIdent => {
                     MediaExpressionValue::Ident(input.expect_ident()?.into_owned())
@@ -457,7 +522,7 @@ impl Expression {
     }
 
     /// Returns whether this media query evaluates to true for the given device.
-    pub fn matches(&self, device: &Device) -> bool {
+    pub fn matches(&self, device: &Device, quirks_mode: QuirksMode) -> bool {
         let mut css_value = nsCSSValue::null();
         unsafe {
             (self.feature.mGetter.unwrap())(device.pres_context,
@@ -470,12 +535,13 @@ impl Expression {
             None => return false,
         };
 
-        self.evaluate_against(device, &value)
+        self.evaluate_against(device, &value, quirks_mode)
     }
 
     fn evaluate_against(&self,
                         device: &Device,
-                        actual_value: &MediaExpressionValue)
+                        actual_value: &MediaExpressionValue,
+                        quirks_mode: QuirksMode)
                         -> bool {
         use self::MediaExpressionValue::*;
         use std::cmp::Ordering;
@@ -484,19 +550,24 @@ impl Expression {
                       self.feature.mRangeType == nsMediaFeature_RangeType::eMinMaxAllowed,
                       "Whoops, wrong range");
 
-        let default_values = device.default_values();
+        let default_values = device.default_computed_values();
+
+
+        let provider = get_metrics_provider_for_product();
 
         // http://dev.w3.org/csswg/mediaqueries3/#units
         // em units are relative to the initial font-size.
         let context = computed::Context {
             is_root_element: false,
-            viewport_size: device.au_viewport_size(),
+            device: device,
             inherited_style: default_values,
             layout_parent_style: default_values,
-            // This cloning business is kind of dumb.... It's because Context
-            // insists on having an actual ComputedValues inside itself.
-            style: default_values.clone(),
-            font_metrics_provider: None
+            style: StyleBuilder::for_derived_style(default_values),
+            font_metrics_provider: &provider,
+            cached_system_font: None,
+            in_media_query: true,
+            // TODO: pass the correct value here.
+            quirks_mode: quirks_mode,
         };
 
         let required_value = match self.value {
@@ -541,9 +612,9 @@ impl Expression {
                 debug_assert!(self.feature.mRangeType != nsMediaFeature_RangeType::eMinMaxAllowed);
                 return one == other;
             }
-            (&Enumerated(..), &Enumerated(..)) => {
-                // TODO(emilio)
-                unimplemented!();
+            (&Enumerated(one), &Enumerated(other)) => {
+                debug_assert!(self.feature.mRangeType != nsMediaFeature_RangeType::eMinMaxAllowed);
+                return one == other;
             }
             _ => unreachable!(),
         };

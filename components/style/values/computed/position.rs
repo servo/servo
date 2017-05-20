@@ -3,59 +3,42 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! CSS handling for the computed value of
-//! [`position`][position]s
+//! [`position`][position] values.
 //!
 //! [position]: https://drafts.csswg.org/css-backgrounds-3/#position
 
 use std::fmt;
 use style_traits::ToCss;
 use values::computed::LengthOrPercentage;
+use values::generics::position::Position as GenericPosition;
 
-#[derive(Debug, Clone, PartialEq, Copy)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct Position {
-    pub horizontal: LengthOrPercentage,
-    pub vertical: LengthOrPercentage,
-}
+/// The computed value of a CSS `<position>`
+pub type Position = GenericPosition<HorizontalPosition, VerticalPosition>;
+
+/// The computed value of a CSS horizontal position.
+pub type HorizontalPosition = LengthOrPercentage;
+
+/// The computed value of a CSS vertical position.
+pub type VerticalPosition = LengthOrPercentage;
 
 impl Position {
-    /// Construct a position at (0, 0)
+    /// `50% 50%`
+    #[inline]
+    pub fn center() -> Self {
+        Self::new(LengthOrPercentage::Percentage(0.5), LengthOrPercentage::Percentage(0.5))
+    }
+
+    /// `0% 0%`
+    #[inline]
     pub fn zero() -> Self {
-        Position {
-            horizontal: LengthOrPercentage::zero(),
-            vertical: LengthOrPercentage::zero(),
-        }
+        Self::new(LengthOrPercentage::zero(), LengthOrPercentage::zero())
     }
 }
 
 impl ToCss for Position {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(self.horizontal.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.vertical.to_css(dest));
-        Ok(())
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Copy)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct HorizontalPosition(pub LengthOrPercentage);
-
-impl ToCss for HorizontalPosition {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        self.0.to_css(dest)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Copy)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct VerticalPosition(pub LengthOrPercentage);
-
-impl ToCss for VerticalPosition {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        self.0.to_css(dest)
+        self.horizontal.to_css(dest)?;
+        dest.write_str(" ")?;
+        self.vertical.to_css(dest)
     }
 }

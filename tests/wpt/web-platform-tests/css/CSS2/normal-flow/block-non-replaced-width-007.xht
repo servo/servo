@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Box centering with 'margin-left' and 'margin-right' set to auto</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-29 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#blockwidth" />
+		<link rel="match" href="block-non-replaced-width-007-ref.xht" />
+
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="When 'margin-left' and 'margin-right' are set to 'auto' and the element has a 'width', then the box will be centered within the edges of its containing block." />
+        <style type="text/css">
+            #div1
+            {
+                border: solid black;
+                height: 200px;
+                width: 200px;
+            }
+            #div2
+            {
+                background-color: orange;
+                border-color: orange;
+                border-style: solid;
+                border-width: 0 25px;
+                margin: 0 auto;
+                padding: 0;
+                height: 100px;
+                width: 50px;
+            }
+            #div3
+            {
+                color: blue;
+                font: 100px/1 Ahem;
+                text-align: center;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the blue and orange squares have the same width and the blue square is directly below the orange square.</p>
+        <div id="div1">
+            <div id="div2"></div>
+            <div id="div3">X</div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,25 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Tables: Absolute Positioning of Tables and Blocks</title>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-width" />
+     <style type="text/css">
+
+    table { display: table; background: red; color: yellow; }
+    row { display: table-row; }
+    cell { display: table-cell; }
+    block { display: block; background: green; -moz-opacity: 90%; }
+    p { margin: 0; }
+
+    html { margin: 1em; padding: 2em; border: 1px solid black; }
+    body { margin: 3em; padding: 4em; border: 1px solid black; }
+    body > table, body > block { position: absolute; height: 3em; width: 3em; padding: 1em; }
+
+  </style>
+ </head>
+ <body>
+  <table xmlns="http://www.example.org/"> <row> <cell> FAIL </cell> </row> </table>
+  <block xmlns="http://www.example.org/"/>
+  <p>There should be a green block (and no red) in the upper left hand
+  corner in between the two black lines.</p>
+ </body>
+</html>

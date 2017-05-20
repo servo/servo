@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Margin Boxes - Top Margin Boxes</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#margin-boxes"/>
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="If the above constraints are contradictory ('over-constrained') then the right margin of the top-left box and the left margin of the top-right box are treated as if their computed values were 'auto'."/>
+  <style type="text/css"><![CDATA[
+   @page {
+   		font-size: 9pt;
+   		margin: 1in;
+   		size: 8.5in 11in; /* 6.5 */
+		border: 1pt solid black;
+   		@top-left { 
+			content: "Left box";
+			width: 3in; /* 3.5 */
+			border: 0.125in solid black; /* 3.25 */
+			margin-left: 1.5in; /* 1.75 */
+			margin-right: 0.75in; /* 1 */
+		}
+		@top-right { 
+			content: "Right box";
+			width: 1.5in; /* -0.5 */
+			border: 0.125in solid black; /* -0.75 */
+		}
+   }
+   html, body {
+   	margin: 0;
+	padding: 0;
+   }
+  ]]></style>
+ </head>
+ <body>
+  <p>There should be two boxes above this text. The inner width of the left box should be 3 inches. The inner width of the right box should be 1.5 inches. The boxes should be right aligned and be directly next to each other on their common side.</p>
+ </body>
+</html>

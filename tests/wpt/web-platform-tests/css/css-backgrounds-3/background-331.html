@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Backgrounds and Borders Test: background shorthand - initial values</title>
+    <link rel="author" title="Intel" href="http://www.intel.com" />
+    <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background" />
+    <meta name="flags" content="dom" />
+    <meta name="assert" content="Check that given a valid declaration, for each layer the shorthand 'backgound' first sets the corresponding layer of each of 'background-image', 'background-position', 'background-size', 'background-repeat', 'background-origin', 'background-clip' and 'background-attachment' to that property's initial value" />
+    <style>
+        #test {
+            background: ;
+        }
+    </style>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <div id="test"></div>
+    <script>
+        var cs = getComputedStyle(document.getElementById("test"), null);
+
+        test(function() {
+            assert_equals(cs.getPropertyValue("background-image"),
+                "none", "background initial value for background-image");
+        }, "background_initial_image");
+
+        test(function() {
+            assert_equals(cs.getPropertyValue("background-position"),
+                "0% 0%", "background initial value for background-position");
+        }, "background_initial_position");
+
+        test(function() {
+            assert_equals(cs.getPropertyValue("background-size"),
+                "auto", "background initial value for background-size");
+        }, "background_initial_size");
+
+        test(function() {
+            assert_equals(cs.getPropertyValue("background-repeat"),
+                "repeat", "background initial value for background-repeat");
+        }, "background_initial_repeat");
+
+        test(function() {
+            assert_equals(cs.getPropertyValue("background-attachment"),
+                "scroll", "background initial value for background-attachment");
+        }, "background_initial_attachment");
+
+        test(function() {
+            assert_equals(cs.getPropertyValue("background-origin"),
+                "padding-box", "background initial value for background-origin");
+        }, "background_initial_origin");
+
+        test(function() {
+            assert_equals(cs.getPropertyValue("background-clip"),
+                "border-box", "background initial value for background-clip");
+        }, "background_initial_clip");
+
+        test(function() {
+            assert_equals(cs.getPropertyValue("background-color"),
+                "transparent", "background initial value for background-color");
+        }, "background_initial_color");
+    </script>
+  </body>
+</html>

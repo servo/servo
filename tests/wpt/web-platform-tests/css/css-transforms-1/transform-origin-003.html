@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): transform-origin percentages 1</title>
+    <link rel="author" title="Keith Schwarz" href="mailto:keith@keithschwarz.com">
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-origin-property">
+    <meta name="assert" content='A transform-origin of 101px 51px must result
+    in the same rendering as the default of 50% 50% in this case.  The content
+    box is 200x100px, so with a 1px border, the border box is 202x102px.
+    transform-origin is computed relative to the border box.  (Note: an
+    implementation that incorrectly computes transform-origin percentages
+    relative to the content box would fail this test by only a few pixels, so
+    care is needed in checking that the test and reference renderings match
+    exactly.)'>
+    <link rel="match" href="transform-origin-ref-2.html">
+    <style>
+      div {
+        width: 200px;
+        height: 100px;
+        border: 1px solid black;
+        transform: rotate(45deg);
+        transform-origin: 101px 51px;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      Some text!
+    </div>
+  </body>
+</html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: inheritance of computed font-size across fonts</title>
+
+  <!--
+  Inspired by
+  http://test.csswg.org/suites/css2.1/20110323/html4/background-position-001.htm
+  http://test.csswg.org/suites/css2.1/nightly-unstable/html4/background-position-001.htm
+  -->
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#length-units" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-size-props" />
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+  <meta content="ahem" name="flags" />
+  <meta content="ex unit is the 'x-height' of the relevant font. 'em' and 'ex' length values when defining 'font-size' property refer to the computed font size of the parent element." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div#overlapped-red
+  {
+  background-color: red;
+  height: 100px;
+  width: 100px;
+  }
+
+  div#grand-parent {font: 25px/1 Ahem;}
+  /*
+  To download Ahem font:
+  http://www.w3.org/Style/CSS/Test/Fonts/Ahem/
+  */
+
+  div#parent {font-size: 5ex;}
+  /* The Ahem font has an x-height of 0.8em. */
+
+  div#overlapping-green
+  {
+  background-color: green;
+  bottom: 100px;
+  font-family: serif;
+  position: relative;
+  width: 100px;
+  }
+
+  /*
+  In this test, the inherited computed font-size of
+  div#overlapping-green should be 100px with a line box
+  height of 100px.
+  */
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+  <div id="overlapped-red"></div>
+
+  <div id="grand-parent">
+  		<div id="parent">
+  			<div id="overlapping-green">&nbsp;</div>
+		</div>
+  </div>
+
+ </body>
+</html>

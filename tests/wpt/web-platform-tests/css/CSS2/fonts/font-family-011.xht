@@ -1,0 +1,27 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS: font-family and whitespace</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/fonts/family/001.xml" type="application/xhtml+xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-family-prop" />
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-family-prop"/>
+  <link rel="match" href="font-family-011-ref.xht" />
+
+  <style type="text/css">
+   .test { border: solid; margin: 1em; padding: 0 1em; background: navy; color: yellow; font: 900 2em Ahem, Marlett, Arial; }
+   .a { font-family: Courier New, Ahem, Marlett, Arial, sans-serif; }
+   .b { font-family: Courier            New, Ahem, Marlett, Arial, sans-serif; } /* keep those spaces! */
+   .c { font-family: Courier
+New, Ahem, Marlett, Arial, sans-serif; } /* do not delete this newline! */
+   .d { font-family:  Courier  New  , Ahem, Marlett, Arial, sans-serif; } /* that is a tab! */
+  </style>
+ </head>
+ <body>
+  <p>This following four lines of text should have the same font.</p>
+  <p class="test a">Test</p>
+  <p class="test b">Test</p>
+  <p class="test c">Test</p>
+  <p class="test d">Test</p>
+ </body>
+</html>

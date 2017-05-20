@@ -1,0 +1,67 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: During the execution of an animation, the computed value is controlled by the animation</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-animations/#animation-behavior-" />
+        <meta name="flags" content="animated dom" />
+        <meta name="assert" content="During the execution of an animation, the computed value is controlled by the animation." />
+        <style type="text/css">
+            @keyframes testAnimation
+            {
+               from{width: 50px;}
+               to {width: 200px;} 
+            }
+            #values
+            {
+                position: relative;
+                top: 20px;
+            }
+            #div0
+            {
+                animation-duration: 3s;
+                animation-delay: 1s;
+                animation-fill-mode: forwards;
+                background-color: blue;
+                height: 50px;
+                position: relative;
+                width: 50px;
+            }
+        </style>
+        <script type="text/javascript">
+            var VARIANCE_ALLOWED = 100; //The allowable variance in animation delay and duration.
+            var values;
+            var element;
+            var intervalID;
+
+            function startTest()
+            {
+                document.body.offsetWidth;
+                element = document.getElementById("div0");
+                values = document.getElementById("values");
+                element.style["animationName"] = "testAnimation"; 
+                setTimeout("printFirstValue()", 1000 - VARIANCE_ALLOWED);
+                setTimeout('intervalID = setInterval("printValue()", 100)', 1000 + 64);
+                setTimeout("clearInterval(intervalID)", 4000 - VARIANCE_ALLOWED);
+                setTimeout("printValue()", 4000 + VARIANCE_ALLOWED);
+            }
+            function printFirstValue()
+            {
+                var initialValue = window.getComputedStyle(element, null).getPropertyValue("width");
+                values.innerHTML = "Computed values: " + initialValue;
+                values.value = "Computed values: " + initialValue;
+            }
+            function printValue()
+            {
+                var currentValue = window.getComputedStyle(element, null).getPropertyValue("width");
+                values.innerHTML = values.innerHTML + ", " + currentValue;
+                values.value = values.value + ", " + currentValue; 
+            }
+        </script>
+    </head>
+    <body onload="startTest()">
+        <p>Test passes if the values reported under the blue box gradually increase from '50px' to approximately '200px' as it grows wider, then jumps to '50px' at the end.</p>
+        <div id="div0"></div>
+        <div id="values"></div>
+    </body>
+</html>

@@ -10,16 +10,16 @@
 ${helpers.predefined_type("opacity",
                           "Opacity",
                           "1.0",
-                          animatable=True,
+                          animation_value_type="ComputedValue",
+                          flags="CREATES_STACKING_CONTEXT",
                           spec="https://drafts.csswg.org/css-color/#opacity")}
 
 <%helpers:vector_longhand name="box-shadow" allow_empty="True"
-                          animatable="True" extra_prefixes="webkit"
+                          animation_value_type="IntermediateBoxShadowList"
+                          extra_prefixes="webkit"
                           spec="https://drafts.csswg.org/css-backgrounds/#box-shadow">
-    use cssparser;
     use std::fmt;
     use style_traits::ToCss;
-    use values::HasViewportPercentage;
 
     pub type SpecifiedValue = specified::Shadow;
 
@@ -28,13 +28,13 @@ ${helpers.predefined_type("opacity",
             if self.inset {
                 try!(dest.write_str("inset "));
             }
-            try!(self.blur_radius.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(self.spread_radius.to_css(dest));
-            try!(dest.write_str(" "));
             try!(self.offset_x.to_css(dest));
             try!(dest.write_str(" "));
             try!(self.offset_y.to_css(dest));
+            try!(dest.write_str(" "));
+            try!(self.blur_radius.to_css(dest));
+            try!(dest.write_str(" "));
+            try!(self.spread_radius.to_css(dest));
 
             if let Some(ref color) = self.color {
                 try!(dest.write_str(" "));
@@ -45,9 +45,6 @@ ${helpers.predefined_type("opacity",
     }
 
     pub mod computed_value {
-        use app_units::Au;
-        use std::fmt;
-        use values::computed;
         use values::computed::Shadow;
 
         pub type T = Shadow;
@@ -76,32 +73,29 @@ ${helpers.predefined_type("opacity",
     }
 </%helpers:vector_longhand>
 
-// FIXME: This prop should be animatable
 ${helpers.predefined_type("clip",
                           "ClipRectOrAuto",
                           "computed::ClipRectOrAuto::auto()",
-                          animatable=False,
+                          animation_value_type="ComputedValue",
                           boxed="True",
+                          allow_quirks=True,
                           spec="https://drafts.fxtf.org/css-masking/#clip-property")}
 
 // FIXME: This prop should be animatable
-<%helpers:longhand name="filter" animatable="False" extra_prefixes="webkit"
+<%helpers:longhand name="filter" animation_value_type="none" extra_prefixes="webkit"
+                   flags="CREATES_STACKING_CONTEXT FIXPOS_CB"
                    spec="https://drafts.fxtf.org/filters/#propdef-filter">
     //pub use self::computed_value::T as SpecifiedValue;
-    use cssparser;
     use std::fmt;
-    use style_traits::{self, ToCss};
+    use style_traits::ToCss;
     use values::{CSSFloat, HasViewportPercentage};
-    use values::specified::{Angle, CSSColor, Length, Shadow};
+    use values::specified::{Angle, Length};
+    #[cfg(feature = "gecko")]
+    use values::specified::Shadow;
+    #[cfg(feature = "gecko")]
     use values::specified::url::SpecifiedUrl;
 
-    impl HasViewportPercentage for SpecifiedValue {
-        fn has_viewport_percentage(&self) -> bool {
-            self.0.iter().any(|ref x| x.has_viewport_percentage())
-        }
-    }
-
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(pub Vec<SpecifiedFilter>);
 
@@ -136,8 +130,10 @@ ${helpers.predefined_type("clip",
     pub mod computed_value {
         use app_units::Au;
         use values::CSSFloat;
-        use values::computed::{CSSColor, Shadow};
-        use values::specified::Angle;
+        #[cfg(feature = "gecko")]
+        use values::computed::Shadow;
+        use values::computed::Angle;
+        #[cfg(feature = "gecko")]
         use values::specified::url::SpecifiedUrl;
 
         #[derive(Clone, PartialEq, Debug)]
@@ -266,9 +262,7 @@ ${helpers.predefined_type("clip",
                     try!(dest.write_str(")"));
                 }
                 computed_value::Filter::Url(ref url) => {
-                    dest.write_str("url(")?;
                     url.to_css(dest)?;
-                    dest.write_str(")")?;
                 }
                 % endif
             }
@@ -311,9 +305,7 @@ ${helpers.predefined_type("clip",
                     try!(dest.write_str(")"));
                 }
                 SpecifiedFilter::Url(ref url) => {
-                    dest.write_str("url(")?;
                     url.to_css(dest)?;
-                    dest.write_str(")")?;
                 }
                 % endif
             }
@@ -339,8 +331,8 @@ ${helpers.predefined_type("clip",
             % endif
             if let Ok(function_name) = input.try(|input| input.expect_function()) {
                 filters.push(try!(input.parse_nested_block(|input| {
-                    match_ignore_ascii_case! { function_name,
-                        "blur" => specified::Length::parse_non_negative(input).map(SpecifiedFilter::Blur),
+                    match_ignore_ascii_case! { &function_name,
+                        "blur" => specified::Length::parse_non_negative(context, input).map(SpecifiedFilter::Blur),
                         "brightness" => parse_factor(input).map(SpecifiedFilter::Brightness),
                         "contrast" => parse_factor(input).map(SpecifiedFilter::Contrast),
                         "grayscale" => parse_factor(input).map(SpecifiedFilter::Grayscale),
@@ -367,8 +359,8 @@ ${helpers.predefined_type("clip",
     fn parse_factor(input: &mut Parser) -> Result<::values::CSSFloat, ()> {
         use cssparser::Token;
         match input.next() {
-            Ok(Token::Number(value)) => Ok(value.value),
-            Ok(Token::Percentage(value)) => Ok(value.unit_value),
+            Ok(Token::Number(value)) if value.value.is_sign_positive() => Ok(value.value),
+            Ok(Token::Percentage(value)) if value.unit_value.is_sign_positive() => Ok(value.unit_value),
             _ => Err(())
         }
     }
@@ -384,7 +376,9 @@ ${helpers.predefined_type("clip",
                     SpecifiedFilter::Brightness(factor) => computed_value::Filter::Brightness(factor),
                     SpecifiedFilter::Contrast(factor) => computed_value::Filter::Contrast(factor),
                     SpecifiedFilter::Grayscale(factor) => computed_value::Filter::Grayscale(factor),
-                    SpecifiedFilter::HueRotate(factor) => computed_value::Filter::HueRotate(factor),
+                    SpecifiedFilter::HueRotate(ref factor) => {
+                        computed_value::Filter::HueRotate(factor.to_computed_value(context))
+                    },
                     SpecifiedFilter::Invert(factor) => computed_value::Filter::Invert(factor),
                     SpecifiedFilter::Opacity(factor) => computed_value::Filter::Opacity(factor),
                     SpecifiedFilter::Saturate(factor) => computed_value::Filter::Saturate(factor),
@@ -409,7 +403,9 @@ ${helpers.predefined_type("clip",
                     computed_value::Filter::Brightness(factor) => SpecifiedFilter::Brightness(factor),
                     computed_value::Filter::Contrast(factor) => SpecifiedFilter::Contrast(factor),
                     computed_value::Filter::Grayscale(factor) => SpecifiedFilter::Grayscale(factor),
-                    computed_value::Filter::HueRotate(factor) => SpecifiedFilter::HueRotate(factor),
+                    computed_value::Filter::HueRotate(ref factor) => {
+                        SpecifiedFilter::HueRotate(ToComputedValue::from_computed_value(factor))
+                    },
                     computed_value::Filter::Invert(factor) => SpecifiedFilter::Invert(factor),
                     computed_value::Filter::Opacity(factor) => SpecifiedFilter::Opacity(factor),
                     computed_value::Filter::Saturate(factor) => SpecifiedFilter::Saturate(factor),
@@ -440,21 +436,25 @@ pub struct OriginParseResult {
 
 pub fn parse_origin(context: &ParserContext, input: &mut Parser) -> Result<OriginParseResult,()> {
     use values::specified::{LengthOrPercentage, Percentage};
-    let (mut horizontal, mut vertical, mut depth) = (None, None, None);
+    let (mut horizontal, mut vertical, mut depth, mut horizontal_is_center) = (None, None, None, false);
     loop {
         if let Err(_) = input.try(|input| {
             let token = try!(input.expect_ident());
             match_ignore_ascii_case! {
-                token,
+                &token,
                 "left" => {
                     if horizontal.is_none() {
                         horizontal = Some(LengthOrPercentage::Percentage(Percentage(0.0)))
+                    } else if horizontal_is_center && vertical.is_none() {
+                        vertical = Some(LengthOrPercentage::Percentage(Percentage(0.5)));
+                        horizontal = Some(LengthOrPercentage::Percentage(Percentage(0.0)));
                     } else {
                         return Err(())
                     }
                 },
                 "center" => {
                     if horizontal.is_none() {
+                        horizontal_is_center = true;
                         horizontal = Some(LengthOrPercentage::Percentage(Percentage(0.5)))
                     } else if vertical.is_none() {
                         vertical = Some(LengthOrPercentage::Percentage(Percentage(0.5)))
@@ -465,6 +465,9 @@ pub fn parse_origin(context: &ParserContext, input: &mut Parser) -> Result<Origi
                 "right" => {
                     if horizontal.is_none() {
                         horizontal = Some(LengthOrPercentage::Percentage(Percentage(1.0)))
+                    } else if horizontal_is_center && vertical.is_none() {
+                        vertical = Some(LengthOrPercentage::Percentage(Percentage(0.5)));
+                        horizontal = Some(LengthOrPercentage::Percentage(Percentage(1.0)));
                     } else {
                         return Err(())
                     }
@@ -487,7 +490,7 @@ pub fn parse_origin(context: &ParserContext, input: &mut Parser) -> Result<Origi
             }
             Ok(())
         }) {
-            match LengthOrPercentage::parse(context, input) {
+            match input.try(|input| LengthOrPercentage::parse(context, input)) {
                 Ok(value) => {
                     if horizontal.is_none() {
                         horizontal = Some(value);
@@ -519,5 +522,6 @@ ${helpers.single_keyword("mix-blend-mode",
                          """normal multiply screen overlay darken lighten color-dodge
                             color-burn hard-light soft-light difference exclusion hue
                             saturation color luminosity""", gecko_constant_prefix="NS_STYLE_BLEND",
-                         animatable=False,
+                         animation_value_type="none",
+                         flags="CREATES_STACKING_CONTEXT",
                          spec="https://drafts.fxtf.org/compositing/#propdef-mix-blend-mode")}

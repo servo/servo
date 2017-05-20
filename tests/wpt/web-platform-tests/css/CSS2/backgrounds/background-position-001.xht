@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: background-position - ex unit</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/colors.html#background-properties" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#length-units" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-size-props" />
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-size-prop" />
+  <link rel="match" href="background-position-001-ref.xht" />
+
+  <meta content="ahem image" name="flags" />
+  <meta content="ex unit is the 'x-height' of the relevant font. 'em' and 'ex' length values when defining 'font-size' property refer to the computed font size of the parent element." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  html {font: 20px/1 Ahem;}
+
+  body
+  {
+  background: url("support/1x1-lime.png") repeat-x 0 6.25ex;
+  font-size: 2.5ex;
+  margin: 1px 0px 8px 75px;
+  }
+
+  p#expected-results {font-family: serif;}
+
+  img
+  {
+  left: 0px;
+  position: absolute;
+  top: 1px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p id="expected-results">A thin green horizontal line should appear at exactly 200px<img src="support/ruler-v-100px-200px-300px.png" width="55" height="350" alt="Image download support must be enabled" /></p>
+
+ </body>
+</html>

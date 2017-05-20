@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+ <head>
+  <title>CSS Test: Stacking order: Floats and Blocks in Inlines</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/float/stacking/003.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#layers" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#floats" />
+  <link rel="match" href="stack-floats-001-ref.xht" />
+
+  <meta content="ahem" name="flags" />
+
+  <style type="text/css">
+   /* outer block */
+   .container { width: 5em; height: 5em; border: solid; font: 20px/1 Ahem; background: red; display: block; }
+
+   /* top and bottom */
+   .float { width: 5em; height: 3em; margin: -5em 0 0 0; padding: 1em 0; background: red; float: left; }
+   .inline { color: lime; display: inline; }
+
+   /* middle */
+   .float .block { height: 3em; margin: 0; background: lime; display: block; }
+   .inline .block { height: 3em; margin: 0; background: red; display: block; }
+
+  </style>
+ </head>
+ <body>
+  <p>Test passes if there is one single filled bright green square (with a black border) and no red.</p>
+
+  <div class="container">
+   <div class="inline">
+    XXXXX
+    <div class="block"></div>
+    XXXXX
+   </div>
+   <div class="float">
+    <div class="block"></div>
+   </div>
+  </div>
+
+ </body>
+</html>

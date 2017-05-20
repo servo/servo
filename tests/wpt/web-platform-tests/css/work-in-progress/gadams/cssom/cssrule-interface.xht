@@ -1,0 +1,199 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD//XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSSOM - CSSRule - Interface</title>
+    <link rel="author" title="Glenn Adams" href="mailto:glenn@skynav.com"/>
+    <link rel="help" href="http://www.w3.org/TR/cssom-1/#the-cssstylerule-interface"/>
+    <meta name="flags" content="dom"/>
+    <script src="/resources/testharness.js"/>
+    <script src="/resources/testharnessreport.js"/>
+  </head>
+  <body>
+    <div id="log"></div>
+    <div id="box"></div>
+    <script><![CDATA[
+
+      test(function(){
+
+        assert_true('CSSRule' in window);
+
+      }, '\'CSSRule\' in window');
+
+      test(function(){
+
+        assert_true(CSSRule instanceof Function);
+
+      }, 'CSSRule instanceof Function');
+
+      test(function(){
+
+        assert_equals(typeof CSSRule.STYLE_RULE,'number');
+
+      }, 'typeof CSSRule.STYLE_RULE == \'number\'');
+
+      test(function(){
+
+        assert_equals(CSSRule.STYLE_RULE,1);
+
+      }, 'CSSRule.STYLE_RULE == 1');
+
+      test(function(){
+
+        assert_equals(typeof CSSRule.IMPORT_RULE,'number');
+
+      }, 'typeof CSSRule.IMPORT_RULE == \'number\'');
+
+      test(function(){
+
+        assert_equals(CSSRule.IMPORT_RULE,3);
+
+      }, 'CSSRule.IMPORT_RULE == 3');
+
+      test(function(){
+
+        assert_equals(typeof CSSRule.MEDIA_RULE,'number');
+
+      }, 'typeof CSSRule.MEDIA_RULE == \'number\'');
+
+      test(function(){
+
+        assert_equals(CSSRule.MEDIA_RULE,4);
+
+      }, 'CSSRule.MEDIA_RULE == 4');
+
+      test(function(){
+
+        assert_equals(typeof CSSRule.FONT_FACE_RULE,'number');
+
+      }, 'typeof CSSRule.FONT_FACE_RULE == \'number\'');
+
+      test(function(){
+
+        assert_equals(CSSRule.FONT_FACE_RULE,5);
+
+      }, 'CSSRule.FONT_FACE_RULE == 5');
+
+      test(function(){
+
+        assert_equals(typeof CSSRule.PAGE_RULE,'number');
+
+      }, 'typeof CSSRule.PAGE_RULE == \'number\'');
+
+      test(function(){
+
+        assert_equals(CSSRule.PAGE_RULE,6);
+
+      }, 'CSSRule.PAGE_RULE == 6');
+
+      test(function(){
+
+        assert_equals(typeof CSSRule.NAMESPACE_RULE,'number');
+
+      }, 'typeof CSSRule.NAMESPACE_RULE == \'number\'');
+
+      test(function(){
+
+        assert_equals(CSSRule.NAMESPACE_RULE,10);
+
+      }, 'CSSRule.NAMESPACE_RULE == 10');
+
+      test(function(){
+
+        assert_true('prototype' in CSSRule);
+
+      }, '\'prototype\' in CSSRule');
+
+      test(function(){
+
+        assert_equals(CSSRule.prototype.toString(), '[object CSSRulePrototype]');
+
+      }, 'CSSRule.prototype.toString() == \'[object CSSRulePrototype]\'');
+
+      test(function(){
+
+        assert_true('constructor' in CSSRule.prototype);
+
+      }, '\'constructor\' in CSSRule.prototype');
+
+      test(function(){
+
+        assert_equals(CSSRule.prototype.constructor,CSSRule);
+
+      }, 'CSSRule.prototype.constructor === CSSRule');
+
+      test(function(){
+
+        assert_equals(typeof CSSRule.prototype.STYLE_RULE,'number');
+
+      }, 'typeof CSSRule.prototype.STYLE_RULE == \'number\'');
+
+      test(function(){
+
+        assert_equals(CSSRule.prototype.STYLE_RULE,1);
+
+      }, 'CSSRule.prototype.STYLE_RULE == 1');
+
+      test(function(){
+
+        assert_equals(typeof CSSRule.prototype.IMPORT_RULE,'number');
+
+      }, 'typeof CSSRule.prototype.IMPORT_RULE == \'number\'');
+
+      test(function(){
+
+        assert_equals(CSSRule.prototype.IMPORT_RULE,3);
+
+      }, 'CSSRule.prototype.IMPORT_RULE == 3');
+
+      test(function(){
+
+        assert_equals(typeof CSSRule.prototype.MEDIA_RULE,'number');
+
+      }, 'typeof CSSRule.prototype.MEDIA_RULE == \'number\'');
+
+      test(function(){
+
+        assert_equals(CSSRule.prototype.MEDIA_RULE,4);
+
+      }, 'CSSRule.prototype.MEDIA_RULE == 4');
+
+      test(function(){
+
+        assert_equals(typeof CSSRule.prototype.FONT_FACE_RULE,'number');
+
+      }, 'typeof CSSRule.prototype.FONT_FACE_RULE == \'number\'');
+
+      test(function(){
+
+        assert_equals(CSSRule.prototype.FONT_FACE_RULE,5);
+
+      }, 'CSSRule.prototype.FONT_FACE_RULE == 5');
+
+      test(function(){
+
+        assert_equals(typeof CSSRule.prototype.PAGE_RULE,'number');
+
+      }, 'typeof CSSRule.prototype.PAGE_RULE == \'number\'');
+
+      test(function(){
+
+        assert_equals(CSSRule.prototype.PAGE_RULE,6);
+
+      }, 'CSSRule.prototype.PAGE_RULE == 6');
+
+      test(function(){
+
+        assert_equals(typeof CSSRule.prototype.NAMESPACE_RULE,'number');
+
+      }, 'typeof CSSRule.prototype.NAMESPACE_RULE == \'number\'');
+
+      test(function(){
+
+        assert_equals(CSSRule.prototype.NAMESPACE_RULE,10);
+
+      }, 'CSSRule.prototype.NAMESPACE_RULE == 10');
+
+    ]]>
+    </script>
+  </body>
+</html>

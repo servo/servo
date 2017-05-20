@@ -1,0 +1,18 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+  <title>CSS Tests by Filename</title>
+
+<body>
+
+<h1>CSS Tests by Filename</h1>
+
+<table>
+  <thead>
+    <tr><th>Filename <th>Path</tr>
+  </thead>
+  <tbody>
+[% FOREACH pair = pairs.sort %][% parts = pair.split('\t') %]
+    <tr><th>[% parts.0 %] <td><a href="[% parts.1 %]">[% parts.1 %]</a>
+[% END %]
+  </tbody>
+</table>

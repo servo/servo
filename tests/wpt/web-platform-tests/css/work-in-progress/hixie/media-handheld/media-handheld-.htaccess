@@ -1,0 +1,20 @@
+AddType text/html chtml
+
+<files 034.wml>
+  ForceType Application/Vnd.Wap.Xhtml+Xml;Test="Dummy"
+</files>
+
+<files 035.wml>
+  ForceType application/xhtml+xml;profile="http://www.wapforum.org/xhtml"
+</files>
+
+<files 036.wml>
+  ForceType application/xhtml+xml
+</files>
+
+<files 037.wml>
+  ForceType application/xhtml+xml;profile="HTTP://www.wapforum.org/xhtml"
+</files>
+
+# these tests are on hixie.ch as well. This next line only applies to that server.
+redirect permanent /tests/adhoc/css/media/handheld/specification.html http://documentation.intern.opera.no/specs/handheld/specification.html

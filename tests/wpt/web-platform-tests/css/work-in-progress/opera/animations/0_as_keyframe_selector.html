@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - 0 as keyframe selector</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-animations/#keyframes">
+   <meta name="flags" content="dom invalid">
+   <!--
+   **************************************************************************
+   ISSUE: Spec is not clear on parsing behavior
+   **************************************************************************
+   -->
+   <meta name="assert" content='"0" is an invalid keyframe selector'>
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      @keyframes percent-sign {
+         0% {
+            left: 0px;
+         }
+         100% {
+            left: 200px;
+         }
+      }
+      @keyframes no-percent-sign {
+         0 {
+            top: 50px;
+         }
+         50% {
+            top: 0px;
+         }
+         100% {
+            top: 100px;
+         }
+      }
+      div {
+         width: 100px;
+         height: 100px;
+         background: blue;
+         position: relative;
+         top: 0px;
+      }
+      .test {
+         animation: percent-sign 1s forwards, no-percent-sign 1s forwards;
+         animation-timing-function: linear;
+      }
+   </style>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var div = document.querySelector('div');
+         var divStyle = getComputedStyle(div, null);
+         var log = document.querySelectorAll('p')[1].firstChild;
+         var topStartOK, leftEndOK, topEndOK;
+         var passed = false;
+         function report() {
+            clearTimeout(timeout);
+            test(function(){assert_true(passed);}, testName);
+            done();
+            log.data = passed ? 'PASS if the animation occurred.' : 'FAIL';
+         }
+         div.addEventListener('animationstart', function(evt) {
+            if (evt.animationName == 'no-percent-sign') {
+               topStartOK = (divStyle.top == '0px');
+            }
+         });
+         div.addEventListener('animationend', function(evt) {
+            if (evt.animationName == 'percent-sign') {
+               leftEndOK = (divStyle.left == '200px');
+            } else if (evt.animationName == 'no-percent-sign') {
+               topEndOK = (divStyle.top == '100px');
+            }
+            if (leftEndOK !== undefined && topEndOK !== undefined) {
+               passed = (topStartOK && leftEndOK && topEndOK);
+               report();
+            }
+         });
+         var timeout = setTimeout(report, 1500);
+         div.className = 'test';
+      }
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>The square below should slide straight rightwards at first, then
+   diagonally down+right.</p>
+   <p>Testing...</p>
+   <div></div>
+</body>
+</html>

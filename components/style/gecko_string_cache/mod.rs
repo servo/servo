@@ -8,9 +8,12 @@
 
 use gecko_bindings::bindings::Gecko_AddRefAtom;
 use gecko_bindings::bindings::Gecko_Atomize;
+use gecko_bindings::bindings::Gecko_Atomize16;
 use gecko_bindings::bindings::Gecko_ReleaseAtom;
 use gecko_bindings::structs::nsIAtom;
-use heapsize::HeapSizeOf;
+use nsstring::nsAString;
+use precomputed_hash::PrecomputedHash;
+use std::ascii::AsciiExt;
 use std::borrow::{Cow, Borrow};
 use std::char::{self, DecodeUtf16};
 use std::fmt::{self, Write};
@@ -22,7 +25,10 @@ use std::slice;
 
 #[macro_use]
 #[allow(improper_ctypes, non_camel_case_types, missing_docs)]
-pub mod atom_macro;
+pub mod atom_macro {
+    include!(concat!(env!("OUT_DIR"), "/gecko/atom_macro.rs"));
+}
+
 #[macro_use]
 pub mod namespace;
 
@@ -54,6 +60,13 @@ impl Deref for Atom {
         unsafe {
             &*self.0
         }
+    }
+}
+
+impl PrecomputedHash for Atom {
+    #[inline]
+    fn precomputed_hash(&self) -> u32 {
+        self.get_hash()
     }
 }
 
@@ -154,6 +167,12 @@ impl WeakAtom {
         }
     }
 
+    /// Returns whether this atom is the empty string.
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Returns the atom as a mutable pointer.
     #[inline]
     pub fn as_ptr(&self) -> *mut nsIAtom {
@@ -179,10 +198,11 @@ impl fmt::Display for WeakAtom {
 
 impl Atom {
     /// Execute a callback with the atom represented by `ptr`.
-    pub unsafe fn with<F>(ptr: *mut nsIAtom, callback: &mut F) where F: FnMut(&Atom) {
+    pub unsafe fn with<F, R>(ptr: *mut nsIAtom, callback: F) -> R where F: FnOnce(&Atom) -> R {
         let atom = Atom(WeakAtom::new(ptr));
-        callback(&atom);
+        let ret = callback(&atom);
         mem::forget(atom);
+        ret
     }
 
     /// Creates an atom from an static atom pointer without checking in release
@@ -197,6 +217,43 @@ impl Atom {
         debug_assert!(atom.is_static(),
                       "Called from_static for a non-static atom!");
         atom
+    }
+
+    /// Creates an atom from a dynamic atom pointer that has already had AddRef
+    /// called on it.
+    #[inline]
+    pub unsafe fn from_addrefed(ptr: *mut nsIAtom) -> Self {
+        debug_assert!(!ptr.is_null());
+        unsafe {
+            Atom(WeakAtom::new(ptr))
+        }
+    }
+
+    /// Convert this atom into an addrefed nsIAtom pointer.
+    #[inline]
+    pub fn into_addrefed(self) -> *mut nsIAtom {
+        let ptr = self.as_ptr();
+        mem::forget(self);
+        ptr
+    }
+
+    /// Return whether two atoms are ASCII-case-insensitive matches
+    pub fn eq_ignore_ascii_case(&self, other: &Self) -> bool {
+        let a = self.as_slice();
+        let b = other.as_slice();
+        a.len() == b.len() && a.iter().zip(b).all(|(&a16, &b16)| {
+            if a16 <= 0x7F && b16 <= 0x7F {
+                (a16 as u8).eq_ignore_ascii_case(&(b16 as u8))
+            } else {
+                a16 == b16
+            }
+        })
+    }
+
+    /// Return whether this atom is an ASCII-case-insensitive match for the given string
+    pub fn eq_str_ignore_ascii_case(&self, other: &str) -> bool {
+        self.chars().map(|r| r.map(|c: char| c.to_ascii_lowercase()))
+        .eq(other.chars().map(|c: char| Ok(c.to_ascii_lowercase())))
     }
 }
 
@@ -237,12 +294,6 @@ impl Default for Atom {
     }
 }
 
-impl HeapSizeOf for Atom {
-    fn heap_size_of_children(&self) -> usize {
-        0
-    }
-}
-
 impl fmt::Debug for Atom {
     fn fmt(&self, w: &mut fmt::Formatter) -> fmt::Result {
         write!(w, "Gecko Atom({:p}, {})", self.0, self)
@@ -264,6 +315,17 @@ impl<'a> From<&'a str> for Atom {
         unsafe {
             Atom(WeakAtom::new(
                 Gecko_Atomize(string.as_ptr() as *const _, string.len() as u32)
+            ))
+        }
+    }
+}
+
+impl<'a> From<&'a nsAString> for Atom {
+    #[inline]
+    fn from(string: &nsAString) -> Atom {
+        unsafe {
+            Atom(WeakAtom::new(
+                Gecko_Atomize16(string)
             ))
         }
     }

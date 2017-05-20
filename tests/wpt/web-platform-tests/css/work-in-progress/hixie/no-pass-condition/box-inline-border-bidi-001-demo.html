@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html>
+ <head>
+  <title>Demonstration of borders on bidirectional inline boxes</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/inline/border/bidi/001-demo.html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#border-properties" />
+  <style type="text/css">
+   .section { margin: 2em 1em; }
+   .test { font: 3em serif; }
+   span { font-weight: 900; color: purple;
+          border: thick navy; border-style: solid dotted solid dashed; }
+  </style>
+ </head>
+ <body>
+
+  <p>The bold purple text below has a navy border around it. The
+  border has a dashed "left" edge and a dotted "right" edge. The text
+  given before each example is the UNICODE-convention version showing
+  the logical order of the text in the test.</p>
+
+  <div class="section" dir="ltr">
+   <p>ltr: abc [def ABC] DEF</p>
+   <div class="test"> abc <span> def &#x05D0;&#x05D1;&#x05D2; </span> &#x05D3;&#x05D4;&#x05D5; </div>
+  </div>
+
+  <div class="section" dir="rtl">
+   <p>rtl: abc [def ABC] DEF</p>
+   <div class="test"> abc <span> def &#x05D0;&#x05D1;&#x05D2; </span> &#x05D3;&#x05D4;&#x05D5; </div>
+  </div>
+
+  <div class="section" dir="ltr">
+   <p>ltr: ABC [DEF abc] def</p>
+   <div class="test"> &#x05D0;&#x05D1;&#x05D2; <span> &#x05D3;&#x05D4;&#x05D5; abc </span> def </div>
+  </div>
+
+  <div class="section" dir="rtl">
+   <p>rtl: ABC [DEF abc] def</p>
+   <div class="test"> &#x05D0;&#x05D1;&#x05D2; <span> &#x05D3;&#x05D4;&#x05D5; abc </span> def </div>
+  </div>
+
+ </body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Test: flow-into on ordered lists that have the "reversed" HTML attribute set</title>
+		<link rel="author" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#properties" />
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property" />
+		<meta name="flags" content="">
+		<meta name="assert" content="The flow-into property can be applied to ordered lists. Lists extracted in a named flow should still honor the HTML5 'reversed' list attribute.">
+		<link rel="match" href="reference/extract-ordered-lists-in-regions-002-ref.html">
+		<style>
+		ol {
+			margin: 0;
+		}
+		ol ol {
+			color: blue;
+		}
+		#ordered-1 {
+			flow-into: f1;
+		}
+		#r1 {
+			flow-from: f1;
+		}
+
+		#ordered-2,
+		#ordered-2 ol {
+			flow-into: f2;
+		}
+		#r2 {
+			flow-from: f2;
+		}
+
+		.ordered-3 {
+			flow-into: f3;
+		}
+		#r3 {
+			flow-from: f3;
+		}
+		.region {
+			background-color: lightgray;
+			margin: 1em;
+			float: left;
+			width: 15em;
+			height: 15em;
+		}
+		</style>
+	</head>
+	<body>
+		<p>This test passes if you see three gray rectangles with a number of lists inside each, as follows.</p>
+		<p>The first rectangle should contain a black numbered list, with the numbers in reverse order. After the first item there should a be a blue numbered list, indented and numbered in normal order.</p>
+		<p>The second rectangle should contain two numbered list. The first one should be black and numbered in reverse order while the second should be blue and numbered in normal order. They should both have the same indentation level.</p>
+		<p>The third rectangle should contain two black, numbered lists, the first with three items, the second with two items. Both lists should be numbered in reverse.</p>
+		<ol id="ordered-1" reversed="reversed">
+			<li>First reversed list, item 3
+				<ol>
+					<li>First inner list, item 1</li>
+					<li>First inner list, item 2</li>
+				</ol>
+			</li>
+			<li>First reversed list, item 2</li>
+			<li>First reversed list, item 1</li>
+		</ol>
+		<div class="region" id="r1"></div>
+
+		<ol id="ordered-2" reversed>
+			<li>Second reversed list, item 3</li>
+			<li>Second reversed list, item 2
+				<ol>
+					<li>Second inner list, item 1</li>
+					<li>Second inner list, item 2</li>
+					<li>Second inner list, item 3</li>
+				</ol>
+			</li>
+			<li>Second reversed list, item 1</li>
+		</ol>
+		<div class="region" id="r2"></div>
+
+		<ol class="ordered-3" reversed="true">
+			<li>Third reversed list, item 3</li>
+			<li>Third reversed list, item 2</li>
+			<li>Third reversed list, item 1</li>
+		</ol>
+		<ol class="ordered-3" reversed="true">
+			<li>Final reversed list, item 2</li>
+			<li>Final reversed list, item 1</li>
+		</ol>
+		<div class="region" id="r3"></div>
+	</body>
+</html>

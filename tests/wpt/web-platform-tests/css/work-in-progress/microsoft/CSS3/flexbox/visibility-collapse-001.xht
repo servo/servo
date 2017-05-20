@@ -1,0 +1,52 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD//XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Flex item with 'visibility' property set to 'collapse' should not take up space in the main axis</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-flexbox/#visibility-collapse" />
+        <meta name="flags" content="">
+        <meta name="assert" content="This test checks that a flex item with 'visibility: collapse' doesn't take up space in the main axis." />
+        <style type="text/css">
+            #parent
+            {
+                position: relative;
+            }
+            div div
+            {
+                display: flex;
+                flex-flow: column;
+            }
+            div p
+            {
+                background-color: red;
+                height: 50px;
+                margin: 0;
+            }
+            #collapse
+            {
+                visibility: collapse;
+            }
+            span
+            {
+                background-color: green;
+                height: 100px;
+                position: absolute;
+            }
+            div p, span
+            {
+               width: 150px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div id="parent">
+            <span></span>
+            <div>
+                <p></p>
+                <p id="collapse"></p>
+                <p></p>
+            </div>
+        </div>
+    </body>
+</html>

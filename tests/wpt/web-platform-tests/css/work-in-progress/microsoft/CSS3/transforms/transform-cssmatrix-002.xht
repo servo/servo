@@ -1,0 +1,93 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Basic functionality of the 'inverse' method on a 3D transform</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-3d-transforms/#cssmatrix-interface" />
+        <meta name="flags" content="dom" />
+        <meta name="assert" content="The 'inverse' method of the CSSMatrix interface is supported for 3D matrices" />
+        <style type="text/css">
+            #result
+            {
+                background: red;
+                height: 100px;
+                width: 100px;
+            }
+        </style>
+        <script type="text/javascript">
+            function startTest()
+                {
+                var testDiv = document.getElementById("result");
+                cssMatrixConstructor = "new CSSMatrix()";
+
+            //Rounds the given number to three decimal places
+            function round(number)
+            {
+                var result = Math.round(number * 1000) / 1000;
+                return result;
+            }
+
+            var matrix = eval(cssMatrixConstructor);
+            matrix.setMatrixValue("matrix3d(1,-0.5,2,0.5,4,3,2,1,0.5,1,-0.5,2,1,2,3,4)");
+
+            var resultMatrix = matrix.inverse();
+
+            var isOriginalMatrixUnchanged = false;
+            var isResultMatrixCorrect = false;
+
+            //Verify the original matrix is unchanged after the inverse operation
+            if ((1 == matrix.m11) &&
+            (-0.5 == matrix.m12) &&
+            (2 == matrix.m13) &&
+            (0.5 == matrix.m14) &&
+            (4 == matrix.m21) &&
+            (3 == matrix.m22) &&
+            (2 == matrix.m23) &&
+            (1 == matrix.m24) &&
+            (0.5 == matrix.m31) &&
+            (1 == matrix.m32) &&
+            (-0.5 == matrix.m33) &&
+            (2 == matrix.m34) &&
+            (1 == matrix.m41) &&
+            (2 == matrix.m42) &&
+            (3 == matrix.m43) &&
+            (4 == matrix.m44))
+            {
+                isOriginalMatrixUnchanged = true;
+            }
+
+            //Verify the resulting matrix is the correct inverse
+            if (0.500 == round(resultMatrix.m11) &&
+            0.150 == round(resultMatrix.m12) &&
+            0.500 == round(resultMatrix.m13) &&
+            -0.350 == round(resultMatrix.m14) &&
+            -0.750 == round(resultMatrix.m21) &&
+            0.175 == round(resultMatrix.m22) &&
+            -0.500 == round(resultMatrix.m23) &&
+            0.300 == round(resultMatrix.m24) &&
+            0.000 == round(resultMatrix.m31) &&
+            0.000 == round(resultMatrix.m32) &&
+            -0.500 == round(resultMatrix.m33) &&
+            0.250 == round(resultMatrix.m34) &&
+            0.250 == round(resultMatrix.m41) &&
+            -0.125 == round(resultMatrix.m42) &&
+            0.500 == round(resultMatrix.m43) &&
+            0.000 == round(resultMatrix.m44))
+            {
+                isResultMatrixCorrect = true;
+            }
+
+            if (isOriginalMatrixUnchanged && isResultMatrixCorrect)
+            {
+                var testDiv = document.getElementById("result");
+                testDiv.style.background = "black";
+            }
+        }
+    </script>
+
+    </head>
+    <body onload="startTest()">
+        <p>Test passes if there is no red visible on the page.</p>
+        <div id="result"></div>
+    </body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Positioning table cells can cause them not to be table cells anymore</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-layout" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Positioning table cells can cause them not to be table cells anymore." />
+        <style type="text/css">
+            table
+            {
+                background: blue;
+            }
+            td
+            {
+                background: black;
+                height: 2em;
+                width: 2em;
+            }
+            #positioned
+            {
+                left: 200px;
+                position: absolute;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the middle square of the table below is blue, and there is a single black square to the right of the table.</p>
+        <table>
+           <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+           </tr>
+           <tr>
+                <td></td>
+                <td id="positioned"></td>
+                <td></td>
+           </tr>
+           <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+           </tr>
+        </table>
+    </body>
+</html>

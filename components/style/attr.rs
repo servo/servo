@@ -11,15 +11,16 @@ use app_units::Au;
 use cssparser::{self, Color, RGBA};
 use euclid::num::Zero;
 use num_traits::ToPrimitive;
-use parking_lot::RwLock;
 use properties::PropertyDeclarationBlock;
+use selectors::attr::AttrSelectorOperation;
 use servo_url::ServoUrl;
+use shared_lock::Locked;
 use std::ascii::AsciiExt;
 use std::str::FromStr;
-use std::sync::Arc;
 use str::{HTML_SPACE_CHARACTERS, read_exponent, read_fraction};
 use str::{read_numbers, split_commas, split_html_space_chars};
-#[cfg(not(feature = "gecko"))] use str::str_join;
+use str::str_join;
+use stylearc::Arc;
 use values::specified::Length;
 
 // Duplicated from script::dom::values.
@@ -61,7 +62,7 @@ pub enum AttrValue {
     /// declarationblock for longer than needed.
     Declaration(String,
                 #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-                Arc<RwLock<PropertyDeclarationBlock>>)
+                Arc<Locked<PropertyDeclarationBlock>>)
 }
 
 /// Shared implementation to parse an integer according to
@@ -160,13 +161,12 @@ impl AttrValue {
     pub fn from_comma_separated_tokenlist(tokens: String) -> AttrValue {
         let atoms = split_commas(&tokens).map(Atom::from)
                                          .fold(vec![], |mut acc, atom| {
-                                            if !acc.contains(&atom) { acc.push(atom) }
-                                            acc
+                                             if !acc.contains(&atom) { acc.push(atom) }
+                                             acc
                                          });
         AttrValue::TokenList(tokens, atoms)
     }
 
-    #[cfg(not(feature = "gecko"))] // Gecko can't borrow atoms as UTF-8.
     pub fn from_atomic_tokens(atoms: Vec<Atom>) -> AttrValue {
         // TODO(ajeffrey): effecient conversion of Vec<Atom> to String
         let tokens = String::from(str_join(&atoms, "\x20"));
@@ -333,9 +333,32 @@ impl AttrValue {
             panic!("Uint not found");
         }
     }
+
+    /// Return the AttrValue as a dimension computed from its integer
+    /// representation, assuming that integer representation specifies pixels.
+    ///
+    /// This corresponds to attribute values returned as `AttrValue::UInt(_)`
+    /// by `VirtualMethods::parse_plain_attribute()`.
+    ///
+    /// ## Panics
+    ///
+    /// Panics if the `AttrValue` is not a `UInt`
+    pub fn as_uint_px_dimension(&self) -> LengthOrPercentageOrAuto {
+        if let AttrValue::UInt(_, value) = *self {
+            LengthOrPercentageOrAuto::Length(Au::from_px(value as i32))
+        } else {
+            panic!("Uint not found");
+        }
+    }
+
+    pub fn eval_selector(&self, selector: &AttrSelectorOperation<&String>) -> bool {
+        // FIXME(SimonSapin) this can be more efficient by matching on `(self, selector)` variants
+        // and doing Atom comparisons instead of string comparisons where possible,
+        // with SelectorImpl::AttrValue changed to Atom.
+        selector.eval_str(self)
+    }
 }
 
-#[cfg(not(feature = "gecko"))] // Gecko can't borrow atoms as UTF-8.
 impl ::std::ops::Deref for AttrValue {
     type Target = str;
 
@@ -356,11 +379,20 @@ impl ::std::ops::Deref for AttrValue {
     }
 }
 
+impl PartialEq<Atom> for AttrValue {
+    fn eq(&self, other: &Atom) -> bool {
+        match *self {
+            AttrValue::Atom(ref value) => value == other,
+            _ => other == &**self,
+        }
+    }
+}
+
 /// https://html.spec.whatwg.org/multipage/#rules-for-parsing-non-zero-dimension-values
 pub fn parse_nonzero_length(value: &str) -> LengthOrPercentageOrAuto {
     match parse_length(value) {
         LengthOrPercentageOrAuto::Length(x) if x == Au::zero() => LengthOrPercentageOrAuto::Auto,
-        LengthOrPercentageOrAuto::Percentage(0.) => LengthOrPercentageOrAuto::Auto,
+        LengthOrPercentageOrAuto::Percentage(x) if x == 0. => LengthOrPercentageOrAuto::Auto,
         x => x,
     }
 }

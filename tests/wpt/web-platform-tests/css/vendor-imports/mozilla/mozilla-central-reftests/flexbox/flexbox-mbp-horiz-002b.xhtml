@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!-- Testcase with margin/border/padding on flex items. (NOTE: This renders
+     the same as the "-2a" variant, which lacks padding, because we've
+     just replaced some of the "-2a" variant's content-box area with
+     padding-box area in this test.) -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Test: Testing margins, borders, and padding on flex items in a horizontal flex container</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#layout-algorithm"/>
+    <link rel="match" href="flexbox-mbp-horiz-002-ref.xhtml"/>
+    <style>
+      div { height: 100px; border: 0; }
+      div.flexbox {
+        width: 200px;
+        font-size: 10px;
+        display: flex;
+      }
+      div.a {
+        flex: 1 0 9px;
+        background: lightgreen;
+        margin-left: 1px;
+        margin-right: 3px;
+        border-style: dotted;
+        border-left-width: 2px;
+        border-right-width: 4px;
+        padding-left: 5px;
+        padding-right: 6px;
+      }
+      div.b {
+        flex: 2 0 1px;
+        background: yellow;
+        margin-left: 2px;
+        margin-right: 4px;
+        border-style: dashed;
+        border-left-width: 7px;
+        border-right-width: 3px;
+        padding-left: 1px;
+        padding-right: 2px;
+      }
+      div.c {
+        flex: 3 0 40px;
+        background: orange;
+      }
+      div.flexNone {
+        flex: none;
+        background: pink;
+      }
+      div.flexBasis {
+        flex: 0 0 20px;
+        background: gray;
+      }
+      div.spacer {
+        display: inline-block;
+        width: 15px;
+        height: 15px;
+        background: purple;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="flexbox"><div class="a"></div><div class="b"/></div>
+    <div class="flexbox"><div class="a"/><div class="c"/></div>
+    <div class="flexbox"><div class="a"/>
+      <div class="flexNone"><div class="spacer"/></div>
+    </div>
+    <div class="flexbox"><div class="b"/><div class="c"/></div>
+    <div class="flexbox"><div class="b"/>
+      <div class="flexNone"><div class="spacer"/><div class="spacer"/></div>
+    </div>
+
+    <div class="flexbox">
+      <div class="a"/><div class="b"/><div class="flexBasis"/><div class="c"/>
+    </div>
+  </body>
+</html>
+

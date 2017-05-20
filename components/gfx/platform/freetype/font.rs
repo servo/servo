@@ -113,9 +113,15 @@ impl FontHandleMethods for FontHandle {
             c_str_to_string((*self.face).family_name as *const c_char)
         }
     }
-    fn face_name(&self) -> String {
+    fn face_name(&self) -> Option<String> {
         unsafe {
-            c_str_to_string(FT_Get_Postscript_Name(self.face) as *const c_char)
+            let name = FT_Get_Postscript_Name(self.face) as *const c_char;
+
+            if !name.is_null() {
+                Some(c_str_to_string(name))
+            } else {
+                None
+            }
         }
     }
     fn is_italic(&self) -> bool {

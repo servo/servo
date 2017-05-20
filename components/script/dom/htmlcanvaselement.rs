@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use base64;
 use canvas_traits::{CanvasMsg, FromScriptMsg};
 use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
@@ -26,17 +27,16 @@ use dom::virtualmethods::VirtualMethods;
 use dom::webglrenderingcontext::{LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext};
 use dom_struct::dom_struct;
 use euclid::size::Size2D;
-use html5ever_atoms::LocalName;
+use html5ever::{LocalName, Prefix};
 use image::ColorType;
 use image::png::PNGEncoder;
 use ipc_channel::ipc::{self, IpcSender};
 use js::error::throw_type_error;
 use js::jsapi::{HandleValue, JSContext};
 use offscreen_gl_context::GLContextAttributes;
-use rustc_serialize::base64::{STANDARD, ToBase64};
 use script_layout_interface::HTMLCanvasData;
 use std::iter::repeat;
-use style::attr::AttrValue;
+use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
@@ -56,7 +56,7 @@ pub struct HTMLCanvasElement {
 
 impl HTMLCanvasElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document) -> HTMLCanvasElement {
         HTMLCanvasElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
@@ -66,7 +66,7 @@ impl HTMLCanvasElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document) -> Root<HTMLCanvasElement> {
         Node::reflect_node(box HTMLCanvasElement::new_inherited(local_name, prefix, document),
                            document,
@@ -97,6 +97,8 @@ impl HTMLCanvasElement {
 
 pub trait LayoutHTMLCanvasElementHelpers {
     fn data(&self) -> HTMLCanvasData;
+    fn get_width(&self) -> LengthOrPercentageOrAuto;
+    fn get_height(&self) -> LengthOrPercentageOrAuto;
 }
 
 impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
@@ -122,6 +124,26 @@ impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
                 width: width_attr.map_or(DEFAULT_WIDTH, |val| val.as_uint()),
                 height: height_attr.map_or(DEFAULT_HEIGHT, |val| val.as_uint()),
             }
+        }
+    }
+
+    #[allow(unsafe_code)]
+    fn get_width(&self) -> LengthOrPercentageOrAuto {
+        unsafe {
+            (&*self.upcast::<Element>().unsafe_get())
+                .get_attr_for_layout(&ns!(), &local_name!("width"))
+                .map(AttrValue::as_uint_px_dimension)
+                .unwrap_or(LengthOrPercentageOrAuto::Auto)
+        }
+    }
+
+    #[allow(unsafe_code)]
+    fn get_height(&self) -> LengthOrPercentageOrAuto {
+        unsafe {
+            (&*self.upcast::<Element>().unsafe_get())
+                .get_attr_for_layout(&ns!(), &local_name!("height"))
+                .map(AttrValue::as_uint_px_dimension)
+                .unwrap_or(LengthOrPercentageOrAuto::Auto)
         }
     }
 }
@@ -296,7 +318,7 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
             encoder.encode(&raw_data, self.Width(), self.Height(), ColorType::RGBA(8)).unwrap();
         }
 
-        let encoded = encoded.to_base64(STANDARD);
+        let encoded = base64::encode(&encoded);
         Ok(DOMString::from(format!("data:{};base64,{}", mime_type, encoded)))
     }
 }
@@ -338,19 +360,19 @@ impl<'a> From<&'a WebGLContextAttributes> for GLContextAttributes {
 
 pub mod utils {
     use dom::window::Window;
-    use net_traits::image_cache_thread::{ImageResponse, UsePlaceholder, ImageOrMetadataAvailable};
-    use net_traits::image_cache_thread::CanRequestImages;
+    use net_traits::image_cache::{ImageResponse, UsePlaceholder, ImageOrMetadataAvailable};
+    use net_traits::image_cache::CanRequestImages;
     use servo_url::ServoUrl;
 
     pub fn request_image_from_cache(window: &Window, url: ServoUrl) -> ImageResponse {
-        let image_cache = window.image_cache_thread();
+        let image_cache = window.image_cache();
         let response =
             image_cache.find_image_or_metadata(url.into(),
                                                UsePlaceholder::No,
                                                CanRequestImages::No);
         match response {
-            Ok(ImageOrMetadataAvailable::ImageAvailable(image)) =>
-                ImageResponse::Loaded(image),
+            Ok(ImageOrMetadataAvailable::ImageAvailable(image, url)) =>
+                ImageResponse::Loaded(image, url),
             _ => ImageResponse::None,
         }
     }

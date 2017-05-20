@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: right float, url(gif), real image + shape-image-threshold + shape-margin (px)</title>
+    <link rel="author" title="Hans Muller" href="mailto:hmuller@adobe.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shapes-from-image"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property"/>
+    <link rel="match" href="reference/shape-image-022-ref.html"/>
+    <meta name="flags" content="ahem"/>
+    <meta name="assert" content="This test verifies that the boundary of a shape-outside defined by a GIF image file and shape-margin is correct."/>
+    <style type="text/css">
+        #container {
+          position: relative;
+          width: 200px;
+          font-family: Ahem;
+          font-size: 40px;
+          text-align: right;
+          color: green;
+        }
+        #image {
+          float: right;
+          margin-left: 100px;
+          shape-outside: url("support/right-half-rectangle.gif"); /* size: 100x100, only the right 50x100 half is opaque */
+          shape-margin: 20px; /* overall shape is 120x90 rectangle with corner radii = 20px */
+          shape-image-threshold: 0.2;
+        }
+        #failure {
+          position: absolute;
+          top: 0px;
+          left: 90px; /* container.width - shape-outside+margin.width - font-size */
+          width: 200px;
+          text-align: left;
+          color: red;
+          z-index: -1;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if no red is visible.</p>
+    <div id="container">
+        <img id="image" src="support/right-half-rectangle.gif"/>
+        X<br>X<br>X<br>X
+        <div id="failure">
+            X<br>X<br>X<br><span style="margin-left: 70px">X</span>
+        </div>
+    </div>
+</body>
+</html>

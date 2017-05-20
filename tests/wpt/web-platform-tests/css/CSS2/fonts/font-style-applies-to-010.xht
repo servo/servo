@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Font-style and 'display: table-footer-group' elements</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#propdef-font-style" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-styling" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-style-prop"/>
+        <link rel="match" href="../../reference/pass_if_filler_text_slanted.xht"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'font-style' property applies to 'display: table-footer-group' elements." />
+        <style type="text/css">
+            #table
+            {
+                display: table;
+            }
+            #test
+            {
+                display: table-footer-group;
+                font-style: italic;
+            }
+            #row
+            {
+                display: table-row;
+            }
+            #cell
+            {
+                display: table-cell;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below is slanted to one side.</p>
+        <div id="table">
+            <div id="test">
+                <div id="row">
+                    <div id="cell">Filler Text</div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

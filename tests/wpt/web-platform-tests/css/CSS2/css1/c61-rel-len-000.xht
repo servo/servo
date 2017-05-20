@@ -1,0 +1,29 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Length Units</title>
+  <meta name="flags" content="ahem image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#length-units"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c61-rel-len-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   .container { font: 15px/1 Ahem; background: url(support/swatch-red.png) 45px 0 repeat-y; color: green; }
+   .zero {margin-left: 0;}
+   .one {margin-left: 3em;}
+   .two {margin-left: 3.75ex;}
+   .three {margin-left: 45px;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#length-units" title="4.3.2 Lengths"/>
+ </head>
+ <body>
+  <p> There should be a solid vertical bar of green below. </p>
+  <div class="container">
+   <div class="zero"> &#xA0;&#xA0;&#xA0;X </div>
+   <div class="one"> X </div>
+   <div class="two"> X </div>
+   <div class="three"> X </div>
+  </div>
+ </body>
+</html>

@@ -1214,12 +1214,6 @@ impl WeakRangeVec {
         }
     }
 
-    /// Used for steps 9.1-2. when splitting a text node.
-    /// https://dom.spec.whatwg.org/#concept-text-split
-    pub fn clamp_above(&self, node: &Node, offset: u32) {
-        self.map_offset_above(node, offset, |_| offset);
-    }
-
     fn map_offset_above<F: FnMut(u32) -> u32>(&self, node: &Node, offset: u32, mut f: F) {
         unsafe {
             (*self.cell.get()).update(|entry| {

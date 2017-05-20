@@ -1,0 +1,84 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title>CSS Regions: onkeypress events inside region and outside region</title>
+        <link rel="author" title="David Alcala" href="mailto:dalcala@adobe.com">
+        <link rel="reviewer" title="Rebecca Hauck" href="mailto:rhauck@adobe.com"><!-- 07-19-2013 -->
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+        <link rel="help" href="http://www.w3.org/TR/css3-regions/#relation-to-document-events">
+        <meta name="assert" content="CSS regions module does not alter the normal processing of events in the document
+         tree. Therefore, onkeypress events inside and outside a named flow should be raised when any key is pressed.">
+        <meta name="flags" content="dom interact">
+        <link href="support/css/regions-keyboard.css" rel="stylesheet" type="text/css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="support/js/regions-keyboard-events-test-helper.js"></script>
+    </head>
+    <body>
+        <p id="msg">Press (and release) any alphanumeric key in the text field in the black square, then press
+            (and release) any alphanumeric key in the text field in the orange square.</p>
+        <div id="content">
+            <div class="block"></div>
+            <div class="block"></div>
+            <div id="target-block" class="block">
+                <form id="my-form">
+                    <input type="text" id="textfield-inside" size="10">
+                    <input type="button" id="button-inside" value="Button">
+                </form>
+            </div>
+        </div>
+        <div class="region"></div>
+        <div class="region"></div>
+        <div class="region"></div>
+        <br/>
+        <div id="outside-region">This div is outside the region
+            <form id="form-outside">
+                <input type="text" id="textfield-outside" size="10">
+                <input type="button" id="button-outside" value="Button">
+            </form>
+        </div>
+        <div id="log"></div>
+    </body>
+    <script type="text/javascript">
+
+        if(getLeftPosition("target-block") !== 0) {
+
+            var test1 = async_test("onkeypress event fired in textfield inside region", {timeout: testTimeout});
+            test1.step( function() {
+                var testTarget = document.getElementById("textfield-inside");
+                testTarget.onkeypress = test1.step_func(function (evt) {
+
+                    /* Verify the target inside the region has the correct ID */
+                    test(function () {
+                        assert_equals(evt.target.id, "textfield-inside");
+                    }, "Target inside region has the correct ID");
+
+                    test1.done();
+                });
+                keyDown("textfield-inside");
+            });
+
+            var test2 = async_test("onkeypress event fired in textfield outside region", {timeout: testTimeout});
+            test2.step( function() {
+                var testTarget = document.getElementById("outside-region");
+                testTarget.onkeypress = test2.step_func(function (evt) {
+
+                    /* Verify the target outside the region has the correct ID */
+                    test(function () {
+                        assert_equals(evt.target.id, "textfield-outside");
+                    }, "Target outside region has the correct ID");
+
+                    test2.done();
+                });
+                keyDown("textfield-outside");
+            });
+            completionCallback();
+        } //end of getLeftPosition test
+        else {
+            test(function () {
+                assert_true(false);
+            }, "Regions are not enabled");
+        }
+    </script>
+</html>

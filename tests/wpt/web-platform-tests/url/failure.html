@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Test URL parser failure consistency</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<iframe></iframe>
+<script>
+promise_test(() => fetch("urltestdata.json").then(res => res.json()).then(runTests), "Loading data…")
+
+function runTests(testData) {
+  for(const test of testData) {
+    if (typeof test === "string" || !test.failure || test.base !== "about:blank") {
+      continue
+    }
+
+    const name = test.input + " should throw"
+
+    self.test(() => { // new URL itself is already tested by url-constructor.html
+      const url = new URL("about:blank")
+      assert_throws(new TypeError, () => url.href = test.input)
+    }, "URL's href: " + name)
+
+    self.test(() => {
+      const client = new XMLHttpRequest()
+      assert_throws("SyntaxError", () => client.open("GET", test.input))
+    }, "XHR: " + name)
+
+    self.test(() => {
+      assert_throws(new TypeError, () => self.navigator.sendBeacon(test.input))
+    }, "sendBeacon(): " + name)
+
+    self.test(() => {
+      assert_throws(new TypeError, () => self[0].location = test.input)
+    }, "Location's href: " + name)
+  }
+}
+</script>

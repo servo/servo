@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Font Matching Algorithm, font-variant font missing small-caps property</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#algorithm" />
+        <meta name="flags" content="font" />
+        <meta name="assert" content="A font that is only available as small-caps can be assigned either a normal or a small-caps to its font-variant property. Both values have the same effect." />
+        <style type="text/css">
+            span
+            {
+                font-family: SmallCaps;
+            }
+            #span1
+            {
+                font-variant: normal;
+            }
+            #span2
+            {
+                font-variant: small-caps;
+            }
+        </style>
+    </head>
+    <body>
+        <p>PREREQUISITE: Operating system needs to have the '<a href="support/AHEM_smallcaps.ttf">Small Caps</a>' font installed.</p>
+        <p>Post Test: Remove test font after running the test.</p>
+        <p>Test passes if there is a box below and the top edge is not jagged.</p>
+        <div>
+            <span id="span1">X</span><span id="span2">X</span>
+        </div>
+    </body>
+</html>

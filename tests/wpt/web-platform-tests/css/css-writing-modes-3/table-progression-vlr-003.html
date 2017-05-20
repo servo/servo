@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: vertical-lr upright orientation Table Row/Rowgroup/Cell Ordering</title>
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+<link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/"> <!-- 2016-01-19 -->
+<link rel="match" href="table-progression-001-ref.html">
+<meta name="assert" content="This test checks that vertical-lr tables, whether LTR or RTL, order rows/rowgroups left to right and cells top-to-bottom when text-orientation is upright.">
+<link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#block-flow" title="3.1 Block Flow Direction: the 'writing-mode' property">
+<link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#direction" title="2.1 Specifying Directionality: the 'direction' property">
+<link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#text-orientation" title="5.1 Orienting Text: the 'text-orientation' property">
+
+<style>
+  .test {
+    writing-mode: vertical-lr;
+    text-orientation: upright;
+  }
+  [dir=rtl] {
+    direction: rtl;
+  }
+
+  table {
+    border-spacing: 0;
+    margin: 1em;
+  }
+  td {
+    width: 1em;
+    height: 1em;
+    border: solid gray;
+  }
+
+  .navy { background: navy}
+  .blue { background: blue }
+  .aqua { background: aqua }
+  .teal { background: teal }
+  .purp { background: purple }
+  .pink { background: fuchsia }
+  .yllw { background: yellow }
+  .orng { background: orange }
+</style>
+
+<p>Test passes if the following three tables look identical.
+
+<table class="test">
+  <thead>
+    <tr>
+      <td colspan=2>
+      <td class="aqua">
+      <td class="teal">
+  <tfoot>
+    <tr>
+      <td class="navy">
+      <td class="blue">
+      <td colspan=2>
+  <tbody>
+    <tr>
+      <td class="orng">
+      <td colspan=3>
+  <tbody>
+    <tr>
+      <td rowspan=3>
+      <td class="yllw">
+      <td rowspan=2 colspan=2>
+    <tr>
+      <td class="pink">
+    <tr>
+      <td colspan=2>
+      <td class="purp">
+</table>
+
+<table class="test" dir=rtl>
+  <thead>
+    <tr>
+      <td colspan=2>
+      <td class="aqua">
+      <td class="teal">
+  <tfoot>
+    <tr>
+      <td class="navy">
+      <td class="blue">
+      <td colspan=2>
+  <tbody>
+    <tr>
+      <td class="orng">
+      <td colspan=3>
+  <tbody>
+    <tr>
+      <td rowspan=3>
+      <td class="yllw">
+      <td rowspan=2 colspan=2>
+    <tr>
+      <td class="pink">
+    <tr>
+      <td colspan=2>
+      <td class="purp">
+</table>
+
+<table class="reference">
+  <tr>
+    <td rowspan=2>
+    <td class="orng">
+    <td colspan="3">
+    <td class="navy">
+  <tr>
+    <td rowspan="3">
+    <td class="yllw">
+    <td class="pink">
+    <td rowspan="2">
+    <td class="blue">
+  <tr>
+    <td class="aqua">
+    <td rowspan=2 colspan=2>
+    <td rowspan=2>
+  <tr>
+    <td class="teal">
+    <td class="purp">
+</table>

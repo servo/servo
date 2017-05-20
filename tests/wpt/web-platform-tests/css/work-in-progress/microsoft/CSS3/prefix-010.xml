@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<root xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Namespaces Test Suite: prefix is declared more than once and the preceding rules don't apply.</title>
+  <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+  <link rel="help" href="http://www.w3.org/TR/css3-namespace/#prefixes" />
+  <meta name="flags" content="invalid"/>
+  <meta name="assert" content="If a namespace prefix or default namespace is declared more than once only the last declaration shall be used. Verify that the preceding rules do not apply." />
+  <style type="text/css">
+    t2 { background: lime }
+  </style>
+  <style type="text/css">
+    @namespace B "test-a";
+    @namespace B "test-b";
+    @namespace B "test-c";
+    B|t2 { background: red }
+  </style>
+ </head>
+ <body>
+    <p>Test passes if the "Filler Text" text below has a green background.</p>
+    <p><t2 xmlns="test-a">Filler Text</t2></p>
+    <p><t2 xmlns="test-b">Filler Text</t2></p>
+ </body>
+</root>

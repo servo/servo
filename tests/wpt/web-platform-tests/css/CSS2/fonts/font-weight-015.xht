@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: CSS: font-weight inheritance</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/fonts/ahem/003.xml" type="application/xhtml+xml"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-boldness" />
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-weight-prop" />
+  <meta name="flags" content="ahem"/>
+  <style type="text/css">
+   .a { font-weight: 900; }
+   .c { font-family: Ahem; font-size: 64px; line-height: 64px; height: 64px; width: 257px; background: red; color: green; position: absolute; }
+   .container { position: relative; }
+   .overlapper { position: absolute; height: 48px; width: 240px; padding: 8px; background: white; }
+  </style>
+ </head>
+ <body>
+
+  <div class="container">
+   <div class="a">
+    <div class="b">
+      <div class="c">
+        FAIL
+      </div>
+    </div>
+   </div>
+   <div class="overlapper">
+    There should be a green line to the right of this text.
+   </div>
+  </div>
+
+ </body>
+</html>

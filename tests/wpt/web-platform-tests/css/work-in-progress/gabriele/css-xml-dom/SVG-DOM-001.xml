@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>SVG and DOM 2</title>
+<meta http-equiv="Content-Type" content="text/xml; charset=utf-8" />
+<style type="text/css" media="screen">
+
+div[id="test"] {
+	width: 200px;
+	height: 200px;
+	background-color: red;
+}
+
+
+
+</style>
+
+<script type="text/javascript">
+<![CDATA[
+
+window.onload = function () {
+
+
+	var rect = document.getElementsByTagName("rect")[0];
+	rect.setAttribute("fill", "green");
+
+	
+	
+	
+	
+};
+]]>
+
+</script>
+
+</head>
+
+<body>
+
+<p>You should see a green square below, with no red.</p>
+
+
+<div id="test">
+
+	<svg width="200" height="200" version="1.1" xmlns="http://www.w3.org/2000/svg">
+	
+		<rect x="0" y="0" width="200" height="200" />
+	
+	</svg>
+
+</div>
+
+
+
+
+</body>
+</html>

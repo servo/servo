@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/css" href="mod23-5.css"?>
+<test>
+<tim>CSS3 Test Suite Module 23 XML Test 5 (should be olive
+because of rule "tim {color: olive}".
+The statement tested is
+"Specificity of SMIL functionality is enforced in CSS3."
+</tim>
+<para1>
+This paragraph should be red.
+The style rule applied is "para1 {color: red}".
+This is extra text used to fill out the paragraph, and serves to make sure
+that the entire paragraph is the color indicated above.  Thank you very much.
+Also, there is a top margin of 0.5in for this paragraph, and a bottom-margin
+of 0.5in for this paragraph, due to rules "para1 {margin-top: 0.5in}" and
+"margin-bottom: 0.5in".  Finally, display is block, because of rule 
+"para1 {display: block;}".
+</para1>
+<para2>
+This paragraph should be green.
+The style rule applied is "para2 {color: green}".
+This is some more extra text used to fill out the paragraph, and serves to 
+make sure that the entire paragraph is the color indicated above.  Thank you
+very much.
+Also, display of this paragraph is block, because of rule 
+"para2 {display: block;}".
+Finally, the blue "Test Suite" title (tim tag) above should also be displayed
+of block, because of rule "tim {display: block}", and the enclosing "test"
+tag also has display of block.
+</para2>
+</test>

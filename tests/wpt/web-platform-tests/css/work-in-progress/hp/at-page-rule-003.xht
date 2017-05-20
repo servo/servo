@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: page box properties</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#page-box-page-rule"/>
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="The 'width' and 'height' properties do not apply to a page box."/>
+  <style type="text/css"><![CDATA[
+   @page  { 
+		width: 1in;
+		height: 1in;
+		border: 2pt solid black;
+	}
+	div.biggerBox {
+		width: 2in;
+		height: 2in;
+		border: 1pt solid black;
+	}
+  ]]></style>
+ </head>
+ <body>
+  <div>When printed, this page should have a black border. The area inside the border should be larger than 1in x 1in. The box below should be 2&quot;x2&quot; and fit on the page.</div>
+  <div class="biggerBox"></div>
+ </body>
+</html>

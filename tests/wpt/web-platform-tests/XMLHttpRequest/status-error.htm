@@ -5,7 +5,7 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <link rel="help" href="https://xhr.spec.whatwg.org/#handler-xhr-onerror" data-tested-assertations="../.." />
-    <link rel="help" href="https://xhr.spec.whatwg.org/#the-status-attribute" data-tested-assertations="/following::ol/li[3]" />  
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-status-attribute" data-tested-assertations="/following::ol/li[3]" />
   </head>
   <body>
     <p>This shouldn't be tested inside a tunnel.</p>
@@ -24,7 +24,7 @@
 
             if (client.readyState == client.DONE)
               /* Give extra time for a bogus error event to pop up */
-              setTimeout(test.step_func(function() { test.done() } ), 100)
+              test.step_timeout(() => { test.done() }, 100)
           })
           client.onerror = test.step_func(function() {
             assert_unreached("HTTP error should not throw error event")

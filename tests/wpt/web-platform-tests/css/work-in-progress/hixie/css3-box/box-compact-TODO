@@ -1,0 +1,3 @@
+padding on the compact box
+checking the compact box doesn't get put in the margin when it doesn't fit (e.g. takes two lines)
+checking that a trailing \A doesn't cause two lines

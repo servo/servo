@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: margin</title>
+  <meta name="flags" content="ahem image" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#margin"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c5505-mrgn-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   body { color: navy; }
+   div { font: 10px/1 Ahem; width: 200px; color: orange; }
+   img { vertical-align: bottom; }
+   .zero {margin: 0; background-color: maroon;}
+   .one {margin: 0.25in; background-color: maroon;}
+   .two {margin: 24px; background-color: maroon;}
+   .three {margin: 2.4em; background-color: maroon;}
+   .four {margin: 12%; background-color: maroon;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#margin-properties" title="8.3 Margin properties: 'margin-top',  'margin-right',  'margin-bottom', 'margin-left', and 'margin'"/>
+ </head>
+ <body>
+  <p>The six "matches" below should be <strong>identical and equally spaced</strong>.</p>
+  <div>
+   <p class="zero">
+       <img src="support/swatch-white.png" alt="Image download support must be enabled" height="10" width="24"
+    />x<img src="support/1x1-maroon.png" alt="Image download support must be enabled" height="10" width="142"
+     /><img src="support/swatch-white.png" alt="Image download support must be enabled" height="10" width="24"/>
+   </p>
+   <p class="one">
+    x
+   </p>
+   <p class="two">
+    x
+   </p>
+   <p class="three">
+    x
+   </p>
+   <p class="four">
+    x
+   </p>
+   <p class="zero">
+       <img src="support/swatch-white.png" alt="Image download support must be enabled" height="10" width="24"
+    />x<img src="support/1x1-maroon.png" alt="Image download support must be enabled" height="10" width="142"
+     /><img src="support/swatch-white.png" alt="Image download support must be enabled" height="10" width="24"/>
+   </p>
+  </div>
+ </body>
+</html>

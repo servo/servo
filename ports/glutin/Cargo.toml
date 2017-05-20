@@ -12,20 +12,17 @@ path = "lib.rs"
 bitflags = "0.7"
 compositing = {path = "../../components/compositing"}
 euclid = "0.11"
-gleam = "0.2.8"
+gleam = "0.4"
 log = "0.3.5"
 msg = {path = "../../components/msg"}
 net_traits = {path = "../../components/net_traits"}
 script_traits = {path = "../../components/script_traits"}
-servo-glutin = "0.9"
+servo-glutin = "0.10"
 servo_geometry = {path = "../../components/geometry"}
 servo_config = {path = "../../components/config"}
 servo_url = {path = "../../components/url"}
 style_traits = {path = "../../components/style_traits"}
-
-[dependencies.webrender_traits]
-git = "https://github.com/servo/webrender"
-default_features = false
+webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 
 [target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]
 osmesa-sys = "0.1.2"

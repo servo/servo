@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Termination of escaped character sequences with less than six digits terminated by linefeeds and tabs</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#characters" />
+        <link rel="match" href="../reference/filler-text-below-green.xht"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="Escaped character sequences (less than six hex digits) are terminated by white space, tabs and linefeeds." />
+        <style type="text/css">
+            div /* 'color : green' terminated with tabs and linefeeds */
+            {
+                \63
+\06F
+l\0006F
+r : g\0072	\00065
+e\6E ;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the "Filler Text" below is green.</p>
+        <div>Filler Text</div>
+    </body>
+</html>

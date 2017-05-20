@@ -1,0 +1,51 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: max-width - height and overflow</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="author" title="Hilbrand Edskes" href="http://edskes.com/" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#min-max-widths" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#overflow" />
+  <link rel="match" href="max-width-105-ref.xht" />
+
+  <meta content="ahem" name="flags" />
+  <meta content="'max-width' specifies a fixed maximum used width. If the used width is greater than max-width, then the computed value of max-width is used as the computed value for width." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  div#test-red-overlapped
+  {
+  color: red;
+  font: 200px/1 Ahem;
+  height: 200px;
+  max-width: 200px;
+  overflow: auto;
+  position: absolute;
+  }
+
+  div#control-green-overlapping
+  {
+  background-color: green;
+  height: 200px;
+  position: absolute;
+  width: 200px;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>PREREQUISITE: User agent needs to support scrollbars as the scrolling mechanism. If it does not, then this test case does not apply to this user agent.</p>
+
+  <p>Test passes if there is a green square and <strong>no red</strong>.</p>
+
+  <div id="test-red-overlapped">XX XX</div>
+
+  <div id="control-green-overlapping"></div>
+
+ </body>
+</html>

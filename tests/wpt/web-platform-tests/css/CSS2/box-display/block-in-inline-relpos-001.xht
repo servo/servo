@@ -1,0 +1,57 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+                      "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Relative-positioning Inline Containing Block</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact" />
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-03-07 -->
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#anonymous-block-level" />
+  <link rel="match" href="block-in-inline-relpos-001-ref.xht" />
+
+  <meta name="flags" content="ahem" />
+  <meta name="assert" content="When such an inline box is affected by relative positioning, the relative positioning also affects the block-level box contained in the inline box." />
+  <style type="text/css"><![CDATA[
+    .container {
+      margin: 1em;
+      font: 20px/1 Ahem;
+      border: solid silver;
+      width: 4em;
+      color: aqua;
+      background: fuchsia;
+    }
+    .relpos {
+      position: relative;
+      color: yellow;
+      left: 2em;
+      display: inline;
+    }
+    .block, .controlC {
+      color: orange;
+      background: orange;
+      width: 2em;
+      margin-left: -2em;
+      border-left: 2em solid blue
+    }
+
+    .controlB {
+      color: yellow;
+    }
+    .controlC {
+      margin-left: 0;
+    }
+  ]]></style>
+</head>
+<body>
+  <p>The patterns in the 2 silver boxes must be <strong>identical</strong>.</p>
+  <div class="container">
+    A<div class="relpos">B
+    <div class="block">C</div>
+    B</div>A
+  </div>
+  <div class="container">
+    A&nbsp;&nbsp;<span class="controlB">B</span>
+    <div class="controlC">C</div>
+    &nbsp;A<span class="controlB">B</span>
+  </div>
+</body>
+</html>

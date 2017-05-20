@@ -33,6 +33,7 @@ extern crate serde_derive;
 extern crate servo_url;
 extern crate style_traits;
 extern crate time;
+extern crate webrender_traits;
 extern crate webvr_traits;
 
 mod script_msg;
@@ -47,29 +48,31 @@ use euclid::rect::Rect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use gfx_traits::Epoch;
-use gfx_traits::ScrollRootId;
 use heapsize::HeapSizeOf;
 use hyper::header::Headers;
 use hyper::method::Method;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
-use msg::constellation_msg::{FrameId, FrameType, Key, KeyModifiers, KeyState};
+use msg::constellation_msg::{BrowsingContextId, FrameType, Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineId, PipelineNamespaceId, TraversalDirection};
 use net_traits::{ReferrerPolicy, ResourceThreads};
 use net_traits::image::base::Image;
-use net_traits::image_cache_thread::ImageCacheThread;
+use net_traits::image_cache::ImageCache;
 use net_traits::response::HttpsState;
 use net_traits::storage_thread::StorageType;
 use profile_traits::mem;
 use profile_traits::time as profile_time;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::fmt;
+use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender};
-use style_traits::{CSSPixel, UnsafeNode};
+use style_traits::CSSPixel;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
-use webvr_traits::{WebVRDisplayEvent, WebVRMsg};
+use webrender_traits::ClipId;
+use webvr_traits::{WebVREvent, WebVRMsg};
 
 pub use script_msg::{LayoutMsg, ScriptMsg, EventResult, LogEntry};
 pub use script_msg::{ServiceWorkerMsg, ScopeThings, SWManagerMsg, SWManagerSenders, DOMMessage};
@@ -119,7 +122,7 @@ pub enum LayoutControlMsg {
     /// Asks layout to run another step in its animation.
     TickAnimations,
     /// Tells layout about the new scrolling offsets of each scrollable stacking context.
-    SetStackingContextScrollStates(Vec<StackingContextScrollState>),
+    SetScrollStates(Vec<ScrollState>),
     /// Requests the current load state of Web fonts. `true` is returned if fonts are still loading
     /// and `false` is returned if all fonts have loaded.
     GetWebFontLoadState(IpcSender<bool>),
@@ -127,10 +130,12 @@ pub enum LayoutControlMsg {
 
 /// can be passed to `LoadUrl` to load a page with GET/POST
 /// parameters or headers
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct LoadData {
     /// The URL.
     pub url: ServoUrl,
+    /// The creator pipeline id if this is an about:blank load.
+    pub creator_pipeline_id: Option<PipelineId>,
     /// The method.
     #[serde(deserialize_with = "::hyper_serde::deserialize",
             serialize_with = "::hyper_serde::serialize")]
@@ -149,9 +154,14 @@ pub struct LoadData {
 
 impl LoadData {
     /// Create a new `LoadData` object.
-    pub fn new(url: ServoUrl, referrer_policy: Option<ReferrerPolicy>, referrer_url: Option<ServoUrl>) -> LoadData {
+    pub fn new(url: ServoUrl,
+               creator_pipeline_id: Option<PipelineId>,
+               referrer_policy: Option<ReferrerPolicy>,
+               referrer_url: Option<ServoUrl>)
+               -> LoadData {
         LoadData {
             url: url,
+            creator_pipeline_id: creator_pipeline_id,
             method: Method::Get,
             headers: Headers::new(),
             data: None,
@@ -169,8 +179,8 @@ pub struct NewLayoutInfo {
     pub parent_info: Option<(PipelineId, FrameType)>,
     /// Id of the newly-created pipeline.
     pub new_pipeline_id: PipelineId,
-    /// Id of the frame associated with this pipeline.
-    pub frame_id: FrameId,
+    /// Id of the browsing context associated with this pipeline.
+    pub browsing_context_id: BrowsingContextId,
     /// Network request data which will be initiated by the script thread.
     pub load_data: LoadData,
     /// Information about the initial window size.
@@ -208,6 +218,15 @@ pub enum DocumentActivity {
     FullyActive,
 }
 
+/// The reason why the pipeline id of an iframe is being updated.
+#[derive(Copy, Clone, PartialEq, Eq, Hash, HeapSizeOf, Debug, Deserialize, Serialize)]
+pub enum UpdatePipelineIdReason {
+    /// The pipeline id is being updated due to a navigation.
+    Navigation,
+    /// The pipeline id is being updated due to a history traversal.
+    Traversal,
+}
+
 /// Messages sent from the constellation or layout to the script thread.
 #[derive(Deserialize, Serialize)]
 pub enum ConstellationControlMsg {
@@ -234,33 +253,35 @@ pub enum ConstellationControlMsg {
     /// Notifies script thread whether frame is visible
     ChangeFrameVisibilityStatus(PipelineId, bool),
     /// Notifies script thread that frame visibility change is complete
-    /// PipelineId is for the parent, FrameId is for the actual frame.
-    NotifyVisibilityChange(PipelineId, FrameId, bool),
+    /// PipelineId is for the parent, BrowsingContextId is for the nested browsing context
+    NotifyVisibilityChange(PipelineId, BrowsingContextId, bool),
     /// Notifies script thread that a url should be loaded in this iframe.
-    /// PipelineId is for the parent, FrameId is for the actual frame.
-    Navigate(PipelineId, FrameId, LoadData, bool),
+    /// PipelineId is for the parent, BrowsingContextId is for the nested browsing context
+    Navigate(PipelineId, BrowsingContextId, LoadData, bool),
+    /// Post a message to a given window.
+    PostMessage(PipelineId, Option<ImmutableOrigin>, Vec<u8>),
     /// Requests the script thread forward a mozbrowser event to an iframe it owns,
-    /// or to the window if no child frame id is provided.
-    MozBrowserEvent(PipelineId, Option<FrameId>, MozBrowserEvent),
+    /// or to the window if no browsing context id is provided.
+    MozBrowserEvent(PipelineId, Option<BrowsingContextId>, MozBrowserEvent),
     /// Updates the current pipeline ID of a given iframe.
     /// First PipelineId is for the parent, second is the new PipelineId for the frame.
-    UpdatePipelineId(PipelineId, FrameId, PipelineId),
+    UpdatePipelineId(PipelineId, BrowsingContextId, PipelineId, UpdatePipelineIdReason),
     /// Set an iframe to be focused. Used when an element in an iframe gains focus.
-    /// PipelineId is for the parent, FrameId is for the actual frame.
-    FocusIFrame(PipelineId, FrameId),
+    /// PipelineId is for the parent, BrowsingContextId is for the nested browsing context
+    FocusIFrame(PipelineId, BrowsingContextId),
     /// Passes a webdriver command to the script thread for execution
     WebDriverScriptCommand(PipelineId, WebDriverScriptCommand),
     /// Notifies script thread that all animations are done
     TickAllAnimations(PipelineId),
     /// Notifies the script thread of a transition end
-    TransitionEnd(UnsafeNode, String, f64),
+    TransitionEnd(UntrustedNodeAddress, String, f64),
     /// Notifies the script thread that a new Web font has been loaded, and thus the page should be
     /// reflowed.
     WebFontLoaded(PipelineId),
-    /// Cause a `load` event to be dispatched at the appropriate frame element.
-    DispatchFrameLoadEvent {
+    /// Cause a `load` event to be dispatched at the appropriate iframe element.
+    DispatchIFrameLoadEvent {
         /// The frame that has been marked as loaded.
-        target: FrameId,
+        target: BrowsingContextId,
         /// The pipeline that contains a frame loading the target pipeline.
         parent: PipelineId,
         /// The pipeline that has completed loading.
@@ -269,15 +290,12 @@ pub enum ConstellationControlMsg {
     /// Cause a `storage` event to be dispatched at the appropriate window.
     /// The strings are key, old value and new value.
     DispatchStorageEvent(PipelineId, StorageType, ServoUrl, Option<String>, Option<String>, Option<String>),
-    /// Notifies a parent pipeline that one of its child frames is now active.
-    /// PipelineId is for the parent, FrameId is the child frame.
-    FramedContentChanged(PipelineId, FrameId),
     /// Report an error from a CSS parser for the given pipeline
     ReportCSSError(PipelineId, String, usize, usize, String),
     /// Reload the given page.
     Reload(PipelineId),
-    /// Notifies the script thread of a WebVR device event
-    WebVREvent(PipelineId, WebVREventMsg)
+    /// Notifies the script thread of WebVR events.
+    WebVREvents(PipelineId, Vec<WebVREvent>)
 }
 
 impl fmt::Debug for ConstellationControlMsg {
@@ -297,6 +315,7 @@ impl fmt::Debug for ConstellationControlMsg {
             ChangeFrameVisibilityStatus(..) => "ChangeFrameVisibilityStatus",
             NotifyVisibilityChange(..) => "NotifyVisibilityChange",
             Navigate(..) => "Navigate",
+            PostMessage(..) => "PostMessage",
             MozBrowserEvent(..) => "MozBrowserEvent",
             UpdatePipelineId(..) => "UpdatePipelineId",
             FocusIFrame(..) => "FocusIFrame",
@@ -304,12 +323,11 @@ impl fmt::Debug for ConstellationControlMsg {
             TickAllAnimations(..) => "TickAllAnimations",
             TransitionEnd(..) => "TransitionEnd",
             WebFontLoaded(..) => "WebFontLoaded",
-            DispatchFrameLoadEvent { .. } => "DispatchFrameLoadEvent",
+            DispatchIFrameLoadEvent { .. } => "DispatchIFrameLoadEvent",
             DispatchStorageEvent(..) => "DispatchStorageEvent",
-            FramedContentChanged(..) => "FramedContentChanged",
             ReportCSSError(..) => "ReportCSSError",
             Reload(..) => "Reload",
-            WebVREvent(..) => "WebVREvent",
+            WebVREvents(..) => "WebVREvents",
         };
         write!(formatter, "ConstellationMsg::{}", variant)
     }
@@ -411,6 +429,15 @@ pub enum TouchpadPressurePhase {
 #[derive(Deserialize, Serialize)]
 pub struct TimerEventRequest(pub IpcSender<TimerEvent>, pub TimerSource, pub TimerEventId, pub MsDuration);
 
+/// Type of messages that can be sent to the timer scheduler.
+#[derive(Deserialize, Serialize)]
+pub enum TimerSchedulerMsg {
+    /// Message to schedule a new timer event.
+    Request(TimerEventRequest),
+    /// Message to exit the timer scheduler.
+    Exit,
+}
+
 /// Notifies the script thread to fire due timers.
 /// `TimerSource` must be `FromWindow` when dispatched to `ScriptThread` and
 /// must be `FromWorker` when dispatched to a `DedicatedGlobalWorkerScope`
@@ -462,9 +489,9 @@ pub struct InitialScriptState {
     /// If `None`, this is the root.
     pub parent_info: Option<(PipelineId, FrameType)>,
     /// The ID of the frame this script is part of.
-    pub frame_id: FrameId,
+    pub browsing_context_id: BrowsingContextId,
     /// The ID of the top-level frame this script is part of.
-    pub top_level_frame_id: FrameId,
+    pub top_level_browsing_context_id: BrowsingContextId,
     /// A channel with which messages can be sent to us (the script thread).
     pub control_chan: IpcSender<ConstellationControlMsg>,
     /// A port on which messages sent by the constellation to script can be received.
@@ -474,13 +501,13 @@ pub struct InitialScriptState {
     /// A sender for the layout thread to communicate to the constellation.
     pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
     /// A channel to schedule timer events.
-    pub scheduler_chan: IpcSender<TimerEventRequest>,
+    pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
     /// A channel to the resource manager thread.
     pub resource_threads: ResourceThreads,
     /// A channel to the bluetooth thread.
     pub bluetooth_thread: IpcSender<BluetoothRequest>,
-    /// A channel to the image cache thread.
-    pub image_cache_thread: ImageCacheThread,
+    /// The image cache for this script thread.
+    pub image_cache: Arc<ImageCache>,
     /// A channel to the time profiler thread.
     pub time_profiler_chan: profile_traits::time::ProfilerChan,
     /// A channel to the memory profiler thread.
@@ -503,7 +530,8 @@ pub trait ScriptThreadFactory {
     /// Type of message sent from script to layout.
     type Message;
     /// Create a `ScriptThread`.
-    fn create(state: InitialScriptState, load_data: LoadData) -> (Sender<Self::Message>, Receiver<Self::Message>);
+    fn create(state: InitialScriptState, load_data: LoadData)
+        -> (Sender<Self::Message>, Receiver<Self::Message>);
 }
 
 /// Whether the sandbox attribute is present for an iframe element
@@ -521,7 +549,7 @@ pub struct IFrameLoadInfo {
     /// Pipeline ID of the parent of this iframe
     pub parent_pipeline_id: PipelineId,
     /// The ID for this iframe.
-    pub frame_id: FrameId,
+    pub browsing_context_id: BrowsingContextId,
     /// The new pipeline ID that the iframe has generated.
     pub new_pipeline_id: PipelineId,
     ///  Whether this iframe should be considered private
@@ -645,9 +673,9 @@ pub enum AnimationTickType {
 
 /// The scroll state of a stacking context.
 #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
-pub struct StackingContextScrollState {
+pub struct ScrollState {
     /// The ID of the scroll root.
-    pub scroll_root_id: ScrollRootId,
+    pub scroll_root_id: ClipId,
     /// The scrolling offset of this stacking context.
     pub scroll_offset: Point2D<f32>,
 }
@@ -704,13 +732,13 @@ pub enum WebDriverCommandMsg {
 pub enum ConstellationMsg {
     /// Exit the constellation.
     Exit,
-    /// Request that the constellation send the FrameId corresponding to the document
+    /// Request that the constellation send the BrowsingContextId corresponding to the document
     /// with the provided pipeline id
-    GetFrame(PipelineId, IpcSender<Option<FrameId>>),
+    GetBrowsingContext(PipelineId, IpcSender<Option<BrowsingContextId>>),
     /// Request that the constellation send the current pipeline id for the provided frame
     /// id, or for the root frame if this is None, over a provided channel.
     /// Also returns a boolean saying whether the document has finished loading or not.
-    GetPipeline(Option<FrameId>, IpcSender<Option<PipelineId>>),
+    GetPipeline(Option<BrowsingContextId>, IpcSender<Option<PipelineId>>),
     /// Requests that the constellation inform the compositor of the title of the pipeline
     /// immediately.
     GetPipelineTitle(PipelineId),
@@ -732,20 +760,12 @@ pub enum ConstellationMsg {
     WebDriverCommand(WebDriverCommandMsg),
     /// Reload the current page.
     Reload,
-    /// A log entry, with the top-level frame id and thread name
-    LogEntry(Option<FrameId>, Option<String>, LogEntry),
+    /// A log entry, with the top-level browsing context id and thread name
+    LogEntry(Option<BrowsingContextId>, Option<String>, LogEntry),
     /// Set the WebVR thread channel.
     SetWebVRThread(IpcSender<WebVRMsg>),
-    /// Dispatch a WebVR event to the subscribed script threads.
-    WebVREvent(Vec<PipelineId>, WebVREventMsg),
-}
-
-/// Messages to the constellation originating from the WebVR thread.
-/// Used to dispatch VR Headset state events: connected, unconnected, and more.
-#[derive(Deserialize, Serialize, Clone)]
-pub enum WebVREventMsg {
-    /// Inform the constellation of a VR display event.
-    DisplayEvent(WebVRDisplayEvent)
+    /// Dispatch WebVR events to the subscribed script threads.
+    WebVREvents(Vec<PipelineId>, Vec<WebVREvent>),
 }
 
 /// Resources required by workerglobalscopes
@@ -764,11 +784,13 @@ pub struct WorkerGlobalScopeInit {
     /// Messages to send to constellation
     pub constellation_chan: IpcSender<ScriptMsg>,
     /// Message to send to the scheduler
-    pub scheduler_chan: IpcSender<TimerEventRequest>,
+    pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
     /// The worker id
     pub worker_id: WorkerId,
     /// The pipeline id
     pub pipeline_id: PipelineId,
+    /// The origin
+    pub origin: ImmutableOrigin,
 }
 
 /// Common entities representing a network load origin

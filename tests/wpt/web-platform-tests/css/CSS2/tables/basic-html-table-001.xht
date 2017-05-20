@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: HTML table with every table element</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-display" />
+        <link rel="help" href="http://www.w3.org/TR/REC-html40/struct/tables.html#h-11.2" />
+        <meta name="assert" content="HTML table elements are supported." />
+        <style type="text/css">
+            caption, td, th
+            {
+                background: black;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a solid bar on top of a three-by-three grid of boxes below.</p>
+        <table border="1">
+            <caption>X</caption>
+            <colgroup>
+                <col />
+                <col />
+            </colgroup>
+            <colgroup>
+                <col />
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>XXXXX</th>
+                    <th>XXXXX</th>
+                    <th>XXXXX</th>
+                </tr>
+            </thead>
+            <tfoot>
+                <tr>
+                    <td>XXXXX</td>
+                    <td>XXXXX</td>
+                    <td>XXXXX</td>
+                </tr>
+            </tfoot>
+            <tbody>
+                <tr>
+                    <td>XXXXX</td>
+                    <td>XXXXX</td>
+                    <td>XXXXX</td>
+                </tr>
+            </tbody>
+        </table>
+    </body>
+</html>

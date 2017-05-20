@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>CSS Test: check that the stacking context created by the parent element isolates blending.</title>
+        <link rel="author" title="Mirela Budăeș" href="mailto:mbudaes@adobe.com">
+        <link rel="author" title="Mihai Tica" href="mailto:mitica@adobe.com">
+        <link rel="reviewer" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+        <link rel="reviewer" title="Horia Olaru" href="mailto:olaru@adobe.com">
+        <link rel="help" href="https://drafts.fxtf.org/compositing-1/#mix-blend-mode">
+        <meta name="assert" content="Test checks that an element with mix-blend-mode only blends with the contents
+        of a parent that creates a stacking context.">
+        <meta name="flags" content=""/>
+        <link rel="match" href="reference/mix-blend-mode-parent-with-text-ref.html">
+        <style type="text/css">
+            .parent {
+                position: absolute;
+                z-index: 1;
+                width: 100px;
+                height: 100px;
+            }
+            .blender {
+                background: #FF0;
+                width: 100px;
+                height: 100px;
+                margin-top: -60px;
+                mix-blend-mode: difference;
+            }
+            .text {
+                height: 60px;
+                color: #F00;
+            }
+            body {
+                background: lightgray;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if a yellow square with green text is drawn over a lightgray background.</p>
+        <div class="parent">
+            <div class="text">Red text that becomes green after blending </div>
+            <div class="blender"></div>
+        </div>
+    </body>
+</html>

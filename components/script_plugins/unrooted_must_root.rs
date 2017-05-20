@@ -54,7 +54,8 @@ fn is_unrooted_ty(cx: &LateContext, ty: &ty::TyS, in_new_function: bool) -> bool
                         || match_def_path(cx, did.did, &["core", "slice", "Iter"])
                         || match_def_path(cx, did.did, &["std", "collections", "hash", "map", "Entry"])
                         || match_def_path(cx, did.did, &["std", "collections", "hash", "map", "OccupiedEntry"])
-                        || match_def_path(cx, did.did, &["std", "collections", "hash", "map", "VacantEntry"]) {
+                        || match_def_path(cx, did.did, &["std", "collections", "hash", "map", "VacantEntry"])
+                        || match_def_path(cx, did.did, &["std", "collections", "hash", "set", "Iter"]) {
                     // Structures which are semantically similar to an &ptr.
                     false
                 } else if did.is_box() && in_new_function {
@@ -94,7 +95,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
         if item.attrs.iter().all(|a| !a.check_name("must_root")) {
             for ref field in def.fields() {
                 let def_id = cx.tcx.hir.local_def_id(field.id);
-                if is_unrooted_ty(cx, cx.tcx.item_type(def_id), false) {
+                if is_unrooted_ty(cx, cx.tcx.type_of(def_id), false) {
                     cx.span_lint(UNROOTED_MUST_ROOT, field.span,
                                  "Type must be rooted, use #[must_root] on the struct definition to propagate")
                 }
@@ -110,7 +111,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
                 hir::VariantData::Tuple(ref fields, _) => {
                     for ref field in fields {
                         let def_id = cx.tcx.hir.local_def_id(field.id);
-                        if is_unrooted_ty(cx, cx.tcx.item_type(def_id), false) {
+                        if is_unrooted_ty(cx, cx.tcx.type_of(def_id), false) {
                             cx.span_lint(UNROOTED_MUST_ROOT, field.ty.span,
                                          "Type must be rooted, use #[must_root] on \
                                           the enum definition to propagate")
@@ -137,9 +138,9 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
             visit::FnKind::Closure(_) => return,
         };
 
-        if !in_derive_expn(cx, span) {
+        if !in_derive_expn(span) {
             let def_id = cx.tcx.hir.local_def_id(id);
-            let ty = cx.tcx.item_type(def_id);
+            let ty = cx.tcx.type_of(def_id);
 
             for (arg, ty) in decl.inputs.iter().zip(ty.fn_args().0.iter()) {
                 if is_unrooted_ty(cx, ty, false) {

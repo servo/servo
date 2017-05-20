@@ -10,10 +10,12 @@ use dom::bindings::js::{LayoutJS, MutNullableJS, Root, RootedReference};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::element::{AttributeMutation, Element};
+use dom::mutationobserver::{Mutation, MutationObserver};
+use dom::node::Node;
 use dom::virtualmethods::vtable_for;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use html5ever_atoms::{Prefix, LocalName, Namespace};
+use html5ever::{Prefix, LocalName, Namespace};
 use servo_atoms::Atom;
 use std::borrow::ToOwned;
 use std::cell::Ref;
@@ -170,6 +172,12 @@ impl AttrMethods for Attr {
 
 impl Attr {
     pub fn set_value(&self, mut value: AttrValue, owner: &Element) {
+        let name = self.local_name().clone();
+        let namespace = self.namespace().clone();
+        let old_value = DOMString::from(&**self.value());
+        let mutation = Mutation::Attribute { name, namespace, old_value };
+        MutationObserver::queue_a_mutation_record(owner.upcast::<Node>(), mutation);
+
         assert!(Some(owner) == self.owner().r());
         owner.will_mutate_attr(self);
         self.swap_value(&mut value);

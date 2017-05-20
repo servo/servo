@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html><head>
+  <title>CSS 2.1 Test Suite: :first-letter</title>
+  <link href="http://smontagu.org/" rel="author" title="Simon Montagu" />
+  <link href="http://mozilla.com/" rel="author" title="Mozilla Corporation" />
+  <link href="http://www.w3.org/TR/CSS21/selector.html#first-letter" rel="help" />
+  <link rel="match" href="dynamic-3-ref.xht"/>
+  <meta content="dom" name="flags" />
+  <style>
+    div#x:first-letter { color: blue; float: left; }
+  </style>
+</head>
+<body>
+<div id="x">Need at least two letters here</div>
+<script>
+  document.body.offsetWidth;
+  var div = document.getElementById("x");
+  div.id = "y";
+  div.firstChild.data = "Text";
+</script>
+
+
+
+</body></html>

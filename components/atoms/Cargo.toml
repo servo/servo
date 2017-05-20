@@ -11,7 +11,7 @@ workspace = "../.."
 path = "lib.rs"
 
 [dependencies]
-string_cache = {version = "0.4", features = ["heapsize"]}
+string_cache = {version = "0.5", features = ["heapsize"]}
 
 [build-dependencies]
-string_cache_codegen = "0.3"
+string_cache_codegen = "0.4"

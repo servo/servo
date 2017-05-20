@@ -1,0 +1,86 @@
+
+<HTML>
+
+<HEAD>
+<TITLE>First Test of Section 5.2.7 of CSS1 Spec</TITLE>
+
+<STYLE>
+
+#id1 { font: normal italic bold medium sans-serif }
+#id2 { font: normal bold italic medium sans-serif }
+#id3 { font: normal small-caps medium sans-serif }
+#id4 { font: 12pt/14pt sans-serif }
+#id5 { font: 80% sans-serif }
+#id6 { font: x-large/110% "new century schoolbook", serif }
+#id7 { font: bold italic large Palatino, serif }
+#id8 { font: normal small-caps 120%/120% fantasy }
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+
+<BODY>
+
+
+<h1 >Testing Statement #1 Below of Section 5.2.7 of CSS1 Spec</h1>
+
+
+
+
+
+<ul>
+<li>
+1. For 'font," value is "[ font-style || font-variant || font-wright ]?
+    font-size [ / line-height ]? font-family".
+</ul>
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+If statement #1 above is passed, then:
+
+<p ID=id1>
+The font for this paragarph is normal italic bold medium sans-serif.
+The rule applied is "#id1 {font: normal italic bold medium sans-serif.
+
+<p ID=id2>
+The font for this paragraph is normal bold italic medium sans-serif.
+The rule applied is "#id2 {font: normal bold italic medium sans-serif}".
+
+<p ID=id3>
+The font for this paragraph is normal small caps medium sans-serif.
+The rule applied is "#id3 {font; normal small-caps medium sans-serif}".
+
+<p ID=id4>
+The font for this paragraph is 12pt/14pt sans-serif.
+The rule applied is "#id4 {font: 12pt/14pt sans-serif}".
+
+<p ID=id5>
+The font for this paragraph is 80% sans-serif.
+The rule applied is "#id5 {font: 80% sans-serif}".
+
+<p ID=id6>
+The font for this paragraph is x-large 100% (new century schoolbook | serif).
+The rule applied is "#id6 {font: x-large/110% "new century schoolbook", serif}".
+
+<p ID=id7>
+The font for this paragraph is bold italic large (Palatino | serif).
+The rule applied is "#id7 {font: bold italic large Palatino, serif}".
+
+<p ID=id8>
+The font for this paragraph is normal small caps 120%/120% fantasy.
+The rule applied is "#id8 {font: normal small-caps 120%/120% fantasy}".
+
+
+
+All other properties should be UA-default.
+To move directly to the next test, click<a href="527-2.htm"> here</a>
+</BODY>
+</HTML>
+
+

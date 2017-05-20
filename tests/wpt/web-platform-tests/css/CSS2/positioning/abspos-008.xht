@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS Test: Shrink wrapping of absolute positioned blocks</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/absolute/011.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-width"/>
+  <link rel="match" href="abspos-008-ref.xht" />
+
+  <style type="text/css">
+   .container { font-size: 100px; position: relative; border-top: 10px solid white; }
+   .outer { position: absolute; top: 0; left: 0; z-index: 1; }
+   .inner { background: green; color: white; float: left; }
+   .control { float: left; color: yellow; background: red; }
+  </style>
+ </head>
+<body>
+  <p>Test passes if there is <strong>no red</strong>.</p>
+  <div class="container">
+   <div class="outer">
+    <div class="inner">
+     X X0
+    </div>
+   </div>
+   <div class="control">X X1</div>
+  </div>
+
+</body>
+</html>

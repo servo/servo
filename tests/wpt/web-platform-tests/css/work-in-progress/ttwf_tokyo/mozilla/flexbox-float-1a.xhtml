@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!--
+     This test verifies that 'float' on a direct child of a flexbox won't
+     actually cause it to be floated.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <style>
+      div.flexbox {
+        display: flex;
+        width: 400px;
+        margin-bottom: 2px;
+        font-family: sans-serif;
+        background: lightgreen;
+        justify-content: space-around;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- These cases have a span as a direct child of the flexbox. The span
+         should become display:block (and hence form its own flex item),
+         but it shouldn't actually float.
+      -->
+    <div class="flexbox">
+      aaa<span style="float: left">[[[</span>bbb
+    </div>
+    <div class="flexbox">
+      aaa<span style="float: right">]]]</span>bbb
+    </div>
+    <div class="flexbox">
+      aaa<span style="float: left">[[[</span>
+    </div>
+    <div class="flexbox">
+      aaa<span style="float: right">]]]</span>
+    </div>
+    <div class="flexbox">
+      <span style="float: left">[[[</span>bbb
+    </div>
+    <div class="flexbox">
+      <span style="float: right">]]]</span>bbb
+    </div>
+  </body>
+</html>

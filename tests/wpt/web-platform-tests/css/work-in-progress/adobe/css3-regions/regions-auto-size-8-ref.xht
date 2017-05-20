@@ -1,0 +1,56 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>CSS Test: width:auto and height:auto on single region box</title>
+    <style>
+    /*<![CDATA[*/
+/*
+ * The overflow:hidden property is used to make the region a block formatting context and 
+ * get the expected content sizing behavior.
+ *
+ * @see section 10.6.7 in CSS 2.1 on "’Auto’ heights for block formatting context roots"
+ */
+#region {
+    border: 1px solid #a0a0a0;
+    padding: 0;
+    overflow: hidden;
+}
+
+.inline-box {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 1px solid #888;
+    background: #aaa;
+    margin: 0;
+    padding: 0;
+}
+
+.floater {
+    width: 50px;
+    height: 50px;
+    border: 1px solid #33a;
+    background: #66e;
+    float: left;
+}
+
+.offset {
+    position: relative;
+    top: 10px;
+}
+
+
+/*]]>*/
+</style>
+</head>
+<body>
+    <p>You should see a gray border box that that is as wide as the display area and tightly fits float blue blox but
+        the relatively positioned gray box (rightmost) should overflow.</p>
+    <div id="region">
+        <span class="inline-box"></span>
+        <span class="inline-box"></span>
+        <span class="inline-box offset"></span>
+        <div class="floater"></div>
+    </div>
+</body>
+</html>

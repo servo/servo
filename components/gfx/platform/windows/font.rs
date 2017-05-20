@@ -299,8 +299,8 @@ impl FontHandleMethods for FontHandle {
         self.info.family_name.clone()
     }
 
-    fn face_name(&self) -> String {
-        self.info.face_name.clone()
+    fn face_name(&self) -> Option<String> {
+        Some(self.info.face_name.clone())
     }
 
     fn is_italic(&self) -> bool {
@@ -372,7 +372,7 @@ impl FontHandleMethods for FontHandle {
             descent:          au_from_du_s(dm.descent as i32),
             max_advance:      au_from_pt(0.0), // FIXME
             average_advance:  au_from_pt(0.0), // FIXME
-            line_gap:         au_from_du(dm.lineGap as i32),
+            line_gap:         au_from_du((dm.ascent + dm.descent + dm.lineGap as u16) as i32),
         };
         debug!("Font metrics (@{} pt): {:?}", self.em_size * 12., metrics);
         metrics

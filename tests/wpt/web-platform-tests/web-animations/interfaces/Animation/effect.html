@@ -19,5 +19,24 @@ test(function(t) {
   assert_equals(anim.effect, newEffect, "new effect is set");
 }, "effect is set correctly.");
 
+test(function(t) {
+  var div = createDiv(t);
+  var animation = div.animate({ left: ['100px', '100px'] },
+                              { fill: 'forwards' });
+  var effect = animation.effect;
+
+  assert_equals(getComputedStyle(div).left, '100px',
+                'animation is initially having an effect');
+
+  animation.effect = null;
+  assert_equals(getComputedStyle(div).left, 'auto',
+                'animation no longer has an effect');
+
+  animation.effect = effect;
+  assert_equals(getComputedStyle(div).left, '100px',
+                'animation has an effect again');
+}, 'Clearing and setting Animation.effect should update the computed style'
+   + ' of the target element');
+
 </script>
 </body>

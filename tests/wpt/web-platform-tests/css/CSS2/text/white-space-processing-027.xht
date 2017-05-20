@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Two spaces adjoining with 'white-space' 'nowrap'/'pre-line'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-model" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="One space with 'white-space' set to 'nowrap' adjoining a space with 'white-space' set to 'pre-line' collapse into one space." />
+        <style type="text/css">
+            #div1
+            {
+                font: 16px/1em Ahem;
+            }
+            #span1
+            {
+                white-space: nowrap;
+            }
+            #span2
+            {
+                white-space: pre-line;
+            }
+            #div2, #div3
+            {
+                background: black;
+                display: inline-block;
+                height: 1em;
+                width: 1em;
+            }
+            #div3
+            {
+                margin-left: 1em;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are only two boxes below.</p>
+        <div id="div1">
+            <span id="span1">X&#32;</span>
+            <span id="span2">&#32;X</span>
+            <div>
+                <div id="div2"></div><div id="div3"></div>
+            </div>
+        </div>
+    </body>
+</html>

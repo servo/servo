@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>CSS Animations - animation-iteration-count, infinite</title>
+   <link rel="author" title="Opera Software ASA" href="http://www.opera.com/">
+   <link rel="help" href="https://drafts.csswg.org/css3-animations/#the-animation-iteration-count-property-">
+   <meta name="flags" content="dom">
+   <meta name="assert" content="infinite is a valid animation-iteration-count">
+   <script src="/resources/testharness.js"></script>
+   <script src="/resources/testharnessreport.js"></script>
+   <style type="text/css">
+      @keyframes flash {
+         0% {
+            background-color: blue;
+         }
+         100% {
+            background-color: white;
+         }
+      }
+      div {
+         width: 100px;
+         height: 100px;
+         background: blue;
+         animation-duration: 100ms;
+         animation-iteration-count: infinite;
+      }
+      .test {
+         animation-name: flash;
+      }
+   </style>
+   <script type="text/javascript">
+      setup({explicit_done:true});
+      onload = function() {
+         var testName = document.querySelector('title').firstChild.data;
+         var div = document.querySelector('div');
+         var log = document.querySelectorAll('p')[1].firstChild;
+         var iterationsSeen = 0;
+         var timeout = setTimeout(function() {
+            test(function(){assert_true(false);}, testName); done();
+            log.data = 'FAIL';
+         }, 1500);
+         div.addEventListener('animationiteration', function() {
+            iterationsSeen++;
+            if (iterationsSeen > 10) {
+               div.removeEventListener('animationiteration', arguments.callee);
+               clearTimeout(timeout);
+               test(function(){assert_true(true);}, testName); done();
+               log.data = 'PASS if the animation is occurring.';
+            }
+         });
+         div.className = 'test';
+      }
+   </script>
+   <style>iframe{display:none}</style>
+</head>
+<body>
+   <p>The square below should flash rapidly between blue and white,
+   indefinitely.</p>
+   <p>Testing...</p>
+   <div></div>
+</body>
+</html>

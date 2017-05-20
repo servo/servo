@@ -1,0 +1,44 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>CSS Regions: Transformed named flow content element that has a child</title>
+    <link rel="author" title="David Alcala" href="mailto:dalcala@adobe.com">
+    <link rel="reviewer" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+    <link rel="reviewer" title="Rebecca Hauck" href="mailto:rhauck@adobe.com"> <!-- 07-15-2013 -->
+    <link rel="help" href="http://www.w3.org/TR/css3-regions/#the-flow-into-property">
+    <link rel="help" href="http://www.w3.org/TR/css3-regions/#flow-from">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+    <link rel="match" href="reference/regions-transforms-001-ref.html">
+    <meta name="assert" content="This test checks that the child is transformed along with the parent when the
+                                 transform is applied to a named flow content node">
+    <style>
+    #named-flow-parent {
+        width: 50px;
+        height: 50px;
+        background-color: white;
+        flow-into: f;
+        transform: scaleX(2);
+        transform-origin: left top;
+    }
+    #named-flow-child {
+        width: 50px;
+        height: 100px;
+        background-color: green;
+    }
+    #region {
+        width: 100px;
+        height: 100px;
+        background-color: red;
+        flow-from: f;
+    }
+    </style>
+</head>
+<body>
+    <p>The test passes if you see a green square and no red.</p>
+    <div id="named-flow-parent">
+        <div id="named-flow-child"></div>
+    </div>
+    <div id="region"></div>
+</body>
+</html>

@@ -2,14 +2,70 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use hosts::replace_host;
 use hyper::client::Pool;
-use hyper::net::{HttpStream, HttpsConnector, SslClient};
-use openssl::ssl::{SSL_OP_NO_COMPRESSION, SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3, SSL_VERIFY_PEER};
-use openssl::ssl::{Ssl, SslContext, SslMethod, SslStream};
-use servo_config::resource_files::resources_dir_path;
-use std::sync::Arc;
+use hyper::error::{Result as HyperResult, Error as HyperError};
+use hyper::net::{NetworkConnector, HttpsStream, HttpStream, SslClient};
+use hyper_openssl::OpensslClient;
+use openssl::ssl::{SSL_OP_NO_COMPRESSION, SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3};
+use openssl::ssl::{SslConnectorBuilder, SslMethod};
+use std::io;
+use std::net::TcpStream;
+use std::path::PathBuf;
 
-pub type Connector = HttpsConnector<ServoSslClient>;
+pub struct HttpsConnector {
+    ssl: OpensslClient,
+}
+
+impl HttpsConnector {
+    fn new(ssl: OpensslClient) -> HttpsConnector {
+        HttpsConnector {
+            ssl: ssl,
+        }
+    }
+}
+
+impl NetworkConnector for HttpsConnector {
+    type Stream = HttpsStream<<OpensslClient as SslClient>::Stream>;
+
+    fn connect(&self, host: &str, port: u16, scheme: &str) -> HyperResult<Self::Stream> {
+        if scheme != "http" && scheme != "https" {
+            return Err(HyperError::Io(io::Error::new(io::ErrorKind::InvalidInput,
+                                                     "Invalid scheme for Http")));
+        }
+
+        // Perform host replacement when making the actual TCP connection.
+        let addr = &(&*replace_host(host), port);
+        let stream = HttpStream(try!(TcpStream::connect(addr)));
+
+        if scheme == "http" {
+            Ok(HttpsStream::Http(stream))
+        } else {
+            // Do not perform host replacement on the host that is used
+            // for verifying any SSL certificate encountered.
+            self.ssl.wrap_client(stream, host).map(HttpsStream::Https)
+        }
+    }
+}
+
+pub type Connector = HttpsConnector;
+
+pub fn create_ssl_client(ca_file: &PathBuf) -> OpensslClient {
+    let mut ssl_connector_builder = SslConnectorBuilder::new(SslMethod::tls()).unwrap();
+    {
+        let context = ssl_connector_builder.builder_mut();
+        context.set_ca_file(ca_file).expect("could not set CA file");
+        context.set_cipher_list(DEFAULT_CIPHERS).expect("could not set ciphers");
+        context.set_options(SSL_OP_NO_SSLV2 | SSL_OP_NO_SSLV3 | SSL_OP_NO_COMPRESSION);
+    }
+    let ssl_connector = ssl_connector_builder.build();
+    OpensslClient::from(ssl_connector)
+}
+
+pub fn create_http_connector(ssl_client: OpensslClient) -> Pool<Connector> {
+    let https_connector = HttpsConnector::new(ssl_client);
+    Pool::with_connector(Default::default(), https_connector)
+}
 
 // The basic logic here is to prefer ciphers with ECDSA certificates, Forward
 // Secrecy, AES GCM ciphers, AES ciphers, and finally 3DES ciphers.
@@ -26,35 +82,3 @@ const DEFAULT_CIPHERS: &'static str = concat!(
     "ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:",
     "AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA"
 );
-
-pub fn create_http_connector(certificate_file: &str) -> Arc<Pool<Connector>> {
-    let mut context = SslContext::new(SslMethod::Sslv23).unwrap();
-    context.set_CA_file(&resources_dir_path()
-                        .expect("Need certificate file to make network requests")
-                        .join(certificate_file)).unwrap();
-    context.set_cipher_list(DEFAULT_CIPHERS).unwrap();
-    context.set_options(SSL_OP_NO_SSLV2 | SSL_OP_NO_SSLV3 | SSL_OP_NO_COMPRESSION);
-    let connector = HttpsConnector::new(ServoSslClient {
-        context: Arc::new(context)
-    });
-
-    Arc::new(Pool::with_connector(Default::default(), connector))
-}
-
-pub struct ServoSslClient {
-    context: Arc<SslContext>,
-}
-
-impl SslClient for ServoSslClient {
-    type Stream = SslStream<HttpStream>;
-
-    fn wrap_client(&self, stream: HttpStream, host: &str) -> Result<Self::Stream, ::hyper::Error> {
-        let mut ssl = try!(Ssl::new(&self.context));
-        try!(ssl.set_hostname(host));
-        let host = host.to_owned();
-        ssl.set_verify_callback(SSL_VERIFY_PEER, move |p, x| {
-            ::openssl_verify::verify_callback(&host, p, x)
-        });
-        SslStream::connect(ssl, stream).map_err(From::from)
-    }
-}

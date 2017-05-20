@@ -1,0 +1,70 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Valid characters in font-family values</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="author" title="Arron Eicholz" href="http://www.microsoft.com/" />
+        <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-family-prop"/>
+        <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#characters"/>
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-family-prop"/>
+        <link rel="match" href="font-family-valid-characters-ref.html" />
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="Valid characters in font family names."/>
+        <style type="text/css">
+            #div1
+            {
+                font-family: test-foo, Ahem;
+            }
+            #div2
+            {
+                font-family: test_foo, Ahem;
+            }
+            #div3
+            {
+                font-family: test\foo, Ahem;
+            }
+            #div4
+            {
+                font-family: test, foo, Ahem;
+            }
+            #div5
+            {
+                font-family: _testfoo, Ahem;
+            }
+            #div6
+            {
+                font-family: -testfoo, Ahem;
+            }
+            #div7
+            {
+                font-family: test -foo, Ahem;
+            }
+            #div8
+            {
+                font-family: test _foo, Ahem;
+            }
+            #div9
+            {
+                font-family: \testfoo, Ahem;
+            }
+            #div10
+            {
+                font-family: test-_foo, Ahem;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the word "Fail" is not visible below.</p>
+        <div id="div1">Fail</div>
+        <div id="div2">Fail</div>
+        <div id="div3">Fail</div>
+        <div id="div4">Fail</div>
+        <div id="div5">Fail</div>
+        <div id="div6">Fail</div>
+        <div id="div7">Fail</div>
+        <div id="div8">Fail</div>
+        <div id="div9">Fail</div>
+        <div id="div10">Fail</div>
+    </body>
+</html>

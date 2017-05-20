@@ -1,0 +1,164 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD//XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSSOM - Inline Style - Serialization - Color</title>
+    <link rel="author" title="Glenn Adams" href="mailto:glenn@skynav.com"/>
+    <link rel="help" href="http://www.w3.org/TR/cssom-1/#the-cssstyledeclaration-interface"/>
+    <meta name="flags" content="dom"/>
+    <script src="/resources/testharness.js"/>
+    <script src="/resources/testharnessreport.js"/>
+  </head>
+  <body>
+    <div id="log"></div>
+    <div id="box"></div>
+    <script><![CDATA[
+      var style = document.getElementById('box').style;
+
+      test(function(){
+
+        style.color = 'red';
+        assert_equals(style.color, 'red');
+        style.color = '';
+
+      }, 'set color \'red\', get color \'red\' using named property');
+
+      test(function(){
+
+        style.color = 'red';
+        assert_equals(style.getPropertyValue('color'), 'red');
+        style.color = '';
+
+      }, 'set color \'red\', get color \'red\' using getPropertyValue()');
+
+      test(function(){
+
+        style.color = 'red';
+        assert_equals(style.cssText, 'color: red;');
+        style.color = '';
+
+      }, 'set color \'red\', get text \'color: red;\'');
+
+      test(function(){
+
+        style.color = 'green';
+        assert_equals(style.color, 'green');
+        style.color = '';
+
+      }, 'set color \'green\', get color \'green\' using named property');
+
+      test(function(){
+
+        style.color = 'green';
+        assert_equals(style.getPropertyValue('color'), 'green');
+        style.color = '';
+
+      }, 'set color \'green\', get color \'green\' using getPropertyValue()');
+
+      test(function(){
+
+        style.color = 'green';
+        assert_equals(style.cssText, 'color: green;');
+        style.color = '';
+
+      }, 'set color \'green\', get text \'color: green;\'');
+
+      test(function(){
+
+        style.color = 'blue';
+        assert_equals(style.color, 'blue');
+        style.color = '';
+
+      }, 'set color \'blue\', get color \'blue\' using named property');
+
+      test(function(){
+
+        style.color = 'blue';
+        assert_equals(style.getPropertyValue('color'), 'blue');
+        style.color = '';
+
+      }, 'set color \'blue\', get color \'blue\' using getPropertyValue()');
+
+      test(function(){
+
+        style.color = 'blue';
+        assert_equals(style.cssText, 'color: blue;');
+        style.color = '';
+
+      }, 'set color \'blue\', get text \'color: blue;\'');
+
+      test(function(){
+
+        style.color = 'rgb(255,0,0)';
+        assert_equals(style.color, 'rgb(255, 0, 0)');
+        style.color = '';
+
+      }, 'set color \'rgb(255,0,0)\', get color \'rgb(255, 0, 0)\' using named property');
+
+      test(function(){
+
+        style.color = 'rgb(255,0,0)';
+        assert_equals(style.getPropertyValue('color'), 'rgb(255, 0, 0)');
+        style.color = '';
+
+      }, 'set color \'rgb(255,0,0)\', get color \'rgb(255, 0, 0)\' using getPropertyValue()');
+
+      test(function(){
+
+        style.color = 'rgb(255,0,0)';
+        assert_equals(style.cssText, 'color: rgb(255, 0, 0);');
+        style.color = '';
+
+      }, 'set color \'rgb(255,0,0)\', get text \'color: rgb(255, 0, 0);\'');
+
+      test(function(){
+
+        style.color = 'rgb(0,255,0)';
+        assert_equals(style.color, 'rgb(0, 255, 0)');
+        style.color = '';
+
+      }, 'set color \'rgb(0,255,0)\', get color \'rgb(0, 255, 0)\' using named property');
+
+      test(function(){
+
+        style.color = 'rgb(0,255,0)';
+        assert_equals(style.getPropertyValue('color'), 'rgb(0, 255, 0)');
+        style.color = '';
+
+      }, 'set color \'rgb(0,255,0)\', get color \'rgb(0, 255, 0)\' using getPropertyValue()');
+
+      test(function(){
+
+        style.color = 'rgb(0,255,0)';
+        assert_equals(style.cssText, 'color: rgb(0, 255, 0);');
+        style.color = '';
+
+      }, 'set color \'rgb(0,255,0)\', get text \'color: rgb(0, 255, 0);\'');
+
+      test(function(){
+
+        style.color = 'rgb(0,0,255)';
+        assert_equals(style.color, 'rgb(0, 0, 255)');
+        style.color = '';
+
+      }, 'set color \'rgb(0,0,255)\', get color \'rgb(0, 0, 255)\' using named property');
+
+      test(function(){
+
+        style.color = 'rgb(0,0,255)';
+        assert_equals(style.getPropertyValue('color'), 'rgb(0, 0, 255)');
+        style.color = '';
+
+      }, 'set color \'rgb(0,0,255)\', get color \'rgb(0, 0, 255)\' using getPropertyValue()');
+
+      test(function(){
+
+        style.color = 'rgb(0,0,255)';
+        assert_equals(style.cssText, 'color: rgb(0, 0, 255);');
+        style.color = '';
+
+      }, 'set color \'rgb(0,0,255)\', get text \'color: rgb(0, 0, 255);\'');
+
+    ]]>
+    </script>
+  </body>
+</html>

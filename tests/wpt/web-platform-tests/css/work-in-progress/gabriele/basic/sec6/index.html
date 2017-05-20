@@ -1,0 +1,143 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<title>Section 6: Cascading and inheritance</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="file:///E:/www.css-zibaldone.com/style/style.css" type="text/css" media="screen">
+<link rel="stylesheet" href="../../adds.css" type="text/css" media="screen">
+</head>
+<body>
+
+<h2>Section 6: Cascading and inheritance</h2>
+
+
+<h3>Design notes</h3>
+<p>These tests follow the order of the <a href="http://www.w3.org/TR/CSS21/cascade.html">specifications</a>. The words <cite>Valid</cite> and <cite>Invalid</cite> mean that the relevant
+<acronym title="Cascading Style Sheets">CSS</acronym> will and won't validate, respectively. 
+In the following tests, the red color
+indicates failure while the green color indicates that the test has been passed by the browser. The label <cite>Assertion</cite> explains
+the scope of the test.</p>
+
+<h4>Download</h4>
+<p>You can download all these tests in a <a href="sec6.zip">single zip file</a>.</p>
+
+
+
+
+<table summary="Summary of tests">
+<caption>Summary of tests</caption>
+
+<tr>
+<th scope="col">Name</th>
+<th scope="col">Title</th>
+<th scope="col">Flag</th>
+<th scope="col">Assertion</th>
+</tr>
+
+<tr>
+<td><a href="cascade0.html">cascade0.html</a></td>	
+<td>Cascade: Cascading order</td>
+<td class="valid">Valid</td>
+<td>Browsers should honour the cascading order</td>
+</tr>
+
+<tr>
+<td><a href="cascade1.html">cascade1.html</a></td>
+<td>Cascading order: Imported stylesheet</td>
+<td class="valid">Valid</td>
+<td>Browsers should honour the cascading order</td>
+</tr>
+
+
+<tr>
+<td><a href="important0.html">important0.html</a></td>	
+<td>!important rules</td>
+<td class="valid">Valid</td>
+<td>Browsers should honour the !important statement</td>
+</tr>
+
+<tr>
+<td><a href="important1.html">important1.html</a></td>	
+<td>!important rules in imported stylesheets</td>
+<td class="valid">Valid</td>
+<td>Browsers should honour the !important statement</td>
+</tr>
+
+
+<tr>
+<td><a href="inheritance0.html">inheritance0.html</a></td>  	
+<td>Inherited property</td>
+<td class="valid">Valid</td>
+<td>Browsers should honour the inherited property</td>
+</tr>
+
+
+<tr>
+<td><a href="inheritance1.html">inheritance1.html</a></td>  	
+<td>Inherited values</td>
+<td class="valid">Valid</td>
+<td>Browsers should honour the inherited values</td>
+</tr>
+
+
+<tr>
+<td><a href="specificity0.html">specificity0.html</a></td>  	
+<td>Specificity: Universal selector vs type selector</td>
+<td class="valid">Valid</td>
+<td>Browsers should give to each rule the correct specificity</td>
+</tr>
+
+<tr>
+<td><a href="specificity1.html">specificity1.html</a></td>  	
+<td>Specificity: Type selector vs descendant selector</td>
+<td class="valid">Valid</td>
+<td>Browsers should give to each rule the correct specificity</td>
+</tr>
+
+
+<tr>
+<td><a href="specificity2.html">specificity2.html</a></td>  	
+<td>Specificity: Universal selector</td>
+<td class="valid">Valid</td>
+<td>Browsers should give to each rule the correct specificity</td>
+</tr>
+
+<tr>
+<td><a href="specificity3.html">specificity3.html</a></td>  	
+<td>Specificity: ID selector vs class selector</td>
+<td class="valid">Valid</td>
+<td>Browsers should give to each rule the correct specificity</td>
+</tr>
+
+<tr>
+<td><a href="specificity4.html">specificity4.html</a></td>  	
+<td>Specificity: Type selector vs pseudo-element</td>
+<td class="valid">Valid</td>
+<td>Browsers should give to each rule the correct specificity</td>
+</tr>
+
+<tr>
+<td><a href="specificity5.html">specificity5.html</a></td>
+<td>Specificity: Pseudo-class vs pseudo-element</td>
+<td class="valid">Valid</td>
+<td>Browsers should give to each rule the correct specificity</td>
+</tr>
+
+
+<tr>
+<td><a href="specificity6.html">specificity6.html</a></td>
+<td>Specificity: Class, pseudo-element vs ID and pseudo-element</td>
+<td class="valid">Valid</td>
+<td>Browsers should give to each rule the correct specificity</td>
+</tr>
+
+</table>
+
+<p class="day"><strong>Date:</strong> December 3, 2007</p>
+
+
+
+
+
+</body>
+</html>

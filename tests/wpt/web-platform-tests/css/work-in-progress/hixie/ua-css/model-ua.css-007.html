@@ -1,0 +1,33 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html>
+ <head>
+  <title>Horizontal Margins and Padding on ULs, OLs, DLs, LIs, DT,s and DDs (large)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/model/ua.css/007.html"/>
+    <style type="text/css">
+   div { width: 15em; border: solid; background: red; font-size: 2em; }
+   div * { margin-top: 0; margin-bottom: 0; }
+   ul { background: yellow; }
+   ol { background: aqua; }
+   dl { background: fuchsia; }
+   li { background: orange; }
+   dt { background: lime; }
+   dd { background: silver; }
+  </style>
+ </head>
+ <body>
+  <p>The following should look the same in all browsers:</p>
+  <div>
+   <ul>
+    <li> UL - LI </li>
+   </ul>
+   <ol>
+    <li> OL - LI </li>
+   </ol>
+   <dl>
+    <dt> DL - DT </dt>
+    <dd> DL - DD </dt>
+   </dl>
+  </div>
+ </body>
+</html>

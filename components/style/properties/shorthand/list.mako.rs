@@ -25,14 +25,6 @@
                 continue
             }
 
-            if list_style_type.is_none() {
-                if let Ok(value) = input.try(|input| list_style_type::parse(context, input)) {
-                    list_style_type = Some(value);
-                    any = true;
-                    continue
-                }
-            }
-
             if image.is_none() {
                 if let Ok(value) = input.try(|input| list_style_image::parse(context, input)) {
                     image = Some(value);
@@ -48,7 +40,29 @@
                     continue
                 }
             }
+
+            // list-style-type must be checked the last, because it accepts
+            // arbitrary identifier for custom counter style, and thus may
+            // affect values of list-style-position.
+            if list_style_type.is_none() {
+                if let Ok(value) = input.try(|input| list_style_type::parse(context, input)) {
+                    list_style_type = Some(value);
+                    any = true;
+                    continue
+                }
+            }
             break
+        }
+
+        let position = unwrap_or_initial!(list_style_position, position);
+
+        fn list_style_type_none() -> list_style_type::SpecifiedValue {
+            % if product == "servo":
+            list_style_type::SpecifiedValue::none
+            % else:
+            use values::generics::CounterStyleOrNone;
+            list_style_type::SpecifiedValue(CounterStyleOrNone::None_)
+            % endif
         }
 
         // If there are two `none`s, then we can't have a type or image; if there is one `none`,
@@ -56,64 +70,51 @@
         // long as we parsed something.
         match (any, nones, list_style_type, image) {
             (true, 2, None, None) => {
-                Ok(Longhands {
+                Ok(expanded! {
                     list_style_position: position,
-                    list_style_image: Some(Either::Second(None_)),
-                    list_style_type: Some(list_style_type::SpecifiedValue::none),
+                    list_style_image: list_style_image::SpecifiedValue(Either::Second(None_)),
+                    list_style_type: list_style_type_none(),
                 })
             }
             (true, 1, None, Some(image)) => {
-                Ok(Longhands {
+                Ok(expanded! {
                     list_style_position: position,
-                    list_style_image: Some(image),
-                    list_style_type: Some(list_style_type::SpecifiedValue::none),
+                    list_style_image: image,
+                    list_style_type: list_style_type_none(),
                 })
             }
             (true, 1, Some(list_style_type), None) => {
-                Ok(Longhands {
+                Ok(expanded! {
                     list_style_position: position,
-                    list_style_image: Some(Either::Second(None_)),
-                    list_style_type: Some(list_style_type),
+                    list_style_image: list_style_image::SpecifiedValue(Either::Second(None_)),
+                    list_style_type: list_style_type,
                 })
             }
             (true, 1, None, None) => {
-                Ok(Longhands {
+                Ok(expanded! {
                     list_style_position: position,
-                    list_style_image: Some(Either::Second(None_)),
-                    list_style_type: Some(list_style_type::SpecifiedValue::none),
+                    list_style_image: list_style_image::SpecifiedValue(Either::Second(None_)),
+                    list_style_type: list_style_type_none(),
                 })
             }
             (true, 0, list_style_type, image) => {
-                Ok(Longhands {
+                Ok(expanded! {
                     list_style_position: position,
-                    list_style_image: image,
-                    list_style_type: list_style_type,
+                    list_style_image: unwrap_or_initial!(list_style_image, image),
+                    list_style_type: unwrap_or_initial!(list_style_type),
                 })
             }
             _ => Err(()),
         }
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self.list_style_position {
-                DeclaredValue::Initial => try!(write!(dest, "outside")),
-                _ => try!(self.list_style_position.to_css(dest))
-            }
-
-            try!(write!(dest, " "));
-
-            match *self.list_style_image {
-                DeclaredValue::Initial => try!(write!(dest, "none")),
-                _ => try!(self.list_style_image.to_css(dest))
-            };
-
-            try!(write!(dest, " "));
-
-            match *self.list_style_type {
-                DeclaredValue::Initial => write!(dest, "disc"),
-                _ => self.list_style_type.to_css(dest)
-            }
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self.list_style_position.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.list_style_image.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.list_style_type.to_css(dest)
         }
     }
 </%helpers:shorthand>

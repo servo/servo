@@ -1,0 +1,29 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS: 6 simple tests of invalid :not()</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/selectors/not/006.xml"/>
+  <style type="text/css">
+    *|* { display: block; margin: 0; padding: 0; }
+    head { display: none; }
+    test { color: green; }
+    
+    /* these are invalid on purpose, that's the test!!! */
+    #test :not(tests + test) { color: red; }
+    #test :not([|]) { color: red; }
+    #test :not() { color: red; }
+    #test :not(:not(*|*)) { color: red; }
+    #test :not(tests + test) { color: red; }
+    #test :not(undefined|test) { color: red; }
+
+    /* check to make sure parser got here safely */
+    final { color: green; }
+  </style>
+ </head>
+ <body id="test">
+  <tests xmlns="http://www.example.org/">
+    <test> This should be green. </test>
+    <final> This should be green. </final>
+  </tests>
+ </body>
+</html>

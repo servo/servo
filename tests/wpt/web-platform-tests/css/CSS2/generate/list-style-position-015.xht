@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <title>CSS Test: Marker box position (inside principal box) - floated :before pseudo-element list-item ('list-style-position:outside')</title>
+  <link rel="author" title="James Hopkins" href="http://idreamincode.co.uk/css21testsuite"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#list-style"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#before-after-content"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#float-position"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#block-boxes"/>
+  <meta name="flags" content=""/>
+  <meta name="assert" content="When the :before element is set as a list-item, it establishes a principal box and a marker box which is positioned outside of that principal box (since 'list-style-position:outside). Since this :before pseudo element is floated left, the principal box (and marker box, since 'list-style-position:inside') of the associated element must appear alongside (after) this :before pseudo element. The position of the marker box of the :before pseudo element must still appear to the outside left edge of it's associated element's principal box (since 'list-style-position:outside')."/>
+  <style type="text/css">
+  #test{
+  background:silver;
+  color:blue;
+  display:list-item;
+  font-size:85px;
+  list-style-position:inside;
+  margin:100px;
+  }
+  #test:before{
+  color:yellow;
+  content:'T';
+  display:list-item;
+  float:left;
+  list-style-position:outside;
+  }
+  </style>
+ </head>
+ <body>
+  <p>To pass, there <strong>must</strong> a yellow bullet (filled-in circle) to the left outside edge of a grey box. Inside the grey box, there <strong>must</strong> be a yellow letter to the left of a blue bullet, and a blue letter to the right of the blue bullet.</p>
+  <div id="test">
+   T
+  </div>
+ </body>
+</html>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!--
+     This test inserts a some inline content in a flex container, just after a
+     stretch of existing inline content. The new content should be incorporated
+     into the same anonymous flex item as the existing content.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml"
+      class="reftest-wait">
+  <head>
+    <link rel="stylesheet" type="text/css" href="ahem.css" />
+    <script>
+      function tweak() {
+        var newInlineContent = document.createTextNode("mno pqr stu");
+
+        var flexbox = document.getElementById("flexbox");
+        flexbox.insertBefore(newInlineContent, null);
+
+        document.documentElement.removeAttribute("class");
+      }
+
+      window.addEventListener("MozReftestInvalidate", tweak, false);
+    </script>
+    <style>
+      div#flexbox {
+        width: 100px;
+        display: flex;
+        font: 10px Ahem;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="flexbox">abc def ghi jkl </div>
+  </body>
+</html>

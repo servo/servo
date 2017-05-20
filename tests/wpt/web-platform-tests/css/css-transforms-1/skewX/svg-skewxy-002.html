@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: SVG presentation attribute with skewX and skewY with different units</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#svg-transform">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+		<link rel="help" href="http://www.w3.org/TR/css-transforms-1/#funcdef-skewx">
+    <link rel="match" href="reference/svg-skewxy-ref.html">
+    <meta name="flags" content="svg">
+    <meta name="assert" content="The green rect in this test should completely cover the red path by being skewed horizontally 45 degrees and vertically 45 degrees specified in different units in each function">
+    <style type="text/css">
+        svg {
+            height: 300px;
+            width: 300px;
+            background: green;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a green square and no red.</p>
+    <svg>
+        <path d="M 4,3 101,99 296,197 200,101 Z" fill="red"/>
+        <rect width="100" height="100" fill="green" transform="skewX(45deg) skewY(50grad) "/>
+    </svg>
+</body>
+</html>

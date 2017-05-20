@@ -3,7 +3,6 @@ members = [
     "ports/cef",
     "ports/geckolib",
     "ports/servo",
-    "support/android/build-apk",
 ]
 
 [profile.dev]
@@ -14,3 +13,9 @@ opt-level = 3
 # Uncomment to profile on Linux:
 # debug = true
 # lto = false
+
+[replace]
+# If you need to temporarily test Servo with a local fork of some upstream
+# crate, add that here. Use the form:
+#
+#     "<crate>:<version>" = { path = "/path/to/local/checkout" }

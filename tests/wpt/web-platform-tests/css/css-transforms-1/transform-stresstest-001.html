@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): Inversion Stress Test</title>
+    <link rel="author" title="Clint Talbert" href="mailto:ctalbert@mozilla.com">
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions">
+    <meta name="assert" content="This simply applies and then inverts a large
+    number of 2D transform functions, and expects the result to be no transform
+    at all.  One extra translateX(100px) is added at the end to ensure that the
+    lack of transform isn't just because the UA parsed it incorrectly, or
+    doesn't support transforms at all.">
+    <link rel="match" href="transform-stresstest-ref.html">
+    <style>
+      div {
+        height: 200px;
+        width: 200px;
+        background: gold;
+        transform: skewx(45deg)
+                     translate(50px, 50px)
+                       rotate(45deg)
+                         translatex(50px)
+                           scale(2.0, 4.0)
+                           scale(0.5, 0.25)
+                         translatex(-50px)
+                       rotate(-45deg)
+                     translate(-50px, -50px)
+                   skewx(135deg)
+                   translateX(100px);
+      }
+    </style>
+  </head>
+  <body>
+    <div></div>
+  </body>
+</html>

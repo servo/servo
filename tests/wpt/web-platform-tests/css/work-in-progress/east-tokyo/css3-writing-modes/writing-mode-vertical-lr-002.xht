@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>CSS Test: writing-mode - vertical-lr - basic case</title>
+    <link rel="author" title="Yoshifumi Kawai" href="mailto:kawai@est.co.jp" />
+    <link rel="help" title="CSS3 Writing modes: 3.1. Block Flow Direction: the 'writing-mode' property" href="http://www.w3.org/TR/css3-writing-modes/#writing-mode1" />
+    <link rel="match" href="reftest/writing-mode-vertical-lr-002-ref.xht"/>
+    <meta name="flags" content="ahem" />
+    <meta content="This tests the block flow direction. The writing mode is vertical, and the block flow is left to right." />
+    <style type="text/css"><![CDATA[
+        div
+        {
+            background: yellow;
+            color: blue;
+            font: 20px/1 Ahem;
+            height: 6em;
+            margin: 10px;
+            white-space: pre;
+            width: 6em;
+        }
+        
+        #test
+        {
+            writing-mode: vertical-lr;
+        }
+    ]]></style>
+</head>
+<body>
+    <p>The upper block is identical to the lower block including each character positions.</p>
+    <div id="test">a bc
+d e fg
+hi
+j klm
+n oq r
+st uv</div>
+<div id="control">adhjns
+  i  t
+be ko 
+c  lqu
+ f m v
+ g  r</div>
+</body>
+</html>

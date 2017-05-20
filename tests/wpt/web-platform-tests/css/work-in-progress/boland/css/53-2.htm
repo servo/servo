@@ -1,0 +1,64 @@
+
+<html>
+<title>Second Test of Section 5.3 of CSS1 Spec</title>
+<head>
+
+<style type="text/css">
+h3 {background-position: 100%100%}
+h3,p {background-image: url(flagbg.gif)}
+h3 {background-attachment: fixed}
+h3 {background-repeat: no-repeat}
+p {background-position: 0%0%}
+p {background-attachment: scroll}
+p {background-repeat: repeat}
+</style>
+</head>
+
+
+
+
+
+
+<body>
+
+
+
+<h1 >Testing Statement #2 Below for Section 5.3 of CSS1 Spec</h1>
+
+
+<ul>
+<li>
+2. The position of the image, if/how it is repeated, and whether it is fixed or
+scrolled relative to the canvas can also be set.
+</ul>
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+If statement #2 above is true:
+<p>
+This paragraph should have flag image starting in upper left corner, scrolling
+along with element, and repeating both horizontally and vertically.
+The rules applied are: P {background-image: url(flagbg.gif);
+                          background-attachment: scroll;
+                          background-repeat: repeat;
+                          background-position: 0%0%;}
+Thus one can set a number of specific background properties on this
+"p" element.
+
+<h3>
+This h3 heading should have a flag image ending in lower right corner of
+element, fixed, and not repeating.
+The rules applied are: h3 {background-position: 100%100%;
+                           background-attachment: fixed;
+                           background-repeat: no-repeat;
+                           background-image: url(flagbg.gif);
+                          }
+Thus one can set a number of detailed background properties on this
+"h3" element.
+</h3>
+All other properties of this page should be UA-default.
+To move directly to the next test, click<a href="53-3.htm"> here</a>
+</body>
+</html>

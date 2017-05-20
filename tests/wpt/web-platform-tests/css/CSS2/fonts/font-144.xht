@@ -1,0 +1,51 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Parsing the 'font' shorthand</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/fonts/001.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-shorthand" />
+  <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-prop"/>
+
+  <meta name="flags" content="ahem"/>
+  <style type="text/css">
+   p { color: green; margin: 1em; }
+   .test { width: 6em; }
+   span { background: red; color: white; }
+   .a { font: normal normal normal 1em/normal Ahem, serif; }
+   .b { font: normal normal normal medium/normal Ahem, serif; }
+   .c { font: normal normal normal medium/1 Ahem, serif; }
+   .d { font: normal normal normal 1em/1 Ahem, serif; }
+   .e { font: normal normal 1em/1 Ahem, serif; }
+   .f { font: normal 1em/1 Ahem, serif; }
+   .g { font: 1em/1 Ahem, serif; }
+   .h { font: normal normal normal 1em Ahem, serif; }
+   .i { font: normal normal normal medium Ahem, serif; }
+   .j { font: normal normal normal medium Ahem, serif; }
+   .k { font: normal normal normal 1em Ahem, serif; }
+   .l { font: normal normal 1em Ahem, serif; }
+   .m { font: normal 1em Ahem, serif; }
+   .n { font: 1em Ahem, serif; }
+  </style>
+ </head>
+ <body>
+
+  <p>Test passes if this sentence is green and if there is <strong>no red below</strong>.</p>
+
+  <p class="test a"> <span>FAIL-a</span> </p>
+  <p class="test b"> <span>FAIL-b</span> </p>
+  <p class="test c"> <span>FAIL-c</span> </p>
+  <p class="test d"> <span>FAIL-d</span> </p>
+  <p class="test e"> <span>FAIL-e</span> </p>
+  <p class="test f"> <span>FAIL-f</span> </p>
+  <p class="test g"> <span>FAIL-g</span> </p>
+  <p class="test h"> <span>FAIL-h</span> </p>
+  <p class="test i"> <span>FAIL-i</span> </p>
+  <p class="test j"> <span>FAIL-j</span> </p>
+  <p class="test k"> <span>FAIL-k</span> </p>
+  <p class="test l"> <span>FAIL-l</span> </p>
+  <p class="test m"> <span>FAIL-m</span> </p>
+  <p class="test n"> <span>FAIL-n</span> </p>
+
+ </body>
+</html>

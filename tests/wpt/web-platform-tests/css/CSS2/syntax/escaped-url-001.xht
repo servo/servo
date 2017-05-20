@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Escapes in a URI token</title>
+
+  <link rel="help" href="http://www.w3.org/TR/CSS22/syndata.html#tokenization" />
+  <link rel="help" href="http://www.w3.org/TR/CSS22/changes.html#s.4.1.1a" />
+  <link rel="match" href="escaped-url-001-ref.xht" />
+  <meta name="assert" content="URI   {U}{R}{L}\({w}{string}{w}\)|
+ {U}{R}{L}\({w}([!#$%&amp;*-\[\]-~]|{nonascii}|{escape})*{w}\)" />
+  <link rel="author" title="Bert Bos" href="mailto:bert@w3.org/" />
+
+  <style type="text/css">
+    div {background: red; width: 5em; height: 1em}
+    #div0 {background: url(support/1x1-green.png)}
+    #div1 {background: \url(support/1x1-green.png)}
+    #div2 {background: U\Rl(support/1x1-green.png)}
+    #div3 {background: U\R\l(support/1x1-green.png)}
+    #div4 {background: \55Rl(support/1x1-green.png)}
+    #div5 {background: \000075 rl(support/1x1-green.png)}
+  </style>
+ </head>
+
+ <body>
+   <p>There should be no red.</p>
+   <div id="div0"></div>
+   <div id="div1"></div>
+   <div id="div2"></div>
+   <div id="div3"></div>
+   <div id="div4"></div>
+   <div id="div5"></div>
+ </body>
+</html>

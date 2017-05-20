@@ -1,0 +1,88 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: margin-top</title>
+  <meta name="flags" content="ahem" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#margin-top"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c5501-mrgn-t-000-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   .test { font: 10px/1 Ahem; width: 10em; border: solid black; padding: 0; background: yellow; color: orange; }
+   .zero {background-color: teal; margin-top: 0;}
+   .one {margin-top: 5.29166mm; background-color: aqua;}
+   .two {margin-top: 20px; background-color: blue;}
+   .three {margin-top: 2em; background-color: aqua;}
+   .four {margin-top: 20%; background-color: teal;}
+   .five {margin-top: 20px;}
+   .six {margin-top: -10px; background-color: aqua;}
+   p, ul, li {margin: 0; padding: 0; list-style:none;}
+
+   .control { border: solid black; padding: 0; background: red; }
+   .control .teal { background: teal; }
+   .control .aqua { background: aqua; }
+   .control .blue { background: blue; }
+   .control .yellow { background: yellow; }
+   .control .long { width: 70px; height: 10px; background: orange; }
+   .control .short { width: 40px; height: 10px; background: orange; }
+   .control .blank { width: 100px; height: 20px; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#margin-properties" title="8.3 Margin properties: 'margin-top',  'margin-right',  'margin-bottom', 'margin-left', and 'margin'"/>
+ </head>
+ <body>
+  <p>The two diagrams below should be identical, with no red present.</p>
+  <table>
+   <tr>
+    <td class="test">
+     <p class="zero">
+      xxxxxxx
+     </p>
+     <p class="zero">
+      xxxx
+     </p>
+     <p class="one">
+      xxxxxxx xxxx
+     </p>
+     <p class="two">
+      xxxxxxx xxxx
+     </p>
+     <p class="three">
+      xxxxxxx xxxx
+     </p>
+     <p class="four">
+      xxxxxxx xxxx
+     </p>
+     <ul class="two">
+      <li>xxxxxxx</li>
+      <li>xxxx</li>
+      <li class="five">xxxxxxx</li>
+      <li>xxxx</li>
+     </ul>
+     <p class="zero">
+      xxxxxxx
+     </p>
+     <p class="six">
+      xxxxxxx xxxx
+     </p>
+    </td>
+    <td class="control">
+     <div class="teal"><div class="long"></div><div class="short"></div></div>
+     <div class="yellow"><div class="blank"></div></div>
+     <div class="aqua"><div class="long"></div><div class="short"></div></div>
+     <div class="yellow"><div class="blank"></div></div>
+     <div class="blue"><div class="long"></div><div class="short"></div></div>
+     <div class="yellow"><div class="blank"></div></div>
+     <div class="aqua"><div class="long"></div><div class="short"></div></div>
+     <div class="yellow"><div class="blank"></div></div>
+     <div class="teal"><div class="long"></div><div class="short"></div></div>
+     <div class="yellow"><div class="blank"></div></div>
+     <div class="blue"><div class="long"></div><div class="short"></div></div>
+     <div class="blue"><div class="blank"></div></div>
+     <div class="blue"><div class="long"></div><div class="short"></div></div>
+     <div class="aqua"><div class="long"></div><div class="short"></div></div>
+    </td>
+   </tr>
+  </table>
+ </body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Regions: flowing auto-height flexbox elements in region</title>
+		<link rel="author" title="Catalin Badea" href="mailto:badea@adobe.com">
+		<link rel="help" href="http://www.w3.org/TR/css3-regions/#rfcb-flow-fragment-height-resolution">
+		<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#layout-algorithm">
+		<meta name="flags" content="ahem">
+		<meta name="assert" content="Test that a flex container with auto height is flowed correctly inside a region
+		with auto height. The region should fit the flexbox.">
+		<link rel="match" href="reference/regions-flexbox-002-ref.html">
+		<style>
+			.flex {
+				display: flex;
+				flow-into: flow;
+				font-family: Ahem;
+				font-size: 20px;
+				line-height: 1em;
+				color: green;
+			}
+
+			.region {
+				width: 100px;
+				padding: 10px;
+				background-color: gray;
+				flow-from: flow;
+			}
+
+			.red {
+				background-color: red;
+			}
+		</style>
+	</head>
+	<body>
+		<ul>
+			<li>Test passes if you see a green square inside a gray rectangle.</li>
+			<li>You shouldn't see any red.</li>
+		</ul>
+		<div class="flex">
+			XXXXX<br>
+			XXXXX<br>
+			XXXXX<br>
+			XXXXX<br>
+			XXXXX
+		</div>
+		<div class="region">
+			<p class="red">&nbsp;</p>
+		</div>
+	</body>
+</html>

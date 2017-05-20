@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page-break-after applies to paged media</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/CSS21/page.html#page-break-props"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#pg-br-before-after"/>
+<meta name="assert" content="The 'page-break-after' property applies to paged media only"/>
+<style type="text/css">
+	div {
+		page-break-after: always;
+	}
+</style>
+</head>
+<body>
+	<div>When viewed on paged media, the next line must appear on a second page.</div>
+
+	<div>On continuous media, however, this line must appear directly below the line above.</div>
+</body>
+</html>

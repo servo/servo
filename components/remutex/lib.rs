@@ -53,7 +53,7 @@ impl AtomicOptThreadId {
         AtomicOptThreadId(AtomicUsize::new(0))
     }
     pub fn store(&self, value: Option<ThreadId>, ordering: Ordering) {
-        let number = value.map(|id| *id.0).unwrap_or(0);
+        let number = value.map(|id| id.0.get()).unwrap_or(0);
         self.0.store(number, ordering);
     }
     #[allow(unsafe_code)]
@@ -63,7 +63,7 @@ impl AtomicOptThreadId {
     }
     #[allow(unsafe_code)]
     pub fn swap(&self, value: Option<ThreadId>, ordering: Ordering) -> Option<ThreadId> {
-        let number = value.map(|id| *id.0).unwrap_or(0);
+        let number = value.map(|id| id.0.get()).unwrap_or(0);
         let number = self.0.swap(number, ordering);
         if number == 0 { None } else { Some(ThreadId(unsafe { NonZero::new(number) })) }
     }

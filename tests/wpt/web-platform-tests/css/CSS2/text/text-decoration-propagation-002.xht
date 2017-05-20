@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Text-decoration inheritance to inline elements</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#lining-striking-props" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Text-decoration is applied to anonymous inline element for block level elements with text not in inline element." />
+        <style type="text/css">
+            div
+            {
+               text-decoration: underline;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if all the "Filler Text" below has a line under it.</p>
+        <div>
+            <span>Filler Text</span>
+            <span>Filler Text</span>
+            <span>Filler Text</span>
+        </div>
+    </body>
+</html>

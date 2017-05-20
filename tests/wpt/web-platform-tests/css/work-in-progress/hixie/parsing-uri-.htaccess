@@ -1,0 +1,5 @@
+IndexIgnore index.png 005-test 005-testtest 006-test*
+
+<files index.png>
+  SetHandler cgi-script
+</files>

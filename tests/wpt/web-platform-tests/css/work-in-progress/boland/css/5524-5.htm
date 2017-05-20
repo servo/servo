@@ -1,0 +1,61 @@
+
+<html>
+
+<title>Fifth Test of Section 5.5.24 of CSS1 Spec</title>
+
+<style type="text/css">
+img.oval {height: auto;
+          width: auto;}
+p {height: 400px}
+#id1 {height: -100px}
+</style>
+</head>
+
+
+
+<body>
+
+
+
+
+<h1 >Testing Statement #5 Below of Section 5.5.24 of CSS1 Spec</h1>
+
+
+
+
+
+
+<ul>
+<li>
+5. If the width and height of a replaced element are both auto, these properties
+will be set to the intrinsic dimensions of the element.
+If applied to a textual element, the height can be enforced with e.g., a 
+scrollbar.  Negative values are not allowed.
+</ul>
+
+
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p >
+If statement #5 above is passed, this paragraph should have a height of 400px
+which would be enforced by scrolling if necessary.
+The rule applied is "p {height: 400px}".
+The image below should have intrinsic height and width of 150px and 250px,
+respectively, since the rule applied is "img.oval {height: auto;
+                                                   width: auto;}".
+<img class=oval src="ovalbbut.gif">
+
+
+
+<p ID=id1>
+This paragraph should have UA-default height.  The rule stated is
+"#id1 {height: -100px}", which should be ignored since the value is negative.
+<p>
+All other properties should be UA-default.
+
+
+</body>
+</html>

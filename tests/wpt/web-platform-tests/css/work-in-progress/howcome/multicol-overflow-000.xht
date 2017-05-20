@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>multicol-fill-001</title>
+<link rel="author" title="Hakon Wium Lie" href="mailto:howcome@opera.com"/>
+<link rel="match" href="reftest/multicol-overflow-000.xht"/>
+<style type="text/css">
+div, table {
+  font: 10px/10px Ahem;
+  margin: 1em 0;
+  color: lime;
+  background: yellow;
+  width: 400px;
+}
+
+div.multicol { 
+  columns: 2;
+  column-gap: 0px;
+  column-rule: none;
+  column-fill: balance;
+}
+
+table, tr, td, p {
+  margin: 0; padding: 0; border: none;
+  vertical-align: top;
+}
+
+table {
+  border-collapse: collapse;
+  margin: 1em 0;
+}
+
+div.multicol, table { height: 20px }
+div.table { border-right: 10px solid lime }
+</style>
+</head>
+<body>
+The horizontal bars below should be identical.
+
+<div class="multicol">0<br/>0<br/>0<br/>0<br/>0<br/>0</div>
+
+<div class="table"><table><tr><td>0<br/>0</td><td>0<br/>0</td></tr></table></div>
+
+</body>
+</html>

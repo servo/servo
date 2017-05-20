@@ -2,24 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::Bindings::OESTextureHalfFloatBinding::OESTextureHalfFloatConstants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 
 /// This macro creates type-safe wrappers for WebGL types, associating variants
 /// with gl constants.
 macro_rules! type_safe_wrapper {
-    ($name: ident, $($variant:ident => $constant:ident, )+) => {
+    ($name: ident, $($variant:ident => $mod:ident::$constant:ident, )+) => {
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, JSTraceable, HeapSizeOf)]
         #[repr(u32)]
         pub enum $name {
             $(
-                $variant = constants::$constant,
+                $variant = $mod::$constant,
             )+
         }
 
         impl $name {
             pub fn from_gl_constant(constant: u32) -> Option<Self> {
                 Some(match constant {
-                    $(constants::$constant => $name::$variant, )+
+                    $($mod::$constant => $name::$variant, )+
                     _ => return None,
                 })
             }
@@ -33,13 +34,13 @@ macro_rules! type_safe_wrapper {
 }
 
 type_safe_wrapper! { TexImageTarget,
-    Texture2D => TEXTURE_2D,
-    CubeMapPositiveX => TEXTURE_CUBE_MAP_POSITIVE_X,
-    CubeMapNegativeX => TEXTURE_CUBE_MAP_NEGATIVE_X,
-    CubeMapPositiveY => TEXTURE_CUBE_MAP_POSITIVE_Y,
-    CubeMapNegativeY => TEXTURE_CUBE_MAP_NEGATIVE_Y,
-    CubeMapPositiveZ => TEXTURE_CUBE_MAP_POSITIVE_Z,
-    CubeMapNegativeZ => TEXTURE_CUBE_MAP_NEGATIVE_Z,
+    Texture2D => constants::TEXTURE_2D,
+    CubeMapPositiveX => constants::TEXTURE_CUBE_MAP_POSITIVE_X,
+    CubeMapNegativeX => constants::TEXTURE_CUBE_MAP_NEGATIVE_X,
+    CubeMapPositiveY => constants::TEXTURE_CUBE_MAP_POSITIVE_Y,
+    CubeMapNegativeY => constants::TEXTURE_CUBE_MAP_NEGATIVE_Y,
+    CubeMapPositiveZ => constants::TEXTURE_CUBE_MAP_POSITIVE_Z,
+    CubeMapNegativeZ => constants::TEXTURE_CUBE_MAP_NEGATIVE_Z,
 }
 
 impl TexImageTarget {
@@ -52,10 +53,12 @@ impl TexImageTarget {
 }
 
 type_safe_wrapper! { TexDataType,
-    UnsignedByte => UNSIGNED_BYTE,
-    UnsignedShort4444 => UNSIGNED_SHORT_4_4_4_4,
-    UnsignedShort5551 => UNSIGNED_SHORT_5_5_5_1,
-    UnsignedShort565 => UNSIGNED_SHORT_5_6_5,
+    UnsignedByte => constants::UNSIGNED_BYTE,
+    UnsignedShort4444 => constants::UNSIGNED_SHORT_4_4_4_4,
+    UnsignedShort5551 => constants::UNSIGNED_SHORT_5_5_5_1,
+    UnsignedShort565 => constants::UNSIGNED_SHORT_5_6_5,
+    Float => constants::FLOAT,
+    HalfFloat => OESTextureHalfFloatConstants::HALF_FLOAT_OES,
 }
 
 impl TexDataType {
@@ -67,6 +70,8 @@ impl TexDataType {
             UnsignedShort4444 |
             UnsignedShort5551 |
             UnsignedShort565 => 2,
+            Float => 4,
+            HalfFloat => 2,
         }
     }
 
@@ -79,17 +84,19 @@ impl TexDataType {
             UnsignedShort565 => 3,
             UnsignedShort5551 => 4,
             UnsignedShort4444 => 4,
+            Float => 1,
+            HalfFloat => 1,
         }
     }
 }
 
 type_safe_wrapper! { TexFormat,
-    DepthComponent => DEPTH_COMPONENT,
-    Alpha => ALPHA,
-    RGB => RGB,
-    RGBA => RGBA,
-    Luminance => LUMINANCE,
-    LuminanceAlpha => LUMINANCE_ALPHA,
+    DepthComponent => constants::DEPTH_COMPONENT,
+    Alpha => constants::ALPHA,
+    RGB => constants::RGB,
+    RGBA => constants::RGBA,
+    Luminance => constants::LUMINANCE,
+    LuminanceAlpha => constants::LUMINANCE_ALPHA,
 }
 
 impl TexFormat {

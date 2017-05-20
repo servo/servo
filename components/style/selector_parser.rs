@@ -7,9 +7,8 @@
 #![deny(missing_docs)]
 
 use cssparser::Parser as CssParser;
-use matching::{common_style_affecting_attributes, CommonStyleAffectingAttributeMode};
 use selectors::Element;
-use selectors::parser::{AttrSelector, SelectorList};
+use selectors::parser::SelectorList;
 use std::fmt::Debug;
 use stylesheets::{Origin, Namespaces};
 
@@ -38,7 +37,7 @@ pub use gecko::restyle_damage::GeckoRestyleDamage as RestyleDamage;
 /// A type that represents the previous computed values needed for restyle
 /// damage calculation.
 #[cfg(feature = "servo")]
-pub type PreExistingComputedValues = ::std::sync::Arc<::properties::ServoComputedValues>;
+pub type PreExistingComputedValues = ::properties::ServoComputedValues;
 
 /// A type that represents the previous computed values needed for restyle
 /// damage calculation.
@@ -102,26 +101,6 @@ pub enum PseudoElementCascadeType {
     Precomputed,
 }
 
-impl PseudoElementCascadeType {
-    /// Simple accessor to check whether the cascade type is eager.
-    #[inline]
-    pub fn is_eager(&self) -> bool {
-        *self == PseudoElementCascadeType::Eager
-    }
-
-    /// Simple accessor to check whether the cascade type is lazy.
-    #[inline]
-    pub fn is_lazy(&self) -> bool {
-        *self == PseudoElementCascadeType::Lazy
-    }
-
-    /// Simple accessor to check whether the cascade type is precomputed.
-    #[inline]
-    pub fn is_precomputed(&self) -> bool {
-        *self == PseudoElementCascadeType::Precomputed
-    }
-}
-
 /// An extension to rust-selector's `Element` trait.
 pub trait ElementExt: Element<Impl=SelectorImpl> + Debug {
     /// Whether this element is a `link`.
@@ -134,22 +113,6 @@ pub trait ElementExt: Element<Impl=SelectorImpl> + Debug {
 }
 
 impl SelectorImpl {
-    /// A helper to traverse each eagerly cascaded pseudo-element, executing
-    /// `fun` on it.
-    ///
-    /// TODO(emilio): We can optimize this for Gecko using the pseudo-element
-    /// macro, and we should consider doing that for Servo too.
-    #[inline]
-    pub fn each_eagerly_cascaded_pseudo_element<F>(mut fun: F)
-        where F: FnMut(PseudoElement),
-    {
-        Self::each_pseudo_element(|pseudo| {
-            if Self::pseudo_element_cascade_type(&pseudo).is_eager() {
-                fun(pseudo)
-            }
-        })
-    }
-
     /// A helper to traverse each precomputed pseudo-element, executing `fun` on
     /// it.
     ///
@@ -160,47 +123,9 @@ impl SelectorImpl {
         where F: FnMut(PseudoElement),
     {
         Self::each_pseudo_element(|pseudo| {
-            if Self::pseudo_element_cascade_type(&pseudo).is_precomputed() {
+            if pseudo.is_precomputed() {
                 fun(pseudo)
             }
         })
     }
-}
-
-/// Checks whether we can share style if an element matches a given
-/// attribute-selector that checks for existence (`[attr_name]`) easily.
-///
-/// We could do the same thing that we do for sibling rules and keep optimizing
-/// these common attributes, but we'd have to measure how common it is.
-pub fn attr_exists_selector_is_shareable(attr_selector: &AttrSelector<SelectorImpl>) -> bool {
-    // NB(pcwalton): If you update this, remember to update the corresponding list in
-    // `can_share_style_with()` as well.
-    common_style_affecting_attributes().iter().any(|common_attr_info| {
-        common_attr_info.attr_name == attr_selector.name && match common_attr_info.mode {
-            CommonStyleAffectingAttributeMode::IsPresent(_) => true,
-            CommonStyleAffectingAttributeMode::IsEqual(..) => false,
-        }
-    })
-}
-
-/// Checks whether we can share style if an element matches a given
-/// attribute-selector that checks for equality (`[attr_name="attr_value"]`)
-/// easily.
-///
-/// We could do the same thing that we do for sibling rules and keep optimizing
-/// these common attributes, but we'd have to measure how common it is.
-pub fn attr_equals_selector_is_shareable(attr_selector: &AttrSelector<SelectorImpl>,
-                                         value: &AttrValue) -> bool {
-    // FIXME(pcwalton): Remove once we start actually supporting RTL text. This is in
-    // here because the UA style otherwise disables all style sharing completely.
-    // FIXME(SimonSapin): should this be the attribute *name* rather than value?
-    atom!("dir") == *value ||
-    common_style_affecting_attributes().iter().any(|common_attr_info| {
-        common_attr_info.attr_name == attr_selector.name && match common_attr_info.mode {
-            CommonStyleAffectingAttributeMode::IsEqual(ref target_value, _) => {
-                *target_value == *value
-            }
-            CommonStyleAffectingAttributeMode::IsPresent(_) => false,
-        }
-    })
 }

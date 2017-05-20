@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(box_syntax)]
-#![feature(slice_patterns)]
 #![feature(step_by)]
 
 #![deny(unsafe_code)]
@@ -30,28 +29,27 @@ extern crate servo_url;
 extern crate url;
 extern crate uuid;
 extern crate webrender_traits;
-extern crate websocket;
 
 use cookie_rs::Cookie;
 use filemanager_thread::FileManagerThreadMsg;
 use heapsize::HeapSizeOf;
+use hyper::Error as HyperError;
 use hyper::header::{ContentType, Headers, ReferrerPolicy as ReferrerPolicyHeader};
 use hyper::http::RawStatus;
 use hyper::mime::{Attr, Mime};
 use hyper_serde::Serde;
-use ipc_channel::Error;
+use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use request::{Request, RequestInit};
 use response::{HttpsState, Response};
 use servo_url::ServoUrl;
+use std::error::Error;
 use storage_thread::StorageThreadMsg;
-use websocket::header;
 
 pub mod blob_url_store;
 pub mod filemanager_thread;
-pub mod hosts;
-pub mod image_cache_thread;
+pub mod image_cache;
 pub mod net_error_list;
 pub mod pub_domains;
 pub mod request;
@@ -266,7 +264,7 @@ impl<T: FetchResponseListener> Action<T> for FetchResponseMsg {
 /// Handle to a resource thread
 pub type CoreResourceThread = IpcSender<CoreResourceMsg>;
 
-pub type IpcSendResult = Result<(), Error>;
+pub type IpcSendResult = Result<(), IpcError>;
 
 /// Abstraction of the ability to send a particular type of message,
 /// used by net_traits::ResourceThreads to ease the use its IpcSender sub-fields
@@ -347,10 +345,9 @@ pub enum WebSocketDomAction {
 
 #[derive(Deserialize, Serialize)]
 pub enum WebSocketNetworkEvent {
-    ConnectionEstablished(#[serde(deserialize_with = "::hyper_serde::deserialize",
-                                  serialize_with = "::hyper_serde::serialize")]
-                          header::Headers,
-                          Vec<String>),
+    ConnectionEstablished {
+        protocol_in_use: Option<String>,
+    },
     MessageReceived(MessageData),
     Close(Option<u16>, String),
     Fail,
@@ -375,17 +372,13 @@ pub enum CoreResourceMsg {
     /// Try to make a websocket connection to a URL.
     WebsocketConnect(WebSocketCommunicate, WebSocketConnectData),
     /// Store a cookie for a given originating URL
-    SetCookieForUrl(ServoUrl,
-                    #[serde(deserialize_with = "::hyper_serde::deserialize",
-                            serialize_with = "::hyper_serde::serialize")]
-                    Cookie,
-                    CookieSource),
-    /// Store cookies for a given originating URL
-    SetCookiesForUrl(ServoUrl, Vec<Serde<Cookie>>, CookieSource),
+    SetCookieForUrl(ServoUrl, Serde<Cookie<'static>>, CookieSource),
+    /// Store a set of cookies for a given originating URL
+    SetCookiesForUrl(ServoUrl, Vec<Serde<Cookie<'static>>>, CookieSource),
     /// Retrieve the stored cookies for a given URL
     GetCookiesForUrl(ServoUrl, IpcSender<Option<String>>, CookieSource),
     /// Get a cookie by name for a given originating URL
-    GetCookiesDataForUrl(ServoUrl, IpcSender<Vec<Serde<Cookie>>>, CookieSource),
+    GetCookiesDataForUrl(ServoUrl, IpcSender<Vec<Serde<Cookie<'static>>>>, CookieSource),
     /// Cancel a network request corresponding to a given `ResourceId`
     Cancel(ResourceId),
     /// Synchronization message solely for knowing the state of the ResourceChannelManager loop
@@ -514,11 +507,6 @@ pub fn load_whole_resource(request: RequestInit,
     }
 }
 
-/// Defensively unwraps the protocol string from the response object's protocol
-pub fn unwrap_websocket_protocol(wsp: Option<&header::WebSocketProtocol>) -> Option<&str> {
-    wsp.and_then(|protocol_list| protocol_list.get(0).map(|protocol| protocol.as_ref()))
-}
-
 /// An unique identifier to keep track of each load message in the resource handler
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct ResourceId(pub u32);
@@ -531,6 +519,19 @@ pub enum NetworkError {
     LoadCancelled,
     /// SSL validation error that has to be handled in the HTML parser
     SslValidation(ServoUrl, String),
+}
+
+impl NetworkError {
+    pub fn from_hyper_error(url: &ServoUrl, error: HyperError) -> Self {
+        if let HyperError::Ssl(ref ssl_error) = error {
+            return NetworkError::from_ssl_error(url, &**ssl_error);
+        }
+        NetworkError::Internal(error.description().to_owned())
+    }
+
+    pub fn from_ssl_error(url: &ServoUrl, error: &Error) -> Self {
+        NetworkError::SslValidation(url.clone(), error.description().to_owned())
+    }
 }
 
 /// Normalize `slice`, as defined by

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="support/frame-ancestors-test.sub.js"></script>
+</head>
+<body>
+    <script>
+        test = async_test("A 'frame-ancestors' CSP directive with a URL value should compare against each frame's origin rather than URL, " +
+		    "so a nested frame with a sandboxed parent frame should be blocked due to the parent having a unique origin.");
+
+	testNestedSandboxedIFrame(SAMEORIGIN_ORIGIN + " " + CROSSORIGIN_ORIGIN, CROSS_ORIGIN, CROSS_ORIGIN, EXPECT_BLOCK);
+    </script>
+</body>
+</html>

@@ -20,25 +20,31 @@ rand = [
   "parking_lot_core",
   "phf_generator",
   "rayon",
+  "rayon-core",
   "servo_rand",
+  "servo-websocket",
   "tempdir",
   "tempfile",
   "uuid",
-  "websocket",
   "ws",
 ]
 num = []
 
 [ignore]
 # Ignored packages with duplicated versions
-packages = ["byteorder", "serde_codegen_internals", "syn"]
+packages = [
+  "bitflags",
+  "libloading", # Conflicting version is only used at build-time by geckolib.
+]
 # Files that are ignored for all tidy and lint checks.
 files = [
+  # Helper macro where actually a pseudo-element per line makes sense.
+  "./components/style/gecko/non_ts_pseudo_class_list.rs",
   # Generated and upstream code combined with our own. Could use cleanup
-  "./components/style/gecko_bindings/bindings.rs",
-  "./components/style/gecko_bindings/structs_debug.rs",
-  "./components/style/gecko_bindings/structs_release.rs",
-  "./components/style/gecko_string_cache/atom_macro.rs",
+  "./components/style/gecko/generated/bindings.rs",
+  "./components/style/gecko/generated/structs_debug.rs",
+  "./components/style/gecko/generated/structs_release.rs",
+  "./components/style/gecko/generated/atom_macro.rs",
   "./resources/hsts_preload.json",
   "./tests/wpt/metadata/MANIFEST.json",
   "./tests/wpt/metadata-css/MANIFEST.json",
@@ -50,9 +56,6 @@ files = [
   "./tests/wpt/mozilla/tests/css/fonts",
   "./tests/wpt/mozilla/tests/css/pre_with_tab.html",
   "./tests/wpt/mozilla/tests/mozilla/textarea_placeholder.html",
-  # Tidy complains about taking &String instead of &str, but they aren't
-  # equivalent given the way the traits are set up.
-  "./components/selectors/tree.rs",
 ]
 # Directories that are ignored for the non-WPT tidy check.
 directories = [

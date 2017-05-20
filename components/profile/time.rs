@@ -15,10 +15,8 @@ use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::error::Error;
-use std::fs;
 use std::fs::File;
 use std::io::{self, Write};
-use std::path;
 use std::path::Path;
 use std::time::Duration;
 use std_time::precise_time_ns;
@@ -152,6 +150,7 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::ScriptEnterFullscreen => "Script Enter Fullscreen",
             ProfilerCategory::ScriptExitFullscreen => "Script Exit Fullscreen",
             ProfilerCategory::ScriptWebVREvent => "Script WebVR Event",
+            ProfilerCategory::ScriptWorkletEvent => "Script Worklet Event",
             ProfilerCategory::ApplicationHeartbeat => "Application Heartbeat",
         };
         format!("{}{}", padding, name)
@@ -178,9 +177,7 @@ impl Profiler {
                 let outputoption = option.clone();
                 thread::Builder::new().name("Time profiler".to_owned()).spawn(move || {
                     let trace = file_path.as_ref()
-                        .map(path::Path::new)
-                        .map(fs::File::create)
-                        .map(|res| TraceDump::new(res.unwrap()));
+                        .and_then(|p| TraceDump::new(p).ok());
                     let mut profiler = Profiler::new(port, trace, Some(outputoption));
                     profiler.start();
                 }).expect("Thread spawning failed");
@@ -207,9 +204,7 @@ impl Profiler {
                     // Spawn the time profiler
                     thread::Builder::new().name("Time profiler".to_owned()).spawn(move || {
                         let trace = file_path.as_ref()
-                            .map(path::Path::new)
-                            .map(fs::File::create)
-                            .map(|res| TraceDump::new(res.unwrap()));
+                            .and_then(|p| TraceDump::new(p).ok());
                         let mut profiler = Profiler::new(port, trace, None);
                         profiler.start();
                     }).expect("Thread spawning failed");

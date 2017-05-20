@@ -1,0 +1,212 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html>
+ <head>
+  <title>Automatic table sizing algorithm investigation (auto width tables)</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/table/inspection/inspection-auto-width-table.html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#auto-table-layout" />
+  <style type="text/css">
+   html, body p { background: white; padding: 1.5em 1em 0.5em 1em; margin: 0; border: 0; }
+   body { background: url(support/horizontal-ruler) top left repeat-y; padding: 0; margin: 0; border: 0; }
+   body * { border: solid 3px black; }
+   table { width: auto; margin: 1em 0; }
+   td { height: 1em; }
+   .p100 { width: 100%; }
+   .p99 { width: 99%; }
+   .p72 { width: 72%; }
+   .p50 { width: 50%; }
+   .p45 { width: 45%; }
+   .p25 { width: 25%; }
+   .p24 { width: 24%; }
+   .f100 { width: 100px; }
+   .f200 { width: 200px; }
+   .f600 { width: 600px; }
+  </style>
+ </head>
+ <body>
+
+  <p>Blank rows have the same dimensions as the preceeding row, but with zero width spaces in the cells instead of text.</p>
+
+  <p>25% and 50%</p>
+
+  <table>
+   <tr>
+    <td class="p25">25%</td>
+    <td class="p50">50%</td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="p25">25%</td>
+    <td class="p25">25%</td>
+    <td class="p50">50%</td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="p25">25%</td>
+    <td class="p25">25%</td>
+    <td class="p25">25%</td>
+    <td class="p50">50%</td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="p25">25%</td>
+    <td class="p25">25%</td>
+    <td class="p25">25%</td>
+    <td class="p25">25%</td>
+    <td class="p50">50%</td>
+   </tr>
+  </table>
+
+  <p>24% and 50%</p>
+
+  <table>
+   <tr>
+    <td class="p24">24%</td>
+    <td class="p50">50%</td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="p24">24%</td>
+    <td class="p24">24%</td>
+    <td class="p50">50%</td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="p24">24%</td>
+    <td class="p24">24%</td>
+    <td class="p24">24%</td>
+    <td class="p50">50%</td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="p24">24%</td>
+    <td class="p24">24%</td>
+    <td class="p24">24%</td>
+    <td class="p24">24%</td>
+    <td class="p50">50%</td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="p24">24%</td>
+    <td class="p24">24%</td>
+    <td class="p24">24%</td>
+    <td class="p24">24%</td>
+    <td class="p24">24%</td>
+    <td class="p50">50%</td>
+   </tr>
+  </table>
+
+  <p>100% and 50%</p>
+
+  <table>
+   <tr>
+    <td class="p100">100%</td>
+    <td class="p50">50%</td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="p50">50%</td>
+    <td class="p100">100%</td>
+   </tr>
+  </table>
+
+  <p>100% and auto</p>
+
+  <table>
+   <tr>
+    <td class="p100">100%</td>
+    <td class="auto">auto</td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="auto">auto</td>
+    <td class="p100">100%</td>
+   </tr>
+  </table>
+
+  <p>99% and 50%</p>
+
+  <table>
+   <tr>
+    <td class="p99">99%</td>
+    <td class="p50">50%</td>
+   </tr>
+  </table>
+
+  <p>odd balls</p>
+
+  <table>
+   <tr>
+    <td class="p45">45%</td>
+    <td class="p72">72%</td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="p72">72%</td>
+    <td class="p45">45%</td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="p72">72%</td>
+    <td class="p24">24%</td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="p45">45%</td>
+    <td class="p24">24%</td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="p45">45%</td>
+    <td class="p45">45%</td>
+    <td class="p24">24%</td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="p45">45%</td>
+    <td class="p45">45%</td>
+    <td class="p45">45%</td>
+    <td class="p24">24%</td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="p45">45%</td>
+    <td class="p45">45%</td>
+    <td class="p45">45%</td>
+    <td class="p45">45%</td>
+    <td class="p24">24%</td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="p72">72%</td>
+    <td class="p45">45%</td>
+    <td class="p24">24%</td>
+   </tr>
+  </table>
+  <table>
+   <tr>
+    <td class="p72">72%</td>
+    <td class="p45">45%</td>
+    <td class="p24">24%</td>
+    <td class="p99">99%</td>
+   </tr>
+  </table>
+
+ </body>
+</html>

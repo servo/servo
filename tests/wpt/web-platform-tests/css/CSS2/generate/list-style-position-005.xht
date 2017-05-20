@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <title>CSS Test: Marker box position (inside principal box) - block box in normal flow (as child of principal box)</title>
+  <link rel="author" title="James Hopkins" href="http://idreamincode.co.uk/css21testsuite"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#list-style"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visuren.html#block-boxes"/>
+  <meta name="flags" content=""/>
+  <meta name="assert" content="Since a marker box is the first inline element in the principal box when 'list-style-position:inside', the following block box (in normal flow) must create a new stacking context below the marker box"/>
+  <style type="text/css">
+  #test{
+  background:lime;
+  color:lime;
+  display:list-item;
+  font-size:85px;
+  list-style-position:inside;
+  }
+  #test div{
+  background:blue;
+  display:block;
+  }
+  </style>
+ </head>
+
+ <body>
+  <p>To pass, there <strong>must</strong> be a green bar stacked on top of a blue bar.</p>
+  <div id="test">
+   <div>&nbsp;</div>
+  </div>
+ </body>
+</html>

@@ -1,0 +1,15 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Attribute 'marginheight' vs. CSS 'margin' specificity</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#preshint" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Attribute 'marginheight' has a specificity of zero and is overridden by CSS." />
+        <style type="text/css"></style>
+    </head>
+    <body>
+        <iframe marginheight="50" src="support/html-attribute-021-frame.htm"></iframe>
+        <p>Test passes if the "Filler Text" appears in the top left corner of the green box.</p>
+    </body>
+</html>

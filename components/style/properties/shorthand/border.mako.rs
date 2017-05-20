@@ -3,10 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
-<% from data import to_rust_ident, ALL_SIDES, maybe_moz_logical_alias %>
+<% from data import to_rust_ident, ALL_SIDES, PHYSICAL_SIDES, maybe_moz_logical_alias %>
 
 ${helpers.four_sides_shorthand("border-color", "border-%s-color", "specified::CSSColor::parse",
-                               spec="https://drafts.csswg.org/css-backgrounds/#border-color")}
+                               spec="https://drafts.csswg.org/css-backgrounds/#border-color",
+                               allow_quirks=True)}
 
 ${helpers.four_sides_shorthand("border-style", "border-%s-style",
                                "specified::BorderStyle::parse",
@@ -14,24 +15,25 @@ ${helpers.four_sides_shorthand("border-style", "border-%s-style",
 
 <%helpers:shorthand name="border-width" sub_properties="${
         ' '.join('border-%s-width' % side
-                 for side in ['top', 'right', 'bottom', 'left'])}"
+                 for side in PHYSICAL_SIDES)}"
     spec="https://drafts.csswg.org/css-backgrounds/#border-width">
     use super::parse_four_sides;
-    use parser::Parse;
-    use values::specified;
+    use values::specified::{AllowQuirks, BorderWidth};
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
-        let (top, right, bottom, left) = try!(parse_four_sides(input, |i| specified::BorderWidth::parse(context, i)));
-        Ok(Longhands {
-            % for side in ["top", "right", "bottom", "left"]:
-                ${to_rust_ident('border-%s-width' % side)}: Some(${side}),
+        let (top, right, bottom, left) = try!(parse_four_sides(input, |i| {
+            BorderWidth::parse_quirky(context, i, AllowQuirks::Yes)
+        }));
+        Ok(expanded! {
+            % for side in PHYSICAL_SIDES:
+                ${to_rust_ident('border-%s-width' % side)}: ${side},
             % endfor
         })
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            % for side in ["top", "right", "bottom", "left"]:
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            % for side in PHYSICAL_SIDES:
                 let ${side} = self.border_${side}_width.clone();
             % endfor
 
@@ -42,10 +44,10 @@ ${helpers.four_sides_shorthand("border-style", "border-%s-style",
 
 
 pub fn parse_border(context: &ParserContext, input: &mut Parser)
-                 -> Result<(Option<specified::CSSColor>,
-                            Option<specified::BorderStyle>,
-                            Option<specified::BorderWidth>), ()> {
-    use values::specified;
+                 -> Result<(specified::CSSColor,
+                            specified::BorderStyle,
+                            specified::BorderWidth), ()> {
+    use values::specified::{CSSColor, BorderStyle, BorderWidth};
     let _unused = context;
     let mut color = None;
     let mut style = None;
@@ -53,21 +55,21 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
     let mut any = false;
     loop {
         if color.is_none() {
-            if let Ok(value) = input.try(|i| specified::CSSColor::parse(context, i)) {
+            if let Ok(value) = input.try(|i| CSSColor::parse(context, i)) {
                 color = Some(value);
                 any = true;
                 continue
             }
         }
         if style.is_none() {
-            if let Ok(value) = input.try(|i| specified::BorderStyle::parse(context, i)) {
+            if let Ok(value) = input.try(|i| BorderStyle::parse(context, i)) {
                 style = Some(value);
                 any = true;
                 continue
             }
         }
         if width.is_none() {
-            if let Ok(value) = input.try(|i| specified::BorderWidth::parse(context, i)) {
+            if let Ok(value) = input.try(|i| BorderWidth::parse(context, i)) {
                 width = Some(value);
                 any = true;
                 continue
@@ -75,7 +77,13 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
         }
         break
     }
-    if any { Ok((color, style, width)) } else { Err(()) }
+    if any {
+        Ok((color.unwrap_or_else(|| CSSColor::currentcolor()),
+            style.unwrap_or(BorderStyle::none),
+            width.unwrap_or(BorderWidth::Medium)))
+    } else {
+        Err(())
+    }
 }
 
 % for side, logical in ALL_SIDES:
@@ -95,15 +103,15 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let (color, style, width) = try!(super::parse_border(context, input));
-        Ok(Longhands {
+        Ok(expanded! {
             border_${to_rust_ident(side)}_color: color,
             border_${to_rust_ident(side)}_style: style,
             border_${to_rust_ident(side)}_width: width
         })
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             super::serialize_directional_border(
                 dest,
                 self.border_${to_rust_ident(side)}_width,
@@ -116,33 +124,78 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
     </%helpers:shorthand>
 % endfor
 
-<%helpers:shorthand name="border" sub_properties="${' '.join(
-    'border-%s-%s' % (side, prop)
-    for side in ['top', 'right', 'bottom', 'left']
-    for prop in ['color', 'style', 'width']
-)}" spec="https://drafts.csswg.org/css-backgrounds/#border">
+<%helpers:shorthand name="border"
+    sub_properties="${' '.join('border-%s-%s' % (side, prop)
+        for side in PHYSICAL_SIDES
+        for prop in ['color', 'style', 'width'])}
+        ${' '.join('border-image-%s' % name
+        for name in ['outset', 'repeat', 'slice', 'source', 'width'])}
+        ${' '.join('-moz-border-%s-colors' % side
+        for side in PHYSICAL_SIDES) if product == 'gecko' else ''}"
+    spec="https://drafts.csswg.org/css-backgrounds/#border">
+
+    % if product == "gecko":
+        use properties::longhands::{_moz_border_top_colors, _moz_border_right_colors,
+                                    _moz_border_bottom_colors, _moz_border_left_colors};
+    % endif
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+        use properties::longhands::{border_image_outset, border_image_repeat, border_image_slice};
+        use properties::longhands::{border_image_source, border_image_width};
+
         let (color, style, width) = try!(super::parse_border(context, input));
-        Ok(Longhands {
-            % for side in ["top", "right", "bottom", "left"]:
+        Ok(expanded! {
+            % for side in PHYSICAL_SIDES:
                 border_${side}_color: color.clone(),
                 border_${side}_style: style,
                 border_${side}_width: width.clone(),
+                % if product == "gecko":
+                    _moz_border_${side}_colors: _moz_border_${side}_colors::get_initial_specified_value(),
+                % endif
+            % endfor
+
+            // The ‘border’ shorthand resets ‘border-image’ to its initial value.
+            // See https://drafts.csswg.org/css-backgrounds-3/#the-border-shorthands
+            % for name in "outset repeat slice source width".split():
+                border_image_${name}: border_image_${name}::get_initial_specified_value(),
             % endfor
         })
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            let all_equal = {
+                % for side in PHYSICAL_SIDES:
+                  let border_${side}_width = self.border_${side}_width;
+                  let border_${side}_style = self.border_${side}_style;
+                  let border_${side}_color = self.border_${side}_color;
+                % endfor
+
+                border_top_width == border_right_width &&
+                border_right_width == border_bottom_width &&
+                border_bottom_width == border_left_width &&
+
+                border_top_style == border_right_style &&
+                border_right_style == border_bottom_style &&
+                border_bottom_style == border_left_style &&
+
+                border_top_color == border_right_color &&
+                border_right_color == border_bottom_color &&
+                border_bottom_color == border_left_color
+            };
+
             // If all longhands are all present, then all sides should be the same,
             // so we can just one set of color/style/width
-            super::serialize_directional_border(
-                dest,
-                self.border_${side}_width,
-                self.border_${side}_style,
-                self.border_${side}_color
-            )
+            if all_equal {
+                super::serialize_directional_border(
+                    dest,
+                    self.border_${side}_width,
+                    self.border_${side}_style,
+                    self.border_${side}_color
+                )
+            } else {
+                Ok(())
+            }
         }
     }
 
@@ -152,34 +205,27 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
     'border-%s-radius' % (corner)
      for corner in ['top-left', 'top-right', 'bottom-right', 'bottom-left']
 )}" extra_prefixes="webkit" spec="https://drafts.csswg.org/css-backgrounds/#border-radius">
+    use values::generics::serialize_radius_values;
     use values::specified::basic_shape::BorderRadius;
     use parser::Parse;
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let radii = try!(BorderRadius::parse(context, input));
-        Ok(Longhands {
-            border_top_left_radius: Some(radii.top_left),
-            border_top_right_radius: Some(radii.top_right),
-            border_bottom_right_radius: Some(radii.bottom_right),
-            border_bottom_left_radius: Some(radii.bottom_left),
+        Ok(expanded! {
+            border_top_left_radius: radii.top_left,
+            border_top_right_radius: radii.top_right,
+            border_bottom_right_radius: radii.bottom_right,
+            border_bottom_left_radius: radii.bottom_left,
         })
     }
 
-    // TODO: I do not understand how border radius works with respect to the slashes /,
-    // so putting a default generic impl for now
-    // https://developer.mozilla.org/en-US/docs/Web/CSS/border-radius
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            try!(self.border_top_left_radius.to_css(dest));
-            try!(write!(dest, " "));
-
-            try!(self.border_top_right_radius.to_css(dest));
-            try!(write!(dest, " "));
-
-            try!(self.border_bottom_right_radius.to_css(dest));
-            try!(write!(dest, " "));
-
-            self.border_bottom_left_radius.to_css(dest)
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            serialize_radius_values(dest,
+                                    &self.border_top_left_radius.0,
+                                    &self.border_top_right_radius.0,
+                                    &self.border_bottom_right_radius.0,
+                                    &self.border_bottom_left_radius.0)
         }
     }
 </%helpers:shorthand>
@@ -216,7 +262,12 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
                                 try!(input.expect_delim('/'));
                                 border_image_outset::parse(context, input)
                             }).ok();
-                            Ok((w, o))
+                            if w.is_none() && o.is_none() {
+                               Err(())
+                            }
+                            else {
+                               Ok((w, o))
+                            }
                         });
                         if let Ok((w, o)) = maybe_width_outset {
                             width = w;
@@ -252,62 +303,24 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
             }
         }));
 
-        Ok(Longhands {
+        Ok(expanded! {
             % for name in "outset repeat slice source width".split():
-                border_image_${name}: Some(border_image_${name}),
+                border_image_${name}: border_image_${name},
             % endfor
          })
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            % for name in "outset repeat slice source width".split():
-                let ${name} = if let DeclaredValue::Value(ref value) = *self.border_image_${name} {
-                    Some(value)
-                } else {
-                    None
-                };
-            % endfor
-
-            if let Some(source) = source {
-                try!(source.to_css(dest));
-            } else {
-                try!(write!(dest, "none"));
-            }
-
-            try!(write!(dest, " "));
-
-            if let Some(slice) = slice {
-                try!(slice.to_css(dest));
-            } else {
-                try!(write!(dest, "100%"));
-            }
-
-            try!(write!(dest, " / "));
-
-            if let Some(width) = width {
-                try!(width.to_css(dest));
-            } else {
-                try!(write!(dest, "1"));
-            }
-
-            try!(write!(dest, " / "));
-
-            if let Some(outset) = outset {
-                try!(outset.to_css(dest));
-            } else {
-                try!(write!(dest, "0"));
-            }
-
-            try!(write!(dest, " "));
-
-            if let Some(repeat) = repeat {
-                try!(repeat.to_css(dest));
-            } else {
-                try!(write!(dest, "stretch"));
-            }
-
-            Ok(())
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self.border_image_source.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.border_image_slice.to_css(dest)?;
+            dest.write_str(" / ")?;
+            self.border_image_width.to_css(dest)?;
+            dest.write_str(" / ")?;
+            self.border_image_outset.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.border_image_repeat.to_css(dest)
         }
     }
 </%helpers:shorthand>

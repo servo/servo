@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Transform applied to inline element</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-2d-transforms/#transform-property" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'transform' property applies to inline elements" />
+        <style type="text/css">
+            #parentDiv
+            {
+                margin-top: 20px;
+                position: relative;
+            }
+            #testDiv
+            {
+                background-color: green;
+                display: inline;
+                transform: rotate(45deg);
+            }
+            #baseDiv
+            {
+                background-color: black;
+                display: inline;
+                position: absolute;
+                top: 0;
+                left: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is green visible on the page.</p>
+        <div id="parentDiv">
+            <div id="testDiv">Filler Text</div>
+            <div id="baseDiv">Filler Text</div>
+        </div>
+    </body>
+</html>

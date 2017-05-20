@@ -184,17 +184,13 @@ td.ERROR {
     background-color: inherit;
   }
   to {
-    background-color: #ffc;
+    background-color: #f6bb42;
   }
 }
 
-#manifest {
-  padding-left: 6px;
-  padding-right: 6px;
-  font-size: 80%;
-  font-weight: normal;
-  font-style: italic;
-  color: #999;
+.loading-manifest {
+  background-image: none;
+  color: #333;
   animation-duration: 1.5s;
   animation-name: alert_updating;
   animation-iteration-count: infinite;

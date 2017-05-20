@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <style>
+    div.flexbox {
+      background: lightgray;
+      width: 400px;
+      height: 30px;
+      margin-bottom: 10px;
+    }
+    div.flexbox > * {
+      max-width: 3px;
+      outline: 1px dashed black;
+      margin: 0;
+      vertical-align: top;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="flexbox"><input type="button"></div>
+  <div class="flexbox"><input type="checkbox"></div>
+  <div class="flexbox"><input type="file"></div>
+  <div class="flexbox"><input type="image"></div>
+  <div class="flexbox"><input type="password"></div>
+  <div class="flexbox"><input type="radio"></div>
+  <div class="flexbox"><input type="reset"></div>
+  <div class="flexbox"><input type="submit"></div>
+  <div class="flexbox"><input type="text"></div>
+</body>
+</html>

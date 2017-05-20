@@ -1,0 +1,73 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<!-- WARNING!
+ !   This file contains SIGNIFICANT trailing white space characters!
+ !   Edit with care!
+ !-->
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Generated Content: Nasty parsing and generated content test</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/content/003.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#content" />
+  <link rel="match" href="content-173-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   td { font: 1em/1em monospace; border: solid; }
+   div { white-space: pre; }
+/*******************************************************************************/
+/*   FOR THE LOVE OF ALL CATS, DO NOT CHANGE THE FOLLOWING LINES IN ANY WAY!   */
+/*******************************************************************************/
+   .test:before { content: '\A                   ,\A                 _/((\A    \
+    _.---. .\'   `\\\A      .\'    '
+                           '  `     ^ T=\A     /     \\       .--\'\A   \
+ |      /       )\'-.\A  '; }
+   .test:after { content: '  ; ,   <__..-(   \'-.)  \A     \\ \\-.__)    ``--._\
+)\A  jgs \'.\'-.__.-.\A  \20\020 \0020\00020\000020  \'-.' '.' '.-\'\A' '\A'; }
+/*******************************************************************************/
+
+  ]]></style>
+ </head>
+ <body>
+
+  <p>The following two boxes should be perfectly <strong>identical</strong>,
+  <em>including</em> the blank lines and the margin between the edges
+  of the image and the border:</p>
+
+  <table>
+   <thead>
+    <tr>
+     <th> Test </th>
+     <th> Control </th>
+    </tr>
+   </thead>
+   <tbody>
+    <tr class="pre">
+     <td>
+<div class="test"></div>
+     </td>
+     <td>
+<div>
+                  ,
+                _/((
+       _.---. .'   `\
+     .'      `     ^ T=
+    /     \       .--'
+   |      /       )'-.
+   ; ,   &lt;__..-(   '-.)
+    \ \-.__)    ``--._)
+ jgs '.'-.__.-.
+       '-...-'
+ </div>
+     </td>
+    </tr>
+   </tbody>
+  </table>
+
+  <p>The cats should also be <strong>aligned vertically</strong>
+  (i.e. be at the same height); if they are not, then the test
+  has not passed.</p>
+
+ </body>
+</html>

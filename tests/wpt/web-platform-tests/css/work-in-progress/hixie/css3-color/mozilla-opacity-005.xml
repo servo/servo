@@ -1,0 +1,18 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS: transparent text over a stretched smooth alpha transparent PNG</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/mozilla/opacity/005.xml"/>
+  <style type="text/css">
+   img { position: fixed; left: 0; bottom: 0; right: 0; top: 0; }
+   p { font: 900 2em sans-serif; margin: 1em; -moz-opacity: 0.555; }
+  </style>
+ </head>
+ <body>
+  <div><img src="black-0.5-0.0-h.png" alt="This is an image test."/></div>
+  <p>This page has a gradient background stretched to fit the
+  viewport. It should be completely smooth. Resize your window to test
+  performance.</p>
+ </body>
+</html>

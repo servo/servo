@@ -6,19 +6,19 @@
 
 #![deny(missing_docs)]
 
+use context::SharedStyleContext;
 use dom::TElement;
 use properties::ComputedValues;
 use properties::longhands::display::computed_value as display;
-use restyle_hints::{RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
+use restyle_hints::{RestyleReplacements, RestyleHint};
 use rule_tree::StrongRuleNode;
-use selector_parser::{PseudoElement, RestyleDamage, Snapshot};
-use std::collections::HashMap;
+use selector_parser::{EAGER_PSEUDO_COUNT, PseudoElement, RestyleDamage};
+use shared_lock::StylesheetGuards;
+#[cfg(feature = "servo")] use std::collections::HashMap;
 use std::fmt;
-use std::hash::BuildHasherDefault;
-use std::ops::{Deref, DerefMut};
-use std::sync::Arc;
-use stylist::Stylist;
-use thread_state;
+#[cfg(feature = "servo")] use std::hash::BuildHasherDefault;
+use stylearc::Arc;
+use traversal::TraversalFlags;
 
 /// The structure that represents the result of style computation. This is
 /// effectively a tuple of rules and computed values, that is, the rule node,
@@ -73,33 +73,87 @@ impl fmt::Debug for ComputedStyle {
     }
 }
 
-type PseudoStylesInner = HashMap<PseudoElement, ComputedStyle,
-                                 BuildHasherDefault<::fnv::FnvHasher>>;
-
-/// A set of styles for a given element's pseudo-elements.
-///
-/// This is a map from pseudo-element to `ComputedStyle`.
-///
-/// TODO(emilio): This should probably be a small array by default instead of a
-/// full-blown `HashMap`.
+/// A list of styles for eagerly-cascaded pseudo-elements. Lazily-allocated.
 #[derive(Clone, Debug)]
-pub struct PseudoStyles(PseudoStylesInner);
+pub struct EagerPseudoStyles(Option<Box<[Option<ComputedStyle>]>>);
 
-impl PseudoStyles {
-    /// Construct an empty set of `PseudoStyles`.
-    pub fn empty() -> Self {
-        PseudoStyles(HashMap::with_hasher(Default::default()))
+impl EagerPseudoStyles {
+    /// Returns whether there are any pseudo styles.
+    pub fn is_empty(&self) -> bool {
+        self.0.is_none()
+    }
+
+    /// Returns a reference to the style for a given eager pseudo, if it exists.
+    pub fn get(&self, pseudo: &PseudoElement) -> Option<&ComputedStyle> {
+        debug_assert!(pseudo.is_eager());
+        self.0.as_ref().and_then(|p| p[pseudo.eager_index()].as_ref())
+    }
+
+    /// Returns a mutable reference to the style for a given eager pseudo, if it exists.
+    pub fn get_mut(&mut self, pseudo: &PseudoElement) -> Option<&mut ComputedStyle> {
+        debug_assert!(pseudo.is_eager());
+        self.0.as_mut().and_then(|p| p[pseudo.eager_index()].as_mut())
+    }
+
+    /// Returns true if the EagerPseudoStyles has a ComputedStyle for |pseudo|.
+    pub fn has(&self, pseudo: &PseudoElement) -> bool {
+        self.get(pseudo).is_some()
+    }
+
+    /// Inserts a pseudo-element. The pseudo-element must not already exist.
+    pub fn insert(&mut self, pseudo: &PseudoElement, style: ComputedStyle) {
+        debug_assert!(!self.has(pseudo));
+        if self.0.is_none() {
+            self.0 = Some(vec![None; EAGER_PSEUDO_COUNT].into_boxed_slice());
+        }
+        self.0.as_mut().unwrap()[pseudo.eager_index()] = Some(style);
+    }
+
+    /// Removes a pseudo-element style if it exists, and returns it.
+    pub fn take(&mut self, pseudo: &PseudoElement) -> Option<ComputedStyle> {
+        let result = match self.0.as_mut() {
+            None => return None,
+            Some(arr) => arr[pseudo.eager_index()].take(),
+        };
+        let empty = self.0.as_ref().unwrap().iter().all(|x| x.is_none());
+        if empty {
+            self.0 = None;
+        }
+        result
+    }
+
+    /// Returns a list of the pseudo-elements.
+    pub fn keys(&self) -> Vec<PseudoElement> {
+        let mut v = Vec::new();
+        if let Some(ref arr) = self.0 {
+            for i in 0..EAGER_PSEUDO_COUNT {
+                if arr[i].is_some() {
+                    v.push(PseudoElement::from_eager_index(i));
+                }
+            }
+        }
+        v
+    }
+
+    /// Sets the rule node for a given pseudo-element, which must already have an entry.
+    ///
+    /// Returns true if the rule node changed.
+    pub fn set_rules(&mut self, pseudo: &PseudoElement, rules: StrongRuleNode) -> bool {
+        debug_assert!(self.has(pseudo));
+        let mut style = self.get_mut(pseudo).unwrap();
+        let changed = style.rules != rules;
+        style.rules = rules;
+        changed
     }
 }
 
-impl Deref for PseudoStyles {
-    type Target = PseudoStylesInner;
-    fn deref(&self) -> &Self::Target { &self.0 }
-}
-
-impl DerefMut for PseudoStyles {
-    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
-}
+/// A cache of precomputed and lazy pseudo-elements, used by servo. This isn't
+/// a very efficient design, but is the result of servo having previously used
+/// the eager pseudo map (when it was a map) for this cache.
+#[cfg(feature = "servo")]
+type PseudoElementCache = HashMap<PseudoElement, ComputedStyle, BuildHasherDefault<::fnv::FnvHasher>>;
+#[cfg(feature = "gecko")]
+type PseudoElementCache = ();
 
 /// The styles associated with a node, including the styles for any
 /// pseudo-elements.
@@ -107,8 +161,10 @@ impl DerefMut for PseudoStyles {
 pub struct ElementStyles {
     /// The element's style.
     pub primary: ComputedStyle,
-    /// The map of styles for the element's pseudos.
-    pub pseudos: PseudoStyles,
+    /// A list of the styles for the element's eagerly-cascaded pseudo-elements.
+    pub pseudos: EagerPseudoStyles,
+    /// NB: This is an empty field for gecko.
+    pub cached_pseudos: PseudoElementCache,
 }
 
 impl ElementStyles {
@@ -116,7 +172,8 @@ impl ElementStyles {
     pub fn new(primary: ComputedStyle) -> Self {
         ElementStyles {
             primary: primary,
-            pseudos: PseudoStyles::empty(),
+            pseudos: EagerPseudoStyles(None),
+            cached_pseudos: PseudoElementCache::default(),
         }
     }
 
@@ -126,99 +183,82 @@ impl ElementStyles {
     }
 }
 
-/// Enum to describe the different requirements that a restyle hint may impose
-/// on its descendants.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum DescendantRestyleHint {
-    /// This hint does not require any descendants to be restyled.
-    Empty,
-    /// This hint requires direct children to be restyled.
-    Children,
-    /// This hint requires all descendants to be restyled.
-    Descendants,
-}
-
-impl DescendantRestyleHint {
-    /// Propagates this descendant behavior to a child element.
-    fn propagate(self) -> Self {
-        use self::DescendantRestyleHint::*;
-        if self == Descendants {
-            Descendants
-        } else {
-            Empty
-        }
-    }
-
-    fn union(self, other: Self) -> Self {
-        use self::DescendantRestyleHint::*;
-        if self == Descendants || other == Descendants {
-            Descendants
-        } else if self == Children || other == Children {
-            Children
-        } else {
-            Empty
-        }
-    }
-}
-
-/// Restyle hint for storing on ElementData. We use a separate representation
-/// to provide more type safety while propagating restyle hints down the tree.
+/// Restyle hint for storing on ElementData.
+///
+/// We wrap it in a newtype to force the encapsulation of the complexity of
+/// handling the correct invalidations in this file.
 #[derive(Clone, Debug)]
-pub struct StoredRestyleHint {
-    /// Whether this element should be restyled during the traversal, and how.
-    ///
-    /// This hint is stripped down, and only contains hints that are a subset of
-    /// RestyleHint::for_single_element().
-    pub self_: RestyleHint,
-    /// Whether the descendants of this element need to be restyled.
-    pub descendants: DescendantRestyleHint,
-}
+pub struct StoredRestyleHint(RestyleHint);
 
 impl StoredRestyleHint {
     /// Propagates this restyle hint to a child element.
-    pub fn propagate(&self) -> Self {
-        StoredRestyleHint {
-            self_: if self.descendants == DescendantRestyleHint::Empty {
-                RestyleHint::empty()
-            } else {
-                RESTYLE_SELF
-            },
-            descendants: self.descendants.propagate(),
+    pub fn propagate(&mut self, traversal_flags: &TraversalFlags) -> Self {
+        use std::mem;
+
+        // In the middle of an animation only restyle, we don't need to
+        // propagate any restyle hints, and we need to remove ourselves.
+        if traversal_flags.for_animation_only() {
+            self.0.remove_animation_hints();
+            return Self::empty();
         }
+
+        debug_assert!(!self.0.has_animation_hint(),
+                      "There should not be any animation restyle hints \
+                       during normal traversal");
+
+        // Else we should clear ourselves, and return the propagated hint.
+        let new_hint = mem::replace(&mut self.0, RestyleHint::empty())
+                       .propagate_for_non_animation_restyle();
+        StoredRestyleHint(new_hint)
     }
 
     /// Creates an empty `StoredRestyleHint`.
     pub fn empty() -> Self {
-        StoredRestyleHint {
-            self_: RestyleHint::empty(),
-            descendants: DescendantRestyleHint::Empty,
-        }
+        StoredRestyleHint(RestyleHint::empty())
     }
 
     /// Creates a restyle hint that forces the whole subtree to be restyled,
     /// including the element.
     pub fn subtree() -> Self {
-        StoredRestyleHint {
-            self_: RESTYLE_SELF,
-            descendants: DescendantRestyleHint::Descendants,
-        }
+        StoredRestyleHint(RestyleHint::subtree())
+    }
+
+    /// Creates a restyle hint that forces the element and all its later
+    /// siblings to have their whole subtrees restyled, including the elements
+    /// themselves.
+    pub fn subtree_and_later_siblings() -> Self {
+        StoredRestyleHint(RestyleHint::subtree_and_later_siblings())
     }
 
     /// Returns true if the hint indicates that our style may be invalidated.
     pub fn has_self_invalidations(&self) -> bool {
-        !self.self_.is_empty()
+        self.0.affects_self()
+    }
+
+    /// Returns true if the hint indicates that our sibling's style may be
+    /// invalidated.
+    pub fn has_sibling_invalidations(&self) -> bool {
+        self.0.affects_later_siblings()
     }
 
     /// Whether the restyle hint is empty (nothing requires to be restyled).
     pub fn is_empty(&self) -> bool {
-        !self.has_self_invalidations() &&
-            self.descendants == DescendantRestyleHint::Empty
+        self.0.is_empty()
     }
 
     /// Insert another restyle hint, effectively resulting in the union of both.
-    pub fn insert(&mut self, other: &Self) {
-        self.self_ |= other.self_;
-        self.descendants = self.descendants.union(other.descendants);
+    pub fn insert(&mut self, other: Self) {
+        self.0.insert(other.0)
+    }
+
+    /// Insert another restyle hint, effectively resulting in the union of both.
+    pub fn insert_from(&mut self, other: &Self) {
+        self.0.insert_from(&other.0)
+    }
+
+    /// Returns true if the hint has animation-only restyle.
+    pub fn has_animation_hint(&self) -> bool {
+        self.0.has_animation_hint()
     }
 }
 
@@ -230,62 +270,7 @@ impl Default for StoredRestyleHint {
 
 impl From<RestyleHint> for StoredRestyleHint {
     fn from(hint: RestyleHint) -> Self {
-        use restyle_hints::*;
-        use self::DescendantRestyleHint::*;
-        debug_assert!(!hint.contains(RESTYLE_LATER_SIBLINGS), "Caller should apply sibling hints");
-        StoredRestyleHint {
-            self_: hint & RestyleHint::for_self(),
-            descendants: if hint.contains(RESTYLE_DESCENDANTS) { Descendants } else { Empty },
-        }
-    }
-}
-
-static NO_SNAPSHOT: Option<Snapshot> = None;
-
-/// We really want to store an Option<Snapshot> here, but we can't drop Gecko
-/// Snapshots off-main-thread. So we make a convenient little wrapper to provide
-/// the semantics of Option<Snapshot>, while deferring the actual drop.
-#[derive(Debug, Default)]
-pub struct SnapshotOption {
-    snapshot: Option<Snapshot>,
-    destroyed: bool,
-}
-
-impl SnapshotOption {
-    /// An empty snapshot.
-    pub fn empty() -> Self {
-        SnapshotOption {
-            snapshot: None,
-            destroyed: false,
-        }
-    }
-
-    /// Destroy this snapshot.
-    pub fn destroy(&mut self) {
-        self.destroyed = true;
-        debug_assert!(self.is_none());
-    }
-
-    /// Ensure a snapshot is available and return a mutable reference to it.
-    pub fn ensure<F: FnOnce() -> Snapshot>(&mut self, create: F) -> &mut Snapshot {
-        debug_assert!(thread_state::get().is_layout());
-        if self.is_none() {
-            self.snapshot = Some(create());
-            self.destroyed = false;
-        }
-
-        self.snapshot.as_mut().unwrap()
-    }
-}
-
-impl Deref for SnapshotOption {
-    type Target = Option<Snapshot>;
-    fn deref(&self) -> &Option<Snapshot> {
-        if self.destroyed {
-            &NO_SNAPSHOT
-        } else {
-            &self.snapshot
-        }
+        StoredRestyleHint(hint)
     }
 }
 
@@ -315,43 +300,17 @@ pub struct RestyleData {
     /// for Servo for now.
     #[cfg(feature = "gecko")]
     pub damage_handled: RestyleDamage,
-
-    /// An optional snapshot of the original state and attributes of the element,
-    /// from which we may compute additional restyle hints at traversal time.
-    pub snapshot: SnapshotOption,
 }
 
 impl RestyleData {
-    /// Expands the snapshot (if any) into a restyle hint. Returns true if later
-    /// siblings must be restyled.
-    pub fn expand_snapshot<E: TElement>(&mut self, element: E, stylist: &Stylist) -> bool {
-        if self.snapshot.is_none() {
-            return false;
-        }
-
-        // Compute the hint.
-        let mut hint = stylist.compute_restyle_hint(&element,
-                                                    self.snapshot.as_ref().unwrap());
-
-        // If the hint includes a directive for later siblings, strip it out and
-        // notify the caller to modify the base hint for future siblings.
-        let later_siblings = hint.contains(RESTYLE_LATER_SIBLINGS);
-        hint.remove(RESTYLE_LATER_SIBLINGS);
-
-        // Insert the hint.
-        self.hint.insert(&hint.into());
-
-        // Destroy the snapshot.
-        self.snapshot.destroy();
-
-        later_siblings
-    }
-
     /// Returns true if this RestyleData might invalidate the current style.
     pub fn has_invalidations(&self) -> bool {
-        self.hint.has_self_invalidations() ||
-            self.recascade ||
-            self.snapshot.is_some()
+        self.hint.has_self_invalidations() || self.recascade
+    }
+
+    /// Returns true if this RestyleData might invalidate sibling styles.
+    pub fn has_sibling_invalidations(&self) -> bool {
+        self.hint.has_sibling_invalidations()
     }
 
     /// Returns damage handled.
@@ -399,13 +358,64 @@ pub enum RestyleKind {
     MatchAndCascade,
     /// We need to recascade with some replacement rule, such as the style
     /// attribute, or animation rules.
-    CascadeWithReplacements(RestyleHint),
+    CascadeWithReplacements(RestyleReplacements),
     /// We only need to recascade, for example, because only inherited
     /// properties in the parent changed.
     CascadeOnly,
 }
 
 impl ElementData {
+    /// Computes the final restyle hint for this element, potentially allocating
+    /// a `RestyleData` if we need to.
+    ///
+    /// This expands the snapshot (if any) into a restyle hint, and handles
+    /// explicit sibling restyle hints from the stored restyle hint.
+    ///
+    /// Returns true if later siblings must be restyled.
+    pub fn compute_final_hint<E: TElement>(
+        &mut self,
+        element: E,
+        context: &SharedStyleContext)
+        -> bool
+    {
+        debug!("compute_final_hint: {:?}, {:?}",
+               element,
+               context.traversal_flags);
+
+        let mut hint = match self.get_restyle() {
+            Some(r) => r.hint.0.clone(),
+            None => RestyleHint::empty(),
+        };
+
+        debug!("compute_final_hint: {:?}, has_snapshot: {}, handled_snapshot: {}, \
+                pseudo: {:?}",
+                element,
+                element.has_snapshot(),
+                element.handled_snapshot(),
+                element.implemented_pseudo_element());
+
+        if element.has_snapshot() && !element.handled_snapshot() {
+            hint.insert(context.stylist.compute_restyle_hint(&element, context.snapshot_map));
+            unsafe { element.set_handled_snapshot() }
+            debug_assert!(element.handled_snapshot());
+        }
+
+        let empty_hint = hint.is_empty();
+
+        // If the hint includes a directive for later siblings, strip it out and
+        // notify the caller to modify the base hint for future siblings.
+        let later_siblings = hint.remove_later_siblings_hint();
+
+        // Insert the hint, overriding the previous hint. This effectively takes
+        // care of removing the later siblings restyle hint.
+        if !empty_hint {
+            self.ensure_restyle().hint = hint.into();
+        }
+
+        later_siblings
+    }
+
+
     /// Trivially construct an ElementData.
     pub fn new(existing: Option<ElementStyles>) -> Self {
         ElementData {
@@ -414,35 +424,35 @@ impl ElementData {
         }
     }
 
-    /// Returns true if this element has a computed styled.
+    /// Returns true if this element has a computed style.
     pub fn has_styles(&self) -> bool {
         self.styles.is_some()
     }
 
-    /// Returns true if this element's style is up-to-date and has no potential
-    /// invalidation.
-    pub fn has_current_styles(&self) -> bool {
-        self.has_styles() &&
-            self.restyle.as_ref().map_or(true, |r| !r.has_invalidations())
+    /// Returns whether we have any outstanding style invalidation.
+    pub fn has_invalidations(&self) -> bool {
+        self.restyle.as_ref().map_or(false, |r| r.has_invalidations())
     }
 
     /// Returns the kind of restyling that we're going to need to do on this
     /// element, based of the stored restyle hint.
     pub fn restyle_kind(&self) -> RestyleKind {
-        debug_assert!(!self.has_current_styles(), "Should've stopped earlier");
+        debug_assert!(!self.has_styles() || self.has_invalidations(),
+                      "Should've stopped earlier");
         if !self.has_styles() {
             return RestyleKind::MatchAndCascade;
         }
 
         debug_assert!(self.restyle.is_some());
         let restyle_data = self.restyle.as_ref().unwrap();
-        let hint = restyle_data.hint.self_;
-        if hint.contains(RESTYLE_SELF) {
+
+        let hint = &restyle_data.hint.0;
+        if hint.match_self() {
             return RestyleKind::MatchAndCascade;
         }
 
         if !hint.is_empty() {
-            return RestyleKind::CascadeWithReplacements(hint);
+            return RestyleKind::CascadeWithReplacements(hint.replacements);
         }
 
         debug_assert!(restyle_data.recascade,
@@ -480,9 +490,40 @@ impl ElementData {
 
     /// Sets the computed element styles.
     pub fn set_styles(&mut self, styles: ElementStyles) {
-        debug_assert!(self.get_restyle().map_or(true, |r| r.snapshot.is_none()),
-                      "Traversal should have expanded snapshots");
         self.styles = Some(styles);
+    }
+
+    /// Sets the computed element rules, and returns whether the rules changed.
+    pub fn set_primary_rules(&mut self, rules: StrongRuleNode) -> bool {
+        if !self.has_styles() {
+            self.set_styles(ElementStyles::new(ComputedStyle::new_partial(rules)));
+            return true;
+        }
+
+        if self.styles().primary.rules == rules {
+            return false;
+        }
+
+        self.styles_mut().primary.rules = rules;
+        true
+    }
+
+    /// Return true if important rules are different.
+    /// We use this to make sure the cascade of off-main thread animations is correct.
+    /// Note: Ignore custom properties for now because we only support opacity and transform
+    ///       properties for animations running on compositor. Actually, we only care about opacity
+    ///       and transform for now, but it's fine to compare all properties and let the user
+    ///       the check which properties do they want.
+    ///       If it costs too much, get_properties_overriding_animations() should return a set
+    ///       containing only opacity and transform properties.
+    pub fn important_rules_are_different(&self,
+                                         rules: &StrongRuleNode,
+                                         guards: &StylesheetGuards) -> bool {
+        debug_assert!(self.has_styles());
+        let (important_rules, _custom) =
+            self.styles().primary.rules.get_properties_overriding_animations(&guards);
+        let (other_important_rules, _custom) = rules.get_properties_overriding_animations(&guards);
+        important_rules != other_important_rules
     }
 
     /// Returns true if the Element has a RestyleData.

@@ -12,7 +12,7 @@ path = "lib.rs"
 [dependencies]
 euclid = "0.11"
 gfx_traits = {path = "../gfx_traits"}
-gleam = "0.2.8"
+gleam = "0.4"
 image = "0.12"
 ipc-channel = "0.7"
 log = "0.3.5"
@@ -20,18 +20,10 @@ msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 profile_traits = {path = "../profile_traits"}
 script_traits = {path = "../script_traits"}
-servo_config = {path = "../config", features = ["servo"]}
+servo_config = {path = "../config"}
 servo_geometry = {path = "../geometry", features = ["servo"]}
-servo_url = {path = "../url", features = ["servo"]}
+servo_url = {path = "../url"}
 style_traits = {path = "../style_traits"}
 time = "0.1.17"
-
-[dependencies.webrender]
-git = "https://github.com/servo/webrender"
-default-features = false
-features = ["serde_derive"]
-
-[dependencies.webrender_traits]
-git = "https://github.com/servo/webrender"
-default-features = false
-features = ["serde_derive", "ipc"]
+webrender = {git = "https://github.com/servo/webrender"}
+webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}

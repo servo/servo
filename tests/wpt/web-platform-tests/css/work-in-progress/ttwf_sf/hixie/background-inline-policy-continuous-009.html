@@ -1,0 +1,87 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html lang="en">
+ <head>
+  <title>CSS inline background policy: continuous, animated test</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/background/inline/policy/continuous/009.html"/>
+    <style type="text/css">
+   .control { display: inline; font: 1em/1 Ahem, sans-serif; background: red; color: white; }
+   #a { background: green; margin: 1em 1em 1em 0; float: right; padding: 1em; color: white; }
+   #test {
+     background: url(/resources/images/patterns/red-blobs) no-repeat green;
+     -moz-background-inline-policy: continuous;
+     color: white;
+   }
+   #x { font: 32px/1 Ahem; letter-spacing: 0; }
+  </style>
+  <script type="text/javascript">
+    var x1 = 1; var bias1 = 1;
+    var x2 = 1; var bias2 = 1;
+    var x3 = 1; var bias3 = 1;
+    var count = 0;
+    function test() {
+      count++;
+      if (count % 200 == 0) { bias1 = bias1 < 0 ? 1 : -1; }
+      if (count % 100 == 0) { bias2 = bias2 < 0 ? 1 : -1; }
+      if (count % 50 == 0) { bias3 = bias3 < 0 ? 1 : -1; }
+      x1 += 0.04 * bias1;
+      document.getElementById('before').style.letterSpacing = x1 + 'px';
+      document.getElementById('test').style.letterSpacing = x1 + 'px';
+      x2 += 0.04 * bias2;
+      document.getElementById('b').style.lineHeight = x2;
+      x3 += 0.20 * bias3;
+      document.getElementById('a').style.width = x3 * 1.2 + 10 + 'em';
+      document.getElementById('a').style.height = x3 + 5 + 'em';
+    }
+  </script>
+ </head>
+ <body onload="setInterval(test, 50)">
+  <div class="control">Ahem_font_required_for_this_test.</div>
+  <p>There should be no red below.</p>
+  <p id="b">
+   <span id="before">filler text filler text filler text filler text
+   filler text filler text filler text filler text filler text</span>
+   <span id="test"><span id="x">XXXXXXXX</span> filler text filler text
+   filler text filler text filler text filler text filler text filler
+   text filler text filler text filler text filler text filler text
+   filler text filler text filler text filler text filler text filler
+   text filler text filler text filler text filler text filler text
+   filler text filler text filler text filler text filler text filler
+   text filler text filler text filler text filler text filler text
+   filler text filler text filler text filler text filler text filler
+   text filler text filler text filler text filler text filler text
+   filler text filler text filler text filler text filler text filler
+   text filler text filler text filler text filler text filler text
+   <span id="a"> </span>
+   filler text filler text filler text filler text filler text filler
+   text filler text filler text filler text filler text filler text
+   filler text filler text filler text filler text filler text filler
+   text filler text filler text filler text filler text filler text
+   filler text filler text filler text filler text filler text filler
+   text filler text filler text filler text filler text filler text
+   filler text filler text filler text filler text filler text filler
+   text filler text filler text filler text filler text filler text
+   filler text filler text filler text filler text filler text filler
+   text filler text filler text filler text filler text filler text
+   filler text filler text filler text filler text filler text filler
+   text filler text filler text filler text filler text filler text
+   filler text filler text filler text filler text filler text filler
+   text filler text filler text filler text filler text filler text
+   filler text filler text filler text filler text filler text filler
+   text filler text filler text filler text filler text filler text
+   filler text filler text filler text filler text filler text filler
+   text filler text filler text filler text filler text filler text
+   filler text filler text filler text filler text filler text filler
+   text filler text filler text filler text filler text filler text
+   filler text filler text filler text filler text filler text filler
+   text filler text filler text filler text filler text filler text
+   filler text filler text filler text filler text filler text filler
+   text filler text filler text filler text filler text filler text
+   filler text filler text filler text filler text filler text filler
+   text filler text filler text filler text filler text filler text
+   filler text filler text filler text filler text filler text filler
+   text filler text filler text filler text filler text filler text
+   filler text filler text filler text filler text filler text</span>
+  </p>
+ </body>
+</html>

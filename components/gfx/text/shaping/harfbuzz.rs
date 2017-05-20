@@ -164,7 +164,7 @@ impl Shaper {
                               Shaper::float_to_fixed(pt_size) as c_int);
 
             // configure static function callbacks.
-            hb_font_set_funcs(hb_font, **HB_FONT_FUNCS, font as *mut Font as *mut c_void, None);
+            hb_font_set_funcs(hb_font, HB_FONT_FUNCS.as_ptr(), font as *mut Font as *mut c_void, None);
 
             Shaper {
                 hb_face: hb_face,
@@ -404,7 +404,7 @@ impl Shaper {
         if character == ' ' || character == '\u{a0}' {
             // https://drafts.csswg.org/css-text-3/#word-spacing-property
             let (length, percent) = options.word_spacing;
-            advance = (advance + length) + Au((advance.0 as f32 * percent.into_inner()) as i32);
+            advance = (advance + length) + Au::new((advance.0 as f32 * percent.into_inner()) as i32);
         }
 
         advance

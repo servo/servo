@@ -6,8 +6,12 @@
 //! For linux based platforms, it uses the XDG base directory spec but provides
 //! similar abstractions for non-linux platforms.
 
+#[cfg(target_os = "android")]
+use android_injected_glue;
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 use std::env;
+#[cfg(target_os = "android")]
+use std::ffi::CStr;
 use std::path::PathBuf;
 #[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))]
 use xdg;
@@ -20,8 +24,12 @@ pub fn default_config_dir() -> Option<PathBuf> {
 }
 
 #[cfg(target_os = "android")]
+#[allow(unsafe_code)]
 pub fn default_config_dir() -> Option<PathBuf> {
-    Some(PathBuf::from("/sdcard/servo"))
+    let dir = unsafe {
+        CStr::from_ptr((*android_injected_glue::get_app().activity).externalDataPath)
+    };
+    Some(PathBuf::from(dir.to_str().unwrap()))
 }
 
 #[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))]
@@ -32,8 +40,12 @@ pub fn default_data_dir() -> Option<PathBuf> {
 }
 
 #[cfg(target_os = "android")]
+#[allow(unsafe_code)]
 pub fn default_data_dir() -> Option<PathBuf> {
-    Some(PathBuf::from("/sdcard/servo"))
+    let dir = unsafe {
+        CStr::from_ptr((*android_injected_glue::get_app().activity).internalDataPath)
+    };
+    Some(PathBuf::from(dir.to_str().unwrap()))
 }
 
 #[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))]
@@ -44,8 +56,14 @@ pub fn default_cache_dir() -> Option<PathBuf> {
 }
 
 #[cfg(target_os = "android")]
+#[allow(unsafe_code)]
 pub fn default_cache_dir() -> Option<PathBuf> {
-    Some(PathBuf::from("/sdcard/servo"))
+    // TODO: Use JNI to call context.getCacheDir().
+    // There is no equivalent function in NDK/NativeActivity.
+    let dir = unsafe {
+        CStr::from_ptr((*android_injected_glue::get_app().activity).externalDataPath)
+    };
+    Some(PathBuf::from(dir.to_str().unwrap()))
 }
 
 #[cfg(target_os = "macos")]

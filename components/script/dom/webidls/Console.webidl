@@ -10,7 +10,7 @@
  */
 
 [ClassString="Console",
- Exposed=(Window,Worker),
+ Exposed=(Window,Worker,Worklet),
  ProtoObjectHack]
 namespace console {
   // These should be DOMString message, DOMString message2, ...

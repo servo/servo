@@ -4,29 +4,40 @@
 <script>
   var log = function() {}, // see comment below
       p = function() {}, // see comment below
-      fails = ["", "?type=", "?type=x", "?type=x/x"],
-      passes = ["?type=text/javascript", "?type=text/ecmascript", "?type=text/ecmascript;blah"]
+      fails = [null, "", "x", "x/x"],
+      passes = ["text/javascript", "text/ecmascript", "text/ecmascript;blah"]
 
   // Ideally we'd also check whether the scripts in fact execute, but that would involve
   // timers and might get a bit racy without cross-browser support for the execute events.
 
-  fails.forEach(function(urlpart) {
+  const get_url = (mime, outcome) => {
+    let url = "resources/js.py"
+    if (mime != null) {
+        url += "?type=" + encodeURIComponent(mime)
+    }
+    if (outcome) {
+      url += "&outcome=p"
+    }
+    return url
+  }
+
+  fails.forEach(function(mime) {
     async_test(function(t) {
       var script = document.createElement("script")
       script.onerror = t.step_func_done(function(){})
       script.onload = t.unreached_func("Unexpected load event")
-      script.src = "resources/js.py" + urlpart
+      script.src = get_url(mime)
       document.body.appendChild(script)
-    }, "URL query: " + urlpart)
+    }, "URL query: " + mime)
   })
 
-  passes.forEach(function(urlpart) {
+  passes.forEach(function(mime) {
     async_test(function(t) {
       var script = document.createElement("script")
       script.onerror = t.unreached_func("Unexpected error event")
       script.onload = t.step_func_done(function(){})
-      script.src = "resources/js.py" + urlpart + "&outcome=p"
+      script.src = get_url(mime, true)
       document.body.appendChild(script)
-    }, "URL query: " + urlpart)
+    }, "URL query: " + mime)
   })
 </script>

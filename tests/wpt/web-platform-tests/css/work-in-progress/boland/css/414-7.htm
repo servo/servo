@@ -1,0 +1,57 @@
+
+<HTML>
+<HEAD>
+<TITLE>Seventh Test of Section 4.1.4 of CSS1 Spec</TITLE>
+
+
+<STYLE TYPE="text/css">
+ IMG { float: left }
+ EM {float: left}
+</STYLE>
+</HEAD>
+
+
+
+
+
+<BODY>
+
+<h1 >Testing Statement #7 Below for Section 4.1.4 of CSS1 Spec</h1>
+
+
+
+
+
+
+<ul>
+<li>
+7. A floating element's top may not be higher than the top of any earlier
+floating or block-level element.
+</ul>
+
+<h2>PASS CRITERIA:
+</h2>
+If statement #7 above is passed, then:
+<p>
+This "p" element is block-level, and should be displayed above the image or
+emphasized text below.  No explicit CSS1 rule is applied here.
+
+<em>
+This emphasized text is floated to the left.  The rule applied here is
+"em {float: left}".  This text should be entirely below the "p" element
+above.
+</em>
+<img src="ovalbbut.gif">
+
+<p>
+The image to the left (floating left) should be entirely below the emphasized
+text above it.
+The rule applied for the image is "img {float: left}".
+
+All other properties should be UA-default.
+
+
+
+To move directly to the next test, click<a href="414-8.htm"> here</a>
+</BODY>
+</HTML>

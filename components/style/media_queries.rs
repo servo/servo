@@ -7,7 +7,9 @@
 //! [mq]: https://drafts.csswg.org/mediaqueries/
 
 use Atom;
+use context::QuirksMode;
 use cssparser::{Delimiter, Parser, Token};
+use parser::ParserContext;
 use serialize_comma_separated_list;
 use std::ascii::AsciiExt;
 use std::fmt;
@@ -19,11 +21,11 @@ pub use servo::media_queries::{Device, Expression};
 pub use gecko::media_queries::{Device, Expression};
 
 /// A type that encapsulates a media query list.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct MediaList {
     /// The list of media queries.
-    pub media_queries: Vec<MediaQuery>
+    pub media_queries: Vec<MediaQuery>,
 }
 
 impl ToCss for MediaList {
@@ -34,8 +36,9 @@ impl ToCss for MediaList {
     }
 }
 
-impl Default for MediaList {
-    fn default() -> MediaList {
+impl MediaList {
+    /// Create an empty MediaList.
+    pub fn empty() -> Self {
         MediaList { media_queries: vec![] }
     }
 }
@@ -56,17 +59,17 @@ impl ToCss for Qualifier {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
         where W: fmt::Write
     {
-        match *self {
-            Qualifier::Not => write!(dest, "not"),
-            Qualifier::Only => write!(dest, "only"),
-        }
+        dest.write_str(match *self {
+            Qualifier::Not => "not",
+            Qualifier::Only => "only",
+        })
     }
 }
 
 /// A [media query][mq].
 ///
 /// [mq]: https://drafts.csswg.org/mediaqueries/
-#[derive(Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct MediaQuery {
     /// The qualifier for this query.
@@ -152,15 +155,26 @@ pub enum MediaQueryType {
 }
 
 impl MediaQueryType {
-    fn parse(ident: &str) -> Self {
+    fn parse(ident: &str) -> Result<Self, ()> {
         if ident.eq_ignore_ascii_case("all") {
-            return MediaQueryType::All;
+            return Ok(MediaQueryType::All);
         }
 
-        match MediaType::parse(ident) {
+        // From https://drafts.csswg.org/mediaqueries/#mq-syntax:
+        //
+        //   The <media-type> production does not include the keywords only,
+        //   not, and, and or.
+        if ident.eq_ignore_ascii_case("not") ||
+           ident.eq_ignore_ascii_case("or") ||
+           ident.eq_ignore_ascii_case("and") ||
+           ident.eq_ignore_ascii_case("only") {
+            return Err(())
+        }
+
+        Ok(match MediaType::parse(ident) {
             Some(media_type) => MediaQueryType::Known(media_type),
             None => MediaQueryType::Unknown(Atom::from(ident)),
-        }
+        })
     }
 
     fn matches(&self, other: MediaType) -> bool {
@@ -195,7 +209,7 @@ impl MediaQuery {
     /// Parse a media query given css input.
     ///
     /// Returns an error if any of the expressions is unknown.
-    pub fn parse(input: &mut Parser) -> Result<MediaQuery, ()> {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<MediaQuery, ()> {
         let mut expressions = vec![];
 
         let qualifier = if input.try(|input| input.expect_ident_matching("only")).is_ok() {
@@ -207,7 +221,7 @@ impl MediaQuery {
         };
 
         let media_type = match input.try(|input| input.expect_ident()) {
-            Ok(ident) => MediaQueryType::parse(&*ident),
+            Ok(ident) => try!(MediaQueryType::parse(&*ident)),
             Err(()) => {
                 // Media type is only optional if qualifier is not specified.
                 if qualifier.is_some() {
@@ -215,7 +229,7 @@ impl MediaQuery {
                 }
 
                 // Without a media type, require at least one expression.
-                expressions.push(try!(Expression::parse(input)));
+                expressions.push(try!(Expression::parse(context, input)));
 
                 MediaQueryType::All
             }
@@ -226,7 +240,7 @@ impl MediaQuery {
             if input.try(|input| input.expect_ident_matching("and")).is_err() {
                 return Ok(MediaQuery::new(qualifier, media_type, expressions))
             }
-            expressions.push(try!(Expression::parse(input)))
+            expressions.push(try!(Expression::parse(context, input)))
         }
     }
 }
@@ -237,25 +251,19 @@ impl MediaQuery {
 /// media query list is only filled with the equivalent of "not all", see:
 ///
 /// https://drafts.csswg.org/mediaqueries/#error-handling
-pub fn parse_media_query_list(input: &mut Parser) -> MediaList {
+pub fn parse_media_query_list(context: &ParserContext, input: &mut Parser) -> MediaList {
     if input.is_exhausted() {
-        return Default::default()
+        return MediaList::empty()
     }
 
     let mut media_queries = vec![];
-    let mut found_invalid = false;
     loop {
-        match input.parse_until_before(Delimiter::Comma, MediaQuery::parse) {
-            Ok(mq) => if !found_invalid {
+        match input.parse_until_before(Delimiter::Comma, |i| MediaQuery::parse(context, i)) {
+            Ok(mq) => {
                 media_queries.push(mq);
             },
-            Err(..) => if !found_invalid {
-                media_queries.clear();
+            Err(..) => {
                 media_queries.push(MediaQuery::never_matching());
-                // Consume the rest of the input as if they were valid
-                // expressions (they might be, they might not), but ignore the
-                // result, this allows correctly parsing invalid media queries.
-                found_invalid = true;
             },
         }
 
@@ -266,8 +274,6 @@ pub fn parse_media_query_list(input: &mut Parser) -> MediaList {
         }
     }
 
-    debug_assert!(!found_invalid || media_queries.len() == 1);
-
     MediaList {
         media_queries: media_queries,
     }
@@ -275,7 +281,7 @@ pub fn parse_media_query_list(input: &mut Parser) -> MediaList {
 
 impl MediaList {
     /// Evaluate a whole `MediaList` against `Device`.
-    pub fn evaluate(&self, device: &Device) -> bool {
+    pub fn evaluate(&self, device: &Device, quirks_mode: QuirksMode) -> bool {
         // Check if it is an empty media query list or any queries match (OR condition)
         // https://drafts.csswg.org/mediaqueries-4/#mq-list
         self.media_queries.is_empty() || self.media_queries.iter().any(|mq| {
@@ -285,7 +291,7 @@ impl MediaList {
             let query_match =
                 media_match &&
                 mq.expressions.iter()
-                    .all(|expression| expression.matches(&device));
+                    .all(|expression| expression.matches(&device, quirks_mode));
 
             // Apply the logical NOT qualifier to the result
             match mq.qualifier {
@@ -298,5 +304,38 @@ impl MediaList {
     /// Whether this `MediaList` contains no media queries.
     pub fn is_empty(&self) -> bool {
         self.media_queries.is_empty()
+    }
+
+    /// Append a new media query item to the media list.
+    /// https://drafts.csswg.org/cssom/#dom-medialist-appendmedium
+    ///
+    /// Returns true if added, false if fail to parse the medium string.
+    pub fn append_medium(&mut self, context: &ParserContext, new_medium: &str) -> bool {
+        let mut parser = Parser::new(new_medium);
+        let new_query = match MediaQuery::parse(&context, &mut parser) {
+            Ok(query) => query,
+            Err(_) => { return false; }
+        };
+        // This algorithm doesn't actually matches the current spec,
+        // but it matches the behavior of Gecko and Edge.
+        // See https://github.com/w3c/csswg-drafts/issues/697
+        self.media_queries.retain(|query| query != &new_query);
+        self.media_queries.push(new_query);
+        true
+    }
+
+    /// Delete a media query from the media list.
+    /// https://drafts.csswg.org/cssom/#dom-medialist-deletemedium
+    ///
+    /// Returns true if found and deleted, false otherwise.
+    pub fn delete_medium(&mut self, context: &ParserContext, old_medium: &str) -> bool {
+        let mut parser = Parser::new(old_medium);
+        let old_query = match MediaQuery::parse(context, &mut parser) {
+            Ok(query) => query,
+            Err(_) => { return false; }
+        };
+        let old_len = self.media_queries.len();
+        self.media_queries.retain(|query| query != &old_query);
+        old_len != self.media_queries.len()
     }
 }

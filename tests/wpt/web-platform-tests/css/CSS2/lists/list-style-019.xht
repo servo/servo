@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: list-style - initial value</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="author" title="James Hopkins" href="http://idreamincode.co.uk/css21testsuite" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#list-style" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/about.html#shorthand" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/cascade.html#specified-value" />
+  <link rel="match" href="list-style-019-ref.xht"/>
+  <meta content="image" name="flags" />
+  <meta content="'list-style' property is a shorthand notation that sets the three properties 'list-style-type', 'list-style-image' and 'list-style-position'. If one of the 3 list-style properties is not specified explicitly, then such 'list-style' property is assigned its initial value as indicated in its property definition." name="assert" />
+
+  <style type="text/css"><![CDATA[
+  li
+  {
+  list-style-image: url("support/swatch-red.png");
+  list-style: decimal inside;
+  }
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is "1." and <strong>no red</strong>.</p>
+
+  <ul>
+    <li>&nbsp;</li>
+  </ul>
+
+ </body>
+</html>

@@ -13,11 +13,10 @@ use euclid::size::Size2D;
 use flow::{self, Flow};
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use gfx::display_list::{DisplayItemMetadata, DisplayList, OpaqueNode, ScrollOffsetMap};
-use gfx_traits::ScrollRootId;
 use inline::LAST_FRAGMENT_OF_ELEMENT;
 use ipc_channel::ipc::IpcSender;
+use msg::constellation_msg::PipelineId;
 use opaque_node::OpaqueNodeMethods;
-use script_layout_interface::PendingImage;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse};
 use script_layout_interface::rpc::{HitTestResponse, LayoutRPC};
 use script_layout_interface::rpc::{MarginStyleResponse, NodeGeometryResponse};
@@ -28,7 +27,6 @@ use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
 use sequential;
 use std::cmp::{min, max};
-use std::mem;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use style::computed_values;
@@ -38,9 +36,9 @@ use style::logical_geometry::{WritingMode, BlockFlowDirection, InlineBaseDirecti
 use style::properties::{style_structs, PropertyId, PropertyDeclarationId, LonghandId};
 use style::properties::longhands::{display, position};
 use style::selector_parser::PseudoElement;
-use style::stylist::Stylist;
 use style_traits::ToCss;
 use style_traits::cursor::Cursor;
+use webrender_traits::ClipId;
 use wrapper::{LayoutNodeHelpers, LayoutNodeLayoutData};
 
 /// Mutable data belonging to the LayoutThread.
@@ -52,9 +50,6 @@ pub struct LayoutThreadData {
 
     /// The root stacking context.
     pub display_list: Option<Arc<DisplayList>>,
-
-    /// Performs CSS selector matching and style resolution.
-    pub stylist: Arc<Stylist>,
 
     /// A queued response for the union of the content boxes of a node.
     pub content_box_response: Option<Rect<Au>>,
@@ -69,7 +64,7 @@ pub struct LayoutThreadData {
     pub hit_test_response: (Option<DisplayItemMetadata>, bool),
 
     /// A queued response for the scroll root id for a given node.
-    pub scroll_root_id_response: Option<ScrollRootId>,
+    pub scroll_root_id_response: Option<ClipId>,
 
     /// A pair of overflow property in x and y
     pub overflow_response: NodeOverflowResponse,
@@ -86,14 +81,14 @@ pub struct LayoutThreadData {
     /// A queued response for the offset parent/rect of a node.
     pub margin_style_response: MarginStyleResponse,
 
-    /// Scroll offsets of stacking contexts. This will only be populated if WebRender is in use.
-    pub stacking_context_scroll_offsets: ScrollOffsetMap,
+    /// Scroll offsets of scrolling regions.
+    pub scroll_offsets: ScrollOffsetMap,
 
     /// Index in a text fragment. We need this do determine the insertion point.
     pub text_index_response: TextIndexResponse,
 
-    /// A list of images requests that need to be initiated.
-    pub pending_images: Vec<PendingImage>,
+    /// A queued response for the list of nodes at a given point.
+    pub nodes_from_point_response: Vec<UntrustedNodeAddress>,
 }
 
 pub struct LayoutRPCImpl(pub Arc<Mutex<LayoutThreadData>>);
@@ -144,33 +139,10 @@ impl LayoutRPC for LayoutRPCImpl {
         }
     }
 
-    fn nodes_from_point(&self,
-                        page_point: Point2D<f32>,
-                        client_point: Point2D<f32>) -> Vec<UntrustedNodeAddress> {
-        let page_point = Point2D::new(Au::from_f32_px(page_point.x),
-                                      Au::from_f32_px(page_point.y));
-        let client_point = Point2D::new(Au::from_f32_px(client_point.x),
-                                        Au::from_f32_px(client_point.y));
-
-        let nodes_from_point_list = {
-            let &LayoutRPCImpl(ref rw_data) = self;
-            let rw_data = rw_data.lock().unwrap();
-            let result = match rw_data.display_list {
-                None => panic!("Tried to hit test without a DisplayList"),
-                Some(ref display_list) => {
-                    display_list.hit_test(&page_point,
-                                          &client_point,
-                                          &rw_data.stacking_context_scroll_offsets)
-                }
-            };
-
-            result
-        };
-
-        nodes_from_point_list.iter()
-           .rev()
-           .map(|metadata| metadata.node.to_untrusted_node_address())
-           .collect()
+    fn nodes_from_point_response(&self) -> Vec<UntrustedNodeAddress> {
+        let &LayoutRPCImpl(ref rw_data) = self;
+        let rw_data = rw_data.lock().unwrap();
+        rw_data.nodes_from_point_response.clone()
     }
 
     fn node_geometry(&self) -> NodeGeometryResponse {
@@ -193,8 +165,8 @@ impl LayoutRPC for LayoutRPCImpl {
 
     fn node_scroll_root_id(&self) -> NodeScrollRootIdResponse {
         NodeScrollRootIdResponse(self.0.lock()
-                                        .unwrap().scroll_root_id_response
-                                        .expect("scroll_root_id is not correctly fetched"))
+                                       .unwrap().scroll_root_id_response
+                                       .expect("scroll_root_id is not correctly fetched"))
     }
 
     /// Retrieves the resolved value for a CSS style property.
@@ -220,12 +192,6 @@ impl LayoutRPC for LayoutRPCImpl {
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         rw_data.text_index_response.clone()
-    }
-
-    fn pending_images(&self) -> Vec<PendingImage> {
-        let &LayoutRPCImpl(ref rw_data) = self;
-        let mut rw_data = rw_data.lock().unwrap();
-        mem::replace(&mut rw_data.pending_images, vec![])
     }
 }
 
@@ -670,9 +636,11 @@ pub fn process_node_geometry_request<N: LayoutNode>(requested_node: N, layout_ro
     iterator.client_rect
 }
 
-pub fn process_node_scroll_root_id_request<N: LayoutNode>(requested_node: N) -> ScrollRootId {
+pub fn process_node_scroll_root_id_request<N: LayoutNode>(id: PipelineId,
+                                                          requested_node: N)
+                                                          -> ClipId {
     let layout_node = requested_node.to_threadsafe();
-    layout_node.scroll_root_id()
+    layout_node.generate_scroll_root_id(id)
 }
 
 pub fn process_node_scroll_area_request< N: LayoutNode>(requested_node: N, layout_root: &mut Flow)
@@ -902,7 +870,7 @@ pub fn process_node_overflow_request<N: LayoutNode>(requested_node: N) -> NodeOv
     let style = &*layout_node.as_element().unwrap().resolved_style();
     let style_box = style.get_box();
 
-    NodeOverflowResponse(Some((Point2D::new(style_box.overflow_x, style_box.overflow_y.0))))
+    NodeOverflowResponse(Some((Point2D::new(style_box.overflow_x, style_box.overflow_y))))
 }
 
 pub fn process_margin_style_query<N: LayoutNode>(requested_node: N)

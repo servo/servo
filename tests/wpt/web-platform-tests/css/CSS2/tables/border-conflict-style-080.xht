@@ -1,0 +1,71 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Border Conflict Resolution (by border style): 'outset' vs. 'solid' - border with highest priority border style should dominate</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#border-conflict-resolution" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The 'solid' border is the dominant border when it is collapsed with an 'outset' border of the same size." />
+        <style type="text/css">
+            #table1
+            {
+                margin-bottom: 20px;
+            }
+            table
+            {
+                border-collapse: collapse;
+            }
+            td
+            {
+                border: 5px outset lime;
+                height: 3em;
+                width: 3em;
+            }
+            #center, #table1 td
+            {
+                border: 5px solid lime;
+            }
+            #top
+            {
+                border-top: 5px outset red;
+            }
+            #left
+            {
+                border-left: 5px outset red;
+            }
+            #bottom
+            {
+                border-bottom: 5px outset red;
+            }
+            #right
+            {
+                border-right: 5px outset red;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the center box in the table below has a border similar to this:</p>
+        <table id="table1">
+            <tr>
+                <td></td>
+            </tr>
+        </table>
+        <table>
+            <tr>
+                <td>outset</td>
+                <td id="bottom">outset</td>
+                <td>outset</td>
+            </tr>
+            <tr>
+                <td id="right">outset</td>
+                <td id="center">solid</td>
+                <td id="left">outset</td>
+            </tr>
+            <tr>
+                <td>outset</td>
+                <td id="top">outset</td>
+                <td>outset</td>
+            </tr>
+        </table>
+    </body>
+</html>

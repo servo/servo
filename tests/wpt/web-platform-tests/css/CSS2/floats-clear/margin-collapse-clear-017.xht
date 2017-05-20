@@ -1,0 +1,82 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+ <head>
+
+  <title>CSS Test: Margin collapsing - margins of a 'collapsed through' box without clearance can collapse with parent block's bottom margin</title>
+
+  <link rel="help" href="http://www.w3.org/TR/CSS21/box.html#collapsing-margins" />
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+  <link rel="author" title="Daniel Schattenkirchner" href="mailto:crazy-daniel@gmx.de" />
+  <link rel="match" href="margin-collapse-clear-017-ref.xht" />
+
+  <meta content="An element that does not have clearance applied to it can collapse its top margin with its parent block's bottom margin. Margins of a 'collapsed through' box without clearance applied to it can collapse with its parent block's bottom margin. An element with 'clear' set to a value other than 'none' can create a clearance only if and only when there is an earlier (in the source document) floating box." name="assert" />
+  <meta content="image" name="flags" />
+
+  <style type="text/css"><![CDATA[
+  body
+  {
+  background: white url("support/ruler-v-100px-200px-300px.png") no-repeat;
+  margin: 34px 8px 8px 55px;
+  /*
+    34px : body's top margin collapsing with p's top margin: max(34px, 16px)
+  + 20px : p's 1st line box height
+  + 20px : p's 2nd line box height
+  + 16px : p's bottom margin
+  + 10px : height of topmost green bar
+  ======
+   100px
+  */
+  }
+
+  p
+  {
+  font-size: 16px;
+  line-height: 20px;
+  margin: 1em 8px;
+  }
+
+  div#parent-block {margin-bottom: 100px;}
+
+  div.vertical-gap-separator
+  {
+  background-color: green;
+  height: 10px;
+  }
+
+  div#element-without-clearance
+  {
+  clear: both;
+  margin-top: 100px;
+  }
+
+  /*
+  In this test, div#element-without-clearance
+  is what the spec refers to as
+  'collapsed through' box
+  http://www.w3.org/TR/CSS21/box.html#collapsed-through
+  */
+  ]]></style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if there is a vertical gap<br />
+  of exactly 100px between 2 green bars.</p>
+
+  <div id="parent-block">
+    <div class="vertical-gap-separator"></div>
+    <div id="element-without-clearance"></div>
+  </div>
+
+  <div class="vertical-gap-separator"></div>
+
+  <!--
+  div#element-without-clearance's margin-top should collapse
+  with #parent-block's margin-bottom: max(100px, 100px) = 100px
+  -->
+
+ </body>
+</html>

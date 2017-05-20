@@ -1,0 +1,49 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Absolutely positioned, non-replaced elements, solve for 'bottom'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-08-31 -->
+        <link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#abs-non-replaced-height" />
+		<link rel="match" href="absolute-non-replaced-height-003-ref.xht" />
+
+        <meta name="flags" content="" />
+        <meta name="assert" content="When 'margin-top' and 'margin-bottom' are set to '0' the 'bottom' value resolves to the remaining space within the containing block." />
+        <style type="text/css">
+            #div1
+            {
+                border: solid black;
+                height: 3in;
+                position: relative;
+                width: 3in;
+            }
+            div div
+            {
+                position: absolute;
+                top: 1in;
+                bottom: auto;
+                height: 1in;
+                margin-top: auto;
+                margin-bottom: auto;
+                background: blue;
+                width: 100%;
+            }
+
+            /*
+			"
+            'bottom' is 'auto', 'top' and 'height' are not 'auto',
+            then set 'auto' values for 'margin-top' and 'margin-bottom' to 0
+            and solve for 'bottom'
+			"
+
+			Therefore, bottom used value must be 1in
+            */
+        </style>
+    </head>
+    <body>
+        <p>Test passes if a blue rectangle is <strong>vertically centered</strong> in an hollow black square.</p>
+        <div id="div1">
+            <div></div>
+        </div>
+    </body>
+</html>

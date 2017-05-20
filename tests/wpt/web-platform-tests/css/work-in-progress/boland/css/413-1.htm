@@ -1,0 +1,55 @@
+
+<HTML>
+
+<HEAD>
+<TITLE>First Test of Section 4.1.3 of CSS1 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+UL {list-style: outside}
+UL.compact {list-style: inside}
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+
+<h1 >Testing Statement #1 Below of Section 4.1.3 of CSS1 Spec</h1>
+
+
+
+<p>
+1. Elements with a "display" property value of "list-item" are formatted as
+block-level elements but preceded by a label.  The type of label is determined
+by the "list-style" property.
+
+
+
+<h2>PASS CRITERIA:
+</h2>
+<p>
+If statement #1 above is passed, then:
+
+<ul>
+<li>
+First list item comes first
+<li>
+Second list item comes second
+</ul>
+<ul class=compact>
+<li>
+First list item comes first
+<li>
+Second list item comes second
+</ul>
+
+The top two list items should be formatted differently than the bottom
+two.
+The "ul" rules applied above are as follows: "UL {list-style: outside}"
+and "UL.compact {list-style: inside}" for the second list group.
+All other properties on this page should be UA-default.
+
+To move directly to the next test, click<a href="413-2.htm"> here</a>
+</BODY>
+</HTML>

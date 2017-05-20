@@ -1,0 +1,505 @@
+﻿<html>
+<body>
+
+<h1>Draft Test Suite for ATAG (based on 3 Nov ATAG WD) Version 1.1 - Dec 29 2004</h1>
+
+<h2>Background</h2>
+
+The scope of this test suite is the ATAG2.0 Nov 22 2004 Last Call WD; the purpose 
+of this test suite is to provide a mechanism for
+demonstrating and promoting conformance to the ATAG2.0 Nov 22 2004 Last Call WD.
+  This test suite consists of this main page,
+developer and tester tests, and a reporting page for results.  It is likely that
+ all of these components of the
+test suite, as well as the test suite itself, may be tested prior to actual operation.
+This test suite is a self-contained package; there are no other libraries and/or tools
+needed to run this test suite.  Since there are so many different types of authoring tools,
+it is up to the authors and developers to investigate the capabilities of the particular
+tool(s) in question before completing the templates.
+  All tests are required, per
+the conformance information in (reference? to) ATAG2.0 Conformance Section. 
+ This test suite may be hosted at an appropriate WAI
+site in the future, and may use applicable W3C WCAG2.0 (or UAAG, or ISO16071)
+ test suite material as necessary.  The intended audience for this test suite is content
+developers and users of the authoring tools.  For earlier versions of this test suite, go to ?. 
+
+<p>
+The philosophy of this test suite entails the concept of "roles" in testing. 
+ There are two roles defined: (1) the role of
+one (called "developer") who is knowledgeable of the authoring tool,
+ and provides (necessary?) data to enable/assist the tester to run the tests, 
+and (2) the role of one or more author(s) (called "tester(s)" - no
+ prior knowledge of tool assumed) who may take this knowledge and 
+run the tests, as specified following,
+to evaluate the claims made (by the developer?) on behalf of the authoring tool.
+  Developer and tester may be the same individual, and more than one tester
+ can run tests on the
+same tool.
+<p>It is important that the date and version of the specification tested 
+against be mentioned in the tests.  It would be good to
+provide some extra incentive for developers and testers for taking their
+ time in filling out the forms?   It is also important that QA work
+ (including deprecation, obsoleting, variability,
+and classes of conformance) be taken into account.  
+These templates should also be accessible (including to screen readers).
+  
+<p> 
+NOTE: These tests will be represented as templates (interactive forms)
+ to be completed and submitted to another site.
+For now they are just HTML files.
+The test procedure (process of executing a test) is for a template (form):
+ take the actions indicated,
+fill out the entries, and submit (to testreports site).  Specific results
+ of filling
+out the templates (forms) should be reproducible to the maximum extent 
+possible, given the possible human interpretation of test results
+for certain of the tests.  Reporting of results may be by machine or
+ by human.  It is desired that the templates be usable (easy and quick
+ to fill out) to the maximum extent possible, and that it should be easy
+ to move between templates. 
+
+
+<p>
+At this point in time this document is informative (not-normative), and
+ is consistent with the ATAG2.0 Techniques.  Multiple means of navigation
+are possible through this document (maybe use XML test description with
+ XSLT?).  It is possible that in the future different kinds of tests
+or more complex tests may be included.  It is possible that this test
+ suite may be "configurable"
+in the future.   For information on how to use this test suite (manual
+ on the test suite and templates, how to execute tests to fill ou
+the forms, contents of the test suite, etc.), go to ?.  For ATAG2.0 
+conformance info (including references
+to the ATAG spec/techniques), go to ?  For W3C QA info, go to ?.  
+For other WAI testing resources, go to ?   The reference specifications
+ for these tests are given in this document.
+
+
+<p>
+  Naming conventions for templates (forms) indicate name of spec (atag),
+ developer or tester, success criterion number, dash, and levels 1, 2, or 3
+to refer to ATAG Conformance Levels A, AA, or AAA.  This convention can be
+used as metadat for a filtering mechanism.
+The templates (forms) may be submitted (navigated) in any order; there 
+are no "prerequisites" for use of any template.  
+One may go directly from one template (form) to the next (or previous), 
+or come back to this page for a different ordering 
+(NOTE: Are these
+templates "approved" by the AUWG? Assuming so, the current status of 
+each template (form) may be given as: under review, accepted, or rejected,
+according to specific criteria to be determined).  Each template also links
+ to a log history, containing, for example, creator of template,
+modification history, etc.).  Are these templates "normative"?  Does the AUWG
+ want to define what PASS/FAIL mean?
+  If you would like to suggest new templates (forms) or changes to existing
+ templates (forms), please submit your information to ?    
+Any deprecated and/or obsoleted features of ATAG1.0 which affect this ATAG2.0
+ test suite will be listed at this point.
+Any extensions to ATAG2.0 which affect this ATAG2.0 test suite will also be
+ listed at this point.
+
+<p> 
+NOTE: Tool designer is assumed knowledgable of tool; author is one who uses
+ tool (no prior knowledge of tool assumed,
+but can be the same
+as tool designer, and can be many authors performing tests on a single tool).
+  Test plan may include combinations of machine-testing and human-controlled testing.
+
+<p>
+NOTE: THE STATUS OF TEMPLATE DEVELOPMENT IS INDICATED, SO YOU CAN FOLLOW MY PROGRESS.
+ALSO, EVIDENCE TO SUPPORT YOUR ANSWER OF "YES/NO" FOR EACH TEMPLATE QUESTION 
+"AFTER THE INVESTIGATION" CAN BE SUPPLIED VIA LINK IN THE ANSWER SPACE 
+FOR EACH TEMPLATE QUESTION IF APPROPRIATE.  ALSO, I THINK THAT THE ATAG TECHNIQUES
+SHOULD BE LINKED TO THE TESTS IN SOME WAY (BOTH AS A RECORD OF WHO USES THE TECHNIQUES
+AND OF HOW USE OF THE TECHNIQUES HELPS TO SATISFY THE SUCCESS CRITERIA).  THEREFORE,
+SOME OF THE TEMPLATES INCLUDE QUESTIONS RELATED TO TECHNIQUES - STILL NOT SURE HOW
+TO HANDLE THIS - COMMENTS WELCOME.  IF THE TESTER/DEVELOPER DOES NOT UNDERSTAND HOW TO
+ANSWER A PARTICULAR QUESTION ON A TEMPLATE, THERE WILL BE LINKS TO HELP.. 
+<p>
+This document is organized as follows: first comes the test report site 
+where all test reports submitted for all templates are collected,
+and then comes the actual templates (in order of ATAG conformance level
+ and success criteria within that level).
+
+<p>
+Any problems or issues with this test suite can be reported by email to ?; responses will be
+given in all instances.  
+
+<h2><a href="atagtestreport.htm">Test Report Site for All Tests</a></h2>
+
+
+<h2>ATAG2.0 Conformance Level A</h2>
+
+
+<ol>
+<b><li>Success Criteria 1.1: </b>
+
+  
+<p><b>Test Templates (Forms):
+
+<ul>
+<li><a href="atag-developer-form11-1.htm">Developer Form 11-1</a> (STATUS: DRAFT 08/26/04)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form11-1.htm">Author(Tester) Form 11-1</a> (STATUS: DRAFT 12/04/04)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>
+
+<p>
+ 
+<b><li>Success Criteria 1.2: </b>
+  
+<p><b>Test Templates (Forms):
+
+<ul>
+<li><a href="atag-developer-form12-1.htm">Developer Form 12-1</a> (STATUS: DRAFT 08/26/04)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form12-1.htm">Author(Tester) Form 12-1</a> (STATUS: DRAFT 12/04/04)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>
+<p>
+
+<b><li>Success Criteria 1.3:
+   </b>
+<p><b>Test Templates (Forms):
+
+<ul>
+<li><a href="atag-developer-form13-1.htm">Developer Form 13-1</a> (STATUS: NOT DONE YET)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form13-1.htm">Author(Tester) Form 13-1</a> (STATUS: DRAFT 12/04/04)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>  
+<p>
+
+<b><li>Success criteria 2.1:  </b>
+<p><b>Test Templates (Forms):
+
+<ul>
+<li><a href="atag-developer-form21-1.htm">Developer Form 21-1</a> (STATUS: NOT DONE YET)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form21-1.htm">Author(Tester) Form 21-1</a> (STATUS: DRAFT 12/04/04)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>    
+
+
+<p>
+
+<b><li>Success Criteria 2.3: 
+      </b>
+<p><b>Test Templates (Forms):
+
+<ul>
+<li><a href="atag-developer-form23-1.htm">Developer Form 23-1</a> (STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form23-1.htm">Author(Tester) Form 23-1</a> (STATUS: DRAFT 12/04/04)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>
+
+<p>
+
+<b><li>Success Criteria 2.4: </b>
+
+<p><b>Test Templates (Forms):
+
+<ul>
+<li><a href="atag-developer-form24-1.htm">Developer Form 24-1</a> (STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form24-1.htm">Author(Tester) Form 24-1 </a>(STATUS: DRAFT 12/04/04)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>
+
+
+<p>
+
+
+<b><li>Success Criteria 3.1:</b> 
+       
+<p><b>Test Templates (Forms)
+
+<ul>
+<li><a href="atag-developer-form31-1.htm">Developer Form 31-1</a> (STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form31-1.htm">Author(Tester) Form 31-1</a> (STATUS: DRAFT 12/23/04)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>
+<p>
+
+<b><li>Success Criteria 3.2: </b>
+<p><b>Test Templates (Forms)
+
+<ul>
+<li><a href="atag-developer-form32-1.htm">Developer Form 32-1</a> (STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form32-1.htm">Author(Tester) Form 32-1</a> (STATUS: DRAFT 12/23/04)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>
+
+<p>
+
+<b><li>Success Criteria 3.3: </b>
+<p><b>Test Templates (Forms)
+<ul>
+<li><a href="atag-developer-form33-1.htm">Developer Form 33-1 </a>(STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form33-1.htm">Author(Tester) Form 33-1</a> (STATUS: DRAFT 12/23/04)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>
+
+<p>
+
+<b><li>Success Criteria 3.4: </b>
+<p><b>Test Templates (Forms)
+<ul>
+<li><a href="atag-developer-form34-1.htm">Developer Form 34-1 </a>(STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form34-1.htm">Author(Tester) Form 34-1</a> (STATUS: DRAFT 12/28/04)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>
+
+</ol>
+
+<div>--------------------------------------------------------------------------------------------------
+</div>
+ 
+               
+
+<h2>ATAG2.0 Conformance Level AA (after exercising ATAG2.0 Conformance Level A)</h2>
+<ol>
+
+<b><li>Success Criteria 1.1: </b>
+<p><b>Test Templates (Forms):
+<ul>
+<li><a href="atag-developer-form11-2.htm">Developer Form 11-2 </a>(STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form11-2.htm">Author(Tester) Form 11-2 </a>(STATUS: DRAFT 1/3/05)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>  
+
+<p> 
+<b><li>Success Criteria 1.2: </b>
+<p><b>Test Templates (Forms):  
+<ul>
+<li><a href="atag-developer-form12-2.htm">Developer Form 12-2 </a>(STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form12-2.htm">Author(Tester) Form 12-2 </a>(STATUS: DRAFT 1/3/05)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>  
+<p>
+
+
+<b><li>Success Criteria 1.4:
+   </b>
+<p><b>Test Templates (Forms):
+<ul>
+<li><a href="atag-developer-form14-2.htm">Developer Form 14-2 </a>(STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form14-2.htm">Author(Tester) Form 14-2 </a>(STATUS: DRAFT 1/3/05)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b> 
+<p>
+
+<b><li>Success criteria 1.5:
+   </b>
+<p><b>Test Templates (Forms):
+<ul>
+<li><a href="atag-developer-form15-2.htm">Developer Form 15-2</a> (STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form15-2.htm">Author(Tester) Form 15-2</a> (STATUS: DRAFT 1/3/05)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>  
+<p>
+
+<p>
+<b><li>Success Criteria 2.2: 
+       
+</b>
+
+<p><b>Test Templates (Forms):
+
+<ul>
+<li><a href="atag-developer-form22-2.htm">Developer Form 22-2 </a>(STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form22-2.htm">Author(Tester) Form 22-2 </a>(STATUS: DRAFT 1/3/05)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>
+
+<b><li>Success Criteria 2.3: 
+      </b><p>
+<p><b>Test Templates (Forms):
+<ul>
+<li><a href="atag-developer-form23-2.htm">Developer Form 23-2</a> (STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form23-2.htm">Author(Tester) Form 23-2</a> (STATUS: DRAFT 12/28/04)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>
+<p>
+
+<b><li>Success Criteria 2.4: 
+      </b><p>
+<p><b>Test Templates (Forms):
+<ul>
+<li><a href="atag-developer-form24-2.htm">Developer Form 24-2</a> (STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form24-2.htm">Author(Tester) Form 24-2</a> (STATUS: DRAFT 12/28/04)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>
+<p>
+
+<b><li>Success Criteria 3.1: 
+      </b><p>
+<p><b>Test Templates (Forms):
+<ul>
+<li><a href="atag-developer-form31-2.htm">Developer Form 31-2</a> (STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form31-2.htm">Author(Tester) Form 31-2</a> (STATUS: DRAFT 12/28/04)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>
+<p>
+
+<b><li>Success Criteria 3.2: 
+      </b><p>
+<p><b>Test Templates (Forms):
+<ul>
+<li><a href="atag-developer-form32-2.htm">Developer Form 32-2</a> (STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form32-2.htm">Author(Tester) Form 32-2</a> (STATUS: DRAFT 12/28/04)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>
+<p>
+
+<b><li>Success Criteria 3.3: 
+      </b><p>
+<p><b>Test Templates (Forms):
+<ul>
+<li><a href="atag-developer-form33-2.htm">Developer Form 33-2</a> (STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form33-2.htm">Author(Tester) Form 33-2</a> (STATUS: DRAFT 12/28/04)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>
+<p>
+
+<b><li>Success Criteria 3.7:
+       </b>
+<p><b>Test Templates (Forms):
+<ul>
+<li><a href="atag-developer-form37-2.htm">Developer Form 37-2</a> (STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form37-2.htm">Author(Tester) Form 37-2</a> (STATUS: DRAFT 1/4/05)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>
+
+<p>
+<b><li>Success Criteria 4.1: </b>
+ <p><b>Test Templates (Forms):
+<ul>
+<li><a href="atag-developer-form41-2.htm">Developer Form 41-2</a> (STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form41-2.htm">Author(Tester) Form 41-2</a> (STATUS: DRAFT 1/4/05)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>
+       
+<p>
+<b><li>Success Criteria 4.2:
+     </b>
+   <p><b>Test Templates (Forms):
+<ul>
+<li><a href="atag-developer-form42-2.htm">Developer Form 42-2</a> (STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form42-2.htm">Author(Tester) Form 42-2</a> (STATUS: DRAFT 1/4/05)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>    
+
+<p>
+
+
+<b><li>Success Criteria 4.3:
+    </b>
+
+<p><b>Test Templates (Forms):
+<ul>
+<li><a href="atag-developer-form43-2.htm">Developer Form 43-2 </a>(STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form43-2.htm">Author(Tester) Form 43-2 </a>(STATUS: DRAFT 1/4/05)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>
+
+</ol>
+
+
+
+
+<div>----------------------------------------------------------------------------------------------------
+</div>
+
+
+<h2>ATG2.0 Conformance Level AAA (after exercising ATAG2.0 Conformance Levels A and AA)</h2>
+<ol>
+
+<b><li>Success Criteria 1.1: </b>
+<p><b>Test Templates (Forms):
+<ul>
+<li><a href="atag-developer-form11-3.htm">Developer Form 11-3 </a>(STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form11-3.htm">Author(Tester) Form 11-3 </a>(STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>
+<p>
+  
+
+<b><li>Success Criteria 1.2: </b>
+  <p><b>Test Templates (Forms):
+<ul>
+<li><a href="atag-developer-form12-3.htm">Developer Form 12-3 </a>(STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form12-3.htm">Author(Tester) Form 12-3 </a>(STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>
+
+<p>
+
+<b><li>Success Criteria 2.3: </b>
+  <p><b>Test Templates (Forms):
+<ul>
+<li><a href="atag-developer-form23-3.htm">Developer Form 23-3 </a>(STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form23-3.htm">Author(Tester) Form 23-3 </a>(STATUS: DRAFT 1/10/05)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>
+
+<p>
+
+<b><li>Success Criteria 2.4: </b>
+  <p><b>Test Templates (Forms):
+<ul>
+<li><a href="atag-developer-form24-3.htm">Developer Form 24-3 </a>(STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form24-3.htm">Author(Tester) Form 24-3 </a>(STATUS: DRAFT 1/10/05)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>
+
+<p>
+
+<b><li>Success Criteria 3.1: </b>
+  <p><b>Test Templates (Forms):
+<ul>
+<li><a href="atag-developer-form31-3.htm">Developer Form 31-3 </a>(STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form31-3.htm">Author(Tester) Form 31-3 </a>(STATUS: DRAFT 1/10/05)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>
+
+<p>
+
+<b><li>Success Criteria 3.2: </b>
+  <p><b>Test Templates (Forms):
+<ul>
+<li><a href="atag-developer-form32-3.htm">Developer Form 32-3 </a>(STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form32-3.htm">Author(Tester) Form 32-3 </a>(STATUS: DRAFT 1/10/05)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>
+
+<p>
+
+<b><li>Success Criteria 3.3: </b>
+  <p><b>Test Templates (Forms):
+<ul>
+<li><a href="atag-developer-form33-3.htm">Developer Form 33-3 </a>(STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form33-3.htm">Author(Tester) Form 33-3 </a>(STATUS: DRAFT 1/10/05)(LOG HISTORY LINK)
+</ul></b>
+
+<p>
+
+<b><li>Success Criteria 3.5: </b>
+<p><b>Test Templates (Forms):
+<ul>
+<li><a href="atag-developer-form35-3.htm">Developer Form 35-3 </a>(STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form35-3.htm">Author(Tester) Form 35-3 </a>(STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>
+<p>
+
+<b><li>Success Criteria 3.6: </b>
+
+<p><b>Test Templates (Forms):
+<ul>
+<li><a href="atag-developer-form36-3.htm">Developer Form 36-3 </a>(STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form36-3.htm">Author(Tester) Form 36-3 </a>(STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>
+<p>
+
+<p>
+<b><li>Success Criteria 3.8:</b> 
+       
+<p><b>Test Templates (Forms):
+<ul>
+<li><a href="atag-developer-form38-3.htm">Developer Form 38-3 </a>(STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form38-3.htm">Author(Tester) Form 38-3 </a>(STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>
+
+<p>
+<b><li>Success Criteria 3.9:</b> 
+       
+<p><b>Test Templates (Forms):
+<ul>
+<li><a href="atag-developer-form39-3.htm">Developer Form 39-3 </a>(STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form39-3.htm">Author(Tester) Form 39-3 </a>(STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>
+<p>
+
+<b><li>Success Criteria 4.4:  </b>
+<p><b>Test Templates (Forms):
+<ul>
+<li><a href="atag-developer-form44-3.htm">Developer Form 44-3 </a>(STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+<li><a href="atag-tester-form44-3.htm">Author(Tester) Form 44-3 </a>(STATUS: NOT DONE YET?)(LOG HISTORY LINK)(ISSUES LIST LINK)
+</ul></b>
+
+</ol>
+
+
+<h2>References</h2>
+<ol>
+<li>ATAG 2.0 Last Call WD 22 Nov 2004
+<li>WCAG 2.0 WD 16 Nov 2004
+<li>ISO 16071: 2002(E) 
+</ol>
+</body>
+</html>

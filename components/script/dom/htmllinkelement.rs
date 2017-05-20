@@ -22,18 +22,20 @@ use dom::node::{Node, UnbindContext, document_from_node, window_from_node};
 use dom::stylesheet::StyleSheet as DOMStyleSheet;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
+use html5ever::{LocalName, Prefix};
 use net_traits::ReferrerPolicy;
+use script_layout_interface::message::Msg;
 use script_traits::{MozBrowserEvent, ScriptMsg as ConstellationMsg};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::default::Default;
-use std::sync::Arc;
 use style::attr::AttrValue;
 use style::media_queries::parse_media_query_list;
+use style::parser::{PARSING_MODE_DEFAULT, ParserContext as CssParserContext};
 use style::str::HTML_SPACE_CHARACTERS;
-use style::stylesheets::Stylesheet;
+use style::stylearc::Arc;
+use style::stylesheets::{CssRuleType, Stylesheet};
 use stylesheet_loader::{StylesheetLoader, StylesheetContextSource, StylesheetOwner};
 
 unsafe_no_jsmanaged_fields!(Stylesheet);
@@ -67,7 +69,7 @@ pub struct HTMLLinkElement {
 }
 
 impl HTMLLinkElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document,
+    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document,
                      creator: ElementCreator) -> HTMLLinkElement {
         HTMLLinkElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
@@ -83,7 +85,7 @@ impl HTMLLinkElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document,
                creator: ElementCreator) -> Root<HTMLLinkElement> {
         Node::reflect_node(box HTMLLinkElement::new_inherited(local_name, prefix, document, creator),
@@ -96,8 +98,9 @@ impl HTMLLinkElement {
     }
 
     pub fn set_stylesheet(&self, s: Arc<Stylesheet>) {
-        assert!(self.stylesheet.borrow().is_none()); // Useful for catching timing issues.
-        *self.stylesheet.borrow_mut() = Some(s);
+        *self.stylesheet.borrow_mut() = Some(s.clone());
+        window_from_node(self).layout_chan().send(Msg::AddStylesheet(s)).unwrap();
+        document_from_node(self).invalidate_stylesheets();
     }
 
     pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
@@ -255,7 +258,7 @@ impl HTMLLinkElement {
         }
 
         // Step 2.
-        let url = match document.base_url().join(href) {
+        let link_url = match document.base_url().join(href) {
             Ok(url) => url,
             Err(e) => {
                 debug!("Parsing url {} failed: {}", href, e);
@@ -276,7 +279,12 @@ impl HTMLLinkElement {
         };
 
         let mut css_parser = CssParser::new(&mq_str);
-        let media = parse_media_query_list(&mut css_parser);
+        let win = document.window();
+        let doc_url = document.url();
+        let context = CssParserContext::new_for_cssom(&doc_url, win.css_error_reporter(), Some(CssRuleType::Media),
+                                                      PARSING_MODE_DEFAULT,
+                                                      document.quirks_mode());
+        let media = parse_media_query_list(&context, &mut css_parser);
 
         let im_attribute = element.get_attribute(&ns!(), &local_name!("integrity"));
         let integrity_val = im_attribute.r().map(|a| a.value());
@@ -291,9 +299,8 @@ impl HTMLLinkElement {
         // doesn't match.
         let loader = StylesheetLoader::for_element(self.upcast());
         loader.load(StylesheetContextSource::LinkElement {
-            url: url,
             media: Some(media),
-        }, cors_setting, integrity_metadata.to_owned());
+        }, link_url, cors_setting, integrity_metadata.to_owned());
     }
 
     fn handle_favicon_url(&self, rel: &str, href: &str, sizes: &Option<String>) {

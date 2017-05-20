@@ -1,0 +1,79 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD//XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSSOM - CSSStyleSheet - Interface</title>
+    <link rel="author" title="Glenn Adams" href="mailto:glenn@skynav.com"/>
+    <link rel="help" href="http://www.w3.org/TR/cssom-1/#the-cssstylesheet-interface"/>
+    <meta name="flags" content="dom"/>
+    <script src="/resources/testharness.js"/>
+    <script src="/resources/testharnessreport.js"/>
+  </head>
+  <body>
+    <div id="log"></div>
+    <div id="box"></div>
+    <script><![CDATA[
+
+      test(function(){
+
+        assert_true('CSSStyleSheet' in window);
+
+      }, '\'CSSStyleSheet\' in window');
+
+      test(function(){
+
+        assert_true(CSSStyleSheet instanceof Function);
+
+      }, 'CSSStyleSheet instanceof Function');
+
+      test(function(){
+
+        assert_true('prototype' in CSSStyleSheet);
+
+      }, '\'prototype\' in CSSStyleSheet');
+
+      test(function(){
+
+        assert_equals(CSSStyleSheet.prototype.toString(), '[object CSSStyleSheetPrototype]');
+
+      }, 'CSSStyleSheet.prototype.toString() == \'[object CSSStyleSheetPrototype]\'');
+
+      test(function(){
+
+        assert_true('constructor' in CSSStyleSheet.prototype);
+
+      }, '\'constructor\' in CSSStyleSheet.prototype');
+
+      test(function(){
+
+        assert_equals(CSSStyleSheet.prototype.constructor,CSSStyleSheet);
+
+      }, 'CSSStyleSheet.prototype.constructor === CSSStyleSheet');
+
+      test(function(){
+
+        assert_true('insertRule' in CSSStyleSheet.prototype);
+
+      }, '\'insertRule\' in CSSStyleSheet.prototype');
+
+      test(function(){
+
+        assert_true(CSSStyleSheet.prototype.insertRule instanceof Function);
+
+      }, 'CSSStyleSheet.prototype.insertRule instanceof Function');
+
+      test(function(){
+
+        assert_true('deleteRule' in CSSStyleSheet.prototype);
+
+      }, '\'deleteRule\' in CSSStyleSheet.prototype');
+
+      test(function(){
+
+        assert_true(CSSStyleSheet.prototype.deleteRule instanceof Function);
+
+      }, 'CSSStyleSheet.prototype.deleteRule instanceof Function');
+
+    ]]>
+    </script>
+  </body>
+</html>

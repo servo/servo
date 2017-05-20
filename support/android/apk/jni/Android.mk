@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-LOCAL_PATH := $(call my-dir)
+
+MY_LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
+LOCAL_PATH:= $(SERVO_TARGET_DIR)
 LOCAL_MODULE := servo
-LOCAL_SRC_FILES := $(TARGET_ARCH_ABI)/libmain.so
+LOCAL_SRC_FILES := libservo.so
 include $(PREBUILT_SHARED_LIBRARY)
-
-# $(call import-module)

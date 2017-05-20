@@ -1,0 +1,84 @@
+
+<html>
+
+<title>Second Test of Section 5.5.3 of CSS1 Spec</title>
+
+<style type="text/css">
+p {margin-bottom: }
+h3 {margin-bottom: 2em}
+h4 {margin-bottom: 4em}
+strong {margin-bottom: 6em}
+blockquote {margin-bottom: 50%}
+</style>
+</head>
+
+
+
+<body>
+
+
+
+
+<h1 >Testing Statement #2 Below of Section 5.5.3 of CSS1 Spec</h1>
+
+
+
+
+
+
+<ul>
+<li>
+2. "margin-bottom" has initial 0, applies to all elements, is not inherited, and
+percentage values refer to parent element's width.
+</ul>
+
+
+
+
+<h2>
+PASS CRITERIA:
+</h2>
+<p>
+
+If statement #2 above is passed, this paragraph should have a bottom margin
+of 0.
+The rule applied is "p {margin-bottom: }".
+So the margin-bottom property applies to the "p" element.
+<h3>
+This h3 element should have a margin bottom of 2em
+<em>
+This emphasized text should have a margin bottom of UA-default, since the 
+margin bottom property is not inherited, and "em" is a child of 'h3".
+No explicit rule is applied for "em".
+</em>
+THe rule applied is 'h3 {margin-bottom: 2em}".
+So the margin bottom property applies to em and h3.
+</h3>
+<h4>
+THis h4 element should have a margin bottom which is 4em.
+The rule applied is "margin-bottom: 4em".
+So the margin bottom property applies to h4.
+</h4>
+
+<strong>
+This strong text should have a margin bottom of 6em
+; so the margin bottom property applies
+to the strong element.
+The rule applied is "strong {margin-bottom: 6em}".
+</strong>
+<blockquote>
+This blockquote element should have a margin bottom of 50% of that
+of its parent (body element).
+The rule applied is "blockquote {margin-bottom: 50%}", which should be
+UA-default.
+</blockquote>
+
+
+
+
+
+All other properties of this page should be UA-default.
+
+
+</body>
+</html>

@@ -14,8 +14,7 @@
 #![cfg_attr(feature = "servo", feature(plugin))]
 
 extern crate app_units;
-#[macro_use]
-extern crate cssparser;
+#[macro_use] extern crate cssparser;
 extern crate euclid;
 #[cfg(feature = "servo")] extern crate heapsize;
 #[cfg(feature = "servo")] #[macro_use] extern crate heapsize_derive;
@@ -64,6 +63,8 @@ pub enum CSSPixel {}
 pub mod cursor;
 #[macro_use]
 pub mod values;
+#[macro_use]
 pub mod viewport;
 
 pub use values::{ToCss, OneOrMoreCommaSeparated};
+pub use viewport::HasViewportPercentage;

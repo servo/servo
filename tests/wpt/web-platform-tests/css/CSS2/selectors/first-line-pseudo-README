@@ -1,0 +1,9 @@
+Tests 001-011 may be invalid and need to be checked against CSS2.1.
+
+For tests 012-016 you will need Todd Fahrner's Ahem font, which you
+can download from:
+
+   http://www.hixie.ch/resources/fonts/
+
+Versions for Mac, Unix and Windows are available.
+

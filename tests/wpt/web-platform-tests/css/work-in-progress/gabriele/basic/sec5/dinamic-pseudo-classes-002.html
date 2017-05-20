@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS 2.1 Test Suite: Selectors: The dynamic pseudo-classes: :active</title>
+  <link rel="author" title="Gabriele Romanato" href="mailto:gabriele.romanato@gmail.com" />
+  <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#dynamic-pseudo-classes" />
+  <meta name="flags" content="interact" />
+  <meta name="assert" content="Browsers should honour the change of state in the elements"/>
+<style type="text/css">
+a:link {color: blue}
+a:visited {color: purple}
+a:active {color: green; font-weight: bold}
+
+</style>
+ </head>
+ <body>
+<p>The link in the next paragraph should have a green text color and a bold font weight when it's activated.</p>
+
+<p><a href="#">Click me</a>.</p>
+
+
+ </body>
+</html>

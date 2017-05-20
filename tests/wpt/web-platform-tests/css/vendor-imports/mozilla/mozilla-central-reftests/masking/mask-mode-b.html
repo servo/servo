@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Masking: mask-mode with raster image</title>
+    <link rel="author" title="Ethan Lin" href="mailto:ethlin@mozilla.com">
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://www.w3.org/TR/css-masking-1/#propdef-mask-mode">
+    <link rel="match" href="mask-mode-ref.html">
+    <meta name="assert" content="Test checks that mask a PNG image referenced by mask-image is correct with different mask mode.">
+    <style type="text/css">
+      div {
+        background-color: blue;
+        position: absolute;
+        margin: 0px;
+        padding: 0px;
+        width: 100px;
+        height: 100px;
+        top: 10px;
+      }
+
+      div.auto {
+        left: 10px;
+        mask-mode: match-source;
+        mask-image: url(support/blue-100x100.png);
+      }
+
+      div.alpha {
+        left: 120px;
+        mask-mode: alpha;
+        mask-image: url(support/blue-100x100.png);
+      }
+
+      div.luminance1 {
+        left: 230px;
+        mask-mode: luminance;
+        mask-image: url(support/blue-100x100.png);
+      }
+
+      div.luminance2 {
+        left: 340px;
+        mask-mode: luminance;
+        mask-image: url(support/red-100x100.png);
+      }
+
+      div.luminance3 {
+        left: 450px;
+        mask-mode: luminance;
+        mask-image: url(support/green-100x100.png);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="auto"></div>
+    <div class="alpha"></div>
+    <div class="luminance1"></div>
+    <div class="luminance2"></div>
+    <div class="luminance3"></div>
+  </body>
+</html>
+

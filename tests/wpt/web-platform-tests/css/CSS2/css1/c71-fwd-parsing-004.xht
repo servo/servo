@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Forward-Compatible Parsing</title>
+  <meta name="flags" content="invalid" />
+  <link rel="help" href="http://www.w3.org/TR/REC-CSS1#forward-compatible-parsing"/>
+  <link rel="author" title="CSS1 Test Suite Contributors" href="http://www.w3.org/Style/CSS/Test/CSS1/current/tsack.html"/>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="match" href="c71-fwd-parsing-004-ref.xht" />
+
+  <style type="text/css"><![CDATA[
+   p.twentythree {text-indent: 0.5in;background:lime}
+    color: red
+   p.twentyfour {color: red;}
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#parsing-errors" title="4.2 Rules for handling parsing errors"/>
+ </head>
+ <body>
+  <p class="twentythree">
+   This sentence should have a bright green background.
+  </p>
+ </body>
+</html>

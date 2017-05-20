@@ -6,8 +6,7 @@ use dom::bindings::codegen::Bindings::HTMLLegendElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLegendElementBinding::HTMLLegendElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
-use dom::bindings::str::DOMString;
+use dom::bindings::js::{MutNullableJS, Root};
 use dom::document::Document;
 use dom::element::Element;
 use dom::htmlelement::HTMLElement;
@@ -16,24 +15,28 @@ use dom::htmlformelement::{HTMLFormElement, FormControl};
 use dom::node::{Node, UnbindContext};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use html5ever_atoms::LocalName;
+use html5ever::{LocalName, Prefix};
 
 #[dom_struct]
 pub struct HTMLLegendElement {
     htmlelement: HTMLElement,
+    form_owner: MutNullableJS<HTMLFormElement>,
 }
 
 impl HTMLLegendElement {
     fn new_inherited(local_name: LocalName,
-                     prefix: Option<DOMString>,
+                     prefix: Option<Prefix>,
                      document: &Document)
                      -> HTMLLegendElement {
-        HTMLLegendElement { htmlelement: HTMLElement::new_inherited(local_name, prefix, document) }
+        HTMLLegendElement {
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
+            form_owner: Default::default(),
+        }
     }
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
-               prefix: Option<DOMString>,
+               prefix: Option<Prefix>,
                document: &Document)
                -> Root<HTMLLegendElement> {
         Node::reflect_node(box HTMLLegendElement::new_inherited(local_name, prefix, document),
@@ -83,4 +86,16 @@ impl HTMLLegendElementMethods for HTMLLegendElement {
     }
 }
 
-impl FormControl for HTMLLegendElement {}
+impl FormControl for HTMLLegendElement {
+    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner.get()
+    }
+
+    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+        self.form_owner.set(form);
+    }
+
+    fn to_element<'a>(&'a self) -> &'a Element {
+        self.upcast::<Element>()
+    }
+}

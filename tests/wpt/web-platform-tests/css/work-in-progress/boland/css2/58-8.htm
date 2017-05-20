@@ -1,0 +1,59 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Eighth Test of Section 5.8 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+h3[title] {color: red;}
+h4[title=new] {color: blue}
+h5[title="new"][name="old"] {color; green}
+a[href="http://www.w3.org/"] {color: yellow}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Eighth Testable Statement of Sec 5.7 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+8. Attribute selectors may match in four ways.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<h3 title="great" >
+If statement #1 above is passed, then
+this h3 heading should have a color of red.
+The rule is "h3[title] {color: red}".
+</h3>
+<h4 title="new">This h4 heading should be blue, because of 
+rule "h4[title="new"] {color: blue}".
+</h4>
+<h5 title="new" name="old">This h5 heading should be green, because of
+rule "h5[title="new"][name="old"]".
+</h5>
+<p>
+This <a href="http://www.w3.org">link</a> should be yellow, because of
+rule "a[href="http://www.w3.org"] {color: yellow}".
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

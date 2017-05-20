@@ -93,3 +93,13 @@ function addCrossOriginYellowImage()
     img.src = get_host_info().HTTP_REMOTE_ORIGIN + "/images/yellow.png";
     document.body.appendChild(img);
 }
+
+function addCrossOriginRedirectYellowImage()
+{
+    var img = new Image();
+    img.id = "yellow.png";
+    img.className = "resource";
+    img.src = get_host_info().HTTP_ORIGIN + "/common/redirect.py?location=" +
+        get_host_info().HTTP_REMOTE_ORIGIN + "/images/yellow.png";
+    document.body.appendChild(img);
+}

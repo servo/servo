@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Color 4: RGB functions rgb() and rgba()</title>
+<link rel="author" title="Chris Lilley" href="mailto:chris@w3.org">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#rgb-functions">
+<link rel="match" href="greentext-ref.html">
+<meta name="assert" content="rgb() with percent and percent alpha, also no comma">
+<style>
+    .test {color: rgb(0% 50% 0% / 100%)}
+</style>
+<body>
+    <p class="test">Test passes if this text is green</p>
+</body>

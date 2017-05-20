@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Combining characters and styling</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#ctrlchars" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The combined characters are styled as one character." />
+        <style type="text/css">
+            div:first-letter
+            {
+                text-transform: uppercase;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the character below is an uppercase 'o' with an accent above it.</p>
+        <div>o<span>&#x301;</span></div>
+    </body>
+</html>

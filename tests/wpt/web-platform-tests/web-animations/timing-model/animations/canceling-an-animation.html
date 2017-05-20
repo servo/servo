@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Canceling an animation</title>
+<link rel="help"
+    href="https://w3c.github.io/web-animations/#canceling-an-animation-section">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+"use strict";
+
+promise_test(function(t) {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  const retPromise = animation.ready.then(() => {
+    assert_unreached('ready promise was fulfilled');
+  }).catch(err => {
+    assert_equals(err.name, 'AbortError',
+                  'ready promise is rejected with AbortError');
+  });
+
+  animation.cancel();
+
+  return retPromise;
+}, 'A play-pending ready promise should be rejected when the animation is'
+   + ' canceled');
+
+promise_test(function(t) {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  return animation.ready.then(() => {
+    animation.pause();
+    // Set up listeners on pause-pending ready promise
+    var retPromise = animation.ready.then(function() {
+      assert_unreached('ready promise was fulfilled');
+    }).catch(err => {
+      assert_equals(err.name, 'AbortError',
+                    'ready promise is rejected with AbortError');
+    });
+    animation.cancel();
+    return retPromise;
+  });
+}, 'A pause-pending ready promise should be rejected when the animation is'
+   + ' canceled');
+
+promise_test(function(t) {
+  const animation = createDiv(t).animate(null);
+  animation.cancel();
+  return animation.ready.then(function(p) {
+    assert_equals(p, animation);
+  });
+}, 'When an animation is canceled, it should create a resolved Promise');
+
+test(function(t) {
+  const animation = createDiv(t).animate(null);
+  const promise = animation.ready;
+  animation.cancel();
+  assert_not_equals(animation.ready, promise);
+}, 'The ready promise should be replaced when the animation is canceled');
+
+</script>
+</body>

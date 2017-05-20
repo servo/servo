@@ -22,20 +22,20 @@ use style::traversal::PerLevelTraversalData;
 use wrapper::{GetRawData, LayoutNodeHelpers, LayoutNodeLayoutData};
 use wrapper::ThreadSafeLayoutNodeHelpers;
 
-pub struct RecalcStyleAndConstructFlows {
-    context: LayoutContext,
+pub struct RecalcStyleAndConstructFlows<'a> {
+    context: LayoutContext<'a>,
     driver: TraversalDriver,
 }
 
-impl RecalcStyleAndConstructFlows {
-    pub fn layout_context(&self) -> &LayoutContext {
+impl<'a> RecalcStyleAndConstructFlows<'a> {
+    pub fn layout_context(&self) -> &LayoutContext<'a> {
         &self.context
     }
 }
 
-impl RecalcStyleAndConstructFlows {
+impl<'a> RecalcStyleAndConstructFlows<'a> {
     /// Creates a traversal context, taking ownership of the shared layout context.
-    pub fn new(context: LayoutContext, driver: TraversalDriver) -> Self {
+    pub fn new(context: LayoutContext<'a>, driver: TraversalDriver) -> Self {
         RecalcStyleAndConstructFlows {
             context: context,
             driver: driver,
@@ -44,19 +44,20 @@ impl RecalcStyleAndConstructFlows {
 
     /// Consumes this traversal context, returning ownership of the shared layout
     /// context to the caller.
-    pub fn destroy(self) -> LayoutContext {
+    pub fn destroy(self) -> LayoutContext<'a> {
         self.context
     }
 }
 
 #[allow(unsafe_code)]
-impl<E> DomTraversal<E> for RecalcStyleAndConstructFlows
+impl<'a, E> DomTraversal<E> for RecalcStyleAndConstructFlows<'a>
     where E: TElement,
           E::ConcreteNode: LayoutNode,
+          E::FontMetricsProvider: Send,
 {
     type ThreadLocalContext = ScopedThreadLocalLayoutContext<E>;
 
-    fn process_preorder(&self, traversal_data: &mut PerLevelTraversalData,
+    fn process_preorder(&self, traversal_data: &PerLevelTraversalData,
                         thread_local: &mut Self::ThreadLocalContext, node: E::ConcreteNode) {
         // FIXME(pcwalton): Stop allocating here. Ideally this should just be
         // done by the HTML parser.
@@ -152,7 +153,7 @@ fn construct_flows_at<N>(context: &LayoutContext,
 /// The bubble-inline-sizes traversal, the first part of layout computation. This computes
 /// preferred and intrinsic inline-sizes and bubbles them up the tree.
 pub struct BubbleISizes<'a> {
-    pub layout_context: &'a LayoutContext,
+    pub layout_context: &'a LayoutContext<'a>,
 }
 
 impl<'a> PostorderFlowTraversal for BubbleISizes<'a> {
@@ -171,7 +172,7 @@ impl<'a> PostorderFlowTraversal for BubbleISizes<'a> {
 /// The assign-inline-sizes traversal. In Gecko this corresponds to `Reflow`.
 #[derive(Copy, Clone)]
 pub struct AssignISizes<'a> {
-    pub layout_context: &'a LayoutContext,
+    pub layout_context: &'a LayoutContext<'a>,
 }
 
 impl<'a> PreorderFlowTraversal for AssignISizes<'a> {
@@ -191,7 +192,7 @@ impl<'a> PreorderFlowTraversal for AssignISizes<'a> {
 /// positions. In Gecko this corresponds to `Reflow`.
 #[derive(Copy, Clone)]
 pub struct AssignBSizes<'a> {
-    pub layout_context: &'a LayoutContext,
+    pub layout_context: &'a LayoutContext<'a>,
 }
 
 impl<'a> PostorderFlowTraversal for AssignBSizes<'a> {
@@ -220,7 +221,7 @@ impl<'a> PostorderFlowTraversal for AssignBSizes<'a> {
 
 #[derive(Copy, Clone)]
 pub struct ComputeAbsolutePositions<'a> {
-    pub layout_context: &'a LayoutContext,
+    pub layout_context: &'a LayoutContext<'a>,
 }
 
 impl<'a> PreorderFlowTraversal for ComputeAbsolutePositions<'a> {
@@ -241,7 +242,7 @@ impl<'a> BuildDisplayList<'a> {
         self.state.current_stacking_context_id = flow::base(flow).stacking_context_id;
 
         let parent_scroll_root_id = self.state.current_scroll_root_id;
-        self.state.current_scroll_root_id = flow::base(flow).scroll_root_id;
+        self.state.current_scroll_root_id = flow.scroll_root_id(self.state.layout_context.id);
 
         if self.should_process() {
             flow.build_display_list(&mut self.state);

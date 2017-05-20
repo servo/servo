@@ -1,0 +1,32 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Applying 'text-shadow' to 'direction' property</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Applying 'text-shadow' to 'direction' property is supported." />
+        <style type="text/css">
+            #test1
+            {
+                direction: rtl;
+                text-shadow: -480px 60px 5px 2px blue;
+            }
+            #test2
+            {
+                direction: rtl;
+                text-shadow: -480px 60px 1px blue;
+            }
+            div
+            {
+                display: block;
+                font-size: 25px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there are two pairs of black and blue 'Filler Text' instances on page.</p>
+        <div id="test1">Filler Text</div>
+        <div id="test2">Filler Text</div>
+    </body>
+</html>

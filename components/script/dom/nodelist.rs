@@ -47,6 +47,10 @@ impl NodeList {
         NodeList::new(window, NodeListType::Simple(iter.map(|r| JS::from_ref(&*r)).collect()))
     }
 
+    pub fn new_simple_list_slice(window: &Window, slice: &[&Node]) -> Root<NodeList> {
+        NodeList::new(window, NodeListType::Simple(slice.iter().map(|r| JS::from_ref(*r)).collect()))
+    }
+
     pub fn new_child_list(window: &Window, node: &Node) -> Root<NodeList> {
         NodeList::new(window, NodeListType::Children(ChildrenList::new(node)))
     }
@@ -223,9 +227,9 @@ impl ChildrenList {
                         // by ChildrenMutation::replace().
                         unreachable!()
                     },
-                    (_, &[node, ..], _) => node,
-                    (_, &[], Some(next)) => next,
-                    (Some(prev), &[], None) => {
+                    (_, added, _) if !added.is_empty() => added[0],
+                    (_, _, Some(next)) => next,
+                    (Some(prev), _, None) => {
                         list.last_index.set(index - 1u32);
                         prev
                     },

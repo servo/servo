@@ -12,10 +12,12 @@ use gecko_bindings::structs::{nsStyleCoord, StyleGridTrackBreadth, StyleShapeRad
 use gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
 use std::cmp::max;
 use values::{Auto, Either, ExtremumLength, None_, Normal};
-use values::computed::{Angle, LengthOrPercentageOrNone, Number};
-use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use values::computed::{Angle, LengthOrPercentage, LengthOrPercentageOrAuto};
+use values::computed::{LengthOrPercentageOrNone, Number, NumberOrPercentage};
 use values::computed::{MaxLength, MinLength};
-use values::computed::basic_shape::ShapeRadius;
+use values::computed::basic_shape::ShapeRadius as ComputedShapeRadius;
+use values::generics::basic_shape::ShapeRadius;
+use values::specified::Percentage;
 use values::specified::grid::{TrackBreadth, TrackKeyword};
 
 /// A trait that defines an interface to convert from and to `nsStyleCoord`s.
@@ -57,6 +59,38 @@ impl GeckoStyleCoordConvertible for Number {
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
         match coord.as_value() {
             CoordDataValue::Factor(f) => Some(f),
+            _ => None,
+        }
+    }
+}
+
+impl GeckoStyleCoordConvertible for Percentage {
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
+        coord.set_value(CoordDataValue::Percent(self.0));
+    }
+
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
+        match coord.as_value() {
+            CoordDataValue::Percent(p) => Some(Percentage(p)),
+            _ => None,
+        }
+    }
+}
+
+impl GeckoStyleCoordConvertible for NumberOrPercentage {
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
+        match *self {
+            NumberOrPercentage::Number(ref n) => n.to_gecko_style_coord(coord),
+            NumberOrPercentage::Percentage(ref p) => p.to_gecko_style_coord(coord),
+        }
+    }
+
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
+        match coord.as_value() {
+            CoordDataValue::Factor(f) => Some(NumberOrPercentage::Number(f)),
+            CoordDataValue::Percent(p) => {
+                Some(NumberOrPercentage::Percentage(Percentage(p)))
+            },
             _ => None,
         }
     }
@@ -172,15 +206,13 @@ impl<L: GeckoStyleCoordConvertible> GeckoStyleCoordConvertible for TrackBreadth<
     }
 }
 
-impl GeckoStyleCoordConvertible for ShapeRadius {
+impl GeckoStyleCoordConvertible for ComputedShapeRadius {
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
         match *self {
-            ShapeRadius::ClosestSide => {
-                coord.set_value(CoordDataValue::Enumerated(StyleShapeRadius::ClosestSide as u32))
-            }
-            ShapeRadius::FarthestSide => {
-                coord.set_value(CoordDataValue::Enumerated(StyleShapeRadius::FarthestSide as u32))
-            }
+            ShapeRadius::ClosestSide =>
+                coord.set_value(CoordDataValue::Enumerated(StyleShapeRadius::ClosestSide as u32)),
+            ShapeRadius::FarthestSide =>
+                coord.set_value(CoordDataValue::Enumerated(StyleShapeRadius::FarthestSide as u32)),
             ShapeRadius::Length(lop) => lop.to_gecko_style_coord(coord),
         }
     }
@@ -217,15 +249,16 @@ impl<T: GeckoStyleCoordConvertible> GeckoStyleCoordConvertible for Option<T> {
 
 impl GeckoStyleCoordConvertible for Angle {
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
-        coord.set_value(CoordDataValue::Radian(self.radians()))
+        coord.set_value(CoordDataValue::from(*self));
     }
 
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
-        if let CoordDataValue::Radian(r) = coord.as_value() {
-            Some(Angle::from_radians(r))
-            // XXXManishearth should this handle Degree too?
-        } else {
-            None
+        match coord.as_value() {
+            CoordDataValue::Degree(val) => Some(Angle::Degree(val)),
+            CoordDataValue::Grad(val) => Some(Angle::Gradian(val)),
+            CoordDataValue::Radian(val) => Some(Angle::Radian(val)),
+            CoordDataValue::Turn(val) => Some(Angle::Turn(val)),
+            _ => None,
         }
     }
 }

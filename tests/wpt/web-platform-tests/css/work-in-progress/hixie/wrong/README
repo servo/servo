@@ -1,0 +1,3 @@
+This directory contains tests that are known to be wrong or at least very questionable.
+The tests in it should be rewritten to be correct, e.g. by writing them so that the
+behavior asserted is a failure condition.

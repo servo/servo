@@ -16,6 +16,7 @@ use style::logical_geometry::{LogicalMargin, WritingMode};
 use style::properties::ServoComputedValues;
 use style::values::computed::{BorderRadiusSize, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrNone};
+use style::values::generics;
 
 /// A collapsible margin. See CSS 2.1 § 8.3.1.
 #[derive(Copy, Clone, Debug)]
@@ -142,16 +143,19 @@ impl MarginCollapseInfo {
                 may_collapse_through = may_collapse_through &&
                     match fragment.style().content_block_size() {
                         LengthOrPercentageOrAuto::Auto => true,
-                        LengthOrPercentageOrAuto::Length(Au(0)) => true,
-                        LengthOrPercentageOrAuto::Percentage(0.) => true,
-                        LengthOrPercentageOrAuto::Percentage(_) if
-                            containing_block_size.is_none() => true,
-                        _ => false,
+                        LengthOrPercentageOrAuto::Length(Au(v)) => v == 0,
+                        LengthOrPercentageOrAuto::Percentage(v) => {
+                            v == 0. || containing_block_size.is_none()
+                        }
+                        LengthOrPercentageOrAuto::Calc(_) => false,
                     };
 
                 if may_collapse_through {
                     match fragment.style().min_block_size() {
-                        LengthOrPercentage::Length(Au(0)) | LengthOrPercentage::Percentage(0.) => {
+                        LengthOrPercentage::Length(Au(0)) => {
+                            FinalMarginState::MarginsCollapseThrough
+                        },
+                        LengthOrPercentage::Percentage(v) if v == 0. => {
                             FinalMarginState::MarginsCollapseThrough
                         },
                         _ => {
@@ -408,9 +412,17 @@ impl MaybeAuto {
                 MaybeAuto::Specified(containing_length.scale_by(percent))
             }
             LengthOrPercentageOrAuto::Calc(calc) => {
-                MaybeAuto::Specified(calc.length() + containing_length.scale_by(calc.percentage()))
+                MaybeAuto::from_option(calc.to_used_value(Some(containing_length)))
             }
             LengthOrPercentageOrAuto::Length(length) => MaybeAuto::Specified(length)
+        }
+    }
+
+    #[inline]
+    pub fn from_option(au: Option<Au>) -> MaybeAuto {
+        match au {
+            Some(l) => MaybeAuto::Specified(l),
+            _ => MaybeAuto::Auto,
         }
     }
 
@@ -451,29 +463,22 @@ pub fn style_length(style_length: LengthOrPercentageOrAuto,
     }
 }
 
-pub fn specified_or_none(length: LengthOrPercentageOrNone, containing_length: Au) -> Option<Au> {
-    match length {
-        LengthOrPercentageOrNone::None => None,
-        LengthOrPercentageOrNone::Percentage(percent) => Some(containing_length.scale_by(percent)),
-        LengthOrPercentageOrNone::Calc(calc) =>
-            Some(containing_length.scale_by(calc.percentage()) + calc.length()),
-        LengthOrPercentageOrNone::Length(length) => Some(length),
-    }
-}
-
-pub fn specified(length: LengthOrPercentage, containing_length: Au) -> Au {
-    match length {
-        LengthOrPercentage::Length(length) => length,
-        LengthOrPercentage::Percentage(p) => containing_length.scale_by(p),
-        LengthOrPercentage::Calc(calc) =>
-            containing_length.scale_by(calc.percentage()) + calc.length(),
-    }
-}
-
-pub fn specified_border_radius(radius: BorderRadiusSize, containing_length: Au) -> Size2D<Au> {
-    let BorderRadiusSize(size) = radius;
-    let w = specified(size.width, containing_length);
-    let h = specified(size.height, containing_length);
+/// Computes a border radius size against the containing size.
+///
+/// Note that percentages in `border-radius` are resolved against the relevant
+/// box dimension instead of only against the width per [1]:
+///
+/// > Percentages: Refer to corresponding dimension of the border box.
+///
+/// [1]: https://drafts.csswg.org/css-backgrounds-3/#border-radius
+pub fn specified_border_radius(
+    radius: BorderRadiusSize,
+    containing_size: Size2D<Au>)
+    -> Size2D<Au>
+{
+    let generics::BorderRadiusSize(size) = radius;
+    let w = size.width.to_used_value(containing_size.width);
+    let h = size.height.to_used_value(containing_size.height);
     Size2D::new(w, h)
 }
 
@@ -484,10 +489,10 @@ pub fn padding_from_style(style: &ServoComputedValues,
                           -> LogicalMargin<Au> {
     let padding_style = style.get_padding();
     LogicalMargin::from_physical(writing_mode, SideOffsets2D::new(
-        specified(padding_style.padding_top, containing_block_inline_size),
-        specified(padding_style.padding_right, containing_block_inline_size),
-        specified(padding_style.padding_bottom, containing_block_inline_size),
-        specified(padding_style.padding_left, containing_block_inline_size)))
+        padding_style.padding_top.to_used_value(containing_block_inline_size),
+        padding_style.padding_right.to_used_value(containing_block_inline_size),
+        padding_style.padding_bottom.to_used_value(containing_block_inline_size),
+        padding_style.padding_left.to_used_value(containing_block_inline_size)))
 }
 
 /// Returns the explicitly-specified margin lengths from the given style. Percentage and auto
@@ -536,7 +541,7 @@ impl SizeConstraint {
                max_size: LengthOrPercentageOrNone,
                border: Option<Au>) -> SizeConstraint {
         let mut min_size = match container_size {
-            Some(container_size) => specified(min_size, container_size),
+            Some(container_size) => min_size.to_used_value(container_size),
             None => if let LengthOrPercentage::Length(length) = min_size {
                 length
             } else {
@@ -545,7 +550,7 @@ impl SizeConstraint {
         };
 
         let mut max_size = match container_size {
-            Some(container_size) => specified_or_none(max_size, container_size),
+            Some(container_size) => max_size.to_used_value(container_size),
             None => if let LengthOrPercentageOrNone::Length(length) = max_size {
                 Some(length)
             } else {

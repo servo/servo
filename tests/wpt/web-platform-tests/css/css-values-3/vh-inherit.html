@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>
+		CSS Values and Units Test:
+		Viewport units are inherited properly
+	</title>
+	<meta name="assert" content="
+		Viewport units are inherited properly
+	" />
+
+	<link
+		rel="author"
+		title="François REMY"
+		href="mailto:fremycompany.developer@yahoo.fr"
+	/ >
+
+	<link rel="help" href="http://www.w3.org/TR/css3-values/#viewport-relative-lengths">
+
+	<link
+		rel="match"
+		href="reference/all-green.html"
+	/>
+
+	<style type="text/css">
+
+			html, body { margin: 0px; padding: 0px; }
+
+			html { background: red; }
+			#outer { position: relative; background: green; width: 50vw; height: 100vh; }
+			#inner { position: absolute; background: green; left: 100%; width: inherit; height: inherit; }
+
+	</style>
+
+</head>
+<body>
+
+	<div id="outer"><div id="inner"></div></div>
+
+</body>
+</html>

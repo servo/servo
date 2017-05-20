@@ -1,0 +1,53 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Fifth Test of Section 12.4 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+blockquote p:before     { content: open-quote}
+blockquote p:after      { content: no-close-quote}
+blockquote p.last:after { content: close-quote}
+
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Fifth Testable Statement of Sec 12.4 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+5. Quotation marks are inserted in appropriate places in a document with 
+the "open-quote" and "close-quote" values of the content property.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<blockquote>
+<p>
+If statement #5 is passed, then there are opening quotation marks on every
+paragraph in a BLOCKQUOTE, and a single closing quote at the end.
+Rules applied are "blockquote p:before {content: open-quote},
+"blockquote p:after {content: no-close-quote}, and 
+"blockquote p.last:after {content: close-quote}".
+<p>
+</blockquote>
+
+
+</BODY>
+</HTML>
+

@@ -25,6 +25,12 @@ pub trait ToCss {
     }
 }
 
+impl<'a, T> ToCss for &'a T where T: ToCss + ?Sized {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        (*self).to_css(dest)
+    }
+}
+
 /// Marker trait to automatically implement ToCss for Vec<T>.
 pub trait OneOrMoreCommaSeparated {}
 
@@ -68,6 +74,7 @@ macro_rules! impl_to_css_for_predefined_type {
 
 impl_to_css_for_predefined_type!(f32);
 impl_to_css_for_predefined_type!(i32);
+impl_to_css_for_predefined_type!(u16);
 impl_to_css_for_predefined_type!(u32);
 impl_to_css_for_predefined_type!(::cssparser::Token<'a>);
 impl_to_css_for_predefined_type!(::cssparser::RGBA);
@@ -76,20 +83,43 @@ impl_to_css_for_predefined_type!(::cssparser::UnicodeRange);
 
 #[macro_export]
 macro_rules! define_css_keyword_enum {
+    ($name: ident: values { $( $css: expr => $variant: ident),+, }
+                   aliases { $( $alias: expr => $alias_variant: ident ),+, }) => {
+        __define_css_keyword_enum__add_optional_traits!($name [ $( $css => $variant ),+ ]
+                                                              [ $( $alias => $alias_variant ),+ ]);
+    };
+    ($name: ident: values { $( $css: expr => $variant: ident),+, }
+                   aliases { $( $alias: expr => $alias_variant: ident ),* }) => {
+        __define_css_keyword_enum__add_optional_traits!($name [ $( $css => $variant ),+ ]
+                                                              [ $( $alias => $alias_variant ),* ]);
+    };
+    ($name: ident: values { $( $css: expr => $variant: ident),+ }
+                   aliases { $( $alias: expr => $alias_variant: ident ),+, }) => {
+        __define_css_keyword_enum__add_optional_traits!($name [ $( $css => $variant ),+ ]
+                                                              [ $( $alias => $alias_variant ),+ ]);
+    };
+    ($name: ident: values { $( $css: expr => $variant: ident),+ }
+                   aliases { $( $alias: expr => $alias_variant: ident ),* }) => {
+        __define_css_keyword_enum__add_optional_traits!($name [ $( $css => $variant ),+ ]
+                                                              [ $( $alias => $alias_variant ),* ]);
+    };
     ($name: ident: $( $css: expr => $variant: ident ),+,) => {
-        __define_css_keyword_enum__add_optional_traits!($name [ $( $css => $variant ),+ ]);
+        __define_css_keyword_enum__add_optional_traits!($name [ $( $css => $variant ),+ ] []);
     };
     ($name: ident: $( $css: expr => $variant: ident ),+) => {
-        __define_css_keyword_enum__add_optional_traits!($name [ $( $css => $variant ),+ ]);
+        __define_css_keyword_enum__add_optional_traits!($name [ $( $css => $variant ),+ ] []);
     };
 }
 
 #[cfg(feature = "servo")]
 #[macro_export]
 macro_rules! __define_css_keyword_enum__add_optional_traits {
-    ($name: ident [ $( $css: expr => $variant: ident ),+ ]) => {
+    ($name: ident [ $( $css: expr => $variant: ident ),+ ]
+                  [ $( $alias: expr => $alias_variant: ident),* ]) => {
         __define_css_keyword_enum__actual! {
-            $name [ Deserialize, Serialize, HeapSizeOf ] [ $( $css => $variant ),+ ]
+            $name [ Deserialize, Serialize, HeapSizeOf ]
+                  [ $( $css => $variant ),+ ]
+                  [ $( $alias => $alias_variant ),* ]
         }
     };
 }
@@ -97,16 +127,18 @@ macro_rules! __define_css_keyword_enum__add_optional_traits {
 #[cfg(not(feature = "servo"))]
 #[macro_export]
 macro_rules! __define_css_keyword_enum__add_optional_traits {
-    ($name: ident [ $( $css: expr => $variant: ident ),+ ]) => {
+    ($name: ident [ $( $css: expr => $variant: ident ),+ ] [ $( $alias: expr => $alias_variant: ident),* ]) => {
         __define_css_keyword_enum__actual! {
-            $name [] [ $( $css => $variant ),+ ]
+            $name [] [ $( $css => $variant ),+ ] [ $( $alias => $alias_variant ),* ]
         }
     };
 }
 
 #[macro_export]
 macro_rules! __define_css_keyword_enum__actual {
-    ($name: ident [ $( $derived_trait: ident),* ] [ $( $css: expr => $variant: ident ),+ ]) => {
+    ($name: ident [ $( $derived_trait: ident),* ]
+                  [ $( $css: expr => $variant: ident ),+ ]
+                  [ $( $alias: expr => $alias_variant: ident ),* ]) => {
         #[allow(non_camel_case_types, missing_docs)]
         #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq $(, $derived_trait )* )]
         pub enum $name {
@@ -116,8 +148,15 @@ macro_rules! __define_css_keyword_enum__actual {
         impl $name {
             /// Parse this property from a CSS input stream.
             pub fn parse(input: &mut ::cssparser::Parser) -> Result<$name, ()> {
-                match_ignore_ascii_case! { try!(input.expect_ident()),
+                let ident = input.expect_ident()?;
+                Self::from_ident(&ident)
+            }
+
+            /// Parse this property from an already-tokenized identifier.
+            pub fn from_ident(ident: &str) -> Result<$name, ()> {
+                match_ignore_ascii_case! { ident,
                                            $( $css => Ok($name::$variant), )+
+                                           $( $alias => Ok($name::$alias_variant), )*
                                            _ => Err(())
                 }
             }
@@ -138,36 +177,89 @@ macro_rules! __define_css_keyword_enum__actual {
 /// Helper types for the handling of specified values.
 pub mod specified {
     use app_units::Au;
+    use std::cmp;
 
-    /// Whether to allow negative values or not.
+    /// Whether to allow negative lengths or not.
     #[repr(u8)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    pub enum AllowedNumericType {
-        /// Allow all kind of numeric values.
+    pub enum AllowedLengthType {
+        /// Allow all kind of lengths.
         All,
-        /// Allow only non-negative values.
+        /// Allow only non-negative lengths.
         NonNegative
     }
 
-    impl AllowedNumericType {
-        /// Whether value is valid for this allowed numeric type.
+    impl Default for AllowedLengthType {
+        #[inline]
+        fn default() -> Self {
+            AllowedLengthType::All
+        }
+    }
+
+    impl AllowedLengthType {
+        /// Whether value is valid for this allowed length type.
         #[inline]
         pub fn is_ok(&self, value: f32) -> bool {
             match *self {
-                AllowedNumericType::All => true,
-                AllowedNumericType::NonNegative => value >= 0.,
+                AllowedLengthType::All => true,
+                AllowedLengthType::NonNegative => value >= 0.,
             }
         }
 
         /// Clamp the value following the rules of this numeric type.
         #[inline]
         pub fn clamp(&self, val: Au) -> Au {
-            use std::cmp;
             match *self {
-                AllowedNumericType::All => val,
-                AllowedNumericType::NonNegative => cmp::max(Au(0), val),
+                AllowedLengthType::All => val,
+                AllowedLengthType::NonNegative => cmp::max(Au(0), val),
             }
         }
+    }
+
+    /// Whether to allow negative lengths or not.
+    #[repr(u8)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd)]
+    pub enum AllowedNumericType {
+        /// Allow all kind of numeric values.
+        All,
+        /// Allow only non-negative numeric values.
+        NonNegative,
+        /// Allow only numeric values greater or equal to 1.0.
+        AtLeastOne,
+    }
+
+    impl AllowedNumericType {
+        /// Whether the value fits the rules of this numeric type.
+        #[inline]
+        pub fn is_ok(&self, val: f32) -> bool {
+            match *self {
+                AllowedNumericType::All => true,
+                AllowedNumericType::NonNegative => val >= 0.0,
+                AllowedNumericType::AtLeastOne => val >= 1.0,
+            }
+        }
+
+        /// Clamp the value following the rules of this numeric type.
+        #[inline]
+        pub fn clamp(&self, val: f32) -> f32 {
+            match *self {
+                AllowedNumericType::NonNegative if val < 0. => 0.,
+                AllowedNumericType::AtLeastOne if val < 1. => 1.,
+                _ => val,
+            }
+        }
+    }
+}
+
+
+/// Wrap CSS types for serialization with `write!` or `format!` macros.
+/// Used by ToCss of SpecifiedOperation.
+pub struct Css<T>(pub T);
+
+impl<T: ToCss> fmt::Display for Css<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.0.to_css(f)
     }
 }

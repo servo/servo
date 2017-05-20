@@ -1,0 +1,20 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Character representation in other encoding</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#escaping" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="Characters in the stylesheet that cannot be represented in the current character encoding are written as escaped references to ISO 10646 characters." />
+        <style type="text/css">
+            div:before
+            {
+                content: "\611B";
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the two characters below are identical.</p>
+        <div>&#24859;</div>
+    </body>
+</html>

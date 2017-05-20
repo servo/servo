@@ -1,0 +1,65 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Strict//EN">
+<html>
+<head>
+    <title>CSS Test: :nth-child selector with implied step</title>
+    <style type="text/css">
+    div div:nth-child(+1)
+    {
+        color: green;
+    }
+</style>
+</head>
+<body>
+    <p>The test passes if only the first DIV is green.</p>
+      <div id="test">
+          <div>DIV1</div>
+          <div>DIV2</div>
+          <div>DIV3</div>
+          <div>DIV4</div>
+          <div>DIV5</div>
+          <div>DIV6</div>
+          <div>DIV7</div>
+          <div>DIV8</div>
+          <div>DIV9</div>
+          <div>DIV10</div>
+      </div>
+      <div id="testresult" style="color: blue">Running</div>
+    <script type="text/javascript">
+        function ArrayContains(array, value, ci)
+        {
+            ci = ci == true ? true : false;
+            for (var i = 0; i < array.length; i++)
+            {
+                if (ci && array[i].toLowerCase() == value.toLowerCase())
+                {
+                    return true;
+                }
+                else if (array[i] == value)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function TestCase()
+        {
+         try
+         {
+        var greenValues = new Array("green", "#008000", "rgb(0, 128, 0)");
+
+        var elem = document.getElementById("test");
+        var val = getComputedStyle(elem.children[0], null).getPropertyValue("color");
+        if (ArrayContains(greenValues, val, false))
+        {
+            document.getElementById("testresult").innerHTML = "Pass";
+            return;
+        }
+         }
+         catch(e){}
+            document.getElementById("testresult").innerHTML = "Fail";
+        }
+        TestCase();
+    </script>
+</body>
+</html>

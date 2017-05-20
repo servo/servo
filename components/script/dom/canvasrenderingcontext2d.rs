@@ -32,7 +32,7 @@ use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcanvaselement::utils as canvas_utils;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::imagedata::ImageData;
-use dom::node::{Node, NodeDamage, window_from_node};
+use dom::node::{document_from_node, Node, NodeDamage, window_from_node};
 use dom_struct::dom_struct;
 use euclid::matrix2d::Matrix2D;
 use euclid::point::Point2D;
@@ -40,7 +40,7 @@ use euclid::rect::Rect;
 use euclid::size::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image::base::PixelFormat;
-use net_traits::image_cache_thread::ImageResponse;
+use net_traits::image_cache::ImageResponse;
 use num_traits::ToPrimitive;
 use script_traits::ScriptMsg as ConstellationMsg;
 use servo_url::ServoUrl;
@@ -228,16 +228,11 @@ impl CanvasRenderingContext2D {
             }
             HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::CanvasRenderingContext2D(image) =>
                 image.origin_is_clean(),
-            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::HTMLImageElement(image) =>
-                match image.get_url() {
-                    None => true,
-                    Some(url) => {
-                        // TODO(zbarsky): we should check the origin of the image against
-                        // the entry settings object, but for now check it against the canvas' doc.
-                        let node: &Node = &*self.canvas.upcast();
-                        url.origin() == node.owner_doc().url().origin()
-                    }
-                }
+            HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::HTMLImageElement(image) => {
+                let image_origin = image.get_origin().expect("Image's origin is missing");
+                let document = document_from_node(&*self.canvas);
+                document.url().clone().origin() == image_origin
+            }
         }
     }
 
@@ -350,7 +345,7 @@ impl CanvasRenderingContext2D {
                                                                      dh);
 
         if !is_rect_valid(source_rect) || !is_rect_valid(dest_rect) {
-            return Err(Error::IndexSize);
+            return Ok(());
         }
 
         let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
@@ -407,7 +402,7 @@ impl CanvasRenderingContext2D {
                                                                      dh);
 
         if !is_rect_valid(source_rect) || !is_rect_valid(dest_rect) {
-            return Err(Error::IndexSize);
+            return Ok(());
         }
 
         let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
@@ -429,8 +424,8 @@ impl CanvasRenderingContext2D {
         };
 
         let img = match self.request_image_from_cache(url) {
-            ImageResponse::Loaded(img) => img,
-            ImageResponse::PlaceholderLoaded(_) |
+            ImageResponse::Loaded(img, _) => img,
+            ImageResponse::PlaceholderLoaded(_, _) |
             ImageResponse::None |
             ImageResponse::MetadataLoaded(_) => {
                 return None;
@@ -888,7 +883,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-imagesmoothingenabled
-    fn SetImageSmoothingEnabled(&self, value: bool) -> () {
+    fn SetImageSmoothingEnabled(&self, value: bool) {
         self.state.borrow_mut().image_smoothing_enabled = value;
     }
 
@@ -998,15 +993,15 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
         let sw = cmp::max(1, sw.abs().to_u32().unwrap());
         let sh = cmp::max(1, sh.abs().to_u32().unwrap());
-        Ok(ImageData::new(&self.global(), sw, sh, None))
+        ImageData::new(&self.global(), sw, sh, None)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
     fn CreateImageData_(&self, imagedata: &ImageData) -> Fallible<Root<ImageData>> {
-        Ok(ImageData::new(&self.global(),
-                          imagedata.Width(),
-                          imagedata.Height(),
-                          None))
+        ImageData::new(&self.global(),
+                       imagedata.Width(),
+                       imagedata.Height(),
+                       None)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata
@@ -1059,7 +1054,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             chunk[2] = UNPREMULTIPLY_TABLE[256 * alpha + chunk[2] as usize];
         }
 
-        Ok(ImageData::new(&self.global(), sw, sh, Some(data)))
+        ImageData::new(&self.global(), sw, sh, Some(data))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata

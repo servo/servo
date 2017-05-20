@@ -2,11 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::Parser;
-use media_queries::CSSErrorReporterTest;
 use parsing::parse;
-use style::parser::{Parse, ParserContext};
-use style::stylesheets::Origin;
+use style::parser::Parse;
 use style::values::specified::basic_shape::*;
 use style_traits::ToCss;
 
@@ -77,6 +74,22 @@ fn test_border_radius() {
     assert_border_radius_values!("10px 20px 30px 40px / 1px 2px 3px 4px";
                                  "10px", "20px", "30px", "40px" ;
                                  "1px", "2px", "3px", "4px");
+    assert_border_radius_values!("10px 20px 30px 40px / 1px 2px 3px 4px";
+                                 "10px", "20px", "30px", "40px" ;
+                                 "1px", "2px", "3px", "4px");
+    assert_border_radius_values!("10px 20px 30px 40px / 1px 2px 3px 4px";
+                                 "10px", "20px", "30px", "40px" ;
+                                 "1px", "2px", "3px", "4px");
+    assert_border_radius_values!("10px -20px 30px 40px";
+                                 "10px", "10px", "10px", "10px";
+                                 "10px", "10px", "10px", "10px");
+    assert_border_radius_values!("10px 20px -30px 40px";
+                                 "10px", "20px", "10px", "20px";
+                                 "10px", "20px", "10px", "20px");
+    assert_border_radius_values!("10px 20px 30px -40px";
+                                 "10px", "20px", "30px", "20px";
+                                 "10px", "20px", "30px", "20px");
+    assert!(parse(BorderRadius::parse, "-10px 20px 30px 40px").is_err());
 }
 
 #[test]
@@ -111,10 +124,9 @@ fn test_circle() {
     assert_roundtrip_basicshape!(Circle::parse, "circle(at right 5% bottom 0px)",
                                                 "circle(at 95% 100%)");
     assert_roundtrip_basicshape!(Circle::parse, "circle(at right 5% bottom 1px)",
-                                                "circle(at right 5% bottom 1px)");
-    assert_roundtrip_basicshape!(Circle::parse, "circle(at 5% bottom 1px)",
-                                                "circle(at left 5% bottom 1px)");
+                                                "circle(at left 95% bottom 1px)");
 
+    assert!(parse(Circle::parse, "circle(at 5% bottom 1px)").is_err());
     assert!(parse(Circle::parse, "circle(at top 40%)").is_err());
     assert!(parse(Circle::parse, "circle(-10px)").is_err());
 }

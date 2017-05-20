@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Font name same as reserved keyword 'initial'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-family-prop" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-family-prop"/>
+        <meta name="flags" content="font" />
+        <meta name="assert" content="Font named 'initial' needs to be quoted to avoid conflict with reserved keyword 'initial'." />
+        <style type="text/css">
+            #test1
+            {
+                font-family: "initial";
+            }
+            #test2
+            {
+                font-family: initial;
+            }
+        </style>
+    </head>
+    <body>
+        <p>PREREQUISITE: Operating system needs to have the '<a href="support/AHEM_initial.ttf">initial</a>' font installed.</p>
+        <p>Post Test: Remove test font after running the test.</p>
+        <p>Test passes if there is a box above the letter 'X' below.</p>
+        <div id="test1">X</div>
+        <div id="test2">X</div>
+    </body>
+</html>

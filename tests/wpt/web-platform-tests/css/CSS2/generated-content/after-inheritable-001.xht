@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Pseudo-element ':after' inherits inheritable values</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/generate.html#before-after-content" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="The pseudo-element ':after' generated content inherits any inheritable properties from the element." />
+        <style type="text/css">
+            div
+            {
+                border: solid;
+                color: green;
+                text-align: center;
+            }
+            div:after
+            {
+                content: 'PASS PASS';
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if the words "PASS PASS" below are green and the words are centered within the box below.</p>
+        <div></div>
+    </body>
+</html>

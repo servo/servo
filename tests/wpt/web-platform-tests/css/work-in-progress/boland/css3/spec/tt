@@ -1,0 +1,4 @@
+         <pre class="rules">p { background-color : blue }</pre>
+         <pre class="rules">&lt;p&gt;
+  &lt;p&gt;The background of this paragraph should be blue&lt;/p&gt;
+</pre>

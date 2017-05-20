@@ -7,6 +7,7 @@
 use app_units::Au;
 use devtools_traits::NodeInfo;
 use document_loader::DocumentLoader;
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -46,6 +47,7 @@ use dom::htmllinkelement::HTMLLinkElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlstyleelement::HTMLStyleElement;
 use dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
+use dom::mutationobserver::{Mutation, MutationObserver, RegisteredObserver};
 use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::range::WeakRangeVec;
@@ -58,30 +60,30 @@ use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
 use heapsize::{HeapSizeOf, heap_size_of};
-use html5ever_atoms::{Prefix, Namespace, QualName};
+use html5ever::{Prefix, Namespace, QualName};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use libc::{self, c_void, uintptr_t};
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use ref_slice::ref_slice;
 use script_layout_interface::{HTMLCanvasData, OpaqueStyleAndLayoutData, SVGSVGData};
 use script_layout_interface::{LayoutElementType, LayoutNodeType, TrustedNodeAddress};
 use script_layout_interface::message::Msg;
 use script_traits::DocumentActivity;
 use script_traits::UntrustedNodeAddress;
-use selectors::matching::matches;
+use selectors::matching::{matches_selector_list, MatchingContext, MatchingMode};
 use selectors::parser::SelectorList;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
-use std::cell::{Cell, UnsafeCell};
+use std::cell::{Cell, UnsafeCell, RefMut};
 use std::cmp::max;
 use std::default::Default;
 use std::iter;
 use std::mem;
 use std::ops::Range;
-use std::sync::Arc;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
 use style::selector_parser::{SelectorImpl, SelectorParser};
+use style::stylearc::Arc;
 use style::stylesheets::Stylesheet;
 use style::thread_state;
 use uuid::Uuid;
@@ -138,31 +140,49 @@ pub struct Node {
     /// node is finalized.
     style_and_layout_data: Cell<Option<OpaqueStyleAndLayoutData>>,
 
+    /// Registered observers for this node.
+    mutation_observers: DOMRefCell<Vec<RegisteredObserver>>,
+
     unique_id: UniqueId,
 }
 
 bitflags! {
     #[doc = "Flags for node items."]
     #[derive(JSTraceable, HeapSizeOf)]
-    pub flags NodeFlags: u8 {
+    pub flags NodeFlags: u16 {
         #[doc = "Specifies whether this node is in a document."]
-        const IS_IN_DOC = 0x01,
+        const IS_IN_DOC = 1 << 0,
+
         #[doc = "Specifies whether this node needs style recalc on next reflow."]
-        const HAS_DIRTY_DESCENDANTS = 0x08,
+        const HAS_DIRTY_DESCENDANTS = 1 << 1,
         // TODO: find a better place to keep this (#4105)
         // https://critic.hoppipolla.co.uk/showcomment?chain=8873
         // Perhaps using a Set in Document?
         #[doc = "Specifies whether or not there is an authentic click in progress on \
                  this element."]
-        const CLICK_IN_PROGRESS = 0x10,
+        const CLICK_IN_PROGRESS = 1 << 2,
         #[doc = "Specifies whether this node is focusable and whether it is supposed \
                  to be reachable with using sequential focus navigation."]
-        const SEQUENTIALLY_FOCUSABLE = 0x20,
+        const SEQUENTIALLY_FOCUSABLE = 1 << 3,
 
         /// Whether any ancestor is a fragmentation container
-        const CAN_BE_FRAGMENTED = 0x40,
+        const CAN_BE_FRAGMENTED = 1 << 4,
+
         #[doc = "Specifies whether this node needs to be dirted when viewport size changed."]
-        const DIRTY_ON_VIEWPORT_SIZE_CHANGE = 0x80
+        const DIRTY_ON_VIEWPORT_SIZE_CHANGE = 1 << 5,
+
+        #[doc = "Specifies whether the parser has set an associated form owner for \
+                 this element. Only applicable for form-associatable elements."]
+        const PARSER_ASSOCIATED_FORM_OWNER = 1 << 6,
+
+        /// Whether this element has a snapshot stored due to a style or
+        /// attribute change.
+        ///
+        /// See the `style::restyle_hints` module.
+        const HAS_SNAPSHOT = 1 << 7,
+
+        /// Whether this element has already handled the stored snapshot.
+        const HANDLED_SNAPSHOT = 1 << 8,
     }
 }
 
@@ -285,7 +305,14 @@ impl Node {
 
         for node in child.traverse_preorder() {
             // Out-of-document elements never have the descendants flag set.
-            node.set_flag(IS_IN_DOC | HAS_DIRTY_DESCENDANTS, false);
+            node.set_flag(IS_IN_DOC | HAS_DIRTY_DESCENDANTS |
+                          HAS_SNAPSHOT | HANDLED_SNAPSHOT,
+                          false);
+        }
+        for node in child.traverse_preorder() {
+            // This needs to be in its own loop, because unbind_from_tree may
+            // rely on the state of IS_IN_DOC of the context node's descendants,
+            // e.g. when removing a <form>.
             vtable_for(&&*node).unbind_from_tree(&context);
             node.style_and_layout_data.get().map(|d| node.dispose(d));
         }
@@ -319,11 +346,14 @@ impl<'a> Iterator for QuerySelectorIterator {
 
     fn next(&mut self) -> Option<Root<Node>> {
         let selectors = &self.selectors.0;
+
         // TODO(cgaebel): Is it worth it to build a bloom filter here
         // (instead of passing `None`)? Probably.
+        let mut ctx = MatchingContext::new(MatchingMode::Normal, None);
+
         self.iterator.by_ref().filter_map(|node| {
             if let Some(element) = Root::downcast(node) {
-                if matches(selectors, &element, None) {
+                if matches_selector_list(selectors, &element, &mut ctx) {
                     return Some(Root::upcast(element));
                 }
             }
@@ -339,6 +369,11 @@ impl Node {
         for kid in self.children() {
             kid.teardown();
         }
+    }
+
+    /// Return all registered mutation observers for this node.
+    pub fn registered_mutation_observers(&self) -> RefMut<Vec<RegisteredObserver>> {
+         self.mutation_observers.borrow_mut()
     }
 
     /// Dumps the subtree rooted at this node, for debugging.
@@ -685,8 +720,9 @@ impl Node {
             Err(()) => Err(Error::Syntax),
             // Step 3.
             Ok(selectors) => {
+                let mut ctx = MatchingContext::new(MatchingMode::Normal, None);
                 Ok(self.traverse_preorder().filter_map(Root::downcast).find(|element| {
-                    matches(&selectors.0, element, None)
+                    matches_selector_list(&selectors.0, element, &mut ctx)
                 }))
             }
         }
@@ -905,20 +941,18 @@ fn first_node_not_in<I>(mut nodes: I, not_in: &[NodeOrString]) -> Option<Root<No
 /// If the given untrusted node address represents a valid DOM node in the given runtime,
 /// returns it.
 #[allow(unsafe_code)]
-pub fn from_untrusted_node_address(_runtime: *mut JSRuntime, candidate: UntrustedNodeAddress)
+pub unsafe fn from_untrusted_node_address(_runtime: *mut JSRuntime, candidate: UntrustedNodeAddress)
     -> Root<Node> {
-    unsafe {
-        // https://github.com/servo/servo/issues/6383
-        let candidate: uintptr_t = mem::transmute(candidate.0);
+    // https://github.com/servo/servo/issues/6383
+    let candidate: uintptr_t = mem::transmute(candidate.0);
 //        let object: *mut JSObject = jsfriendapi::bindgen::JS_GetAddressableObject(runtime,
 //                                                                                  candidate);
-        let object: *mut JSObject = mem::transmute(candidate);
-        if object.is_null() {
-            panic!("Attempted to create a `JS<Node>` from an invalid pointer!")
-        }
-        let boxed_node = conversions::private_from_object(object) as *const Node;
-        Root::from_ref(&*boxed_node)
+    let object: *mut JSObject = mem::transmute(candidate);
+    if object.is_null() {
+        panic!("Attempted to create a `JS<Node>` from an invalid pointer!")
     }
+    let boxed_node = conversions::private_from_object(object) as *const Node;
+    Root::from_ref(&*boxed_node)
 }
 
 #[allow(unsafe_code)]
@@ -948,6 +982,7 @@ pub trait LayoutNodeHelpers {
     fn image_url(&self) -> Option<ServoUrl>;
     fn canvas_data(&self) -> Option<HTMLCanvasData>;
     fn svg_data(&self) -> Option<SVGSVGData>;
+    fn iframe_browsing_context_id(&self) -> BrowsingContextId;
     fn iframe_pipeline_id(&self) -> PipelineId;
     fn opaque(&self) -> OpaqueNode;
 }
@@ -1096,6 +1131,12 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
     fn svg_data(&self) -> Option<SVGSVGData> {
         self.downcast::<SVGSVGElement>()
             .map(|svg| svg.data())
+    }
+
+    fn iframe_browsing_context_id(&self) -> BrowsingContextId {
+        let iframe_element = self.downcast::<HTMLIFrameElement>()
+            .expect("not an iframe element!");
+        iframe_element.browsing_context_id()
     }
 
     fn iframe_pipeline_id(&self) -> PipelineId {
@@ -1384,6 +1425,8 @@ impl Node {
 
             style_and_layout_data: Cell::new(None),
 
+            mutation_observers: Default::default(),
+
             unique_id: UniqueId::new(),
         }
     }
@@ -1573,18 +1616,27 @@ impl Node {
         let new_nodes = if let NodeTypeId::DocumentFragment = node.type_id() {
             // Step 3.
             new_nodes.extend(node.children().map(|kid| JS::from_ref(&*kid)));
-            // Step 4: mutation observers.
-            // Step 5.
+            // Step 4.
             for kid in new_nodes.r() {
                 Node::remove(*kid, node, SuppressObserver::Suppressed);
             }
+            // Step 5.
             vtable_for(&node).children_changed(&ChildrenMutation::replace_all(new_nodes.r(), &[]));
+
+            let mutation = Mutation::ChildList {
+                added: None,
+                removed: Some(new_nodes.r()),
+                prev: None,
+                next: None,
+            };
+            MutationObserver::queue_a_mutation_record(&node, mutation);
+
             new_nodes.r()
         } else {
             // Step 3.
             ref_slice(&node)
         };
-        // Step 6: mutation observers.
+        // Step 6.
         let previous_sibling = match suppress_observers {
             SuppressObserver::Unsuppressed => {
                 match child {
@@ -1603,6 +1655,14 @@ impl Node {
         if let SuppressObserver::Unsuppressed = suppress_observers {
             vtable_for(&parent).children_changed(
                 &ChildrenMutation::insert(previous_sibling.r(), new_nodes, child));
+
+            let mutation = Mutation::ChildList {
+                added: Some(new_nodes),
+                removed: None,
+                prev: previous_sibling.r(),
+                next: child,
+            };
+            MutationObserver::queue_a_mutation_record(&parent, mutation);
         }
     }
 
@@ -1634,9 +1694,19 @@ impl Node {
         if let Some(node) = node {
             Node::insert(node, parent, None, SuppressObserver::Suppressed);
         }
-        // Step 6: mutation observers.
+        // Step 6.
         vtable_for(&parent).children_changed(
             &ChildrenMutation::replace_all(removed_nodes.r(), added_nodes));
+
+        if !removed_nodes.is_empty() || !added_nodes.is_empty() {
+            let mutation = Mutation::ChildList {
+                added: Some(added_nodes),
+                removed: Some(removed_nodes.r()),
+                prev: None,
+                next: None,
+            };
+            MutationObserver::queue_a_mutation_record(&parent, mutation);
+        }
     }
 
     // https://dom.spec.whatwg.org/#concept-node-pre-remove
@@ -1687,6 +1757,15 @@ impl Node {
                 &ChildrenMutation::replace(old_previous_sibling.r(),
                                            &Some(&node), &[],
                                            old_next_sibling.r()));
+
+            let removed = [node];
+            let mutation = Mutation::ChildList {
+                added: None,
+                removed: Some(&removed),
+                prev: old_previous_sibling.r(),
+                next: old_next_sibling.r(),
+            };
+            MutationObserver::queue_a_mutation_record(&parent, mutation);
         }
     }
 
@@ -1740,11 +1819,11 @@ impl Node {
             NodeTypeId::Element(..) => {
                 let element = node.downcast::<Element>().unwrap();
                 let name = QualName {
+                    prefix: element.prefix().map(|p| Prefix::from(&**p)),
                     ns: element.namespace().clone(),
                     local: element.local_name().clone()
                 };
                 let element = Element::create(name,
-                    element.prefix().map(|p| Prefix::from(&**p)),
                     &document, ElementCreator::ScriptCreated);
                 Root::upcast::<Node>(element)
             },
@@ -2139,6 +2218,14 @@ impl NodeMethods for Node {
             &ChildrenMutation::replace(previous_sibling.r(),
                                        &removed_child, nodes,
                                        reference_child));
+        let removed = removed_child.map(|r| [r]);
+        let mutation = Mutation::ChildList {
+            added: Some(nodes),
+            removed: removed.as_ref().map(|r| &r[..]),
+            prev: previous_sibling.r(),
+            next: reference_child,
+        };
+        MutationObserver::queue_a_mutation_record(&self, mutation);
 
         // Step 15.
         Ok(Root::from_ref(child))
@@ -2374,7 +2461,7 @@ impl NodeMethods for Node {
 
         // Step 2.
         Node::namespace_to_string(Node::locate_namespace(self, prefix))
-     }
+    }
 
     // https://dom.spec.whatwg.org/#dom-node-isdefaultnamespace
     fn IsDefaultNamespace(&self, namespace: Option<DOMString>) -> bool {
@@ -2656,3 +2743,41 @@ impl Into<LayoutElementType> for ElementTypeId {
     }
 }
 
+/// Helper trait to insert an element into vector whose elements
+/// are maintained in tree order
+pub trait VecPreOrderInsertionHelper<T> {
+    fn insert_pre_order(&mut self, elem: &T, tree_root: &Node);
+}
+
+impl<T> VecPreOrderInsertionHelper<T> for Vec<JS<T>>
+    where T: DerivedFrom<Node> + DomObject
+{
+    /// This algorithm relies on the following assumptions:
+    /// * any elements inserted in this vector share the same tree root
+    /// * any time an element is removed from the tree root, it is also removed from this array
+    /// * any time an element is moved within the tree, it is removed from this array and re-inserted
+    ///
+    /// Under these assumptions, an element's tree-order position in this array can be determined by
+    /// performing a [preorder traversal](https://dom.spec.whatwg.org/#concept-tree-order) of the tree root's children,
+    /// and increasing the destination index in the array every time a node in the array is encountered during
+    /// the traversal.
+    fn insert_pre_order(&mut self, elem: &T, tree_root: &Node) {
+        if self.is_empty() {
+            self.push(JS::from_ref(elem));
+            return;
+        }
+
+        let elem_node = elem.upcast::<Node>();
+        let mut head: usize = 0;
+        for node in tree_root.traverse_preorder() {
+            let head_node = Root::upcast::<Node>(Root::from_ref(&*self[head]));
+            if head_node == node {
+                head += 1;
+            }
+            if elem_node == node.r() || head == self.len() {
+                break;
+            }
+        }
+        self.insert(head, JS::from_ref(elem));
+    }
+}

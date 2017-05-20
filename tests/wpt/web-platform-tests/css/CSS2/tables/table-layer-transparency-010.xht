@@ -1,0 +1,59 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Hidden empty cells are transparent down to table background</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#table-layers" />
+        <meta name="flags" content="" />
+        <meta name="assert" content="If 'empty-cells' is set to 'hide', empty cells are transparent all the way down to the table background." />
+        <style type="text/css">
+            table
+            {
+                background: orange;
+                border-collapse: separate;
+                border-spacing: 0;
+            }
+            colgroup, col, tbody, tr
+            {
+                background: blue;
+            }
+            td
+            {
+                height: 2em;
+                width: 2em;
+            }
+            #test
+            {
+                background: red;
+                empty-cells: hide;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is an orange square in the middle of the blue square below.</p>
+        <table>
+            <colgroup>
+                <col />
+                <col />
+                <col />
+            </colgroup>
+            <tbody>
+                <tr>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td id="test"></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+    </body>
+</html>

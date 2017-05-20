@@ -1,0 +1,12 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD Compact HTML 1.1 Draft//EN">
+<html>
+ <head> <!-- 1.1 is not a DOCTYPE listed in our spec -->
+  <title>Media type selection non-triggers (CHTML) (Handheld devices only)</title>
+   </head>
+ <body>
+  <p><font color="red">This should be in SSR mode, it should not be in
+  handheld mode.</font></p>
+  <!-- Technically <font> is invalid in CHTML but unless it causes a
+       problem, I see no other way of testing this. -->
+ </body>
+</html>

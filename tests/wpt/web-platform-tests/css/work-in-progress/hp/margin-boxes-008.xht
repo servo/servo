@@ -1,0 +1,73 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>CSS3 Test Suite: Margin Boxes - Left Top</title>
+  <link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+  <link rel="help" href="http://www.w3.org/TR/css3-page/#margin-boxes"/>
+  <meta name="flags" content="paged" />
+  <meta name="assert" content="The left-top margin box's margin edges are defined by a a variable-height box filling the left page margin between the top-left-corner and left-middle margin boxes"/>
+  <style type="text/css"><![CDATA[
+   @page {
+   		size: 6in 4in;
+		margin: 1in;
+		@left-top {
+			background: green;
+			content: "";
+		}
+   }
+   @page pageTwo {
+   		size: 6in 4in;
+		margin: 1in;
+		@left-bottom { 
+			content: "";
+			width: 1in;
+		}
+		@left-top {
+			background: green;
+			content: "";
+		}
+   }
+   @page pageThree {
+   		size: 6in 4in;
+		font-size: 0.3in;
+		margin: 0.5in;
+		@left-bottom { 
+			background: aqua;
+			content: "x x";
+		}
+		@left-top {
+			background: green;
+			content: "x x x x";
+		}
+   }
+   
+   @page pageFour {
+   		size: 6in 4in;
+		margin: 1in;
+		@left-bottom { 
+			background: aqua;
+			content: "";
+		}
+		@left-middle { 
+			width: 0.25in;
+			content: "";
+		}
+		@left-top {
+			background: green;
+			content: "";
+		}
+   }
+   
+   p {page-break-after: always;}
+   p#second {page: pageTwo;}
+   p#third {page: pageThree;}
+   p#fourth {page: pageFour;}
+  ]]></style>
+</head>
+<body>
+	<p>This test requires four pages. The green box on this page must be two inches tall.</p>
+	<p id="second">The green box on this page must be one inch tall.</p>
+	<p id="third">The green box on this page must be approximately twice as tall as the blue box.</p>
+	<p id="fourth">The green box on this page must be the same height as the blue box.</p>
+</body>
+</html>

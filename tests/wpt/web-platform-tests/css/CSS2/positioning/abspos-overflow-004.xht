@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>CSS Test: Absolutely positioned children of overflow: hidden</title>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2012-09-14 -->
+  <link rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/box/absolute/overflow/004.html" type="text/html"/>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/visufx.html#overflow-clipping" />
+  <link rel="match" href="abspos-overflow-004-ref.xht" />
+
+  <style type="text/css">
+   html, body { margin: 0; border: 0; padding: 0; }
+   .control { color: yellow; background: red; width: 10em; }
+   .overflow { width: 8em; height: 8em; overflow: hidden; }
+   .positioned { color: white; background: green; position: absolute; top: 0; left: 0; width: 10em; }
+  </style>
+ </head>
+ <body>
+  <div class="control">FAIL</div>
+  <div class="overflow">
+   <div class="positioned">PASS</div>
+  </div>
+ </body>
+</html>

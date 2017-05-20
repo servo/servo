@@ -123,6 +123,7 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('use &[T] instead of &Vec<T>', errors.next()[2])
         self.assertEqual('use &str instead of &String', errors.next()[2])
         self.assertEqual('use &T instead of &Root<T>', errors.next()[2])
+        self.assertEqual('encountered function signature with -> ()', errors.next()[2])
         self.assertEqual('operators should go at the end of the first line', errors.next()[2])
         self.assertEqual('else braces should be on the same line', errors.next()[2])
         self.assertEqual('extra space after (', errors.next()[2])
@@ -130,6 +131,8 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('extra space after (', errors.next()[2])
         self.assertEqual('extra space after test_fun', errors.next()[2])
         self.assertEqual('no = in the beginning of line', errors.next()[2])
+        self.assertEqual('space before { is not a multiple of 4', errors.next()[2])
+        self.assertEqual('space before } is not a multiple of 4', errors.next()[2])
         self.assertNoMoreErrors(errors)
 
         feature_errors = tidy.collect_errors_for_files(iterFile('lib.rs'), [], [tidy.check_rust], print_text=False)
@@ -139,6 +142,14 @@ class CheckTidiness(unittest.TestCase):
         self.assertTrue('feature attribute is not in alphabetical order' in feature_errors.next()[2])
         self.assertTrue('feature attribute is not in alphabetical order' in feature_errors.next()[2])
         self.assertNoMoreErrors(feature_errors)
+
+        ban_errors = tidy.collect_errors_for_files(iterFile('ban.rs'), [], [tidy.check_rust], print_text=False)
+        self.assertEqual('Banned type Cell<JSVal> detected. Use MutJS<JSVal> instead', ban_errors.next()[2])
+        self.assertNoMoreErrors(ban_errors)
+
+        ban_errors = tidy.collect_errors_for_files(iterFile('ban-domrefcell.rs'), [], [tidy.check_rust], print_text=False)
+        self.assertEqual('Banned type DOMRefCell<JS<T>> detected. Use MutJS<JS<T>> instead', ban_errors.next()[2])
+        self.assertNoMoreErrors(ban_errors)
 
     def test_spec_link(self):
         tidy.SPEC_BASE_PATH = base_path

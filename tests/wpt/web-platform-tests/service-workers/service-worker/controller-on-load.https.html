@@ -18,7 +18,7 @@ t.step(function() {
           return wait_for_state(t, registration.installing, 'activated');
         }))
       .then(t.step_func(function() {
-          return with_iframe(scope)
+          return with_iframe(scope);
         }))
       .then(t.step_func(function(f) {
           frame = f;

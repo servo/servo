@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>LongTask Timing: long task in nested child iframe</title>
+<body>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+  async_test(t => {
+    window.addEventListener("message", t.step_func(e => {
+      assert_equals(e.data, "longtask+same-origin-ancestor+frame");
+      t.done();
+    }));
+}, "Performance longtask entries in parent are observable in child iframe");
+</script>
+
+<iframe src="resources/subframe-observing-longtask.html" id="child-iframe-id" name="child-iframe-name"></iframe>
+
+<script>
+  setTimeout(function(){
+    var begin = window.performance.now();
+    while (window.performance.now() < begin + 51);
+  }, 50);
+</script>
+
+</body>

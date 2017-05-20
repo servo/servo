@@ -1,0 +1,30 @@
+<?xml version="1.1"?>
+<csstest def="Attribute multivalue selector and spaces (class attribute)" module="W3C Selectors" modulename="css3-modsel" number="7d" rev="1.0" date="9-november-2005" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<cssrules>
+p { background: red; }
+[class~="pass"] { background: lime; }
+address { background: lime; }
+[class~="fail"] { background: red; }
+</cssrules>
+
+<!-- XML 1.0 doesn't support the characters on the lines commented out below -->
+
+<code>
+  <p xmlns="http://www.w3.org/1999/xhtml" class="test&#x9;pass">This line should have a green background.</p>
+  <p xmlns="http://www.w3.org/1999/xhtml" class="test&#xa;pass">This line should have a green background.</p>
+  <p xmlns="http://www.w3.org/1999/xhtml" class="test&#xd;pass">This line should have a green background.</p>
+  <!-- <p xmlns="http://www.w3.org/1999/xhtml" class="test&#xc;pass">This line should have a green background.</p> -->
+  <p xmlns="http://www.w3.org/1999/xhtml" class="test&#x20;pass">This line should have a green background.</p>
+  <!-- <address xmlns="http://www.w3.org/1999/xhtml" class="test&#x1;pass">This line should have a green background.</address> -->
+  <!-- <address xmlns="http://www.w3.org/1999/xhtml" class="test&#xf;pass">This line should have a green background.</address> -->
+  <address xmlns="http://www.w3.org/1999/xhtml" class="test&#xa0;pass">This line should have a green background.</address>
+  <address xmlns="http://www.w3.org/1999/xhtml" class="test&#x2003;pass">This line should have a green background.</address>
+  <address xmlns="http://www.w3.org/1999/xhtml" class="test&#x202f;pass">This line should have a green background.</address>
+  <address xmlns="http://www.w3.org/1999/xhtml" class="test&#x3000;pass">This line should have a green background.</address>
+  <address xmlns="http://www.w3.org/1999/xhtml" class="test&#x10020;pass">This line should have a green background.</address>
+</code>
+
+</csstest>

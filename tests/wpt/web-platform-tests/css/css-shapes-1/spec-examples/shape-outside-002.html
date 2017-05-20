@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: Left and right float with shape-outside with clipped left float</title>
+    <link rel="author" title="Rebecca Hauck" href="mailto:rhauck@adobe.com"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#relation-to-box-model-and-float-behavior"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#supported-basic-shapes"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property"/>
+    <link rel="match" href="reference/shape-outside-001-ref.html"/>
+    <meta name="flags" content="ahem"/>
+    <meta name="assert" content="This test verifies that left floats with a shape-outside
+     only allow content wrapping on the right side, and right floats only allow wrapping on
+     the left and that the left float shape is clipped to the float's margin box"/>
+    <!-- This test is derived from Example 2 in this version of the spec:
+         http://www.w3.org/TR/2013/WD-css-shapes-1-20131203/ -->
+    <style type="text/css">
+        body {
+            margin-left: 0;
+        }
+        .container {
+          width: 400px;
+          text-align: center;
+          font-family: Ahem;
+          font-size: 20px;
+          line-height: 1em;
+        }
+        #test {
+            color: green;
+        }
+        #test-float-left {
+          shape-outside: polygon(0 0, 1000px 1000px, 0 1000px);
+          float: left;
+          width: 200px;
+          height: 200px;
+        }
+        #test-float-right {
+          shape-outside: polygon(200px 0, 200px 200px, 0 200px);
+          float: right;
+          width: 200px;
+          height: 200px;
+        }
+        #failure-container {
+            color: red;
+            z-index: -1;
+        }
+        #test, #failure-container {
+            position: absolute;
+            top: 60px;
+        }
+        .line {
+            height: 20px;
+        }
+        #bottom {
+            position: absolute;
+            top: 200px;
+        }
+        #left-triangle, #right-triangle {
+            position: absolute;
+            top: 60px;
+            width: 200px;
+            height: 200px;
+            background-color: lightblue;
+        }
+        #left-triangle {
+            clip-path: polygon(0 0, 200px 200px, 0 200px);
+        }
+        #right-triangle {
+            left: 200px;
+            clip-path: polygon(200px 0, 200px 200px, 0 200px);
+        }
+    </style>
+</head>
+<body>
+    <p>
+        The test passes if the green shape does not intersect either of the triangles and
+        there is one green horizontal bar beneath the triangles. There should be no red.
+    </p>
+    <div id="test" class="container">
+        <div id="test-float-left"></div>
+        <div id="test-float-right"></div>
+        XXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXX XXXXXXXXXXXXX
+        XXXXXXXXXXX XXXXXXXXX XXXXXXX XXXXX XXX X
+        XXXXXXXXXXXXXXXXX
+    </div>
+    <div id="failure-container">
+       <div class="line container">XXXXXXXXXXXXXXXXX</div>
+       <div class="line container">XXXXXXXXXXXXXXX</div>
+       <div class="line container">XXXXXXXXXXXXX</div>
+       <div class="line container">XXXXXXXXXXX</div>
+       <div class="line container">XXXXXXXXX</div>
+       <div class="line container">XXXXXXX</div>
+       <div class="line container">XXXXX</div>
+       <div class="line container">XXX</div>
+       <div class="line container">X</div>
+       <div class="line container" id="bottom">XXXXXXXXXXXXXXXXX</div>
+    </div>
+    <div id="left-triangle"></div>
+    <div id="right-triangle"></div>
+</body>
+</html>

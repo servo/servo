@@ -4,6 +4,19 @@
 
 use app_units::Au;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_length};
+use style::values::computed::CalcLengthOrPercentage;
+
+#[test]
+fn test_length_calc() {
+    let calc = CalcLengthOrPercentage::new(Au(10), Some(0.2));
+    assert_eq!(calc.to_used_value(Some(Au(10))), Some(Au(12)));
+    assert_eq!(calc.to_used_value(Some(Au(0))), Some(Au(10)));
+    assert_eq!(calc.to_used_value(None), None);
+
+    let calc = CalcLengthOrPercentage::new(Au(10), None);
+    assert_eq!(calc.to_used_value(Some(Au(0))), Some(Au(10)));
+    assert_eq!(calc.to_used_value(None), Some(Au(10)));
+}
 
 #[test]
 fn test_parse_double() {

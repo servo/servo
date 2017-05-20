@@ -1,0 +1,66 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>CSS Test: page properties: color</title>
+<link rel="author" title="Tom Clancy" href="mailto:tclancy@revenution.com"/>
+<link rel="help" href="http://www.w3.org/TR/css3-page/#page-properties"/>
+<meta name="flags" content="paged" />
+<meta name="assert" content="The 'color' property can be used in the page context to style the content of margin boxes."/>
+<style type="text/css">
+	@page { 
+		color: green;
+		@top-left-corner {
+			content: "X";
+		}	
+		@top-left {
+			content: "X";
+		}	
+		@top-center {
+			content: "X";
+		}	
+		@top-right {
+			content: "X";
+		}	
+		@top-right-corner {
+			content: "X";
+		}
+		@left-top {
+			content: "X";
+		}
+		@left-middle {
+			content: "X";
+		}
+		@left-bottom {
+			content: "X";
+		}
+		@right-top {
+			content: "X";
+		}
+		@right-middle {
+			content: "X";
+		}
+		@right-bottom {
+			content: "X";
+		}
+		@bottom-left-corner {
+			content: "X";
+		}	
+		@bottom-left {
+			content: "X";
+		}	
+		@bottom-center {
+			content: "X";
+		}	
+		@bottom-right {
+			content: "X";
+		}	
+		@bottom-right-corner {
+			content: "X";
+		}
+	}
+</style>
+</head>
+<body>
+	<p>There must be 16 green Xs surrounding the page.</p>
+</body>
+</html>

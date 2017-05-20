@@ -3,46 +3,100 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 mod common {
-    use std::env;
-    use std::path::PathBuf;
+    use std::{env, fs, io};
+    use std::path::{Path, PathBuf};
 
     lazy_static! {
         pub static ref OUTDIR_PATH: PathBuf = PathBuf::from(env::var("OUT_DIR").unwrap()).join("gecko");
     }
 
-    pub const STRUCTS_DEBUG_FILE: &'static str = "structs_debug.rs";
-    pub const STRUCTS_RELEASE_FILE: &'static str = "structs_release.rs";
-    pub const BINDINGS_FILE: &'static str = "bindings.rs";
-
-    #[derive(Clone, Copy, PartialEq)]
-    pub enum BuildType {
-        Debug,
-        Release,
-    }
-
-    pub fn structs_file(build_type: BuildType) -> &'static str {
-        match build_type {
-            BuildType::Debug => STRUCTS_DEBUG_FILE,
-            BuildType::Release => STRUCTS_RELEASE_FILE
+    /// Copy contents of one directory into another.
+    /// It currently only does a shallow copy.
+    pub fn copy_dir<P, Q, F>(from: P, to: Q, callback: F) -> io::Result<()>
+    where P: AsRef<Path>, Q: AsRef<Path>, F: Fn(&Path) {
+        let to = to.as_ref();
+        for entry in from.as_ref().read_dir()? {
+            let entry = entry?;
+            let path = entry.path();
+            callback(&path);
+            fs::copy(&path, to.join(entry.file_name()))?;
         }
+        Ok(())
     }
 }
 
 #[cfg(feature = "bindgen")]
 mod bindings {
     use bindgen::{Builder, CodegenConfig};
-    use regex::Regex;
+    use bindgen::callbacks::{EnumVariantCustomBehavior, EnumVariantValue, ParseCallbacks};
+    use regex::{Regex, RegexSet};
     use std::cmp;
-    use std::collections::HashSet;
+    use std::collections::{HashSet, HashMap};
     use std::env;
-    use std::fs::File;
+    use std::fs::{self, File};
     use std::io::{Read, Write};
     use std::path::{Path, PathBuf};
+    use std::process::{Command, exit};
+    use std::slice;
     use std::sync::Mutex;
     use std::time::SystemTime;
     use super::common::*;
+    use super::super::PYTHON;
+    use toml;
+
+    const STRUCTS_DEBUG_FILE: &'static str = "structs_debug.rs";
+    const STRUCTS_RELEASE_FILE: &'static str = "structs_release.rs";
+    const BINDINGS_FILE: &'static str = "bindings.rs";
+
+    #[derive(Clone, Copy, PartialEq)]
+    enum BuildType {
+        Debug,
+        Release,
+    }
+
+    fn structs_file(build_type: BuildType) -> &'static str {
+        match build_type {
+            BuildType::Debug => STRUCTS_DEBUG_FILE,
+            BuildType::Release => STRUCTS_RELEASE_FILE
+        }
+    }
 
     lazy_static! {
+        static ref CONFIG: toml::Table = {
+            let path = PathBuf::from(env::var("MOZ_SRC").unwrap())
+                .join("layout/style/ServoBindings.toml");
+            println!("cargo:rerun-if-changed={}", path.to_str().unwrap());
+            update_last_modified(&path);
+
+            let mut contents = String::new();
+            File::open(path).expect("Failed to open config file")
+                .read_to_string(&mut contents).expect("Failed to read config file");
+            let mut parser = toml::Parser::new(&contents);
+            if let Some(result) = parser.parse() {
+                result
+            } else {
+                use std::fmt::Write;
+                let mut reason = String::from("Failed to parse config file:");
+                for err in parser.errors.iter() {
+                    let parsed = &contents[..err.lo];
+                    write!(&mut reason, "\n* line {} column {}: {}",
+                           parsed.lines().count(),
+                           parsed.lines().last().map_or(0, |l| l.len()),
+                           err).unwrap();
+                }
+                panic!(reason)
+            }
+        };
+        static ref TARGET_INFO: HashMap<String, String> = {
+            const TARGET_PREFIX: &'static str = "CARGO_CFG_TARGET_";
+            let mut result = HashMap::new();
+            for (k, v) in env::vars() {
+                if k.starts_with(TARGET_PREFIX) {
+                    result.insert(k[TARGET_PREFIX.len()..].to_lowercase(), v);
+                }
+            }
+            result
+        };
         static ref INCLUDE_RE: Regex = Regex::new(r#"#include\s*"(.+?)""#).unwrap();
         static ref DISTDIR_PATH: PathBuf = {
             let path = PathBuf::from(env::var("MOZ_DIST").unwrap());
@@ -56,7 +110,7 @@ mod bindings {
             DISTDIR_PATH.join("include/nspr"),
         ];
         static ref ADDED_PATHS: Mutex<HashSet<PathBuf>> = Mutex::new(HashSet::new());
-        pub static ref LAST_MODIFIED: Mutex<SystemTime> =
+        static ref LAST_MODIFIED: Mutex<SystemTime> =
             Mutex::new(get_modified_time(&env::current_exe().unwrap())
                        .expect("Failed to get modified time of executable"));
     }
@@ -65,16 +119,19 @@ mod bindings {
         file.metadata().and_then(|m| m.modified()).ok()
     }
 
+    fn update_last_modified(file: &Path) {
+        let modified = get_modified_time(file).unwrap();
+        let mut last_modified = LAST_MODIFIED.lock().unwrap();
+        *last_modified = cmp::max(modified, *last_modified);
+    }
+
     fn search_include(name: &str) -> Option<PathBuf> {
         for path in SEARCH_PATHS.iter() {
             let file = path.join(name);
-            if !file.is_file() {
-                continue;
+            if file.is_file() {
+                update_last_modified(&file);
+                return Some(file);
             }
-            let modified = get_modified_time(&file).unwrap();
-            let mut last_modified = LAST_MODIFIED.lock().unwrap();
-            *last_modified = cmp::max(modified, *last_modified);
-            return Some(file);
         }
         None
     }
@@ -107,22 +164,43 @@ mod bindings {
     trait BuilderExt {
         fn get_initial_builder(build_type: BuildType) -> Builder;
         fn include<T: Into<String>>(self, file: T) -> Builder;
-        fn zero_size_type(self, ty: &str, structs_list: &[&str]) -> Builder;
+        fn zero_size_type(self, ty: &str, structs_list: &HashSet<&str>) -> Builder;
         fn borrowed_type(self, ty: &str) -> Builder;
         fn mutable_borrowed_type(self, ty: &str) -> Builder;
+    }
+
+    fn add_clang_args(mut builder: Builder, config: &toml::Table, matched_os: &mut bool) -> Builder {
+        fn add_args(mut builder: Builder, values: &[toml::Value]) -> Builder {
+            for item in values.iter() {
+                builder = builder.clang_arg(item.as_str().expect("Expect string in list"));
+            }
+            builder
+        }
+        for (k, v) in config.iter() {
+            if k == "args" {
+                builder = add_args(builder, v.as_slice().unwrap());
+                continue;
+            }
+            let equal_idx = k.find('=').expect(&format!("Invalid key: {}", k));
+            let (target_type, target_value) = k.split_at(equal_idx);
+            if TARGET_INFO[target_type] != target_value[1..] {
+                continue;
+            }
+            if target_type == "os" {
+                *matched_os = true;
+            }
+            builder = match *v {
+                toml::Value::Table(ref table) => add_clang_args(builder, table, matched_os),
+                toml::Value::Array(ref array) => add_args(builder, array),
+                _ => panic!("Unknown type"),
+            };
+        }
+        builder
     }
 
     impl BuilderExt for Builder {
         fn get_initial_builder(build_type: BuildType) -> Builder {
             let mut builder = Builder::default().no_unstable_rust();
-            let args = [
-                "-x", "c++", "-std=c++14",
-                "-DTRACING=1", "-DIMPL_LIBXUL", "-DMOZ_STYLO_BINDINGS=1",
-                "-DMOZILLA_INTERNAL_API", "-DRUST_BINDGEN", "-DMOZ_STYLO"
-            ];
-            for &arg in args.iter() {
-                builder = builder.clang_arg(arg);
-            }
             for dir in SEARCH_PATHS.iter() {
                 builder = builder.clang_arg("-I").clang_arg(dir.to_str().unwrap());
             }
@@ -131,46 +209,11 @@ mod bindings {
             if build_type == BuildType::Debug {
                 builder = builder.clang_arg("-DDEBUG=1").clang_arg("-DJS_DEBUG=1");
             }
-            if cfg!(target_family = "unix") {
-                builder = builder.clang_arg("-DOS_POSIX=1");
-            }
-            if cfg!(target_os = "linux") {
-                builder = builder.clang_arg("-DOS_LINUX=1");
-            } else if cfg!(target_os = "solaris") {
-                builder = builder.clang_arg("-DOS_SOLARIS=1");
-            } else if cfg!(target_os = "dragonfly") {
-                builder = builder.clang_arg("-DOS_BSD=1").clang_arg("-DOS_DRAGONFLY=1");
-            } else if cfg!(target_os = "freebsd") {
-                builder = builder.clang_arg("-DOS_BSD=1").clang_arg("-DOS_FREEBSD=1");
-            } else if cfg!(target_os = "netbsd") {
-                builder = builder.clang_arg("-DOS_BSD=1").clang_arg("-DOS_NETBSD=1");
-            } else if cfg!(target_os = "openbsd") {
-                builder = builder.clang_arg("-DOS_BSD=1").clang_arg("-DOS_OPENBSD=1");
-            } else if cfg!(target_os = "macos") {
-                builder = builder.clang_arg("-DOS_MACOSX=1")
-                    .clang_arg("-stdlib=libc++")
-                    // To disable the fixup bindgen applies which adds search
-                    // paths from clang command line in order to avoid potential
-                    // conflict with -stdlib=libc++.
-                    .clang_arg("--target=x86_64-apple-darwin");
-            } else if cfg!(target_env = "msvc") {
-                builder = builder.clang_arg("-DOS_WIN=1").clang_arg("-DWIN32=1")
-                    // For compatibility with MSVC 2015
-                    .clang_arg("-fms-compatibility-version=19")
-                    // To enable the builtin __builtin_offsetof so that CRT wouldn't
-                    // use reinterpret_cast in offsetof() which is not allowed inside
-                    // static_assert().
-                    .clang_arg("-D_CRT_USE_BUILTIN_OFFSETOF")
-                    // Enable hidden attribute (which is not supported by MSVC and
-                    // thus not enabled by default with a MSVC-compatibile build)
-                    // to exclude hidden symbols from the generated file.
-                    .clang_arg("-DHAVE_VISIBILITY_HIDDEN_ATTRIBUTE=1");
-                if cfg!(target_pointer_width = "32") {
-                    builder = builder.clang_arg("--target=i686-pc-win32");
-                } else {
-                    builder = builder.clang_arg("--target=x86_64-pc-win32");
-                }
-            } else {
+
+            let mut matched_os = false;
+            let build_config = CONFIG["build"].as_table().expect("Malformed config file");
+            builder = add_clang_args(builder, build_config, &mut matched_os);
+            if !matched_os {
                 panic!("Unknown platform");
             }
             builder
@@ -186,8 +229,8 @@ mod bindings {
         // Not 100% sure of how safe this is, but it's what we're using
         // in the XPCOM ffi too
         // https://github.com/nikomatsakis/rust-memory-model/issues/2
-        fn zero_size_type(self, ty: &str, structs_list: &[&str]) -> Builder {
-            if !structs_list.contains(&ty) {
+        fn zero_size_type(self, ty: &str, structs_list: &HashSet<&str>) -> Builder {
+            if !structs_list.contains(ty) {
                 self.hide_type(ty)
                     .raw_line(format!("enum {}Void {{ }}", ty))
                     .raw_line(format!("pub struct {0}({0}Void);", ty))
@@ -224,12 +267,20 @@ mod bindings {
                 return;
             }
         }
-        let mut result = builder.generate().expect("Unable to generate bindings").to_string();
+        let command_line_opts = builder.command_line_flags();
+        let result = builder.generate();
+        let mut result = match result {
+            Ok(bindings) => bindings.to_string(),
+            Err(_) => {
+                panic!("Failed to generate bindings, flags: {:?}", command_line_opts);
+            },
+        };
         for fixup in fixups.iter() {
             result = Regex::new(&format!(r"\b{}\b", fixup.pat)).unwrap().replace_all(&result, fixup.rep.as_str())
                 .into_owned().into();
         }
-        File::create(&out_file).unwrap().write_all(&result.into_bytes()).expect("Unable to write output");
+        let bytes = result.into_bytes();
+        File::create(&out_file).unwrap().write_all(&bytes).expect("Unable to write output");
     }
 
     fn get_arc_types() -> Vec<String> {
@@ -250,413 +301,228 @@ mod bindings {
             .collect()
     }
 
-    pub fn generate_structs(build_type: BuildType) {
-        let mut builder = Builder::get_initial_builder(build_type)
+    struct BuilderWithConfig<'a> {
+        builder: Builder,
+        config: &'a toml::Table,
+        used_keys: HashSet<&'static str>,
+    }
+    impl<'a> BuilderWithConfig<'a> {
+        fn new(builder: Builder, config: &'a toml::Table) -> Self {
+            BuilderWithConfig {
+                builder, config,
+                used_keys: HashSet::new(),
+            }
+        }
+
+        fn handle_list<F>(self, key: &'static str, func: F) -> BuilderWithConfig<'a>
+        where F: FnOnce(Builder, slice::Iter<'a, toml::Value>) -> Builder {
+            let mut builder = self.builder;
+            let config = self.config;
+            let mut used_keys = self.used_keys;
+            if let Some(list) = config.get(key) {
+                used_keys.insert(key);
+                builder = func(builder, list.as_slice().unwrap().iter());
+            }
+            BuilderWithConfig { builder, config, used_keys }
+        }
+        fn handle_items<F>(self, key: &'static str, mut func: F) -> BuilderWithConfig<'a>
+        where F: FnMut(Builder, &'a toml::Value) -> Builder {
+            self.handle_list(key, |b, iter| iter.fold(b, |b, item| func(b, item)))
+        }
+        fn handle_str_items<F>(self, key: &'static str, mut func: F) -> BuilderWithConfig<'a>
+        where F: FnMut(Builder, &'a str) -> Builder {
+            self.handle_items(key, |b, item| func(b, item.as_str().unwrap()))
+        }
+        fn handle_table_items<F>(self, key: &'static str, mut func: F) -> BuilderWithConfig<'a>
+        where F: FnMut(Builder, &'a toml::Table) -> Builder {
+            self.handle_items(key, |b, item| func(b, item.as_table().unwrap()))
+        }
+        fn handle_common(self, fixups: &mut Vec<Fixup>) -> BuilderWithConfig<'a> {
+            self.handle_str_items("headers", |b, item| b.header(add_include(item)))
+                .handle_str_items("raw-lines", |b, item| b.raw_line(item))
+                .handle_str_items("hide-types", |b, item| b.hide_type(item))
+                .handle_table_items("fixups", |builder, item| {
+                    fixups.push(Fixup {
+                        pat: item["pat"].as_str().unwrap().into(),
+                        rep: item["rep"].as_str().unwrap().into(),
+                    });
+                    builder
+                })
+        }
+
+        fn get_builder(self) -> Builder {
+            for key in self.config.keys() {
+                if !self.used_keys.contains(key.as_str()) {
+                    panic!(format!("Unknown key: {}", key));
+                }
+            }
+            self.builder
+        }
+    }
+
+    fn generate_structs(build_type: BuildType) {
+        #[derive(Debug)]
+        struct Callbacks(HashMap<String, RegexSet>);
+        impl ParseCallbacks for Callbacks {
+            fn enum_variant_behavior(&self,
+                                     enum_name: Option<&str>,
+                                     variant_name: &str,
+                                     _variant_value: EnumVariantValue)
+                -> Option<EnumVariantCustomBehavior> {
+                enum_name.and_then(|enum_name| self.0.get(enum_name))
+                    .and_then(|regex| if regex.is_match(variant_name) {
+                        Some(EnumVariantCustomBehavior::Constify)
+                    } else {
+                        None
+                    })
+            }
+        }
+
+        let builder = Builder::get_initial_builder(build_type)
             .enable_cxx_namespaces()
             .with_codegen_config(CodegenConfig {
                 types: true,
                 vars: true,
                 ..CodegenConfig::nothing()
-            })
-            .header(add_include("nsStyleStruct.h"))
-            .include(add_include("mozilla/ServoPropPrefList.h"))
-            .header(add_include("mozilla/StyleAnimationValue.h"))
-            .include(add_include("gfxFontConstants.h"))
-            .include(add_include("nsThemeConstants.h"))
-            .include(add_include("mozilla/dom/AnimationEffectReadOnlyBinding.h"))
-            .include(add_include("mozilla/Keyframe.h"))
-            .include(add_include("mozilla/ServoElementSnapshot.h"))
-            .include(add_include("mozilla/dom/Element.h"))
-            .include(add_include("mozilla/dom/NameSpaceConstants.h"))
-            .include(add_include("mozilla/ServoBindings.h"))
-            .include(add_include("nsMediaFeatures.h"))
-            .include(add_include("nsMediaList.h"))
-            // FIXME(emilio): Incrementally remove these "pub use"s. Probably
-            // mozilla::css and mozilla::dom are easier.
-            .raw_line("pub use self::root::*;")
-            .raw_line("pub use self::root::mozilla::*;")
-            .raw_line("pub use self::root::mozilla::css::*;")
-            .raw_line("pub use self::root::mozilla::dom::*;")
-            .raw_line("use atomic_refcell::AtomicRefCell;")
-            .raw_line("use data::ElementData;")
-            .hide_type("nsString")
-            .bitfield_enum("nsChangeHint")
-            .bitfield_enum("nsRestyleHint");
-        let whitelist_vars = [
-            "NS_THEME_.*",
-            "NODE_.*",
-            "NS_FONT_.*",
-            "NS_STYLE_.*",
-            "NS_RADIUS_.*",
-            "BORDER_COLOR_.*",
-            "BORDER_STYLE_.*",
-            "mozilla::SERVO_PREF_.*",
-            "kNameSpaceID_.*",
-        ];
-        let whitelist = [
-            "RawGecko.*",
-            "mozilla::ServoStyleSheet",
-            "mozilla::ServoElementSnapshot.*",
-            "mozilla::CSSPseudoClassType",
-            "mozilla::css::SheetParsingMode",
-            "mozilla::HalfCorner",
-            "mozilla::PropertyStyleAnimationValuePair",
-            "mozilla::TraversalRootBehavior",
-            "mozilla::StyleShapeRadius",
-            "mozilla::StyleGrid.*",
-            ".*ThreadSafe.*Holder",
-            "AnonymousContent",
-            "AudioContext",
-            "CapturingContentInfo",
-            "DefaultDelete",
-            "DOMIntersectionObserverEntry",
-            "Element",
-            "FontFamilyList",
-            "FontFamilyListRefCnt",
-            "FontFamilyName",
-            "FontFamilyType",
-            "FragmentOrURL",
-            "FrameRequestCallback",
-            "gfxAlternateValue",
-            "gfxFontFeature",
-            "gfxFontVariation",
-            "GridNamedArea",
-            "HalfCorner",
-            "Image",
-            "ImageURL",
-            "Keyframe",
-            "nsAttrName",
-            "nsAttrValue",
-            "nsBorderColors",
-            "nscolor",
-            "nsChangeHint",
-            "nsCSSKeyword",
-            "nsCSSPropertyID",
-            "nsCSSProps",
-            "nsCSSRect",
-            "nsCSSRect_heap",
-            "nsCSSShadowArray",
-            "nsCSSValue",
-            "nsCSSValueFloatColor",
-            "nsCSSValueGradient",
-            "nsCSSValueGradientStop",
-            "nsCSSValueList",
-            "nsCSSValueList_heap",
-            "nsCSSValuePair_heap",
-            "nsCSSValuePairList",
-            "nsCSSValuePairList_heap",
-            "nsCSSValueTokenStream",
-            "nsCSSValueTriplet_heap",
-            "nsCursorImage",
-            "nsFont",
-            "nsIAtom",
-            "nsMainThreadPtrHandle",
-            "nsMainThreadPtrHolder",
-            "nsMargin",
-            "nsMediaExpression",
-            "nsMediaFeature",
-            "nsMediaFeatures",
-            "nsMediaList",
-            "nsRect",
-            "nsRestyleHint",
-            "nsresult",
-            "nsSize",
-            "nsStyleBackground",
-            "nsStyleBorder",
-            "nsStyleColor",
-            "nsStyleColumn",
-            "nsStyleContent",
-            "nsStyleContentData",
-            "nsStyleContext",
-            "nsStyleCoord",
-            "nsStyleCounterData",
-            "nsStyleDisplay",
-            "nsStyleEffects",
-            "nsStyleFilter",
-            "nsStyleFont",
-            "nsStyleGradient",
-            "nsStyleGradientStop",
-            "nsStyleImage",
-            "nsStyleImageLayers",
-            "nsStyleList",
-            "nsStyleMargin",
-            "nsStyleOutline",
-            "nsStylePadding",
-            "nsStylePosition",
-            "nsStyleSVG",
-            "nsStyleSVGPaint",
-            "nsStyleSVGReset",
-            "nsStyleTable",
-            "nsStyleTableBorder",
-            "nsStyleText",
-            "nsStyleTextReset",
-            "nsStyleUIReset",
-            "nsStyleUnion",
-            "nsStyleUnit",
-            "nsStyleUserInterface",
-            "nsStyleVariables",
-            "nsStyleVisibility",
-            "nsStyleXUL",
-            "nsTArray",
-            "nsTArrayHeader",
-            "Position",
-            "PropertyValuePair",
-            "Runnable",
-            "ServoAttrSnapshot",
-            "ServoBundledURI",
-            "ServoElementSnapshot",
-            "SheetParsingMode",
-            "StaticRefPtr",
-            "StyleAnimation",
-            "StyleBasicShape",
-            "StyleBasicShapeType",
-            "StyleGeometryBox",
-            "StyleShapeSource",
-            "StyleTransition",
-            "mozilla::UniquePtr",
-            "mozilla::DefaultDelete",
-            "mozilla::Side",
-            "mozilla::binding_danger::AssertAndSuppressCleanupPolicy",
-            "RawServoAnimationValueBorrowedListBorrowed",
-        ];
-        let opaque_types = [
-            "std::pair__PCCP",
-            "std::namespace::atomic___base", "std::atomic__My_base",
-            "std::atomic___base",
-            "mozilla::gfx::.*",
-            "FallibleTArray",
-            "mozilla::dom::Sequence",
-            "mozilla::dom::Optional",
-            "mozilla::dom::Nullable",
-            "nsAString_internal_char_traits",
-            "nsAString_internal_incompatible_char_type",
-            "nsACString_internal_char_traits",
-            "nsACString_internal_incompatible_char_type",
-            "RefPtr_Proxy",
-            "RefPtr_Proxy_member_function",
-            "nsAutoPtr_Proxy",
-            "nsAutoPtr_Proxy_member_function",
-            "mozilla::detail::PointerType",
-            "mozilla::Pair_Base",
-            "mozilla::SupportsWeakPtr",
-            "SupportsWeakPtr",
-            "mozilla::detail::WeakReference",
-            "mozilla::WeakPtr",
-            "nsWritingIterator_reference", "nsReadingIterator_reference",
-            "nsTObserverArray",  // <- Inherits from nsAutoTObserverArray<T, 0>
-            "nsTHashtable",  // <- Inheriting from inner typedefs that clang
-                             //    doesn't expose properly.
-            "nsRefPtrHashtable", "nsDataHashtable", "nsClassHashtable",  // <- Ditto
-            "nsIDocument_SelectorCache",  // <- Inherits from nsExpirationTracker<.., 4>
-            "nsIPresShell_ScrollAxis",  // <- For some reason the alignment of this is 4
-                                        // for clang.
-            "nsPIDOMWindow",  // <- Takes the vtable from a template parameter, and we can't
-                              //    generate it conditionally.
-            "JS::Rooted",
-            "mozilla::Maybe",
-            "gfxSize",  // <- union { struct { T width; T height; }; T components[2] };
-            "gfxSize_Super",  // Ditto.
-            "mozilla::ErrorResult",  // Causes JSWhyMagic to be included & handled incorrectly.
-            "mozilla::StyleAnimationValue",
-            "StyleAnimationValue", // pulls in a whole bunch of stuff we don't need in the bindings
-        ];
-
-        struct MappedGenericType {
-            generic: bool,
-            gecko: &'static str,
-            servo: &'static str,
-        }
-        let servo_mapped_generic_types = [
-            MappedGenericType {
-                generic: true,
-                gecko: "mozilla::ServoUnsafeCell",
-                servo: "::std::cell::UnsafeCell"
-            },
-            MappedGenericType {
-                generic: true,
-                gecko: "mozilla::ServoCell",
-                servo: "::std::cell::Cell"
-            },
-            MappedGenericType {
-                generic: false,
-                gecko: "ServoNodeData",
-                servo: "AtomicRefCell<ElementData>",
-            }
-        ];
-        let mut fixups = vec![
-            Fixup {
-                pat: "root::nsString".into(),
-                rep: "::nsstring::nsStringRepr".into()
-            },
-        ];
-        for &var in whitelist_vars.iter() {
-            builder = builder.whitelisted_var(var);
-        }
-        for &ty in whitelist.iter() {
-            builder = builder.whitelisted_type(ty);
-        }
-        for &ty in opaque_types.iter() {
-            builder = builder.opaque_type(ty);
-        }
-        for ty in servo_mapped_generic_types.iter() {
-            let gecko_name = ty.gecko.rsplit("::").next().unwrap();
-            builder = builder.hide_type(ty.gecko)
-                .raw_line(format!("pub type {0}{2} = {1}{2};", gecko_name, ty.servo,
-                                  if ty.generic { "<T>" } else { "" }));
-            fixups.push(Fixup {
-                pat: format!("root::{}", ty.gecko),
-                rep: format!("::gecko_bindings::structs::{}", gecko_name)
             });
-        }
+        let mut fixups = vec![];
+        let builder = BuilderWithConfig::new(builder, CONFIG["structs"].as_table().unwrap())
+            .handle_common(&mut fixups)
+            .handle_str_items("bitfield-enums", |b, item| b.bitfield_enum(item))
+            .handle_str_items("constified-enums", |b, item| b.constified_enum(item))
+            .handle_str_items("whitelist-vars", |b, item| b.whitelisted_var(item))
+            .handle_str_items("whitelist-types", |b, item| b.whitelisted_type(item))
+            .handle_str_items("opaque-types", |b, item| b.opaque_type(item))
+            .handle_list("constified-enum-variants", |builder, iter| {
+                let mut map = HashMap::new();
+                for item in iter {
+                    let item = item.as_table().unwrap();
+                    let name = item["enum"].as_str().unwrap();
+                    let variants = item["variants"].as_slice().unwrap().iter()
+                        .map(|item| item.as_str().unwrap());
+                    map.insert(name.into(), RegexSet::new(variants).unwrap());
+                }
+                builder.parse_callbacks(Box::new(Callbacks(map)))
+            })
+            .handle_table_items("mapped-generic-types", |builder, item| {
+                let generic = item["generic"].as_bool().unwrap();
+                let gecko = item["gecko"].as_str().unwrap();
+                let servo = item["servo"].as_str().unwrap();
+                let gecko_name = gecko.rsplit("::").next().unwrap();
+                fixups.push(Fixup {
+                    pat: format!("root::{}", gecko),
+                    rep: format!("::gecko_bindings::structs::{}", gecko_name)
+                });
+                builder.hide_type(gecko)
+                    .raw_line(format!("pub type {0}{2} = {1}{2};", gecko_name, servo,
+                                      if generic { "<T>" } else { "" }))
+            })
+            .get_builder();
         write_binding_file(builder, structs_file(build_type), &fixups);
     }
 
-    pub fn generate_bindings() {
-        let mut builder = Builder::get_initial_builder(BuildType::Release)
+    fn setup_logging() -> bool {
+        use log;
+
+        struct BuildLogger {
+            file: Option<Mutex<fs::File>>,
+            filter: String,
+        }
+
+        impl log::Log for BuildLogger {
+            fn enabled(&self, meta: &log::LogMetadata) -> bool {
+                self.file.is_some() && meta.target().contains(&self.filter)
+            }
+
+            fn log(&self, record: &log::LogRecord) {
+                if !self.enabled(record.metadata()) {
+                    return;
+                }
+
+                let mut file = self.file.as_ref().unwrap().lock().unwrap();
+                let _ =
+                    writeln!(file, "{} - {} - {} @ {}:{}",
+                             record.level(),
+                             record.target(),
+                             record.args(),
+                             record.location().file(),
+                             record.location().line());
+            }
+        }
+
+        if let Ok(path) = env::var("STYLO_BUILD_LOG") {
+            log::set_logger(|log_level| {
+                log_level.set(log::LogLevelFilter::Debug);
+                Box::new(BuildLogger {
+                    file: fs::File::create(path).ok().map(Mutex::new),
+                    filter: env::var("STYLO_BUILD_FILTER").ok()
+                        .unwrap_or_else(|| "bindgen".to_owned()),
+                })
+            })
+            .expect("Failed to set logger.");
+            true
+        } else {
+            false
+        }
+    }
+
+    fn generate_bindings() {
+        let builder = Builder::get_initial_builder(BuildType::Release)
             .disable_name_namespacing()
             .with_codegen_config(CodegenConfig {
                 functions: true,
                 ..CodegenConfig::nothing()
+            });
+        let config = CONFIG["bindings"].as_table().unwrap();
+        let mut structs_types = HashSet::new();
+        let mut fixups = vec![];
+        let mut builder = BuilderWithConfig::new(builder, config)
+            .handle_common(&mut fixups)
+            .handle_str_items("whitelist-functions", |b, item| b.whitelisted_function(item))
+            .handle_str_items("structs-types", |mut builder, ty| {
+                builder = builder.hide_type(ty)
+                    .raw_line(format!("use gecko_bindings::structs::{};", ty));
+                structs_types.insert(ty);
+                // TODO this is hacky, figure out a better way to do it without
+                // hardcoding everything...
+                if ty.starts_with("nsStyle") {
+                    builder = builder
+                        .raw_line(format!("unsafe impl Send for {} {{}}", ty))
+                        .raw_line(format!("unsafe impl Sync for {} {{}}", ty));
+                }
+                builder
             })
-            .header(add_include("mozilla/ServoBindings.h"))
-            .hide_type("nsACString_internal")
-            .hide_type("nsAString_internal")
-            .raw_line("pub use nsstring::{nsACString, nsAString, nsString};")
-            .raw_line("type nsACString_internal = nsACString;")
-            .raw_line("type nsAString_internal = nsAString;")
-            .whitelisted_function("Servo_.*")
-            .whitelisted_function("Gecko_.*");
-        let structs_types = [
-            "mozilla::css::URLValue",
-            "RawGeckoDocument",
-            "RawGeckoElement",
-            "RawGeckoKeyframeList",
-            "RawGeckoComputedKeyframeValuesList",
-            "RawGeckoNode",
-            "RawGeckoAnimationValueList",
-            "RawServoAnimationValue",
-            "RawServoDeclarationBlock",
-            "RawGeckoPresContext",
-            "RawGeckoPresContextOwned",
-            "RefPtr",
-            "ThreadSafeURIHolder",
-            "ThreadSafePrincipalHolder",
-            "CSSPseudoClassType",
-            "TraversalRootBehavior",
-            "FontFamilyList",
-            "FontFamilyType",
-            "Keyframe",
-            "ServoBundledURI",
-            "ServoElementSnapshot",
-            "SheetParsingMode",
-            "StyleBasicShape",
-            "StyleBasicShapeType",
-            "StyleShapeSource",
-            "nsCSSKeyword",
-            "nsCSSPropertyID",
-            "nsCSSShadowArray",
-            "nsCSSValue",
-            "nsCSSValueSharedList",
-            "nsChangeHint",
-            "nsCursorImage",
-            "nsFont",
-            "nsIAtom",
-            "nsMediaFeature",
-            "nsRestyleHint",
-            "nsStyleBackground",
-            "nsStyleBorder",
-            "nsStyleColor",
-            "nsStyleColumn",
-            "nsStyleContent",
-            "nsStyleContext",
-            "nsStyleCoord",
-            "nsStyleCoord_Calc",
-            "nsStyleCoord_CalcValue",
-            "nsStyleDisplay",
-            "nsStyleEffects",
-            "nsStyleFilter",
-            "nsStyleFont",
-            "nsStyleGradient",
-            "nsStyleGradientStop",
-            "nsStyleImage",
-            "nsStyleImageLayers",
-            "nsStyleImageLayers_Layer",
-            "nsStyleImageLayers_LayerType",
-            "nsStyleImageRequest",
-            "nsStyleList",
-            "nsStyleMargin",
-            "nsStyleOutline",
-            "nsStylePadding",
-            "nsStylePosition",
-            "nsStyleQuoteValues",
-            "nsStyleSVG",
-            "nsStyleSVGPaint",
-            "nsStyleSVGReset",
-            "nsStyleTable",
-            "nsStyleTableBorder",
-            "nsStyleText",
-            "nsStyleTextReset",
-            "nsStyleUIReset",
-            "nsStyleUnion",
-            "nsStyleUnit",
-            "nsStyleUserInterface",
-            "nsStyleVariables",
-            "nsStyleVisibility",
-            "nsStyleXUL",
-            "nsTimingFunction",
-            "nscolor",
-            "nscoord",
-            "nsresult",
-            "Loader",
-            "ServoStyleSheet",
-            "EffectCompositor_CascadeLevel",
-            "RawServoAnimationValueBorrowedListBorrowed",
-        ];
-        struct ArrayType {
-            cpp_type: &'static str,
-            rust_type: &'static str
-        }
-        let array_types = [
-            ArrayType { cpp_type: "uintptr_t", rust_type: "usize" },
-        ];
-        struct ServoOwnedType {
-            name: &'static str,
-            opaque: bool,
-        }
-        let servo_owned_types = [
-            ServoOwnedType { name: "RawServoStyleSet", opaque: true },
-            ServoOwnedType { name: "StyleChildrenIterator", opaque: true },
-            ServoOwnedType { name: "ServoElementSnapshot", opaque: false },
-        ];
-        let servo_immutable_borrow_types = [
-            "RawGeckoNode",
-            "RawGeckoElement",
-            "RawGeckoDocument",
-            "RawServoDeclarationBlockStrong",
-            "RawGeckoPresContext",
-        ];
-        let servo_borrow_types = [
-            "nsCSSValue",
-            "RawGeckoAnimationValueList",
-            "RawGeckoKeyframeList",
-            "RawGeckoComputedKeyframeValuesList",
-        ];
-        for &ty in structs_types.iter() {
-            builder = builder.hide_type(ty)
-                .raw_line(format!("use gecko_bindings::structs::{};", ty));
-            // TODO this is hacky, figure out a better way to do it without
-            // hardcoding everything...
-            if ty.starts_with("nsStyle") {
-                builder = builder
-                    .raw_line(format!("unsafe impl Send for {} {{}}", ty))
-                    .raw_line(format!("unsafe impl Sync for {} {{}}", ty));
-            }
-        }
-        for &ArrayType { cpp_type, rust_type } in array_types.iter() {
-            builder = builder.hide_type(format!("nsTArrayBorrowed_{}", cpp_type))
-                .raw_line(format!("pub type nsTArrayBorrowed_{}<'a> = &'a mut ::gecko_bindings::structs::nsTArray<{}>;",
-                                  cpp_type, rust_type))
-        }
+            // TODO This was added due to servo/rust-bindgen#75, but
+            // that has been fixed in clang 4.0+. When we switch people
+            // to libclang 4.0, we can remove this.
+            .handle_table_items("array-types", |builder, item| {
+                let cpp_type = item["cpp-type"].as_str().unwrap();
+                let rust_type = item["rust-type"].as_str().unwrap();
+                builder.hide_type(format!("nsTArrayBorrowed_{}", cpp_type))
+                    .raw_line(format!(concat!("pub type nsTArrayBorrowed_{}<'a> = ",
+                                              "&'a mut ::gecko_bindings::structs::nsTArray<{}>;"),
+                                      cpp_type, rust_type))
+            })
+            .handle_table_items("servo-owned-types", |mut builder, item| {
+                let name = item["name"].as_str().unwrap();
+                builder = builder.hide_type(format!("{}Owned", name))
+                    .raw_line(format!("pub type {0}Owned = ::gecko_bindings::sugar::ownership::Owned<{0}>;", name))
+                    .hide_type(format!("{}OwnedOrNull", name))
+                    .raw_line(format!(concat!("pub type {0}OwnedOrNull = ",
+                                              "::gecko_bindings::sugar::ownership::OwnedOrNull<{0}>;"), name))
+                    .mutable_borrowed_type(name);
+                if item["opaque"].as_bool().unwrap() {
+                    builder = builder.zero_size_type(name, &structs_types);
+                }
+                builder
+            })
+            .handle_str_items("servo-immutable-borrow-types", |b, ty| b.borrowed_type(ty))
+            // Right now the only immutable borrow types are ones which we import
+            // from the |structs| module. As such, we don't need to create an opaque
+            // type with zero_size_type. If we ever introduce immutable borrow types
+            // which _do_ need to be opaque, we'll need a separate mode.
+            .handle_str_items("servo-borrow-types", |b, ty| b.mutable_borrowed_type(ty))
+            .get_builder();
         for ty in get_arc_types().iter() {
             builder = builder
                 .hide_type(format!("{}Strong", ty))
@@ -664,67 +530,72 @@ mod bindings {
                 .borrowed_type(ty)
                 .zero_size_type(ty, &structs_types);
         }
-        for &ServoOwnedType { name, opaque } in servo_owned_types.iter() {
-            builder = builder
-                .hide_type(format!("{}Owned", name))
-                .raw_line(format!("pub type {0}Owned = ::gecko_bindings::sugar::ownership::Owned<{0}>;", name))
-                .hide_type(format!("{}OwnedOrNull", name))
-                .raw_line(format!("pub type {0}OwnedOrNull = ::gecko_bindings::sugar::ownership::OwnedOrNull<{0}>;",
-                                  name))
-                .mutable_borrowed_type(name);
-            if opaque {
-                builder = builder.zero_size_type(name, &structs_types);
+        write_binding_file(builder, BINDINGS_FILE, &fixups);
+    }
+
+    fn generate_atoms() {
+        let script = Path::new(file!()).parent().unwrap().join("gecko").join("regen_atoms.py");
+        println!("cargo:rerun-if-changed={}", script.display());
+        let status = Command::new(&*PYTHON)
+            .arg(&script)
+            .arg(DISTDIR_PATH.as_os_str())
+            .arg(OUTDIR_PATH.as_os_str())
+            .status()
+            .unwrap();
+        if !status.success() {
+            exit(1);
+        }
+    }
+
+    pub fn generate() {
+        use std::thread;
+        macro_rules! run_tasks {
+            ($($task:expr,)+) => {
+                if setup_logging() {
+                    $($task;)+
+                } else {
+                    let threads = vec![$( thread::spawn(|| $task) ),+];
+                    for thread in threads.into_iter() {
+                        thread.join().unwrap();
+                    }
+                }
             }
         }
-        for &ty in servo_immutable_borrow_types.iter() {
-            builder = builder.borrowed_type(ty);
+        run_tasks! {
+            generate_structs(BuildType::Debug),
+            generate_structs(BuildType::Release),
+            generate_bindings(),
+            generate_atoms(),
         }
-        for &ty in servo_borrow_types.iter() {
-            builder = builder.mutable_borrowed_type(ty);
-            // Right now the only immutable borrow types are ones which we import
-            // from the |structs| module. As such, we don't need to create an opaque
-            // type with zero_size_type. If we ever introduce immutable borrow types
-            // which _do_ need to be opaque, we'll need a separate mode.
+
+        // Copy all generated files to dist for the binding package
+        let path = DISTDIR_PATH.join("rust_bindings/style");
+        if path.exists() {
+            fs::remove_dir_all(&path).expect("Fail to remove binding dir in dist");
         }
-        write_binding_file(builder, BINDINGS_FILE, &Vec::new());
+        fs::create_dir_all(&path).expect("Fail to create bindings dir in dist");
+        copy_dir(&*OUTDIR_PATH, &path, |_| {}).expect("Fail to copy generated files to dist dir");
     }
 }
 
 #[cfg(not(feature = "bindgen"))]
 mod bindings {
-    use std::fs;
-    use std::path::{Path, PathBuf};
+    use std::path::Path;
     use super::common::*;
 
-    lazy_static! {
-        static ref BINDINGS_PATH: PathBuf = Path::new(file!()).parent().unwrap().join("gecko_bindings");
-    }
-
-    pub fn generate_structs(build_type: BuildType) {
-        let file = structs_file(build_type);
-        let source = BINDINGS_PATH.join(file);
-        println!("cargo:rerun-if-changed={}", source.display());
-        fs::copy(source, OUTDIR_PATH.join(file)).unwrap();
-    }
-
-    pub fn generate_bindings() {
-        let source = BINDINGS_PATH.join(BINDINGS_FILE);
-        println!("cargo:rerun-if-changed={}", source.display());
-        fs::copy(source, OUTDIR_PATH.join(BINDINGS_FILE)).unwrap();
+    pub fn generate() {
+        let dir = Path::new(file!()).parent().unwrap().join("gecko/generated");
+        println!("cargo:rerun-if-changed={}", dir.display());
+        copy_dir(&dir, &*OUTDIR_PATH, |path| {
+            println!("cargo:rerun-if-changed={}", path.display());
+        }).expect("Fail to copy generated files to out dir");
     }
 }
 
 pub fn generate() {
     use self::common::*;
     use std::fs;
-    use std::thread;
+    println!("cargo:rerun-if-changed=build_gecko.rs");
     fs::create_dir_all(&*OUTDIR_PATH).unwrap();
-    let threads = vec![
-        thread::spawn(|| bindings::generate_structs(BuildType::Debug)),
-        thread::spawn(|| bindings::generate_structs(BuildType::Release)),
-        thread::spawn(|| bindings::generate_bindings()),
-    ];
-    for t in threads.into_iter() {
-        t.join().unwrap();
-    }
+    bindings::generate();
 }

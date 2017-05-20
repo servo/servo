@@ -1,0 +1,16 @@
+<csstest def="Syntax and parsing of unknown pseudo-classes" module="W3C Selectors" modulename="css3-modsel" number="160" rev="1.0" date="20-november-2001" xmlns="http://www.example.org/css3tests">
+
+<author>Ian Hickson</author>
+
+<cssrules>
+  p { background: lime; }
+  p:subject { background: red; } /* this is not valid CSS, and if UAs
+  implemented the experimental :subject pseudo-class they should have
+  used the :-vnd-ident syntax. */
+</cssrules>
+
+<code>
+ <p xmlns="http://www.w3.org/1999/xhtml">This line should have a green background.</p>
+</code>
+
+</csstest>

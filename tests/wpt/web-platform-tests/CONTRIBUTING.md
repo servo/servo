@@ -27,3 +27,8 @@ non-infringement, or title; nor that the contents of this repository are
 suitable for any purpose. We make no representations, express or implied, that
 the content of this repository or the use thereof indicates conformance to a
 specification. All content is provided as-is to help reach interoperability.
+
+Documentation
+-------------
+
+See [web-platform-tests.org](http://web-platform-tests.org/).

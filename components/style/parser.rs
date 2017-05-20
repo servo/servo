@@ -4,42 +4,63 @@
 
 //! The context within which CSS code is parsed.
 
-#![deny(missing_docs)]
-
+use context::QuirksMode;
 use cssparser::{Parser, SourcePosition, UnicodeRange};
 use error_reporting::ParseErrorReporter;
-#[cfg(feature = "gecko")]
-use gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
-use servo_url::ServoUrl;
 use style_traits::OneOrMoreCommaSeparated;
-use stylesheets::{MemoryHoleReporter, Origin};
+use stylesheets::{CssRuleType, Origin, UrlExtraData};
 
-/// Extra data that the style backend may need to parse stylesheets.
-#[cfg(not(feature = "gecko"))]
-pub struct ParserContextExtraData;
-
-/// Extra data that the style backend may need to parse stylesheets.
-#[cfg(feature = "gecko")]
-pub struct ParserContextExtraData {
-    /// The base URI.
-    pub base: Option<GeckoArcURI>,
-    /// The referrer URI.
-    pub referrer: Option<GeckoArcURI>,
-    /// The principal that loaded this stylesheet.
-    pub principal: Option<GeckoArcPrincipal>,
-}
-
-#[cfg(not(feature = "gecko"))]
-impl Default for ParserContextExtraData {
-    fn default() -> Self {
-        ParserContextExtraData
+bitflags! {
+    /// The mode to use when parsing values.
+    pub flags ParsingMode: u8 {
+        /// In CSS, lengths must have units, except for zero values, where the unit can be omitted.
+        /// https://www.w3.org/TR/css3-values/#lengths
+        const PARSING_MODE_DEFAULT = 0x00,
+        /// In SVG, a coordinate or length value without a unit identifier (e.g., "25") is assumed
+        /// to be in user units (px).
+        /// https://www.w3.org/TR/SVG/coords.html#Units
+        const PARSING_MODE_ALLOW_UNITLESS_LENGTH = 0x01,
+        /// In SVG, out-of-range values are not treated as an error in parsing.
+        /// https://www.w3.org/TR/SVG/implnote.html#RangeClamping
+        const PARSING_MODE_ALLOW_ALL_NUMERIC_VALUES = 0x02,
     }
 }
 
+impl ParsingMode {
+    /// Whether the parsing mode allows unitless lengths for non-zero values to be intpreted as px.
+    pub fn allows_unitless_lengths(&self) -> bool {
+        self.intersects(PARSING_MODE_ALLOW_UNITLESS_LENGTH)
+    }
+
+    /// Whether the parsing mode allows all numeric values.
+    pub fn allows_all_numeric_values(&self) -> bool {
+      self.intersects(PARSING_MODE_ALLOW_ALL_NUMERIC_VALUES)
+    }
+}
+
+/// Asserts that all ParsingMode flags have a matching ParsingMode value in gecko.
 #[cfg(feature = "gecko")]
-impl Default for ParserContextExtraData {
-    fn default() -> Self {
-        ParserContextExtraData { base: None, referrer: None, principal: None }
+#[inline]
+pub fn assert_parsing_mode_match() {
+    use gecko_bindings::structs;
+
+    macro_rules! check_parsing_modes {
+        ( $( $a:ident => $b:ident ),*, ) => {
+            if cfg!(debug_assertions) {
+                let mut modes = ParsingMode::all();
+                $(
+                    assert_eq!(structs::$a as usize, $b.bits() as usize, stringify!($b));
+                    modes.remove($b);
+                )*
+                assert_eq!(modes, ParsingMode::empty(), "all ParsingMode bits should have an assertion");
+            }
+        }
+    }
+
+    check_parsing_modes! {
+        ParsingMode_Default => PARSING_MODE_DEFAULT,
+        ParsingMode_AllowUnitlessLength => PARSING_MODE_ALLOW_UNITLESS_LENGTH,
+        ParsingMode_AllowAllNumericValues => PARSING_MODE_ALLOW_ALL_NUMERIC_VALUES,
     }
 }
 
@@ -48,49 +69,102 @@ pub struct ParserContext<'a> {
     /// The `Origin` of the stylesheet, whether it's a user, author or
     /// user-agent stylesheet.
     pub stylesheet_origin: Origin,
-    /// The base url we're parsing this stylesheet as.
-    pub base_url: &'a ServoUrl,
+    /// The extra data we need for resolving url values.
+    pub url_data: &'a UrlExtraData,
     /// An error reporter to report syntax errors.
-    pub error_reporter: Box<ParseErrorReporter + Send>,
-    /// Implementation-dependent extra data.
-    pub extra_data: ParserContextExtraData,
+    pub error_reporter: &'a ParseErrorReporter,
+    /// The current rule type, if any.
+    pub rule_type: Option<CssRuleType>,
+    /// Line number offsets for inline stylesheets
+    pub line_number_offset: u64,
+    /// The mode to use when parsing.
+    pub parsing_mode: ParsingMode,
+    /// The quirks mode of this stylesheet.
+    pub quirks_mode: QuirksMode,
 }
 
 impl<'a> ParserContext<'a> {
-    /// Create a `ParserContext` with extra data.
-    pub fn new_with_extra_data(stylesheet_origin: Origin,
-                               base_url: &'a ServoUrl,
-                               error_reporter: Box<ParseErrorReporter + Send>,
-                               extra_data: ParserContextExtraData)
-                               -> ParserContext<'a> {
+    /// Create a parser context.
+    pub fn new(stylesheet_origin: Origin,
+               url_data: &'a UrlExtraData,
+               error_reporter: &'a ParseErrorReporter,
+               rule_type: Option<CssRuleType>,
+               parsing_mode: ParsingMode,
+               quirks_mode: QuirksMode)
+               -> ParserContext<'a> {
         ParserContext {
             stylesheet_origin: stylesheet_origin,
-            base_url: base_url,
+            url_data: url_data,
             error_reporter: error_reporter,
-            extra_data: extra_data,
+            rule_type: rule_type,
+            line_number_offset: 0u64,
+            parsing_mode: parsing_mode,
+            quirks_mode: quirks_mode,
         }
     }
 
-    /// Create a parser context with the default extra data.
-    pub fn new(stylesheet_origin: Origin,
-               base_url: &'a ServoUrl,
-               error_reporter: Box<ParseErrorReporter + Send>)
-               -> ParserContext<'a> {
-        let extra_data = ParserContextExtraData::default();
-        Self::new_with_extra_data(stylesheet_origin, base_url, error_reporter, extra_data)
+    /// Create a parser context for on-the-fly parsing in CSSOM
+    pub fn new_for_cssom(url_data: &'a UrlExtraData,
+                         error_reporter: &'a ParseErrorReporter,
+                         rule_type: Option<CssRuleType>,
+                         parsing_mode: ParsingMode,
+                         quirks_mode: QuirksMode)
+                         -> ParserContext<'a> {
+        Self::new(Origin::Author, url_data, error_reporter, rule_type, parsing_mode, quirks_mode)
     }
 
-    /// Create a parser context for on-the-fly parsing in CSSOM
-    pub fn new_for_cssom(base_url: &'a ServoUrl) -> ParserContext<'a> {
-        Self::new(Origin::User, base_url, Box::new(MemoryHoleReporter))
+    /// Create a parser context based on a previous context, but with a modified rule type.
+    pub fn new_with_rule_type(context: &'a ParserContext,
+                              rule_type: Option<CssRuleType>)
+                              -> ParserContext<'a> {
+        ParserContext {
+            stylesheet_origin: context.stylesheet_origin,
+            url_data: context.url_data,
+            error_reporter: context.error_reporter,
+            rule_type: rule_type,
+            line_number_offset: context.line_number_offset,
+            parsing_mode: context.parsing_mode,
+            quirks_mode: context.quirks_mode,
+        }
+    }
+
+    /// Create a parser context for inline CSS which accepts additional line offset argument.
+    pub fn new_with_line_number_offset(stylesheet_origin: Origin,
+                                       url_data: &'a UrlExtraData,
+                                       error_reporter: &'a ParseErrorReporter,
+                                       line_number_offset: u64,
+                                       parsing_mode: ParsingMode,
+                                       quirks_mode: QuirksMode)
+                                       -> ParserContext<'a> {
+        ParserContext {
+            stylesheet_origin: stylesheet_origin,
+            url_data: url_data,
+            error_reporter: error_reporter,
+            rule_type: None,
+            line_number_offset: line_number_offset,
+            parsing_mode: parsing_mode,
+            quirks_mode: quirks_mode,
+        }
+    }
+
+    /// Get the rule type, which assumes that one is available.
+    pub fn rule_type(&self) -> CssRuleType {
+        self.rule_type.expect("Rule type expected, but none was found.")
     }
 }
 
 /// Defaults to a no-op.
 /// Set a `RUST_LOG=style::errors` environment variable
 /// to log CSS parse errors to stderr.
-pub fn log_css_error(input: &mut Parser, position: SourcePosition, message: &str, parsercontext: &ParserContext) {
-    parsercontext.error_reporter.report_error(input, position, message);
+pub fn log_css_error(input: &mut Parser,
+                     position: SourcePosition,
+                     message: &str,
+                     parsercontext: &ParserContext) {
+    let url_data = parsercontext.url_data;
+    let line_number_offset = parsercontext.line_number_offset;
+    parsercontext.error_reporter.report_error(input, position,
+                                              message, url_data,
+                                              line_number_offset);
 }
 
 // XXXManishearth Replace all specified value parse impls with impls of this

@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: System Font, substitute for similar system font when font unknown</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/fonts.html#font-shorthand" />
+        <link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-prop"/>
+        <meta name="flags" content="" />
+        <meta name="assert" content="It the specified system font is not available, then substitute it for a similar one, if there is no similar one, then substitute with the default one." />
+        <style type="text/css">
+            #test
+            {
+                font: UnknownFont;
+            }
+        </style>
+    </head>
+    <body>
+        <p>PREREQUISITE: Operating system cannot have a font named "UnknownFont" installed. If it is installed remove it to verify this test.</p>
+        <p>Test passes if the lines of "Filler Text" below match.</p>
+        <div>Filler Text</div>
+        <div id="test">Filler Text</div>
+    </body>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Reftest Reference</title>
+        <link rel="author" title="Mihai Tica" href="mailto:mitica@adobe.com">
+        <link rel="reviewer" title="Mihai Balan" href="mailto:mibalan@adobe.com">
+        <link rel="reviewer" title="Horia Olaru" href="mailto:olaru@adobe.com">
+        <style type="text/css">
+            .parent {
+                position: absolute;
+                z-index: 1;
+                background: #0FF;
+                width: 120px;
+                height: 120px;
+            }
+            .child {
+                background: #0F0;
+                width: 100px;
+                height: 100px;
+                margin: 10px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if you can see a lime square with aqua borders.<br>
+            If the borders are red, the test fails.</p>
+        <div class="parent">
+            <div class="child"></div>
+        </div>
+    </body>
+</html>

@@ -34,10 +34,17 @@ function iframe_test(url, timeout_enabled) {
       frame.onload = function() {
         if (timeout_enabled)
           clearTimeout(timer);
-        if (frame.contentDocument.body.textContent == 'Hello world\n')
-          resolve();
-        else
-          reject(new Error('content mismatch'));
+        try {
+          if (frame.contentDocument.body.textContent == 'Hello world\n')
+            resolve();
+          else
+            reject(new Error('content mismatch'));
+        } catch (e) {
+          // Chrome treats iframes that failed to load due to a network error as
+          // having a different origin, so accessing contentDocument throws an
+          // error. Other browsers might have different behavior.
+          reject(new Error(e));
+        }
         frame.remove();
       };
       document.body.appendChild(frame);

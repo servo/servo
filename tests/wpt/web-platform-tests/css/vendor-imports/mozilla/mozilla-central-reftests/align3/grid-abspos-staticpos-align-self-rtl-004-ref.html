@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Reference</title>
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <style>
+    .container {
+      display: block;
+      border: 1px solid black;
+      background: yellow;
+      margin-bottom: 5px;
+      margin-right: 5px;
+      float: left; /* For testing in "rows" of containers */
+    }
+    br { clear: both }
+
+    .big > .container {
+      height: 32px;
+      width: 26px;
+    }
+    .small > .container {
+      height: 4px;
+      width: 8px;
+    }
+
+    .container > * {
+      background: teal;
+      height: 6px;
+      width: 8px;
+    }
+    .big   > .container > * { margin-left: 18px; }
+    .small > .container > * { margin-left:  0px; }
+
+    .big   .alignStart  { margin-top:  0px; }
+    .big   .alignCenter { margin-top: 13px; }
+    .big   .alignEnd    { margin-top: 26px; }
+    .small .alignStart  { margin-top:  0px; }
+    .small .alignCenter { margin-top: -1px; }
+    .small .alignEnd    { margin-top: -2px; }
+  </style>
+</head>
+<body>
+  <div class="big">
+    <!-- The various align-self values, from
+         https://www.w3.org/TR/css-align-3/#propdef-align-self -->
+    <!-- auto | normal | stretch -->
+    <div class="container"><div class="alignStart"><!--auto--></div></div>
+    <div class="container"><div class="alignStart"><!--normal--></div></div>
+    <div class="container"><div class="alignStart"><!--stretch--></div></div>
+    <br>
+    <!-- <baseline-position> -->
+    <div class="container"><div class="alignStart"><!--baseline--></div></div>
+    <div class="container"><div class="alignEnd"><!--last baseline--></div></div>
+    <br>
+    <!-- <self-position>, part 1: -->
+    <div class="container"><div class="alignCenter"><!--center--></div></div>
+    <div class="container"><div class="alignStart"><!--start--></div></div>
+    <div class="container"><div class="alignEnd"><!--end--></div></div>
+    <div class="container"><div class="alignStart"><!--self-start--></div></div>
+    <div class="container"><div class="alignEnd"><!--self-end--></div></div>
+    <br>
+    <!-- <self-position>, part 2: -->
+    <div class="container"><div class="alignStart"><!--flex-start--></div></div>
+    <div class="container"><div class="alignEnd"><!--flex-end--></div></div>
+    <div class="container"><div class="alignStart"><!--left--></div></div>
+    <div class="container"><div class="alignStart"><!--right--></div></div>
+    <br>
+  </div>
+  <div class="small">
+    <!-- The various align-self values, from
+         https://www.w3.org/TR/css-align-3/#propdef-align-self -->
+    <!-- auto | normal | stretch -->
+    <div class="container"><div class="alignStart"><!--auto--></div></div>
+    <div class="container"><div class="alignStart"><!--normal--></div></div>
+    <div class="container"><div class="alignStart"><!--stretch--></div></div>
+    <br>
+    <!-- <baseline-position> -->
+    <div class="container"><div class="alignStart"><!--baseline--></div></div>
+    <div class="container"><div class="alignEnd"><!--last baseline--></div></div>
+    <br>
+    <!-- <self-position>, part 1: -->
+    <div class="container"><div class="alignCenter"><!--center--></div></div>
+    <div class="container"><div class="alignStart"><!--start--></div></div>
+    <div class="container"><div class="alignEnd"><!--end--></div></div>
+    <div class="container"><div class="alignStart"><!--self-start--></div></div>
+    <div class="container"><div class="alignEnd"><!--self-end--></div></div>
+    <br>
+    <!-- <self-position>, part 2: -->
+    <div class="container"><div class="alignStart"><!--flex-start--></div></div>
+    <div class="container"><div class="alignEnd"><!--flex-end--></div></div>
+    <div class="container"><div class="alignStart"><!--left--></div></div>
+    <div class="container"><div class="alignStart"><!--right--></div></div>
+    <br>
+  </div>
+</body>
+</html>

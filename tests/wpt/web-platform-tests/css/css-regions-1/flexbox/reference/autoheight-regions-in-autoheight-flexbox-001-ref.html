@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Reftest Reference</title>
+		<link rel="author" title="Catalin Badea" href="mailto:badea@adobe.com">
+		<style>
+		.blue {
+			height: 60px;
+			width: 100px;
+			background-color: blue;
+		}
+
+		.green {
+			height: 40px;
+			width: 100px;
+			background-color: green;
+			position: relative;
+			bottom: 40px;
+			left: 200px;
+		}
+		</style>
+	</head>
+	<body>
+		<ul>
+			<li>Test passes if you see a blue rectangle and a green rectangle, from left to right in this order.</li>
+			<li>The blue rectangle one the left should be taller than the green rectangle on the right.</li>
+			<li>You shouldn't see any red.</li>
+		</ul>
+		<div class="blue"> </div>
+		<div class="green"> </div>
+	</body>
+</html>

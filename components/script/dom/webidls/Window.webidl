@@ -201,3 +201,4 @@ partial interface Window {
    readonly attribute TestRunner testRunner;
    //readonly attribute EventSender eventSender;
 };
+

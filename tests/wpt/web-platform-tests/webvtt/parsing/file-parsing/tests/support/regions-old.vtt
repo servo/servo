@@ -1,0 +1,9 @@
+WEBVTT
+Region: id=foo width=40% lines=3 regionanchor=0%,100% viewportanchor=10%,90% scroll=up
+Region: id=bar width=40% lines=3 regionanchor=100%,100% viewportanchor=90%,90% scroll=up
+
+00:00:00.000 --> 00:00:01.000 region:foo
+text0
+
+00:00:00.000 --> 00:00:01.000 region:bar
+text1

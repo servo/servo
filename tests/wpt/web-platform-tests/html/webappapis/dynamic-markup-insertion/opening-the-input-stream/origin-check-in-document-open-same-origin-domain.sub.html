@@ -12,5 +12,11 @@ testInIFrame("http://{{host}}:{{ports[http][1]}}/html/webappapis/dynamic-markup-
   var doc = ctx.iframes[0].contentDocument;
   assert_throws("SecurityError", doc.open.bind(doc), "Opening a same origin-domain (but not same origin) document doesn't throw.");
 }, "It should not be possible to open same origin-domain (but not same origin) documents.");
+
+testInIFrame("http://{{host}}:{{ports[http][1]}}/html/webappapis/dynamic-markup-insertion/opening-the-input-stream/resources/set-document-domain.html", (ctx) => {
+  document.domain = document.domain;
+  var doc = ctx.iframes[0].contentDocument;
+  assert_throws("SecurityError", doc.write.bind(doc, ""), "Implicitly opening a same origin-domain (but not same origin) document doesn't throw.");
+}, "It should not be possible to implicitly open same origin-domain (but not same origin) documents.");
 </script>
 </body>

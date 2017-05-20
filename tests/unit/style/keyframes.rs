@@ -2,21 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use parking_lot::RwLock;
-use std::sync::Arc;
 use style::keyframes::{Keyframe, KeyframesAnimation, KeyframePercentage,  KeyframeSelector};
 use style::keyframes::{KeyframesStep, KeyframesStepValue};
-use style::properties::{DeclaredValue, PropertyDeclaration, PropertyDeclarationBlock, Importance};
+use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, Importance};
 use style::properties::animated_properties::TransitionProperty;
+use style::shared_lock::SharedRwLock;
+use style::stylearc::Arc;
 use style::values::specified::{LengthOrPercentageOrAuto, NoCalcLength};
 
 #[test]
 fn test_empty_keyframe() {
+    let shared_lock = SharedRwLock::new();
     let keyframes = vec![];
-    let animation = KeyframesAnimation::from_keyframes(&keyframes);
+    let animation = KeyframesAnimation::from_keyframes(&keyframes,
+                                                       /* vendor_prefix = */ None,
+                                                       &shared_lock.read());
     let expected = KeyframesAnimation {
         steps: vec![],
         properties_changed: vec![],
+        vendor_prefix: None,
     };
 
     assert_eq!(format!("{:#?}", animation), format!("{:#?}", expected));
@@ -24,19 +28,20 @@ fn test_empty_keyframe() {
 
 #[test]
 fn test_no_property_in_keyframe() {
+    let shared_lock = SharedRwLock::new();
     let keyframes = vec![
-        Arc::new(RwLock::new(Keyframe {
+        Arc::new(shared_lock.wrap(Keyframe {
             selector: KeyframeSelector::new_for_unit_testing(vec![KeyframePercentage::new(1.)]),
-            block: Arc::new(RwLock::new(PropertyDeclarationBlock {
-                declarations: vec![],
-                important_count: 0,
-            }))
+            block: Arc::new(shared_lock.wrap(PropertyDeclarationBlock::new()))
         })),
     ];
-    let animation = KeyframesAnimation::from_keyframes(&keyframes);
+    let animation = KeyframesAnimation::from_keyframes(&keyframes,
+                                                       /* vendor_prefix = */ None,
+                                                       &shared_lock.read());
     let expected = KeyframesAnimation {
         steps: vec![],
         properties_changed: vec![],
+        vendor_prefix: None,
     };
 
     assert_eq!(format!("{:#?}", animation), format!("{:#?}", expected));
@@ -44,42 +49,44 @@ fn test_no_property_in_keyframe() {
 
 #[test]
 fn test_missing_property_in_initial_keyframe() {
+    let shared_lock = SharedRwLock::new();
     let declarations_on_initial_keyframe =
-        Arc::new(RwLock::new(PropertyDeclarationBlock {
-            declarations: vec![
-                (PropertyDeclaration::Width(
-                    DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
-                 Importance::Normal),
-            ],
-            important_count: 0,
-        }));
+        Arc::new(shared_lock.wrap(PropertyDeclarationBlock::with_one(
+            PropertyDeclaration::Width(
+                LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32))),
+            Importance::Normal
+        )));
 
     let declarations_on_final_keyframe =
-        Arc::new(RwLock::new(PropertyDeclarationBlock {
-            declarations: vec![
-                (PropertyDeclaration::Width(
-                    DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
-                 Importance::Normal),
-
-                (PropertyDeclaration::Height(
-                    DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
-                 Importance::Normal),
-            ],
-            important_count: 0,
+        Arc::new(shared_lock.wrap({
+            let mut block = PropertyDeclarationBlock::new();
+            block.push(
+                PropertyDeclaration::Width(
+                    LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32))),
+                Importance::Normal
+            );
+            block.push(
+                PropertyDeclaration::Height(
+                    LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32))),
+                Importance::Normal
+            );
+            block
         }));
 
     let keyframes = vec![
-        Arc::new(RwLock::new(Keyframe {
+        Arc::new(shared_lock.wrap(Keyframe {
             selector: KeyframeSelector::new_for_unit_testing(vec![KeyframePercentage::new(0.)]),
             block: declarations_on_initial_keyframe.clone(),
         })),
 
-        Arc::new(RwLock::new(Keyframe {
+        Arc::new(shared_lock.wrap(Keyframe {
             selector: KeyframeSelector::new_for_unit_testing(vec![KeyframePercentage::new(1.)]),
             block: declarations_on_final_keyframe.clone(),
         })),
     ];
-    let animation = KeyframesAnimation::from_keyframes(&keyframes);
+    let animation = KeyframesAnimation::from_keyframes(&keyframes,
+                                                       /* vendor_prefix = */ None,
+                                                       &shared_lock.read());
     let expected = KeyframesAnimation {
         steps: vec![
             KeyframesStep {
@@ -94,6 +101,7 @@ fn test_missing_property_in_initial_keyframe() {
             },
         ],
         properties_changed: vec![TransitionProperty::Width, TransitionProperty::Height],
+        vendor_prefix: None,
     };
 
     assert_eq!(format!("{:#?}", animation), format!("{:#?}", expected));
@@ -101,42 +109,44 @@ fn test_missing_property_in_initial_keyframe() {
 
 #[test]
 fn test_missing_property_in_final_keyframe() {
+    let shared_lock = SharedRwLock::new();
     let declarations_on_initial_keyframe =
-        Arc::new(RwLock::new(PropertyDeclarationBlock {
-            declarations: vec![
-                (PropertyDeclaration::Width(
-                    DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
-                 Importance::Normal),
-
-                (PropertyDeclaration::Height(
-                    DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
-                 Importance::Normal),
-            ],
-            important_count: 0,
+        Arc::new(shared_lock.wrap({
+            let mut block = PropertyDeclarationBlock::new();
+            block.push(
+                PropertyDeclaration::Width(
+                    LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32))),
+                Importance::Normal
+            );
+            block.push(
+                PropertyDeclaration::Height(
+                    LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32))),
+                Importance::Normal
+            );
+            block
         }));
 
     let declarations_on_final_keyframe =
-        Arc::new(RwLock::new(PropertyDeclarationBlock {
-            declarations: vec![
-                (PropertyDeclaration::Height(
-                    DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
-                 Importance::Normal),
-            ],
-            important_count: 0,
-        }));
+        Arc::new(shared_lock.wrap(PropertyDeclarationBlock::with_one(
+            PropertyDeclaration::Height(
+                LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32))),
+            Importance::Normal,
+        )));
 
     let keyframes = vec![
-        Arc::new(RwLock::new(Keyframe {
+        Arc::new(shared_lock.wrap(Keyframe {
             selector: KeyframeSelector::new_for_unit_testing(vec![KeyframePercentage::new(0.)]),
             block: declarations_on_initial_keyframe.clone(),
         })),
 
-        Arc::new(RwLock::new(Keyframe {
+        Arc::new(shared_lock.wrap(Keyframe {
             selector: KeyframeSelector::new_for_unit_testing(vec![KeyframePercentage::new(1.)]),
             block: declarations_on_final_keyframe.clone(),
         })),
     ];
-    let animation = KeyframesAnimation::from_keyframes(&keyframes);
+    let animation = KeyframesAnimation::from_keyframes(&keyframes,
+                                                       /* vendor_prefix = */ None,
+                                                       &shared_lock.read());
     let expected = KeyframesAnimation {
         steps: vec![
             KeyframesStep {
@@ -151,6 +161,7 @@ fn test_missing_property_in_final_keyframe() {
             },
         ],
         properties_changed: vec![TransitionProperty::Width, TransitionProperty::Height],
+        vendor_prefix: None,
     };
 
     assert_eq!(format!("{:#?}", animation), format!("{:#?}", expected));
@@ -158,44 +169,45 @@ fn test_missing_property_in_final_keyframe() {
 
 #[test]
 fn test_missing_keyframe_in_both_of_initial_and_final_keyframe() {
+    let shared_lock = SharedRwLock::new();
     let declarations =
-        Arc::new(RwLock::new(PropertyDeclarationBlock {
-            declarations: vec![
-                (PropertyDeclaration::Width(
-                        DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
-                 Importance::Normal),
-
-                (PropertyDeclaration::Height(
-                        DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
-                Importance::Normal),
-            ],
-            important_count: 0,
+        Arc::new(shared_lock.wrap({
+            let mut block = PropertyDeclarationBlock::new();
+            block.push(
+                PropertyDeclaration::Width(
+                    LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32))),
+                Importance::Normal
+            );
+            block.push(
+                PropertyDeclaration::Height(
+                    LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32))),
+                Importance::Normal
+            );
+            block
         }));
 
     let keyframes = vec![
-        Arc::new(RwLock::new(Keyframe {
+        Arc::new(shared_lock.wrap(Keyframe {
             selector: KeyframeSelector::new_for_unit_testing(vec![KeyframePercentage::new(0.)]),
-            block: Arc::new(RwLock::new(PropertyDeclarationBlock {
-                declarations: vec![],
-                important_count: 0,
-            }))
+            block: Arc::new(shared_lock.wrap(PropertyDeclarationBlock::new()))
         })),
-        Arc::new(RwLock::new(Keyframe {
+        Arc::new(shared_lock.wrap(Keyframe {
             selector: KeyframeSelector::new_for_unit_testing(vec![KeyframePercentage::new(0.5)]),
             block: declarations.clone(),
         })),
     ];
-    let animation = KeyframesAnimation::from_keyframes(&keyframes);
+    let animation = KeyframesAnimation::from_keyframes(&keyframes,
+                                                       /* vendor_prefix = */ None,
+                                                       &shared_lock.read());
     let expected = KeyframesAnimation {
         steps: vec![
             KeyframesStep {
                 start_percentage: KeyframePercentage(0.),
                 value: KeyframesStepValue::Declarations {
-                    block: Arc::new(RwLock::new(PropertyDeclarationBlock {
+                    block: Arc::new(shared_lock.wrap(
                         // XXX: Should we use ComputedValues in this case?
-                        declarations: vec![],
-                        important_count: 0,
-                    }))
+                        PropertyDeclarationBlock::new()
+                    ))
                 },
                 declared_timing_function: false,
             },
@@ -211,6 +223,7 @@ fn test_missing_keyframe_in_both_of_initial_and_final_keyframe() {
             }
         ],
         properties_changed: vec![TransitionProperty::Width, TransitionProperty::Height],
+        vendor_prefix: None,
     };
 
     assert_eq!(format!("{:#?}", animation), format!("{:#?}", expected));

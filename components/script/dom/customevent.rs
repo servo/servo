@@ -7,14 +7,14 @@ use dom::bindings::codegen::Bindings::CustomEventBinding::CustomEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutHeapJSVal, Root};
+use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::RootedTraceableBox;
 use dom::event::Event;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use js::jsapi::{HandleValue, JSContext};
+use js::jsapi::{Heap, HandleValue, JSContext};
 use js::jsval::JSVal;
 use servo_atoms::Atom;
 
@@ -23,14 +23,14 @@ use servo_atoms::Atom;
 pub struct CustomEvent {
     event: Event,
     #[ignore_heap_size_of = "Defined in rust-mozjs"]
-    detail: MutHeapJSVal,
+    detail: Heap<JSVal>,
 }
 
 impl CustomEvent {
     fn new_inherited() -> CustomEvent {
         CustomEvent {
             event: Event::new_inherited(),
-            detail: MutHeapJSVal::new(),
+            detail: Heap::default(),
         }
     }
 

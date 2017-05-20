@@ -1,0 +1,52 @@
+
+
+<HTML>
+<HEAD>
+<TITLE>Fourth Test of Section 9.9 of CSS2 Spec</TITLE>
+
+<STYLE TYPE="text/css">
+p {position: relative;
+   z-index: auto;}
+#id1 {position: absolute;
+      z-index: 2;}
+
+
+
+
+</STYLE>
+</HEAD>
+
+
+
+
+<BODY>
+<h1 >
+Testing Fourth Testable Statement of Sec 9.9 of CSS2 Specification
+</h1>
+
+
+<ul>
+<li  >
+4. An element's box has the same stack level at its parent's box unless
+given a different stack level with the z-index property.
+</ul>
+
+
+
+
+<h2 >
+PASS CRITERIA:
+</h2>
+<p >
+If statement #4 above is passed, then
+this paragraph should have z-index of auto and position of relative.
+The rules applied are "p {position: relative; z-index: auto;}".
+<p id="id1">
+This paragraph should have z-index of 2 and position of absolute.
+The rules applied are "p {position: absolute; z-index: 2}".
+All other properties of this page should be UA-default.
+
+
+</BODY>
+</HTML>
+

@@ -20,6 +20,7 @@ use dom::cssviewportrule::CSSViewportRule;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use std::cell::Cell;
+use style::shared_lock::SharedRwLock;
 use style::stylesheets::CssRule as StyleCssRule;
 
 
@@ -77,11 +78,14 @@ impl CSSRule {
             StyleCssRule::Import(s) => Root::upcast(CSSImportRule::new(window, parent_stylesheet, s)),
             StyleCssRule::Style(s) => Root::upcast(CSSStyleRule::new(window, parent_stylesheet, s)),
             StyleCssRule::FontFace(s) => Root::upcast(CSSFontFaceRule::new(window, parent_stylesheet, s)),
+            StyleCssRule::CounterStyle(_) => unimplemented!(),
             StyleCssRule::Keyframes(s) => Root::upcast(CSSKeyframesRule::new(window, parent_stylesheet, s)),
             StyleCssRule::Media(s) => Root::upcast(CSSMediaRule::new(window, parent_stylesheet, s)),
             StyleCssRule::Namespace(s) => Root::upcast(CSSNamespaceRule::new(window, parent_stylesheet, s)),
             StyleCssRule::Viewport(s) => Root::upcast(CSSViewportRule::new(window, parent_stylesheet, s)),
             StyleCssRule::Supports(s) => Root::upcast(CSSSupportsRule::new(window, parent_stylesheet, s)),
+            StyleCssRule::Page(_) => unreachable!(),
+            StyleCssRule::Document(_) => unimplemented!(), // TODO
         }
     }
 
@@ -102,6 +106,10 @@ impl CSSRule {
 
     pub fn parent_stylesheet(&self) -> &CSSStyleSheet {
         &self.parent_stylesheet
+    }
+
+    pub fn shared_lock(&self) -> &SharedRwLock {
+        &self.parent_stylesheet.style_stylesheet().shared_lock
     }
 }
 

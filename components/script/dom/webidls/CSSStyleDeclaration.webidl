@@ -33,6 +33,8 @@ interface CSSStyleDeclaration {
 };
 
 partial interface CSSStyleDeclaration {
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString all;
+
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString background;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString backgroundColor;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString background-color;
@@ -257,6 +259,8 @@ partial interface CSSStyleDeclaration {
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString text-align;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString textDecoration;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString text-decoration;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString textDecorationLine;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString text-decoration-line;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString textIndent;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString text-indent;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString textJustify;
@@ -279,6 +283,8 @@ partial interface CSSStyleDeclaration {
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString font-style;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString fontVariant;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString font-variant;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString fontVariantCaps;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString font-variant-caps;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString fontWeight;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString font-weight;
 

@@ -7,6 +7,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
+use dom::document::FakeRequestAnimationFrameCallback;
 use dom::eventsource::EventSourceTimeoutCallback;
 use dom::globalscope::GlobalScope;
 use dom::testbinding::TestBindingCallback;
@@ -17,7 +18,8 @@ use ipc_channel::ipc::IpcSender;
 use js::jsapi::{HandleValue, Heap};
 use js::jsval::{JSVal, UndefinedValue};
 use script_traits::{MsDuration, precise_time_ms};
-use script_traits::{TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
+use script_traits::{TimerEvent, TimerEventId, TimerEventRequest};
+use script_traits::{TimerSchedulerMsg, TimerSource};
 use servo_config::prefs::PREFS;
 use std::cell::Cell;
 use std::cmp::{self, Ord, Ordering};
@@ -34,7 +36,7 @@ pub struct OneshotTimers {
     #[ignore_heap_size_of = "Defined in std"]
     timer_event_chan: IpcSender<TimerEvent>,
     #[ignore_heap_size_of = "Defined in std"]
-    scheduler_chan: IpcSender<TimerEventRequest>,
+    scheduler_chan: IpcSender<TimerSchedulerMsg>,
     next_timer_handle: Cell<OneshotTimerHandle>,
     timers: DOMRefCell<Vec<OneshotTimer>>,
     suspended_since: Cell<Option<MsDuration>>,
@@ -69,6 +71,7 @@ pub enum OneshotTimerCallback {
     EventSourceTimeout(EventSourceTimeoutCallback),
     JsTimer(JsTimerTask),
     TestBindingCallback(TestBindingCallback),
+    FakeRequestAnimationFrame(FakeRequestAnimationFrameCallback),
 }
 
 impl OneshotTimerCallback {
@@ -78,6 +81,7 @@ impl OneshotTimerCallback {
             OneshotTimerCallback::EventSourceTimeout(callback) => callback.invoke(),
             OneshotTimerCallback::JsTimer(task) => task.invoke(this, js_timers),
             OneshotTimerCallback::TestBindingCallback(callback) => callback.invoke(),
+            OneshotTimerCallback::FakeRequestAnimationFrame(callback) => callback.invoke(),
         }
     }
 }
@@ -106,7 +110,7 @@ impl PartialEq for OneshotTimer {
 
 impl OneshotTimers {
     pub fn new(timer_event_chan: IpcSender<TimerEvent>,
-               scheduler_chan: IpcSender<TimerEventRequest>)
+               scheduler_chan: IpcSender<TimerSchedulerMsg>)
                -> OneshotTimers {
         OneshotTimers {
             js_timers: JsTimers::new(),
@@ -264,7 +268,7 @@ impl OneshotTimers {
             let delay = Length::new(timer.scheduled_for.get().saturating_sub(precise_time_ms().get()));
             let request = TimerEventRequest(self.timer_event_chan.clone(), timer.source,
                                             expected_event_id, delay);
-            self.scheduler_chan.send(request).unwrap();
+            self.scheduler_chan.send(TimerSchedulerMsg::Request(request)).unwrap();
         }
     }
 

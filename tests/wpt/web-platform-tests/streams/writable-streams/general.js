@@ -226,4 +226,25 @@ promise_test(() => {
   return writer2.ready;
 }, 'redundant releaseLock() is no-op');
 
+promise_test(() => {
+  const events = [];
+  const ws = new WritableStream();
+  const writer = ws.getWriter();
+  return writer.ready.then(() => {
+    // Force the ready promise back to a pending state.
+    const writerPromise = writer.write('dummy');
+    const readyPromise = writer.ready.catch(() => events.push('ready'));
+    const closedPromise = writer.closed.catch(() => events.push('closed'));
+    writer.releaseLock();
+    return Promise.all([readyPromise, closedPromise]).then(() => {
+      assert_array_equals(events, ['ready', 'closed'], 'ready promise should fire before closed promise');
+      // Stop the writer promise hanging around after the test has finished.
+      return Promise.all([
+        writerPromise,
+        ws.abort()
+      ]);
+    });
+  });
+}, 'ready promise should fire before closed on releaseLock');
+
 done();

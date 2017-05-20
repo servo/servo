@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Test: Cursor set to 'e-resize'</title>
+        <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#propdef-cursor" />
+        <link rel="help" href="http://www.w3.org/TR/CSS21/ui.html#cursor-props" />
+        <meta name="flags" content="interact" />
+        <meta name="assert" content="Cursor 'e-resize' results in a cursor that indicates the east edge of an element can be moved." />
+        <style type="text/css">
+            div
+            {
+                border: solid 2px blue;
+                cursor: e-resize;
+                height: 200px;
+                width: 500px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if a cursor that indicates eastward movement appears when the mouse cursor is inside the blue box.</p>
+        <div></div>
+    </body>
+</html>

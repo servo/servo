@@ -7,52 +7,65 @@ publish = false
 
 build = "build.rs"
 
+# https://github.com/rust-lang/cargo/issues/3544
+links = "for some reason the links key is required to pass data around between build scripts"
+
 [lib]
 name = "style"
 path = "lib.rs"
 doctest = false
 
 [features]
-gecko = ["nsstring_vendor", "rayon/unstable"]
-use_bindgen = ["bindgen", "regex"]
-servo = ["serde/unstable", "serde", "serde_derive", "heapsize_derive",
-         "style_traits/servo", "servo_atoms", "html5ever-atoms",
-         "cssparser/heapsize", "cssparser/serde",
-         "rayon/unstable", "servo_url/servo"]
+gecko = ["nsstring_vendor", "rayon/unstable", "num_cpus", "style_traits/gecko"]
+use_bindgen = ["bindgen", "regex", "toml"]
+servo = ["serde", "serde_derive", "heapsize", "heapsize_derive",
+         "style_traits/servo", "servo_atoms", "servo_config", "html5ever",
+         "cssparser/heapsize", "cssparser/serde", "encoding", "smallvec/heapsizeof",
+
+         # FIXME: Uncomment when https://github.com/servo/servo/pull/16953 has landed:
+         #"arrayvec/use_union"
+
+         "rayon/unstable", "servo_url"]
 testing = []
+gecko_debug = ["nsstring_vendor/gecko_debug"]
 
 [dependencies]
-app_units = "0.4"
+app_units = "0.4.1"
+arrayvec = "0.3.20"
 atomic_refcell = "0.1"
 bitflags = "0.7"
+bit-vec = "0.4.3"
+byteorder = "1.0"
 cfg-if = "0.1.0"
-cssparser = "0.10"
-encoding = "0.2"
+cssparser = "0.13.5"
+encoding = {version = "0.2", optional = true}
 euclid = "0.11"
 fnv = "1.0"
-heapsize = "0.3.0"
+heapsize = {version = "0.3.0", optional = true}
 heapsize_derive = {version = "0.1", optional = true}
-html5ever-atoms = {version = "0.2", optional = true}
+itoa = "0.3"
+html5ever = {version = "0.16", optional = true}
 lazy_static = "0.2"
-log = "0.3.5"
+log = "0.3"
 matches = "0.1"
 nsstring_vendor = {path = "gecko_bindings/nsstring_vendor", optional = true}
+num_cpus = {version = "1.1.0", optional = true}
 num-integer = "0.1.32"
 num-traits = "0.1.32"
 ordered-float = "0.4"
-owning_ref = "0.2.2"
 parking_lot = "0.3.3"
-phf = "0.7.20"
 pdqsort = "0.1.0"
-rayon = "0.6"
+precomputed-hash = "0.1"
+rayon = "0.7"
 selectors = { path = "../selectors" }
 serde = {version = "0.9", optional = true}
 serde_derive = {version = "0.9", optional = true}
 servo_atoms = {path = "../atoms", optional = true}
-servo_config = {path = "../config"}
-smallvec = "0.1"
+servo_config = {path = "../config", optional = true}
+smallvec = "0.3.3"
+style_derive = {path = "../style_derive"}
 style_traits = {path = "../style_traits"}
-servo_url = {path = "../url"}
+servo_url = {path = "../url", optional = true}
 time = "0.1"
 unicode-segmentation = "1.0"
 
@@ -61,7 +74,8 @@ kernel32-sys = "0.2"
 
 [build-dependencies]
 lazy_static = "0.2"
-bindgen = { version = "0.22", optional = true }
-phf_codegen = "0.7.20"
+log = "0.3"
+bindgen = { version = "0.25", optional = true }
 regex = {version = "0.2", optional = true}
 walkdir = "1.0"
+toml = {version = "0.2.1", optional = true, default-features = false}
