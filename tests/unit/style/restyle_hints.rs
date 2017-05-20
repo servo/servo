@@ -6,7 +6,7 @@
 fn smoke_restyle_hints() {
     use cssparser::Parser;
     use selectors::parser::SelectorList;
-    use style::restyle_hints::{DependencySet, RESTYLE_LATER_SIBLINGS};
+    use style::restyle_hints::DependencySet;
     use style::selector_parser::SelectorParser;
     use style::stylesheets::{Origin, Namespaces};
     let namespaces = Namespaces::default();

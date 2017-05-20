@@ -8,6 +8,7 @@ use gecko_bindings::bindings;
 use gecko_bindings::structs;
 use gecko_bindings::structs::{nsChangeHint, nsStyleContext};
 use gecko_bindings::sugar::ownership::FFIArcHelpers;
+use matching::{StyleChange, StyleDifference};
 use properties::ComputedValues;
 use std::ops::{BitAnd, BitOr, BitOrAssign, Not};
 use stylearc::Arc;
@@ -38,22 +39,27 @@ impl GeckoRestyleDamage {
         self.0 == nsChangeHint(0)
     }
 
-    /// Computes a change hint given an old style (in the form of a
-    /// `nsStyleContext`, and a new style (in the form of `ComputedValues`).
+    /// Computes the `StyleDifference` (including the appropriate change hint)
+    /// given an old style (in the form of a `nsStyleContext`, and a new style
+    /// (in the form of `ComputedValues`).
     ///
     /// Note that we could in theory just get two `ComputedValues` here and diff
     /// them, but Gecko has an interesting optimization when they mark accessed
     /// structs, so they effectively only diff structs that have ever been
     /// accessed from layout.
-    pub fn compute(source: &nsStyleContext,
-                   new_style: &Arc<ComputedValues>) -> Self {
+    pub fn compute_style_difference(source: &nsStyleContext,
+                                    new_style: &Arc<ComputedValues>)
+                                    -> StyleDifference {
         // TODO(emilio): Const-ify this?
         let context = source as *const nsStyleContext as *mut nsStyleContext;
+        let mut any_style_changed: bool = false;
         let hint = unsafe {
             bindings::Gecko_CalcStyleDifference(context,
-                                                new_style.as_borrowed_opt().unwrap())
+                                                new_style.as_borrowed_opt().unwrap(),
+                                                &mut any_style_changed)
         };
-        GeckoRestyleDamage(hint)
+        let change = if any_style_changed { StyleChange::Changed } else { StyleChange::Unchanged };
+        StyleDifference::new(GeckoRestyleDamage(hint), change)
     }
 
     /// Returns true if this restyle damage contains all the damage of |other|.
