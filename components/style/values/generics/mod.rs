@@ -10,9 +10,8 @@ use cssparser::Parser;
 use euclid::size::Size2D;
 use parser::{Parse, ParserContext};
 use std::fmt;
-use style_traits::ToCss;
+use style_traits::{HasViewportPercentage, ToCss};
 use super::CustomIdent;
-use super::HasViewportPercentage;
 use super::computed::{Context, ToComputedValue};
 
 pub use self::basic_shape::serialize_radius_values;

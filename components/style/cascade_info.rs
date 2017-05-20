@@ -8,7 +8,7 @@
 
 use dom::TNode;
 use properties::{DeclaredValue, PropertyDeclaration};
-use values::HasViewportPercentage;
+use style_traits::HasViewportPercentage;
 
 /// A structure to collect information about the cascade.
 ///

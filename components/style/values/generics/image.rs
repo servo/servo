@@ -9,8 +9,7 @@
 use Atom;
 use cssparser::serialize_identifier;
 use std::fmt;
-use style_traits::ToCss;
-use values::HasViewportPercentage;
+use style_traits::{HasViewportPercentage, ToCss};
 use values::computed::{Context, ToComputedValue};
 use values::specified::url::SpecifiedUrl;
 
