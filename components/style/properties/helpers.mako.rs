@@ -1088,7 +1088,7 @@
 
         #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct SpecifiedValue(${length_type});
+        pub struct SpecifiedValue(pub ${length_type});
 
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
