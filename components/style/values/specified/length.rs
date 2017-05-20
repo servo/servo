@@ -1182,18 +1182,15 @@ impl LengthOrNumber {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub enum MinLength {
-    LengthOrPercentage(LengthOrPercentage),
-    Auto,
+    LengthOrPercentageOrAuto(LengthOrPercentageOrAuto),
     ExtremumLength(ExtremumLength),
 }
 
 impl ToCss for MinLength {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            MinLength::LengthOrPercentage(ref lop) =>
-                lop.to_css(dest),
-            MinLength::Auto =>
-                dest.write_str("auto"),
+            MinLength::LengthOrPercentageOrAuto(ref lopoa) =>
+                lopoa.to_css(dest),
             MinLength::ExtremumLength(ref ext) =>
                 ext.to_css(dest),
         }
@@ -1212,9 +1209,8 @@ impl MinLength {
                         input: &mut Parser,
                         allow_quirks: AllowQuirks) -> Result<Self, ()> {
         input.try(ExtremumLength::parse).map(MinLength::ExtremumLength)
-            .or_else(|()| input.try(|i| LengthOrPercentage::parse_non_negative_quirky(context, i, allow_quirks))
-                               .map(MinLength::LengthOrPercentage))
-            .or_else(|()| input.expect_ident_matching("auto").map(|()| MinLength::Auto))
+            .or_else(|()| input.try(|i| LengthOrPercentageOrAuto::parse_non_negative_quirky(context, i, allow_quirks))
+                               .map(MinLength::LengthOrPercentageOrAuto))
     }
 }
 
@@ -1223,19 +1219,15 @@ impl MinLength {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub enum MaxLength {
-    LengthOrPercentage(LengthOrPercentage),
-    None,
+    LengthOrPercentageOrNone(LengthOrPercentageOrNone),
     ExtremumLength(ExtremumLength),
 }
-
 
 impl ToCss for MaxLength {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            MaxLength::LengthOrPercentage(ref lop) =>
-                lop.to_css(dest),
-            MaxLength::None =>
-                dest.write_str("none"),
+            MaxLength::LengthOrPercentageOrNone(ref lopon) =>
+                lopon.to_css(dest),
             MaxLength::ExtremumLength(ref ext) =>
                 ext.to_css(dest),
         }
@@ -1254,14 +1246,7 @@ impl MaxLength {
                         input: &mut Parser,
                         allow_quirks: AllowQuirks) -> Result<Self, ()> {
         input.try(ExtremumLength::parse).map(MaxLength::ExtremumLength)
-            .or_else(|()| input.try(|i| LengthOrPercentage::parse_non_negative_quirky(context, i, allow_quirks))
-                               .map(MaxLength::LengthOrPercentage))
-            .or_else(|()| {
-                match_ignore_ascii_case! { &try!(input.expect_ident()),
-                    "none" =>
-                        Ok(MaxLength::None),
-                    _ => Err(())
-                }
-            })
+            .or_else(|()| input.try(|i| LengthOrPercentageOrNone::parse_non_negative_quirky(context, i, allow_quirks))
+                               .map(MaxLength::LengthOrPercentageOrNone))
     }
 }

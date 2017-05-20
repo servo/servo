@@ -1241,10 +1241,10 @@ impl Animatable for MinLength {
     #[inline]
     fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
         match (*self, *other) {
-            (MinLength::LengthOrPercentage(ref this),
-             MinLength::LengthOrPercentage(ref other)) => {
+            (MinLength::LengthOrPercentageOrAuto(ref this),
+             MinLength::LengthOrPercentageOrAuto(ref other)) => {
                 this.add_weighted(other, self_portion, other_portion)
-                    .map(MinLength::LengthOrPercentage)
+                    .map(MinLength::LengthOrPercentageOrAuto)
             }
             _ => Err(()),
         }
@@ -1253,8 +1253,8 @@ impl Animatable for MinLength {
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         match (*self, *other) {
-            (MinLength::LengthOrPercentage(ref this),
-             MinLength::LengthOrPercentage(ref other)) => {
+            (MinLength::LengthOrPercentageOrAuto(ref this),
+             MinLength::LengthOrPercentageOrAuto(ref other)) => {
                 this.compute_distance(other)
             },
             _ => Err(()),
@@ -1267,10 +1267,10 @@ impl Animatable for MaxLength {
     #[inline]
     fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
         match (*self, *other) {
-            (MaxLength::LengthOrPercentage(ref this),
-             MaxLength::LengthOrPercentage(ref other)) => {
+            (MaxLength::LengthOrPercentageOrNone(ref this),
+             MaxLength::LengthOrPercentageOrNone(ref other)) => {
                 this.add_weighted(other, self_portion, other_portion)
-                    .map(MaxLength::LengthOrPercentage)
+                    .map(MaxLength::LengthOrPercentageOrNone)
             }
             _ => Err(()),
         }
@@ -1279,8 +1279,8 @@ impl Animatable for MaxLength {
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         match (*self, *other) {
-            (MaxLength::LengthOrPercentage(ref this),
-             MaxLength::LengthOrPercentage(ref other)) => {
+            (MaxLength::LengthOrPercentageOrNone(ref this),
+             MaxLength::LengthOrPercentageOrNone(ref other)) => {
                 this.compute_distance(other)
             },
             _ => Err(()),

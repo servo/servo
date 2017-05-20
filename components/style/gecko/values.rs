@@ -338,38 +338,28 @@ impl GeckoStyleCoordConvertible for ExtremumLength {
 impl GeckoStyleCoordConvertible for MinLength {
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
         match *self {
-            MinLength::LengthOrPercentage(ref lop) => lop.to_gecko_style_coord(coord),
-            MinLength::Auto => coord.set_value(CoordDataValue::Auto),
+            MinLength::LengthOrPercentageOrAuto(ref lopoa) => lopoa.to_gecko_style_coord(coord),
             MinLength::ExtremumLength(ref e) => e.to_gecko_style_coord(coord),
         }
     }
 
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
-        LengthOrPercentage::from_gecko_style_coord(coord).map(MinLength::LengthOrPercentage)
+        LengthOrPercentageOrAuto::from_gecko_style_coord(coord).map(MinLength::LengthOrPercentageOrAuto)
             .or_else(|| ExtremumLength::from_gecko_style_coord(coord).map(MinLength::ExtremumLength))
-            .or_else(|| match coord.as_value() {
-                CoordDataValue::Auto => Some(MinLength::Auto),
-                _ => None,
-            })
     }
 }
 
 impl GeckoStyleCoordConvertible for MaxLength {
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
         match *self {
-            MaxLength::LengthOrPercentage(ref lop) => lop.to_gecko_style_coord(coord),
-            MaxLength::None => coord.set_value(CoordDataValue::None),
+            MaxLength::LengthOrPercentageOrNone(ref lopon) => lopon.to_gecko_style_coord(coord),
             MaxLength::ExtremumLength(ref e) => e.to_gecko_style_coord(coord),
         }
     }
 
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
-        LengthOrPercentage::from_gecko_style_coord(coord).map(MaxLength::LengthOrPercentage)
+        LengthOrPercentageOrNone::from_gecko_style_coord(coord).map(MaxLength::LengthOrPercentageOrNone)
             .or_else(|| ExtremumLength::from_gecko_style_coord(coord).map(MaxLength::ExtremumLength))
-            .or_else(|| match coord.as_value() {
-                CoordDataValue::None => Some(MaxLength::None),
-                _ => None,
-            })
     }
 }
 

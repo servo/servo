@@ -164,7 +164,7 @@ ${helpers.predefined_type("flex-basis",
         % for min_max in ["min", "max"]:
             <%
                 MinMax = min_max.title()
-                initial = "None" if "max" == min_max else "Auto"
+                initial = "none()" if "max" == min_max else "auto()"
             %>
 
             // min-width, min-height, min-block-size, min-inline-size,
