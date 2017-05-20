@@ -9,6 +9,7 @@
 use Atom;
 use LocalName;
 use Namespace;
+use context::{SharedStyleContext, ThreadLocalStyleContext};
 use dom::TElement;
 use element_state::*;
 #[cfg(feature = "gecko")]
@@ -825,6 +826,35 @@ pub struct DependencySet {
     dependencies: SelectorMap<Dependency>,
 }
 
+/// The data that we need to compute a given restyle hint.
+pub enum HintComputationContext<'a, E: 'a>
+    where E: TElement,
+{
+    /// The data we need to compute a restyle hint for the root of the
+    /// traversal.
+    ///
+    /// We don't bother with the bloom filter there for multiple reasons:
+    ///
+    ///  * The root of the traversal uses to be the root of the document, so we
+    ///    don't gain much using a bloom filter.
+    ///
+    ///  * The chances that a non-root-element root of the traversal has a
+    ///    snapshot is quite low.
+    Root,
+
+    /// The data we need to compute a restyle hint for a child.
+    ///
+    /// This needs a full-blown style context in order to get the selector
+    /// filters up-to-date, and the dom depth in order to insert into the filter
+    /// properly if needed.
+    Child {
+        /// The thread-local context, that holds the bloom filter alive.
+        local_context: &'a mut ThreadLocalStyleContext<E>,
+        /// The dom depth of this element.
+        dom_depth: usize,
+    }
+}
+
 impl DependencySet {
     /// Adds a selector to this `DependencySet`.
     pub fn note_selector(&mut self, selector: &Selector<SelectorImpl>) {
@@ -921,16 +951,17 @@ impl DependencySet {
 
     /// Compute a restyle hint given an element and a snapshot, per the rules
     /// explained in the rest of the documentation.
-    pub fn compute_hint<E>(
+    pub fn compute_hint<'a, E>(
         &self,
         el: &E,
-        snapshots: &SnapshotMap)
+        shared_context: &SharedStyleContext,
+        hint_context: HintComputationContext<'a, E>)
         -> RestyleHint
         where E: TElement,
     {
         debug_assert!(el.has_snapshot(), "Shouldn't be here!");
-
-        let snapshot_el = ElementWrapper::new(el.clone(), snapshots);
+        let snapshot_el =
+            ElementWrapper::new(*el, shared_context.snapshot_map);
         let snapshot =
             snapshot_el.snapshot().expect("has_snapshot lied so badly");
 
@@ -960,8 +991,30 @@ impl DependencySet {
             });
         }
 
-        // FIXME(emilio): A bloom filter here would be neat.
-        let mut matching_context =
+        let bloom_filter = match hint_context {
+            HintComputationContext::Root => None,
+            HintComputationContext::Child { mut local_context, dom_depth } => {
+                local_context
+                    .bloom_filter
+                    .insert_parents_recovering(*el, dom_depth);
+                local_context.bloom_filter.assert_complete(*el);
+                Some(local_context.bloom_filter.filter())
+            }
+        };
+
+        let mut element_matching_context =
+            MatchingContext::new(MatchingMode::Normal, bloom_filter);
+
+        // NOTE(emilio): We can't use the bloom filter for snapshots, given that
+        // arbitrary elements in the parent chain may have mutated their
+        // id's/classes, which means that they won't be in the filter, and as
+        // such we may fast-reject selectors incorrectly.
+        //
+        // We may be able to improve this if we record as we go down the tree
+        // whether any parent had a snapshot, and whether those snapshots were
+        // taken due to an element class/id change, but it's not clear we _need_
+        // it right now.
+        let mut snapshot_matching_context =
             MatchingContext::new(MatchingMode::Normal, None);
 
         let lookup_element = if el.implemented_pseudo_element().is_some() {
@@ -989,11 +1042,11 @@ impl DependencySet {
             // change its matching behavior here.
             let matched_then =
                 matches_selector(&dep.selector, &snapshot_el,
-                                 &mut matching_context,
+                                 &mut snapshot_matching_context,
                                  &mut |_, _| {});
             let matches_now =
                 matches_selector(&dep.selector, el,
-                                 &mut matching_context,
+                                 &mut element_matching_context,
                                  &mut |_, _| {});
             if matched_then != matches_now {
                 hint.insert_from(&dep.hint);

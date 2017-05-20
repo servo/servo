@@ -9,6 +9,7 @@
 
 use dom::{SendElement, TElement};
 use selectors::bloom::BloomFilter;
+use smallvec::SmallVec;
 
 /// A struct that allows us to fast-reject deep descendant selectors avoiding
 /// selector-matching.
@@ -223,7 +224,7 @@ impl<E: TElement> StyleBloom<E> {
 
         // Let's collect the parents we are going to need to insert once we've
         // found the common one.
-        let mut parents_to_insert = vec![];
+        let mut parents_to_insert = SmallVec::<[E; 8]>::new();
 
         // If the bloom filter still doesn't have enough elements, the common
         // parent is up in the dom.
@@ -245,10 +246,12 @@ impl<E: TElement> StyleBloom<E> {
         // Not-so-happy case: Parent's don't match, so we need to keep going up
         // until we find a common ancestor.
         //
-        // Gecko currently models native anonymous content that conceptually hangs
-        // off the document (such as scrollbars) as a separate subtree from the
-        // document root.  Thus it's possible with Gecko that we do not find any
-        // common ancestor.
+        // Gecko currently models native anonymous content that conceptually
+        // hangs off the document (such as scrollbars) as a separate subtree
+        // from the document root.
+        //
+        // Thus it's possible with Gecko that we do not find any common
+        // ancestor.
         while **self.elements.last().unwrap() != common_parent {
             parents_to_insert.push(common_parent);
             self.pop().unwrap();
