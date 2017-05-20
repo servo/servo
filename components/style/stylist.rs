@@ -108,8 +108,6 @@ pub struct Stylist {
     element_map: PerPseudoElementSelectorMap,
 
     /// The rule tree, that stores the results of selector matching.
-    ///
-    /// FIXME(emilio): Not `pub`!
     rule_tree: RuleTree,
 
     /// The selector maps corresponding to a given pseudo-element
@@ -1067,7 +1065,7 @@ impl Stylist {
     }
 
     /// Accessor for a shared reference to the device.
-    pub fn device(&self) -> &Arc<Device> {
+    pub fn device(&self) -> &Device {
         &self.device
     }
 
