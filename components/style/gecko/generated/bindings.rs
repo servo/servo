@@ -961,7 +961,8 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_CalcStyleDifference(oldstyle: *mut nsStyleContext,
-                                     newstyle: ServoComputedValuesBorrowed)
+                                     newstyle: ServoComputedValuesBorrowed,
+                                     any_style_changed: *mut bool)
      -> nsChangeHint;
 }
 extern "C" {

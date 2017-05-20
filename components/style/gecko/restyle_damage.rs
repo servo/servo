@@ -49,9 +49,11 @@ impl GeckoRestyleDamage {
                    new_style: &Arc<ComputedValues>) -> Self {
         // TODO(emilio): Const-ify this?
         let context = source as *const nsStyleContext as *mut nsStyleContext;
+        let mut any_style_changed: bool = false;
         let hint = unsafe {
             bindings::Gecko_CalcStyleDifference(context,
-                                                new_style.as_borrowed_opt().unwrap())
+                                                new_style.as_borrowed_opt().unwrap(),
+                                                &mut any_style_changed)
         };
         GeckoRestyleDamage(hint)
     }
