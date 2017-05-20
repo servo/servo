@@ -252,6 +252,16 @@ ${helpers.predefined_type("flex-basis",
                 }
             </%helpers:longhand>
         % endfor
+        // min-width, min-height, min-block-size, min-inline-size,
+        // max-width, max-height, max-block-size, max-inline-size
+        ${helpers.gecko_size_type("min-%s" % size, "MozLength", "auto()",
+                                  logical,
+                                  spec=spec % size,
+                                  animation_value_type="ComputedValue")}
+        ${helpers.gecko_size_type("max-%s" % size, "MaxLength", "none()",
+                                  logical,
+                                  spec=spec % size,
+                                  animation_value_type="ComputedValue")}
     % else:
         // servo versions (no keyword support)
         ${helpers.predefined_type("min-%s" % size,
