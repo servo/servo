@@ -1904,14 +1904,14 @@ pub extern "C" fn Servo_DeclarationBlock_SetAutoValue(declarations:
     use style::properties::{PropertyDeclaration, LonghandId};
     use style::properties::longhands::height::SpecifiedValue as Height;
     use style::properties::longhands::width::SpecifiedValue as Width;
-    use style::values::specified::{LengthOrPercentageOrAuto, MozLength};
+    use style::values::specified::LengthOrPercentageOrAuto;
 
     let long = get_longhand_from_id!(property);
     let auto = LengthOrPercentageOrAuto::Auto;
 
     let prop = match_wrap_declared! { long,
-        Height => Height(MozLength::LengthOrPercentageOrAuto(auto)),
-        Width => Width(MozLength::LengthOrPercentageOrAuto(auto)),
+        Height => Height::auto(),
+        Width => Width::auto(),
         MarginTop => auto,
         MarginRight => auto,
         MarginBottom => auto,

@@ -1090,6 +1090,23 @@
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct SpecifiedValue(pub ${length_type});
 
+        % if length_type == "MozLength":
+        impl SpecifiedValue {
+            /// Returns the `auto` value.
+            pub fn auto() -> Self {
+                use values::specified::length::LengthOrPercentageOrAuto;
+                SpecifiedValue(MozLength::LengthOrPercentageOrAuto(LengthOrPercentageOrAuto::Auto))
+            }
+
+            /// Returns a value representing a `0` length.
+            pub fn zero() -> Self {
+                use values::specified::length::{LengthOrPercentageOrAuto, NoCalcLength};
+                SpecifiedValue(MozLength::LengthOrPercentageOrAuto(
+                    LengthOrPercentageOrAuto::Length(NoCalcLength::zero())))
+            }
+        }
+        % endif
+
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
             use values::computed::${length_type};

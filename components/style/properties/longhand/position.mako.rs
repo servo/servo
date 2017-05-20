@@ -134,18 +134,23 @@ ${helpers.predefined_type("order", "Integer", "0",
                           animation_value_type="ComputedValue",
                           spec="https://drafts.csswg.org/css-flexbox/#order-property")}
 
-// FIXME: Gecko doesn't support content value yet.
-// FIXME: This property should be animatable.
-${helpers.predefined_type("flex-basis",
-                          "LengthOrPercentageOrAuto" if product == "gecko" else
-                          "LengthOrPercentageOrAutoOrContent",
-                          "computed::LengthOrPercentageOrAuto::Auto" if product == "gecko" else
-                          "computed::LengthOrPercentageOrAutoOrContent::Auto",
-                          "parse_non_negative",
-                          spec="https://drafts.csswg.org/css-flexbox/#flex-basis-property",
-                          extra_prefixes="webkit",
-                          animation_value_type="ComputedValue" if product == "gecko" else "none")}
-
+% if product == "gecko":
+    // FIXME: Gecko doesn't support content value yet.
+    ${helpers.gecko_size_type("flex-basis", "MozLength", "auto()",
+                              logical=False,
+                              spec="https://drafts.csswg.org/css-flexbox/#flex-basis-property",
+                              extra_prefixes="webkit",
+                              animation_value_type="ComputedValue")}
+% else:
+    // FIXME: This property should be animatable.
+    ${helpers.predefined_type("flex-basis",
+                              "LengthOrPercentageOrAutoOrContent",
+                              "computed::LengthOrPercentageOrAutoOrContent::Auto",
+                              "parse_non_negative",
+                              spec="https://drafts.csswg.org/css-flexbox/#flex-basis-property",
+                              extra_prefixes="webkit",
+                              animation_value_type="none")}
+% endif
 % for (size, logical) in ALL_SIZES:
     <%
       spec = "https://drafts.csswg.org/css-box/#propdef-%s"
