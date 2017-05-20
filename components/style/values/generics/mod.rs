@@ -18,6 +18,7 @@ use super::computed::{Context, ToComputedValue};
 pub use self::basic_shape::serialize_radius_values;
 
 pub mod basic_shape;
+pub mod grid;
 pub mod image;
 pub mod position;
 
