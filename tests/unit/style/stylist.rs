@@ -3,10 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::SourceLocation;
+use euclid::TypedSize2D;
 use html5ever::LocalName;
 use selectors::parser::LocalName as LocalNameSelector;
 use selectors::parser::Selector;
 use servo_atoms::Atom;
+use style::context::QuirksMode;
+use style::media_queries::{Device, MediaType};
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration};
 use style::properties::{longhands, Importance};
 use style::rule_tree::CascadeLevel;
@@ -15,7 +18,7 @@ use style::shared_lock::SharedRwLock;
 use style::stylearc::Arc;
 use style::stylesheets::StyleRule;
 use style::stylist;
-use style::stylist::{Rule, SelectorMap};
+use style::stylist::{Rule, SelectorMap, Stylist};
 use style::stylist::needs_revalidation;
 use style::thread_state;
 
@@ -217,4 +220,24 @@ fn test_get_universal_rules() {
     let decls = map.get_universal_rules(CascadeLevel::UserNormal);
 
     assert_eq!(decls.len(), 1, "{:?}", decls);
+}
+
+fn mock_stylist() -> Stylist {
+    let device = Device::new(MediaType::Screen, TypedSize2D::new(0f32, 0f32));
+    Stylist::new(device, QuirksMode::NoQuirks)
+}
+
+#[test]
+fn test_stylist_device_accessors() {
+    let stylist = mock_stylist();
+    assert_eq!(stylist.device().media_type(), MediaType::Screen);
+    let mut stylist_mut = mock_stylist();
+    assert_eq!(stylist_mut.device_mut().media_type(), MediaType::Screen);
+}
+
+#[test]
+fn test_stylist_rule_tree_accessors() {
+    let stylist = mock_stylist();
+    stylist.rule_tree();
+    stylist.rule_tree().root();
 }
