@@ -67,6 +67,8 @@ If `virtualenv` does not exist, try `python-virtualenv`.
 
 #### On Fedora
 
+The ffmpeg-devel package in the build dependencies below is packaged in the [rpm fusion repository](http://rpmfusion.org/). You first need to enable rpm fusion, and then run the following install command:
+
 ``` sh
 sudo dnf install curl freeglut-devel libtool gcc-c++ libXi-devel \
     freetype-devel mesa-libGL-devel mesa-libEGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
