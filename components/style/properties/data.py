@@ -127,6 +127,15 @@ class Keyword(object):
     def maybe_cast(self, type_str):
         return "as " + type_str if self.needs_cast() else ""
 
+    def casted_constant_name(self, value, cast_type):
+        if cast_type is None:
+            raise TypeError("We should specify the cast_type.")
+
+        if self.gecko_enum_prefix is None:
+            return cast_type.upper() + "_" + self.gecko_constant(value)
+        else:
+            return cast_type.upper() + "_" + self.gecko_constant(value).upper().replace("::", "_")
+
 
 def arg_to_bool(arg):
     if isinstance(arg, bool):
