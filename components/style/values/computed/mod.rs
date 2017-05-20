@@ -4,6 +4,7 @@
 
 //! Computed values.
 
+use Atom;
 use context::QuirksMode;
 use euclid::size::Size2D;
 use font_metrics::FontMetricsProvider;
@@ -154,6 +155,79 @@ pub trait ToComputedValue {
     fn from_computed_value(computed: &Self::ComputedValue) -> Self;
 }
 
+impl<A, B> ToComputedValue for (A, B)
+    where A: ToComputedValue, B: ToComputedValue,
+{
+    type ComputedValue = (
+        <A as ToComputedValue>::ComputedValue,
+        <B as ToComputedValue>::ComputedValue,
+    );
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        (self.0.to_computed_value(context), self.1.to_computed_value(context))
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        (A::from_computed_value(&computed.0), B::from_computed_value(&computed.1))
+    }
+}
+
+impl<T> ToComputedValue for Option<T>
+    where T: ToComputedValue
+{
+    type ComputedValue = Option<<T as ToComputedValue>::ComputedValue>;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        self.as_ref().map(|item| item.to_computed_value(context))
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        computed.as_ref().map(T::from_computed_value)
+    }
+}
+
+impl<T> ToComputedValue for Size2D<T>
+    where T: ToComputedValue
+{
+    type ComputedValue = Size2D<<T as ToComputedValue>::ComputedValue>;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        Size2D::new(
+            self.width.to_computed_value(context),
+            self.height.to_computed_value(context),
+        )
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        Size2D::new(
+            T::from_computed_value(&computed.width),
+            T::from_computed_value(&computed.height),
+        )
+    }
+}
+
+impl<T> ToComputedValue for Vec<T>
+    where T: ToComputedValue
+{
+    type ComputedValue = Vec<<T as ToComputedValue>::ComputedValue>;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        self.iter().map(|item| item.to_computed_value(context)).collect()
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        computed.iter().map(T::from_computed_value).collect()
+    }
+}
+
 /// A marker trait to represent that the specified value is also the computed
 /// value.
 pub trait ComputedValueAsSpecified {}
@@ -173,6 +247,9 @@ impl<T> ToComputedValue for T
         computed.clone()
     }
 }
+
+impl ComputedValueAsSpecified for Atom {}
+impl ComputedValueAsSpecified for bool {}
 
 /// A computed `<angle>` value.
 #[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, PartialOrd)]
