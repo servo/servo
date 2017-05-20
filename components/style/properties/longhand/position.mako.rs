@@ -163,7 +163,7 @@ ${helpers.predefined_type("flex-basis",
     % if product == "gecko":
         % for min_max in ["min", "max"]:
             <%
-                MinMax = min_max.title()
+                LengthType = "MaxLength" if "max" == min_max else "MozLength"
                 initial = "none()" if "max" == min_max else "auto()"
             %>
 
@@ -174,37 +174,38 @@ ${helpers.predefined_type("flex-basis",
             // be replaced with auto/none in block.
             <%helpers:longhand name="${min_max}-${size}" spec="${spec % ('%s-%s' % (min_max, size))}"
                                animation_value_type="ComputedValue"
-                               logical="${logical}" predefined_type="${MinMax}Length">
+                               logical="${logical}" predefined_type="${LengthType}">
 
                 use std::fmt;
                 use style_traits::ToCss;
                 % if not logical:
                     use values::specified::AllowQuirks;
                 % endif
-                use values::specified::${MinMax}Length;
+                use values::specified::${LengthType};
+
 
                 pub mod computed_value {
-                    pub type T = ::values::computed::${MinMax}Length;
+                    pub type T = ::values::computed::${LengthType};
                 }
 
                 #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
                 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-                pub struct SpecifiedValue(${MinMax}Length);
+                pub struct SpecifiedValue(${LengthType});
 
                 #[inline]
                 pub fn get_initial_value() -> computed_value::T {
-                    use values::computed::${MinMax}Length;
-                    ${MinMax}Length::${initial}
+                    use values::computed::${LengthType};
+                    ${LengthType}::${initial}
                 }
                 fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
                     % if logical:
-                    let ret = ${MinMax}Length::parse(context, input);
+                    let ret = ${LengthType}::parse(context, input);
                     % else:
-                    let ret = ${MinMax}Length::parse_quirky(context, input, AllowQuirks::Yes);
+                    let ret = ${LengthType}::parse_quirky(context, input, AllowQuirks::Yes);
                     % endif
                     // Keyword values don't make sense in the block direction; don't parse them
                     % if "block" in size:
-                        if let Ok(${MinMax}Length::ExtremumLength(..)) = ret {
+                        if let Ok(${LengthType}::ExtremumLength(..)) = ret {
                             return Err(())
                         }
                     % endif
@@ -222,19 +223,19 @@ ${helpers.predefined_type("flex-basis",
                     #[inline]
                     fn to_computed_value(&self, context: &Context) -> computed_value::T {
                         % if not logical or "block" in size:
-                            use values::computed::${MinMax}Length;
+                            use values::computed::${LengthType};
                         % endif
                         let computed = self.0.to_computed_value(context);
 
                         // filter out keyword values in the block direction
                         % if logical:
                             % if "block" in size:
-                                if let ${MinMax}Length::ExtremumLength(..) = computed {
+                                if let ${LengthType}::ExtremumLength(..) = computed {
                                     return get_initial_value()
                                 }
                             % endif
                         % else:
-                            if let ${MinMax}Length::ExtremumLength(..) = computed {
+                            if let ${LengthType}::ExtremumLength(..) = computed {
                                 <% is_height = "true" if "height" in size else "false" %>
                                 if ${is_height} != context.style().writing_mode.is_vertical() {
                                     return get_initial_value()

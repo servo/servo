@@ -37,7 +37,7 @@ pub use self::length::AbsoluteLength;
 pub use self::length::{FontRelativeLength, ViewportPercentageLength, CharacterWidth, Length, CalcLengthOrPercentage};
 pub use self::length::{Percentage, LengthOrNone, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
 pub use self::length::{LengthOrPercentageOrNone, LengthOrPercentageOrAutoOrContent, NoCalcLength};
-pub use self::length::{MaxLength, MinLength};
+pub use self::length::{MaxLength, MozLength};
 pub use self::position::{Position, PositionComponent};
 
 #[cfg(feature = "gecko")]

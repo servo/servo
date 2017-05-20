@@ -14,7 +14,7 @@ use std::cmp::max;
 use values::{Auto, Either, ExtremumLength, None_, Normal};
 use values::computed::{Angle, LengthOrPercentage, LengthOrPercentageOrAuto};
 use values::computed::{LengthOrPercentageOrNone, Number, NumberOrPercentage};
-use values::computed::{MaxLength, MinLength};
+use values::computed::{MaxLength, MozLength};
 use values::computed::basic_shape::ShapeRadius as ComputedShapeRadius;
 use values::generics::basic_shape::ShapeRadius;
 use values::specified::Percentage;
@@ -335,17 +335,17 @@ impl GeckoStyleCoordConvertible for ExtremumLength {
     }
 }
 
-impl GeckoStyleCoordConvertible for MinLength {
+impl GeckoStyleCoordConvertible for MozLength {
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
         match *self {
-            MinLength::LengthOrPercentageOrAuto(ref lopoa) => lopoa.to_gecko_style_coord(coord),
-            MinLength::ExtremumLength(ref e) => e.to_gecko_style_coord(coord),
+            MozLength::LengthOrPercentageOrAuto(ref lopoa) => lopoa.to_gecko_style_coord(coord),
+            MozLength::ExtremumLength(ref e) => e.to_gecko_style_coord(coord),
         }
     }
 
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
-        LengthOrPercentageOrAuto::from_gecko_style_coord(coord).map(MinLength::LengthOrPercentageOrAuto)
-            .or_else(|| ExtremumLength::from_gecko_style_coord(coord).map(MinLength::ExtremumLength))
+        LengthOrPercentageOrAuto::from_gecko_style_coord(coord).map(MozLength::LengthOrPercentageOrAuto)
+            .or_else(|| ExtremumLength::from_gecko_style_coord(coord).map(MozLength::ExtremumLength))
     }
 }
 
