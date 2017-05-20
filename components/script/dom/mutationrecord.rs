@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::MutationRecordBinding::MutationRecordBinding;
 use dom::bindings::codegen::Bindings::MutationRecordBinding::MutationRecordBinding::MutationRecordMethods;
-use dom::bindings::js::{JS, Root};
+use dom::bindings::js::{JS, MutNullableJS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::node::{Node, window_from_node};
@@ -20,6 +20,10 @@ pub struct MutationRecord {
     attribute_name: Option<DOMString>,
     attribute_namespace: Option<DOMString>,
     old_value: Option<DOMString>,
+    added_nodes: MutNullableJS<NodeList>,
+    removed_nodes: MutNullableJS<NodeList>,
+    next_sibling: Option<JS<Node>>,
+    prev_sibling: Option<JS<Node>>,
 }
 
 impl MutationRecord {
@@ -32,15 +36,40 @@ impl MutationRecord {
                                                        target,
                                                        Some(DOMString::from(&**attribute_name)),
                                                        attribute_namespace.map(|n| DOMString::from(&**n)),
-                                                       old_value);
+                                                       old_value,
+                                                       None, None, None, None);
         reflect_dom_object(record, &*window_from_node(target), MutationRecordBinding::Wrap)
+    }
+
+    pub fn child_list_mutated(target: &Node,
+                              added_nodes: Option<&[&Node]>,
+                              removed_nodes: Option<&[&Node]>,
+                              next_sibling: Option<&Node>,
+                              prev_sibling: Option<&Node>) -> Root<MutationRecord> {
+        let window = window_from_node(target);
+        let added_nodes = added_nodes.map(|list| NodeList::new_simple_list_slice(&window, list));
+        let removed_nodes = removed_nodes.map(|list| NodeList::new_simple_list_slice(&window, list));
+
+        reflect_dom_object(box MutationRecord::new_inherited("childList",
+                                                             target,
+                                                             None, None, None,
+                                                             added_nodes.as_ref().map(|list| &**list),
+                                                             removed_nodes.as_ref().map(|list| &**list),
+                                                             next_sibling,
+                                                             prev_sibling),
+                           &*window,
+                           MutationRecordBinding::Wrap)
     }
 
     fn new_inherited(record_type: &str,
                      target: &Node,
                      attribute_name: Option<DOMString>,
                      attribute_namespace: Option<DOMString>,
-                     old_value: Option<DOMString>) -> MutationRecord {
+                     old_value: Option<DOMString>,
+                     added_nodes: Option<&NodeList>,
+                     removed_nodes: Option<&NodeList>,
+                     next_sibling: Option<&Node>,
+                     prev_sibling: Option<&Node>) -> MutationRecord {
         MutationRecord {
             reflector_: Reflector::new(),
             record_type: DOMString::from(record_type),
@@ -48,6 +77,10 @@ impl MutationRecord {
             attribute_name: attribute_name,
             attribute_namespace: attribute_namespace,
             old_value: old_value,
+            added_nodes: MutNullableJS::new(added_nodes),
+            removed_nodes: MutNullableJS::new(removed_nodes),
+            next_sibling: next_sibling.map(JS::from_ref),
+            prev_sibling: prev_sibling.map(JS::from_ref),
         }
     }
 }
@@ -80,24 +113,28 @@ impl MutationRecordMethods for MutationRecord {
 
     // https://dom.spec.whatwg.org/#dom-mutationrecord-addednodes
     fn AddedNodes(&self) -> Root<NodeList> {
-        let window = window_from_node(&*self.target);
-        NodeList::empty(&window)
+        self.added_nodes.or_init(|| {
+            let window = window_from_node(&*self.target);
+            NodeList::empty(&window)
+        })
     }
 
     // https://dom.spec.whatwg.org/#dom-mutationrecord-removednodes
     fn RemovedNodes(&self) -> Root<NodeList> {
-        let window = window_from_node(&*self.target);
-        NodeList::empty(&window)
+        self.removed_nodes.or_init(|| {
+            let window = window_from_node(&*self.target);
+            NodeList::empty(&window)
+        })
     }
 
     // https://dom.spec.whatwg.org/#dom-mutationrecord-previoussibling
     fn GetPreviousSibling(&self) -> Option<Root<Node>> {
-        None
+        self.prev_sibling.as_ref().map(|node| Root::from_ref(&**node))
     }
 
     // https://dom.spec.whatwg.org/#dom-mutationrecord-previoussibling
     fn GetNextSibling(&self) -> Option<Root<Node>> {
-        None
+        self.next_sibling.as_ref().map(|node| Root::from_ref(&**node))
     }
 
 }
