@@ -12,9 +12,7 @@ use restyle_hints::{HintComputationContext, RestyleReplacements, RestyleHint};
 use rule_tree::StrongRuleNode;
 use selector_parser::{EAGER_PSEUDO_COUNT, PseudoElement, RestyleDamage};
 use shared_lock::StylesheetGuards;
-#[cfg(feature = "servo")] use std::collections::HashMap;
 use std::fmt;
-#[cfg(feature = "servo")] use std::hash::BuildHasherDefault;
 use stylearc::Arc;
 use traversal::TraversalFlags;
 
@@ -145,14 +143,6 @@ impl EagerPseudoStyles {
     }
 }
 
-/// A cache of precomputed and lazy pseudo-elements, used by servo. This isn't
-/// a very efficient design, but is the result of servo having previously used
-/// the eager pseudo map (when it was a map) for this cache.
-#[cfg(feature = "servo")]
-type PseudoElementCache = HashMap<PseudoElement, ComputedStyle, BuildHasherDefault<::fnv::FnvHasher>>;
-#[cfg(feature = "gecko")]
-type PseudoElementCache = ();
-
 /// The styles associated with a node, including the styles for any
 /// pseudo-elements.
 #[derive(Clone, Debug)]
@@ -161,8 +151,6 @@ pub struct ElementStyles {
     pub primary: ComputedStyle,
     /// A list of the styles for the element's eagerly-cascaded pseudo-elements.
     pub pseudos: EagerPseudoStyles,
-    /// NB: This is an empty field for gecko.
-    pub cached_pseudos: PseudoElementCache,
 }
 
 impl ElementStyles {
@@ -171,7 +159,6 @@ impl ElementStyles {
         ElementStyles {
             primary: primary,
             pseudos: EagerPseudoStyles(None),
-            cached_pseudos: PseudoElementCache::default(),
         }
     }
 
