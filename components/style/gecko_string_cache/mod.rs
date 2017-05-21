@@ -10,7 +10,7 @@ use gecko_bindings::bindings::Gecko_AddRefAtom;
 use gecko_bindings::bindings::Gecko_Atomize;
 use gecko_bindings::bindings::Gecko_Atomize16;
 use gecko_bindings::bindings::Gecko_ReleaseAtom;
-use gecko_bindings::structs::{already_AddRefed, nsIAtom};
+use gecko_bindings::structs::nsIAtom;
 use nsstring::nsAString;
 use precomputed_hash::PrecomputedHash;
 use std::ascii::AsciiExt;
@@ -219,6 +219,24 @@ impl Atom {
         atom
     }
 
+    /// Creates an atom from a dynamic atom pointer that has already had AddRef
+    /// called on it.
+    #[inline]
+    pub unsafe fn from_addrefed(ptr: *mut nsIAtom) -> Self {
+        debug_assert!(!ptr.is_null());
+        unsafe {
+            Atom(WeakAtom::new(ptr))
+        }
+    }
+
+    /// Convert this atom into an addrefed nsIAtom pointer.
+    #[inline]
+    pub fn into_addrefed(self) -> *mut nsIAtom {
+        let ptr = self.as_ptr();
+        mem::forget(self);
+        ptr
+    }
+
     /// Return whether two atoms are ASCII-case-insensitive matches
     pub fn eq_ignore_ascii_case(&self, other: &Self) -> bool {
         let a = self.as_slice();
@@ -338,21 +356,5 @@ impl From<*mut nsIAtom> for Atom {
             }
             ret
         }
-    }
-}
-
-impl From<already_AddRefed<nsIAtom>> for Atom {
-    #[inline]
-    fn from(ptr: already_AddRefed<nsIAtom>) -> Atom {
-        unsafe { Atom(WeakAtom::new(ptr.take())) }
-    }
-}
-
-impl From<Atom> for already_AddRefed<nsIAtom> {
-    #[inline]
-    fn from(atom: Atom) -> already_AddRefed<nsIAtom> {
-        let ptr = atom.as_ptr();
-        mem::forget(atom);
-        unsafe { already_AddRefed::new_unchecked(ptr) }
     }
 }

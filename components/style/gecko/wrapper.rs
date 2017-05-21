@@ -54,7 +54,6 @@ use gecko_bindings::structs::ELEMENT_HAS_SNAPSHOT;
 use gecko_bindings::structs::EffectCompositor_CascadeLevel as CascadeLevel;
 use gecko_bindings::structs::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
 use gecko_bindings::structs::NODE_IS_NATIVE_ANONYMOUS;
-use gecko_bindings::structs::already_AddRefed;
 use gecko_bindings::sugar::ownership::HasArcFFI;
 use logical_geometry::WritingMode;
 use media_queries::Device;
@@ -1075,13 +1074,13 @@ impl<'le> PresentationalHintsSynthesizer for GeckoElement<'le> {
         //
         // http://www.whatwg.org/specs/web-apps/current-work/multipage/elements.html#language
         let ptr = unsafe {
-            already_AddRefed::new(bindings::Gecko_GetXMLLangValue(self.0))
+            bindings::Gecko_GetXMLLangValue(self.0)
         };
-        if let Some(ptr) = ptr {
+        if !ptr.is_null() {
             let global_style_data = &*GLOBAL_STYLE_DATA;
 
             let pdb = PropertyDeclarationBlock::with_one(
-                PropertyDeclaration::XLang(SpecifiedLang(ptr.into())),
+                PropertyDeclaration::XLang(SpecifiedLang(unsafe { Atom::from_addrefed(ptr) })),
                 Importance::Normal
             );
             let arc = Arc::new(global_style_data.shared_lock.wrap(pdb));
