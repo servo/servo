@@ -72,7 +72,6 @@ use style::gecko_bindings::structs::Loader;
 use style::gecko_bindings::structs::RawGeckoPresContextOwned;
 use style::gecko_bindings::structs::ServoElementSnapshotTable;
 use style::gecko_bindings::structs::URLExtraData;
-use style::gecko_bindings::structs::already_AddRefed;
 use style::gecko_bindings::structs::nsCSSValueSharedList;
 use style::gecko_bindings::structs::nsCompatibility;
 use style::gecko_bindings::structs::nsresult;
@@ -1006,10 +1005,9 @@ pub extern "C" fn Servo_KeyframesRule_GetName(rule: RawServoKeyframesRuleBorrowe
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_KeyframesRule_SetName(rule: RawServoKeyframesRuleBorrowed,
-                                              name: already_AddRefed<nsIAtom>) {
+pub extern "C" fn Servo_KeyframesRule_SetName(rule: RawServoKeyframesRuleBorrowed, name: *mut nsIAtom) {
     write_locked_arc(rule, |rule: &mut KeyframesRule| {
-        rule.name = KeyframesName::Ident(CustomIdent(name.into()));
+        rule.name = KeyframesName::Ident(CustomIdent(unsafe { Atom::from_addrefed(name) }));
     })
 }
 
