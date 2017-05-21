@@ -2769,19 +2769,18 @@ fn static_assert() {
     pub fn copy_${shorthand}_${name}_from(&mut self, other: &Self) {
         use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
 
+        let count = other.gecko.${image_layers_field}.${field_name}Count;
         unsafe {
             Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field},
-                                          other.gecko.${image_layers_field}.mLayers.len(),
+                                          count as usize,
                                           LayerType::${shorthand.title()});
         }
         for (layer, other) in self.gecko.${image_layers_field}.mLayers.iter_mut()
                                   .zip(other.gecko.${image_layers_field}.mLayers.iter())
-                                  .take(other.gecko.${image_layers_field}
-                                                   .${field_name}Count as usize) {
+                                  .take(count as usize) {
             layer.${field_name} = other.${field_name};
         }
-        self.gecko.${image_layers_field}.${field_name}Count =
-            other.gecko.${image_layers_field}.${field_name}Count;
+        self.gecko.${image_layers_field}.${field_name}Count = count;
     }
 
 
@@ -2874,23 +2873,21 @@ fn static_assert() {
     pub fn copy_${shorthand}_position_${orientation}_from(&mut self, other: &Self) {
         use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
 
-        self.gecko.${image_layers_field}.mPosition${orientation.upper()}Count
-            = cmp::min(1, other.gecko.${image_layers_field}.mPosition${orientation.upper()}Count);
-        self.gecko.${image_layers_field}.mLayers.mFirstElement.mPosition =
-            other.gecko.${image_layers_field}.mLayers.mFirstElement.mPosition;
+        let count = other.gecko.${image_layers_field}.mPosition${orientation.upper()}Count;
+
         unsafe {
             Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field},
-                                          other.gecko.${image_layers_field}.mLayers.len(),
+                                          count as usize,
                                           LayerType::${shorthand.capitalize()});
         }
 
         for (layer, other) in self.gecko.${image_layers_field}.mLayers.iter_mut()
-                                  .zip(other.gecko.${image_layers_field}.mLayers.iter()) {
+                                  .zip(other.gecko.${image_layers_field}.mLayers.iter())
+                                  .take(count as usize) {
             layer.mPosition.m${orientation.upper()}Position
                 = other.mPosition.m${orientation.upper()}Position;
         }
-        self.gecko.${image_layers_field}.mPosition${orientation.upper()}Count
-               = other.gecko.${image_layers_field}.mPosition${orientation.upper()}Count;
+        self.gecko.${image_layers_field}.mPosition${orientation.upper()}Count = count;
     }
 
     pub fn clone_${shorthand}_position_${orientation}(&self)
