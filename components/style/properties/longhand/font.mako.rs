@@ -1839,7 +1839,7 @@ ${helpers.single_keyword_system("font-variant-position",
                 use cssparser::serialize_string;
                 use smallvec::SmallVec;
 
-                let mut raw = SmallVec::<[u8;4]>::new();
+                let mut raw = [0u8; 4];
                 BigEndian::write_u32(&mut raw, (self.tag));
                 serialize_string(str::from_utf8(&raw).unwrap_or_default(), dest)?;
 
