@@ -49,6 +49,7 @@ use euclid::rect::Rect;
 use euclid::size::Size2D;
 use html5ever::{Prefix, LocalName, Namespace, QualName};
 use html5ever::buffer_queue::BufferQueue;
+use html5ever::tendril::IncompleteUtf8;
 use hyper::header::Headers;
 use hyper::method::Method;
 use hyper::mime::Mime;
@@ -341,7 +342,7 @@ unsafe_no_jsmanaged_fields!(BrowsingContextId, FrameType, PipelineId, TopLevelBr
 unsafe_no_jsmanaged_fields!(TimerEventId, TimerSource);
 unsafe_no_jsmanaged_fields!(TimelineMarkerType);
 unsafe_no_jsmanaged_fields!(WorkerId);
-unsafe_no_jsmanaged_fields!(BufferQueue, QuirksMode);
+unsafe_no_jsmanaged_fields!(BufferQueue, QuirksMode, IncompleteUtf8);
 unsafe_no_jsmanaged_fields!(Runtime);
 unsafe_no_jsmanaged_fields!(Headers, Method);
 unsafe_no_jsmanaged_fields!(WindowProxyHandler);

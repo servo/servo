@@ -29,11 +29,9 @@ use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
 use dom::virtualmethods::vtable_for;
 use dom_struct::dom_struct;
-use encoding::all::UTF_8;
-use encoding::types::{DecoderTrap, Encoding};
 use html5ever::{Attribute, QualName, ExpandedName};
 use html5ever::buffer_queue::BufferQueue;
-use html5ever::tendril::StrTendril;
+use html5ever::tendril::{StrTendril, ByteTendril, IncompleteUtf8};
 use html5ever::tree_builder::{NodeOrText, TreeSink, NextParserState, QuirksMode, ElementFlags};
 use hyper::header::ContentType;
 use hyper::mime::{Mime, SubLevel, TopLevel};
@@ -76,6 +74,9 @@ pub struct ServoParser {
     /// Input received from network.
     #[ignore_heap_size_of = "Defined in html5ever"]
     network_input: DOMRefCell<BufferQueue>,
+    /// Part of an UTF-8 code point spanning input chunks
+    #[ignore_heap_size_of = "Defined in html5ever"]
+    incomplete_utf8: DOMRefCell<Option<IncompleteUtf8>>,
     /// Input received from script. Used only to support document.write().
     #[ignore_heap_size_of = "Defined in html5ever"]
     script_input: DOMRefCell<BufferQueue>,
@@ -105,7 +106,7 @@ impl ServoParser {
                                       Tokenizer::Html(self::html::Tokenizer::new(document, url, None)),
                                       LastChunkState::NotReceived,
                                       ParserKind::Normal);
-        parser.parse_chunk(String::from(input));
+        parser.parse_string_chunk(String::from(input));
     }
 
     // https://html.spec.whatwg.org/multipage/#parsing-html-fragments
@@ -148,7 +149,7 @@ impl ServoParser {
                                                                                  Some(fragment_context))),
                                       LastChunkState::Received,
                                       ParserKind::Normal);
-        parser.parse_chunk(String::from(input));
+        parser.parse_string_chunk(String::from(input));
 
         // Step 14.
         let root_element = document.GetDocumentElement().expect("no document element");
@@ -164,7 +165,7 @@ impl ServoParser {
                                       ParserKind::ScriptCreated);
         document.set_current_parser(Some(&parser));
         if !type_.eq_ignore_ascii_case("text/html") {
-            parser.parse_chunk("<pre>\n".to_owned());
+            parser.parse_string_chunk("<pre>\n".to_owned());
             parser.tokenizer.borrow_mut().set_plaintext_state();
         }
     }
@@ -174,7 +175,7 @@ impl ServoParser {
                                       Tokenizer::Xml(self::xml::Tokenizer::new(document, url)),
                                       LastChunkState::NotReceived,
                                       ParserKind::Normal);
-        parser.parse_chunk(String::from(input));
+        parser.parse_string_chunk(String::from(input));
     }
 
     pub fn script_nesting_level(&self) -> usize {
@@ -309,6 +310,7 @@ impl ServoParser {
         ServoParser {
             reflector: Reflector::new(),
             document: JS::from_ref(document),
+            incomplete_utf8: DOMRefCell::new(None),
             network_input: DOMRefCell::new(BufferQueue::new()),
             script_input: DOMRefCell::new(BufferQueue::new()),
             tokenizer: DOMRefCell::new(tokenizer),
@@ -331,7 +333,28 @@ impl ServoParser {
                            ServoParserBinding::Wrap)
     }
 
-    fn push_input_chunk(&self, chunk: String) {
+    fn push_bytes_input_chunk(&self, chunk: Vec<u8>) {
+        let mut chunk = ByteTendril::from(&*chunk);
+        let mut network_input = self.network_input.borrow_mut();
+        let mut incomplete_utf8 = self.incomplete_utf8.borrow_mut();
+
+        if let Some(mut incomplete) = incomplete_utf8.take() {
+            let result = incomplete.try_complete(chunk, |s| network_input.push_back(s));
+            match result {
+                Err(()) => {
+                    *incomplete_utf8 = Some(incomplete);
+                    return
+                }
+                Ok(remaining) => {
+                    chunk = remaining
+                }
+            }
+        }
+
+        *incomplete_utf8 = chunk.decode_utf8_lossy(|s| network_input.push_back(s));
+    }
+
+    fn push_string_input_chunk(&self, chunk: String) {
         self.network_input.borrow_mut().push_back(chunk.into());
     }
 
@@ -354,6 +377,11 @@ impl ServoParser {
         // This parser will continue to parse while there is either pending input or
         // the parser remains unsuspended.
 
+        if self.last_chunk_received.get() {
+            if let Some(_) = self.incomplete_utf8.borrow_mut().take() {
+                self.network_input.borrow_mut().push_back(StrTendril::from("\u{FFFD}"))
+            }
+        }
         self.tokenize(|tokenizer| tokenizer.feed(&mut *self.network_input.borrow_mut()));
 
         if self.suspended.get() {
@@ -367,9 +395,17 @@ impl ServoParser {
         }
     }
 
-    fn parse_chunk(&self, input: String) {
+    fn parse_string_chunk(&self, input: String) {
         self.document.set_current_parser(Some(self));
-        self.push_input_chunk(input);
+        self.push_string_input_chunk(input);
+        if !self.suspended.get() {
+            self.parse_sync();
+        }
+    }
+
+    fn parse_bytes_chunk(&self, input: Vec<u8>) {
+        self.document.set_current_parser(Some(self));
+        self.push_bytes_input_chunk(input);
         if !self.suspended.get() {
             self.parse_sync();
         }
@@ -407,6 +443,7 @@ impl ServoParser {
         assert!(self.last_chunk_received.get());
         assert!(self.script_input.borrow().is_empty());
         assert!(self.network_input.borrow().is_empty());
+        assert!(self.incomplete_utf8.borrow().is_none());
 
         // Step 1.
         self.document.set_ready_state(DocumentReadyState::Interactive);
@@ -558,7 +595,7 @@ impl FetchResponseListener for ParserContext {
             Some(ContentType(Mime(TopLevel::Image, _, _))) => {
                 self.is_synthesized_document = true;
                 let page = "<html><body></body></html>".into();
-                parser.push_input_chunk(page);
+                parser.push_string_input_chunk(page);
                 parser.parse_sync();
 
                 let doc = &parser.document;
@@ -571,7 +608,7 @@ impl FetchResponseListener for ParserContext {
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
                 // https://html.spec.whatwg.org/multipage/#read-text
                 let page = "<pre>\n".into();
-                parser.push_input_chunk(page);
+                parser.push_string_input_chunk(page);
                 parser.parse_sync();
                 parser.tokenizer.borrow_mut().set_plaintext_state();
             },
@@ -582,7 +619,7 @@ impl FetchResponseListener for ParserContext {
                     let page_bytes = read_resource_file("badcert.html").unwrap();
                     let page = String::from_utf8(page_bytes).unwrap();
                     let page = page.replace("${reason}", &reason);
-                    parser.push_input_chunk(page);
+                    parser.push_string_input_chunk(page);
                     parser.parse_sync();
                 }
                 if let Some(reason) = network_error {
@@ -590,7 +627,7 @@ impl FetchResponseListener for ParserContext {
                     let page_bytes = read_resource_file("neterror.html").unwrap();
                     let page = String::from_utf8(page_bytes).unwrap();
                     let page = page.replace("${reason}", &reason);
-                    parser.push_input_chunk(page);
+                    parser.push_string_input_chunk(page);
                     parser.parse_sync();
                 }
             },
@@ -606,7 +643,7 @@ impl FetchResponseListener for ParserContext {
                                    toplevel.as_str(),
                                    sublevel.as_str());
                 self.is_synthesized_document = true;
-                parser.push_input_chunk(page);
+                parser.push_string_input_chunk(page);
                 parser.parse_sync();
             },
             None => {
@@ -620,8 +657,6 @@ impl FetchResponseListener for ParserContext {
         if self.is_synthesized_document {
             return;
         }
-        // FIXME: use Vec<u8> (html5ever #34)
-        let data = UTF_8.decode(&payload, DecoderTrap::Replace).unwrap();
         let parser = match self.parser.as_ref() {
             Some(parser) => parser.root(),
             None => return,
@@ -629,7 +664,7 @@ impl FetchResponseListener for ParserContext {
         if parser.aborted.get() {
             return;
         }
-        parser.parse_chunk(data);
+        parser.parse_bytes_chunk(payload);
     }
 
     fn process_response_eof(&mut self, status: Result<(), NetworkError>) {
