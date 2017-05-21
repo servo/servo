@@ -684,7 +684,7 @@ impl StrongRuleNode {
         let mut last = None;
         // TODO(emilio): We could avoid all the refcount churn here.
         for child in self.get().iter_children() {
-            if child .get().level == level &&
+            if child.get().level == level &&
                 child.get().source.as_ref().unwrap().ptr_equals(&source) {
                 return child;
             }
