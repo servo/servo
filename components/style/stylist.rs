@@ -22,7 +22,7 @@ use properties::INHERIT_ALL;
 use properties::PropertyDeclarationBlock;
 use restyle_hints::{HintComputationContext, DependencySet, RestyleHint};
 use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
-use selector_map::SelectorMap;
+use selector_map::{SelectorMap, SelectorMapEntry};
 use selector_parser::{SelectorImpl, PseudoElement};
 use selectors::attr::NamespaceConstraint;
 use selectors::bloom::BloomFilter;
@@ -33,7 +33,6 @@ use selectors::visitor::SelectorVisitor;
 use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use sink::Push;
 use smallvec::{SmallVec, VecLike};
-use std::borrow::Borrow;
 #[cfg(feature = "servo")]
 use std::marker::PhantomData;
 use style_traits::viewport::ViewportConstraints;
@@ -1252,8 +1251,8 @@ pub struct Rule {
     pub source_order: usize,
 }
 
-impl Borrow<SelectorInner<SelectorImpl>> for Rule {
-    fn borrow(&self) -> &SelectorInner<SelectorImpl> {
+impl SelectorMapEntry for Rule {
+    fn selector(&self) -> &SelectorInner<SelectorImpl> {
         &self.selector.inner
     }
 }

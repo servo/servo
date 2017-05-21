@@ -16,7 +16,7 @@ use element_state::*;
 use gecko_bindings::structs::nsRestyleHint;
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
-use selector_map::SelectorMap;
+use selector_map::{SelectorMap, SelectorMapEntry};
 use selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl, Snapshot, SnapshotMap, AttrValue};
 use selectors::Element;
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint};
@@ -25,7 +25,6 @@ use selectors::matching::matches_selector;
 use selectors::parser::{Combinator, Component, Selector, SelectorInner, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
 use smallvec::SmallVec;
-use std::borrow::Borrow;
 use std::cell::Cell;
 use std::clone::Clone;
 use std::cmp;
@@ -759,8 +758,8 @@ pub struct Dependency {
     pub sensitivities: Sensitivities,
 }
 
-impl Borrow<SelectorInner<SelectorImpl>> for Dependency {
-    fn borrow(&self) -> &SelectorInner<SelectorImpl> {
+impl SelectorMapEntry for Dependency {
+    fn selector(&self) -> &SelectorInner<SelectorImpl> {
         &self.selector
     }
 }

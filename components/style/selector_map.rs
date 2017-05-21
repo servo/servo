@@ -20,6 +20,18 @@ use std::collections::HashMap;
 use std::hash::Hash;
 use stylist::{ApplicableDeclarationBlock, Rule};
 
+/// A trait to abstract over a given selector map entry.
+pub trait SelectorMapEntry : Sized + Clone {
+    /// Get the selector we should use to index in the selector map.
+    fn selector(&self) -> &SelectorInner<SelectorImpl>;
+}
+
+impl SelectorMapEntry for SelectorInner<SelectorImpl> {
+    fn selector(&self) -> &SelectorInner<SelectorImpl> {
+        self
+    }
+}
+
 /// Map element data to selector-providing objects for which the last simple
 /// selector starts with them.
 ///
@@ -44,7 +56,7 @@ use stylist::{ApplicableDeclarationBlock, Rule};
 /// TODO: Tune the initial capacity of the HashMap
 #[derive(Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct SelectorMap<T: Clone + Borrow<SelectorInner<SelectorImpl>>> {
+pub struct SelectorMap<T: SelectorMapEntry> {
     /// A hash from an ID to rules which contain that ID selector.
     pub id_hash: FnvHashMap<Atom, Vec<T>>,
     /// A hash from a class name to rules which contain that class selector.
@@ -62,7 +74,7 @@ fn sort_by_key<T, F: Fn(&T) -> K, K: Ord>(v: &mut [T], f: F) {
     sort_by(v, |a, b| f(a).cmp(&f(b)))
 }
 
-impl<T> SelectorMap<T> where T: Clone + Borrow<SelectorInner<SelectorImpl>> {
+impl<T: SelectorMapEntry> SelectorMap<T> {
     /// Trivially constructs an empty `SelectorMap`.
     pub fn new() -> Self {
         SelectorMap {
@@ -217,22 +229,22 @@ impl SelectorMap<Rule> {
     }
 }
 
-impl<T> SelectorMap<T> where T: Clone + Borrow<SelectorInner<SelectorImpl>> {
+impl<T: SelectorMapEntry> SelectorMap<T> {
     /// Inserts into the correct hash, trying id, class, and localname.
     pub fn insert(&mut self, entry: T) {
         self.count += 1;
 
-        if let Some(id_name) = get_id_name(entry.borrow()) {
+        if let Some(id_name) = get_id_name(entry.selector()) {
             find_push(&mut self.id_hash, id_name, entry);
             return;
         }
 
-        if let Some(class_name) = get_class_name(entry.borrow()) {
+        if let Some(class_name) = get_class_name(entry.selector()) {
             find_push(&mut self.class_hash, class_name, entry);
             return;
         }
 
-        if let Some(LocalNameSelector { name, lower_name }) = get_local_name(entry.borrow()) {
+        if let Some(LocalNameSelector { name, lower_name }) = get_local_name(entry.selector()) {
             // If the local name in the selector isn't lowercase, insert it into
             // the rule hash twice. This means that, during lookup, we can always
             // find the rules based on the local name of the element, regardless
