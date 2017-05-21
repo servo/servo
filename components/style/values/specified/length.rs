@@ -620,7 +620,8 @@ impl Length {
             Token::Dimension(ref value, ref unit) if num_context.is_ok(value.value) =>
                 Length::parse_dimension(context, value.value, unit),
             Token::Number(ref value) if num_context.is_ok(value.value) => {
-                if value.value != 0. && !context.parsing_mode.allows_unitless_lengths() &&
+                if value.value != 0. &&
+                   !context.parsing_mode.allows_unitless_lengths() &&
                    !allow_quirks.allowed(context.quirks_mode) {
                     return Err(())
                 }
@@ -805,9 +806,14 @@ impl LengthOrPercentage {
                 NoCalcLength::parse_dimension(context, value.value, unit).map(LengthOrPercentage::Length),
             Token::Percentage(ref value) if num_context.is_ok(value.unit_value) =>
                 Ok(LengthOrPercentage::Percentage(Percentage(value.unit_value))),
-            Token::Number(value) if value.value == 0. ||
-                                    (num_context.is_ok(value.value) && allow_quirks.allowed(context.quirks_mode)) =>
-                Ok(LengthOrPercentage::Length(NoCalcLength::from_px(value.value))),
+            Token::Number(value) if num_context.is_ok(value.value) => {
+                if value.value != 0. &&
+                   !context.parsing_mode.allows_unitless_lengths() &&
+                   !allow_quirks.allowed(context.quirks_mode) {
+                    return Err(())
+                }
+                Ok(LengthOrPercentage::Length(NoCalcLength::from_px(value.value)))
+            }
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 let calc = try!(input.parse_nested_block(|i| {
                     CalcNode::parse_length_or_percentage(context, i, num_context)
@@ -942,7 +948,8 @@ impl LengthOrPercentageOrAuto {
             Token::Percentage(ref value) if num_context.is_ok(value.unit_value) =>
                 Ok(LengthOrPercentageOrAuto::Percentage(Percentage(value.unit_value))),
             Token::Number(ref value) if num_context.is_ok(value.value) => {
-                if value.value != 0. && !context.parsing_mode.allows_unitless_lengths() &&
+                if value.value != 0. &&
+                   !context.parsing_mode.allows_unitless_lengths() &&
                    !allow_quirks.allowed(context.quirks_mode) {
                     return Err(())
                 }
