@@ -30,7 +30,7 @@ use dom::headers::is_forbidden_header_name;
 use dom::htmlformelement::{encode_multipart_form_data, generate_boundary};
 use dom::node::Node;
 use dom::progressevent::ProgressEvent;
-use dom::servoparser::ServoParser;
+use dom::servoparser::{ParsingMode, ServoParser};
 use dom::urlsearchparams::URLSearchParams;
 use dom::window::Window;
 use dom::workerglobalscope::WorkerGlobalScope;
@@ -1191,7 +1191,8 @@ impl XMLHttpRequest {
         ServoParser::parse_html_document(
             &document,
             DOMString::from(decoded),
-            wr.get_url());
+            wr.get_url(),
+            ParsingMode::Async);
         document
     }
 

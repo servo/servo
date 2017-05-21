@@ -17,7 +17,7 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
 use dom::document::DocumentSource;
-use dom::servoparser::ServoParser;
+use dom::servoparser::{ParsingMode, ServoParser};
 use dom::window::Window;
 use dom_struct::dom_struct;
 use script_traits::DocumentActivity;
@@ -71,7 +71,7 @@ impl DOMParserMethods for DOMParser {
                                              loader,
                                              None,
                                              None);
-                ServoParser::parse_html_document(&document, s, url);
+                ServoParser::parse_html_document(&document, s, url, ParsingMode::Async);
                 document.set_ready_state(DocumentReadyState::Complete);
                 Ok(document)
             }
