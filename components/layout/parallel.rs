@@ -17,11 +17,16 @@ use servo_config::opts;
 use std::mem;
 use std::sync::atomic::{AtomicIsize, Ordering};
 use style::dom::UnsafeNode;
-use style::parallel::CHUNK_SIZE;
 use traversal::{AssignISizes, BubbleISizes};
 use traversal::AssignBSizes;
 
 pub use style::parallel::traverse_dom;
+
+/// Traversal chunk size.
+///
+/// FIXME(bholley): This is all likely very inefficient and should probably be
+/// reworked to mirror the style system's parallel.rs.
+pub const CHUNK_SIZE: usize = 64;
 
 #[allow(dead_code)]
 fn static_assertion(node: UnsafeNode) {
