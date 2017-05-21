@@ -562,7 +562,7 @@ impl RuleNode {
 
         // Store the `next` pointer as appropriate, either in the previous
         // sibling, or in the parent otherwise.
-        if prev_sibling == ptr::null_mut() {
+        if prev_sibling.is_null() {
             let parent = self.parent.as_ref().unwrap();
             parent.get().first_child.store(next_sibling, Ordering::Relaxed);
         } else {
@@ -572,7 +572,7 @@ impl RuleNode {
 
         // Store the previous sibling pointer in the next sibling if present,
         // otherwise we're done.
-        if next_sibling != ptr::null_mut() {
+        if !next_sibling.is_null() {
             let next = &*next_sibling;
             next.prev_sibling.store(prev_sibling, Ordering::Relaxed);
         }
@@ -713,7 +713,7 @@ impl StrongRuleNode {
                                                       new_ptr,
                                                       Ordering::AcqRel);
 
-                if existing == ptr::null_mut() {
+                if existing.is_null() {
                     // Now we know we're in the correct position in the child
                     // list, we can set the back pointer, knowing that this will
                     // only be accessed again in a single-threaded manner when
@@ -725,7 +725,8 @@ impl StrongRuleNode {
                     return StrongRuleNode::new(node);
                 }
 
-                // Existing is not null: some thread insert a child node since we accessed `last`.
+                // Existing is not null: some thread inserted a child node since
+                // we accessed `last`.
                 strong = WeakRuleNode { ptr: existing }.upgrade();
 
                 if strong.get().source.as_ref().unwrap().ptr_equals(&source) {
@@ -1206,7 +1207,7 @@ impl Drop for StrongRuleNode {
                                                   Ordering::Acquire,
                                                   Ordering::Relaxed) {
                 Ok(..) => {
-                    if old_head != ptr::null_mut() {
+                    if !old_head.is_null() {
                         break;
                     }
                 },
