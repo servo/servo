@@ -765,38 +765,6 @@ impl Borrow<SelectorInner<SelectorImpl>> for Dependency {
     }
 }
 
-/// A similar version of the above, but for pseudo-elements, which only care
-/// about the full selector, and need it in order to properly track
-/// pseudo-element selector state.
-///
-/// NOTE(emilio): We could add a `hint` and `sensitivities` field to the
-/// `PseudoElementDependency` and stop posting `RESTYLE_DESCENDANTS`s hints if
-/// we visited all the pseudo-elements of an element unconditionally as part of
-/// the traversal.
-///
-/// That would allow us to stop posting `RESTYLE_DESCENDANTS` hints for dumb
-/// selectors, and storing pseudo dependencies in the element dependency map.
-///
-/// That would allow us to avoid restyling the element itself when a selector
-/// has only changed a pseudo-element's style, too.
-///
-/// There's no good way to do that right now though, and I think for the
-/// foreseeable future we may just want to optimize that `RESTYLE_DESCENDANTS`
-/// to become a `RESTYLE_PSEUDO_ELEMENTS` or something like that, in order to at
-/// least not restyle the whole subtree.
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-struct PseudoElementDependency {
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "defined in selectors")]
-    selector: Selector<SelectorImpl>,
-}
-
-impl Borrow<SelectorInner<SelectorImpl>> for PseudoElementDependency {
-    fn borrow(&self) -> &SelectorInner<SelectorImpl> {
-        &self.selector.inner
-    }
-}
-
 /// The following visitor visits all the simple selectors for a given complex
 /// selector, taking care of :not and :any combinators, collecting whether any
 /// of them is sensitive to attribute or state changes.
