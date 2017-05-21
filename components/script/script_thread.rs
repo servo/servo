@@ -50,7 +50,7 @@ use dom::mutationobserver::MutationObserver;
 use dom::node::{Node, NodeDamage, window_from_node, from_untrusted_node_address};
 use dom::serviceworker::TrustedServiceWorkerAddress;
 use dom::serviceworkerregistration::ServiceWorkerRegistration;
-use dom::servoparser::{ParserContext, ServoParser};
+use dom::servoparser::{ParserContext, ParsingMode, ServoParser};
 use dom::transitionevent::TransitionEvent;
 use dom::uievent::UIEvent;
 use dom::window::{ReflowReason, Window};
@@ -2019,7 +2019,7 @@ impl ScriptThread {
         if is_html_document == IsHTMLDocument::NonHTMLDocument {
             ServoParser::parse_xml_document(&document, parse_input, final_url);
         } else {
-            ServoParser::parse_html_document(&document, parse_input, final_url);
+            ServoParser::parse_html_document(&document, parse_input, final_url, ParsingMode::Async);
         }
 
         if incomplete.activity == DocumentActivity::FullyActive {
