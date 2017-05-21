@@ -8,8 +8,8 @@ use cssparser::{Parser, Token, serialize_identifier};
 use parser::{Parse, ParserContext};
 use std::{fmt, mem, usize};
 use std::ascii::AsciiExt;
-use style_traits::ToCss;
-use values::{CSSFloat, CustomIdent, Either, HasViewportPercentage};
+use style_traits::{HasViewportPercentage, ToCss};
+use values::{CSSFloat, CustomIdent, Either};
 use values::computed::{self, ComputedValueAsSpecified, Context, ToComputedValue};
 use values::specified::{Integer, LengthOrPercentage};
 

@@ -550,8 +550,8 @@ ${helpers.single_keyword_system("font-variant-caps",
     use properties::longhands::system_font::SystemFont;
     use properties::style_structs::Font;
     use std::fmt;
-    use style_traits::ToCss;
-    use values::{FONT_MEDIUM_PX, HasViewportPercentage};
+    use style_traits::{HasViewportPercentage, ToCss};
+    use values::FONT_MEDIUM_PX;
     use values::specified::{AllowQuirks, FontRelativeLength, LengthOrPercentage};
     use values::specified::{NoCalcLength, Percentage};
     use values::specified::length::FontBaseSize;

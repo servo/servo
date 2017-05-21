@@ -10,10 +10,8 @@ use cssparser::Parser;
 use euclid::size::Size2D;
 use parser::{Parse, ParserContext};
 use std::fmt;
-use style_traits::ToCss;
+use style_traits::{HasViewportPercentage, ToCss};
 use super::CustomIdent;
-use super::HasViewportPercentage;
-use super::computed::{Context, ToComputedValue};
 
 pub use self::basic_shape::serialize_radius_values;
 
@@ -21,9 +19,9 @@ pub mod basic_shape;
 pub mod image;
 pub mod position;
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-/// A type for representing CSS `widthh` and `height` values.
+/// A type for representing CSS `width` and `height` values.
 pub struct BorderRadiusSize<L>(pub Size2D<L>);
 
 impl<L> HasViewportPercentage for BorderRadiusSize<L> {
@@ -59,24 +57,6 @@ impl<L: ToCss> ToCss for BorderRadiusSize<L> {
         self.0.width.to_css(dest)?;
         dest.write_str(" ")?;
         self.0.height.to_css(dest)
-    }
-}
-
-impl<L: ToComputedValue> ToComputedValue for BorderRadiusSize<L> {
-    type ComputedValue = BorderRadiusSize<L::ComputedValue>;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        let w = self.0.width.to_computed_value(context);
-        let h = self.0.height.to_computed_value(context);
-        BorderRadiusSize(Size2D::new(w, h))
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        let w = ToComputedValue::from_computed_value(&computed.0.width);
-        let h = ToComputedValue::from_computed_value(&computed.0.height);
-        BorderRadiusSize(Size2D::new(w, h))
     }
 }
 

@@ -10,8 +10,7 @@
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::fmt;
-use style_traits::ToCss;
-use values::HasViewportPercentage;
+use style_traits::{HasViewportPercentage, ToCss};
 use values::computed::{CalcLengthOrPercentage, LengthOrPercentage as ComputedLengthOrPercentage};
 use values::computed::{Context, ToComputedValue};
 use values::generics::position::Position as GenericPosition;

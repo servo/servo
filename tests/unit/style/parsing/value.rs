@@ -8,8 +8,8 @@ use media_queries::CSSErrorReporterTest;
 use style::context::QuirksMode;
 use style::parser::{PARSING_MODE_ALLOW_ALL_NUMERIC_VALUES, ParserContext};
 use style::stylesheets::{CssRuleType, Origin};
-use style::values::HasViewportPercentage;
 use style::values::specified::{AbsoluteLength, NoCalcLength, Number, ViewportPercentageLength};
+use style_traits::HasViewportPercentage;
 
 #[test]
 fn length_has_viewport_percentage() {

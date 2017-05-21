@@ -9,15 +9,14 @@
 use Atom;
 use cssparser::serialize_identifier;
 use std::fmt;
-use style_traits::ToCss;
-use values::HasViewportPercentage;
-use values::computed::{Context, ToComputedValue};
+use style_traits::{HasViewportPercentage, ToCss};
+use values::computed::ComputedValueAsSpecified;
 use values::specified::url::SpecifiedUrl;
 
 /// An [image].
 ///
 /// [image]: https://drafts.csswg.org/css-images/#image-values
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Image<Gradient, ImageRect> {
     /// A `<url()>` image.
@@ -32,7 +31,7 @@ pub enum Image<Gradient, ImageRect> {
 
 /// A CSS gradient.
 /// https://drafts.csswg.org/css-images/#gradients
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
+#[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Gradient<LineDirection, Length, LengthOrPercentage, Position, Color> {
     /// Gradients can be linear or radial.
@@ -45,7 +44,7 @@ pub struct Gradient<LineDirection, Length, LengthOrPercentage, Position, Color> 
     pub compat_mode: CompatMode,
 }
 
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// Whether we used the modern notation or the compatibility `-webkit` prefix.
 pub enum CompatMode {
@@ -56,7 +55,7 @@ pub enum CompatMode {
 }
 
 /// A gradient kind.
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum GradientKind<LineDirection, Length, LengthOrPercentage, Position> {
     /// A linear gradient.
@@ -66,7 +65,7 @@ pub enum GradientKind<LineDirection, Length, LengthOrPercentage, Position> {
 }
 
 /// A radial gradient's ending shape.
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum EndingShape<Length, LengthOrPercentage> {
     /// A circular gradient.
@@ -76,7 +75,7 @@ pub enum EndingShape<Length, LengthOrPercentage> {
 }
 
 /// A circle shape.
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Circle<Length> {
     /// A circle radius.
@@ -86,7 +85,7 @@ pub enum Circle<Length> {
 }
 
 /// An ellipse shape.
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Ellipse<LengthOrPercentage> {
     /// An ellipse pair of radii.
@@ -105,10 +104,11 @@ define_css_keyword_enum!(ShapeExtent:
     "cover" => Cover
 );
 no_viewport_percentage!(ShapeExtent);
+impl ComputedValueAsSpecified for ShapeExtent {}
 
 /// A gradient item.
 /// https://drafts.csswg.org/css-images-4/#color-stop-syntax
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum GradientItem<Color, LengthOrPercentage> {
     /// A color stop.
@@ -119,7 +119,7 @@ pub enum GradientItem<Color, LengthOrPercentage> {
 
 /// A color stop.
 /// https://drafts.csswg.org/css-images/#typedef-color-stop-list
-#[derive(Clone, Copy, HasViewportPercentage, PartialEq)]
+#[derive(Clone, Copy, HasViewportPercentage, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct ColorStop<Color, LengthOrPercentage> {
     /// The color of this stop.
@@ -131,7 +131,7 @@ pub struct ColorStop<Color, LengthOrPercentage> {
 /// Values for `moz-image-rect`.
 ///
 /// `-moz-image-rect(<uri>, top, right, bottom, left);`
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub struct ImageRect<NumberOrPercentage> {
@@ -183,47 +183,6 @@ impl<G, R> HasViewportPercentage for Image<G, R>
         match *self {
             Image::Gradient(ref gradient) => gradient.has_viewport_percentage(),
             _ => false,
-        }
-    }
-}
-
-impl<G, R> ToComputedValue for Image<G, R>
-    where G: ToComputedValue, R: ToComputedValue,
-{
-    type ComputedValue = Image<<G as ToComputedValue>::ComputedValue,
-                               <R as ToComputedValue>::ComputedValue>;
-
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        match *self {
-            Image::Url(ref url) => {
-                Image::Url(url.clone())
-            },
-            Image::Gradient(ref gradient) => {
-                Image::Gradient(gradient.to_computed_value(context))
-            },
-            Image::Rect(ref rect) => {
-                Image::Rect(rect.to_computed_value(context))
-            },
-            Image::Element(ref selector) => {
-                Image::Element(selector.clone())
-            }
-        }
-    }
-
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        match *computed {
-            Image::Url(ref url) => {
-                Image::Url(url.clone())
-            },
-            Image::Gradient(ref gradient) => {
-                Image::Gradient(ToComputedValue::from_computed_value(gradient))
-            },
-            Image::Rect(ref rect) => {
-                Image::Rect(ToComputedValue::from_computed_value(rect))
-            },
-            Image::Element(ref selector) => {
-                Image::Element(selector.clone())
-            },
         }
     }
 }
@@ -282,80 +241,11 @@ impl<D, L, LoP, P, C> ToCss for Gradient<D, L, LoP, P, C>
     }
 }
 
-impl<D, L, LoP, P, C> ToComputedValue for Gradient<D, L, LoP, P, C>
-    where D: ToComputedValue,
-          L: ToComputedValue,
-          LoP: ToComputedValue,
-          P: ToComputedValue,
-          C: ToComputedValue,
-{
-    type ComputedValue = Gradient<<D as ToComputedValue>::ComputedValue,
-                                  <L as ToComputedValue>::ComputedValue,
-                                  <LoP as ToComputedValue>::ComputedValue,
-                                  <P as ToComputedValue>::ComputedValue,
-                                  <C as ToComputedValue>::ComputedValue>;
-
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        Gradient {
-            kind: self.kind.to_computed_value(context),
-            items: self.items.iter().map(|s| s.to_computed_value(context)).collect(),
-            repeating: self.repeating,
-            compat_mode: self.compat_mode,
-        }
-    }
-
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        Gradient {
-            kind: ToComputedValue::from_computed_value(&computed.kind),
-            items: computed.items.iter().map(ToComputedValue::from_computed_value).collect(),
-            repeating: computed.repeating,
-            compat_mode: computed.compat_mode,
-        }
-    }
-}
-
 impl<D, L, LoP, P> GradientKind<D, L, LoP, P> {
     fn label(&self) -> &str {
         match *self {
             GradientKind::Linear(..) => "linear",
             GradientKind::Radial(..) => "radial",
-        }
-    }
-}
-
-impl<D, L, LoP, P> ToComputedValue for GradientKind<D, L, LoP, P>
-    where D: ToComputedValue,
-          L: ToComputedValue,
-          LoP: ToComputedValue,
-          P: ToComputedValue,
-{
-    type ComputedValue = GradientKind<<D as ToComputedValue>::ComputedValue,
-                                      <L as ToComputedValue>::ComputedValue,
-                                      <LoP as ToComputedValue>::ComputedValue,
-                                      <P as ToComputedValue>::ComputedValue>;
-
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        match *self {
-            GradientKind::Linear(ref direction) => {
-                GradientKind::Linear(direction.to_computed_value(context))
-            },
-            GradientKind::Radial(ref shape, ref position) => {
-                GradientKind::Radial(shape.to_computed_value(context), position.to_computed_value(context))
-            },
-        }
-    }
-
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        match *computed {
-            GradientKind::Linear(ref direction) => {
-                GradientKind::Linear(ToComputedValue::from_computed_value(direction))
-            },
-            GradientKind::Radial(ref shape, ref position) => {
-                GradientKind::Radial(
-                    ToComputedValue::from_computed_value(shape),
-                    ToComputedValue::from_computed_value(position),
-                )
-            }
         }
     }
 }
@@ -398,53 +288,6 @@ impl<L, LoP> ToCss for EndingShape<L, LoP>
     }
 }
 
-impl<L, LoP> ToComputedValue for EndingShape<L, LoP>
-    where L: ToComputedValue, LoP: ToComputedValue,
-{
-    type ComputedValue = EndingShape<<L as ToComputedValue>::ComputedValue,
-                                     <LoP as ToComputedValue>::ComputedValue>;
-
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        match *self {
-            EndingShape::Circle(Circle::Radius(ref length)) => {
-                EndingShape::Circle(Circle::Radius(length.to_computed_value(context)))
-            },
-            EndingShape::Circle(Circle::Extent(extent)) => {
-                EndingShape::Circle(Circle::Extent(extent))
-            },
-            EndingShape::Ellipse(Ellipse::Radii(ref x, ref y)) => {
-                EndingShape::Ellipse(Ellipse::Radii(
-                    x.to_computed_value(context),
-                    y.to_computed_value(context),
-                ))
-            },
-            EndingShape::Ellipse(Ellipse::Extent(extent)) => {
-                EndingShape::Ellipse(Ellipse::Extent(extent))
-            },
-        }
-    }
-
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        match *computed {
-            EndingShape::Circle(Circle::Radius(ref length)) => {
-                EndingShape::Circle(Circle::Radius(ToComputedValue::from_computed_value(length)))
-            },
-            EndingShape::Circle(Circle::Extent(extent)) => {
-                EndingShape::Circle(Circle::Extent(extent))
-            },
-            EndingShape::Ellipse(Ellipse::Radii(ref x, ref y)) => {
-                EndingShape::Ellipse(Ellipse::Radii(
-                    ToComputedValue::from_computed_value(x),
-                    ToComputedValue::from_computed_value(y),
-                ))
-            },
-            EndingShape::Ellipse(Ellipse::Extent(extent)) => {
-                EndingShape::Ellipse(Ellipse::Extent(extent))
-            },
-        }
-    }
-}
-
 impl<C, L> ToCss for GradientItem<C, L>
     where C: ToCss, L: ToCss,
 {
@@ -452,35 +295,6 @@ impl<C, L> ToCss for GradientItem<C, L>
         match *self {
             GradientItem::ColorStop(ref stop) => stop.to_css(dest),
             GradientItem::InterpolationHint(ref hint) => hint.to_css(dest),
-        }
-    }
-}
-
-impl<C, L> ToComputedValue for GradientItem<C, L>
-    where C: ToComputedValue, L: ToComputedValue,
-{
-    type ComputedValue = GradientItem<<C as ToComputedValue>::ComputedValue,
-                                      <L as ToComputedValue>::ComputedValue>;
-
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        match *self {
-            GradientItem::ColorStop(ref stop) => {
-                GradientItem::ColorStop(stop.to_computed_value(context))
-            },
-            GradientItem::InterpolationHint(ref hint) => {
-                GradientItem::InterpolationHint(hint.to_computed_value(context))
-            },
-        }
-    }
-
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        match *computed {
-            GradientItem::ColorStop(ref stop) => {
-                GradientItem::ColorStop(ToComputedValue::from_computed_value(stop))
-            },
-            GradientItem::InterpolationHint(ref hint) => {
-                GradientItem::InterpolationHint(ToComputedValue::from_computed_value(hint))
-            },
         }
     }
 }
@@ -510,27 +324,6 @@ impl<C, L> ToCss for ColorStop<C, L>
     }
 }
 
-impl<C, L> ToComputedValue for ColorStop<C, L>
-    where C: ToComputedValue, L: ToComputedValue,
-{
-    type ComputedValue = ColorStop<<C as ToComputedValue>::ComputedValue,
-                                   <L as ToComputedValue>::ComputedValue>;
-
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        ColorStop {
-            color: self.color.to_computed_value(context),
-            position: self.position.as_ref().map(|p| p.to_computed_value(context)),
-        }
-    }
-
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        ColorStop {
-            color: ToComputedValue::from_computed_value(&computed.color),
-            position: computed.position.as_ref().map(ToComputedValue::from_computed_value),
-        }
-    }
-}
-
 impl<C> ToCss for ImageRect<C>
     where C: ToCss,
 {
@@ -546,31 +339,5 @@ impl<C> ToCss for ImageRect<C>
         dest.write_str(", ")?;
         self.left.to_css(dest)?;
         dest.write_str(")")
-    }
-}
-
-impl<C> ToComputedValue for ImageRect<C>
-    where C: ToComputedValue,
-{
-    type ComputedValue = ImageRect<<C as ToComputedValue>::ComputedValue>;
-
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        ImageRect {
-            url: self.url.to_computed_value(context),
-            top: self.top.to_computed_value(context),
-            right: self.right.to_computed_value(context),
-            bottom: self.bottom.to_computed_value(context),
-            left: self.left.to_computed_value(context),
-        }
-    }
-
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        ImageRect {
-            url: ToComputedValue::from_computed_value(&computed.url),
-            top: ToComputedValue::from_computed_value(&computed.top),
-            right: ToComputedValue::from_computed_value(&computed.right),
-            bottom: ToComputedValue::from_computed_value(&computed.bottom),
-            left: ToComputedValue::from_computed_value(&computed.left),
-        }
     }
 }

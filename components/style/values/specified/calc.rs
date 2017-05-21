@@ -11,9 +11,9 @@ use cssparser::{Parser, Token};
 use parser::ParserContext;
 use std::ascii::AsciiExt;
 use std::fmt;
-use style_traits::ToCss;
+use style_traits::{HasViewportPercentage, ToCss};
 use style_traits::values::specified::AllowedLengthType;
-use values::{CSSInteger, CSSFloat, HasViewportPercentage};
+use values::{CSSInteger, CSSFloat};
 use values::specified::{Angle, Time};
 use values::specified::length::{FontRelativeLength, NoCalcLength, ViewportPercentageLength};
 

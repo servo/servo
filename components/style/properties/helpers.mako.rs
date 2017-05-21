@@ -82,7 +82,7 @@
             use smallvec::SmallVec;
             use std::fmt;
             #[allow(unused_imports)]
-            use values::HasViewportPercentage;
+            use style_traits::HasViewportPercentage;
             use style_traits::ToCss;
 
             pub mod single_value {

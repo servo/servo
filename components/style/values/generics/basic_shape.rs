@@ -11,16 +11,15 @@ use parser::{Parse, ParserContext};
 use properties::shorthands::serialize_four_sides;
 use std::ascii::AsciiExt;
 use std::fmt;
-use style_traits::ToCss;
-use values::HasViewportPercentage;
-use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
+use style_traits::{HasViewportPercentage, ToCss};
+use values::computed::ComputedValueAsSpecified;
 use values::generics::BorderRadiusSize;
 use values::specified::url::SpecifiedUrl;
 
 /// A generic type used for `border-radius`, `outline-radius` and `inset()` values.
 ///
 /// https://drafts.csswg.org/css-backgrounds-3/#border-radius
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct BorderRadius<L> {
     /// The top left radius.
@@ -60,32 +59,8 @@ impl<L: ToCss + PartialEq> ToCss for BorderRadius<L> {
     }
 }
 
-impl<L: ToComputedValue> ToComputedValue for BorderRadius<L> {
-    type ComputedValue = BorderRadius<L::ComputedValue>;
-
-    #[inline]
-    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
-        BorderRadius {
-            top_left: self.top_left.to_computed_value(cx),
-            top_right: self.top_right.to_computed_value(cx),
-            bottom_right: self.bottom_right.to_computed_value(cx),
-            bottom_left: self.bottom_left.to_computed_value(cx),
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        BorderRadius {
-            top_left: ToComputedValue::from_computed_value(&computed.top_left),
-            top_right: ToComputedValue::from_computed_value(&computed.top_right),
-            bottom_right: ToComputedValue::from_computed_value(&computed.bottom_right),
-            bottom_left: ToComputedValue::from_computed_value(&computed.bottom_left),
-        }
-    }
-}
-
 /// https://drafts.csswg.org/css-shapes/#typedef-shape-radius
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub enum ShapeRadius<L> {
@@ -110,28 +85,6 @@ impl<L: ToCss> ToCss for ShapeRadius<L> {
     }
 }
 
-impl<L: ToComputedValue> ToComputedValue for ShapeRadius<L> {
-    type ComputedValue = ShapeRadius<L::ComputedValue>;
-
-    #[inline]
-    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
-        match *self {
-            ShapeRadius::Length(ref lop) => ShapeRadius::Length(lop.to_computed_value(cx)),
-            ShapeRadius::ClosestSide => ShapeRadius::ClosestSide,
-            ShapeRadius::FarthestSide => ShapeRadius::FarthestSide,
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        match *computed {
-            ShapeRadius::Length(ref lop) => ShapeRadius::Length(ToComputedValue::from_computed_value(lop)),
-            ShapeRadius::ClosestSide => ShapeRadius::ClosestSide,
-            ShapeRadius::FarthestSide => ShapeRadius::FarthestSide,
-        }
-    }
-}
-
 // https://drafts.csswg.org/css-shapes/#typedef-fill-rule
 // NOTE: Basic shapes spec says that these are the only two values, however
 // https://www.w3.org/TR/SVG/painting.html#FillRuleProperty
@@ -148,7 +101,7 @@ impl Default for FillRule {
     fn default() -> Self { FillRule::NonZero }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// A generic type for representing the `polygon()` function
 ///
@@ -212,32 +165,7 @@ impl<L: ToCss> ToCss for Polygon<L> {
     }
 }
 
-impl<L: ToComputedValue> ToComputedValue for Polygon<L> {
-    type ComputedValue = Polygon<L::ComputedValue>;
-
-    #[inline]
-    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
-        Polygon {
-            fill: self.fill.to_computed_value(cx),
-            coordinates: self.coordinates.iter().map(|c| {
-                (c.0.to_computed_value(cx), c.1.to_computed_value(cx))
-            }).collect(),
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        Polygon {
-            fill: ToComputedValue::from_computed_value(&computed.fill),
-            coordinates: computed.coordinates.iter().map(|c| {
-                (ToComputedValue::from_computed_value(&c.0),
-                 ToComputedValue::from_computed_value(&c.1))
-            }).collect(),
-        }
-    }
-}
-
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// https://drafts.csswg.org/css-shapes/#funcdef-inset
 #[allow(missing_docs)]
@@ -269,37 +197,11 @@ impl<L: ToCss + PartialEq> ToCss for InsetRect<L> {
     }
 }
 
-impl<L: ToComputedValue> ToComputedValue for InsetRect<L> {
-    type ComputedValue = InsetRect<L::ComputedValue>;
-
-    #[inline]
-    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
-        InsetRect {
-            top: self.top.to_computed_value(cx),
-            right: self.right.to_computed_value(cx),
-            bottom: self.bottom.to_computed_value(cx),
-            left: self.left.to_computed_value(cx),
-            round: self.round.as_ref().map(|r| r.to_computed_value(cx)),
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        InsetRect {
-            top: ToComputedValue::from_computed_value(&computed.top),
-            right: ToComputedValue::from_computed_value(&computed.right),
-            bottom: ToComputedValue::from_computed_value(&computed.bottom),
-            left: ToComputedValue::from_computed_value(&computed.left),
-            round: computed.round.as_ref().map(|r| ToComputedValue::from_computed_value(r)),
-        }
-    }
-}
-
 /// A shape source, for some reference box
 ///
 /// `clip-path` uses ShapeSource<BasicShape, GeometryBox>,
 /// `shape-outside` uses ShapeSource<BasicShape, ShapeBox>
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub enum ShapeSource<B, T> {
@@ -363,35 +265,5 @@ impl<B: Parse, T: Parse> Parse for ShapeSource<B, T> {
         }
 
         ref_box.map(|v| ShapeSource::Box(v)).ok_or(())
-    }
-}
-
-impl<B: ToComputedValue, T: ToComputedValue> ToComputedValue for ShapeSource<B, T> {
-    type ComputedValue = ShapeSource<B::ComputedValue, T::ComputedValue>;
-
-    #[inline]
-    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
-        match *self {
-            ShapeSource::Url(ref url) => ShapeSource::Url(url.to_computed_value(cx)),
-            ShapeSource::Shape(ref shape, ref ref_box) => {
-                ShapeSource::Shape(shape.to_computed_value(cx),
-                                   ref_box.as_ref().map(|ref val| val.to_computed_value(cx)))
-            },
-            ShapeSource::Box(ref ref_box) => ShapeSource::Box(ref_box.to_computed_value(cx)),
-            ShapeSource::None => ShapeSource::None,
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        match *computed {
-            ShapeSource::Url(ref url) => ShapeSource::Url(SpecifiedUrl::from_computed_value(url)),
-            ShapeSource::Shape(ref shape, ref ref_box) => {
-                ShapeSource::Shape(ToComputedValue::from_computed_value(shape),
-                                    ref_box.as_ref().map(|val| ToComputedValue::from_computed_value(val)))
-            },
-            ShapeSource::Box(ref ref_box) => ShapeSource::Box(ToComputedValue::from_computed_value(ref_box)),
-            ShapeSource::None => ShapeSource::None,
-        }
     }
 }

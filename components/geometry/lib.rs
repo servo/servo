@@ -10,7 +10,6 @@ use app_units::{Au, MAX_AU, MIN_AU};
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
-use std::i32;
 
 // Units for use with euclid::length and euclid::scale_factor.
 

@@ -14,7 +14,7 @@ use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
-use style_traits::ToCss;
+use style_traits::{HasViewportPercentage, ToCss};
 use stylearc::Arc;
 
 /// A custom property name is just an `Atom`.
@@ -49,7 +49,7 @@ pub struct SpecifiedValue {
     references: HashSet<Name>,
 }
 
-impl ::values::HasViewportPercentage for SpecifiedValue {
+impl HasViewportPercentage for SpecifiedValue {
     fn has_viewport_percentage(&self) -> bool {
         panic!("has_viewport_percentage called before resolving!");
     }

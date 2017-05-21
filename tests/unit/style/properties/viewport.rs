@@ -5,8 +5,8 @@
 use app_units::Au;
 use style::properties::PropertyDeclaration;
 use style::properties::longhands::border_top_width;
-use style::values::HasViewportPercentage;
 use style::values::specified::{AbsoluteLength, Length, NoCalcLength, ViewportPercentageLength};
+use style_traits::HasViewportPercentage;
 
 #[test]
 fn has_viewport_percentage_for_specified_value() {

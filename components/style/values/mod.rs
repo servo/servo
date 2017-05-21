@@ -16,7 +16,6 @@ use std::borrow::Cow;
 use std::fmt::{self, Debug};
 use std::hash;
 use style_traits::ToCss;
-pub use style_traits::HasViewportPercentage;
 
 pub mod computed;
 pub mod generics;

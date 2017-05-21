@@ -87,8 +87,8 @@ ${helpers.predefined_type("clip",
                    spec="https://drafts.fxtf.org/filters/#propdef-filter">
     //pub use self::computed_value::T as SpecifiedValue;
     use std::fmt;
-    use style_traits::ToCss;
-    use values::{CSSFloat, HasViewportPercentage};
+    use style_traits::{HasViewportPercentage, ToCss};
+    use values::CSSFloat;
     use values::specified::{Angle, Length};
     #[cfg(feature = "gecko")]
     use values::specified::Shadow;
