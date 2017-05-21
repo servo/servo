@@ -30,7 +30,7 @@
 
 #![allow(unsafe_code)]
 
-use atomic_refcell::AtomicRefCell;
+use atomic_refcell::{AtomicRef, AtomicRefCell};
 use dom::bindings::inheritance::{CharacterDataTypeId, ElementTypeId};
 use dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::LayoutJS;
@@ -1092,8 +1092,10 @@ impl<'le> ThreadSafeLayoutElement for ServoThreadSafeLayoutElement<'le> {
         self.element.get_attr(namespace, name)
     }
 
-    fn get_style_data(&self) -> Option<&AtomicRefCell<ElementData>> {
+    fn style_data(&self) -> AtomicRef<ElementData> {
         self.element.get_data()
+            .expect("Unstyled layout node?")
+            .borrow()
     }
 }
 
