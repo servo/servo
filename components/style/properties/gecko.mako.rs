@@ -1198,7 +1198,7 @@ fn static_assert() {
 
     % for kind in ["rows", "columns"]:
     pub fn set_grid_auto_${kind}(&mut self, v: longhands::grid_auto_${kind}::computed_value::T) {
-        use values::specified::grid::TrackSize;
+        use values::generics::grid::TrackSize;
 
         match v {
             TrackSize::FitContent(lop) => {
@@ -1231,8 +1231,8 @@ fn static_assert() {
         use gecko_bindings::structs::{nsTArray, nsStyleGridLine_kMaxLine};
         use nsstring::{nsCString, nsStringRepr};
         use std::usize;
-        use values::specified::grid::TrackListType::Auto;
-        use values::specified::grid::{RepeatCount, TrackSize};
+        use values::generics::grid::TrackListType::Auto;
+        use values::generics::grid::{RepeatCount, TrackSize};
 
         #[inline]
         fn set_bitfield(bitfield: &mut u8, pos: u8, val: bool) {
