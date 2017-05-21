@@ -152,7 +152,7 @@ impl nsCSSValue {
 
     /// Set to an atom identifier value
     pub fn set_atom_ident(&mut self, s: Atom) {
-        unsafe { bindings::Gecko_CSSValue_SetAtomIdent(self, s.into_addrefed()) }
+        unsafe { bindings::Gecko_CSSValue_SetAtomIdent(self, s.into()) }
     }
 
     /// Set to a font format
