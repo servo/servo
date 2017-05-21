@@ -239,6 +239,7 @@ ${helpers.single_keyword("text-align-last",
                          products="gecko",
                          gecko_constant_prefix="NS_STYLE_TEXT_ALIGN",
                          animation_value_type="none",
+                         extra_prefixes="moz",
                          spec="https://drafts.csswg.org/css-text/#propdef-text-align-last")}
 
 // TODO make this a shorthand and implement text-align-last/text-align-all
