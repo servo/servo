@@ -4,7 +4,7 @@
 
 //! Traversing the DOM tree; the bloom filter.
 
-use atomic_refcell::{AtomicRefCell, AtomicRefMut};
+use atomic_refcell::AtomicRefCell;
 use context::{SharedStyleContext, StyleContext, ThreadLocalStyleContext};
 use data::{ElementData, ElementStyles, StoredRestyleHint};
 use dom::{DirtyDescendants, NodeInfo, OpaqueNode, TElement, TNode};
@@ -605,11 +605,11 @@ pub fn recalc_style_at<E, D>(traversal: &D,
                              traversal_data: &PerLevelTraversalData,
                              context: &mut StyleContext<E>,
                              element: E,
-                             mut data: &mut AtomicRefMut<ElementData>)
+                             data: &mut ElementData)
     where E: TElement,
           D: DomTraversal<E>
 {
-    context.thread_local.begin_element(element, &data);
+    context.thread_local.begin_element(element, data);
     context.thread_local.statistics.elements_traversed += 1;
     debug_assert!(!element.has_snapshot() || element.handled_snapshot(),
                   "Should've handled snapshots here already");
@@ -625,7 +625,7 @@ pub fn recalc_style_at<E, D>(traversal: &D,
 
     // Compute style for this element if necessary.
     if compute_self {
-        match compute_style(traversal, traversal_data, context, element, &mut data) {
+        match compute_style(traversal, traversal_data, context, element, data) {
             ChildCascadeRequirement::MustCascade => {
                 inherited_style_changed = true;
             }
@@ -728,7 +728,8 @@ fn compute_style<E, D>(_traversal: &D,
                        traversal_data: &PerLevelTraversalData,
                        context: &mut StyleContext<E>,
                        element: E,
-                       mut data: &mut AtomicRefMut<ElementData>) -> ChildCascadeRequirement
+                       data: &mut ElementData)
+                       -> ChildCascadeRequirement
     where E: TElement,
           D: DomTraversal<E>,
 {
@@ -742,7 +743,7 @@ fn compute_style<E, D>(_traversal: &D,
     // of the work.
     if let MatchAndCascade = kind {
         let sharing_result = unsafe {
-            element.share_style_if_possible(context, &mut data)
+            element.share_style_if_possible(context, data)
         };
         if let StyleWasShared(index, had_damage) = sharing_result {
             context.thread_local.statistics.styles_shared += 1;
@@ -764,22 +765,22 @@ fn compute_style<E, D>(_traversal: &D,
             // Perform the matching and cascading.
             element.match_and_cascade(
                 context,
-                &mut data,
+                data,
                 StyleSharingBehavior::Allow
             )
         }
         CascadeWithReplacements(flags) => {
-            let rules_changed = element.replace_rules(flags, context, &mut data);
+            let rules_changed = element.replace_rules(flags, context, data);
             element.cascade_primary_and_pseudos(
                 context,
-                &mut data,
+                data,
                 rules_changed.important_rules_changed()
             )
         }
         CascadeOnly => {
             element.cascade_primary_and_pseudos(
                 context,
-                &mut data,
+                data,
                 /* important_rules_changed = */ false
             )
         }
