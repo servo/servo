@@ -1191,7 +1191,8 @@ impl XMLHttpRequest {
         ServoParser::parse_html_document(
             &document,
             DOMString::from(decoded),
-            wr.get_url());
+            wr.get_url(),
+            true);
         document
     }
 

@@ -54,6 +54,7 @@ use std::mem;
 use style::context::QuirksMode as ServoQuirksMode;
 
 mod html;
+mod async_html;
 mod xml;
 
 #[dom_struct]
@@ -91,6 +92,7 @@ pub struct ServoParser {
     aborted: Cell<bool>,
     /// https://html.spec.whatwg.org/multipage/#script-created-parser
     script_created_parser: bool,
+    async: bool,
 }
 
 #[derive(PartialEq)]
@@ -100,16 +102,22 @@ enum LastChunkState {
 }
 
 impl ServoParser {
-    pub fn parse_html_document(document: &Document, input: DOMString, url: ServoUrl) {
-        let parser = ServoParser::new(document,
-                                      Tokenizer::Html(self::html::Tokenizer::new(document, url, None)),
+    pub fn parse_html_document(document: &Document, input: DOMString, url: ServoUrl, async: bool) {
+        let tokenizer = if async {
+            Tokenizer::AsyncHtml(self::async_html::Tokenizer::new(document, url, None))
+        } else {
+            Tokenizer::Html(self::html::Tokenizer::new(document, url, None))
+        };
+
+        let parser = ServoParser::new(document, tokenizer,
                                       LastChunkState::NotReceived,
-                                      ParserKind::Normal);
+                                      ParserKind::Normal,
+                                      async);
         parser.parse_chunk(String::from(input));
     }
 
     // https://html.spec.whatwg.org/multipage/#parsing-html-fragments
-    pub fn parse_html_fragment(context: &Element, input: DOMString) -> FragmentParsingResult {
+    pub fn parse_html_fragment(context: &Element, input: DOMString, async: bool) -> FragmentParsingResult {
         let context_node = context.upcast::<Node>();
         let context_document = context_node.owner_doc();
         let window = context_document.window();
@@ -137,17 +145,23 @@ impl ServoParser {
         // Step 11.
         let form = context_node.inclusive_ancestors()
             .find(|element| element.is::<HTMLFormElement>());
+
         let fragment_context = FragmentContext {
             context_elem: context_node,
             form_elem: form.r(),
         };
 
+        let tokenizer = if async {
+            Tokenizer::AsyncHtml(self::async_html::Tokenizer::new(&document, url, Some(fragment_context)))
+        } else {
+            Tokenizer::Html(self::html::Tokenizer::new(&document, url, Some(fragment_context)))
+        };
+
         let parser = ServoParser::new(&document,
-                                      Tokenizer::Html(self::html::Tokenizer::new(&document,
-                                                                                 url.clone(),
-                                                                                 Some(fragment_context))),
+                                      tokenizer,
                                       LastChunkState::Received,
-                                      ParserKind::Normal);
+                                      ParserKind::Normal,
+                                      async);
         parser.parse_chunk(String::from(input));
 
         // Step 14.
@@ -157,11 +171,18 @@ impl ServoParser {
         }
     }
 
-    pub fn parse_html_script_input(document: &Document, url: ServoUrl, type_: &str) {
+    pub fn parse_html_script_input(document: &Document, url: ServoUrl, type_: &str, async: bool) {
+        let tokenizer = if async {
+            Tokenizer::AsyncHtml(self::async_html::Tokenizer::new(document, url, None))
+        } else {
+            Tokenizer::Html(self::html::Tokenizer::new(document, url, None))
+        };
+
         let parser = ServoParser::new(document,
-                                      Tokenizer::Html(self::html::Tokenizer::new(document, url, None)),
+                                      tokenizer,
                                       LastChunkState::NotReceived,
-                                      ParserKind::ScriptCreated);
+                                      ParserKind::ScriptCreated,
+                                      async);
         document.set_current_parser(Some(&parser));
         if !type_.eq_ignore_ascii_case("text/html") {
             parser.parse_chunk("<pre>\n".to_owned());
@@ -173,7 +194,8 @@ impl ServoParser {
         let parser = ServoParser::new(document,
                                       Tokenizer::Xml(self::xml::Tokenizer::new(document, url)),
                                       LastChunkState::NotReceived,
-                                      ParserKind::Normal);
+                                      ParserKind::Normal,
+                                      false);
         parser.parse_chunk(String::from(input));
     }
 
@@ -304,7 +326,8 @@ impl ServoParser {
     fn new_inherited(document: &Document,
                      tokenizer: Tokenizer,
                      last_chunk_state: LastChunkState,
-                     kind: ParserKind)
+                     kind: ParserKind,
+                     async: bool)
                      -> Self {
         ServoParser {
             reflector: Reflector::new(),
@@ -317,6 +340,7 @@ impl ServoParser {
             script_nesting_level: Default::default(),
             aborted: Default::default(),
             script_created_parser: kind == ParserKind::ScriptCreated,
+            async: async
         }
     }
 
@@ -324,9 +348,10 @@ impl ServoParser {
     fn new(document: &Document,
            tokenizer: Tokenizer,
            last_chunk_state: LastChunkState,
-           kind: ParserKind)
+           kind: ParserKind,
+           async: bool)
            -> Root<Self> {
-        reflect_dom_object(box ServoParser::new_inherited(document, tokenizer, last_chunk_state, kind),
+        reflect_dom_object(box ServoParser::new_inherited(document, tokenizer, last_chunk_state, kind, async),
                            document.window(),
                            ServoParserBinding::Wrap)
     }
@@ -448,6 +473,7 @@ enum ParserKind {
 #[must_root]
 enum Tokenizer {
     Html(self::html::Tokenizer),
+    AsyncHtml(self::async_html::Tokenizer),
     Xml(self::xml::Tokenizer),
 }
 
@@ -455,6 +481,7 @@ impl Tokenizer {
     fn feed(&mut self, input: &mut BufferQueue) -> Result<(), Root<HTMLScriptElement>> {
         match *self {
             Tokenizer::Html(ref mut tokenizer) => tokenizer.feed(input),
+            Tokenizer::AsyncHtml(ref mut tokenizer) => tokenizer.feed(input),
             Tokenizer::Xml(ref mut tokenizer) => tokenizer.feed(input),
         }
     }
@@ -462,6 +489,7 @@ impl Tokenizer {
     fn end(&mut self) {
         match *self {
             Tokenizer::Html(ref mut tokenizer) => tokenizer.end(),
+            Tokenizer::AsyncHtml(ref mut tokenizer) => tokenizer.end(),
             Tokenizer::Xml(ref mut tokenizer) => tokenizer.end(),
         }
     }
@@ -469,6 +497,7 @@ impl Tokenizer {
     fn url(&self) -> &ServoUrl {
         match *self {
             Tokenizer::Html(ref tokenizer) => tokenizer.url(),
+            Tokenizer::AsyncHtml(ref tokenizer) => tokenizer.url(),
             Tokenizer::Xml(ref tokenizer) => tokenizer.url(),
         }
     }
@@ -476,6 +505,7 @@ impl Tokenizer {
     fn set_plaintext_state(&mut self) {
         match *self {
             Tokenizer::Html(ref mut tokenizer) => tokenizer.set_plaintext_state(),
+            Tokenizer::AsyncHtml(ref mut tokenizer) => tokenizer.set_plaintext_state(),
             Tokenizer::Xml(_) => unimplemented!(),
         }
     }
@@ -483,6 +513,7 @@ impl Tokenizer {
     fn profiler_category(&self) -> ProfilerCategory {
         match *self {
             Tokenizer::Html(_) => ProfilerCategory::ScriptParseHTML,
+            Tokenizer::AsyncHtml(_) => ProfilerCategory::ScriptParseHTML,
             Tokenizer::Xml(_) => ProfilerCategory::ScriptParseXML,
         }
     }

@@ -3656,7 +3656,7 @@ impl DocumentMethods for Document {
             self.window.upcast::<GlobalScope>().resource_threads().clone();
         *self.loader.borrow_mut() =
             DocumentLoader::new_with_threads(resource_threads, Some(url.clone()));
-        ServoParser::parse_html_script_input(self, url, type_);
+        ServoParser::parse_html_script_input(self, url, type_, true);
 
         // Step 26.
         self.ready_state.set(DocumentReadyState::Interactive);

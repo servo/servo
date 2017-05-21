@@ -71,7 +71,7 @@ impl DOMParserMethods for DOMParser {
                                              loader,
                                              None,
                                              None);
-                ServoParser::parse_html_document(&document, s, url);
+                ServoParser::parse_html_document(&document, s, url, true);
                 document.set_ready_state(DocumentReadyState::Complete);
                 Ok(document)
             }

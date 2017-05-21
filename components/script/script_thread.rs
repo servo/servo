@@ -1984,7 +1984,7 @@ impl ScriptThread {
         if is_html_document == IsHTMLDocument::NonHTMLDocument {
             ServoParser::parse_xml_document(&document, parse_input, final_url);
         } else {
-            ServoParser::parse_html_document(&document, parse_input, final_url);
+            ServoParser::parse_html_document(&document, parse_input, final_url, true);
         }
 
         if incomplete.activity == DocumentActivity::FullyActive {

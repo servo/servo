@@ -1364,7 +1364,7 @@ impl Element {
         // Steps 1-2.
         let context_document = document_from_node(self);
         // TODO(#11995): XML case.
-        let new_children = ServoParser::parse_html_fragment(self, markup);
+        let new_children = ServoParser::parse_html_fragment(self, markup, true);
         // Step 3.
         let fragment = DocumentFragment::new(&context_document);
         // Step 4.
