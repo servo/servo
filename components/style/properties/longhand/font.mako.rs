@@ -1835,11 +1835,12 @@ ${helpers.single_keyword_system("font-variant-position",
         impl ToCss for FeatureTagValue {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 use std::str;
-                use byteorder::{WriteBytesExt, BigEndian};
+                use byteorder::{BigEndian, ByteOrder};
                 use cssparser::serialize_string;
+                use smallvec::SmallVec;
 
-                let mut raw: Vec<u8> = vec!();
-                raw.write_u32::<BigEndian>(self.tag).unwrap();
+                let mut raw = SmallVec::<[u8;4]>::new();
+                BigEndian::write_u32(&mut raw, (self.tag));
                 serialize_string(str::from_utf8(&raw).unwrap_or_default(), dest)?;
 
                 match self.value {
