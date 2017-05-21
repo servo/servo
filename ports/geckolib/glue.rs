@@ -103,7 +103,7 @@ use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::supports::parse_condition_or_declaration;
 use style::thread_state;
 use style::timer::Timer;
-use style::traversal::{ANIMATION_ONLY, FOR_RECONSTRUCT, UNSTYLED_CHILDREN_ONLY};
+use style::traversal::{ANIMATION_ONLY, FOR_CSS_RULE_CHANGES, FOR_RECONSTRUCT, UNSTYLED_CHILDREN_ONLY};
 use style::traversal::{resolve_style, DomTraversal, TraversalDriver, TraversalFlags};
 use style::values::{CustomIdent, KeyframesName};
 use style_traits::ToCss;
@@ -252,10 +252,11 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
     let traversal_flags = match (root_behavior, restyle_behavior) {
         (Root::Normal, Restyle::Normal) |
         (Root::Normal, Restyle::ForAnimationOnly)
-          => TraversalFlags::empty(),
+            => TraversalFlags::empty(),
         (Root::UnstyledChildrenOnly, Restyle::Normal) |
         (Root::UnstyledChildrenOnly, Restyle::ForAnimationOnly)
-          => UNSTYLED_CHILDREN_ONLY,
+            => UNSTYLED_CHILDREN_ONLY,
+        (Root::Normal, Restyle::ForCSSRuleChanges) => FOR_CSS_RULE_CHANGES,
         (Root::Normal, Restyle::ForReconstruct) => FOR_RECONSTRUCT,
         _ => panic!("invalid combination of TraversalRootBehavior and TraversalRestyleBehavior"),
     };
