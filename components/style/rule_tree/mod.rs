@@ -855,20 +855,15 @@ impl StrongRuleNode {
         debug_assert!(me.is_root(), "Can't call GC on a non-root node!");
 
         while let Some(weak) = self.pop_from_free_list() {
-            let needs_drop = {
-                let node = &*weak.ptr();
-                if node.refcount.load(Ordering::Relaxed) == 0 {
-                    node.remove_from_child_list();
-                    true
-                } else {
-                    false
-                }
-            };
-
-            debug!("GC'ing {:?}: {}", weak.ptr(), needs_drop);
-            if needs_drop {
-                let _ = Box::from_raw(weak.ptr());
+            let node = &*weak.ptr();
+            if node.refcount.load(Ordering::Relaxed) != 0 {
+                // Nothing to do, the node is still alive.
+                continue;
             }
+
+            debug!("GC'ing {:?}", weak.ptr());
+            node.remove_from_child_list();
+            let _ = Box::from_raw(weak.ptr());
         }
 
         me.free_count.store(0, Ordering::Relaxed);
