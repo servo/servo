@@ -2164,6 +2164,8 @@ cfg_if! {
             pub static nsGkAtoms_onreloadpage: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms3remE"]
             pub static nsGkAtoms_rem: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms6remoteE"]
+            pub static nsGkAtoms_remote: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms13removeelementE"]
             pub static nsGkAtoms_removeelement: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms21renderingobserverlistE"]
@@ -7179,6 +7181,8 @@ cfg_if! {
             pub static nsGkAtoms_onreloadpage: *mut nsIAtom;
             #[link_name = "?rem@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_rem: *mut nsIAtom;
+            #[link_name = "?remote@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_remote: *mut nsIAtom;
             #[link_name = "?removeelement@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_removeelement: *mut nsIAtom;
             #[link_name = "?renderingobserverlist@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -12194,6 +12198,8 @@ cfg_if! {
             pub static nsGkAtoms_onreloadpage: *mut nsIAtom;
             #[link_name = "\x01?rem@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_rem: *mut nsIAtom;
+            #[link_name = "\x01?remote@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_remote: *mut nsIAtom;
             #[link_name = "\x01?removeelement@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_removeelement: *mut nsIAtom;
             #[link_name = "\x01?renderingobserverlist@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -17212,6 +17218,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onreloadpage as *mut _) } };
 ("rem") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rem as *mut _) } };
+("remote") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_remote as *mut _) } };
 ("removeelement") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_removeelement as *mut _) } };
 ("renderingobserverlist") =>
