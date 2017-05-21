@@ -363,10 +363,12 @@ pub mod basic_shape {
     use gecko_bindings::sugar::ns_style_coord::{CoordDataMut, CoordDataValue};
     use std::borrow::Borrow;
     use values::computed::{BorderRadiusSize, LengthOrPercentage};
-    use values::computed::basic_shape::*;
+    use values::computed::basic_shape::{BasicShape, BorderRadius, ShapeRadius};
     use values::computed::position;
     use values::generics::BorderRadiusSize as GenericBorderRadiusSize;
-    use values::generics::basic_shape::FillRule;
+    use values::generics::basic_shape::{BasicShape as GenericBasicShape, InsetRect, Polygon};
+    use values::generics::basic_shape::{Circle, Ellipse, FillRule};
+    use values::generics::basic_shape::{GeometryBox, ShapeBox};
 
     // using Borrow so that we can have a non-moving .into()
     impl<T: Borrow<StyleBasicShape>> From<T> for BasicShape {
@@ -379,7 +381,7 @@ pub mod basic_shape {
                     let b = LengthOrPercentage::from_gecko_style_coord(&other.mCoordinates[2]);
                     let l = LengthOrPercentage::from_gecko_style_coord(&other.mCoordinates[3]);
                     let round = (&other.mRadius).into();
-                    BasicShape::Inset(InsetRect {
+                    GenericBasicShape::Inset(InsetRect {
                         top: t.expect("inset() offset should be a length, percentage, or calc value"),
                         right: r.expect("inset() offset should be a length, percentage, or calc value"),
                         bottom: b.expect("inset() offset should be a length, percentage, or calc value"),
@@ -388,13 +390,13 @@ pub mod basic_shape {
                     })
                 }
                 StyleBasicShapeType::Circle => {
-                    BasicShape::Circle(Circle {
+                    GenericBasicShape::Circle(Circle {
                         radius: (&other.mCoordinates[0]).into(),
                         position: (&other.mPosition).into()
                     })
                 }
                 StyleBasicShapeType::Ellipse => {
-                    BasicShape::Ellipse(Ellipse {
+                    GenericBasicShape::Ellipse(Ellipse {
                         semiaxis_x: (&other.mCoordinates[0]).into(),
                         semiaxis_y: (&other.mCoordinates[1]).into(),
                         position: (&other.mPosition).into()
@@ -416,7 +418,7 @@ pub mod basic_shape {
                                     .expect("polygon() coordinate should be a length, percentage, or calc value")
                             ))
                     }
-                    BasicShape::Polygon(Polygon {
+                    GenericBasicShape::Polygon(Polygon {
                         fill: fill_rule,
                         coordinates: coords,
                     })

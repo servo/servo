@@ -58,7 +58,7 @@ ${helpers.single_keyword("mask-type", "luminance alpha",
                          products="gecko", animation_value_type="none",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-type")}
 
-${helpers.predefined_type("clip-path", "basic_shape::ShapeWithGeometryBox",
+${helpers.predefined_type("clip-path", "basic_shape::ClippingShape",
                           "generics::basic_shape::ShapeSource::None",
                           products="gecko", boxed="True",
                           animation_value_type="none", flags="CREATES_STACKING_CONTEXT",

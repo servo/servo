@@ -3853,8 +3853,7 @@ fn static_assert() {
         use gecko_bindings::structs::{StyleFillRule, StyleGeometryBox, StyleShapeSource};
         use gecko::conversions::basic_shape::set_corners_from_radius;
         use gecko::values::GeckoStyleCoordConvertible;
-        use values::computed::basic_shape::BasicShape;
-        use values::generics::basic_shape::{ShapeSource, FillRule};
+        use values::generics::basic_shape::{BasicShape, FillRule, ShapeSource};
         let ref mut ${ident} = self.gecko.${gecko_ffi_name};
         // clean up existing struct
         unsafe { Gecko_DestroyShapeSource(${ident}) };
