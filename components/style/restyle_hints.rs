@@ -16,6 +16,7 @@ use element_state::*;
 use gecko_bindings::structs::nsRestyleHint;
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
+use selector_map::SelectorMap;
 use selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl, Snapshot, SnapshotMap, AttrValue};
 use selectors::Element;
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint};
@@ -28,7 +29,6 @@ use std::borrow::Borrow;
 use std::cell::Cell;
 use std::clone::Clone;
 use std::cmp;
-use stylist::SelectorMap;
 
 /// When the ElementState of an element (like IN_HOVER_STATE) changes,
 /// certain pseudo-classes (like :hover) may require us to restyle that
