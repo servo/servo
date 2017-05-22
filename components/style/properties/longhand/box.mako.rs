@@ -2432,7 +2432,7 @@ ${helpers.single_keyword("-moz-orient",
     }
 </%helpers:longhand>
 
-${helpers.predefined_type("shape-outside", "basic_shape::ShapeWithShapeBox",
+${helpers.predefined_type("shape-outside", "basic_shape::FloatAreaShape",
                           "generics::basic_shape::ShapeSource::None",
                           products="gecko", boxed="True",
                           animation_value_type="none",

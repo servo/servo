@@ -10,90 +10,55 @@
 use std::fmt;
 use style_traits::ToCss;
 use values::computed::LengthOrPercentage;
-use values::computed::position::Position;
-use values::generics::basic_shape::{BorderRadius as GenericBorderRadius, ShapeRadius as GenericShapeRadius};
-use values::generics::basic_shape::{InsetRect as GenericInsetRect, Polygon as GenericPolygon, ShapeSource};
+use values::generics::basic_shape::{BasicShape as GenericBasicShape, BorderRadius as GenericBorderRadius};
+use values::generics::basic_shape::{Circle as GenericCircle, ClippingShape as GenericClippingShape};
+use values::generics::basic_shape::{Ellipse as GenericEllipse, FloatAreaShape as GenericFloatAreaShape};
+use values::generics::basic_shape::{InsetRect as GenericInsetRect, ShapeRadius as GenericShapeRadius};
 
-pub use values::generics::basic_shape::FillRule;
-pub use values::specified::basic_shape::{self, GeometryBox, ShapeBox};
+/// A specified clipping shape.
+pub type ClippingShape = GenericClippingShape<BasicShape>;
 
-/// The computed value used by `clip-path`
-pub type ShapeWithGeometryBox = ShapeSource<BasicShape, GeometryBox>;
+/// A specified float area shape.
+pub type FloatAreaShape = GenericFloatAreaShape<BasicShape>;
 
-/// The computed value used by `shape-outside`
-pub type ShapeWithShapeBox = ShapeSource<BasicShape, ShapeBox>;
-
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub enum BasicShape {
-    Inset(InsetRect),
-    Circle(Circle),
-    Ellipse(Ellipse),
-    Polygon(Polygon),
-}
-
-impl ToCss for BasicShape {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            BasicShape::Inset(ref rect) => rect.to_css(dest),
-            BasicShape::Circle(ref circle) => circle.to_css(dest),
-            BasicShape::Ellipse(ref e) => e.to_css(dest),
-            BasicShape::Polygon(ref poly) => poly.to_css(dest),
-        }
-    }
-}
+/// A computed basic shape.
+pub type BasicShape = GenericBasicShape<LengthOrPercentage, LengthOrPercentage, LengthOrPercentage>;
 
 /// The computed value of `inset()`
 pub type InsetRect = GenericInsetRect<LengthOrPercentage>;
 
-#[derive(Clone, PartialEq, Copy, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct Circle {
-    pub radius: ShapeRadius,
-    pub position: Position,
-}
-
-impl ToCss for Circle {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(self.radius.to_css(dest));
-        try!(dest.write_str(" at "));
-        self.position.to_css(dest)
-    }
-}
-
-#[derive(Clone, PartialEq, Copy, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct Ellipse {
-    pub semiaxis_x: ShapeRadius,
-    pub semiaxis_y: ShapeRadius,
-    pub position: Position,
-}
-
-impl ToCss for Ellipse {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(dest.write_str("ellipse("));
-        if (self.semiaxis_x, self.semiaxis_y) != Default::default() {
-            try!(self.semiaxis_x.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(self.semiaxis_y.to_css(dest));
-            try!(dest.write_str(" "));
-        }
-        try!(dest.write_str("at "));
-        try!(self.position.to_css(dest));
-        dest.write_str(")")
-    }
-}
-
-/// The computed value of `Polygon`
-pub type Polygon = GenericPolygon<LengthOrPercentage>;
-
 /// The computed value of `BorderRadius`
 pub type BorderRadius = GenericBorderRadius<LengthOrPercentage>;
+
+/// A computed circle.
+pub type Circle = GenericCircle<LengthOrPercentage, LengthOrPercentage, LengthOrPercentage>;
+
+/// A computed ellipse.
+pub type Ellipse = GenericEllipse<LengthOrPercentage, LengthOrPercentage, LengthOrPercentage>;
 
 /// The computed value of `ShapeRadius`
 pub type ShapeRadius = GenericShapeRadius<LengthOrPercentage>;
 
-impl Copy for ShapeRadius {}
+impl ToCss for Circle {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        dest.write_str("circle(")?;
+        self.radius.to_css(dest)?;
+        dest.write_str(" at ")?;
+        self.position.to_css(dest)
+    }
+}
+
+impl ToCss for Ellipse {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        dest.write_str("ellipse(")?;
+        if (self.semiaxis_x, self.semiaxis_y) != Default::default() {
+            self.semiaxis_x.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.semiaxis_y.to_css(dest)?;
+            dest.write_str(" ")?;
+        }
+        dest.write_str("at ")?;
+        self.position.to_css(dest)?;
+        dest.write_str(")")
+    }
+}
