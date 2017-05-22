@@ -458,6 +458,14 @@ class MachCommands(CommandBase):
     def wptrunner(self, run_file, **kwargs):
         self.set_software_rendering_env(kwargs['release'])
 
+        # By default, Rayon selects the number of worker threads
+        # based on the available CPU count. This doesn't work very
+        # well when running tests on CI, since we run so many
+        # Servo processes in parallel. The result is a lot of
+        # extra timeouts. Instead, force Rayon to assume we are
+        # running on a 2 CPU environment.
+        os.environ['RAYON_RS_NUM_CPUS'] = "2"
+
         os.environ["RUST_BACKTRACE"] = "1"
         kwargs["debug"] = not kwargs["release"]
         if kwargs.pop("chaos"):
