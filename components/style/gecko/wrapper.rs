@@ -1335,6 +1335,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozIsHTML => {
                 self.is_html_element_in_html_document()
             }
+            NonTSPseudoClass::MozPlaceholder => false,
             NonTSPseudoClass::MozAny(ref sels) => {
                 sels.iter().any(|s| {
                     matches_complex_selector(s, self, context, flags_setter)

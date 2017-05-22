@@ -107,6 +107,7 @@ macro_rules! apply_non_ts_list {
                 ("-moz-only-whitespace", MozOnlyWhitespace, mozOnlyWhitespace, _, _),
                 ("-moz-native-anonymous", MozNativeAnonymous, mozNativeAnonymous, _, PSEUDO_CLASS_INTERNAL),
                 ("-moz-is-html", MozIsHTML, mozIsHTML, _, _),
+                ("-moz-placeholder", MozPlaceholder, mozPlaceholder, _, _),
             ],
             string: [
                 ("-moz-system-metric", MozSystemMetric, mozSystemMetric, _, PSEUDO_CLASS_INTERNAL),
