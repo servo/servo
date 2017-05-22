@@ -20,8 +20,8 @@ use selector_map::{SelectorMap, SelectorMapEntry};
 use selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl, Snapshot, SnapshotMap, AttrValue};
 use selectors::Element;
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint};
-use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode, RelevantLinkStatus};
-use selectors::matching::matches_selector;
+use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode};
+use selectors::matching::{RelevantLinkStatus, VisitedHandlingMode, matches_selector};
 use selectors::parser::{Combinator, Component, Selector, SelectorInner, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
 use smallvec::SmallVec;
@@ -577,6 +577,16 @@ impl<'a, E> Element for ElementWrapper<'a, E>
             }
         }
 
+        // For :link and :visited, we don't actually want to test the element
+        // state directly.  Instead, we use the `relevant_link` to determine if
+        // they match.
+        if *pseudo_class == NonTSPseudoClass::Link {
+            return relevant_link.is_unvisited(self, context)
+        }
+        if *pseudo_class == NonTSPseudoClass::Visited {
+            return relevant_link.is_visited(self, context)
+        }
+
         let flag = pseudo_class.state_flag();
         if flag.is_empty() {
             return self.element.match_non_ts_pseudo_class(pseudo_class,
@@ -951,6 +961,17 @@ impl DependencySet {
 
         let mut hint = RestyleHint::empty();
 
+        // If we are sensitive to visitedness and the visited state changed, we
+        // force a restyle here. Matching doesn't depend on the actual visited
+        // state at all, so we can't look at matching results to decide what to
+        // do for this case.
+        if state_changes.intersects(IN_VISITED_OR_UNVISITED_STATE) {
+            trace!(" > visitedness change, force subtree restyle");
+            // We can't just return here because there may also be attribute
+            // changes as well that imply additional hints.
+            hint = RestyleHint::subtree();
+        }
+
         // Compute whether the snapshot has any different id or class attributes
         // from the element. If it does, we need to pass those to the lookup, so
         // that we get all the possible applicable selectors from the rulehash.
@@ -980,21 +1001,6 @@ impl DependencySet {
             }
         };
 
-        let mut element_matching_context =
-            MatchingContext::new(MatchingMode::Normal, bloom_filter);
-
-        // NOTE(emilio): We can't use the bloom filter for snapshots, given that
-        // arbitrary elements in the parent chain may have mutated their
-        // id's/classes, which means that they won't be in the filter, and as
-        // such we may fast-reject selectors incorrectly.
-        //
-        // We may be able to improve this if we record as we go down the tree
-        // whether any parent had a snapshot, and whether those snapshots were
-        // taken due to an element class/id change, but it's not clear we _need_
-        // it right now.
-        let mut snapshot_matching_context =
-            MatchingContext::new(MatchingMode::Normal, None);
-
         let lookup_element = if el.implemented_pseudo_element().is_some() {
             el.closest_non_native_anonymous_ancestor().unwrap()
         } else {
@@ -1004,6 +1010,7 @@ impl DependencySet {
         self.dependencies
             .lookup_with_additional(lookup_element, additional_id, &additional_classes, &mut |dep| {
             trace!("scanning dependency: {:?}", dep);
+
             if !dep.sensitivities.sensitive_to(attrs_changed,
                                                state_changes) {
                 trace!(" > non-sensitive");
@@ -1015,19 +1022,63 @@ impl DependencySet {
                 return true;
             }
 
-            // We can ignore the selector flags, since they would have already
-            // been set during original matching for any element that might
-            // change its matching behavior here.
+            // NOTE(emilio): We can't use the bloom filter for snapshots, given
+            // that arbitrary elements in the parent chain may have mutated
+            // their id's/classes, which means that they won't be in the
+            // filter, and as such we may fast-reject selectors incorrectly.
+            //
+            // We may be able to improve this if we record as we go down the
+            // tree whether any parent had a snapshot, and whether those
+            // snapshots were taken due to an element class/id change, but it's
+            // not clear we _need_ it right now.
+            let mut then_context =
+                MatchingContext::new_for_visited(MatchingMode::Normal, None,
+                                                 VisitedHandlingMode::AllLinksUnvisited);
             let matched_then =
                 matches_selector(&dep.selector, &snapshot_el,
-                                 &mut snapshot_matching_context,
+                                 &mut then_context,
                                  &mut |_, _| {});
+            let mut now_context =
+                MatchingContext::new_for_visited(MatchingMode::Normal, bloom_filter,
+                                                 VisitedHandlingMode::AllLinksUnvisited);
             let matches_now =
                 matches_selector(&dep.selector, el,
-                                 &mut element_matching_context,
+                                 &mut now_context,
                                  &mut |_, _| {});
-            if matched_then != matches_now {
+
+            // Check for mismatches in both the match result and also the status
+            // of whether a relevant link was found.
+            if matched_then != matches_now ||
+               then_context.relevant_link_found != now_context.relevant_link_found {
                 hint.insert_from(&dep.hint);
+                return !hint.is_maximum()
+            }
+
+            // If there is a relevant link, then we also matched in visited
+            // mode.  Match again in this mode to ensure this also matches.
+            // Note that we never actually match directly against the element's
+            // true visited state at all, since that would expose us to timing
+            // attacks.  The matching process only considers the relevant link
+            // state and visited handling mode when deciding if visited
+            // matches.  Instead, we are rematching here in case there is some
+            // :visited selector whose matching result changed for some _other_
+            // element state or attribute.
+            if now_context.relevant_link_found &&
+               dep.sensitivities.states.intersects(IN_VISITED_OR_UNVISITED_STATE) {
+                then_context.visited_handling = VisitedHandlingMode::RelevantLinkVisited;
+                let matched_then =
+                    matches_selector(&dep.selector, &snapshot_el,
+                                     &mut then_context,
+                                     &mut |_, _| {});
+                now_context.visited_handling = VisitedHandlingMode::RelevantLinkVisited;
+                let matches_now =
+                    matches_selector(&dep.selector, el,
+                                     &mut now_context,
+                                     &mut |_, _| {});
+                if matched_then != matches_now {
+                    hint.insert_from(&dep.hint);
+                    return !hint.is_maximum()
+                }
             }
 
             !hint.is_maximum()
