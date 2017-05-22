@@ -18,13 +18,26 @@ usage() {
 
 
 upload() {
+    local -r platform="${1}"
+    local -r nightly_local_path="${2}"
+    local -r extension="${3}"
+    local -r timestamp="${4}"
     local nightly_filename
-    nightly_filename="${4}-$(basename "${2}")"
-    local -r nightly_upload_dir="s3://servo-builds/nightly/${1}"
-    local -r package_upload_path="${nightly_upload_dir}/${nightly_filename}"
+    nightly_filename="${timestamp}-$(basename "${nightly_local_path}")"
+    local -r nightly_upload_dir="s3://servo-builds/nightly/${platform}"
+    local -r nightly_upload_path="${nightly_upload_dir}/${nightly_filename}"
+    local -r checksum_upload_path="${nightly_upload_path}-checksum.txt"
+
     s3cmd --mime-type="application/octet-stream" \
-          put "${2}" "${package_upload_path}"
-    s3cmd cp "${package_upload_path}" "${nightly_upload_dir}/servo-latest.${3}"
+        put "${nightly_local_path}" "${nightly_upload_path}"
+    sha384sum "${nightly_local_path}" | s3cmd --mime-type="text/plain" \
+        put - "${checksum_upload_path}"
+    s3cmd cp \
+        "${nightly_upload_path}" \
+        "${nightly_upload_dir}/servo-latest.${extension}"
+    s3cmd cp \
+        "${checksum_upload_path}" \
+        "${nightly_upload_dir}/servo-latest.${extension}-checksum.txt"
 }
 
 update_brew() {
