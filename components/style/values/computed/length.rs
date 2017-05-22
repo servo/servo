@@ -606,56 +606,56 @@ pub type LengthOrNumber = Either<Length, Number>;
 /// Either a computed `<length>` or the `normal` keyword.
 pub type LengthOrNormal = Either<Length, Normal>;
 
-/// A value suitable for a `min-width` or `min-height` property.
+/// A value suitable for a `min-width`, `min-height`, `width` or `height` property.
 /// See specified/values/length.rs for more details.
 #[derive(Debug, Copy, Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
-pub enum MinLength {
-    LengthOrPercentage(LengthOrPercentage),
-    Auto,
+pub enum MozLength {
+    LengthOrPercentageOrAuto(LengthOrPercentageOrAuto),
     ExtremumLength(ExtremumLength),
 }
 
-impl ToComputedValue for specified::MinLength {
-    type ComputedValue = MinLength;
+impl MozLength {
+    /// Returns the `auto` value.
+    pub fn auto() -> Self {
+        MozLength::LengthOrPercentageOrAuto(LengthOrPercentageOrAuto::Auto)
+    }
+}
+
+impl ToComputedValue for specified::MozLength {
+    type ComputedValue = MozLength;
 
     #[inline]
-    fn to_computed_value(&self, context: &Context) -> MinLength {
+    fn to_computed_value(&self, context: &Context) -> MozLength {
         match *self {
-            specified::MinLength::LengthOrPercentage(ref lop) => {
-                MinLength::LengthOrPercentage(lop.to_computed_value(context))
+            specified::MozLength::LengthOrPercentageOrAuto(ref lopoa) => {
+                MozLength::LengthOrPercentageOrAuto(lopoa.to_computed_value(context))
             }
-            specified::MinLength::Auto => {
-                MinLength::Auto
-            }
-            specified::MinLength::ExtremumLength(ref ext) => {
-                MinLength::ExtremumLength(ext.clone())
+            specified::MozLength::ExtremumLength(ref ext) => {
+                MozLength::ExtremumLength(ext.clone())
             }
         }
     }
 
     #[inline]
-    fn from_computed_value(computed: &MinLength) -> Self {
+    fn from_computed_value(computed: &MozLength) -> Self {
         match *computed {
-            MinLength::Auto =>
-                specified::MinLength::Auto,
-            MinLength::LengthOrPercentage(ref lop) =>
-                specified::MinLength::LengthOrPercentage(specified::LengthOrPercentage::from_computed_value(&lop)),
-            MinLength::ExtremumLength(ref ext) =>
-                specified::MinLength::ExtremumLength(ext.clone()),
+            MozLength::LengthOrPercentageOrAuto(ref lopoa) =>
+                specified::MozLength::LengthOrPercentageOrAuto(
+                    specified::LengthOrPercentageOrAuto::from_computed_value(&lopoa)),
+            MozLength::ExtremumLength(ref ext) =>
+                specified::MozLength::ExtremumLength(ext.clone()),
         }
     }
 }
 
-impl ToCss for MinLength {
+impl ToCss for MozLength {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            MinLength::LengthOrPercentage(lop) =>
-                lop.to_css(dest),
-            MinLength::Auto =>
-                dest.write_str("auto"),
-            MinLength::ExtremumLength(ext) =>
+            MozLength::LengthOrPercentageOrAuto(lopoa) =>
+                lopoa.to_css(dest),
+            MozLength::ExtremumLength(ext) =>
                 ext.to_css(dest),
         }
     }
@@ -667,22 +667,24 @@ impl ToCss for MinLength {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub enum MaxLength {
-    LengthOrPercentage(LengthOrPercentage),
-    None,
+    LengthOrPercentageOrNone(LengthOrPercentageOrNone),
     ExtremumLength(ExtremumLength),
 }
 
+impl MaxLength {
+    /// Returns the `none` value.
+    pub fn none() -> Self {
+        MaxLength::LengthOrPercentageOrNone(LengthOrPercentageOrNone::None)
+    }
+}
 impl ToComputedValue for specified::MaxLength {
     type ComputedValue = MaxLength;
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> MaxLength {
         match *self {
-            specified::MaxLength::LengthOrPercentage(ref lop) => {
-                MaxLength::LengthOrPercentage(lop.to_computed_value(context))
-            }
-            specified::MaxLength::None => {
-                MaxLength::None
+            specified::MaxLength::LengthOrPercentageOrNone(ref lopon) => {
+                MaxLength::LengthOrPercentageOrNone(lopon.to_computed_value(context))
             }
             specified::MaxLength::ExtremumLength(ref ext) => {
                 MaxLength::ExtremumLength(ext.clone())
@@ -693,10 +695,9 @@ impl ToComputedValue for specified::MaxLength {
     #[inline]
     fn from_computed_value(computed: &MaxLength) -> Self {
         match *computed {
-            MaxLength::None =>
-                specified::MaxLength::None,
-            MaxLength::LengthOrPercentage(ref lop) =>
-                specified::MaxLength::LengthOrPercentage(specified::LengthOrPercentage::from_computed_value(&lop)),
+            MaxLength::LengthOrPercentageOrNone(ref lopon) =>
+                specified::MaxLength::LengthOrPercentageOrNone(
+                    specified::LengthOrPercentageOrNone::from_computed_value(&lopon)),
             MaxLength::ExtremumLength(ref ext) =>
                 specified::MaxLength::ExtremumLength(ext.clone()),
         }
@@ -706,10 +707,8 @@ impl ToComputedValue for specified::MaxLength {
 impl ToCss for MaxLength {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            MaxLength::LengthOrPercentage(lop) =>
-                lop.to_css(dest),
-            MaxLength::None =>
-                dest.write_str("none"),
+            MaxLength::LengthOrPercentageOrNone(lopon) =>
+                lopon.to_css(dest),
             MaxLength::ExtremumLength(ext) =>
                 ext.to_css(dest),
         }

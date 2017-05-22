@@ -1794,15 +1794,18 @@ pub extern "C" fn Servo_DeclarationBlock_SetPixelValue(declarations:
                                                        value: f32) {
     use style::properties::{PropertyDeclaration, LonghandId};
     use style::properties::longhands::border_spacing::SpecifiedValue as BorderSpacing;
+    use style::properties::longhands::height::SpecifiedValue as Height;
+    use style::properties::longhands::width::SpecifiedValue as Width;
     use style::values::specified::BorderWidth;
+    use style::values::specified::MozLength;
     use style::values::specified::length::{NoCalcLength, LengthOrPercentage};
 
     let long = get_longhand_from_id!(property);
     let nocalc = NoCalcLength::from_px(value);
 
     let prop = match_wrap_declared! { long,
-        Height => nocalc.into(),
-        Width => nocalc.into(),
+        Height => Height(MozLength::LengthOrPercentageOrAuto(nocalc.into())),
+        Width => Width(MozLength::LengthOrPercentageOrAuto(nocalc.into())),
         BorderTopWidth => BorderWidth::Width(nocalc.into()),
         BorderRightWidth => BorderWidth::Width(nocalc.into()),
         BorderBottomWidth => BorderWidth::Width(nocalc.into()),
@@ -1840,6 +1843,8 @@ pub extern "C" fn Servo_DeclarationBlock_SetLengthValue(declarations:
                                                         unit: structs::nsCSSUnit) {
     use style::properties::{PropertyDeclaration, LonghandId};
     use style::properties::longhands::_moz_script_min_size::SpecifiedValue as MozScriptMinSize;
+    use style::properties::longhands::width::SpecifiedValue as Width;
+    use style::values::specified::MozLength;
     use style::values::specified::length::{AbsoluteLength, FontRelativeLength, PhysicalLength};
     use style::values::specified::length::{LengthOrPercentage, NoCalcLength};
 
@@ -1859,7 +1864,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetLengthValue(declarations:
     };
 
     let prop = match_wrap_declared! { long,
-        Width => nocalc.into(),
+        Width => Width(MozLength::LengthOrPercentageOrAuto(nocalc.into())),
         FontSize => LengthOrPercentage::from(nocalc).into(),
         MozScriptMinSize => MozScriptMinSize(nocalc),
     };
@@ -1894,14 +1899,17 @@ pub extern "C" fn Servo_DeclarationBlock_SetPercentValue(declarations:
                                                          property: nsCSSPropertyID,
                                                          value: f32) {
     use style::properties::{PropertyDeclaration, LonghandId};
+    use style::properties::longhands::height::SpecifiedValue as Height;
+    use style::properties::longhands::width::SpecifiedValue as Width;
+    use style::values::specified::MozLength;
     use style::values::specified::length::{LengthOrPercentage, Percentage};
 
     let long = get_longhand_from_id!(property);
     let pc = Percentage(value);
 
     let prop = match_wrap_declared! { long,
-        Height => pc.into(),
-        Width => pc.into(),
+        Height => Height(MozLength::LengthOrPercentageOrAuto(pc.into())),
+        Width => Width(MozLength::LengthOrPercentageOrAuto(pc.into())),
         MarginTop => pc.into(),
         MarginRight => pc.into(),
         MarginBottom => pc.into(),
@@ -1918,14 +1926,16 @@ pub extern "C" fn Servo_DeclarationBlock_SetAutoValue(declarations:
                                                       RawServoDeclarationBlockBorrowed,
                                                       property: nsCSSPropertyID) {
     use style::properties::{PropertyDeclaration, LonghandId};
+    use style::properties::longhands::height::SpecifiedValue as Height;
+    use style::properties::longhands::width::SpecifiedValue as Width;
     use style::values::specified::LengthOrPercentageOrAuto;
 
     let long = get_longhand_from_id!(property);
     let auto = LengthOrPercentageOrAuto::Auto;
 
     let prop = match_wrap_declared! { long,
-        Height => auto,
-        Width => auto,
+        Height => Height::auto(),
+        Width => Width::auto(),
         MarginTop => auto,
         MarginRight => auto,
         MarginBottom => auto,

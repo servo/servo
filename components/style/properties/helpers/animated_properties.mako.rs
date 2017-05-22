@@ -41,7 +41,7 @@ use values::{Auto, Either, generics};
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{BorderRadiusSize, ClipRect};
 use values::computed::{CalcLengthOrPercentage, Context, LengthOrPercentage};
-use values::computed::{MaxLength, MinLength};
+use values::computed::{MaxLength, MozLength};
 use values::computed::ToComputedValue;
 use values::generics::position as generic_position;
 
@@ -1237,14 +1237,14 @@ impl Animatable for LengthOrPercentageOrNone {
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
-impl Animatable for MinLength {
+impl Animatable for MozLength {
     #[inline]
     fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
         match (*self, *other) {
-            (MinLength::LengthOrPercentage(ref this),
-             MinLength::LengthOrPercentage(ref other)) => {
+            (MozLength::LengthOrPercentageOrAuto(ref this),
+             MozLength::LengthOrPercentageOrAuto(ref other)) => {
                 this.add_weighted(other, self_portion, other_portion)
-                    .map(MinLength::LengthOrPercentage)
+                    .map(MozLength::LengthOrPercentageOrAuto)
             }
             _ => Err(()),
         }
@@ -1253,8 +1253,8 @@ impl Animatable for MinLength {
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         match (*self, *other) {
-            (MinLength::LengthOrPercentage(ref this),
-             MinLength::LengthOrPercentage(ref other)) => {
+            (MozLength::LengthOrPercentageOrAuto(ref this),
+             MozLength::LengthOrPercentageOrAuto(ref other)) => {
                 this.compute_distance(other)
             },
             _ => Err(()),
@@ -1267,10 +1267,10 @@ impl Animatable for MaxLength {
     #[inline]
     fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
         match (*self, *other) {
-            (MaxLength::LengthOrPercentage(ref this),
-             MaxLength::LengthOrPercentage(ref other)) => {
+            (MaxLength::LengthOrPercentageOrNone(ref this),
+             MaxLength::LengthOrPercentageOrNone(ref other)) => {
                 this.add_weighted(other, self_portion, other_portion)
-                    .map(MaxLength::LengthOrPercentage)
+                    .map(MaxLength::LengthOrPercentageOrNone)
             }
             _ => Err(()),
         }
@@ -1279,8 +1279,8 @@ impl Animatable for MaxLength {
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         match (*self, *other) {
-            (MaxLength::LengthOrPercentage(ref this),
-             MaxLength::LengthOrPercentage(ref other)) => {
+            (MaxLength::LengthOrPercentageOrNone(ref this),
+             MaxLength::LengthOrPercentageOrNone(ref other)) => {
                 this.compute_distance(other)
             },
             _ => Err(()),

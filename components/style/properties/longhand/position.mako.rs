@@ -134,125 +134,54 @@ ${helpers.predefined_type("order", "Integer", "0",
                           animation_value_type="ComputedValue",
                           spec="https://drafts.csswg.org/css-flexbox/#order-property")}
 
-// FIXME: Gecko doesn't support content value yet.
-// FIXME: This property should be animatable.
-${helpers.predefined_type("flex-basis",
-                          "LengthOrPercentageOrAuto" if product == "gecko" else
-                          "LengthOrPercentageOrAutoOrContent",
-                          "computed::LengthOrPercentageOrAuto::Auto" if product == "gecko" else
-                          "computed::LengthOrPercentageOrAutoOrContent::Auto",
-                          "parse_non_negative",
-                          spec="https://drafts.csswg.org/css-flexbox/#flex-basis-property",
-                          extra_prefixes="webkit",
-                          animation_value_type="ComputedValue" if product == "gecko" else "none")}
-
+% if product == "gecko":
+    // FIXME: Gecko doesn't support content value yet.
+    ${helpers.gecko_size_type("flex-basis", "MozLength", "auto()",
+                              logical=False,
+                              spec="https://drafts.csswg.org/css-flexbox/#flex-basis-property",
+                              extra_prefixes="webkit",
+                              animation_value_type="ComputedValue")}
+% else:
+    // FIXME: This property should be animatable.
+    ${helpers.predefined_type("flex-basis",
+                              "LengthOrPercentageOrAutoOrContent",
+                              "computed::LengthOrPercentageOrAutoOrContent::Auto",
+                              "parse_non_negative",
+                              spec="https://drafts.csswg.org/css-flexbox/#flex-basis-property",
+                              extra_prefixes="webkit",
+                              animation_value_type="none")}
+% endif
 % for (size, logical) in ALL_SIZES:
     <%
       spec = "https://drafts.csswg.org/css-box/#propdef-%s"
       if logical:
         spec = "https://drafts.csswg.org/css-logical-props/#propdef-%s"
     %>
-    // width, height, block-size, inline-size
-    ${helpers.predefined_type("%s" % size,
-                              "LengthOrPercentageOrAuto",
-                              "computed::LengthOrPercentageOrAuto::Auto",
-                              "parse_non_negative",
-                              spec=spec % size,
-                              allow_quirks=not logical,
-                              animation_value_type="ComputedValue", logical = logical)}
     % if product == "gecko":
-        % for min_max in ["min", "max"]:
-            <%
-                MinMax = min_max.title()
-                initial = "None" if "max" == min_max else "Auto"
-            %>
-
-            // min-width, min-height, min-block-size, min-inline-size,
-            // max-width, max-height, max-block-size, max-inline-size
-            //
-            // Keyword values are only valid in the inline direction; they must
-            // be replaced with auto/none in block.
-            <%helpers:longhand name="${min_max}-${size}" spec="${spec % ('%s-%s' % (min_max, size))}"
-                               animation_value_type="ComputedValue"
-                               logical="${logical}" predefined_type="${MinMax}Length">
-
-                use std::fmt;
-                use style_traits::ToCss;
-                % if not logical:
-                    use values::specified::AllowQuirks;
-                % endif
-                use values::specified::${MinMax}Length;
-
-                pub mod computed_value {
-                    pub type T = ::values::computed::${MinMax}Length;
-                }
-
-                #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
-                #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-                pub struct SpecifiedValue(${MinMax}Length);
-
-                #[inline]
-                pub fn get_initial_value() -> computed_value::T {
-                    use values::computed::${MinMax}Length;
-                    ${MinMax}Length::${initial}
-                }
-                fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-                    % if logical:
-                    let ret = ${MinMax}Length::parse(context, input);
-                    % else:
-                    let ret = ${MinMax}Length::parse_quirky(context, input, AllowQuirks::Yes);
-                    % endif
-                    // Keyword values don't make sense in the block direction; don't parse them
-                    % if "block" in size:
-                        if let Ok(${MinMax}Length::ExtremumLength(..)) = ret {
-                            return Err(())
-                        }
-                    % endif
-                    ret.map(SpecifiedValue)
-                }
-
-                impl ToCss for SpecifiedValue {
-                    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                        self.0.to_css(dest)
-                    }
-                }
-
-                impl ToComputedValue for SpecifiedValue {
-                    type ComputedValue = computed_value::T;
-                    #[inline]
-                    fn to_computed_value(&self, context: &Context) -> computed_value::T {
-                        % if not logical or "block" in size:
-                            use values::computed::${MinMax}Length;
-                        % endif
-                        let computed = self.0.to_computed_value(context);
-
-                        // filter out keyword values in the block direction
-                        % if logical:
-                            % if "block" in size:
-                                if let ${MinMax}Length::ExtremumLength(..) = computed {
-                                    return get_initial_value()
-                                }
-                            % endif
-                        % else:
-                            if let ${MinMax}Length::ExtremumLength(..) = computed {
-                                <% is_height = "true" if "height" in size else "false" %>
-                                if ${is_height} != context.style().writing_mode.is_vertical() {
-                                    return get_initial_value()
-                                }
-                            }
-                        % endif
-                        computed
-                    }
-
-                    #[inline]
-                    fn from_computed_value(computed: &computed_value::T) -> Self {
-                        SpecifiedValue(ToComputedValue::from_computed_value(computed))
-                    }
-                }
-            </%helpers:longhand>
-        % endfor
+        // width, height, block-size, inline-size
+        ${helpers.gecko_size_type("%s" % size, "MozLength", "auto()",
+                                  logical,
+                                  spec=spec % size,
+                                  animation_value_type="ComputedValue")}
+        // min-width, min-height, min-block-size, min-inline-size,
+        // max-width, max-height, max-block-size, max-inline-size
+        ${helpers.gecko_size_type("min-%s" % size, "MozLength", "auto()",
+                                  logical,
+                                  spec=spec % size,
+                                  animation_value_type="ComputedValue")}
+        ${helpers.gecko_size_type("max-%s" % size, "MaxLength", "none()",
+                                  logical,
+                                  spec=spec % size,
+                                  animation_value_type="ComputedValue")}
     % else:
         // servo versions (no keyword support)
+        ${helpers.predefined_type("%s" % size,
+                                  "LengthOrPercentageOrAuto",
+                                  "computed::LengthOrPercentageOrAuto::Auto",
+                                  "parse_non_negative",
+                                  spec=spec % size,
+                                  allow_quirks=not logical,
+                                  animation_value_type="ComputedValue", logical = logical)}
         ${helpers.predefined_type("min-%s" % size,
                                   "LengthOrPercentage",
                                   "computed::LengthOrPercentage::Length(Au(0))",

@@ -1183,45 +1183,41 @@ impl LengthOrNumber {
 }
 
 /// A value suitable for a `min-width` or `min-height` property.
-/// Unlike `max-width` or `max-height` properties, a MinLength can be
+/// Unlike `max-width` or `max-height` properties, a MozLength can be
 /// `auto`, and cannot be `none`.
 #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
-pub enum MinLength {
-    LengthOrPercentage(LengthOrPercentage),
-    Auto,
+pub enum MozLength {
+    LengthOrPercentageOrAuto(LengthOrPercentageOrAuto),
     ExtremumLength(ExtremumLength),
 }
 
-impl ToCss for MinLength {
+impl ToCss for MozLength {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            MinLength::LengthOrPercentage(ref lop) =>
-                lop.to_css(dest),
-            MinLength::Auto =>
-                dest.write_str("auto"),
-            MinLength::ExtremumLength(ref ext) =>
+            MozLength::LengthOrPercentageOrAuto(ref lopoa) =>
+                lopoa.to_css(dest),
+            MozLength::ExtremumLength(ref ext) =>
                 ext.to_css(dest),
         }
     }
 }
 
-impl Parse for MinLength {
+impl Parse for MozLength {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        MinLength::parse_quirky(context, input, AllowQuirks::No)
+        MozLength::parse_quirky(context, input, AllowQuirks::No)
     }
 }
 
-impl MinLength {
+impl MozLength {
     /// Parses, with quirks.
     pub fn parse_quirky(context: &ParserContext,
                         input: &mut Parser,
                         allow_quirks: AllowQuirks) -> Result<Self, ()> {
-        input.try(ExtremumLength::parse).map(MinLength::ExtremumLength)
-            .or_else(|()| input.try(|i| LengthOrPercentage::parse_non_negative_quirky(context, i, allow_quirks))
-                               .map(MinLength::LengthOrPercentage))
-            .or_else(|()| input.expect_ident_matching("auto").map(|()| MinLength::Auto))
+        input.try(ExtremumLength::parse).map(MozLength::ExtremumLength)
+            .or_else(|()| input.try(|i| LengthOrPercentageOrAuto::parse_non_negative_quirky(context, i, allow_quirks))
+                               .map(MozLength::LengthOrPercentageOrAuto))
     }
 }
 
@@ -1230,19 +1226,15 @@ impl MinLength {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub enum MaxLength {
-    LengthOrPercentage(LengthOrPercentage),
-    None,
+    LengthOrPercentageOrNone(LengthOrPercentageOrNone),
     ExtremumLength(ExtremumLength),
 }
-
 
 impl ToCss for MaxLength {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            MaxLength::LengthOrPercentage(ref lop) =>
-                lop.to_css(dest),
-            MaxLength::None =>
-                dest.write_str("none"),
+            MaxLength::LengthOrPercentageOrNone(ref lopon) =>
+                lopon.to_css(dest),
             MaxLength::ExtremumLength(ref ext) =>
                 ext.to_css(dest),
         }
@@ -1261,14 +1253,7 @@ impl MaxLength {
                         input: &mut Parser,
                         allow_quirks: AllowQuirks) -> Result<Self, ()> {
         input.try(ExtremumLength::parse).map(MaxLength::ExtremumLength)
-            .or_else(|()| input.try(|i| LengthOrPercentage::parse_non_negative_quirky(context, i, allow_quirks))
-                               .map(MaxLength::LengthOrPercentage))
-            .or_else(|()| {
-                match_ignore_ascii_case! { &try!(input.expect_ident()),
-                    "none" =>
-                        Ok(MaxLength::None),
-                    _ => Err(())
-                }
-            })
+            .or_else(|()| input.try(|i| LengthOrPercentageOrNone::parse_non_negative_quirky(context, i, allow_quirks))
+                               .map(MaxLength::LengthOrPercentageOrNone))
     }
 }

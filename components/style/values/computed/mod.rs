@@ -32,7 +32,7 @@ pub use super::specified::{BorderStyle, GridLine, Percentage, UrlOrNone};
 pub use super::specified::url::SpecifiedUrl;
 pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
 pub use self::length::{LengthOrPercentageOrAutoOrContent, LengthOrPercentageOrNone, LengthOrNone};
-pub use self::length::{MaxLength, MinLength};
+pub use self::length::{MaxLength, MozLength};
 pub use self::position::Position;
 
 pub mod basic_shape;

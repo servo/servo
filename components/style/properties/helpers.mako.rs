@@ -1067,3 +1067,104 @@
         }
     }
 </%def>
+
+// Define property that supports prefixed intrinsic size keyword values for gecko.
+// E.g. -moz-max-content, -moz-min-content, etc.
+<%def name="gecko_size_type(name, length_type, initial_value, logical, **kwargs)">
+    <%call expr="longhand(name,
+                          predefined_type=length_type,
+                          logical=logical,
+                          **kwargs)">
+        use std::fmt;
+        use style_traits::ToCss;
+        % if not logical:
+            use values::specified::AllowQuirks;
+        % endif
+        use values::specified::${length_type};
+
+        pub mod computed_value {
+            pub type T = ::values::computed::${length_type};
+        }
+
+        #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub struct SpecifiedValue(pub ${length_type});
+
+        % if length_type == "MozLength":
+        impl SpecifiedValue {
+            /// Returns the `auto` value.
+            pub fn auto() -> Self {
+                use values::specified::length::LengthOrPercentageOrAuto;
+                SpecifiedValue(MozLength::LengthOrPercentageOrAuto(LengthOrPercentageOrAuto::Auto))
+            }
+
+            /// Returns a value representing a `0` length.
+            pub fn zero() -> Self {
+                use values::specified::length::{LengthOrPercentageOrAuto, NoCalcLength};
+                SpecifiedValue(MozLength::LengthOrPercentageOrAuto(
+                    LengthOrPercentageOrAuto::Length(NoCalcLength::zero())))
+            }
+        }
+        % endif
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            use values::computed::${length_type};
+            ${length_type}::${initial_value}
+        }
+        fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+            % if logical:
+            let ret = ${length_type}::parse(context, input);
+            % else:
+            let ret = ${length_type}::parse_quirky(context, input, AllowQuirks::Yes);
+            % endif
+            // Keyword values don't make sense in the block direction; don't parse them
+            % if "block" in name:
+                if let Ok(${length_type}::ExtremumLength(..)) = ret {
+                    return Err(())
+                }
+            % endif
+            ret.map(SpecifiedValue)
+        }
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                self.0.to_css(dest)
+            }
+        }
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                % if not logical or "block" in name:
+                    use values::computed::${length_type};
+                % endif
+                let computed = self.0.to_computed_value(context);
+
+                // filter out keyword values in the block direction
+                % if logical:
+                    % if "block" in name:
+                        if let ${length_type}::ExtremumLength(..) = computed {
+                            return get_initial_value()
+                        }
+                    % endif
+                % else:
+                    if let ${length_type}::ExtremumLength(..) = computed {
+                        <% is_height = "true" if "height" in name else "false" %>
+                        if ${is_height} != context.style().writing_mode.is_vertical() {
+                            return get_initial_value()
+                        }
+                    }
+                % endif
+                computed
+            }
+
+            #[inline]
+            fn from_computed_value(computed: &computed_value::T) -> Self {
+                SpecifiedValue(ToComputedValue::from_computed_value(computed))
+            }
+        }
+    </%call>
+</%def>
+

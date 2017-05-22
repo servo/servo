@@ -675,7 +675,7 @@ impl Debug for ${style_struct.gecko_struct_name} {
         "LengthOrNone": impl_style_coord,
         "LengthOrNormal": impl_style_coord,
         "MaxLength": impl_style_coord,
-        "MinLength": impl_style_coord,
+        "MozLength": impl_style_coord,
         "Number": impl_simple,
         "Integer": impl_simple,
         "Opacity": impl_simple,

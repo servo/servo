@@ -78,7 +78,7 @@
                 }
             }
             if basis.is_none() {
-                if let Ok(value) = input.try(|input| longhands::flex_basis::parse(context, input)) {
+                if let Ok(value) = input.try(|input| longhands::flex_basis::parse_specified(context, input)) {
                     basis = Some(value);
                     continue
                 }
