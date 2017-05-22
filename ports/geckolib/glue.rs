@@ -1435,6 +1435,29 @@ pub extern "C" fn Servo_DeclarationBlock_SerializeOneValue(
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_SerializeFontValueForCanvas(
+    declarations: RawServoDeclarationBlockBorrowed,
+    buffer: *mut nsAString) {
+    use style::properties::shorthands::font;
+
+    read_locked_arc(declarations, |decls: &PropertyDeclarationBlock| {
+        let longhands = match font::LonghandsToSerialize::from_iter(decls.declarations_iter()) {
+            Ok(l) => l,
+            Err(()) => {
+                warn!("Unexpected property!");
+                return;
+            }
+        };
+
+        let mut string = String::new();
+        let rv = longhands.to_css_for_canvas(&mut string);
+        debug_assert!(rv.is_ok());
+
+        write!(unsafe { &mut *buffer }, "{}", string).expect("Failed to copy string");
+    })
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_Count(declarations: RawServoDeclarationBlockBorrowed) -> u32 {
     read_locked_arc(declarations, |decls: &PropertyDeclarationBlock| {
         decls.declarations().len() as u32

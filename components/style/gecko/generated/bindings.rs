@@ -2472,6 +2472,11 @@ extern "C" {
      -> ServoComputedValuesStrong;
 }
 extern "C" {
+    pub fn Servo_SerializeFontValueForCanvas(declarations:
+                                                 RawServoDeclarationBlockBorrowed,
+                                             buffer: *mut nsAString);
+}
+extern "C" {
     pub fn Servo_GetStyleFont(computed_values:
                                   ServoComputedValuesBorrowedOrNull)
      -> *const nsStyleFont;
