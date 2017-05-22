@@ -632,7 +632,6 @@ name = "devtools"
 version = "0.0.1"
 dependencies = [
  "devtools_traits 0.0.1",
- "encoding 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.10.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper_serde 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
