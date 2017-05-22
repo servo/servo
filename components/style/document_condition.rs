@@ -20,7 +20,7 @@ use style_traits::ToCss;
 use values::specified::url::SpecifiedUrl;
 
 /// A URL matching function for a `@document` rule's condition.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum UrlMatchingFunction {
     /// Exact URL matching function. It evaluates to true whenever the
     /// URL of the document being styled is exactly the URL given.
@@ -141,7 +141,7 @@ impl ToCss for UrlMatchingFunction {
 /// The `@document` rule's condition is written as a comma-separated list of
 /// URL matching functions, and the condition evaluates to true whenever any
 /// one of those functions evaluates to true.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct DocumentCondition(Vec<UrlMatchingFunction>);
 
 impl DocumentCondition {

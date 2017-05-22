@@ -11,7 +11,7 @@ use std::fmt;
 use style_traits::ToCss;
 use stylesheets::CssRuleType;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 /// An @supports condition
 ///
 /// https://drafts.csswg.org/css-conditional-3/#at-supports
@@ -162,7 +162,7 @@ impl ToCss for SupportsCondition {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 /// A possibly-invalid property declaration
 pub struct Declaration {
     /// The property name
