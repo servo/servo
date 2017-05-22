@@ -1820,9 +1820,8 @@ impl ComputedValues {
     pub fn ineffective_content_property(&self) -> bool {
         use properties::longhands::content::computed_value::T;
         match self.get_counters().content {
-            T::normal |
-            T::none => true,
-            T::Content(ref items) => items.is_empty(),
+            T::Normal | T::None => true,
+            T::Items(ref items) => items.is_empty(),
         }
     }
 
