@@ -2310,15 +2310,6 @@ ${helpers.single_keyword("transform-style",
     }
 </%helpers:longhand>
 
-${helpers.single_keyword("appearance",
-                         "auto none",
-                         gecko_ffi_name="mAppearance",
-                         gecko_constant_prefix="NS_THEME",
-                         products="gecko",
-                         spec="https://drafts.csswg.org/css-ui-4/#appearance-switching",
-                         alias="-webkit-appearance",
-                         animation_value_type="none")}
-
 // Non-standard
 ${helpers.single_keyword("-moz-appearance",
                          """none button button-arrow-down button-arrow-next button-arrow-previous button-arrow-up
@@ -2347,7 +2338,7 @@ ${helpers.single_keyword("-moz-appearance",
                             -moz-window-frame-bottom -moz-window-frame-left -moz-window-frame-right -moz-window-titlebar
                             -moz-window-titlebar-maximized
                          """,
-                         gecko_ffi_name="mMozAppearance",
+                         gecko_ffi_name="mAppearance",
                          gecko_constant_prefix="NS_THEME",
                          products="gecko",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-appearance)",
