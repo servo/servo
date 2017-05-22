@@ -52,6 +52,9 @@ pub struct Pipeline {
     /// The ID of the browsing context that contains this Pipeline.
     pub browsing_context_id: BrowsingContextId,
 
+    /// The ID of the top-level browsing context that contains this Pipeline.
+    pub top_level_browsing_context_id: TopLevelBrowsingContextId,
+
     /// The parent pipeline of this one. `None` if this is a root pipeline.
     /// Note that because of mozbrowser iframes, even top-level pipelines
     /// may have a parent (in which case the frame type will be
@@ -282,6 +285,7 @@ impl Pipeline {
 
         Ok(Pipeline::new(state.id,
                          state.browsing_context_id,
+                         state.top_level_browsing_context_id,
                          state.parent_info,
                          script_chan,
                          pipeline_chan,
@@ -295,6 +299,7 @@ impl Pipeline {
     /// spawned.
     pub fn new(id: PipelineId,
                browsing_context_id: BrowsingContextId,
+               top_level_browsing_context_id: TopLevelBrowsingContextId,
                parent_info: Option<(PipelineId, FrameType)>,
                event_loop: Rc<EventLoop>,
                layout_chan: IpcSender<LayoutControlMsg>,
@@ -306,6 +311,7 @@ impl Pipeline {
         let pipeline = Pipeline {
             id: id,
             browsing_context_id: browsing_context_id,
+            top_level_browsing_context_id: top_level_browsing_context_id,
             parent_info: parent_info,
             event_loop: event_loop,
             layout_chan: layout_chan,
@@ -372,6 +378,7 @@ impl Pipeline {
     pub fn to_sendable(&self) -> CompositionPipeline {
         CompositionPipeline {
             id: self.id.clone(),
+            top_level_browsing_context_id: self.top_level_browsing_context_id.clone(),
             script_chan: self.event_loop.sender(),
             layout_chan: self.layout_chan.clone(),
         }

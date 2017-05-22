@@ -754,10 +754,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         let initial_viewport = self.window_rect.size.to_f32() / dppx;
 
-        let msg = ConstellationMsg::WindowSize(WindowSizeData {
+        let data = WindowSizeData {
             device_pixel_ratio: dppx,
             initial_viewport: initial_viewport,
-        }, size_type);
+        };
+        let top_level_browsing_context_id = match self.root_pipeline {
+            Some(ref pipeline) => pipeline.top_level_browsing_context_id,
+            None => return warn!("Window resize without root pipeline."),
+        };
+        let msg = ConstellationMsg::WindowSize(top_level_browsing_context_id, data, size_type);
 
         if let Err(e) = self.constellation_chan.send(msg) {
             warn!("Sending window resize to constellation failed ({}).", e);
@@ -866,7 +871,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             WindowEvent::Reload => {
-                let msg = ConstellationMsg::Reload;
+                let top_level_browsing_context_id = match self.root_pipeline {
+                    Some(ref pipeline) => pipeline.top_level_browsing_context_id,
+                    None => return warn!("Window reload without root pipeline."),
+                };
+                let msg = ConstellationMsg::Reload(top_level_browsing_context_id);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!("Sending reload to constellation failed ({}).", e);
                 }
@@ -1338,7 +1347,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             windowing::WindowNavigateMsg::Forward => TraversalDirection::Forward(1),
             windowing::WindowNavigateMsg::Back => TraversalDirection::Back(1),
         };
-        let msg = ConstellationMsg::TraverseHistory(None, direction);
+        let top_level_browsing_context_id = match self.root_pipeline {
+            Some(ref pipeline) => pipeline.top_level_browsing_context_id,
+            None => return warn!("Sending navigation to constellation with no root pipeline."),
+        };
+        let msg = ConstellationMsg::TraverseHistory(top_level_browsing_context_id, direction);
         if let Err(e) = self.constellation_chan.send(msg) {
             warn!("Sending navigation to constellation failed ({}).", e);
         }
