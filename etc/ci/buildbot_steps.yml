@@ -38,8 +38,8 @@ mac-nightly:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach build --release
   - ./mach package --release
-  - ./etc/ci/upload_nightly.sh mac
-  - ./etc/ci/upload_nightly.sh macbrew
+  - ./mach upload-nightly mac
+  - ./mach upload-nightly macbrew
 
 linux-rel-intermittent:
   - ./mach clean-nightlies --keep 3 --force
@@ -89,7 +89,7 @@ linux-nightly:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach build --release
   - ./mach package --release
-  - ./etc/ci/upload_nightly.sh linux
+  - ./mach upload-nightly linux
 
 android:
   - ./mach clean-nightlies --keep 3 --force
@@ -103,7 +103,7 @@ android-nightly:
   - ./mach clean-nightlies --keep 3 --force
   - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ANDROID_SDK=/home/servo/android/sdk/r25.2.3 ./mach build --android --release
   - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ANDROID_SDK=/home/servo/android/sdk/r25.2.3 ./mach package --android --release
-  - ./etc/ci/upload_nightly.sh android
+  - ./mach upload-nightly android
 
 arm32:
   - ./mach clean-nightlies --keep 3 --force
@@ -128,4 +128,4 @@ windows-msvc-nightly:
   - mach.bat clean-nightlies --keep 3 --force
   - mach.bat build --release
   - mach.bat package --release
-  - bash -l ./etc/ci/upload_nightly.sh windows-msvc
+  - mach.bat upload-nightly windows-msvc
