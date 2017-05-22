@@ -12,8 +12,7 @@ use cssparser::{self, Parser, Token};
 use euclid::size::Size2D;
 use itoa;
 use parser::{ParserContext, Parse};
-use self::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
-use self::grid::{TrackList as GenericTrackList, TrackSizeOrRepeat};
+use self::grid::TrackSizeOrRepeat;
 use self::url::SpecifiedUrl;
 use std::ascii::AsciiExt;
 use std::f32;
@@ -25,12 +24,14 @@ use super::{Auto, CSSFloat, CSSInteger, Either, None_};
 use super::computed::{self, Context};
 use super::computed::{Shadow as ComputedShadow, ToComputedValue};
 use super::generics::BorderRadiusSize as GenericBorderRadiusSize;
+use super::generics::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
+use super::generics::grid::TrackList as GenericTrackList;
 use values::specified::calc::CalcNode;
 
 #[cfg(feature = "gecko")]
 pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
 pub use self::color::Color;
-pub use self::grid::{GridLine, TrackKeyword};
+pub use super::generics::grid::GridLine;
 pub use self::image::{ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use self::image::{GradientItem, GradientKind, Image, ImageRect, ImageLayer};
 pub use self::length::AbsoluteLength;

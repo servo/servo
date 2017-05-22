@@ -18,9 +18,9 @@ use std::fmt;
 use style_traits::ToCss;
 use super::{CSSFloat, CSSInteger, RGBA};
 use super::generics::BorderRadiusSize as GenericBorderRadiusSize;
+use super::generics::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
+use super::generics::grid::TrackList as GenericTrackList;
 use super::specified;
-use super::specified::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
-use super::specified::grid::TrackList as GenericTrackList;
 
 pub use app_units::Au;
 pub use cssparser::Color as CSSColor;
@@ -28,7 +28,8 @@ pub use self::image::{Gradient, GradientItem, ImageLayer, LineDirection, Image, 
 pub use super::{Auto, Either, None_};
 #[cfg(feature = "gecko")]
 pub use super::specified::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
-pub use super::specified::{BorderStyle, GridLine, Percentage, UrlOrNone};
+pub use super::specified::{BorderStyle, Percentage, UrlOrNone};
+pub use super::generics::grid::GridLine;
 pub use super::specified::url::SpecifiedUrl;
 pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
 pub use self::length::{LengthOrPercentageOrAutoOrContent, LengthOrPercentageOrNone, LengthOrNone};

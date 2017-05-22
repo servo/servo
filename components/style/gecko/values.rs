@@ -17,8 +17,8 @@ use values::computed::{LengthOrPercentageOrNone, Number, NumberOrPercentage};
 use values::computed::{MaxLength, MozLength};
 use values::computed::basic_shape::ShapeRadius as ComputedShapeRadius;
 use values::generics::basic_shape::ShapeRadius;
+use values::generics::grid::{TrackBreadth, TrackKeyword};
 use values::specified::Percentage;
-use values::specified::grid::{TrackBreadth, TrackKeyword};
 
 /// A trait that defines an interface to convert from and to `nsStyleCoord`s.
 pub trait GeckoStyleCoordConvertible : Sized {
