@@ -100,7 +100,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use js::jsapi::JS_GetRuntime;
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
-use msg::constellation_msg::{BrowsingContextId, Key, KeyModifiers, KeyState};
+use msg::constellation_msg::{BrowsingContextId, Key, KeyModifiers, KeyState, TopLevelBrowsingContextId};
 use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
@@ -1899,7 +1899,21 @@ impl Document {
     /// Find an iframe element in the document.
     pub fn find_iframe(&self, browsing_context_id: BrowsingContextId) -> Option<Root<HTMLIFrameElement>> {
         self.iter_iframes()
-            .find(|node| node.browsing_context_id() == browsing_context_id)
+            .find(|node| node.browsing_context_id() == Some(browsing_context_id))
+    }
+
+    /// Find a mozbrowser iframe element in the document.
+    pub fn find_mozbrowser_iframe(&self,
+                                  top_level_browsing_context_id: TopLevelBrowsingContextId)
+                                  -> Option<Root<HTMLIFrameElement>>
+    {
+        match self.find_iframe(BrowsingContextId::from(top_level_browsing_context_id)) {
+            None => None,
+            Some(iframe) => {
+                assert!(iframe.Mozbrowser());
+                Some(iframe)
+            },
+        }
     }
 
     pub fn get_dom_loading(&self) -> u64 {

@@ -58,7 +58,7 @@ use js::glue::{CallObjectTracer, CallValueTracer};
 use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSTracer, TraceKind};
 use js::jsval::JSVal;
 use js::rust::Runtime;
-use msg::constellation_msg::{BrowsingContextId, FrameType, PipelineId};
+use msg::constellation_msg::{BrowsingContextId, FrameType, PipelineId, TopLevelBrowsingContextId};
 use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
 use net_traits::filemanager_thread::RelativePos;
 use net_traits::image::base::{Image, ImageMetadata};
@@ -336,7 +336,8 @@ unsafe_no_jsmanaged_fields!(TrustedPromise);
 unsafe_no_jsmanaged_fields!(PropertyDeclarationBlock);
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs
-unsafe_no_jsmanaged_fields!(DocumentActivity, BrowsingContextId, FrameType, WindowSizeData, WindowSizeType, PipelineId);
+unsafe_no_jsmanaged_fields!(DocumentActivity, WindowSizeData, WindowSizeType);
+unsafe_no_jsmanaged_fields!(BrowsingContextId, FrameType, PipelineId, TopLevelBrowsingContextId);
 unsafe_no_jsmanaged_fields!(TimerEventId, TimerSource);
 unsafe_no_jsmanaged_fields!(TimelineMarkerType);
 unsafe_no_jsmanaged_fields!(WorkerId);

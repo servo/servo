@@ -27,7 +27,7 @@ use js::jsapi::{HandleValue, JS_SetInterruptCallback};
 use js::jsapi::{JSAutoCompartment, JSContext};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
-use msg::constellation_msg::BrowsingContextId;
+use msg::constellation_msg::TopLevelBrowsingContextId;
 use net_traits::{IpcSend, load_whole_resource};
 use net_traits::request::{CredentialsMode, Destination, RequestInit, Type as RequestType};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, StackRootTLS, get_reports, new_rt_and_cx};
@@ -159,13 +159,13 @@ impl DedicatedWorkerGlobalScope {
                             closing: Arc<AtomicBool>) {
         let serialized_worker_url = worker_url.to_string();
         let name = format!("WebWorker for {}", serialized_worker_url);
-        let top_level_browsing_context_id = BrowsingContextId::installed();
+        let top_level_browsing_context_id = TopLevelBrowsingContextId::installed();
 
         thread::Builder::new().name(name).spawn(move || {
             thread_state::initialize(thread_state::SCRIPT | thread_state::IN_WORKER);
 
             if let Some(top_level_browsing_context_id) = top_level_browsing_context_id {
-                BrowsingContextId::install(top_level_browsing_context_id);
+                TopLevelBrowsingContextId::install(top_level_browsing_context_id);
             }
 
             let roots = RootCollection::new();
