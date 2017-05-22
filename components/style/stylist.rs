@@ -174,7 +174,7 @@ pub struct ExtraStyleData<'a> {
     /// A list of effective font-face rules and their origin.
     pub font_faces: &'a mut Vec<(Arc<Locked<FontFaceRule>>, Origin)>,
     /// A map of effective counter-style rules.
-    pub counter_styles: &'a mut HashMap<Atom, Arc<Locked<CounterStyleRule>>>,
+    pub counter_styles: &'a mut FnvHashMap<Atom, Arc<Locked<CounterStyleRule>>>,
 }
 
 #[cfg(feature = "gecko")]

@@ -5,20 +5,16 @@
 //! Data needed to style a Gecko document.
 
 use Atom;
-use animation::Animation;
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
-use dom::OpaqueNode;
+use fnv::FnvHashMap;
 use gecko::rules::{CounterStyleRule, FontFaceRule};
 use gecko_bindings::bindings::RawServoStyleSet;
 use gecko_bindings::structs::RawGeckoPresContextOwned;
 use gecko_bindings::structs::nsIDocument;
 use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use media_queries::Device;
-use parking_lot::RwLock;
 use properties::ComputedValues;
 use shared_lock::{Locked, StylesheetGuards, SharedRwLockReadGuard};
-use std::collections::HashMap;
-use std::sync::mpsc::{Receiver, Sender, channel};
 use stylearc::Arc;
 use stylesheet_set::StylesheetSet;
 use stylesheets::Origin;
@@ -33,24 +29,11 @@ pub struct PerDocumentStyleDataImpl {
     /// List of stylesheets, mirrored from Gecko.
     pub stylesheets: StylesheetSet,
 
-    // FIXME(bholley): Hook these up to something.
-    /// Unused. Will go away when we actually implement transitions and
-    /// animations properly.
-    pub new_animations_sender: Sender<Animation>,
-    /// Unused. Will go away when we actually implement transitions and
-    /// animations properly.
-    pub new_animations_receiver: Receiver<Animation>,
-    /// Unused. Will go away when we actually implement transitions and
-    /// animations properly.
-    pub running_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
-    /// Unused. Will go away when we actually implement transitions and
-    /// animations properly.
-    pub expired_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
-
     /// List of effective font face rules.
     pub font_faces: Vec<(Arc<Locked<FontFaceRule>>, Origin)>,
+
     /// Map for effective counter style rules.
-    pub counter_styles: HashMap<Atom, Arc<Locked<CounterStyleRule>>>,
+    pub counter_styles: FnvHashMap<Atom, Arc<Locked<CounterStyleRule>>>,
 }
 
 /// The data itself is an `AtomicRefCell`, which guarantees the proper semantics
@@ -65,17 +48,11 @@ impl PerDocumentStyleData {
             (*(*device.pres_context).mDocument.raw::<nsIDocument>()).mCompatMode
         };
 
-        let (new_anims_sender, new_anims_receiver) = channel();
-
         PerDocumentStyleData(AtomicRefCell::new(PerDocumentStyleDataImpl {
             stylist: Stylist::new(device, quirks_mode.into()),
             stylesheets: StylesheetSet::new(),
-            new_animations_sender: new_anims_sender,
-            new_animations_receiver: new_anims_receiver,
-            running_animations: Arc::new(RwLock::new(HashMap::new())),
-            expired_animations: Arc::new(RwLock::new(HashMap::new())),
             font_faces: vec![],
-            counter_styles: HashMap::new(),
+            counter_styles: FnvHashMap::default(),
         }))
     }
 
