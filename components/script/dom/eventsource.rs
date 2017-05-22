@@ -16,8 +16,6 @@ use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::messageevent::MessageEvent;
 use dom_struct::dom_struct;
-use encoding::Encoding;
-use encoding::all::UTF_8;
 use euclid::length::Length;
 use hyper::header::{Accept, qitem};
 use ipc_channel::ipc;
@@ -39,6 +37,7 @@ use std::str::{Chars, FromStr};
 use std::sync::{Arc, Mutex};
 use task_source::TaskSource;
 use timers::OneshotTimerCallback;
+use utf8;
 
 header! { (LastEventId, "Last-Event-ID") => [String] }
 
@@ -76,6 +75,8 @@ enum ParserState {
 }
 
 struct EventSourceContext {
+    incomplete_utf8: Option<utf8::Incomplete>,
+
     event_source: Trusted<EventSource>,
     gen_id: GenerationId,
     action_sender: ipc::IpcSender<FetchResponseMsg>,
@@ -293,12 +294,41 @@ impl FetchResponseListener for EventSourceContext {
     }
 
     fn process_response_chunk(&mut self, chunk: Vec<u8>) {
-        let mut stream = String::new();
-        UTF_8.raw_decoder().raw_feed(&chunk, &mut stream);
-        self.parse(stream.chars())
+        let mut input = &*chunk;
+        if let Some(mut incomplete) = self.incomplete_utf8.take() {
+            match incomplete.try_complete(input) {
+                None => return,
+                Some((result, remaining_input)) => {
+                    self.parse(result.unwrap_or("\u{FFFD}").chars());
+                    input = remaining_input;
+                }
+            }
+        }
+
+        while !input.is_empty() {
+            match utf8::decode(&input) {
+                Ok(s) => {
+                    self.parse(s.chars());
+                    return
+                }
+                Err(utf8::DecodeError::Invalid { valid_prefix, remaining_input, .. }) => {
+                    self.parse(valid_prefix.chars());
+                    self.parse("\u{FFFD}".chars());
+                    input = remaining_input;
+                }
+                Err(utf8::DecodeError::Incomplete { valid_prefix, incomplete_suffix }) => {
+                    self.parse(valid_prefix.chars());
+                    self.incomplete_utf8 = Some(incomplete_suffix);
+                    return
+                }
+            }
+        }
     }
 
     fn process_response_eof(&mut self, _response: Result<(), NetworkError>) {
+        if let Some(_) = self.incomplete_utf8.take() {
+            self.parse("\u{FFFD}".chars());
+        }
         self.reestablish_the_connection();
     }
 }
@@ -378,6 +408,8 @@ impl EventSource {
         // Step 14
         let (action_sender, action_receiver) = ipc::channel().unwrap();
         let context = EventSourceContext {
+            incomplete_utf8: None,
+
             event_source: Trusted::new(&ev),
             gen_id: ev.generation_id.get(),
             action_sender: action_sender.clone(),
