@@ -131,7 +131,7 @@ use std::rc::Rc;
 use std::time::{Duration, Instant};
 use style::attr::AttrValue;
 use style::context::{QuirksMode, ReflowGoal};
-use style::restyle_hints::{RestyleHint, RestyleReplacements, RESTYLE_STYLE_ATTRIBUTE};
+use style::restyle_hints::{RestyleHint, RESTYLE_STYLE_ATTRIBUTE};
 use style::selector_parser::{RestyleDamage, Snapshot};
 use style::shared_lock::SharedRwLock as StyleSharedRwLock;
 use style::str::{HTML_SPACE_CHARACTERS, split_html_space_chars, str_join};
