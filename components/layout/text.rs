@@ -28,7 +28,7 @@ use style::computed_values::{word_break, white_space};
 use style::logical_geometry::{LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
 use style::properties::style_structs;
-use unicode_bidi::{is_rtl, process_text};
+use unicode_bidi as bidi;
 use unicode_script::{Script, get_script};
 
 /// Returns the concatenated text of a list of unscanned text fragments.
@@ -74,10 +74,10 @@ impl TextRunScanner {
         // Calculate bidi embedding levels, so we can split bidirectional fragments for reordering.
         let text = text(&fragments);
         let para_level = fragments.front().unwrap().style.writing_mode.to_bidi_level();
-        let bidi_info = process_text(&text, Some(para_level));
+        let bidi_info = bidi::BidiInfo::new(&text, Some(para_level));
 
         // Optimization: If all the text is LTR, don't bother splitting on bidi levels.
-        let bidi_levels = if bidi_info.levels.iter().cloned().any(is_rtl) {
+        let bidi_levels = if bidi_info.has_rtl() {
             Some(&bidi_info.levels[..])
         } else {
             None
@@ -126,7 +126,7 @@ impl TextRunScanner {
                            font_context: &mut FontContext,
                            out_fragments: &mut Vec<Fragment>,
                            paragraph_bytes_processed: &mut usize,
-                           bidi_levels: Option<&[u8]>,
+                           bidi_levels: Option<&[bidi::Level]>,
                            mut last_whitespace: bool)
                            -> bool {
         debug!("TextRunScanner: flushing {} fragments in range", self.clump.len());
@@ -211,7 +211,7 @@ impl TextRunScanner {
 
                     let bidi_level = match bidi_levels {
                         Some(levels) => levels[*paragraph_bytes_processed],
-                        None => 0
+                        None => bidi::Level::ltr(),
                     };
 
                     // Break the run if the new character has a different explicit script than the
@@ -310,7 +310,7 @@ impl TextRunScanner {
             run_info_list.into_iter().map(|run_info| {
                 let mut options = options;
                 options.script = run_info.script;
-                if is_rtl(run_info.bidi_level) {
+                if run_info.bidi_level.is_rtl() {
                     options.flags.insert(RTL_FLAG);
                 }
                 let mut font = fontgroup.fonts.get(run_info.font_index).unwrap().borrow_mut();
@@ -522,7 +522,7 @@ struct RunInfo {
     /// The index of the applicable font in the font group.
     font_index: usize,
     /// The bidirection embedding level of this text run.
-    bidi_level: u8,
+    bidi_level: bidi::Level,
     /// The Unicode script property of this text run.
     script: Script,
 }
@@ -533,7 +533,7 @@ impl RunInfo {
             text: String::new(),
             insertion_point: None,
             font_index: 0,
-            bidi_level: 0,
+            bidi_level: bidi::Level::ltr(),
             script: Script::Common,
         }
     }

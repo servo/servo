@@ -83,6 +83,7 @@ extern crate style_derive;
 #[macro_use]
 extern crate style_traits;
 extern crate time;
+extern crate unicode_bidi;
 #[allow(unused_extern_crates)]
 extern crate unicode_segmentation;
 

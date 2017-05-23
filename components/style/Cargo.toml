@@ -67,6 +67,7 @@ style_derive = {path = "../style_derive"}
 style_traits = {path = "../style_traits"}
 servo_url = {path = "../url", optional = true}
 time = "0.1"
+unicode-bidi = {version = "0.3", features = ["with_serde"]}
 unicode-segmentation = "1.0"
 
 [target.'cfg(windows)'.dependencies]

@@ -69,6 +69,7 @@ extern crate smallvec;
 extern crate style;
 extern crate style_traits;
 extern crate time;
+extern crate unicode_bidi;
 extern crate unicode_script;
 extern crate webrender_traits;
 extern crate xi_unicode;
