@@ -68,6 +68,7 @@ use style::gecko_bindings::structs::{RawServoStyleRule, ServoStyleSheet};
 use style::gecko_bindings::structs::{SheetParsingMode, nsIAtom, nsCSSPropertyID};
 use style::gecko_bindings::structs::{nsCSSFontFaceRule, nsCSSCounterStyleRule};
 use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint};
+use style::gecko_bindings::structs::IterationCompositeOperation;
 use style::gecko_bindings::structs::Loader;
 use style::gecko_bindings::structs::RawGeckoPresContextOwned;
 use style::gecko_bindings::structs::ServoElementSnapshotTable;
@@ -332,7 +333,9 @@ pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMa
                                          base_values: *mut ::std::os::raw::c_void,
                                          css_property: nsCSSPropertyID,
                                          segment: RawGeckoAnimationPropertySegmentBorrowed,
-                                         computed_timing: RawGeckoComputedTimingBorrowed)
+                                         last_segment: RawGeckoAnimationPropertySegmentBorrowed,
+                                         computed_timing: RawGeckoComputedTimingBorrowed,
+                                         iteration_composite: IterationCompositeOperation)
 {
     use style::gecko_bindings::bindings::Gecko_AnimationGetBaseStyle;
     use style::gecko_bindings::bindings::Gecko_GetPositionInSegment;
@@ -342,10 +345,16 @@ pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMa
     let property: TransitionProperty = css_property.into();
     let value_map = AnimationValueMap::from_ffi_mut(raw_value_map);
 
+    // We will need an underlying value if either of the endpoints is null...
     let need_underlying_value = segment.mFromValue.mServo.mRawPtr.is_null() ||
                                 segment.mToValue.mServo.mRawPtr.is_null() ||
+                                // ... or if they have a non-replace composite mode ...
                                 segment.mFromComposite != CompositeOperation::Replace ||
-                                segment.mToComposite != CompositeOperation::Replace;
+                                segment.mToComposite != CompositeOperation::Replace ||
+                                // ... or if we accumulate onto the last value and it is null.
+                                (iteration_composite == IterationCompositeOperation::Accumulate &&
+                                 computed_timing.mCurrentIteration > 0 &&
+                                 last_segment.mToValue.mServo.mRawPtr.is_null());
 
     // If either of the segment endpoints are null, get the underlying value to
     // use from the current value in the values map (set by a lower-priority
@@ -410,13 +419,46 @@ pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMa
             },
         }
     };
-    let composited_from_value = composite_endpoint(keyframe_from_value, segment.mFromComposite);
-    let composited_to_value = composite_endpoint(keyframe_to_value, segment.mToComposite);
+    let mut composited_from_value = composite_endpoint(keyframe_from_value, segment.mFromComposite);
+    let mut composited_to_value = composite_endpoint(keyframe_to_value, segment.mToComposite);
 
     debug_assert!(keyframe_from_value.is_some() || composited_from_value.is_some(),
                   "Should have a suitable from value to use");
     debug_assert!(keyframe_to_value.is_some() || composited_to_value.is_some(),
                   "Should have a suitable to value to use");
+
+    // Apply iteration composite behavior.
+    if iteration_composite == IterationCompositeOperation::Accumulate &&
+       computed_timing.mCurrentIteration > 0 {
+        let raw_last_value;
+        let last_value = if !last_segment.mToValue.mServo.mRawPtr.is_null() {
+            raw_last_value = unsafe { &*last_segment.mToValue.mServo.mRawPtr };
+            AnimationValue::as_arc(&raw_last_value).as_ref()
+        } else {
+            debug_assert!(need_underlying_value,
+                          "Should have detected we need an underlying value");
+            underlying_value.as_ref().unwrap()
+        };
+
+        // As with composite_endpoint, a return value of None means, "Use keyframe_value as-is."
+        let apply_iteration_composite = |keyframe_value: Option<&Arc<AnimationValue>>,
+                                         composited_value: Option<AnimationValue>|
+                                        -> Option<AnimationValue> {
+            let count = computed_timing.mCurrentIteration;
+            match composited_value {
+                Some(endpoint) => last_value.accumulate(&endpoint, count)
+                                            .ok()
+                                            .or(Some(endpoint)),
+                None => last_value.accumulate(keyframe_value.unwrap(), count)
+                                  .ok(),
+            }
+        };
+
+        composited_from_value = apply_iteration_composite(keyframe_from_value,
+                                                          composited_from_value);
+        composited_to_value = apply_iteration_composite(keyframe_to_value,
+                                                        composited_to_value);
+    }
 
     // Use the composited value if there is one, otherwise, use the original keyframe value.
     let from_value = composited_from_value.as_ref().unwrap_or_else(|| keyframe_from_value.unwrap());

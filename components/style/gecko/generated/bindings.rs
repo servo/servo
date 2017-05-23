@@ -36,6 +36,7 @@ use gecko_bindings::structs::FontFamilyList;
 use gecko_bindings::structs::FontFamilyType;
 use gecko_bindings::structs::FontSizePrefs;
 use gecko_bindings::structs::GeckoFontMetrics;
+use gecko_bindings::structs::IterationCompositeOperation;
 use gecko_bindings::structs::Keyframe;
 use gecko_bindings::structs::ServoBundledURI;
 use gecko_bindings::structs::ServoElementSnapshot;
@@ -2261,8 +2262,12 @@ extern "C" {
                                   property: nsCSSPropertyID,
                                   animation_segment:
                                       RawGeckoAnimationPropertySegmentBorrowed,
+                                  last_segment:
+                                      RawGeckoAnimationPropertySegmentBorrowed,
                                   computed_timing:
-                                      RawGeckoComputedTimingBorrowed);
+                                      RawGeckoComputedTimingBorrowed,
+                                  iteration_composite:
+                                      IterationCompositeOperation);
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_PropertyIsSet(declarations:
