@@ -397,6 +397,13 @@ ${helpers.predefined_type("object-position",
             while let Ok(string) = input.try(Parser::expect_string) {
                 strings.push(string.into_owned().into_boxed_str());
             }
+
+            TemplateAreas::from_vec(strings)
+        }
+    }
+
+    impl TemplateAreas {
+        pub fn from_vec(strings: Vec<Box<str>>) -> Result<TemplateAreas, ()> {
             if strings.is_empty() {
                 return Err(());
             }

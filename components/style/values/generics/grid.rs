@@ -306,8 +306,10 @@ impl<L: ToComputedValue> ToComputedValue for TrackSize<L> {
     }
 }
 
-fn concat_serialize_idents<W>(prefix: &str, suffix: &str,
-                              slice: &[String], sep: &str, dest: &mut W) -> fmt::Result
+/// Helper function for serializing identifiers with a prefix and suffix, used
+/// for serializing <line-names> (in grid).
+pub fn concat_serialize_idents<W>(prefix: &str, suffix: &str,
+                                  slice: &[String], sep: &str, dest: &mut W) -> fmt::Result
     where W: fmt::Write
 {
     if let Some((ref first, rest)) = slice.split_first() {
