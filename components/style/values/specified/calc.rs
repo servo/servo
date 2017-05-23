@@ -235,9 +235,9 @@ impl CalcNode {
     ///
     /// This should parse correctly:
     ///
-    ///     * `2`
-    ///     * `2 * 2`
-    ///     * `2 * 2 + 2` (but will leave the `+ 2` unparsed).
+    /// * `2`
+    /// * `2 * 2`
+    /// * `2 * 2 + 2` (but will leave the `+ 2` unparsed).
     ///
     fn parse_product(
         context: &ParserContext,
