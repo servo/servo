@@ -24,7 +24,7 @@ use super::specified;
 
 pub use app_units::Au;
 pub use cssparser::Color as CSSColor;
-pub use self::border::{BorderImageWidth, BorderImageWidthSide};
+pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageWidthSide};
 pub use self::image::{Gradient, GradientItem, ImageLayer, LineDirection, Image, ImageRect};
 pub use self::rect::LengthOrNumberRect;
 pub use super::{Auto, Either, None_};
