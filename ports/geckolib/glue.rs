@@ -372,9 +372,13 @@ pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMa
     let from_value = if !segment.mFromValue.mServo.mRawPtr.is_null() {
         raw_from_value = unsafe { &*segment.mFromValue.mServo.mRawPtr };
         match segment.mFromComposite {
-            CompositeOperation::Add => {
+            CompositeOperation::Add | CompositeOperation::Accumulate => {
                 let value_to_composite = AnimationValue::as_arc(&raw_from_value).as_ref();
-                from_composite_result = underlying_value.as_ref().unwrap().add(value_to_composite);
+                from_composite_result = if segment.mFromComposite == CompositeOperation::Add {
+                    underlying_value.as_ref().unwrap().add(value_to_composite)
+                } else {
+                    underlying_value.as_ref().unwrap().accumulate(value_to_composite, 1)
+                };
                 from_composite_result.as_ref().unwrap_or(value_to_composite)
             }
             _ => { AnimationValue::as_arc(&raw_from_value) }
@@ -388,9 +392,13 @@ pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMa
     let to_value = if !segment.mToValue.mServo.mRawPtr.is_null() {
         raw_to_value = unsafe { &*segment.mToValue.mServo.mRawPtr };
         match segment.mToComposite {
-            CompositeOperation::Add => {
+            CompositeOperation::Add | CompositeOperation::Accumulate => {
                 let value_to_composite = AnimationValue::as_arc(&raw_to_value).as_ref();
-                to_composite_result = underlying_value.as_ref().unwrap().add(value_to_composite);
+                to_composite_result = if segment.mToComposite == CompositeOperation::Add {
+                    underlying_value.as_ref().unwrap().add(value_to_composite)
+                } else {
+                    underlying_value.as_ref().unwrap().accumulate(value_to_composite, 1)
+                };
                 to_composite_result.as_ref().unwrap_or(value_to_composite)
             }
             _ => { AnimationValue::as_arc(&raw_to_value) }
