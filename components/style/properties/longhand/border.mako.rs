@@ -200,109 +200,13 @@ ${helpers.predefined_type("border-image-source", "ImageLayer",
     has_uncacheable_values=False,
     boxed="True")}
 
-<%helpers:longhand name="border-image-outset" animation_value_type="none"
-                   spec="https://drafts.csswg.org/css-backgrounds/#border-image-outset">
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::specified::{LengthOrNumber, Number};
-
-    pub mod computed_value {
-        use values::computed::LengthOrNumber;
-        #[derive(Debug, Clone, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub LengthOrNumber, pub LengthOrNumber,
-                     pub LengthOrNumber, pub LengthOrNumber);
-    }
-
-    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedValue(pub Vec<LengthOrNumber>);
-
-    impl ToCss for computed_value::T {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            try!(self.0.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(self.1.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(self.2.to_css(dest));
-            try!(dest.write_str(" "));
-            self.3.to_css(dest)
-        }
-    }
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            try!(self.0[0].to_css(dest));
-            for value in self.0.iter().skip(1) {
-                try!(dest.write_str(" "));
-                try!(value.to_css(dest));
-            }
-            Ok(())
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(Either::Second(0.0), Either::Second(0.0),
-                          Either::Second(0.0), Either::Second(0.0))
-    }
-
-    #[inline]
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue(vec![Either::Second(Number::new(0.0))])
-    }
-
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            let length = self.0.len();
-            match length {
-                4 => computed_value::T(self.0[0].to_computed_value(context),
-                                       self.0[1].to_computed_value(context),
-                                       self.0[2].to_computed_value(context),
-                                       self.0[3].to_computed_value(context)),
-                3 => computed_value::T(self.0[0].to_computed_value(context),
-                                       self.0[1].to_computed_value(context),
-                                       self.0[2].to_computed_value(context),
-                                       self.0[1].to_computed_value(context)),
-                2 => computed_value::T(self.0[0].to_computed_value(context),
-                                       self.0[1].to_computed_value(context),
-                                       self.0[0].to_computed_value(context),
-                                       self.0[1].to_computed_value(context)),
-                1 => computed_value::T(self.0[0].to_computed_value(context),
-                                       self.0[0].to_computed_value(context),
-                                       self.0[0].to_computed_value(context),
-                                       self.0[0].to_computed_value(context)),
-                _ => unreachable!(),
-            }
-        }
-        #[inline]
-        fn from_computed_value(computed: &computed_value::T) -> Self {
-            SpecifiedValue(vec![ToComputedValue::from_computed_value(&computed.0),
-                                ToComputedValue::from_computed_value(&computed.1),
-                                ToComputedValue::from_computed_value(&computed.2),
-                                ToComputedValue::from_computed_value(&computed.3)])
-        }
-    }
-
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        let mut values = vec![];
-        for _ in 0..4 {
-            let value = input.try(|input| LengthOrNumber::parse_non_negative(context, input));
-            match value {
-                Ok(val) => values.push(val),
-                Err(_) => break,
-            }
-        }
-
-        if values.len() > 0 {
-            Ok(SpecifiedValue(values))
-        } else {
-            Err(())
-        }
-    }
-</%helpers:longhand>
+${helpers.predefined_type("border-image-outset", "LengthOrNumberRect",
+    parse_method="parse_non_negative",
+    initial_value="computed::LengthOrNumber::zero().into()",
+    initial_specified_value="specified::LengthOrNumber::zero().into()",
+    spec="https://drafts.csswg.org/css-backgrounds/#border-image-outset",
+    animation_value_type="none",
+    boxed=True)}
 
 <%helpers:longhand name="border-image-repeat" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-repeat">

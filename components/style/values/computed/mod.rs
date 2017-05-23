@@ -25,6 +25,7 @@ use super::specified;
 pub use app_units::Au;
 pub use cssparser::Color as CSSColor;
 pub use self::image::{Gradient, GradientItem, ImageLayer, LineDirection, Image, ImageRect};
+pub use self::rect::LengthOrNumberRect;
 pub use super::{Auto, Either, None_};
 #[cfg(feature = "gecko")]
 pub use super::specified::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
@@ -40,6 +41,7 @@ pub mod basic_shape;
 pub mod image;
 pub mod length;
 pub mod position;
+pub mod rect;
 
 /// A `Context` is all the data a specified value could ever need to compute
 /// itself and be transformed to a computed value.

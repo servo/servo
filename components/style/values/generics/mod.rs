@@ -19,6 +19,7 @@ pub mod basic_shape;
 pub mod grid;
 pub mod image;
 pub mod position;
+pub mod rect;
 
 #[derive(Clone, Debug, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
