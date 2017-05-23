@@ -366,7 +366,7 @@ pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMa
         return;
     }
 
-    // Temporaries used in the following if-block whose lifetimes we need to prlong.
+    // Temporaries used in the following if-block whose lifetimes we need to prolong.
     let raw_from_value;
     let from_composite_result;
     let from_value = if !segment.mFromValue.mServo.mRawPtr.is_null() {
