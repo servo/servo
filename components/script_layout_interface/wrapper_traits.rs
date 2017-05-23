@@ -8,7 +8,7 @@ use HTMLCanvasData;
 use LayoutNodeType;
 use OpaqueStyleAndLayoutData;
 use SVGSVGData;
-use atomic_refcell::AtomicRefCell;
+use atomic_refcell::AtomicRef;
 use gfx_traits::{ByteIndex, FragmentType, combine_id_with_fragment_type};
 use html5ever::{Namespace, LocalName};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
@@ -338,18 +338,14 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
 
     fn get_attr_enum(&self, namespace: &Namespace, name: &LocalName) -> Option<&AttrValue>;
 
-    fn get_style_data(&self) -> Option<&AtomicRefCell<ElementData>>;
+    fn style_data(&self) -> AtomicRef<ElementData>;
 
     #[inline]
     fn get_pseudo_element_type(&self) -> PseudoElementType<Option<display::T>>;
 
     #[inline]
     fn get_before_pseudo(&self) -> Option<Self> {
-        if self.get_style_data()
-               .unwrap()
-               .borrow()
-               .styles().pseudos
-               .has(&PseudoElement::Before) {
+        if self.style_data().styles().pseudos.has(&PseudoElement::Before) {
             Some(self.with_pseudo(PseudoElementType::Before(None)))
         } else {
             None
@@ -358,11 +354,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
 
     #[inline]
     fn get_after_pseudo(&self) -> Option<Self> {
-        if self.get_style_data()
-               .unwrap()
-               .borrow()
-               .styles().pseudos
-               .has(&PseudoElement::After) {
+        if self.style_data().styles().pseudos.has(&PseudoElement::After) {
             Some(self.with_pseudo(PseudoElementType::After(None)))
         } else {
             None
@@ -400,50 +392,41 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
     /// Unlike the version on TNode, this handles pseudo-elements.
     #[inline]
     fn style(&self, context: &SharedStyleContext) -> Arc<ServoComputedValues> {
+        let data = self.style_data();
         match self.get_pseudo_element_type() {
-            PseudoElementType::Normal => self.get_style_data().unwrap().borrow()
-                                             .styles().primary.values().clone(),
+            PseudoElementType::Normal => {
+                data.styles().primary.values().clone()
+            },
             other => {
                 // Precompute non-eagerly-cascaded pseudo-element styles if not
                 // cached before.
                 let style_pseudo = other.style_pseudo_element();
-                let mut data = self.get_style_data().unwrap().borrow_mut();
                 match style_pseudo.cascade_type() {
                     // Already computed during the cascade.
                     PseudoElementCascadeType::Eager => {
-                        data.styles().pseudos.get(&style_pseudo)
+                        self.style_data()
+                            .styles().pseudos.get(&style_pseudo)
                             .unwrap().values().clone()
                     },
                     PseudoElementCascadeType::Precomputed => {
-                        if !data.styles().cached_pseudos.contains_key(&style_pseudo) {
-                            let new_style =
-                                context.stylist.precomputed_values_for_pseudo(
-                                    &context.guards,
-                                    &style_pseudo,
-                                    Some(data.styles().primary.values()),
-                                    CascadeFlags::empty(),
-                                    &ServoMetricsProvider);
-                            data.styles_mut().cached_pseudos
-                                .insert(style_pseudo.clone(), new_style);
-                        }
-                        data.styles().cached_pseudos.get(&style_pseudo)
-                            .unwrap().values().clone()
+                        context.stylist.precomputed_values_for_pseudo(
+                            &context.guards,
+                            &style_pseudo,
+                            Some(data.styles().primary.values()),
+                            CascadeFlags::empty(),
+                            &ServoMetricsProvider)
+                            .values().clone()
                     }
                     PseudoElementCascadeType::Lazy => {
-                        if !data.styles().cached_pseudos.contains_key(&style_pseudo) {
-                            let new_style =
-                                context.stylist
-                                       .lazily_compute_pseudo_element_style(
-                                           &context.guards,
-                                           unsafe { &self.unsafe_get() },
-                                           &style_pseudo,
-                                           data.styles().primary.values(),
-                                           &ServoMetricsProvider);
-                            data.styles_mut().cached_pseudos
-                                .insert(style_pseudo.clone(), new_style.unwrap());
-                        }
-                        data.styles().cached_pseudos.get(&style_pseudo)
-                            .unwrap().values().clone()
+                        context.stylist
+                               .lazily_compute_pseudo_element_style(
+                                   &context.guards,
+                                   unsafe { &self.unsafe_get() },
+                                   &style_pseudo,
+                                   data.styles().primary.values(),
+                                   &ServoMetricsProvider)
+                               .unwrap()
+                               .values().clone()
                     }
                 }
             }
@@ -452,7 +435,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
 
     #[inline]
     fn selected_style(&self) -> Arc<ServoComputedValues> {
-        let data = self.get_style_data().unwrap().borrow();
+        let data = self.style_data();
         data.styles().pseudos
             .get(&PseudoElement::Selection).map(|s| s)
             .unwrap_or(&data.styles().primary)
@@ -468,7 +451,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
     /// element style is precomputed, not from general layout itself.
     #[inline]
     fn resolved_style(&self) -> Arc<ServoComputedValues> {
-        let data = self.get_style_data().unwrap().borrow();
+        let data = self.style_data();
         match self.get_pseudo_element_type() {
             PseudoElementType::Normal
                 => data.styles().primary.values().clone(),
