@@ -3784,13 +3784,20 @@ fn static_assert() {
         }
 
         self.clear_overflow_sides_if_string();
-        self.gecko.mTextOverflow.mLogicalDirections = v.second.is_none();
 
         let SpecifiedValue { ref first, ref second } = v;
-        let second = second.as_ref().unwrap_or(&first);
+        let one_value = second.is_none();
+        self.gecko.mTextOverflow.mLogicalDirections = one_value;
+        if one_value {
+            // A single value is actually a value for the _end_ side.  The
+            // start side just gets clipped text-overflow in this case.
+            set(&mut self.gecko.mTextOverflow.mLeft, &Side::Clip);
+            set(&mut self.gecko.mTextOverflow.mRight, first);
+        } else  {
+            set(&mut self.gecko.mTextOverflow.mLeft, first);
+            set(&mut self.gecko.mTextOverflow.mRight, second.as_ref().unwrap());
+        }
 
-        set(&mut self.gecko.mTextOverflow.mLeft, first);
-        set(&mut self.gecko.mTextOverflow.mRight, second);
     }
 
     pub fn copy_text_overflow_from(&mut self, other: &Self) {
