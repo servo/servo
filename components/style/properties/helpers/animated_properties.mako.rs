@@ -1668,6 +1668,21 @@ fn build_identity_transform_list(list: &[TransformOperation]) -> Vec<TransformOp
     result
 }
 
+/// A wrapper for calling add_weighted that interpolates the distance of the two values from
+/// an initial_value and uses that to produce an interpolated value.
+/// This is used for values such as 'scale' where the initial value is 1 and where if we interpolate
+/// the absolute values, we will produce odd results for accumulation.
+fn add_weighted_with_initial_val<T: Animatable>(a: &T,
+                                                b: &T,
+                                                a_portion: f64,
+                                                b_portion: f64,
+                                                initial_val: &T) -> Result<T, ()> {
+    let a = try!(a.add_weighted(&initial_val, 1.0, -1.0));
+    let b = try!(b.add_weighted(&initial_val, 1.0, -1.0));
+    let result = try!(a.add_weighted(&b, a_portion, b_portion));
+    result.add_weighted(&initial_val, 1.0, 1.0)
+}
+
 /// Add two transform lists.
 /// http://dev.w3.org/csswg/css-transforms/#interpolation-of-transforms
 fn add_weighted_transform_lists(from_list: &[TransformOperation],
@@ -1705,9 +1720,12 @@ fn add_weighted_transform_lists(from_list: &[TransformOperation],
                 }
                 (&TransformOperation::Scale(fx, fy, fz),
                  &TransformOperation::Scale(tx, ty, tz)) => {
-                    let ix = fx.add_weighted(&tx, self_portion, other_portion).unwrap();
-                    let iy = fy.add_weighted(&ty, self_portion, other_portion).unwrap();
-                    let iz = fz.add_weighted(&tz, self_portion, other_portion).unwrap();
+                    let ix = add_weighted_with_initial_val(&fx, &tx, self_portion,
+                                                           other_portion, &1.0).unwrap();
+                    let iy = add_weighted_with_initial_val(&fy, &ty, self_portion,
+                                                           other_portion, &1.0).unwrap();
+                    let iz = add_weighted_with_initial_val(&fz, &tz, self_portion,
+                                                           other_portion, &1.0).unwrap();
                     result.push(TransformOperation::Scale(ix, iy, iz));
                 }
                 (&TransformOperation::Rotate(fx, fy, fz, fa),
@@ -1817,10 +1835,12 @@ pub struct MatrixDecomposed2D {
 impl Animatable for InnerMatrix2D {
     fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
         Ok(InnerMatrix2D {
-            m11: try!(self.m11.add_weighted(&other.m11, self_portion, other_portion)),
+            m11: try!(add_weighted_with_initial_val(&self.m11, &other.m11,
+                                                    self_portion, other_portion, &1.0)),
             m12: try!(self.m12.add_weighted(&other.m12, self_portion, other_portion)),
             m21: try!(self.m21.add_weighted(&other.m21, self_portion, other_portion)),
-            m22: try!(self.m22.add_weighted(&other.m22, self_portion, other_portion)),
+            m22: try!(add_weighted_with_initial_val(&self.m22, &other.m22,
+                                                    self_portion, other_portion, &1.0)),
         })
     }
 }
@@ -1837,8 +1857,8 @@ impl Animatable for Translate2D {
 impl Animatable for Scale2D {
     fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
         Ok(Scale2D(
-            try!(self.0.add_weighted(&other.0, self_portion, other_portion)),
-            try!(self.1.add_weighted(&other.1, self_portion, other_portion))
+            try!(add_weighted_with_initial_val(&self.0, &other.0, self_portion, other_portion, &1.0)),
+            try!(add_weighted_with_initial_val(&self.1, &other.1, self_portion, other_portion, &1.0))
         ))
     }
 }
@@ -2238,9 +2258,9 @@ impl Animatable for Translate3D {
 impl Animatable for Scale3D {
     fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
         Ok(Scale3D(
-            try!(self.0.add_weighted(&other.0, self_portion, other_portion)),
-            try!(self.1.add_weighted(&other.1, self_portion, other_portion)),
-            try!(self.2.add_weighted(&other.2, self_portion, other_portion))
+            try!(add_weighted_with_initial_val(&self.0, &other.0, self_portion, other_portion, &1.0)),
+            try!(add_weighted_with_initial_val(&self.1, &other.1, self_portion, other_portion, &1.0)),
+            try!(add_weighted_with_initial_val(&self.2, &other.2, self_portion, other_portion, &1.0))
         ))
     }
 }
@@ -2261,7 +2281,7 @@ impl Animatable for Perspective {
             try!(self.0.add_weighted(&other.0, self_portion, other_portion)),
             try!(self.1.add_weighted(&other.1, self_portion, other_portion)),
             try!(self.2.add_weighted(&other.2, self_portion, other_portion)),
-            try!(self.3.add_weighted(&other.3, self_portion, other_portion))
+            try!(add_weighted_with_initial_val(&self.3, &other.3, self_portion, other_portion, &1.0))
         ))
     }
 }
@@ -2270,8 +2290,9 @@ impl Animatable for MatrixDecomposed3D {
     /// https://drafts.csswg.org/css-transforms/#interpolation-of-decomposed-3d-matrix-values
     fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
         -> Result<Self, ()> {
-        assert!(self_portion + other_portion == 1.0f64,
-                "add_weighted should only be used for interpolating transforms");
+        assert!(self_portion + other_portion == 1.0f64 ||
+                other_portion == 1.0f64,
+                "add_weighted should only be used for interpolating or accumulating transforms");
 
         let mut sum = *self;
 
@@ -2284,29 +2305,62 @@ impl Animatable for MatrixDecomposed3D {
                                                              self_portion, other_portion));
 
         // Add quaternions using spherical linear interpolation (Slerp).
-        let mut product = self.quaternion.0 * other.quaternion.0 +
-                          self.quaternion.1 * other.quaternion.1 +
-                          self.quaternion.2 * other.quaternion.2 +
-                          self.quaternion.3 * other.quaternion.3;
+        //
+        // We take a specialized code path for accumulation (where other_portion is 1)
+        if other_portion == 1.0 {
+            if self_portion == 0.0 {
+                return Ok(*other)
+            }
 
-        // Clamp product to -1.0 <= product <= 1.0
-        product = product.min(1.0);
-        product = product.max(-1.0);
+            let clamped_w = self.quaternion.3.min(1.0).max(-1.0);
 
-        if product == 1.0 {
-            return Ok(sum);
+            // Determine the scale factor.
+            let mut theta = clamped_w.acos();
+            let mut scale = if theta == 0.0 { 0.0 } else { 1.0 / theta.sin() };
+            theta *= self_portion as f32;
+            scale *= theta.sin();
+
+            // Scale the self matrix by self_portion.
+            let mut scaled_self = *self;
+            % for i in range(3):
+                scaled_self.quaternion.${i} *= scale;
+            % endfor
+            scaled_self.quaternion.3 = theta.cos();
+
+            // Multiply scaled-self by other.
+            let a = &scaled_self.quaternion;
+            let b = &other.quaternion;
+            sum.quaternion = Quaternion(
+                a.3 * b.0 + a.0 * b.3 + a.1 * b.2 - a.2 * b.1,
+                a.3 * b.1 - a.0 * b.2 + a.1 * b.3 + a.2 * b.0,
+                a.3 * b.2 + a.0 * b.1 - a.1 * b.0 + a.2 * b.3,
+                a.3 * b.3 - a.0 * b.0 - a.1 * b.1 - a.2 * b.2,
+            );
+        } else {
+            let mut product = self.quaternion.0 * other.quaternion.0 +
+                              self.quaternion.1 * other.quaternion.1 +
+                              self.quaternion.2 * other.quaternion.2 +
+                              self.quaternion.3 * other.quaternion.3;
+
+            // Clamp product to -1.0 <= product <= 1.0
+            product = product.min(1.0);
+            product = product.max(-1.0);
+
+            if product == 1.0 {
+                return Ok(sum);
+            }
+
+            let theta = product.acos();
+            let w = (other_portion as f32 * theta).sin() * 1.0 / (1.0 - product * product).sqrt();
+
+            let mut a = *self;
+            let mut b = *other;
+            % for i in range(4):
+                a.quaternion.${i} *= (other_portion as f32 * theta).cos() - product * w;
+                b.quaternion.${i} *= w;
+                sum.quaternion.${i} = a.quaternion.${i} + b.quaternion.${i};
+            % endfor
         }
-
-        let theta = product.acos();
-        let w = (other_portion as f32 * theta).sin() * 1.0 / (1.0 - product * product).sqrt();
-
-        let mut a = *self;
-        let mut b = *other;
-        % for i in range(4):
-            a.quaternion.${i} *= (other_portion as f32 * theta).cos() - product * w;
-            b.quaternion.${i} *= w;
-            sum.quaternion.${i} = a.quaternion.${i} + b.quaternion.${i};
-        % endfor
 
         Ok(sum)
     }
