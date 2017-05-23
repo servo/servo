@@ -6,9 +6,10 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
+use values::generics::border::BorderImageSlice as GenericBorderImageSlice;
 use values::generics::border::BorderImageWidthSide as GenericBorderImageWidthSide;
 use values::generics::rect::Rect;
-use values::specified::Number;
+use values::specified::{Number, NumberOrPercentage};
 use values::specified::length::LengthOrPercentage;
 
 /// A specified value for the `border-image-width` property.
@@ -16,6 +17,9 @@ pub type BorderImageWidth = Rect<BorderImageWidthSide>;
 
 /// A specified value for a single side of a `border-image-width` property.
 pub type BorderImageWidthSide = GenericBorderImageWidthSide<LengthOrPercentage, Number>;
+
+/// A specified value for the `border-image-slice` property.
+pub type BorderImageSlice = GenericBorderImageSlice<NumberOrPercentage>;
 
 impl BorderImageWidthSide {
     /// Returns `1`.
@@ -37,5 +41,19 @@ impl Parse for BorderImageWidthSide {
 
         let num = Number::parse_non_negative(context, input)?;
         Ok(GenericBorderImageWidthSide::Number(num))
+    }
+}
+
+impl Parse for BorderImageSlice {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        let mut fill = input.try(|i| i.expect_ident_matching("fill")).is_ok();
+        let offsets = Rect::parse_with(context, input, NumberOrPercentage::parse_non_negative)?;
+        if !fill {
+            fill = input.try(|i| i.expect_ident_matching("fill")).is_ok();
+        }
+        Ok(GenericBorderImageSlice {
+            offsets: offsets,
+            fill: fill,
+        })
     }
 }

@@ -4,8 +4,9 @@
 
 //! Computed types for CSS values related to borders.
 
-use values::computed::Number;
+use values::computed::{Number, NumberOrPercentage};
 use values::computed::length::LengthOrPercentage;
+use values::generics::border::BorderImageSlice as GenericBorderImageSlice;
 use values::generics::border::BorderImageWidthSide as GenericBorderImageWidthSide;
 use values::generics::rect::Rect;
 
@@ -14,6 +15,9 @@ pub type BorderImageWidth = Rect<BorderImageWidthSide>;
 
 /// A computed value for a single side of a `border-image-width` property.
 pub type BorderImageWidthSide = GenericBorderImageWidthSide<LengthOrPercentage, Number>;
+
+/// A computed value for the `border-image-slice` property.
+pub type BorderImageSlice = GenericBorderImageSlice<NumberOrPercentage>;
 
 impl BorderImageWidthSide {
     /// Returns `1`.
