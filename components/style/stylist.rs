@@ -86,7 +86,7 @@ pub struct Stylist {
     ///
     /// In both cases, the device is actually _owned_ by the Stylist, and it's
     /// only an `Arc` so we can implement `add_stylesheet` more idiomatically.
-    pub device: Arc<Device>,
+    device: Arc<Device>,
 
     /// Viewport constraints based on the current device.
     viewport_constraints: Option<ViewportConstraints>,
@@ -106,9 +106,7 @@ pub struct Stylist {
     element_map: PerPseudoElementSelectorMap,
 
     /// The rule tree, that stores the results of selector matching.
-    ///
-    /// FIXME(emilio): Not `pub`!
-    pub rule_tree: RuleTree,
+    rule_tree: RuleTree,
 
     /// The selector maps corresponding to a given pseudo-element
     /// (depending on the implementation)
@@ -1063,6 +1061,21 @@ impl Stylist {
                                      &metrics,
                                      CascadeFlags::empty(),
                                      self.quirks_mode))
+    }
+
+    /// Accessor for a shared reference to the device.
+    pub fn device(&self) -> &Device {
+        &self.device
+    }
+
+    /// Accessor for a mutable reference to the device.
+    pub fn device_mut(&mut self) -> &mut Arc<Device> {
+        &mut self.device
+    }
+
+    /// Accessor for a shared reference to the rule tree.
+    pub fn rule_tree(&self) -> &RuleTree {
+        &self.rule_tree
     }
 }
 

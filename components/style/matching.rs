@@ -223,7 +223,7 @@ trait PrivateMatchMethods: TElement {
 
         // Invoke the cascade algorithm.
         let values =
-            Arc::new(cascade(&shared_context.stylist.device,
+            Arc::new(cascade(shared_context.stylist.device(),
                              rule_node,
                              &shared_context.guards,
                              style_to_inherit_from,
@@ -350,7 +350,7 @@ trait PrivateMatchMethods: TElement {
                               -> Option<Arc<ComputedValues>> {
         let rule_node = &primary_style.rules;
         let without_transition_rules =
-            context.shared.stylist.rule_tree.remove_transition_rule_if_applicable(rule_node);
+            context.shared.stylist.rule_tree().remove_transition_rule_if_applicable(rule_node);
         if without_transition_rules == *rule_node {
             // We don't have transition rule in this case, so return None to let the caller
             // use the original ComputedValues.
@@ -698,7 +698,7 @@ pub trait MatchMethods : TElement {
                 // Handle animations here.
                 if let Some(animation_rule) = animation_rules.0 {
                     let animation_rule_node =
-                        context.shared.stylist.rule_tree
+                        context.shared.stylist.rule_tree()
                             .update_rule_at_level(CascadeLevel::Animations,
                                                   Some(&animation_rule),
                                                   &mut rules,
@@ -710,7 +710,7 @@ pub trait MatchMethods : TElement {
 
                 if let Some(animation_rule) = animation_rules.1 {
                     let animation_rule_node =
-                        context.shared.stylist.rule_tree
+                        context.shared.stylist.rule_tree()
                             .update_rule_at_level(CascadeLevel::Transitions,
                                                   Some(&animation_rule),
                                                   &mut rules,
@@ -763,7 +763,7 @@ pub trait MatchMethods : TElement {
         *relations = matching_context.relations;
 
         let primary_rule_node =
-            compute_rule_node::<Self>(&stylist.rule_tree,
+            compute_rule_node::<Self>(stylist.rule_tree(),
                                       &mut applicable_declarations,
                                       &context.shared.guards);
 
@@ -816,7 +816,7 @@ pub trait MatchMethods : TElement {
         // at us later in the closure.
         let stylist = &context.shared.stylist;
         let guards = &context.shared.guards;
-        let rule_tree = &stylist.rule_tree;
+        let rule_tree = stylist.rule_tree();
         let bloom_filter = context.thread_local.bloom_filter.filter();
 
         let mut matching_context =
@@ -982,7 +982,7 @@ pub trait MatchMethods : TElement {
             let mut replace_rule_node = |level: CascadeLevel,
                                          pdb: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
                                          path: &mut StrongRuleNode| {
-                let new_node = context.shared.stylist.rule_tree
+                let new_node = context.shared.stylist.rule_tree()
                     .update_rule_at_level(level, pdb, path, &context.shared.guards);
                 if let Some(n) = new_node {
                     *path = n;
@@ -1138,7 +1138,7 @@ pub trait MatchMethods : TElement {
         let relevant_style = pseudo_style.unwrap_or(primary_style);
         let rule_node = &relevant_style.rules;
         let without_animation_rules =
-            shared_context.stylist.rule_tree.remove_animation_rules(rule_node);
+            shared_context.stylist.rule_tree().remove_animation_rules(rule_node);
         if without_animation_rules == *rule_node {
             // Note that unwrapping here is fine, because the style is
             // only incomplete during the styling process.

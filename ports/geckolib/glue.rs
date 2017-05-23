@@ -1592,7 +1592,7 @@ pub extern "C" fn Servo_MediaList_Matches(list: RawServoMediaListBorrowed,
                                           -> bool {
     let per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     read_locked_arc(list, |list: &MediaList| {
-        list.evaluate(&per_doc_data.stylist.device, per_doc_data.stylist.quirks_mode())
+        list.evaluate(per_doc_data.stylist.device(), per_doc_data.stylist.quirks_mode())
     })
 }
 
@@ -2290,7 +2290,7 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
 
     let mut context = Context {
         is_root_element: false,
-        device: &data.stylist.device,
+        device: data.stylist.device(),
         inherited_style: parent_style.unwrap_or(default_values),
         layout_parent_style: parent_style.unwrap_or(default_values),
         style: StyleBuilder::for_derived_style(&style),
@@ -2368,7 +2368,7 @@ pub extern "C" fn Servo_AnimationValue_Compute(declarations: RawServoDeclaration
     let metrics = get_metrics_provider_for_product();
     let mut context = Context {
         is_root_element: false,
-        device: &data.stylist.device,
+        device: data.stylist.device(),
         inherited_style: parent_style.unwrap_or(default_values),
         layout_parent_style: parent_style.unwrap_or(default_values),
         style: StyleBuilder::for_derived_style(&style),

@@ -95,7 +95,7 @@ impl PerDocumentStyleDataImpl {
     ///
     /// Implies also a stylesheet flush.
     pub fn reset_device(&mut self, guard: &SharedRwLockReadGuard) {
-        Arc::get_mut(&mut self.stylist.device).unwrap().reset();
+        Arc::get_mut(self.stylist.device_mut()).unwrap().reset();
         self.stylesheets.force_dirty();
         self.flush_stylesheets(guard);
     }
@@ -123,7 +123,7 @@ impl PerDocumentStyleDataImpl {
 
     /// Get the default computed values for this document.
     pub fn default_computed_values(&self) -> &Arc<ComputedValues> {
-        self.stylist.device.default_computed_values_arc()
+        self.stylist.device().default_computed_values_arc()
     }
 
     /// Clear the stylist.  This will be a no-op if the stylist is

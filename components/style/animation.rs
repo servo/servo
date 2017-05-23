@@ -476,7 +476,7 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
             };
 
             let computed =
-                properties::apply_declarations(&context.stylist.device,
+                properties::apply_declarations(context.stylist.device(),
                                                /* is_root = */ false,
                                                iter,
                                                previous_style,
