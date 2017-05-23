@@ -31,6 +31,7 @@ use values::specified::calc::CalcNode;
 #[cfg(feature = "gecko")]
 pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
 pub use self::rect::LengthOrNumberRect;
+pub use self::border::{BorderImageWidth, BorderImageWidthSide};
 pub use self::color::Color;
 pub use super::generics::grid::GridLine;
 pub use self::image::{ColorStop, EndingShape as GradientEndingShape, Gradient};
@@ -45,6 +46,7 @@ pub use self::position::{Position, PositionComponent};
 #[cfg(feature = "gecko")]
 pub mod align;
 pub mod basic_shape;
+pub mod border;
 pub mod calc;
 pub mod color;
 pub mod grid;
