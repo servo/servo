@@ -223,6 +223,7 @@ ${helpers.predefined_type("object-position",
     ${helpers.predefined_type("grid-%s-gap" % kind,
                               "LengthOrPercentage",
                               "computed::LengthOrPercentage::Length(Au(0))",
+                              "parse_non_negative",
                               spec="https://drafts.csswg.org/css-grid/#propdef-grid-%s-gap" % kind,
                               animation_value_type="ComputedValue",
                               products="gecko")}
