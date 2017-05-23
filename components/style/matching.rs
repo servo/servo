@@ -7,7 +7,6 @@
 #![allow(unsafe_code)]
 #![deny(missing_docs)]
 
-use atomic_refcell::AtomicRefMut;
 use cascade_info::CascadeInfo;
 use context::{SelectorFlagsMap, SharedStyleContext, StyleContext};
 use data::{ComputedStyle, ElementData, RestyleData};
@@ -969,7 +968,7 @@ pub trait MatchMethods : TElement {
     fn replace_rules(&self,
                      replacements: RestyleReplacements,
                      context: &StyleContext<Self>,
-                     data: &mut AtomicRefMut<ElementData>)
+                     data: &mut ElementData)
                      -> RulesChanged {
         use properties::PropertyDeclarationBlock;
         use shared_lock::Locked;
