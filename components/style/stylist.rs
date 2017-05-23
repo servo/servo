@@ -477,7 +477,7 @@ impl Stylist {
     {
         let map = if let Some(pseudo) = selector.pseudo_element() {
             self.pseudos_map
-                .entry(pseudo.clone())
+                .entry(pseudo.canonical())
                 .or_insert_with(PerPseudoElementSelectorMap::new)
                 .borrow_for_origin(&stylesheet.origin)
         } else {
@@ -669,8 +669,9 @@ impl Stylist {
                                 -> Option<StrongRuleNode>
         where E: TElement
     {
+        let pseudo = pseudo.canonical();
         debug_assert!(pseudo.is_lazy());
-        if self.pseudos_map.get(pseudo).is_none() {
+        if self.pseudos_map.get(&pseudo).is_none() {
             return None
         }
 
@@ -702,7 +703,7 @@ impl Stylist {
         let mut matching_context =
             MatchingContext::new(MatchingMode::ForStatelessPseudoElement, None);
         self.push_applicable_declarations(element,
-                                          Some(pseudo),
+                                          Some(&pseudo),
                                           None,
                                           None,
                                           AnimationRules(None, None),
