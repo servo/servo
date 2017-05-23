@@ -13,12 +13,12 @@ use style::media_queries::{Device, MediaType};
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration};
 use style::properties::{longhands, Importance};
 use style::rule_tree::CascadeLevel;
+use style::selector_map::{self, SelectorMap};
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::shared_lock::SharedRwLock;
 use style::stylearc::Arc;
 use style::stylesheets::StyleRule;
-use style::stylist;
-use style::stylist::{Rule, SelectorMap, Stylist};
+use style::stylist::{Stylist, Rule};
 use style::stylist::needs_revalidation;
 use style::thread_state;
 
@@ -175,22 +175,22 @@ fn test_rule_ordering_same_specificity() {
 #[test]
 fn test_get_id_name() {
     let (rules_list, _) = get_mock_rules(&[".intro", "#top"]);
-    assert_eq!(stylist::get_id_name(&rules_list[0][0].selector.inner), None);
-    assert_eq!(stylist::get_id_name(&rules_list[1][0].selector.inner), Some(Atom::from("top")));
+    assert_eq!(selector_map::get_id_name(&rules_list[0][0].selector.inner), None);
+    assert_eq!(selector_map::get_id_name(&rules_list[1][0].selector.inner), Some(Atom::from("top")));
 }
 
 #[test]
 fn test_get_class_name() {
     let (rules_list, _) = get_mock_rules(&[".intro.foo", "#top"]);
-    assert_eq!(stylist::get_class_name(&rules_list[0][0].selector.inner), Some(Atom::from("foo")));
-    assert_eq!(stylist::get_class_name(&rules_list[1][0].selector.inner), None);
+    assert_eq!(selector_map::get_class_name(&rules_list[0][0].selector.inner), Some(Atom::from("foo")));
+    assert_eq!(selector_map::get_class_name(&rules_list[1][0].selector.inner), None);
 }
 
 #[test]
 fn test_get_local_name() {
     let (rules_list, _) = get_mock_rules(&["img.foo", "#top", "IMG", "ImG"]);
     let check = |i: usize, names: Option<(&str, &str)>| {
-        assert!(stylist::get_local_name(&rules_list[i][0].selector.inner)
+        assert!(selector_map::get_local_name(&rules_list[i][0].selector.inner)
                 == names.map(|(name, lower_name)| LocalNameSelector {
                         name: LocalName::from(name),
                         lower_name: LocalName::from(lower_name) }))

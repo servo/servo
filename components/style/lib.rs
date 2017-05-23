@@ -120,6 +120,7 @@ pub mod parser;
 pub mod restyle_hints;
 pub mod rule_tree;
 pub mod scoped_tls;
+pub mod selector_map;
 pub mod selector_parser;
 pub mod shared_lock;
 pub mod sharing;

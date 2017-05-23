@@ -16,6 +16,7 @@ use element_state::*;
 use gecko_bindings::structs::nsRestyleHint;
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
+use selector_map::{SelectorMap, SelectorMapEntry};
 use selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl, Snapshot, SnapshotMap, AttrValue};
 use selectors::Element;
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint};
@@ -24,11 +25,9 @@ use selectors::matching::matches_selector;
 use selectors::parser::{Combinator, Component, Selector, SelectorInner, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
 use smallvec::SmallVec;
-use std::borrow::Borrow;
 use std::cell::Cell;
 use std::clone::Clone;
 use std::cmp;
-use stylist::SelectorMap;
 
 /// When the ElementState of an element (like IN_HOVER_STATE) changes,
 /// certain pseudo-classes (like :hover) may require us to restyle that
@@ -759,41 +758,9 @@ pub struct Dependency {
     pub sensitivities: Sensitivities,
 }
 
-impl Borrow<SelectorInner<SelectorImpl>> for Dependency {
-    fn borrow(&self) -> &SelectorInner<SelectorImpl> {
+impl SelectorMapEntry for Dependency {
+    fn selector(&self) -> &SelectorInner<SelectorImpl> {
         &self.selector
-    }
-}
-
-/// A similar version of the above, but for pseudo-elements, which only care
-/// about the full selector, and need it in order to properly track
-/// pseudo-element selector state.
-///
-/// NOTE(emilio): We could add a `hint` and `sensitivities` field to the
-/// `PseudoElementDependency` and stop posting `RESTYLE_DESCENDANTS`s hints if
-/// we visited all the pseudo-elements of an element unconditionally as part of
-/// the traversal.
-///
-/// That would allow us to stop posting `RESTYLE_DESCENDANTS` hints for dumb
-/// selectors, and storing pseudo dependencies in the element dependency map.
-///
-/// That would allow us to avoid restyling the element itself when a selector
-/// has only changed a pseudo-element's style, too.
-///
-/// There's no good way to do that right now though, and I think for the
-/// foreseeable future we may just want to optimize that `RESTYLE_DESCENDANTS`
-/// to become a `RESTYLE_PSEUDO_ELEMENTS` or something like that, in order to at
-/// least not restyle the whole subtree.
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-struct PseudoElementDependency {
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "defined in selectors")]
-    selector: Selector<SelectorImpl>,
-}
-
-impl Borrow<SelectorInner<SelectorImpl>> for PseudoElementDependency {
-    fn borrow(&self) -> &SelectorInner<SelectorImpl> {
-        &self.selector.inner
     }
 }
 
