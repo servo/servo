@@ -1373,11 +1373,16 @@ impl Animatable for FontWeight {
 /// https://drafts.csswg.org/css-fonts/#font-stretch-prop
 impl Animatable for FontStretch {
     #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
+        -> Result<Self, ()>
+    {
         let from = f64::from(*self);
-        let to   = f64::from(*other);
-        let interpolated_mapped_index = ((from * self_portion + to * other_portion) + 0.5).floor();
-        Ok(interpolated_mapped_index.into())
+        let to = f64::from(*other);
+        // FIXME: When `const fn` is available in release rust, make |normal|, below, const.
+        let normal = f64::from(FontStretch::normal);
+        let result = (from - normal) * self_portion + (to - normal) * other_portion + normal;
+
+        Ok(result.into())
     }
 
     #[inline]
@@ -1410,11 +1415,11 @@ impl From<FontStretch> for f64 {
 impl Into<FontStretch> for f64 {
     fn into(self) -> FontStretch {
         use properties::longhands::font_stretch::computed_value::T::*;
-        debug_assert!(self >= 1.0 && self <= 9.0);
+        let index = (self + 0.5).floor().min(9.0).max(1.0);
         static FONT_STRETCH_ENUM_MAP: [FontStretch; 9] =
             [ ultra_condensed, extra_condensed, condensed, semi_condensed, normal,
               semi_expanded, expanded, extra_expanded, ultra_expanded ];
-        FONT_STRETCH_ENUM_MAP[(self - 1.0) as usize]
+        FONT_STRETCH_ENUM_MAP[(index - 1.0) as usize]
     }
 }
 
