@@ -366,46 +366,61 @@ pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMa
         return;
     }
 
-    // Temporaries used in the following if-block whose lifetimes we need to prolong.
+    // Extract keyframe values.
     let raw_from_value;
-    let from_composite_result;
-    let from_value = if !segment.mFromValue.mServo.mRawPtr.is_null() {
+    let keyframe_from_value = if !segment.mFromValue.mServo.mRawPtr.is_null() {
         raw_from_value = unsafe { &*segment.mFromValue.mServo.mRawPtr };
-        match segment.mFromComposite {
-            CompositeOperation::Add | CompositeOperation::Accumulate => {
-                let value_to_composite = AnimationValue::as_arc(&raw_from_value).as_ref();
-                from_composite_result = if segment.mFromComposite == CompositeOperation::Add {
-                    underlying_value.as_ref().unwrap().add(value_to_composite)
-                } else {
-                    underlying_value.as_ref().unwrap().accumulate(value_to_composite, 1)
-                };
-                from_composite_result.as_ref().unwrap_or(value_to_composite)
-            }
-            _ => { AnimationValue::as_arc(&raw_from_value) }
-        }
+        Some(AnimationValue::as_arc(&raw_from_value))
     } else {
-        underlying_value.as_ref().unwrap()
+        None
     };
 
     let raw_to_value;
-    let to_composite_result;
-    let to_value = if !segment.mToValue.mServo.mRawPtr.is_null() {
+    let keyframe_to_value = if !segment.mToValue.mServo.mRawPtr.is_null() {
         raw_to_value = unsafe { &*segment.mToValue.mServo.mRawPtr };
-        match segment.mToComposite {
-            CompositeOperation::Add | CompositeOperation::Accumulate => {
-                let value_to_composite = AnimationValue::as_arc(&raw_to_value).as_ref();
-                to_composite_result = if segment.mToComposite == CompositeOperation::Add {
-                    underlying_value.as_ref().unwrap().add(value_to_composite)
-                } else {
-                    underlying_value.as_ref().unwrap().accumulate(value_to_composite, 1)
-                };
-                to_composite_result.as_ref().unwrap_or(value_to_composite)
-            }
-            _ => { AnimationValue::as_arc(&raw_to_value) }
-        }
+        Some(AnimationValue::as_arc(&raw_to_value))
     } else {
-        underlying_value.as_ref().unwrap()
+        None
     };
+
+    // Composite with underlying value.
+    // A return value of None means, "Just use keyframe_value as-is."
+    let composite_endpoint = |keyframe_value: Option<&Arc<AnimationValue>>,
+                              composite_op: CompositeOperation| -> Option<AnimationValue> {
+        match keyframe_value {
+            Some(keyframe_value) => {
+                match composite_op {
+                    CompositeOperation::Add => {
+                        debug_assert!(need_underlying_value,
+                                      "Should have detected we need an underlying value");
+                        underlying_value.as_ref().unwrap().add(keyframe_value).ok()
+                    },
+                    CompositeOperation::Accumulate => {
+                        debug_assert!(need_underlying_value,
+                                      "Should have detected we need an underlying value");
+                        underlying_value.as_ref().unwrap().accumulate(keyframe_value, 1).ok()
+                    },
+                    _ => None,
+                }
+            },
+            None => {
+                debug_assert!(need_underlying_value,
+                              "Should have detected we need an underlying value");
+                underlying_value.clone()
+            },
+        }
+    };
+    let composited_from_value = composite_endpoint(keyframe_from_value, segment.mFromComposite);
+    let composited_to_value = composite_endpoint(keyframe_to_value, segment.mToComposite);
+
+    debug_assert!(keyframe_from_value.is_some() || composited_from_value.is_some(),
+                  "Should have a suitable from value to use");
+    debug_assert!(keyframe_to_value.is_some() || composited_to_value.is_some(),
+                  "Should have a suitable to value to use");
+
+    // Use the composited value if there is one, otherwise, use the original keyframe value.
+    let from_value = composited_from_value.as_ref().unwrap_or_else(|| keyframe_from_value.unwrap());
+    let to_value   = composited_to_value.as_ref().unwrap_or_else(|| keyframe_to_value.unwrap());
 
     let progress = unsafe { Gecko_GetProgressFromComputedTiming(computed_timing) };
     if segment.mToKey == segment.mFromKey {
