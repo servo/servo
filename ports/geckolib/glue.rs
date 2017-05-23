@@ -1203,7 +1203,11 @@ fn get_pseudo_style(guard: &SharedRwLockReadGuard,
         PseudoElementCascadeType::Precomputed => unreachable!("No anonymous boxes"),
         PseudoElementCascadeType::Lazy => {
             let d = doc_data.borrow_mut();
-            let base = styles.primary.values();
+            let base = if pseudo.inherits_from_default_values() {
+                d.default_computed_values()
+            } else {
+                styles.primary.values()
+            };
             let guards = StylesheetGuards::same(guard);
             let metrics = get_metrics_provider_for_product();
             d.stylist.lazily_compute_pseudo_element_style(&guards,

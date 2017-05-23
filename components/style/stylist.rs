@@ -628,7 +628,7 @@ impl Stylist {
                                                   guards: &StylesheetGuards,
                                                   element: &E,
                                                   pseudo: &PseudoElement,
-                                                  parent: &Arc<ComputedValues>,
+                                                  parent_style: &ComputedValues,
                                                   font_metrics: &FontMetricsProvider)
                                                   -> Option<ComputedStyle>
         where E: TElement,
@@ -647,8 +647,8 @@ impl Stylist {
             properties::cascade(&self.device,
                                 &rule_node,
                                 guards,
-                                Some(&**parent),
-                                Some(&**parent),
+                                Some(parent_style),
+                                Some(parent_style),
                                 None,
                                 &RustLogReporter,
                                 font_metrics,
