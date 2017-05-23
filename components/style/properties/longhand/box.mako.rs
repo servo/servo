@@ -2219,6 +2219,7 @@ ${helpers.single_keyword("transform-style",
 // like `content`(layout style paint) in gecko. We should implement `size` and `content`,
 // also update the glue once they are implemented in gecko.
 <%helpers:longhand name="contain" animation_value_type="none" products="gecko" need_clone="True"
+                   flags="FIXPOS_CB"
                    spec="https://drafts.csswg.org/css-contain/#contain-property">
     use std::fmt;
     use style_traits::ToCss;
