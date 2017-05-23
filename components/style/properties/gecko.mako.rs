@@ -3769,7 +3769,7 @@ fn static_assert() {
     }
     pub fn set_text_overflow(&mut self, v: longhands::text_overflow::computed_value::T) {
         use gecko_bindings::structs::nsStyleTextOverflowSide;
-        use properties::longhands::text_overflow::{SpecifiedValue, Side};
+        use properties::longhands::text_overflow::Side;
 
         fn set(side: &mut nsStyleTextOverflowSide, value: &Side) {
             let ty = match *value {
@@ -3784,13 +3784,10 @@ fn static_assert() {
         }
 
         self.clear_overflow_sides_if_string();
-        self.gecko.mTextOverflow.mLogicalDirections = v.second.is_none();
+        self.gecko.mTextOverflow.mLogicalDirections = v.sides_are_logical;
 
-        let SpecifiedValue { ref first, ref second } = v;
-        let second = second.as_ref().unwrap_or(&first);
-
-        set(&mut self.gecko.mTextOverflow.mLeft, first);
-        set(&mut self.gecko.mTextOverflow.mRight, second);
+        set(&mut self.gecko.mTextOverflow.mLeft, &v.first);
+        set(&mut self.gecko.mTextOverflow.mRight, &v.second);
     }
 
     pub fn copy_text_overflow_from(&mut self, other: &Self) {
