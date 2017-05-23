@@ -277,7 +277,8 @@ class CommandBase(object):
         self.config["android"].setdefault("sdk", "")
         self.config["android"].setdefault("ndk", "")
         self.config["android"].setdefault("toolchain", "")
-        self.handle_android_target("arm-linux-androideabi")
+        # Set default android target
+        self.handle_android_target("armv7-linux-androideabi")
 
         self.set_cargo_root()
         self.set_use_stable_rust(False)

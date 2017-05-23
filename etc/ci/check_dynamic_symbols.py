@@ -23,7 +23,7 @@ objdump_output = subprocess.check_output([
         os.environ['ANDROID_NDK'], 'toolchains', 'arm-linux-androideabi-4.9',
         'prebuilt', 'linux-x86_64', 'bin', 'arm-linux-androideabi-objdump'),
     '-T',
-    'target/arm-linux-androideabi/debug/libservo.so']
+    'target/armv7-linux-androideabi/debug/libservo.so']
 ).split(b'\n')
 
 for line in objdump_output:
