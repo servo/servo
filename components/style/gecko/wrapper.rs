@@ -1368,7 +1368,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         // match the proper pseudo-element, given how we rulehash the stuff
         // based on the pseudo.
         match self.implemented_pseudo_element() {
-            Some(ref pseudo) => pseudo == pseudo_element,
+            Some(ref pseudo) => *pseudo == pseudo_element.canonical(),
             None => false,
         }
     }
