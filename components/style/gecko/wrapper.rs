@@ -478,6 +478,10 @@ fn get_animation_rule(element: &GeckoElement,
                       cascade_level: CascadeLevel)
                       -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
     use gecko_bindings::sugar::ownership::HasSimpleFFI;
+    if !self.may_have_animations() {
+        return None;
+    }
+
     // Also, we should try to reuse the PDB, to avoid creating extra rule nodes.
     let mut animation_values = AnimationValueMap::new();
     if unsafe { Gecko_GetAnimationRule(element.0,
@@ -614,6 +618,10 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn get_animation_rules(&self) -> AnimationRules {
+        if !self.may_have_animations() {
+            return AnimationRules(None, None);
+        }
+
         AnimationRules(self.get_animation_rule(),
                        self.get_transition_rule())
     }
