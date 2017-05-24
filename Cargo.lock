@@ -611,11 +611,8 @@ dependencies = [
 
 [[package]]
 name = "deque"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "rand 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
-]
 
 [[package]]
 name = "device"
@@ -2216,17 +2213,23 @@ dependencies = [
 [[package]]
 name = "rayon"
 version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/nox/rayon.git?branch=why#71b6deccc97c6d35f71c4d2bb13b38668b849940"
 dependencies = [
- "rayon-core 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rayon-core 1.0.0 (git+https://github.com/nox/rayon.git?branch=why)",
 ]
+
+[[package]]
+name = "rayon"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+replace = "rayon 0.7.0 (git+https://github.com/nox/rayon.git?branch=why)"
 
 [[package]]
 name = "rayon-core"
 version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/nox/rayon.git?branch=why#71b6deccc97c6d35f71c4d2bb13b38668b849940"
 dependencies = [
- "deque 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "deque 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3511,7 +3514,7 @@ dependencies = [
 "checksum dbus 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)" = "4aee01fb76ada3e5e7ca642ea6664ebf7308a810739ca2aca44909a1191ac254"
 "checksum debug_unreachable 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "9a032eac705ca39214d169f83e3d3da290af06d8d1d344d1baad2fd002dca4b3"
 "checksum deflate 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)" = "ebb02aaf4b775afc96684b8402510a338086974e38570a1f65bea8c202eb77a7"
-"checksum deque 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "1614659040e711785ed8ea24219140654da1729f3ec8a47a9719d041112fe7bf"
+"checksum deque 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)" = "a694dae478589798d752c7125542f8a5ae8b6e59476172baf2eed67357bdfa27"
 "checksum device 0.0.1 (git+https://github.com/servo/devices)" = "<none>"
 "checksum dtoa 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "80c8b71fd71146990a9742fc06dcbbde19161a267e0ad4e572c35162f4578c90"
 "checksum dwmapi-sys 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "07c4c7cc7b396419bc0a4d90371d0cee16cb5053b53647d287c0b728000c41fe"
@@ -3640,8 +3643,9 @@ dependencies = [
 "checksum quasi_codegen 0.32.0 (registry+https://github.com/rust-lang/crates.io-index)" = "51b9e25fa23c044c1803f43ca59c98dac608976dd04ce799411edd58ece776d4"
 "checksum quote 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)" = "7a6e920b65c65f10b2ae65c831a81a073a89edd28c7cce89475bff467ab4167a"
 "checksum rand 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)" = "022e0636ec2519ddae48154b028864bdce4eaf7d35226ab8e65c611be97b189d"
+"checksum rayon 0.7.0 (git+https://github.com/nox/rayon.git?branch=why)" = "<none>"
 "checksum rayon 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "8c83adcb08e5b922e804fe1918142b422602ef11f2fd670b0b52218cb5984a20"
-"checksum rayon-core 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "767d91bacddf07d442fe39257bf04fd95897d1c47c545d009f6beb03efd038f8"
+"checksum rayon-core 1.0.0 (git+https://github.com/nox/rayon.git?branch=why)" = "<none>"
 "checksum redox_syscall 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)" = "29dbdfd4b9df8ab31dec47c6087b7b13cbf4a776f335e4de8efba8288dda075b"
 "checksum ref_filter_map 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "2b5ceb840e4009da4841ed22a15eb49f64fdd00a2138945c5beacf506b2fb5ed"
 "checksum ref_slice 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "825740057197b7d43025e7faf6477eaabc03434e153233da02d1f44602f71527"
