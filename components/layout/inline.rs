@@ -713,7 +713,7 @@ impl LineBreaker {
         let available_inline_size = self.pending_line.green_zone.inline -
             self.pending_line.bounds.size.inline - indentation;
 
-        let ellipsis = match (&fragment.style().get_text().text_overflow.first,
+        let ellipsis = match (&fragment.style().get_text().text_overflow.second,
             fragment.style().get_box().overflow_x) {
             (&longhands::text_overflow::Side::Clip, _) | (_, overflow_x::T::visible) => None,
             (&longhands::text_overflow::Side::Ellipsis, _) => {
