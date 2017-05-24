@@ -806,6 +806,11 @@ pub mod root {
         4;
     pub const NS_STYLE_CONTEXT_PROPERTY_FILL: ::std::os::raw::c_uint = 1;
     pub const NS_STYLE_CONTEXT_PROPERTY_STROKE: ::std::os::raw::c_uint = 2;
+    pub const NS_STYLE_WINDOW_SHADOW_NONE: ::std::os::raw::c_uint = 0;
+    pub const NS_STYLE_WINDOW_SHADOW_DEFAULT: ::std::os::raw::c_uint = 1;
+    pub const NS_STYLE_WINDOW_SHADOW_MENU: ::std::os::raw::c_uint = 2;
+    pub const NS_STYLE_WINDOW_SHADOW_TOOLTIP: ::std::os::raw::c_uint = 3;
+    pub const NS_STYLE_WINDOW_SHADOW_SHEET: ::std::os::raw::c_uint = 4;
     pub const NS_STYLE_DOMINANT_BASELINE_AUTO: ::std::os::raw::c_uint = 0;
     pub const NS_STYLE_DOMINANT_BASELINE_USE_SCRIPT: ::std::os::raw::c_uint =
         1;
