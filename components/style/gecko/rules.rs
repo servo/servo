@@ -17,6 +17,7 @@ use gecko_bindings::sugar::ns_css_value::ToNsCssValue;
 use gecko_bindings::sugar::refptr::{RefPtr, UniqueRefPtr};
 use shared_lock::{ToCssWithGuard, SharedRwLockReadGuard};
 use std::{fmt, str};
+use values::generics::FontSettings;
 
 /// A @font-face rule
 pub type FontFaceRule = RefPtr<nsCSSFontFaceRule>;
@@ -36,8 +37,8 @@ impl ToNsCssValue for font_weight::T {
 impl ToNsCssValue for font_feature_settings::T {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
         match self {
-            font_feature_settings::T::Normal => nscssvalue.set_normal(),
-            font_feature_settings::T::Tag(tags) => {
+            FontSettings::Normal => nscssvalue.set_normal(),
+            FontSettings::Tag(tags) => {
                 nscssvalue.set_pair_list(tags.into_iter().map(|entry| {
                     let mut feature = nsCSSValue::null();
                     let mut raw = [0u8; 4];
@@ -45,7 +46,7 @@ impl ToNsCssValue for font_feature_settings::T {
                     feature.set_string(str::from_utf8(&raw).unwrap());
 
                     let mut index = nsCSSValue::null();
-                    index.set_integer(entry.value as i32);
+                    index.set_integer(entry.value.0 as i32);
 
                     (feature, index)
                 }))
