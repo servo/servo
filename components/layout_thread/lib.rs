@@ -1173,7 +1173,7 @@ impl LayoutThread {
 
             // If we haven't styled this node yet, we don't need to track a
             // restyle.
-            let mut data = match el.mutate_layout_data() {
+            let style_data = match el.get_data() {
                 Some(d) => d,
                 None => {
                     unsafe { el.unset_snapshot_flags() };
@@ -1186,7 +1186,7 @@ impl LayoutThread {
                 map.insert(el.as_node().opaque(), s);
             }
 
-            let mut style_data = &mut data.base.style_data;
+            let mut style_data = style_data.borrow_mut();
             let mut restyle_data = style_data.ensure_restyle();
 
             // Stash the data on the element for processing by the style system.

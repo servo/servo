@@ -17,7 +17,7 @@ use StyleArc;
 use app_units::Au;
 use block::BlockFlow;
 use context::{LayoutContext, with_thread_local_font_context};
-use data::{HAS_NEWLY_CONSTRUCTED_FLOW, PersistentLayoutData};
+use data::{HAS_NEWLY_CONSTRUCTED_FLOW, LayoutData};
 use flex::FlexFlow;
 use floats::FloatKind;
 use flow::{self, AbsoluteDescendants, Flow, FlowClass, ImmutableFlowUtils};
@@ -1621,7 +1621,7 @@ trait NodeUtils {
     /// Returns true if this node doesn't render its kids and false otherwise.
     fn is_replaced_content(&self) -> bool;
 
-    fn construction_result_mut(self, layout_data: &mut PersistentLayoutData) -> &mut ConstructionResult;
+    fn construction_result_mut(self, layout_data: &mut LayoutData) -> &mut ConstructionResult;
 
     /// Sets the construction result of a flow.
     fn set_flow_construction_result(self, result: ConstructionResult);
@@ -1645,7 +1645,7 @@ impl<ConcreteThreadSafeLayoutNode> NodeUtils for ConcreteThreadSafeLayoutNode
         }
     }
 
-    fn construction_result_mut(self, data: &mut PersistentLayoutData) -> &mut ConstructionResult {
+    fn construction_result_mut(self, data: &mut LayoutData) -> &mut ConstructionResult {
         match self.get_pseudo_element_type() {
             PseudoElementType::Before(_) => &mut data.before_flow_construction_result,
             PseudoElementType::After(_) => &mut data.after_flow_construction_result,

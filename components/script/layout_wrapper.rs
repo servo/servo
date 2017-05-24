@@ -47,7 +47,7 @@ use html5ever::{LocalName, Namespace};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use range::Range;
 use script_layout_interface::{HTMLCanvasData, LayoutNodeType, SVGSVGData, TrustedNodeAddress};
-use script_layout_interface::{OpaqueStyleAndLayoutData, PartialPersistentLayoutData};
+use script_layout_interface::{OpaqueStyleAndLayoutData, StyleData};
 use script_layout_interface::wrapper_traits::{DangerousThreadSafeLayoutNode, GetLayoutData, LayoutNode};
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint};
@@ -452,12 +452,12 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 
     fn store_children_to_process(&self, n: isize) {
-        let data = self.get_partial_layout_data().unwrap().borrow();
+        let data = self.get_style_data().unwrap();
         data.parallel.children_to_process.store(n, Ordering::Relaxed);
     }
 
     fn did_process_child(&self) -> isize {
-        let data = self.get_partial_layout_data().unwrap().borrow();
+        let data = self.get_style_data().unwrap();
         let old_value = data.parallel.children_to_process.fetch_sub(1, Ordering::Relaxed);
         debug_assert!(old_value >= 1);
         old_value - 1
@@ -466,9 +466,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     fn get_data(&self) -> Option<&AtomicRefCell<ElementData>> {
         unsafe {
             self.get_style_and_layout_data().map(|d| {
-                let ppld: &AtomicRefCell<PartialPersistentLayoutData> = &*d.ptr.get();
-                let psd: &AtomicRefCell<ElementData> = transmute(ppld);
-                psd
+                &(*d.ptr.get()).element_data
             })
         }
     }
@@ -537,7 +535,7 @@ impl<'le> ServoLayoutElement<'le> {
         }
     }
 
-    fn get_partial_layout_data(&self) -> Option<&AtomicRefCell<PartialPersistentLayoutData>> {
+    fn get_style_data(&self) -> Option<&StyleData> {
         unsafe {
             self.get_style_and_layout_data().map(|d| &*d.ptr.get())
         }
