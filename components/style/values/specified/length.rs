@@ -1180,6 +1180,12 @@ impl LengthOrNumber {
 
         Length::parse_non_negative(context, input).map(Either::First)
     }
+
+    /// Returns `0`.
+    #[inline]
+    pub fn zero() -> Self {
+        Either::Second(Number::new(0.))
+    }
 }
 
 /// A value suitable for a `min-width` or `min-height` property.

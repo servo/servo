@@ -603,6 +603,14 @@ pub type LengthOrAuto = Either<Length, Auto>;
 /// Either a computed `<length>` or a `<number>` value.
 pub type LengthOrNumber = Either<Length, Number>;
 
+impl LengthOrNumber {
+    /// Returns `0`.
+    #[inline]
+    pub fn zero() -> Self {
+        Either::Second(0.)
+    }
+}
+
 /// Either a computed `<length>` or the `normal` keyword.
 pub type LengthOrNormal = Either<Length, Normal>;
 
