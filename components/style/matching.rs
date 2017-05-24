@@ -684,6 +684,8 @@ pub trait MatchMethods : TElement {
     {
         let implemented_pseudo = self.implemented_pseudo_element();
         if let Some(ref pseudo) = implemented_pseudo {
+            // We don't expect to match against a non-canonical pseudo-element.
+            debug_assert_eq!(*pseudo, pseudo.canonical());
             if pseudo.is_eager() {
                 // If it's an eager element-backed pseudo, just grab the matched
                 // rules from the parent, and update animations.
