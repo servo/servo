@@ -93,6 +93,18 @@ class CheckTidiness(unittest.TestCase):
         errors = tidy.collect_errors_for_files(iterFile('apache2_license.rs'), [], [tidy.check_license])
         self.assertEqual('incorrect license', errors.next()[2])
 
+        
+    def test_html_with_empty_title_tag(self):
+        errors = tidy.collect_errors_for_files(iterFile('empty_title_tag.html'), [tidy.check_html_title_tag], [], print_text=False)
+        error = errors.next()
+        self.assertEqual(error[1], 2)
+        self.assertEqual(error[2], 'Found empty title tag. Please add descriptive title.')
+        self.assertNoMoreErrors(errors)
+
+    def test_html_with_no_title_tag(self):
+        errors = tidy.collect_errors_for_files(iterFile('no_title_tag.html'), [tidy.check_html_title_tag], [], print_text=False)
+        self.assertNoMoreErrors(errors)
+
     def test_rust(self):
         errors = tidy.collect_errors_for_files(iterFile('rust_tidy.rs'), [], [tidy.check_rust], print_text=False)
         self.assertEqual('extra space after {', errors.next()[2])
