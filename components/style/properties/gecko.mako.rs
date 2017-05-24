@@ -4211,7 +4211,9 @@ clip-path
         use properties::longhands::content::computed_value::T;
         use properties::longhands::content::computed_value::ContentItem;
         use values::generics::CounterStyleOrNone;
-        use gecko_bindings::structs::nsCSSValue;
+        use gecko_bindings::structs::nsIAtom;
+        use gecko_bindings::structs::nsStyleContentData;
+        use gecko_bindings::structs::nsStyleContentType;
         use gecko_bindings::structs::nsStyleContentType::*;
         use gecko_bindings::bindings::Gecko_ClearAndResizeStyleContents;
 
@@ -4225,11 +4227,23 @@ clip-path
             ptr
         }
 
-        fn set_counter_style(style: CounterStyleOrNone, dest: &mut nsCSSValue) {
-            dest.set_atom_ident(match style {
+        fn set_counter_function(data: &mut nsStyleContentData,
+                                content_type: nsStyleContentType,
+                                name: &str, sep: &str, style: CounterStyleOrNone) {
+            debug_assert!(content_type == eStyleContentType_Counter ||
+                          content_type == eStyleContentType_Counters);
+            let counter_func = unsafe {
+                bindings::Gecko_SetCounterFunction(data, content_type).as_mut().unwrap()
+            };
+            counter_func.mIdent.assign_utf8(name);
+            if content_type == eStyleContentType_Counters {
+                counter_func.mSeparator.assign_utf8(sep);
+            }
+            let ptr = match style {
                 CounterStyleOrNone::None_ => atom!("none"),
                 CounterStyleOrNone::Name(name) => name.0,
-            });
+            }.into_addrefed();
+            unsafe { counter_func.mCounterStyleName.set_raw_from_addrefed::<nsIAtom>(ptr); }
         }
 
         match v {
@@ -4292,23 +4306,12 @@ clip-path
                         ContentItem::NoCloseQuote
                             => self.gecko.mContents[i].mType = eStyleContentType_NoCloseQuote,
                         ContentItem::Counter(name, style) => {
-                            unsafe {
-                                bindings::Gecko_SetContentDataArray(&mut self.gecko.mContents[i],
-                                                                    eStyleContentType_Counter, 2)
-                            }
-                            let mut array = unsafe { &mut **self.gecko.mContents[i].mContent.mCounters.as_mut() };
-                            array[0].set_string(&name);
-                            set_counter_style(style, &mut array[1]);
+                            set_counter_function(&mut self.gecko.mContents[i],
+                                                 eStyleContentType_Counter, &name, "", style);
                         }
                         ContentItem::Counters(name, sep, style) => {
-                            unsafe {
-                                bindings::Gecko_SetContentDataArray(&mut self.gecko.mContents[i],
-                                                                    eStyleContentType_Counters, 3)
-                            }
-                            let mut array = unsafe { &mut **self.gecko.mContents[i].mContent.mCounters.as_mut() };
-                            array[0].set_string(&name);
-                            array[1].set_string(&sep);
-                            set_counter_style(style, &mut array[2]);
+                            set_counter_function(&mut self.gecko.mContents[i],
+                                                 eStyleContentType_Counters, &name, &sep, style);
                         }
                         ContentItem::Url(ref url) => {
                             unsafe {

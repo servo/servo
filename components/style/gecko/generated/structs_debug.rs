@@ -32010,11 +32010,66 @@ pub mod root {
         pub mContent: root::nsStyleContentData__bindgen_ty_1,
     }
     #[repr(C)]
+    #[derive(Debug)]
+    pub struct nsStyleContentData_CounterFunction {
+        pub mIdent: ::nsstring::nsStringRepr,
+        pub mSeparator: ::nsstring::nsStringRepr,
+        pub mCounterStyle: root::mozilla::CounterStylePtr,
+        pub mCounterStyleName: root::nsCOMPtr<root::nsIAtom>,
+        pub mRefCnt: root::mozilla::ThreadSafeAutoRefCnt,
+    }
+    pub type nsStyleContentData_CounterFunction_HasThreadSafeRefCnt =
+        root::mozilla::TrueType;
+    #[test]
+    fn bindgen_test_layout_nsStyleContentData_CounterFunction() {
+        assert_eq!(::std::mem::size_of::<nsStyleContentData_CounterFunction>()
+                   , 56usize , concat ! (
+                   "Size of: " , stringify ! (
+                   nsStyleContentData_CounterFunction ) ));
+        assert_eq! (::std::mem::align_of::<nsStyleContentData_CounterFunction>()
+                    , 8usize , concat ! (
+                    "Alignment of " , stringify ! (
+                    nsStyleContentData_CounterFunction ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsStyleContentData_CounterFunction )
+                    ) . mIdent as * const _ as usize } , 0usize , concat ! (
+                    "Alignment of field: " , stringify ! (
+                    nsStyleContentData_CounterFunction ) , "::" , stringify !
+                    ( mIdent ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsStyleContentData_CounterFunction )
+                    ) . mSeparator as * const _ as usize } , 16usize , concat
+                    ! (
+                    "Alignment of field: " , stringify ! (
+                    nsStyleContentData_CounterFunction ) , "::" , stringify !
+                    ( mSeparator ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsStyleContentData_CounterFunction )
+                    ) . mCounterStyle as * const _ as usize } , 32usize ,
+                    concat ! (
+                    "Alignment of field: " , stringify ! (
+                    nsStyleContentData_CounterFunction ) , "::" , stringify !
+                    ( mCounterStyle ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsStyleContentData_CounterFunction )
+                    ) . mCounterStyleName as * const _ as usize } , 40usize ,
+                    concat ! (
+                    "Alignment of field: " , stringify ! (
+                    nsStyleContentData_CounterFunction ) , "::" , stringify !
+                    ( mCounterStyleName ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsStyleContentData_CounterFunction )
+                    ) . mRefCnt as * const _ as usize } , 48usize , concat ! (
+                    "Alignment of field: " , stringify ! (
+                    nsStyleContentData_CounterFunction ) , "::" , stringify !
+                    ( mRefCnt ) ));
+    }
+    #[repr(C)]
     #[derive(Debug, Copy)]
     pub struct nsStyleContentData__bindgen_ty_1 {
         pub mString: root::__BindgenUnionField<*mut u16>,
         pub mImage: root::__BindgenUnionField<*mut root::nsStyleImageRequest>,
-        pub mCounters: root::__BindgenUnionField<*mut root::nsCSSValue_Array>,
+        pub mCounters: root::__BindgenUnionField<*mut root::nsStyleContentData_CounterFunction>,
         pub bindgen_union_field: u64,
     }
     #[test]

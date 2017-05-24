@@ -80,6 +80,9 @@ unsafe impl Sync for nsStyleContent {}
 use gecko_bindings::structs::nsStyleContentData;
 unsafe impl Send for nsStyleContentData {}
 unsafe impl Sync for nsStyleContentData {}
+use gecko_bindings::structs::nsStyleContentData_CounterFunction;
+unsafe impl Send for nsStyleContentData_CounterFunction {}
+unsafe impl Sync for nsStyleContentData_CounterFunction {}
 use gecko_bindings::structs::nsStyleContentType;
 unsafe impl Send for nsStyleContentType {}
 unsafe impl Sync for nsStyleContentType {}
@@ -919,8 +922,9 @@ extern "C" {
                                           aImageValue: *mut ImageValue);
 }
 extern "C" {
-    pub fn Gecko_SetContentDataArray(content_data: *mut nsStyleContentData,
-                                     type_: nsStyleContentType, len: u32);
+    pub fn Gecko_SetCounterFunction(content_data: *mut nsStyleContentData,
+                                    type_: nsStyleContentType)
+     -> *mut nsStyleContentData_CounterFunction;
 }
 extern "C" {
     pub fn Gecko_GetNodeFlags(node: RawGeckoNodeBorrowed) -> u32;
