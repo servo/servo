@@ -8,7 +8,7 @@ use {Atom, LocalName, Namespace};
 use bit_vec::BitVec;
 use context::{QuirksMode, SharedStyleContext};
 use data::ComputedStyle;
-use dom::{AnimationRules, TElement};
+use dom::TElement;
 use element_state::ElementState;
 use error_reporting::RustLogReporter;
 use font_metrics::FontMetricsProvider;
@@ -17,9 +17,9 @@ use gecko_bindings::structs::nsIAtom;
 use keyframes::KeyframesAnimation;
 use media_queries::Device;
 use properties::{self, CascadeFlags, ComputedValues};
+use properties::{AnimationRules, PropertyDeclarationBlock};
 #[cfg(feature = "servo")]
 use properties::INHERIT_ALL;
-use properties::PropertyDeclarationBlock;
 use restyle_hints::{HintComputationContext, DependencySet, RestyleHint};
 use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
 use selector_map::{SelectorMap, SelectorMapEntry};
@@ -473,7 +473,7 @@ impl Stylist {
     {
         let map = if let Some(pseudo) = selector.pseudo_element() {
             self.pseudos_map
-                .entry(pseudo.clone())
+                .entry(pseudo.canonical())
                 .or_insert_with(PerPseudoElementSelectorMap::new)
                 .borrow_for_origin(&stylesheet.origin)
         } else {
@@ -665,8 +665,9 @@ impl Stylist {
                                 -> Option<StrongRuleNode>
         where E: TElement
     {
+        let pseudo = pseudo.canonical();
         debug_assert!(pseudo.is_lazy());
-        if self.pseudos_map.get(pseudo).is_none() {
+        if self.pseudos_map.get(&pseudo).is_none() {
             return None
         }
 
@@ -698,7 +699,7 @@ impl Stylist {
         let mut matching_context =
             MatchingContext::new(MatchingMode::ForStatelessPseudoElement, None);
         self.push_applicable_declarations(element,
-                                          Some(pseudo),
+                                          Some(&pseudo),
                                           None,
                                           None,
                                           AnimationRules(None, None),
@@ -943,7 +944,7 @@ impl Stylist {
             if let Some(anim) = animation_rules.0 {
                 Push::push(
                     applicable_declarations,
-                    ApplicableDeclarationBlock::from_declarations(anim,
+                    ApplicableDeclarationBlock::from_declarations(anim.clone(),
                                                                   CascadeLevel::Animations));
             }
             debug!("animation: {:?}", context.relations);
@@ -961,7 +962,8 @@ impl Stylist {
         if let Some(anim) = animation_rules.1 {
             Push::push(
                 applicable_declarations,
-                ApplicableDeclarationBlock::from_declarations(anim, CascadeLevel::Transitions));
+                ApplicableDeclarationBlock::from_declarations(anim.clone(),
+                                                              CascadeLevel::Transitions));
         }
         debug!("transition: {:?}", context.relations);
         debug!("push_applicable_declarations: shareable: {:?}", context.relations);

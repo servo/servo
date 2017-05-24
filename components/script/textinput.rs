@@ -632,14 +632,6 @@ impl<T: ClipboardProvider> TextInput<T> {
                 self.insert_char(c);
                 KeyReaction::DispatchInput
             },
-            #[cfg(target_os = "macos")]
-            (None, Key::Home) => {
-                KeyReaction::RedrawSelection
-            },
-            #[cfg(target_os = "macos")]
-            (None, Key::End) => {
-                KeyReaction::RedrawSelection
-            },
             (None, Key::Delete) => {
                 self.delete_char(Direction::Forward);
                 KeyReaction::DispatchInput
@@ -694,12 +686,18 @@ impl<T: ClipboardProvider> TextInput<T> {
             },
             (None, Key::Enter) | (None, Key::KpEnter) => self.handle_return(),
             (None, Key::Home) => {
-                self.edit_point.index = 0;
+                #[cfg(not(target_os = "macos"))]
+                {
+                    self.edit_point.index = 0;
+                }
                 KeyReaction::RedrawSelection
             },
             (None, Key::End) => {
-                self.edit_point.index = self.current_line_length();
-                self.assert_ok_selection();
+                #[cfg(not(target_os = "macos"))]
+                {
+                    self.edit_point.index = self.current_line_length();
+                    self.assert_ok_selection();
+                }
                 KeyReaction::RedrawSelection
             },
             (None, Key::PageUp) => {

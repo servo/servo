@@ -274,20 +274,6 @@ pub trait PresentationalHintsSynthesizer {
         where V: Push<ApplicableDeclarationBlock>;
 }
 
-/// The animation rules.
-///
-/// The first one is for Animation cascade level, and the second one is for
-/// Transition cascade level.
-pub struct AnimationRules(pub Option<Arc<Locked<PropertyDeclarationBlock>>>,
-                          pub Option<Arc<Locked<PropertyDeclarationBlock>>>);
-
-impl AnimationRules {
-    /// Returns whether these animation rules represents an actual rule or not.
-    pub fn is_empty(&self) -> bool {
-        self.0.is_none() && self.1.is_none()
-    }
-}
-
 /// The element trait, the main abstraction the style crate acts over.
 pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
                      ElementExt + PresentationalHintsSynthesizer {
@@ -346,11 +332,6 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// Get this element's SMIL override declarations.
     fn get_smil_override(&self) -> Option<&Arc<Locked<PropertyDeclarationBlock>>> {
         None
-    }
-
-    /// Get this element's animation rules.
-    fn get_animation_rules(&self) -> AnimationRules {
-        AnimationRules(None, None)
     }
 
     /// Get this element's animation rule by the cascade level.
@@ -524,6 +505,11 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
 
     /// Returns true if the element has all the specified selector flags.
     fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool;
+
+    /// In Gecko, element has a flag that represents the element may have
+    /// any type of animations or not to bail out animation stuff early.
+    /// Whereas Servo doesn't have such flag.
+    fn may_have_animations(&self) -> bool { false }
 
     /// Creates a task to update various animation state on a given (pseudo-)element.
     #[cfg(feature = "gecko")]

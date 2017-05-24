@@ -6,12 +6,12 @@
 
 use context::SharedStyleContext;
 use dom::TElement;
-use properties::ComputedValues;
+use properties::{AnimationRules, ComputedValues, PropertyDeclarationBlock};
 use properties::longhands::display::computed_value as display;
 use restyle_hints::{HintComputationContext, RestyleReplacements, RestyleHint};
 use rule_tree::StrongRuleNode;
 use selector_parser::{EAGER_PSEUDO_COUNT, PseudoElement, RestyleDamage};
-use shared_lock::StylesheetGuards;
+use shared_lock::{Locked, StylesheetGuards};
 use std::fmt;
 use stylearc::Arc;
 use traversal::TraversalFlags;
@@ -557,5 +557,30 @@ impl ElementData {
     /// not have restyle data.
     pub fn restyle_mut(&mut self) -> &mut RestyleData {
         self.get_restyle_mut().expect("Calling restyle_mut without RestyleData")
+    }
+
+    /// Returns SMIL overriden value if exists.
+    pub fn get_smil_override(&self) -> Option<&Arc<Locked<PropertyDeclarationBlock>>> {
+        if cfg!(feature = "servo") {
+            // Servo has no knowledge of a SMIL rule, so just avoid looking for it.
+            return None;
+        }
+
+        match self.get_styles() {
+            Some(s) => s.primary.rules.get_smil_animation_rule(),
+            None => None,
+        }
+    }
+
+    /// Returns AnimationRules that has processed during animation-only restyles.
+    pub fn get_animation_rules(&self) -> AnimationRules {
+        if cfg!(feature = "servo") {
+            return AnimationRules(None, None)
+        }
+
+        match self.get_styles() {
+            Some(s) => s.primary.rules.get_animation_rules(),
+            None => AnimationRules(None, None),
+        }
     }
 }

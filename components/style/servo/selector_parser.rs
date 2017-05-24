@@ -152,6 +152,12 @@ impl PseudoElement {
             PseudoElement::ServoInlineAbsolute => PseudoElementCascadeType::Precomputed,
         }
     }
+
+    /// Covert non-canonical pseudo-element to canonical one, and keep a
+    /// canonical one as it is.
+    pub fn canonical(&self) -> PseudoElement {
+        self.clone()
+    }
 }
 
 /// A non tree-structural pseudo-class.

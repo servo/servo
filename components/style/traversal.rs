@@ -770,11 +770,11 @@ fn compute_style<E, D>(_traversal: &D,
             )
         }
         CascadeWithReplacements(flags) => {
-            let rules_changed = element.replace_rules(flags, context, data);
+            let important_rules_changed = element.replace_rules(flags, context, data);
             element.cascade_primary_and_pseudos(
                 context,
                 data,
-                rules_changed.important_rules_changed()
+                important_rules_changed
             )
         }
         CascadeOnly => {

@@ -10,10 +10,10 @@
 use cascade_info::CascadeInfo;
 use context::{SelectorFlagsMap, SharedStyleContext, StyleContext};
 use data::{ComputedStyle, ElementData, RestyleData};
-use dom::{AnimationRules, TElement, TNode};
+use dom::{TElement, TNode};
 use font_metrics::FontMetricsProvider;
 use log::LogLevel::Trace;
-use properties::{CascadeFlags, ComputedValues, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
+use properties::{AnimationRules, CascadeFlags, ComputedValues, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
 use properties::longhands::display::computed_value as display;
 use restyle_hints::{RESTYLE_CSS_ANIMATIONS, RESTYLE_CSS_TRANSITIONS, RestyleReplacements};
 use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RESTYLE_SMIL};
@@ -254,12 +254,15 @@ trait PrivateMatchMethods: TElement {
             // We could make that a bit better if the complexity cost is not too
             // big, but given further restyles are posted directly to
             // pseudo-elements, it doesn't seem worth the effort at a glance.
-            if pseudo.is_eager() && self.get_animation_rules().is_empty() {
+            if pseudo.is_eager() {
                 let parent = self.parent_element().unwrap();
-                let parent_data = parent.borrow_data().unwrap();
-                let pseudo_style =
-                    parent_data.styles().pseudos.get(&pseudo).unwrap();
-                return pseudo_style.values().clone()
+                if !parent.may_have_animations() ||
+                   primary_style.rules.get_animation_rules().is_empty() {
+                    let parent_data = parent.borrow_data().unwrap();
+                    let pseudo_style =
+                        parent_data.styles().pseudos.get(&pseudo).unwrap();
+                    return pseudo_style.values().clone()
+                }
             }
         }
 
@@ -684,6 +687,8 @@ pub trait MatchMethods : TElement {
     {
         let implemented_pseudo = self.implemented_pseudo_element();
         if let Some(ref pseudo) = implemented_pseudo {
+            // We don't expect to match against a non-canonical pseudo-element.
+            debug_assert_eq!(*pseudo, pseudo.canonical());
             if pseudo.is_eager() {
                 // If it's an eager element-backed pseudo, just grab the matched
                 // rules from the parent, and update animations.
@@ -692,38 +697,39 @@ pub trait MatchMethods : TElement {
                 let pseudo_style =
                     parent_data.styles().pseudos.get(&pseudo).unwrap();
                 let mut rules = pseudo_style.rules.clone();
-                let animation_rules = self.get_animation_rules();
+                if parent.may_have_animations() {
+                    let animation_rules = data.get_animation_rules();
 
-                // Handle animations here.
-                if let Some(animation_rule) = animation_rules.0 {
-                    let animation_rule_node =
-                        context.shared.stylist.rule_tree()
-                            .update_rule_at_level(CascadeLevel::Animations,
-                                                  Some(&animation_rule),
-                                                  &mut rules,
-                                                  &context.shared.guards);
-                    if let Some(node) = animation_rule_node {
-                        rules = node;
+                    // Handle animations here.
+                    if let Some(animation_rule) = animation_rules.0 {
+                        let animation_rule_node =
+                            context.shared.stylist.rule_tree()
+                                .update_rule_at_level(CascadeLevel::Animations,
+                                                      Some(&animation_rule),
+                                                      &mut rules,
+                                                      &context.shared.guards);
+                        if let Some(node) = animation_rule_node {
+                            rules = node;
+                        }
+                    }
+
+                    if let Some(animation_rule) = animation_rules.1 {
+                        let animation_rule_node =
+                            context.shared.stylist.rule_tree()
+                                .update_rule_at_level(CascadeLevel::Transitions,
+                                                      Some(&animation_rule),
+                                                      &mut rules,
+                                                      &context.shared.guards);
+                        if let Some(node) = animation_rule_node {
+                            rules = node;
+                        }
                     }
                 }
-
-                if let Some(animation_rule) = animation_rules.1 {
-                    let animation_rule_node =
-                        context.shared.stylist.rule_tree()
-                            .update_rule_at_level(CascadeLevel::Transitions,
-                                                  Some(&animation_rule),
-                                                  &mut rules,
-                                                  &context.shared.guards);
-                    if let Some(node) = animation_rule_node {
-                        rules = node;
-                    }
-                }
-
                 let important_rules_changed =
                     self.has_animations() &&
                     data.has_styles() &&
                     data.important_rules_are_different(&rules,
-                                                       &context.shared.guards);
+                                                   &context.shared.guards);
 
                 return RulesMatchedResult {
                     rule_nodes_changed: data.set_primary_rules(rules),
@@ -736,30 +742,35 @@ pub trait MatchMethods : TElement {
 
         let stylist = &context.shared.stylist;
         let style_attribute = self.style_attribute();
-        let smil_override = self.get_smil_override();
-        let animation_rules = self.get_animation_rules();
-        let bloom = context.thread_local.bloom_filter.filter();
+        {
+            let smil_override = data.get_smil_override();
+            let animation_rules = if self.may_have_animations() {
+                data.get_animation_rules()
+            } else {
+                AnimationRules(None, None)
+            };
+            let bloom = context.thread_local.bloom_filter.filter();
 
+            let map = &mut context.thread_local.selector_flags;
+            let mut set_selector_flags = |element: &Self, flags: ElementSelectorFlags| {
+                self.apply_selector_flags(map, element, flags);
+            };
 
-        let map = &mut context.thread_local.selector_flags;
-        let mut set_selector_flags = |element: &Self, flags: ElementSelectorFlags| {
-            self.apply_selector_flags(map, element, flags);
-        };
+            let mut matching_context =
+                MatchingContext::new(MatchingMode::Normal, Some(bloom));
 
-        let mut matching_context =
-            MatchingContext::new(MatchingMode::Normal, Some(bloom));
+            // Compute the primary rule node.
+            stylist.push_applicable_declarations(self,
+                                                 implemented_pseudo.as_ref(),
+                                                 style_attribute,
+                                                 smil_override,
+                                                 animation_rules,
+                                                 &mut applicable_declarations,
+                                                 &mut matching_context,
+                                                 &mut set_selector_flags);
 
-        // Compute the primary rule node.
-        stylist.push_applicable_declarations(self,
-                                             implemented_pseudo.as_ref(),
-                                             style_attribute,
-                                             smil_override,
-                                             animation_rules,
-                                             &mut applicable_declarations,
-                                             &mut matching_context,
-                                             &mut set_selector_flags);
-
-        *relations = matching_context.relations;
+            *relations = matching_context.relations;
+        }
 
         let primary_rule_node =
             compute_rule_node::<Self>(stylist.rule_tree(),
@@ -963,81 +974,82 @@ pub trait MatchMethods : TElement {
     }
 
     /// Updates the rule nodes without re-running selector matching, using just
-    /// the rule tree. Returns RulesChanged which indicates whether the rule nodes changed
-    /// and whether the important rules changed.
+    /// the rule tree. Returns true if an !important rule was replaced.
     fn replace_rules(&self,
                      replacements: RestyleReplacements,
                      context: &StyleContext<Self>,
                      data: &mut ElementData)
-                     -> RulesChanged {
+                     -> bool {
         use properties::PropertyDeclarationBlock;
         use shared_lock::Locked;
 
         let element_styles = &mut data.styles_mut();
         let primary_rules = &mut element_styles.primary.rules;
-        let mut result = RulesChanged::empty();
 
-        {
-            let mut replace_rule_node = |level: CascadeLevel,
-                                         pdb: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
-                                         path: &mut StrongRuleNode| {
-                let new_node = context.shared.stylist.rule_tree()
-                    .update_rule_at_level(level, pdb, path, &context.shared.guards);
-                if let Some(n) = new_node {
+        let replace_rule_node = |level: CascadeLevel,
+                                 pdb: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
+                                 path: &mut StrongRuleNode| -> bool {
+            let new_node = context.shared.stylist.rule_tree()
+                .update_rule_at_level(level, pdb, path, &context.shared.guards);
+            match new_node {
+                Some(n) => {
                     *path = n;
-                    if level.is_important() {
-                        result.insert(IMPORTANT_RULES_CHANGED);
-                    } else {
-                        result.insert(NORMAL_RULES_CHANGED);
-                    }
-                }
+                    level.is_important()
+                },
+                None => false,
+            }
+        };
+
+        if !context.shared.traversal_flags.for_animation_only() {
+            let mut result = false;
+            if replacements.contains(RESTYLE_STYLE_ATTRIBUTE) {
+                let style_attribute = self.style_attribute();
+                result |= replace_rule_node(CascadeLevel::StyleAttributeNormal,
+                                            style_attribute,
+                                            primary_rules);
+                result |= replace_rule_node(CascadeLevel::StyleAttributeImportant,
+                                            style_attribute,
+                                            primary_rules);
+            }
+            return result;
+        }
+
+        // Animation restyle hints are processed prior to other restyle
+        // hints in the animation-only traversal.
+        //
+        // Non-animation restyle hints will be processed in a subsequent
+        // normal traversal.
+        if replacements.intersects(RestyleReplacements::for_animations()) {
+            debug_assert!(context.shared.traversal_flags.for_animation_only());
+
+            if replacements.contains(RESTYLE_SMIL) {
+                replace_rule_node(CascadeLevel::SMILOverride,
+                                  self.get_smil_override(),
+                                  primary_rules);
+            }
+
+            let replace_rule_node_for_animation = |level: CascadeLevel,
+                                                   primary_rules: &mut StrongRuleNode| {
+                let animation_rule = self.get_animation_rule_by_cascade(level);
+                replace_rule_node(level,
+                                  animation_rule.as_ref(),
+                                  primary_rules);
             };
 
-            // Animation restyle hints are processed prior to other restyle
-            // hints in the animation-only traversal.
-            //
-            // Non-animation restyle hints will be processed in a subsequent
-            // normal traversal.
-            if replacements.intersects(RestyleReplacements::for_animations()) {
-                debug_assert!(context.shared.traversal_flags.for_animation_only());
+            // Apply Transition rules and Animation rules if the corresponding restyle hint
+            // is contained.
+            if replacements.contains(RESTYLE_CSS_TRANSITIONS) {
+                replace_rule_node_for_animation(CascadeLevel::Transitions,
+                                                primary_rules);
+            }
 
-                if replacements.contains(RESTYLE_SMIL) {
-                    replace_rule_node(CascadeLevel::SMILOverride,
-                                      self.get_smil_override(),
-                                      primary_rules);
-                }
-
-                let mut replace_rule_node_for_animation = |level: CascadeLevel,
-                                                           primary_rules: &mut StrongRuleNode| {
-                    let animation_rule = self.get_animation_rule_by_cascade(level);
-                    replace_rule_node(level,
-                                      animation_rule.as_ref(),
-                                      primary_rules);
-                };
-
-                // Apply Transition rules and Animation rules if the corresponding restyle hint
-                // is contained.
-                if replacements.contains(RESTYLE_CSS_TRANSITIONS) {
-                    replace_rule_node_for_animation(CascadeLevel::Transitions,
-                                                    primary_rules);
-                }
-
-                if replacements.contains(RESTYLE_CSS_ANIMATIONS) {
-                    replace_rule_node_for_animation(CascadeLevel::Animations,
-                                                    primary_rules);
-                }
-            } else if replacements.contains(RESTYLE_STYLE_ATTRIBUTE) {
-                let style_attribute = self.style_attribute();
-                replace_rule_node(CascadeLevel::StyleAttributeNormal,
-                                  style_attribute,
-                                  primary_rules);
-                replace_rule_node(CascadeLevel::StyleAttributeImportant,
-                                  style_attribute,
-                                  primary_rules);
+            if replacements.contains(RESTYLE_CSS_ANIMATIONS) {
+                replace_rule_node_for_animation(CascadeLevel::Animations,
+                                                primary_rules);
             }
         }
 
-        result
+        false
     }
 
     /// Attempts to share a style with another node. This method is unsafe
