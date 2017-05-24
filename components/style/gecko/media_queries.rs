@@ -128,6 +128,10 @@ impl ToCss for Expression {
         where W: fmt::Write,
     {
         dest.write_str("(")?;
+
+        if (self.feature.mReqFlags & nsMediaFeature_RequirementFlags::eHasWebkitPrefix as u8) != 0 {
+            dest.write_str("-webkit-")?;
+        }
         match self.range {
             nsMediaExpression_Range::eMin => dest.write_str("min-")?,
             nsMediaExpression_Range::eMax => dest.write_str("max-")?,
