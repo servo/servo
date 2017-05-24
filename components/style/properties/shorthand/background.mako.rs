@@ -39,17 +39,20 @@
             let mut background_${name} = background_${name}::SpecifiedValue(Vec::new());
         % endfor
         try!(input.parse_comma_separated(|input| {
+            // background-color can only be in the last element, so if it
+            // is parsed anywhere before, the value is invalid.
+            if background_color.is_some() {
+                return Err(());
+            }
+
             % for name in "image position repeat size attachment origin clip".split():
                 let mut ${name} = None;
             % endfor
             loop {
-                if let Ok(value) = input.try(|i| CSSColor::parse(context, i)) {
-                    if background_color.is_none() {
+                if background_color.is_none() {
+                    if let Ok(value) = input.try(|i| CSSColor::parse(context, i)) {
                         background_color = Some(value);
                         continue
-                    } else {
-                        // color can only be the last element
-                        return Err(())
                     }
                 }
                 if position.is_none() {
@@ -69,6 +72,13 @@
                     if ${name}.is_none() {
                         if let Ok(value) = input.try(|input| background_${name}::single_value
                                                                                ::parse(context, input)) {
+                            % if name == "clip" and product == "gecko":
+                            // "text" value of background-clip should not be part of background
+                            // shorthand per current spec and impls.
+                            if value == background_clip::single_value::SpecifiedValue::text {
+                                return Err(());
+                            }
+                            % endif
                             ${name} = Some(value);
                             continue
                         }
