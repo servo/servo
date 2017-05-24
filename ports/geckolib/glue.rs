@@ -2497,16 +2497,18 @@ fn append_computed_property_value(keyframe: *mut structs::Keyframe,
     }
 }
 
+enum Offset {
+    Zero,
+    One
+}
+
 fn fill_in_missing_keyframe_values(all_properties:  &[TransitionProperty],
                                    timing_function: nsTimingFunctionBorrowed,
                                    style: &ComputedValues,
                                    properties_set_at_offset: &LonghandIdSet,
-                                   offset: f32,
+                                   offset: Offset,
                                    keyframes: RawGeckoKeyframeListBorrowedMut,
                                    shared_lock: &SharedRwLock) {
-    debug_assert!(offset == 0. || offset == 1.,
-                  "offset should be 0. or 1.");
-
     let needs_filling = all_properties.iter().any(|ref property| {
         !properties_set_at_offset.has_transition_property_bit(property)
     });
@@ -2517,13 +2519,12 @@ fn fill_in_missing_keyframe_values(all_properties:  &[TransitionProperty],
     }
 
     let keyframe = match offset {
-        0. => unsafe {
+        Offset::Zero => unsafe {
             Gecko_GetOrCreateInitialKeyframe(keyframes, timing_function)
         },
-        1. => unsafe {
+        Offset::One => unsafe {
             Gecko_GetOrCreateFinalKeyframe(keyframes, timing_function)
         },
-        _ => unreachable!("offset should be 0. or 1."),
     };
 
     // Append properties that have not been set at this offset.
@@ -2652,7 +2653,7 @@ pub extern "C" fn Servo_StyleSet_GetKeyframesForName(raw_data: RawServoStyleSetB
                                         inherited_timing_function,
                                         style,
                                         &properties_set_at_start,
-                                        0.,
+                                        Offset::Zero,
                                         keyframes,
                                         &global_style_data.shared_lock);
     }
@@ -2661,7 +2662,7 @@ pub extern "C" fn Servo_StyleSet_GetKeyframesForName(raw_data: RawServoStyleSetB
                                         inherited_timing_function,
                                         style,
                                         &properties_set_at_end,
-                                        1.,
+                                        Offset::One,
                                         keyframes,
                                         &global_style_data.shared_lock);
     }
