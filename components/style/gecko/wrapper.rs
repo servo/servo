@@ -423,11 +423,6 @@ impl<'le> GeckoElement<'le> {
     }
 
     #[inline]
-    fn may_have_animations(&self) -> bool {
-        self.as_node().get_bool_flag(nsINode_BooleanFlag::ElementHasAnimations)
-    }
-
-    #[inline]
     fn has_id(&self) -> bool {
         self.as_node().get_bool_flag(nsINode_BooleanFlag::ElementHasID)
     }
@@ -775,6 +770,11 @@ impl<'le> TElement for GeckoElement<'le> {
     fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool {
         let node_flags = selector_flags_to_node_flags(flags);
         (self.flags() & node_flags) == node_flags
+    }
+
+    #[inline]
+    fn may_have_animations(&self) -> bool {
+        self.as_node().get_bool_flag(nsINode_BooleanFlag::ElementHasAnimations)
     }
 
     fn update_animations(&self,

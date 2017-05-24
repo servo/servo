@@ -254,12 +254,15 @@ trait PrivateMatchMethods: TElement {
             // We could make that a bit better if the complexity cost is not too
             // big, but given further restyles are posted directly to
             // pseudo-elements, it doesn't seem worth the effort at a glance.
-            if pseudo.is_eager() && primary_style.rules.get_animation_rules().is_empty() {
+            if pseudo.is_eager() {
                 let parent = self.parent_element().unwrap();
-                let parent_data = parent.borrow_data().unwrap();
-                let pseudo_style =
-                    parent_data.styles().pseudos.get(&pseudo).unwrap();
-                return pseudo_style.values().clone()
+                if !parent.may_have_animations() ||
+                   primary_style.rules.get_animation_rules().is_empty() {
+                    let parent_data = parent.borrow_data().unwrap();
+                    let pseudo_style =
+                        parent_data.styles().pseudos.get(&pseudo).unwrap();
+                    return pseudo_style.values().clone()
+                }
             }
         }
 
@@ -692,7 +695,7 @@ pub trait MatchMethods : TElement {
                 let pseudo_style =
                     parent_data.styles().pseudos.get(&pseudo).unwrap();
                 let mut rules = pseudo_style.rules.clone();
-                {
+                if parent.may_have_animations() {
                     let animation_rules = data.get_animation_rules();
 
                     // Handle animations here.
@@ -739,7 +742,11 @@ pub trait MatchMethods : TElement {
         let style_attribute = self.style_attribute();
         {
             let smil_override = data.get_smil_override();
-            let animation_rules = data.get_animation_rules();
+            let animation_rules = if self.may_have_animations() {
+                data.get_animation_rules()
+            } else {
+                AnimationRules(None, None)
+            };
             let bloom = context.thread_local.bloom_filter.filter();
 
             let map = &mut context.thread_local.selector_flags;
