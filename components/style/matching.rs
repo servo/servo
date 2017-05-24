@@ -983,7 +983,6 @@ pub trait MatchMethods : TElement {
 
         let element_styles = &mut data.styles_mut();
         let primary_rules = &mut element_styles.primary.rules;
-        let mut result = false;
 
         let replace_rule_node = |level: CascadeLevel,
                                  pdb: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
@@ -998,6 +997,20 @@ pub trait MatchMethods : TElement {
                 None => false,
             }
         };
+
+        if !context.shared.traversal_flags.for_animation_only() {
+            let mut result = false;
+            if replacements.contains(RESTYLE_STYLE_ATTRIBUTE) {
+                let style_attribute = self.style_attribute();
+                result |= replace_rule_node(CascadeLevel::StyleAttributeNormal,
+                                            style_attribute,
+                                            primary_rules);
+                result |= replace_rule_node(CascadeLevel::StyleAttributeImportant,
+                                            style_attribute,
+                                            primary_rules);
+            }
+            return result;
+        }
 
         // Animation restyle hints are processed prior to other restyle
         // hints in the animation-only traversal.
@@ -1032,17 +1045,9 @@ pub trait MatchMethods : TElement {
                 replace_rule_node_for_animation(CascadeLevel::Animations,
                                                 primary_rules);
             }
-        } else if replacements.contains(RESTYLE_STYLE_ATTRIBUTE) {
-            let style_attribute = self.style_attribute();
-            result |= replace_rule_node(CascadeLevel::StyleAttributeNormal,
-                                        style_attribute,
-                                        primary_rules);
-            result |= replace_rule_node(CascadeLevel::StyleAttributeImportant,
-                                        style_attribute,
-                                        primary_rules);
         }
 
-        result
+        false
     }
 
     /// Attempts to share a style with another node. This method is unsafe
