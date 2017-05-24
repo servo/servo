@@ -51,7 +51,8 @@ impl InvalidationScope {
 
 /// A set of invalidations due to stylesheet additions.
 ///
-/// TODO(emilio): We might be able to do the same analysis for removals too?
+/// TODO(emilio): We might be able to do the same analysis for removals and
+/// media query changes too?
 pub struct StylesheetInvalidationSet {
     /// The style scopes we know we have to restyle so far.
     invalid_scopes: FnvHashSet<InvalidationScope>,
@@ -66,6 +67,12 @@ impl StylesheetInvalidationSet {
             invalid_scopes: FnvHashSet::default(),
             fully_invalid: false,
         }
+    }
+
+    /// Mark the DOM tree styles' as fully invalid.
+    pub fn invalidate_fully(&mut self) {
+        self.invalid_scopes.clear();
+        self.fully_invalid = true;
     }
 
     /// Analyze the given stylesheet, and collect invalidations from their
@@ -89,13 +96,25 @@ impl StylesheetInvalidationSet {
             guard);
     }
 
+    /// Clears the invalidation set, invalidating elements as needed if
+    /// `document_element` is provided.
+    pub fn flush<E>(&mut self, document_element: Option<E>)
+        where E: TElement,
+    {
+        if let Some(e) = document_element {
+            self.process_invalidations_in_subtree(e);
+        }
+        self.invalid_scopes.clear();
+        self.fully_invalid = false;
+    }
+
     /// Process style invalidations in a given subtree, that is, look for all
     /// the relevant scopes in the subtree, and mark as dirty only the relevant
     /// ones.
     ///
     /// Returns whether it invalidated at least one element's style.
     #[allow(unsafe_code)]
-    pub fn process_invalidations_in_subtree<E>(&self, element: E) -> bool
+    fn process_invalidations_in_subtree<E>(&self, element: E) -> bool
         where E: TElement,
     {
         let mut data = match element.mutate_data() {
