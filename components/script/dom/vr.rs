@@ -152,6 +152,13 @@ impl VR {
             WebVRDisplayEvent::Change(ref display) => {
                 let display = self.sync_display(&display);
                 display.handle_webvr_event(&event);
+            },
+            WebVRDisplayEvent::Pause(id) |
+            WebVRDisplayEvent::Resume(id) |
+            WebVRDisplayEvent::Exit(id) => {
+                if let Some(display) = self.find_display(id) {
+                    display.handle_webvr_event(&event);
+                }
             }
         };
     }

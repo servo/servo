@@ -66,7 +66,12 @@ impl VRDisplayEvent {
             WebVRDisplayEvent::Blur(_) => ("blur", None),
             WebVRDisplayEvent::Focus(_) => ("focus", None),
             WebVRDisplayEvent::PresentChange(_, _) => ("presentchange", None),
-            WebVRDisplayEvent::Change(_) => panic!("VRDisplayEvent:Change event not available in WebVR")
+            WebVRDisplayEvent::Change(_) |
+            WebVRDisplayEvent::Pause(_) |
+            WebVRDisplayEvent::Resume(_) |
+            WebVRDisplayEvent::Exit(_) => {
+                panic!("{:?} event not available in WebVR", event)
+            }
         };
 
         // map to JS enum values

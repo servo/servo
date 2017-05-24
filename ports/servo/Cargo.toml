@@ -45,4 +45,4 @@ libservo = {path = "../../components/servo"}
 sig = "0.1"
 
 [target.'cfg(target_os = "android")'.dependencies]
-android_injected_glue = {git = "https://github.com/mmatyas/android-rs-injected-glue"}
+android_injected_glue = "0.2"
