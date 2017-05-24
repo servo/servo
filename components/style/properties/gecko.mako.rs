@@ -2951,29 +2951,37 @@ fn static_assert() {
         use gecko_bindings::structs::nsStyleImageLayers_Size_Dimension;
         use gecko_bindings::structs::nsStyleImageLayers_Size_DimensionType;
         use gecko_bindings::structs::{nsStyleCoord_CalcValue, nsStyleImageLayers_Size};
-        use properties::longhands::background_size::single_value::computed_value::T;
+        use values::generics::background::BackgroundSize;
 
         let mut width = nsStyleCoord_CalcValue::new();
         let mut height = nsStyleCoord_CalcValue::new();
 
         let (w_type, h_type) = match servo {
-            T::Explicit(size) => {
+            BackgroundSize::Explicit { width: explicit_width, height: explicit_height } => {
                 let mut w_type = nsStyleImageLayers_Size_DimensionType::eAuto;
                 let mut h_type = nsStyleImageLayers_Size_DimensionType::eAuto;
-                if let Some(w) = size.width.to_calc_value() {
+                if let Some(w) = explicit_width.to_calc_value() {
                     width = w;
                     w_type = nsStyleImageLayers_Size_DimensionType::eLengthPercentage;
                 }
-                if let Some(h) = size.height.to_calc_value() {
+                if let Some(h) = explicit_height.to_calc_value() {
                     height = h;
                     h_type = nsStyleImageLayers_Size_DimensionType::eLengthPercentage;
                 }
                 (w_type, h_type)
             }
-            T::Cover => (nsStyleImageLayers_Size_DimensionType::eCover,
-                         nsStyleImageLayers_Size_DimensionType::eCover),
-            T::Contain => (nsStyleImageLayers_Size_DimensionType::eContain,
-                         nsStyleImageLayers_Size_DimensionType::eContain),
+            BackgroundSize::Cover => {
+                (
+                    nsStyleImageLayers_Size_DimensionType::eCover,
+                    nsStyleImageLayers_Size_DimensionType::eCover,
+                )
+            },
+            BackgroundSize::Contain => {
+                (
+                    nsStyleImageLayers_Size_DimensionType::eContain,
+                    nsStyleImageLayers_Size_DimensionType::eContain,
+                )
+            },
         };
 
         nsStyleImageLayers_Size {
@@ -2987,8 +2995,8 @@ fn static_assert() {
     pub fn clone_${shorthand}_size(&self) -> longhands::background_size::computed_value::T {
         use gecko_bindings::structs::nsStyleCoord_CalcValue as CalcValue;
         use gecko_bindings::structs::nsStyleImageLayers_Size_DimensionType as DimensionType;
-        use properties::longhands::background_size::single_value::computed_value::{ExplicitSize, T};
         use values::computed::LengthOrPercentageOrAuto;
+        use values::generics::background::BackgroundSize;
 
         fn to_servo(value: CalcValue, ty: u8) -> LengthOrPercentageOrAuto {
             if ty == DimensionType::eAuto as u8 {
@@ -3003,17 +3011,16 @@ fn static_assert() {
             self.gecko.${image_layers_field}.mLayers.iter().map(|ref layer| {
                 if DimensionType::eCover as u8 == layer.mSize.mWidthType {
                     debug_assert!(layer.mSize.mHeightType == DimensionType::eCover as u8);
-                    return T::Cover
+                    return BackgroundSize::Cover
                 }
                 if DimensionType::eContain as u8 == layer.mSize.mWidthType {
                     debug_assert!(layer.mSize.mHeightType == DimensionType::eContain as u8);
-                    return T::Contain
+                    return BackgroundSize::Contain
                 }
-
-                T::Explicit(ExplicitSize {
+                BackgroundSize::Explicit {
                     width: to_servo(layer.mSize.mWidth._base, layer.mSize.mWidthType),
                     height: to_servo(layer.mSize.mHeight._base, layer.mSize.mHeightType),
-                })
+                }
             }).collect()
         )
     }

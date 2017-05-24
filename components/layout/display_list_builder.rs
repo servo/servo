@@ -48,7 +48,7 @@ use std::default::Default;
 use std::mem;
 use std::sync::Arc;
 use style::computed_values::{background_attachment, background_clip, background_origin};
-use style::computed_values::{background_repeat, background_size, border_style, cursor};
+use style::computed_values::{background_repeat, border_style, cursor};
 use style::computed_values::{image_rendering, overflow_x, pointer_events, position, visibility};
 use style::computed_values::filter::Filter;
 use style::computed_values::text_shadow::TextShadow;
@@ -61,6 +61,7 @@ use style::values::{Either, RGBA};
 use style::values::computed::{Gradient, GradientItem, LengthOrPercentage};
 use style::values::computed::{LengthOrPercentageOrAuto, NumberOrPercentage, Position};
 use style::values::computed::image::{EndingShape, LineDirection};
+use style::values::generics::background::BackgroundSize;
 use style::values::generics::image::{Circle, Ellipse, EndingShape as GenericEndingShape};
 use style::values::generics::image::{GradientItem as GenericGradientItem, GradientKind};
 use style::values::generics::image::{Image, ShapeExtent};
@@ -917,43 +918,29 @@ impl FragmentDisplayListBuilding for Fragment {
                                          Au::from_px(image.height as i32));
         let background_size = get_cyclic(&style.get_background().background_size.0, index).clone();
         match (background_size, image_aspect_ratio < bounds_aspect_ratio) {
-            (background_size::single_value::T::Contain, false) |
-            (background_size::single_value::T::Cover, true) => {
+            (BackgroundSize::Contain, false) | (BackgroundSize::Cover, true) => {
                 Size2D::new(bounds.size.width,
                             Au::from_f64_px(bounds.size.width.to_f64_px() / image_aspect_ratio))
             }
 
-            (background_size::single_value::T::Contain, true) |
-            (background_size::single_value::T::Cover, false) => {
+            (BackgroundSize::Contain, true) | (BackgroundSize::Cover, false) => {
                 Size2D::new(Au::from_f64_px(bounds.size.height.to_f64_px() * image_aspect_ratio),
                             bounds.size.height)
             }
 
-            (background_size::single_value::T::Explicit(background_size::single_value
-                                                                       ::ExplicitSize {
-                width,
-                height: LengthOrPercentageOrAuto::Auto,
-            }), _) => {
+            (BackgroundSize::Explicit { width, height: LengthOrPercentageOrAuto::Auto }, _) => {
                 let width = MaybeAuto::from_style(width, bounds.size.width)
                                       .specified_or_default(intrinsic_size.width);
                 Size2D::new(width, Au::from_f64_px(width.to_f64_px() / image_aspect_ratio))
             }
 
-            (background_size::single_value::T::Explicit(background_size::single_value
-                                                                       ::ExplicitSize {
-                width: LengthOrPercentageOrAuto::Auto,
-                height
-            }), _) => {
+            (BackgroundSize::Explicit { width: LengthOrPercentageOrAuto::Auto, height }, _) => {
                 let height = MaybeAuto::from_style(height, bounds.size.height)
                                        .specified_or_default(intrinsic_size.height);
                 Size2D::new(Au::from_f64_px(height.to_f64_px() * image_aspect_ratio), height)
             }
 
-            (background_size::single_value::T::Explicit(background_size::single_value
-                                                                       ::ExplicitSize {
-                width,
-                height
-            }), _) => {
+            (BackgroundSize::Explicit { width, height }, _) => {
                 Size2D::new(MaybeAuto::from_style(width, bounds.size.width)
                                  .specified_or_default(intrinsic_size.width),
                        MaybeAuto::from_style(height, bounds.size.height)
