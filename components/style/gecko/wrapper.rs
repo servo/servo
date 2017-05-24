@@ -18,7 +18,7 @@ use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use context::{QuirksMode, SharedStyleContext, UpdateAnimationsTasks};
 use data::ElementData;
-use dom::{self, AnimationRules, DescendantsBit, LayoutIterator, NodeInfo, TElement, TNode, UnsafeNode};
+use dom::{self, DescendantsBit, LayoutIterator, NodeInfo, TElement, TNode, UnsafeNode};
 use dom::{OpaqueNode, PresentationalHintsSynthesizer};
 use element_state::ElementState;
 use error_reporting::RustLogReporter;
@@ -423,11 +423,6 @@ impl<'le> GeckoElement<'le> {
     }
 
     #[inline]
-    fn may_have_animations(&self) -> bool {
-        self.as_node().get_bool_flag(nsINode_BooleanFlag::ElementHasAnimations)
-    }
-
-    #[inline]
     fn has_id(&self) -> bool {
         self.as_node().get_bool_flag(nsINode_BooleanFlag::ElementHasID)
     }
@@ -613,11 +608,6 @@ impl<'le> TElement for GeckoElement<'le> {
         declarations.map(|s| s.as_arc_opt()).unwrap_or(None)
     }
 
-    fn get_animation_rules(&self) -> AnimationRules {
-        AnimationRules(self.get_animation_rule(),
-                       self.get_transition_rule())
-    }
-
     fn get_animation_rule_by_cascade(&self, cascade_level: ServoCascadeLevel)
                                      -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
         match cascade_level {
@@ -780,6 +770,11 @@ impl<'le> TElement for GeckoElement<'le> {
     fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool {
         let node_flags = selector_flags_to_node_flags(flags);
         (self.flags() & node_flags) == node_flags
+    }
+
+    #[inline]
+    fn may_have_animations(&self) -> bool {
+        self.as_node().get_bool_flag(nsINode_BooleanFlag::ElementHasAnimations)
     }
 
     fn update_animations(&self,
