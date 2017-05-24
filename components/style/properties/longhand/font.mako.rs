@@ -464,12 +464,13 @@ ${helpers.single_keyword_system("font-variant-caps",
             }
 
             /// Obtain a Servo computed value from a Gecko computed font-weight
-            pub unsafe fn from_gecko_weight(weight: u16) -> Self {
-                use std::mem::transmute;
-                debug_assert!(weight >= 100);
-                debug_assert!(weight <= 900);
-                debug_assert!(weight % 10 == 0);
-                transmute(weight)
+            pub fn from_gecko_weight(weight: u16) -> Self {
+                match weight {
+                    % for weight in range(100, 901, 100):
+                        ${weight} => T::Weight${weight},
+                    % endfor
+                    _ => panic!("from_gecko_weight: called with invalid weight")
+                }
             }
         }
     }
@@ -2362,9 +2363,7 @@ ${helpers.single_keyword("-moz-math-variant",
                         quoted: true
                     })
                 }).collect::<Vec<_>>();
-                let weight = unsafe {
-                    longhands::font_weight::computed_value::T::from_gecko_weight(system.weight)
-                };
+                let weight = longhands::font_weight::computed_value::T::from_gecko_weight(system.weight);
                 let ret = ComputedSystemFont {
                     font_family: longhands::font_family::computed_value::T(family),
                     font_size: Au(system.size),
