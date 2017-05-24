@@ -13,7 +13,7 @@ use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use data::ElementData;
 use element_state::ElementState;
 use font_metrics::FontMetricsProvider;
-use properties::{ComputedValues, PropertyDeclarationBlock};
+use properties::{AnimationRules, ComputedValues, PropertyDeclarationBlock};
 #[cfg(feature = "gecko")] use properties::animated_properties::AnimationValue;
 #[cfg(feature = "gecko")] use properties::animated_properties::TransitionProperty;
 use rule_tree::CascadeLevel;
@@ -272,20 +272,6 @@ pub trait PresentationalHintsSynthesizer {
     /// and insert them into `hints`.
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
         where V: Push<ApplicableDeclarationBlock>;
-}
-
-/// The animation rules.
-///
-/// The first one is for Animation cascade level, and the second one is for
-/// Transition cascade level.
-pub struct AnimationRules(pub Option<Arc<Locked<PropertyDeclarationBlock>>>,
-                          pub Option<Arc<Locked<PropertyDeclarationBlock>>>);
-
-impl AnimationRules {
-    /// Returns whether these animation rules represents an actual rule or not.
-    pub fn is_empty(&self) -> bool {
-        self.0.is_none() && self.1.is_none()
-    }
 }
 
 /// The element trait, the main abstraction the style crate acts over.

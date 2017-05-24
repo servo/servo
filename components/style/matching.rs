@@ -10,10 +10,10 @@
 use cascade_info::CascadeInfo;
 use context::{SelectorFlagsMap, SharedStyleContext, StyleContext};
 use data::{ComputedStyle, ElementData, RestyleData};
-use dom::{AnimationRules, TElement, TNode};
+use dom::{TElement, TNode};
 use font_metrics::FontMetricsProvider;
 use log::LogLevel::Trace;
-use properties::{CascadeFlags, ComputedValues, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
+use properties::{AnimationRules, CascadeFlags, ComputedValues, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
 use properties::longhands::display::computed_value as display;
 use restyle_hints::{RESTYLE_CSS_ANIMATIONS, RESTYLE_CSS_TRANSITIONS, RestyleReplacements};
 use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RESTYLE_SMIL};
