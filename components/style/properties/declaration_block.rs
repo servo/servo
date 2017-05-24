@@ -23,10 +23,10 @@ use super::*;
 ///
 /// The first one is for Animation cascade level, and the second one is for
 /// Transition cascade level.
-pub struct AnimationRules(pub Option<Arc<Locked<PropertyDeclarationBlock>>>,
-                          pub Option<Arc<Locked<PropertyDeclarationBlock>>>);
+pub struct AnimationRules<'a>(pub Option<&'a Arc<Locked<PropertyDeclarationBlock>>>,
+                              pub Option<&'a Arc<Locked<PropertyDeclarationBlock>>>);
 
-impl AnimationRules {
+impl<'a> AnimationRules<'a> {
     /// Returns whether these animation rules represents an actual rule or not.
     pub fn is_empty(&self) -> bool {
         self.0.is_none() && self.1.is_none()

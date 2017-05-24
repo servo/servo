@@ -254,7 +254,7 @@ trait PrivateMatchMethods: TElement {
             // We could make that a bit better if the complexity cost is not too
             // big, but given further restyles are posted directly to
             // pseudo-elements, it doesn't seem worth the effort at a glance.
-            if pseudo.is_eager() && self.get_animation_rules().is_empty() {
+            if pseudo.is_eager() && primary_style.rules.get_animation_rules().is_empty() {
                 let parent = self.parent_element().unwrap();
                 let parent_data = parent.borrow_data().unwrap();
                 let pseudo_style =
@@ -692,38 +692,39 @@ pub trait MatchMethods : TElement {
                 let pseudo_style =
                     parent_data.styles().pseudos.get(&pseudo).unwrap();
                 let mut rules = pseudo_style.rules.clone();
-                let animation_rules = self.get_animation_rules();
+                {
+                    let animation_rules = data.get_animation_rules();
 
-                // Handle animations here.
-                if let Some(animation_rule) = animation_rules.0 {
-                    let animation_rule_node =
-                        context.shared.stylist.rule_tree()
-                            .update_rule_at_level(CascadeLevel::Animations,
-                                                  Some(&animation_rule),
-                                                  &mut rules,
-                                                  &context.shared.guards);
-                    if let Some(node) = animation_rule_node {
-                        rules = node;
+                    // Handle animations here.
+                    if let Some(animation_rule) = animation_rules.0 {
+                        let animation_rule_node =
+                            context.shared.stylist.rule_tree()
+                                .update_rule_at_level(CascadeLevel::Animations,
+                                                      Some(&animation_rule),
+                                                      &mut rules,
+                                                      &context.shared.guards);
+                        if let Some(node) = animation_rule_node {
+                            rules = node;
+                        }
+                    }
+
+                    if let Some(animation_rule) = animation_rules.1 {
+                        let animation_rule_node =
+                            context.shared.stylist.rule_tree()
+                                .update_rule_at_level(CascadeLevel::Transitions,
+                                                      Some(&animation_rule),
+                                                      &mut rules,
+                                                      &context.shared.guards);
+                        if let Some(node) = animation_rule_node {
+                            rules = node;
+                        }
                     }
                 }
-
-                if let Some(animation_rule) = animation_rules.1 {
-                    let animation_rule_node =
-                        context.shared.stylist.rule_tree()
-                            .update_rule_at_level(CascadeLevel::Transitions,
-                                                  Some(&animation_rule),
-                                                  &mut rules,
-                                                  &context.shared.guards);
-                    if let Some(node) = animation_rule_node {
-                        rules = node;
-                    }
-                }
-
                 let important_rules_changed =
                     self.has_animations() &&
                     data.has_styles() &&
                     data.important_rules_are_different(&rules,
-                                                       &context.shared.guards);
+                                                   &context.shared.guards);
 
                 return RulesMatchedResult {
                     rule_nodes_changed: data.set_primary_rules(rules),
@@ -738,9 +739,8 @@ pub trait MatchMethods : TElement {
         let style_attribute = self.style_attribute();
         {
             let smil_override = data.get_smil_override();
-            let animation_rules = self.get_animation_rules();
+            let animation_rules = data.get_animation_rules();
             let bloom = context.thread_local.bloom_filter.filter();
-
 
             let map = &mut context.thread_local.selector_flags;
             let mut set_selector_flags = |element: &Self, flags: ElementSelectorFlags| {

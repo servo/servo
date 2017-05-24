@@ -8,7 +8,7 @@
 
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
-use properties::{Importance, LonghandIdSet, PropertyDeclarationBlock};
+use properties::{AnimationRules, Importance, LonghandIdSet, PropertyDeclarationBlock};
 use shared_lock::{Locked, StylesheetGuards, SharedRwLockReadGuard};
 use smallvec::SmallVec;
 use std::io::{self, Write};
@@ -1151,6 +1151,32 @@ impl StrongRuleNode {
             .take_while(|node| node.cascade_level() >= CascadeLevel::SMILOverride)
             .find(|node| node.cascade_level() == CascadeLevel::SMILOverride)
             .map(|node| node.get_animation_style())
+    }
+
+    /// Returns AnimationRules that has processed during animation-only restyles.
+    pub fn get_animation_rules(&self) -> AnimationRules {
+        if cfg!(feature = "servo") {
+            return AnimationRules(None, None);
+        }
+
+        let mut animation = None;
+        let mut transition = None;
+
+        for node in self.self_and_ancestors()
+                        .take_while(|node| node.cascade_level() >= CascadeLevel::Animations) {
+            match node.cascade_level() {
+                CascadeLevel::Animations => {
+                    debug_assert!(animation.is_none());
+                    animation = Some(node.get_animation_style())
+                },
+                CascadeLevel::Transitions => {
+                    debug_assert!(transition.is_none());
+                    transition = Some(node.get_animation_style())
+                },
+                _ => {},
+            }
+        }
+        AnimationRules(animation, transition)
     }
 }
 

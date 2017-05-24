@@ -6,7 +6,7 @@
 
 use context::SharedStyleContext;
 use dom::TElement;
-use properties::{ComputedValues, PropertyDeclarationBlock};
+use properties::{AnimationRules, ComputedValues, PropertyDeclarationBlock};
 use properties::longhands::display::computed_value as display;
 use restyle_hints::{HintComputationContext, RestyleReplacements, RestyleHint};
 use rule_tree::StrongRuleNode;
@@ -569,6 +569,18 @@ impl ElementData {
         match self.get_styles() {
             Some(s) => s.primary.rules.get_smil_animation_rule(),
             None => None,
+        }
+    }
+
+    /// Returns AnimationRules that has processed during animation-only restyles.
+    pub fn get_animation_rules(&self) -> AnimationRules {
+        if cfg!(feature = "servo") {
+            return AnimationRules(None, None)
+        }
+
+        match self.get_styles() {
+            Some(s) => s.primary.rules.get_animation_rules(),
+            None => AnimationRules(None, None),
         }
     }
 }

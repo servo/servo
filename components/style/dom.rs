@@ -13,7 +13,7 @@ use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use data::ElementData;
 use element_state::ElementState;
 use font_metrics::FontMetricsProvider;
-use properties::{AnimationRules, ComputedValues, PropertyDeclarationBlock};
+use properties::{ComputedValues, PropertyDeclarationBlock};
 #[cfg(feature = "gecko")] use properties::animated_properties::AnimationValue;
 #[cfg(feature = "gecko")] use properties::animated_properties::TransitionProperty;
 use rule_tree::CascadeLevel;
@@ -332,11 +332,6 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// Get this element's SMIL override declarations.
     fn get_smil_override(&self) -> Option<&Arc<Locked<PropertyDeclarationBlock>>> {
         None
-    }
-
-    /// Get this element's animation rules.
-    fn get_animation_rules(&self) -> AnimationRules {
-        AnimationRules(None, None)
     }
 
     /// Get this element's animation rule by the cascade level.

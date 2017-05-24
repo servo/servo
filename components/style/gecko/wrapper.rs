@@ -57,7 +57,7 @@ use gecko_bindings::structs::NODE_IS_NATIVE_ANONYMOUS;
 use gecko_bindings::sugar::ownership::HasArcFFI;
 use logical_geometry::WritingMode;
 use media_queries::Device;
-use properties::{AnimationRules, ComputedValues, parse_style_attribute};
+use properties::{ComputedValues, parse_style_attribute};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use properties::animated_properties::{AnimationValue, AnimationValueMap, TransitionProperty};
 use properties::style_structs::Font;
@@ -611,11 +611,6 @@ impl<'le> TElement for GeckoElement<'le> {
     fn get_smil_override(&self) -> Option<&Arc<Locked<PropertyDeclarationBlock>>> {
         let declarations = unsafe { Gecko_GetSMILOverrideDeclarationBlock(self.0) };
         declarations.map(|s| s.as_arc_opt()).unwrap_or(None)
-    }
-
-    fn get_animation_rules(&self) -> AnimationRules {
-        AnimationRules(self.get_animation_rule(),
-                       self.get_transition_rule())
     }
 
     fn get_animation_rule_by_cascade(&self, cascade_level: ServoCascadeLevel)
