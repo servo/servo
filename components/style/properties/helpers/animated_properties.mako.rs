@@ -753,6 +753,7 @@ impl <T> Animatable for Option<T>
             (&Some(ref this), &Some(ref other)) => {
                 Ok(this.add_weighted(other, self_portion, other_portion).ok())
             }
+            (&None, &None) => Ok(None),
             _ => Err(()),
         }
     }
@@ -763,6 +764,7 @@ impl <T> Animatable for Option<T>
             (&Some(ref this), &Some(ref other)) => {
                 this.compute_distance(other)
             },
+            (&None, &None) => Ok(0.0),
             _ => Err(()),
         }
     }
