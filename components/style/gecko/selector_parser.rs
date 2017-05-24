@@ -166,7 +166,8 @@ impl NonTSPseudoClass {
         !matches!(*self,
                   NonTSPseudoClass::MozAny(_) |
                   NonTSPseudoClass::Dir(_) |
-                  NonTSPseudoClass::MozIsHTML)
+                  NonTSPseudoClass::MozIsHTML |
+                  NonTSPseudoClass::MozPlaceholder)
     }
 
     /// Convert NonTSPseudoClass to Gecko's CSSPseudoClassType.
