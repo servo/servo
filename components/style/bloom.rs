@@ -46,8 +46,29 @@ pub struct StyleBloom<E: TElement> {
     /// The bloom filter per se.
     filter: Box<BloomFilter>,
 
-    /// The stack of elements that this bloom filter contains.
-    elements: Vec<SendElement<E>>,
+    /// The stack of elements that this bloom filter contains, along with the
+    /// number of hashes pushed for each element.
+    elements: SmallVec<[PushedElement<E>; 16]>,
+
+    /// Stack of hashes that have been pushed onto this filter.
+    pushed_hashes: SmallVec<[u32; 64]>,
+}
+
+struct PushedElement<E: TElement> {
+    /// The element that was pushed.
+    element: SendElement<E>,
+
+    /// The number of hashes pushed for the element.
+    num_hashes: usize,
+}
+
+impl<E: TElement> PushedElement<E> {
+    fn new(el: E, num_hashes: usize) -> Self {
+        PushedElement {
+            element: unsafe { SendElement::new(el) },
+            num_hashes: num_hashes,
+        }
+    }
 }
 
 fn each_relevant_element_hash<E, F>(element: E, mut f: F)
@@ -75,7 +96,8 @@ impl<E: TElement> StyleBloom<E> {
     pub fn new() -> Self {
         StyleBloom {
             filter: Box::new(BloomFilter::new()),
-            elements: vec![],
+            elements: Default::default(),
+            pushed_hashes: Default::default(),
         }
     }
 
@@ -98,23 +120,36 @@ impl<E: TElement> StyleBloom<E> {
     /// Same as `push`, but without asserting, in order to use it from
     /// `rebuild`.
     fn push_internal(&mut self, element: E) {
+        let mut count = 0;
         each_relevant_element_hash(element, |hash| {
+            count += 1;
             self.filter.insert_hash(hash);
+            self.pushed_hashes.push(hash);
         });
-        self.elements.push(unsafe { SendElement::new(element) });
+        self.elements.push(PushedElement::new(element, count));
     }
 
     /// Pop the last element in the bloom filter and return it.
+    #[inline]
     fn pop(&mut self) -> Option<E> {
-        let popped = self.elements.pop().map(|el| *el);
+        let (popped_element, num_hashes)  = match self.elements.pop() {
+            None => return None,
+            Some(x) => (*x.element, x.num_hashes),
+        };
 
-        if let Some(popped) = popped {
-            each_relevant_element_hash(popped, |hash| {
-                self.filter.remove_hash(hash);
-            })
+        // Verify that the pushed hashes match the ones we'd get from the element.
+        let mut expected_hashes = vec![];
+        if cfg!(debug_assertions) {
+            each_relevant_element_hash(popped_element, |hash| expected_hashes.push(hash));
         }
 
-        popped
+        for _ in 0..num_hashes {
+            let hash = self.pushed_hashes.pop().unwrap();
+            debug_assert_eq!(expected_hashes.pop().unwrap(), hash);
+            self.filter.remove_hash(hash);
+        }
+
+        Some(popped_element)
     }
 
     /// Returns true if the bloom filter is empty.
@@ -158,7 +193,7 @@ impl<E: TElement> StyleBloom<E> {
         if cfg!(debug_assertions) {
             let mut checked = 0;
             while let Some(parent) = element.traversal_parent() {
-                assert_eq!(parent, *self.elements[self.elements.len() - 1 - checked]);
+                assert_eq!(parent, *(self.elements[self.elements.len() - 1 - checked].element));
                 element = parent;
                 checked += 1;
             }
@@ -171,7 +206,7 @@ impl<E: TElement> StyleBloom<E> {
     /// (if any) and its ancestors.
     #[inline]
     pub fn current_parent(&self) -> Option<E> {
-        self.elements.last().map(|el| **el)
+        self.elements.last().map(|ref el| *el.element)
     }
 
     /// Insert the parents of an element in the bloom filter, trying to recover
@@ -268,7 +303,7 @@ impl<E: TElement> StyleBloom<E> {
         //
         // Thus it's possible with Gecko that we do not find any common
         // ancestor.
-        while **self.elements.last().unwrap() != common_parent {
+        while *(self.elements.last().unwrap().element) != common_parent {
             parents_to_insert.push(common_parent);
             self.pop().unwrap();
             common_parent = match common_parent.traversal_parent() {
