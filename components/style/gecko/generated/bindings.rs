@@ -1123,6 +1123,14 @@ extern "C" {
                                           src: *const nsStyleSVG);
 }
 extern "C" {
+    pub fn Gecko_nsStyleSVG_SetContextPropertiesLength(svg: *mut nsStyleSVG,
+                                                       len: u32);
+}
+extern "C" {
+    pub fn Gecko_nsStyleSVG_CopyContextProperties(dst: *mut nsStyleSVG,
+                                                  src: *const nsStyleSVG);
+}
+extern "C" {
     pub fn Gecko_NewURLValue(uri: ServoBundledURI) -> *mut URLValue;
 }
 extern "C" {

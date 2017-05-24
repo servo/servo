@@ -268,3 +268,28 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
     impl ComputedValueAsSpecified for SpecifiedValue { }
 </%helpers:longhand>
 
+<%helpers:vector_longhand name="-moz-context-properties"
+                   animation_value_type="none"
+                   products="gecko"
+                   spec="Nonstandard (Internal-only)"
+                   internal="True"
+                   allow_empty="True">
+    use values::CustomIdent;
+    use values::computed::ComputedValueAsSpecified;
+
+    no_viewport_percentage!(SpecifiedValue);
+
+    impl ComputedValueAsSpecified for SpecifiedValue { }
+
+    pub type SpecifiedValue = CustomIdent;
+
+    pub mod computed_value {
+        pub type T = super::SpecifiedValue;
+    }
+
+
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        let i = input.expect_ident()?;
+        CustomIdent::from_ident(i, &["all", "none", "auto"])
+    }
+</%helpers:vector_longhand>
