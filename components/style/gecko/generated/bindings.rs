@@ -1305,6 +1305,11 @@ extern "C" {
                                                   RawGeckoPresContextBorrowed);
 }
 extern "C" {
+    pub fn Gecko_nsStyleFont_FixupMinFontSize(font: *mut nsStyleFont,
+                                              pres_context:
+                                                  RawGeckoPresContextBorrowed);
+}
+extern "C" {
     pub fn Gecko_GetBaseSize(lang: *mut nsIAtom) -> FontSizePrefs;
 }
 extern "C" {

@@ -925,10 +925,12 @@ ${helpers.single_keyword_system("font-variant-caps",
             }
         % endif
 
-        let parent_unconstrained = context.mutate_style()
-                                       .mutate_font()
-                                       .apply_font_size(computed,
-                                                        parent);
+        let parent_unconstrained = {
+            let (style, device) = context.mutate_style_with_device();
+
+            style.mutate_font().apply_font_size(computed, parent, device)
+        };
+
 
         if let Some(parent) = parent_unconstrained {
             let new_unconstrained = specified_value
@@ -946,13 +948,14 @@ ${helpers.single_keyword_system("font-variant-caps",
         let kw_inherited_size = context.style().font_size_keyword.map(|(kw, ratio)| {
             SpecifiedValue::Keyword(kw, ratio).to_computed_value(context)
         });
-        let used_kw = context.mutate_style().mutate_font()
-               .inherit_font_size_from(parent, kw_inherited_size);
+        let parent_kw = context.inherited_style.font_computation_data.font_size_keyword;
+        let (style, device) = context.mutate_style_with_device();
+        let used_kw = style.mutate_font()
+               .inherit_font_size_from(parent, kw_inherited_size, device);
         if used_kw {
-            context.mutate_style().font_size_keyword =
-                context.inherited_style.font_computation_data.font_size_keyword;
+            style.font_size_keyword = parent_kw;
         } else {
-            context.mutate_style().font_size_keyword = None;
+            style.font_size_keyword = None;
         }
     }
 
@@ -961,9 +964,12 @@ ${helpers.single_keyword_system("font-variant-caps",
         // compute to the same value and depends on the font
         let computed = longhands::font_size::get_initial_specified_value()
                             .to_computed_value(context);
-        context.mutate_style().mutate_${data.current_style_struct.name_lower}()
-               .set_font_size(computed);
-        context.mutate_style().font_size_keyword = Some((Default::default(), 1.));
+        let (style, _device) = context.mutate_style_with_device();
+        style.mutate_font().set_font_size(computed);
+        % if product == "gecko":
+            style.mutate_font().fixup_font_min_size(_device);
+        % endif
+        style.font_size_keyword = Some((Default::default(), 1.));
     }
 </%helpers:longhand>
 
@@ -1813,7 +1819,6 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
 """
 %>
 <%helpers:longhand name="font-variation-settings" products="gecko" animation_value_type="none"
-                   boxed="True"
                    spec="${variation_spec}">
     use values::computed::ComputedValueAsSpecified;
     use values::generics::FontSettings;
@@ -2387,3 +2392,11 @@ ${helpers.single_keyword("-moz-osx-font-smoothing",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/font-smooth)",
                          animation_value_type="none",
                          need_clone=True)}
+
+${helpers.predefined_type("-moz-min-font-size-ratio",
+                          "Percentage",
+                          "computed::Percentage::hundred()",
+                          animation_value_type="none",
+                          products="gecko",
+                          internal=True,
+                          spec="Nonstandard (Internal-only)")}
