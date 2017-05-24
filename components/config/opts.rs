@@ -310,7 +310,7 @@ pub struct DebugOptions {
     pub webrender_record: bool,
 
     /// Enable webrender instanced draw call batching.
-    pub webrender_batch: bool,
+    pub webrender_disable_batch: bool,
 
     /// Use multisample antialiasing in WebRender.
     pub use_msaa: bool,
@@ -359,7 +359,7 @@ impl DebugOptions {
                 "wr-stats" => self.webrender_stats = true,
                 "wr-debug" => self.webrender_debug = true,
                 "wr-record" => self.webrender_record = true,
-                "wr-no-batch" => self.webrender_batch = false,
+                "wr-no-batch" => self.webrender_disable_batch = true,
                 "msaa" => self.use_msaa = true,
                 "full-backtraces" => self.full_backtraces = true,
                 "precache-shaders" => self.precache_shaders = true,
@@ -827,7 +827,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         is_printing_version: is_printing_version,
         webrender_debug: debug_options.webrender_debug,
         webrender_record: debug_options.webrender_record,
-        webrender_batch: debug_options.webrender_batch,
+        webrender_batch: !debug_options.webrender_disable_batch,
         precache_shaders: debug_options.precache_shaders,
         signpost: debug_options.signpost,
         certificate_path: opt_match.opt_str("certificate-path"),
