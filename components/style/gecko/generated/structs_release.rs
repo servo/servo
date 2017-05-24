@@ -2102,7 +2102,8 @@ pub mod root {
             #[repr(C)]
             #[derive(Debug, Copy)]
             pub struct FontVariation {
-                pub _bindgen_opaque_blob: [u32; 2usize],
+                pub mTag: u32,
+                pub mValue: f32,
             }
             #[test]
             fn bindgen_test_layout_FontVariation() {
@@ -2112,6 +2113,17 @@ pub mod root {
                 assert_eq! (::std::mem::align_of::<FontVariation>() , 4usize ,
                             concat ! (
                             "Alignment of " , stringify ! ( FontVariation )
+                            ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const FontVariation ) ) . mTag as *
+                            const _ as usize } , 0usize , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            FontVariation ) , "::" , stringify ! ( mTag ) ));
+                assert_eq! (unsafe {
+                            & ( * ( 0 as * const FontVariation ) ) . mValue as
+                            * const _ as usize } , 4usize , concat ! (
+                            "Alignment of field: " , stringify ! (
+                            FontVariation ) , "::" , stringify ! ( mValue )
                             ));
             }
             impl Clone for FontVariation {
