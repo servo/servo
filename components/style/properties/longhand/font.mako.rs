@@ -900,7 +900,7 @@ ${helpers.single_keyword_system("font-variant-caps",
             // recomputed from the base size for the keyword and the relative size.
             //
             // See bug 1355707
-            if let Some((kw, fraction)) = context.inherited_style().font_size_keyword {
+            if let Some((kw, fraction)) = context.inherited_style().font_computation_data.font_size_keyword {
                 context.mutate_style().font_size_keyword = Some((kw, fraction * ratio));
             } else {
                 context.mutate_style().font_size_keyword = None;
@@ -950,7 +950,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                .inherit_font_size_from(parent, kw_inherited_size);
         if used_kw {
             context.mutate_style().font_size_keyword =
-                context.inherited_style.font_size_keyword;
+                context.inherited_style.font_computation_data.font_size_keyword;
         } else {
             context.mutate_style().font_size_keyword = None;
         }
