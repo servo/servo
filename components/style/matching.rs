@@ -972,78 +972,74 @@ pub trait MatchMethods : TElement {
     }
 
     /// Updates the rule nodes without re-running selector matching, using just
-    /// the rule tree. Returns RulesChanged which indicates whether the rule nodes changed
-    /// and whether the important rules changed.
+    /// the rule tree. Returns true if an !important rule was replaced.
     fn replace_rules(&self,
                      replacements: RestyleReplacements,
                      context: &StyleContext<Self>,
                      data: &mut ElementData)
-                     -> RulesChanged {
+                     -> bool {
         use properties::PropertyDeclarationBlock;
         use shared_lock::Locked;
 
         let element_styles = &mut data.styles_mut();
         let primary_rules = &mut element_styles.primary.rules;
-        let mut result = RulesChanged::empty();
+        let mut result = false;
 
-        {
-            let mut replace_rule_node = |level: CascadeLevel,
-                                         pdb: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
-                                         path: &mut StrongRuleNode| {
-                let new_node = context.shared.stylist.rule_tree()
-                    .update_rule_at_level(level, pdb, path, &context.shared.guards);
-                if let Some(n) = new_node {
+        let replace_rule_node = |level: CascadeLevel,
+                                 pdb: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
+                                 path: &mut StrongRuleNode| -> bool {
+            let new_node = context.shared.stylist.rule_tree()
+                .update_rule_at_level(level, pdb, path, &context.shared.guards);
+            match new_node {
+                Some(n) => {
                     *path = n;
-                    if level.is_important() {
-                        result.insert(IMPORTANT_RULES_CHANGED);
-                    } else {
-                        result.insert(NORMAL_RULES_CHANGED);
-                    }
-                }
-            };
+                    level.is_important()
+                },
+                None => false,
+            }
+        };
 
-            // Animation restyle hints are processed prior to other restyle
-            // hints in the animation-only traversal.
-            //
-            // Non-animation restyle hints will be processed in a subsequent
-            // normal traversal.
-            if replacements.intersects(RestyleReplacements::for_animations()) {
-                debug_assert!(context.shared.traversal_flags.for_animation_only());
+        // Animation restyle hints are processed prior to other restyle
+        // hints in the animation-only traversal.
+        //
+        // Non-animation restyle hints will be processed in a subsequent
+        // normal traversal.
+        if replacements.intersects(RestyleReplacements::for_animations()) {
+            debug_assert!(context.shared.traversal_flags.for_animation_only());
 
-                if replacements.contains(RESTYLE_SMIL) {
-                    replace_rule_node(CascadeLevel::SMILOverride,
-                                      self.get_smil_override(),
-                                      primary_rules);
-                }
-
-                let mut replace_rule_node_for_animation = |level: CascadeLevel,
-                                                           primary_rules: &mut StrongRuleNode| {
-                    let animation_rule = self.get_animation_rule_by_cascade(level);
-                    replace_rule_node(level,
-                                      animation_rule.as_ref(),
-                                      primary_rules);
-                };
-
-                // Apply Transition rules and Animation rules if the corresponding restyle hint
-                // is contained.
-                if replacements.contains(RESTYLE_CSS_TRANSITIONS) {
-                    replace_rule_node_for_animation(CascadeLevel::Transitions,
-                                                    primary_rules);
-                }
-
-                if replacements.contains(RESTYLE_CSS_ANIMATIONS) {
-                    replace_rule_node_for_animation(CascadeLevel::Animations,
-                                                    primary_rules);
-                }
-            } else if replacements.contains(RESTYLE_STYLE_ATTRIBUTE) {
-                let style_attribute = self.style_attribute();
-                replace_rule_node(CascadeLevel::StyleAttributeNormal,
-                                  style_attribute,
-                                  primary_rules);
-                replace_rule_node(CascadeLevel::StyleAttributeImportant,
-                                  style_attribute,
+            if replacements.contains(RESTYLE_SMIL) {
+                replace_rule_node(CascadeLevel::SMILOverride,
+                                  self.get_smil_override(),
                                   primary_rules);
             }
+
+            let replace_rule_node_for_animation = |level: CascadeLevel,
+                                                   primary_rules: &mut StrongRuleNode| {
+                let animation_rule = self.get_animation_rule_by_cascade(level);
+                replace_rule_node(level,
+                                  animation_rule.as_ref(),
+                                  primary_rules);
+            };
+
+            // Apply Transition rules and Animation rules if the corresponding restyle hint
+            // is contained.
+            if replacements.contains(RESTYLE_CSS_TRANSITIONS) {
+                replace_rule_node_for_animation(CascadeLevel::Transitions,
+                                                primary_rules);
+            }
+
+            if replacements.contains(RESTYLE_CSS_ANIMATIONS) {
+                replace_rule_node_for_animation(CascadeLevel::Animations,
+                                                primary_rules);
+            }
+        } else if replacements.contains(RESTYLE_STYLE_ATTRIBUTE) {
+            let style_attribute = self.style_attribute();
+            result |= replace_rule_node(CascadeLevel::StyleAttributeNormal,
+                                        style_attribute,
+                                        primary_rules);
+            result |= replace_rule_node(CascadeLevel::StyleAttributeImportant,
+                                        style_attribute,
+                                        primary_rules);
         }
 
         result
