@@ -736,30 +736,32 @@ pub trait MatchMethods : TElement {
 
         let stylist = &context.shared.stylist;
         let style_attribute = self.style_attribute();
-        let smil_override = self.get_smil_override();
-        let animation_rules = self.get_animation_rules();
-        let bloom = context.thread_local.bloom_filter.filter();
+        {
+            let smil_override = data.get_smil_override();
+            let animation_rules = self.get_animation_rules();
+            let bloom = context.thread_local.bloom_filter.filter();
 
 
-        let map = &mut context.thread_local.selector_flags;
-        let mut set_selector_flags = |element: &Self, flags: ElementSelectorFlags| {
-            self.apply_selector_flags(map, element, flags);
-        };
+            let map = &mut context.thread_local.selector_flags;
+            let mut set_selector_flags = |element: &Self, flags: ElementSelectorFlags| {
+                self.apply_selector_flags(map, element, flags);
+            };
 
-        let mut matching_context =
-            MatchingContext::new(MatchingMode::Normal, Some(bloom));
+            let mut matching_context =
+                MatchingContext::new(MatchingMode::Normal, Some(bloom));
 
-        // Compute the primary rule node.
-        stylist.push_applicable_declarations(self,
-                                             implemented_pseudo.as_ref(),
-                                             style_attribute,
-                                             smil_override,
-                                             animation_rules,
-                                             &mut applicable_declarations,
-                                             &mut matching_context,
-                                             &mut set_selector_flags);
+            // Compute the primary rule node.
+            stylist.push_applicable_declarations(self,
+                                                 implemented_pseudo.as_ref(),
+                                                 style_attribute,
+                                                 smil_override,
+                                                 animation_rules,
+                                                 &mut applicable_declarations,
+                                                 &mut matching_context,
+                                                 &mut set_selector_flags);
 
-        *relations = matching_context.relations;
+            *relations = matching_context.relations;
+        }
 
         let primary_rule_node =
             compute_rule_node::<Self>(stylist.rule_tree(),

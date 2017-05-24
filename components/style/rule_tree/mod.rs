@@ -1128,6 +1128,30 @@ impl StrongRuleNode {
         }
         result
     }
+
+    /// Returns PropertyDeclarationBlock for this node.
+    /// This function must be called only for animation level node.
+    fn get_animation_style(&self) -> &Arc<Locked<PropertyDeclarationBlock>> {
+        debug_assert!(self.cascade_level().is_animation(),
+                      "The cascade level should be an animation level");
+        match *self.style_source().unwrap() {
+            StyleSource::Declarations(ref block) => block,
+            StyleSource::Style(_) => unreachable!("animating style should not be a style rule"),
+        }
+    }
+
+    /// Returns SMIL override declaration block if exists.
+    pub fn get_smil_animation_rule(&self) -> Option<&Arc<Locked<PropertyDeclarationBlock>>> {
+        if cfg!(feature = "servo") {
+            // Servo has no knowledge of a SMIL rule, so just avoid looking for it.
+            return None;
+        }
+
+        self.self_and_ancestors()
+            .take_while(|node| node.cascade_level() >= CascadeLevel::SMILOverride)
+            .find(|node| node.cascade_level() == CascadeLevel::SMILOverride)
+            .map(|node| node.get_animation_style())
+    }
 }
 
 /// An iterator over a rule node and its ancestors.
