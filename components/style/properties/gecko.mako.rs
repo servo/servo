@@ -57,6 +57,7 @@ use logical_geometry::WritingMode;
 use media_queries::Device;
 use properties::animated_properties::TransitionProperty;
 use properties::longhands;
+use properties:: FontComputationData;
 use properties::{Importance, LonghandId};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock, PropertyDeclarationId};
 use std::fmt::{self, Debug};
@@ -74,6 +75,7 @@ pub mod style_structs {
     % endfor
 }
 
+
 #[derive(Clone, Debug)]
 pub struct ComputedValues {
     % for style_struct in data.style_structs:
@@ -83,23 +85,7 @@ pub struct ComputedValues {
     custom_properties: Option<Arc<ComputedValuesMap>>,
     pub writing_mode: WritingMode,
     pub root_font_size: Au,
-    /// font-size keyword values (and font-size-relative values applied
-    /// to keyword values) need to preserve their identity as originating
-    /// from keywords and relative font sizes. We store this information
-    /// out of band in the ComputedValues. When None, the font size on the
-    /// current struct was computed from a value that was not a keyword
-    /// or a chain of font-size-relative values applying to successive parents
-    /// terminated by a keyword. When Some, this means the font-size was derived
-    /// from a keyword value or a keyword value on some ancestor with only
-    /// font-size-relative keywords and regular inheritance in between. The
-    /// integer stores the final ratio of the chain of font size relative values.
-    /// and is 1 when there was just a keyword and no relative values.
-    ///
-    /// When this is Some, we compute font sizes by computing the keyword against
-    /// the generic font, and then multiplying it by the ratio.
-    pub font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
-    /// The cached system font. See longhand/font.mako.rs
-    pub cached_system_font: Option<longhands::system_font::ComputedSystemFont>,
+    pub font_computation_data:FontComputationData
 }
 
 impl ComputedValues {
@@ -115,8 +101,7 @@ impl ComputedValues {
             custom_properties: custom_properties,
             writing_mode: writing_mode,
             root_font_size: root_font_size,
-            cached_system_font: None,
-            font_size_keyword: font_size_keyword,
+            font_computation_data: FontComputationData::new(font_size_keyword),
             % for style_struct in data.style_structs:
             ${style_struct.ident}: ${style_struct.ident},
             % endfor
@@ -128,13 +113,13 @@ impl ComputedValues {
             custom_properties: None,
             writing_mode: WritingMode::empty(), // FIXME(bz): This seems dubious
             root_font_size: longhands::font_size::get_initial_value(), // FIXME(bz): Also seems dubious?
-            font_size_keyword: Some((Default::default(), 1.)),
-            cached_system_font: None,
+            font_computation_data: FontComputationData::default_values(),
             % for style_struct in data.style_structs:
                 ${style_struct.ident}: style_structs::${style_struct.name}::default(pres_context),
             % endfor
         })
     }
+
 
     #[inline]
     pub fn is_display_contents(&self) -> bool {

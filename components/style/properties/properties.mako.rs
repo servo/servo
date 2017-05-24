@@ -65,6 +65,48 @@ pub trait MaybeBoxed<Out> {
     fn maybe_boxed(self) -> Out;
 }
 
+
+/// Addresses bug 16518. The cached_system_font
+/// has been removed as a part of this fix and
+/// the font_size_keyword has been created as a
+/// separate struct from ComputedValues. This
+/// is where we store extra font data while
+/// while computing font sizes.
+#[derive(Clone, Debug)]
+pub struct FontComputationData {
+    /// font-size keyword values (and font-size-relative values applied
+    /// to keyword values) need to preserve their identity as originating
+    /// from keywords and relative font sizes. We store this information
+    /// out of band in the ComputedValues. When None, the font size on the
+    /// current struct was computed from a value that was not a keyword
+    /// or a chain of font-size-relative values applying to successive parents
+    /// terminated by a keyword. When Some, this means the font-size was derived
+    /// from a keyword value or a keyword value on some ancestor with only
+    /// font-size-relative keywords and regular inheritance in between. The
+    /// integer stores the final ratio of the chain of font size relative values.
+    /// and is 1 when there was just a keyword and no relative values.
+    ///
+    /// When this is Some, we compute font sizes by computing the keyword against
+    /// the generic font, and then multiplying it by the ratio.
+   pub font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>
+}
+
+
+impl FontComputationData{
+    /// Assigns values for variables in struct FontComputationData
+    pub fn new(font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>) -> Self {
+        FontComputationData {
+            font_size_keyword: font_size_keyword
+        }
+    }
+/// Assigns default values for variables in struct FontComputationData
+   pub fn default_values() -> Self {
+        FontComputationData{
+            font_size_keyword: Some((Default::default(), 1.))
+        }
+    }
+}
+
 impl<T> MaybeBoxed<T> for T {
     #[inline]
     fn maybe_boxed(self) -> T { self }
@@ -1742,7 +1784,8 @@ pub struct ComputedValues {
     /// The root element's computed font size.
     pub root_font_size: Au,
     /// The keyword behind the current font-size property, if any
-    pub font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+    //pub font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+    pub font_computation_data:FontComputationData
 }
 
 #[cfg(feature = "servo")]
@@ -1760,7 +1803,8 @@ impl ComputedValues {
             custom_properties: custom_properties,
             writing_mode: writing_mode,
             root_font_size: root_font_size,
-            font_size_keyword: font_size_keyword,
+            font_computation_data: FontComputationData::new(font_size_keyword),
+            //font_size_keyword: font_size_keyword,
         % for style_struct in data.active_style_structs():
             ${style_struct.ident}: ${style_struct.ident},
         % endfor
@@ -2222,7 +2266,7 @@ impl<'a> StyleBuilder<'a> {
         Self::new(parent.custom_properties(),
                   parent.writing_mode,
                   parent.root_font_size,
-                  parent.font_size_keyword,
+                  parent.font_computation_data.font_size_keyword,
                   % for style_struct in data.active_style_structs():
                   % if style_struct.inherited:
                   parent.${style_struct.name_lower}_arc(),
@@ -2296,6 +2340,7 @@ impl<'a> StyleBuilder<'a> {
                             self.writing_mode,
                             self.root_font_size,
                             self.font_size_keyword,
+                            //self.font_size_keyword
                             % for style_struct in data.active_style_structs():
                             self.${style_struct.ident}.build(),
                             % endfor
@@ -2320,7 +2365,7 @@ pub use self::lazy_static_module::INITIAL_SERVO_VALUES;
 mod lazy_static_module {
     use logical_geometry::WritingMode;
     use stylearc::Arc;
-    use super::{ComputedValues, longhands, style_structs};
+    use super::{ComputedValues, longhands, style_structs,FontComputationData};
 
     /// The initial values for all style structs as defined by the specification.
     lazy_static! {
@@ -2338,7 +2383,7 @@ mod lazy_static_module {
             custom_properties: None,
             writing_mode: WritingMode::empty(),
             root_font_size: longhands::font_size::get_initial_value(),
-            font_size_keyword: Some((Default::default(), 1.)),
+            font_computation_data: FontComputationData::default_values()
         };
     }
 }
@@ -2482,7 +2527,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
         StyleBuilder::new(custom_properties,
                           WritingMode::empty(),
                           inherited_style.root_font_size,
-                          inherited_style.font_size_keyword,
+                          inherited_style.font_computation_data.font_size_keyword,
                           % for style_struct in data.active_style_structs():
                               % if style_struct.inherited:
                                   inherited_style.${style_struct.name_lower}_arc(),
@@ -2495,7 +2540,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
         StyleBuilder::new(custom_properties,
                           WritingMode::empty(),
                           inherited_style.root_font_size,
-                          inherited_style.font_size_keyword,
+                          inherited_style.font_computation_data.font_size_keyword,
                           % for style_struct in data.active_style_structs():
                               inherited_style.${style_struct.name_lower}_arc(),
                           % endfor
