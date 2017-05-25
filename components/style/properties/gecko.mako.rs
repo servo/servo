@@ -84,7 +84,6 @@ pub struct ComputedValues {
 
     custom_properties: Option<Arc<ComputedValuesMap>>,
     pub writing_mode: WritingMode,
-    pub root_font_size: Au,
     pub font_computation_data: FontComputationData,
 
     /// The element's computed values if visited, only computed if there's a
@@ -96,7 +95,6 @@ pub struct ComputedValues {
 impl ComputedValues {
     pub fn new(custom_properties: Option<Arc<ComputedValuesMap>>,
                writing_mode: WritingMode,
-               root_font_size: Au,
                font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
                visited_style: Option<Arc<ComputedValues>>,
                % for style_struct in data.style_structs:
@@ -106,7 +104,6 @@ impl ComputedValues {
         ComputedValues {
             custom_properties: custom_properties,
             writing_mode: writing_mode,
-            root_font_size: root_font_size,
             font_computation_data: FontComputationData::new(font_size_keyword),
             visited_style: visited_style,
             % for style_struct in data.style_structs:
@@ -119,7 +116,6 @@ impl ComputedValues {
         Arc::new(ComputedValues {
             custom_properties: None,
             writing_mode: WritingMode::empty(), // FIXME(bz): This seems dubious
-            root_font_size: longhands::font_size::get_initial_value(), // FIXME(bz): Also seems dubious?
             font_computation_data: FontComputationData::default_values(),
             visited_style: None,
             % for style_struct in data.style_structs:

@@ -5,6 +5,7 @@
 //! Gecko's media-query device and expression representation.
 
 use app_units::Au;
+use atomic_refcell::AtomicRefCell;
 use context::QuirksMode;
 use cssparser::{CssStringWriter, Parser, Token};
 use euclid::Size2D;
@@ -17,6 +18,7 @@ use gecko_bindings::structs::RawGeckoPresContextOwned;
 use media_queries::MediaType;
 use parser::ParserContext;
 use properties::{ComputedValues, StyleBuilder};
+use properties::longhands::font_size;
 use std::fmt::{self, Write};
 use str::starts_with_ignore_ascii_case;
 use string_cache::Atom;
@@ -35,7 +37,12 @@ pub struct Device {
     pub pres_context: RawGeckoPresContextOwned,
     default_values: Arc<ComputedValues>,
     viewport_override: Option<ViewportConstraints>,
+    /// The font size of the root element
+    root_font_size: AtomicRefCell<Au>,
 }
+
+unsafe impl Sync for Device {}
+unsafe impl Send for Device {}
 
 impl Device {
     /// Trivially constructs a new `Device`.
@@ -45,6 +52,7 @@ impl Device {
             pres_context: pres_context,
             default_values: ComputedValues::default_values(unsafe { &*pres_context }),
             viewport_override: None,
+            root_font_size: AtomicRefCell::new(font_size::get_initial_value()), // FIXME(bz): Seems dubious?
         }
     }
 
@@ -71,6 +79,16 @@ impl Device {
     /// clones.
     pub fn default_values_arc(&self) -> &Arc<ComputedValues> {
         &self.default_values
+    }
+
+    /// Get the font size of the root element (for rem)
+    pub fn root_font_size(&self) -> Au {
+        *self.root_font_size.borrow()
+    }
+
+    /// Set the font size of the root element (for rem)
+    pub fn set_root_font_size(&self, size: Au) {
+        *self.root_font_size.borrow_mut() = size;
     }
 
     /// Recreates all the temporary state that the `Device` stores.
@@ -110,9 +128,6 @@ impl Device {
         })
     }
 }
-
-unsafe impl Sync for Device {}
-unsafe impl Send for Device {}
 
 /// A expression for gecko contains a reference to the media feature, the value
 /// the media query contained, and the range to evaluate.
