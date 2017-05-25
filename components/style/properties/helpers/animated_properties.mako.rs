@@ -1643,6 +1643,9 @@ fn build_identity_transform_list(list: &[TransformOperation]) -> Vec<TransformOp
                 let identity = ComputedMatrix::identity();
                 result.push(TransformOperation::Matrix(identity));
             }
+            TransformOperation::InterpolateMatrix { .. } => {
+                panic!("Building the identity matrix for InterpolateMatrix is not supported");
+            }
         }
     }
 
@@ -1744,8 +1747,13 @@ fn add_weighted_transform_lists(from_list: &[TransformOperation],
             }
         }
     } else {
-        // TODO(gw): Implement matrix decomposition and interpolation
-        result.extend_from_slice(from_list);
+        use values::specified::Percentage;
+        let from_transform_list = TransformList(Some(from_list.to_vec()));
+        let to_transform_list = TransformList(Some(to_list.to_vec()));
+        result.push(
+            TransformOperation::InterpolateMatrix { from_list: from_transform_list,
+                                                    to_list: to_transform_list,
+                                                    progress: Percentage(other_portion as f32) });
     }
 
     TransformList(Some(result))

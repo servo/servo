@@ -688,7 +688,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
     use app_units::Au;
     use values::computed::{LengthOrPercentageOrNumber as ComputedLoPoNumber, LengthOrNumber as ComputedLoN};
     use values::computed::{LengthOrPercentage as ComputedLoP, Length as ComputedLength};
-    use values::specified::{Angle, Length, LengthOrPercentage};
+    use values::specified::{Angle, Length, LengthOrPercentage, Percentage};
     use values::specified::{LengthOrNumber, LengthOrPercentageOrNumber as LoPoNumber, Number};
     use style_traits::ToCss;
     use style_traits::values::Css;
@@ -699,7 +699,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
         use app_units::Au;
         use values::CSSFloat;
         use values::computed;
-        use values::computed::{Length, LengthOrPercentage};
+        use values::computed::{Length, LengthOrPercentage, Percentage};
 
         #[derive(Clone, Copy, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -756,6 +756,20 @@ ${helpers.predefined_type("scroll-snap-coordinate",
             Scale(CSSFloat, CSSFloat, CSSFloat),
             Rotate(CSSFloat, CSSFloat, CSSFloat, computed::Angle),
             Perspective(computed::Length),
+            // For mismatched transform lists.
+            // A vector of |ComputedOperation| could contain an |InterpolateMatrix| and other
+            // |ComputedOperation|s, and multiple nested |InterpolateMatrix|s is acceptable.
+            // e.g.
+            // [ InterpolateMatrix { from_list: [ InterpolateMatrix { ... },
+            //                                    Scale(...) ],
+            //                       to_list: [ InterpolateMatrix { from_list: ...,
+            //                                                      to_list: [ InterpolateMatrix,
+            //                                                                 ... ],
+            //                                                      progress: ... } ],
+            //                       progress: ... } ]
+            InterpolateMatrix { from_list: T,
+                                to_list: T,
+                                progress: Percentage },
         }
 
         #[derive(Clone, Debug, PartialEq)]
@@ -835,6 +849,10 @@ ${helpers.predefined_type("scroll-snap-coordinate",
         ///
         /// The value must be greater than or equal to zero.
         Perspective(specified::Length),
+        /// A intermediate type for interpolation of mismatched transform lists.
+        InterpolateMatrix { from_list: SpecifiedValue,
+                            to_list: SpecifiedValue,
+                            progress: Percentage },
     }
 
     impl ToCss for computed_value::T {
@@ -899,6 +917,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                     dest, "rotate3d({}, {}, {}, {})",
                     Css(x), Css(y), Css(z), Css(theta)),
                 Perspective(ref length) => write!(dest, "perspective({})", Css(length)),
+                _ => unreachable!(),
             }
         }
     }
@@ -1440,6 +1459,13 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                     Perspective(ref d) => {
                         result.push(computed_value::ComputedOperation::Perspective(d.to_computed_value(context)));
                     }
+                    InterpolateMatrix { ref from_list, ref to_list, progress } => {
+                        result.push(computed_value::ComputedOperation::InterpolateMatrix {
+                            from_list: from_list.to_computed_value(context),
+                            to_list: to_list.to_computed_value(context),
+                            progress: progress
+                        });
+                    }
                 };
             }
 
@@ -1522,6 +1548,15 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                             result.push(SpecifiedOperation::Perspective(
                                 ToComputedValue::from_computed_value(d)
                             ));
+                        }
+                        computed_value::ComputedOperation::InterpolateMatrix { ref from_list,
+                                                                               ref to_list,
+                                                                               progress } => {
+                            result.push(SpecifiedOperation::InterpolateMatrix {
+                                from_list: SpecifiedValue::from_computed_value(from_list),
+                                to_list: SpecifiedValue::from_computed_value(to_list),
+                                progress: progress
+                            });
                         }
                     };
                 }

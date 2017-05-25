@@ -2346,6 +2346,11 @@ fn static_assert() {
                     ${transform_function_arm("Scale", "scale3d", ["number"] * 3)}
                     ${transform_function_arm("Rotate", "rotate3d", ["number"] * 3 + ["angle"])}
                     ${transform_function_arm("Perspective", "perspective", ["length"])}
+                    _ => {
+                        // TODO: Convert ComputedOperation::InterpolateMatrix into
+                        //       eCSSKeyword_interpolatematrix.
+                        gecko_value.mUnit = structs::nsCSSUnit::eCSSUnit_None;
+                    }
                 }
                 cur = (*cur).mNext;
             }
