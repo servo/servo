@@ -13,15 +13,15 @@ use data::{ComputedStyle, ElementData, RestyleData};
 use dom::{TElement, TNode};
 use font_metrics::FontMetricsProvider;
 use log::LogLevel::Trace;
-use properties::{AnimationRules, CascadeFlags, ComputedValues, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
+use properties::{AnimationRules, CascadeFlags, ComputedValues};
+use properties::{SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, VISITED_DEPENDENT_ONLY, cascade};
 use properties::longhands::display::computed_value as display;
 use restyle_hints::{RESTYLE_CSS_ANIMATIONS, RESTYLE_CSS_TRANSITIONS, RestyleReplacements};
 use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RESTYLE_SMIL};
-use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode};
+use rule_tree::{CascadeLevel, StrongRuleNode};
 use selector_parser::{PseudoElement, RestyleDamage, SelectorImpl};
 use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode, StyleRelations};
-use selectors::matching::AFFECTED_BY_PSEUDO_ELEMENTS;
-use shared_lock::StylesheetGuards;
+use selectors::matching::{VisitedHandlingMode, AFFECTED_BY_PSEUDO_ELEMENTS};
 use sharing::{StyleSharingBehavior, StyleSharingResult};
 use stylearc::Arc;
 use stylist::ApplicableDeclarationList;
@@ -92,15 +92,6 @@ impl From<StyleChange> for ChildCascadeRequirement {
     }
 }
 
-/// The result status for match primary rules.
-#[derive(Debug)]
-pub struct RulesMatchedResult {
-    /// Indicate that the rule nodes are changed.
-    rule_nodes_changed: bool,
-    /// Indicate that there are any changes of important rules overriding animations.
-    important_rules_overriding_animation_changed: bool,
-}
-
 bitflags! {
     /// Flags that represent the result of replace_rules.
     pub flags RulesChanged: u8 {
@@ -122,6 +113,101 @@ impl RulesChanged {
     #[inline]
     pub fn important_rules_changed(&self) -> bool {
         self.contains(IMPORTANT_RULES_CHANGED)
+    }
+}
+
+/// Determines which styles are being cascaded currently.
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+pub enum CascadeVisitedMode {
+    /// Cascade the regular, unvisited styles.
+    Unvisited,
+    /// Cascade the styles used when an element's relevant link is visited.  A
+    /// "relevant link" is the element being matched if it is a link or the
+    /// nearest ancestor link.
+    Visited,
+}
+
+/// Various helper methods to ease navigating the style storage locations
+/// depending on the current cascade mode.
+impl CascadeVisitedMode {
+    /// Returns whether there is a rule node based on the cascade mode.
+    fn has_rules(&self, style: &ComputedStyle) -> bool {
+        match *self {
+            CascadeVisitedMode::Unvisited => true,
+            CascadeVisitedMode::Visited => style.has_visited_rules(),
+        }
+    }
+
+    /// Returns the rule node based on the cascade mode.
+    fn rules<'a>(&self, style: &'a ComputedStyle) -> &'a StrongRuleNode {
+        match *self {
+            CascadeVisitedMode::Unvisited => &style.rules,
+            CascadeVisitedMode::Visited => style.visited_rules(),
+        }
+    }
+
+    /// Returns a mutable rules node based on the cascade mode, if any.
+    fn get_rules_mut<'a>(&self, style: &'a mut ComputedStyle) -> Option<&'a mut StrongRuleNode> {
+        match *self {
+            CascadeVisitedMode::Unvisited => Some(&mut style.rules),
+            CascadeVisitedMode::Visited => style.get_visited_rules_mut(),
+        }
+    }
+
+    /// Returns the computed values based on the cascade mode.  In visited mode,
+    /// visited values are only returned if they already exist.  If they don't,
+    /// we fallback to the regular, unvisited styles.
+    fn values<'a>(&self, style: &'a ComputedStyle) -> &'a Arc<ComputedValues> {
+        let mut values = style.values();
+
+        if *self == CascadeVisitedMode::Visited && values.get_visited_style().is_some() {
+            values = values.visited_style();
+        }
+
+        values
+    }
+
+    /// Set the computed values based on the cascade mode.
+    fn set_values(&self, style: &mut ComputedStyle, values: Arc<ComputedValues>) {
+        match *self {
+            CascadeVisitedMode::Unvisited => style.values = Some(values),
+            CascadeVisitedMode::Visited => style.set_visited_values(values),
+        }
+    }
+
+    /// Take the computed values based on the cascade mode.
+    fn take_values(&self, style: &mut ComputedStyle) -> Option<Arc<ComputedValues>> {
+        match *self {
+            CascadeVisitedMode::Unvisited => style.values.take(),
+            CascadeVisitedMode::Visited => style.take_visited_values(),
+        }
+    }
+
+    /// Returns whether there might be visited values that should be inserted
+    /// within the regular computed values based on the cascade mode.
+    fn visited_values_for_insertion(&self) -> bool {
+        *self == CascadeVisitedMode::Unvisited
+    }
+
+    /// Returns whether animations should be processed based on the cascade
+    /// mode.  At the moment, it appears we don't need to support animating
+    /// visited styles.
+    fn should_process_animations(&self) -> bool {
+        *self == CascadeVisitedMode::Unvisited
+    }
+
+    /// Returns whether we should accumulate restyle damage based on the cascade
+    /// mode.  At the moment, it appears we don't need to do so for visited
+    /// styles.  TODO: Verify this is correct as part of
+    /// https://bugzilla.mozilla.org/show_bug.cgi?id=1364484.
+    fn should_accumulate_damage(&self) -> bool {
+        *self == CascadeVisitedMode::Unvisited
+    }
+
+    /// Returns whether the cascade should filter to only visited dependent
+    /// properties based on the cascade mode.
+    fn visited_dependent_only(&self) -> bool {
+        *self == CascadeVisitedMode::Visited
     }
 }
 
@@ -158,12 +244,17 @@ trait PrivateMatchMethods: TElement {
                           font_metrics_provider: &FontMetricsProvider,
                           rule_node: &StrongRuleNode,
                           primary_style: &ComputedStyle,
-                          inherit_mode: InheritMode)
+                          inherit_mode: InheritMode,
+                          cascade_visited: CascadeVisitedMode,
+                          visited_values_to_insert: Option<Arc<ComputedValues>>)
                           -> Arc<ComputedValues> {
         let mut cascade_info = CascadeInfo::new();
         let mut cascade_flags = CascadeFlags::empty();
         if self.skip_root_and_item_based_display_fixup() {
             cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP)
+        }
+        if cascade_visited.visited_dependent_only() {
+            cascade_flags.insert(VISITED_DEPENDENT_ONLY);
         }
 
         // Grab the inherited values.
@@ -173,7 +264,7 @@ trait PrivateMatchMethods: TElement {
             InheritMode::Normal => {
                 parent_el = self.inheritance_parent();
                 parent_data = parent_el.as_ref().and_then(|e| e.borrow_data());
-                let parent_values = parent_data.as_ref().map(|d| {
+                let parent_style = parent_data.as_ref().map(|d| {
                     // Sometimes Gecko eagerly styles things without processing
                     // pending restyles first. In general we'd like to avoid this,
                     // but there can be good reasons (for example, needing to
@@ -182,14 +273,13 @@ trait PrivateMatchMethods: TElement {
                     // but not wanting to flush all of layout).
                     debug_assert!(cfg!(feature = "gecko") ||
                                   parent_el.unwrap().has_current_styles(d));
-                    d.styles().primary.values()
+                    &d.styles().primary
                 });
-
-                parent_values
+                parent_style.map(|s| cascade_visited.values(s))
             }
             InheritMode::FromPrimaryStyle => {
                 parent_el = Some(self.clone());
-                Some(primary_style.values())
+                Some(cascade_visited.values(primary_style))
             }
         };
 
@@ -199,7 +289,7 @@ trait PrivateMatchMethods: TElement {
         if style_to_inherit_from.map_or(false, |s| s.is_display_contents()) {
             layout_parent_el = Some(layout_parent_el.unwrap().layout_parent());
             layout_parent_data = layout_parent_el.as_ref().unwrap().borrow_data().unwrap();
-            layout_parent_style = Some(layout_parent_data.styles().primary.values())
+            layout_parent_style = Some(cascade_visited.values(&layout_parent_data.styles().primary));
         }
 
         let style_to_inherit_from = style_to_inherit_from.map(|x| &**x);
@@ -227,6 +317,7 @@ trait PrivateMatchMethods: TElement {
                              &shared_context.guards,
                              style_to_inherit_from,
                              layout_parent_style,
+                             visited_values_to_insert,
                              Some(&mut cascade_info),
                              &*shared_context.error_reporter,
                              font_metrics_provider,
@@ -240,7 +331,8 @@ trait PrivateMatchMethods: TElement {
     fn cascade_internal(&self,
                         context: &StyleContext<Self>,
                         primary_style: &ComputedStyle,
-                        eager_pseudo_style: Option<&ComputedStyle>)
+                        eager_pseudo_style: Option<&ComputedStyle>,
+                        cascade_visited: CascadeVisitedMode)
                         -> Arc<ComputedValues> {
         if let Some(pseudo) = self.implemented_pseudo_element() {
             debug_assert!(eager_pseudo_style.is_none());
@@ -261,13 +353,26 @@ trait PrivateMatchMethods: TElement {
                     let parent_data = parent.borrow_data().unwrap();
                     let pseudo_style =
                         parent_data.styles().pseudos.get(&pseudo).unwrap();
-                    return pseudo_style.values().clone()
+                    let values = cascade_visited.values(pseudo_style);
+                    return values.clone()
                 }
             }
         }
 
+        // Find possible visited computed styles to insert within the regular
+        // computed values we are about to create.
+        let visited_values_to_insert = if cascade_visited.visited_values_for_insertion() {
+            match eager_pseudo_style {
+                Some(ref s) => s.clone_visited_values(),
+                None => primary_style.clone_visited_values(),
+            }
+        } else {
+            None
+        };
+
         // Grab the rule node.
-        let rule_node = &eager_pseudo_style.unwrap_or(primary_style).rules;
+        let style = eager_pseudo_style.unwrap_or(primary_style);
+        let rule_node = cascade_visited.rules(style);
         let inherit_mode = if eager_pseudo_style.is_some() {
             InheritMode::FromPrimaryStyle
         } else {
@@ -278,27 +383,43 @@ trait PrivateMatchMethods: TElement {
                                 &context.thread_local.font_metrics_provider,
                                 rule_node,
                                 primary_style,
-                                inherit_mode)
+                                inherit_mode,
+                                cascade_visited,
+                                visited_values_to_insert)
     }
 
-    /// Computes values and damage for the primary or pseudo style of an element,
-    /// setting them on the ElementData.
+    /// Computes values and damage for the primary style of an element, setting
+    /// them on the ElementData.
     fn cascade_primary(&self,
                        context: &mut StyleContext<Self>,
                        data: &mut ElementData,
-                       important_rules_changed: bool)
+                       important_rules_changed: bool,
+                       cascade_visited: CascadeVisitedMode)
                        -> ChildCascadeRequirement {
+        debug!("Cascade primary for {:?}, visited: {:?}", self, cascade_visited);
+
         // Collect some values.
         let (mut styles, restyle) = data.styles_and_restyle_mut();
         let mut primary_style = &mut styles.primary;
-        let mut old_values = primary_style.values.take();
+        // If there was no relevant link, we won't have any visited rules, so
+        // there may not be anything do for the visited case.  This early return
+        // is especially important for the `cascade_primary_and_pseudos` path
+        // since we rely on the state of some previous matching run.
+        if !cascade_visited.has_rules(primary_style) {
+            return ChildCascadeRequirement::CanSkipCascade
+        }
+        let mut old_values = cascade_visited.take_values(primary_style);
 
         // Compute the new values.
-        let mut new_values = self.cascade_internal(context, primary_style, None);
+        let mut new_values = self.cascade_internal(context,
+                                                   primary_style,
+                                                   None,
+                                                   cascade_visited);
 
         // NB: Animations for pseudo-elements in Gecko are handled while
         // traversing the pseudo-elements themselves.
-        if !context.shared.traversal_flags.for_animation_only() {
+        if !context.shared.traversal_flags.for_animation_only() &&
+           cascade_visited.should_process_animations() {
             self.process_animations(context,
                                     &mut old_values,
                                     &mut new_values,
@@ -306,42 +427,59 @@ trait PrivateMatchMethods: TElement {
                                     important_rules_changed);
         }
 
-        let child_cascade_requirement =
-            self.accumulate_damage(&context.shared,
-                                   restyle,
-                                   old_values.as_ref().map(|v| v.as_ref()),
-                                   &new_values,
-                                   None);
+        let mut child_cascade_requirement =
+            ChildCascadeRequirement::CanSkipCascade;
+        if cascade_visited.should_accumulate_damage() {
+            child_cascade_requirement =
+                self.accumulate_damage(&context.shared,
+                                       restyle,
+                                       old_values.as_ref().map(|v| v.as_ref()),
+                                       &new_values,
+                                       None);
+        }
 
         // Set the new computed values.
-        primary_style.values = Some(new_values);
+        cascade_visited.set_values(primary_style, new_values);
 
         // Return whether the damage indicates we must cascade new inherited
         // values into children.
         child_cascade_requirement
     }
 
+    /// Computes values and damage for the eager pseudo-element styles of an
+    /// element, setting them on the ElementData.
     fn cascade_eager_pseudo(&self,
                             context: &mut StyleContext<Self>,
                             data: &mut ElementData,
-                            pseudo: &PseudoElement) {
+                            pseudo: &PseudoElement,
+                            cascade_visited: CascadeVisitedMode) {
         debug_assert!(pseudo.is_eager());
         let (mut styles, restyle) = data.styles_and_restyle_mut();
         let mut pseudo_style = styles.pseudos.get_mut(pseudo).unwrap();
-        let old_values = pseudo_style.values.take();
+        // If there was no relevant link, we won't have any visited rules, so
+        // there may not be anything do for the visited case.  This early return
+        // is especially important for the `cascade_primary_and_pseudos` path
+        // since we rely on the state of some previous matching run.
+        if !cascade_visited.has_rules(pseudo_style) {
+            return
+        }
+        let old_values = cascade_visited.take_values(pseudo_style);
 
-        let new_values =
-            self.cascade_internal(context, &styles.primary, Some(pseudo_style));
+        let new_values = self.cascade_internal(context,
+                                               &styles.primary,
+                                               Some(pseudo_style),
+                                               cascade_visited);
 
-        self.accumulate_damage(&context.shared,
-                               restyle,
-                               old_values.as_ref().map(|v| &**v),
-                               &new_values,
-                               Some(pseudo));
+        if cascade_visited.should_accumulate_damage() {
+            self.accumulate_damage(&context.shared,
+                                   restyle,
+                                   old_values.as_ref().map(|v| &**v),
+                                   &new_values,
+                                   Some(pseudo));
+        }
 
-        pseudo_style.values = Some(new_values)
+        cascade_visited.set_values(pseudo_style, new_values);
     }
-
 
     /// get_after_change_style removes the transition rules from the ComputedValues.
     /// If there is no transition rule in the ComputedValues, it returns None.
@@ -359,11 +497,15 @@ trait PrivateMatchMethods: TElement {
             return None;
         }
 
+        // This currently ignores visited styles, which seems acceptable,
+        // as existing browsers don't appear to transition visited styles.
         Some(self.cascade_with_rules(context.shared,
                                      &context.thread_local.font_metrics_provider,
                                      &without_transition_rules,
                                      primary_style,
-                                     InheritMode::Normal))
+                                     InheritMode::Normal,
+                                     CascadeVisitedMode::Unvisited,
+                                     None))
     }
 
     #[cfg(feature = "gecko")]
@@ -593,17 +735,49 @@ trait PrivateMatchMethods: TElement {
     }
 }
 
-fn compute_rule_node<E: TElement>(rule_tree: &RuleTree,
-                                  applicable_declarations: &mut ApplicableDeclarationList,
-                                  guards: &StylesheetGuards)
-                                  -> StrongRuleNode
-{
-    let rules = applicable_declarations.drain().map(|d| (d.source, d.level));
-    let rule_node = rule_tree.insert_ordered_rules_with_important(rules, guards);
-    rule_node
+impl<E: TElement> PrivateMatchMethods for E {}
+
+/// Collects the outputs of the primary matching process, including the rule
+/// node and other associated data.
+#[derive(Debug)]
+pub struct MatchingResults {
+    /// Whether the rules changed.
+    rules_changed: bool,
+    /// Whether there are any changes of important rules overriding animations.
+    important_rules_overriding_animation_changed: bool,
+    /// Records certains relations between elements noticed during matching (and
+    /// also extended after matching).
+    relations: StyleRelations,
+    /// Whether we encountered a "relevant link" while matching _any_ selector
+    /// for this element. (This differs from `RelevantLinkStatus` which tracks
+    /// the status for the _current_ selector only.)
+    relevant_link_found: bool,
 }
 
-impl<E: TElement> PrivateMatchMethods for E {}
+impl MatchingResults {
+    /// Create `MatchingResults` with only the basic required outputs.
+    fn new(rules_changed: bool, important_rules: bool) -> Self {
+        Self {
+            rules_changed: rules_changed,
+            important_rules_overriding_animation_changed: important_rules,
+            relations: StyleRelations::default(),
+            relevant_link_found: false,
+        }
+    }
+
+    /// Create `MatchingResults` from the output fields of `MatchingContext`.
+    fn new_from_context(rules_changed: bool,
+                        important_rules: bool,
+                        context: MatchingContext)
+                        -> Self {
+        Self {
+            rules_changed: rules_changed,
+            important_rules_overriding_animation_changed: important_rules,
+            relations: context.relations,
+            relevant_link_found: context.relevant_link_found,
+        }
+    }
+}
 
 /// The public API that elements expose for selector matching.
 pub trait MatchMethods : TElement {
@@ -615,27 +789,52 @@ pub trait MatchMethods : TElement {
                          sharing: StyleSharingBehavior)
                          -> ChildCascadeRequirement
     {
+        debug!("Match and cascade for {:?}", self);
+
         // Perform selector matching for the primary style.
-        let mut relations = StyleRelations::empty();
-        let result = self.match_primary(context, data, &mut relations);
+        let mut primary_results =
+            self.match_primary(context, data, VisitedHandlingMode::AllLinksUnvisited);
+        let important_rules_changed =
+            primary_results.important_rules_overriding_animation_changed;
+
+        // If there's a relevant link involved, match and cascade primary styles
+        // as if the link is visited as well.  This is done before the regular
+        // cascade because the visited ComputedValues are placed within the
+        // regular ComputedValues, which is immutable after the cascade.
+        let relevant_link_found = primary_results.relevant_link_found;
+        if relevant_link_found {
+            self.match_primary(context, data, VisitedHandlingMode::RelevantLinkVisited);
+            self.cascade_primary(context, data, important_rules_changed,
+                                 CascadeVisitedMode::Visited);
+        }
 
         // Cascade properties and compute primary values.
         let child_cascade_requirement =
-            self.cascade_primary(
-                context,
-                data,
-                result.important_rules_overriding_animation_changed
-            );
+            self.cascade_primary(context, data, important_rules_changed,
+                                 CascadeVisitedMode::Unvisited);
 
         // Match and cascade eager pseudo-elements.
         if !data.styles().is_display_none() {
-            let _pseudo_rule_nodes_changed = self.match_pseudos(context, data);
-            self.cascade_pseudos(context, data);
+            self.match_pseudos(context, data, VisitedHandlingMode::AllLinksUnvisited);
+
+            // If there's a relevant link involved, match and cascade eager
+            // pseudo-element styles as if the link is visited as well.
+            // This runs after matching for regular styles because matching adds
+            // each pseudo as needed to the PseudoMap, and this runs before
+            // cascade for regular styles because the visited ComputedValues
+            // are placed within the regular ComputedValues, which is immutable
+            // after the cascade.
+            if relevant_link_found {
+                self.match_pseudos(context, data, VisitedHandlingMode::RelevantLinkVisited);
+                self.cascade_pseudos(context, data, CascadeVisitedMode::Visited);
+            }
+
+            self.cascade_pseudos(context, data, CascadeVisitedMode::Unvisited);
         }
 
         // If we have any pseudo elements, indicate so in the primary StyleRelations.
         if !data.styles().pseudos.is_empty() {
-            relations |= AFFECTED_BY_PSEUDO_ELEMENTS;
+            primary_results.relations |= AFFECTED_BY_PSEUDO_ELEMENTS;
         }
 
         // If the style is shareable, add it to the LRU cache.
@@ -655,7 +854,7 @@ pub trait MatchMethods : TElement {
                    .style_sharing_candidate_cache
                    .insert_if_possible(self,
                                        data.styles().primary.values(),
-                                       relations,
+                                       primary_results.relations,
                                        revalidation_match_results);
         }
 
@@ -669,22 +868,34 @@ pub trait MatchMethods : TElement {
                                    important_rules_changed: bool)
                                    -> ChildCascadeRequirement
     {
+        // If there's a relevant link involved, cascade styles as if the link is
+        // visited as well. This is done before the regular cascade because the
+        // visited ComputedValues are placed within the regular ComputedValues,
+        // which is immutable after the cascade.  If there aren't any visited
+        // rules, these calls will return without cascading.
+        self.cascade_primary(context, &mut data, important_rules_changed,
+                             CascadeVisitedMode::Visited);
         let child_cascade_requirement =
-            self.cascade_primary(context, &mut data, important_rules_changed);
-        self.cascade_pseudos(context, &mut data);
+            self.cascade_primary(context, &mut data, important_rules_changed,
+                                 CascadeVisitedMode::Unvisited);
+        self.cascade_pseudos(context, &mut data, CascadeVisitedMode::Visited);
+        self.cascade_pseudos(context, &mut data, CascadeVisitedMode::Unvisited);
         child_cascade_requirement
     }
 
-    /// Runs selector matching to (re)compute the primary rule node for this element.
+    /// Runs selector matching to (re)compute the primary rule node for this
+    /// element.
     ///
-    /// Returns RulesMatchedResult which indicates whether the primary rule node changed
-    /// and whether the change includes important rules.
+    /// Returns `MatchingResults` with the new rules and other associated data
+    /// from the matching process.
     fn match_primary(&self,
                      context: &mut StyleContext<Self>,
                      data: &mut ElementData,
-                     relations: &mut StyleRelations)
-                     -> RulesMatchedResult
+                     visited_handling: VisitedHandlingMode)
+                     -> MatchingResults
     {
+        debug!("Match primary for {:?}, visited: {:?}", self, visited_handling);
+
         let implemented_pseudo = self.implemented_pseudo_element();
         if let Some(ref pseudo) = implemented_pseudo {
             // We don't expect to match against a non-canonical pseudo-element.
@@ -731,10 +942,16 @@ pub trait MatchMethods : TElement {
                     data.important_rules_are_different(&rules,
                                                    &context.shared.guards);
 
-                return RulesMatchedResult {
-                    rule_nodes_changed: data.set_primary_rules(rules),
-                    important_rules_overriding_animation_changed: important_rules_changed,
+                let rules_changed = match visited_handling {
+                    VisitedHandlingMode::AllLinksUnvisited => {
+                        data.set_primary_rules(rules)
+                    },
+                    VisitedHandlingMode::RelevantLinkVisited => {
+                        data.styles_mut().primary.set_visited_rules(rules)
+                    },
                 };
+
+                return MatchingResults::new(rules_changed, important_rules_changed)
             }
         }
 
@@ -742,6 +959,18 @@ pub trait MatchMethods : TElement {
 
         let stylist = &context.shared.stylist;
         let style_attribute = self.style_attribute();
+
+        let map = &mut context.thread_local.selector_flags;
+        let mut set_selector_flags = |element: &Self, flags: ElementSelectorFlags| {
+            self.apply_selector_flags(map, element, flags);
+        };
+
+        let bloom_filter = context.thread_local.bloom_filter.filter();
+        let mut matching_context =
+            MatchingContext::new_for_visited(MatchingMode::Normal,
+                                             Some(bloom_filter),
+                                             visited_handling);
+
         {
             let smil_override = data.get_smil_override();
             let animation_rules = if self.may_have_animations() {
@@ -749,15 +978,6 @@ pub trait MatchMethods : TElement {
             } else {
                 AnimationRules(None, None)
             };
-            let bloom = context.thread_local.bloom_filter.filter();
-
-            let map = &mut context.thread_local.selector_flags;
-            let mut set_selector_flags = |element: &Self, flags: ElementSelectorFlags| {
-                self.apply_selector_flags(map, element, flags);
-            };
-
-            let mut matching_context =
-                MatchingContext::new(MatchingMode::Normal, Some(bloom));
 
             // Compute the primary rule node.
             stylist.push_applicable_declarations(self,
@@ -768,14 +988,12 @@ pub trait MatchMethods : TElement {
                                                  &mut applicable_declarations,
                                                  &mut matching_context,
                                                  &mut set_selector_flags);
-
-            *relations = matching_context.relations;
         }
 
-        let primary_rule_node =
-            compute_rule_node::<Self>(stylist.rule_tree(),
-                                      &mut applicable_declarations,
-                                      &context.shared.guards);
+        let primary_rule_node = stylist.rule_tree().compute_rule_node(
+            &mut applicable_declarations,
+            &context.shared.guards
+        );
 
         if log_enabled!(Trace) {
             trace!("Matched rules:");
@@ -794,25 +1012,32 @@ pub trait MatchMethods : TElement {
                 &context.shared.guards
             );
 
-        RulesMatchedResult {
-            rule_nodes_changed: data.set_primary_rules(primary_rule_node),
-            important_rules_overriding_animation_changed: important_rules_changed,
-        }
+        let rules_changed = match visited_handling {
+            VisitedHandlingMode::AllLinksUnvisited => {
+                data.set_primary_rules(primary_rule_node)
+            },
+            VisitedHandlingMode::RelevantLinkVisited => {
+                data.styles_mut().primary.set_visited_rules(primary_rule_node)
+            },
+        };
+
+        MatchingResults::new_from_context(rules_changed,
+                                          important_rules_changed,
+                                          matching_context)
     }
 
     /// Runs selector matching to (re)compute eager pseudo-element rule nodes
     /// for this element.
-    ///
-    /// Returns whether any of the pseudo rule nodes changed (including, but not
-    /// limited to, cases where we match different pseudos altogether).
     fn match_pseudos(&self,
                      context: &mut StyleContext<Self>,
-                     data: &mut ElementData)
-                     -> bool
+                     data: &mut ElementData,
+                     visited_handling: VisitedHandlingMode)
     {
+        debug!("Match pseudos for {:?}, visited: {:?}", self, visited_handling);
+
         if self.implemented_pseudo_element().is_some() {
             // Element pseudos can't have any other pseudo.
-            return false;
+            return;
         }
 
         let mut applicable_declarations = ApplicableDeclarationList::new();
@@ -826,18 +1051,23 @@ pub trait MatchMethods : TElement {
         // at us later in the closure.
         let stylist = &context.shared.stylist;
         let guards = &context.shared.guards;
-        let rule_tree = stylist.rule_tree();
-        let bloom_filter = context.thread_local.bloom_filter.filter();
 
+        let bloom_filter = context.thread_local.bloom_filter.filter();
         let mut matching_context =
-            MatchingContext::new(MatchingMode::ForStatelessPseudoElement,
-                                 Some(bloom_filter));
+            MatchingContext::new_for_visited(MatchingMode::ForStatelessPseudoElement,
+                                             Some(bloom_filter),
+                                             visited_handling);
 
         // Compute rule nodes for eagerly-cascaded pseudo-elements.
         let mut matches_different_pseudos = false;
-        let mut rule_nodes_changed = false;
         SelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
-            let mut pseudos = &mut data.styles_mut().pseudos;
+            // For pseudo-elements, we only try to match visited rules if there
+            // are also unvisited rules.  (This matches Gecko's behavior.)
+            if visited_handling == VisitedHandlingMode::RelevantLinkVisited &&
+               !data.styles().pseudos.has(&pseudo) {
+                return
+            }
+
             debug_assert!(applicable_declarations.is_empty());
             // NB: We handle animation rules for ::before and ::after when
             // traversing them.
@@ -850,32 +1080,32 @@ pub trait MatchMethods : TElement {
                                                  &mut matching_context,
                                                  &mut set_selector_flags);
 
+            let pseudos = &mut data.styles_mut().pseudos;
             if !applicable_declarations.is_empty() {
-                let new_rules =
-                    compute_rule_node::<Self>(rule_tree,
-                                              &mut applicable_declarations,
-                                              &guards);
-                if pseudos.has(&pseudo) {
-                    rule_nodes_changed = pseudos.set_rules(&pseudo, new_rules);
-                } else {
-                    pseudos.insert(&pseudo, ComputedStyle::new_partial(new_rules));
-                    matches_different_pseudos = true;
-                }
-            } else if pseudos.take(&pseudo).is_some() {
-                matches_different_pseudos = true;
+                let rules = stylist.rule_tree().compute_rule_node(
+                    &mut applicable_declarations,
+                    &guards
+                );
+                matches_different_pseudos |= pseudos.add_rules(
+                    &pseudo,
+                    visited_handling,
+                    rules
+                );
+            } else {
+                matches_different_pseudos |= pseudos.remove_rules(
+                    &pseudo,
+                    visited_handling
+                );
             }
         });
 
         if matches_different_pseudos {
-            rule_nodes_changed = true;
             if let Some(r) = data.get_restyle_mut() {
                 // Any changes to the matched pseudo-elements trigger
                 // reconstruction.
                 r.damage |= RestyleDamage::reconstruct();
             }
         }
-
-        rule_nodes_changed
     }
 
     /// Applies selector flags to an element, deferring mutations of the parent
@@ -974,17 +1204,40 @@ pub trait MatchMethods : TElement {
     }
 
     /// Updates the rule nodes without re-running selector matching, using just
-    /// the rule tree. Returns true if an !important rule was replaced.
+    /// the rule tree.
+    ///
+    /// Returns true if an !important rule was replaced.
     fn replace_rules(&self,
                      replacements: RestyleReplacements,
                      context: &StyleContext<Self>,
                      data: &mut ElementData)
                      -> bool {
+        let mut result = false;
+        result |= self.replace_rules_internal(replacements, context, data,
+                                              CascadeVisitedMode::Unvisited);
+        result |= self.replace_rules_internal(replacements, context, data,
+                                              CascadeVisitedMode::Visited);
+        result
+    }
+
+    /// Updates the rule nodes without re-running selector matching, using just
+    /// the rule tree, for a specific visited mode.
+    ///
+    /// Returns true if an !important rule was replaced.
+    fn replace_rules_internal(&self,
+                              replacements: RestyleReplacements,
+                              context: &StyleContext<Self>,
+                              data: &mut ElementData,
+                              cascade_visited: CascadeVisitedMode)
+                              -> bool {
         use properties::PropertyDeclarationBlock;
         use shared_lock::Locked;
 
         let element_styles = &mut data.styles_mut();
-        let primary_rules = &mut element_styles.primary.rules;
+        let primary_rules = match cascade_visited.get_rules_mut(&mut element_styles.primary) {
+            Some(r) => r,
+            None => return false,
+        };
 
         let replace_rule_node = |level: CascadeLevel,
                                  pdb: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
@@ -1126,8 +1379,11 @@ pub trait MatchMethods : TElement {
     /// Performs the cascade for the element's eager pseudos.
     fn cascade_pseudos(&self,
                        context: &mut StyleContext<Self>,
-                       mut data: &mut ElementData)
+                       mut data: &mut ElementData,
+                       cascade_visited: CascadeVisitedMode)
     {
+        debug!("Cascade pseudos for {:?}, visited: {:?}", self,
+               cascade_visited);
         // Note that we've already set up the map of matching pseudo-elements
         // in match_pseudos (and handled the damage implications of changing
         // which pseudos match), so now we can just iterate what we have. This
@@ -1135,7 +1391,7 @@ pub trait MatchMethods : TElement {
         // let us pass the mutable |data| to the cascade function.
         let matched_pseudos = data.styles().pseudos.keys();
         for pseudo in matched_pseudos {
-            self.cascade_eager_pseudo(context, data, &pseudo);
+            self.cascade_eager_pseudo(context, data, &pseudo, cascade_visited);
         }
     }
 
@@ -1156,11 +1412,15 @@ pub trait MatchMethods : TElement {
             return relevant_style.values.as_ref().unwrap().clone();
         }
 
+        // This currently ignores visited styles, which seems acceptable,
+        // as existing browsers don't appear to animate visited styles.
         self.cascade_with_rules(shared_context,
                                 font_metrics_provider,
                                 &without_animation_rules,
                                 primary_style,
-                                InheritMode::Normal)
+                                InheritMode::Normal,
+                                CascadeVisitedMode::Unvisited,
+                                None)
     }
 
 }

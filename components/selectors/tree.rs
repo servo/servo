@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! Traits that nodes must implement. Breaks the otherwise-cyclic dependency between layout and
-//! style.
+//! Traits that nodes must implement. Breaks the otherwise-cyclic dependency
+//! between layout and style.
 
 use attr::{AttrSelectorOperation, NamespaceConstraint};
-use matching::{ElementSelectorFlags, MatchingContext};
+use matching::{ElementSelectorFlags, MatchingContext, RelevantLinkStatus};
 use parser::SelectorImpl;
 
 pub trait Element: Sized {
@@ -50,6 +50,7 @@ pub trait Element: Sized {
     fn match_non_ts_pseudo_class<F>(&self,
                                     pc: &<Self::Impl as SelectorImpl>::NonTSPseudoClass,
                                     context: &mut MatchingContext,
+                                    relevant_link: &RelevantLinkStatus,
                                     flags_setter: &mut F) -> bool
         where F: FnMut(&Self, ElementSelectorFlags);
 
@@ -57,6 +58,9 @@ pub trait Element: Sized {
                             pe: &<Self::Impl as SelectorImpl>::PseudoElement,
                             context: &mut MatchingContext)
                             -> bool;
+
+    /// Whether this element is a `link`.
+    fn is_link(&self) -> bool;
 
     fn get_id(&self) -> Option<<Self::Impl as SelectorImpl>::Identifier>;
 

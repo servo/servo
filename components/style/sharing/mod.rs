@@ -349,7 +349,7 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
             miss!(UserAndAuthorRules)
         }
 
-        if element.get_state() != candidate.element.get_state() {
+        if !checks::have_same_state_ignoring_visitedness(element, candidate) {
             miss!(State)
         }
 

@@ -16,7 +16,6 @@ use restyle_hints::ElementSnapshot;
 use selector_parser::{ElementExt, PseudoElementCascadeType, SelectorParser};
 use selectors::Element;
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint};
-use selectors::matching::{MatchingContext, MatchingMode};
 use selectors::parser::SelectorMethods;
 use selectors::visitor::SelectorVisitor;
 use std::borrow::Cow;
@@ -601,13 +600,6 @@ impl ServoElementSnapshot {
 }
 
 impl<E: Element<Impl=SelectorImpl> + Debug> ElementExt for E {
-    fn is_link(&self) -> bool {
-        let mut context = MatchingContext::new(MatchingMode::Normal, None);
-        self.match_non_ts_pseudo_class(&NonTSPseudoClass::AnyLink,
-                                       &mut context,
-                                       &mut |_, _| {})
-    }
-
     #[inline]
     fn matches_user_and_author_rules(&self) -> bool {
         true

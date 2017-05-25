@@ -11,6 +11,7 @@ use properties::longhands::display::computed_value as display;
 use restyle_hints::{HintComputationContext, RestyleReplacements, RestyleHint};
 use rule_tree::StrongRuleNode;
 use selector_parser::{EAGER_PSEUDO_COUNT, PseudoElement, RestyleDamage};
+use selectors::matching::VisitedHandlingMode;
 use shared_lock::{Locked, StylesheetGuards};
 use std::fmt;
 use stylearc::Arc;
@@ -29,6 +30,21 @@ pub struct ComputedStyle {
     /// matched rules. This can only be none during a transient interval of
     /// the styling algorithm, and callers can safely unwrap it.
     pub values: Option<Arc<ComputedValues>>,
+
+    /// The rule node representing the ordered list of rules matched for this
+    /// node if visited, only computed if there's a relevant link for this
+    /// element. A element's "relevant link" is the element being matched if it
+    /// is a link or the nearest ancestor link.
+    visited_rules: Option<StrongRuleNode>,
+
+    /// The element's computed values if visited, only computed if there's a
+    /// relevant link for this element. A element's "relevant link" is the
+    /// element being matched if it is a link or the nearest ancestor link.
+    ///
+    /// We also store a reference to this inside the regular ComputedValues to
+    /// avoid refactoring all APIs to become aware of multiple ComputedValues
+    /// objects.
+    visited_values: Option<Arc<ComputedValues>>,
 }
 
 impl ComputedStyle {
@@ -37,6 +53,8 @@ impl ComputedStyle {
         ComputedStyle {
             rules: rules,
             values: Some(values),
+            visited_rules: None,
+            visited_values: None,
         }
     }
 
@@ -46,6 +64,8 @@ impl ComputedStyle {
         ComputedStyle {
             rules: rules,
             values: None,
+            visited_rules: None,
+            visited_values: None,
         }
     }
 
@@ -55,9 +75,63 @@ impl ComputedStyle {
         self.values.as_ref().unwrap()
     }
 
-    /// Mutable version of the above.
-    pub fn values_mut(&mut self) -> &mut Arc<ComputedValues> {
-        self.values.as_mut().unwrap()
+    /// Whether there are any visited rules.
+    pub fn has_visited_rules(&self) -> bool {
+        self.visited_rules.is_some()
+    }
+
+    /// Gets a reference to the visited rule node, if any.
+    pub fn get_visited_rules(&self) -> Option<&StrongRuleNode> {
+        self.visited_rules.as_ref()
+    }
+
+    /// Gets a mutable reference to the visited rule node, if any.
+    pub fn get_visited_rules_mut(&mut self) -> Option<&mut StrongRuleNode> {
+        self.visited_rules.as_mut()
+    }
+
+    /// Gets a reference to the visited rule node. Panic if the element does not
+    /// have visited rule node.
+    pub fn visited_rules(&self) -> &StrongRuleNode {
+        self.get_visited_rules().unwrap()
+    }
+
+    /// Sets the visited rule node, and returns whether it changed.
+    pub fn set_visited_rules(&mut self, rules: StrongRuleNode) -> bool {
+        if let Some(ref old_rules) = self.visited_rules {
+            if *old_rules == rules {
+                return false
+            }
+        }
+        self.visited_rules = Some(rules);
+        true
+    }
+
+    /// Takes the visited rule node.
+    pub fn take_visited_rules(&mut self) -> Option<StrongRuleNode> {
+        self.visited_rules.take()
+    }
+
+    /// Gets a reference to the visited computed values. Panic if the element
+    /// does not have visited computed values.
+    pub fn visited_values(&self) -> &Arc<ComputedValues> {
+        self.visited_values.as_ref().unwrap()
+    }
+
+    /// Sets the visited computed values.
+    pub fn set_visited_values(&mut self, values: Arc<ComputedValues>) {
+        self.visited_values = Some(values);
+    }
+
+    /// Take the visited computed values.
+    pub fn take_visited_values(&mut self) -> Option<Arc<ComputedValues>> {
+        self.visited_values.take()
+    }
+
+    /// Clone the visited computed values Arc.  Used to store a reference to the
+    /// visited values inside the regular values.
+    pub fn clone_visited_values(&self) -> Option<Arc<ComputedValues>> {
+        self.visited_values.clone()
     }
 }
 
@@ -106,7 +180,7 @@ impl EagerPseudoStyles {
     }
 
     /// Removes a pseudo-element style if it exists, and returns it.
-    pub fn take(&mut self, pseudo: &PseudoElement) -> Option<ComputedStyle> {
+    fn take(&mut self, pseudo: &PseudoElement) -> Option<ComputedStyle> {
         let result = match self.0.as_mut() {
             None => return None,
             Some(arr) => arr[pseudo.eager_index()].take(),
@@ -131,15 +205,93 @@ impl EagerPseudoStyles {
         v
     }
 
-    /// Sets the rule node for a given pseudo-element, which must already have an entry.
+    /// Adds the unvisited rule node for a given pseudo-element, which may or
+    /// may not exist.
     ///
-    /// Returns true if the rule node changed.
-    pub fn set_rules(&mut self, pseudo: &PseudoElement, rules: StrongRuleNode) -> bool {
+    /// Returns true if the pseudo-element is new.
+    fn add_unvisited_rules(&mut self,
+                           pseudo: &PseudoElement,
+                           rules: StrongRuleNode)
+                           -> bool {
+        if let Some(mut style) = self.get_mut(pseudo) {
+            style.rules = rules;
+            return false
+        }
+        self.insert(pseudo, ComputedStyle::new_partial(rules));
+        true
+    }
+
+    /// Remove the unvisited rule node for a given pseudo-element, which may or
+    /// may not exist. Since removing the rule node implies we don't need any
+    /// other data for the pseudo, take the entire pseudo if found.
+    ///
+    /// Returns true if the pseudo-element was removed.
+    fn remove_unvisited_rules(&mut self, pseudo: &PseudoElement) -> bool {
+        self.take(pseudo).is_some()
+    }
+
+    /// Adds the visited rule node for a given pseudo-element.  It is assumed to
+    /// already exist because unvisited styles should have been added first.
+    ///
+    /// Returns true if the pseudo-element is new.  (Always false, but returns a
+    /// bool for parity with `add_unvisited_rules`.)
+    fn add_visited_rules(&mut self,
+                         pseudo: &PseudoElement,
+                         rules: StrongRuleNode)
+                         -> bool {
         debug_assert!(self.has(pseudo));
         let mut style = self.get_mut(pseudo).unwrap();
-        let changed = style.rules != rules;
-        style.rules = rules;
-        changed
+        style.set_visited_rules(rules);
+        false
+    }
+
+    /// Remove the visited rule node for a given pseudo-element, which may or
+    /// may not exist.
+    ///
+    /// Returns true if the psuedo-element was removed. (Always false, but
+    /// returns a bool for parity with `remove_unvisited_rules`.)
+    fn remove_visited_rules(&mut self, pseudo: &PseudoElement) -> bool {
+        if let Some(mut style) = self.get_mut(pseudo) {
+            style.take_visited_rules();
+        }
+        false
+    }
+
+    /// Adds a rule node for a given pseudo-element, which may or may not exist.
+    /// The type of rule node depends on the visited mode.
+    ///
+    /// Returns true if the pseudo-element is new.
+    pub fn add_rules(&mut self,
+                     pseudo: &PseudoElement,
+                     visited_handling: VisitedHandlingMode,
+                     rules: StrongRuleNode)
+                     -> bool {
+        match visited_handling {
+            VisitedHandlingMode::AllLinksUnvisited => {
+                self.add_unvisited_rules(&pseudo, rules)
+            },
+            VisitedHandlingMode::RelevantLinkVisited => {
+                self.add_visited_rules(&pseudo, rules)
+            },
+        }
+    }
+
+    /// Removes a rule node for a given pseudo-element, which may or may not
+    /// exist. The type of rule node depends on the visited mode.
+    ///
+    /// Returns true if the psuedo-element was removed.
+    pub fn remove_rules(&mut self,
+                        pseudo: &PseudoElement,
+                        visited_handling: VisitedHandlingMode)
+                        -> bool {
+        match visited_handling {
+            VisitedHandlingMode::AllLinksUnvisited => {
+                self.remove_unvisited_rules(&pseudo)
+            },
+            VisitedHandlingMode::RelevantLinkVisited => {
+                self.remove_visited_rules(&pseudo)
+            },
+        }
     }
 }
 

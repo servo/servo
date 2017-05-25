@@ -51,7 +51,7 @@ use script_layout_interface::{OpaqueStyleAndLayoutData, PartialPersistentLayoutD
 use script_layout_interface::wrapper_traits::{DangerousThreadSafeLayoutNode, GetLayoutData, LayoutNode};
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint};
-use selectors::matching::{ElementSelectorFlags, MatchingContext};
+use selectors::matching::{ElementSelectorFlags, MatchingContext, RelevantLinkStatus};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::fmt;
@@ -680,6 +680,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     fn match_non_ts_pseudo_class<F>(&self,
                                     pseudo_class: &NonTSPseudoClass,
                                     _: &mut MatchingContext,
+                                    _: &RelevantLinkStatus,
                                     _: &mut F)
                                     -> bool
         where F: FnMut(&Self, ElementSelectorFlags),
@@ -687,16 +688,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
         match *pseudo_class {
             // https://github.com/servo/servo/issues/8718
             NonTSPseudoClass::Link |
-            NonTSPseudoClass::AnyLink => unsafe {
-                match self.as_node().script_type_id() {
-                    // https://html.spec.whatwg.org/multipage/#selector-link
-                    NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
-                    NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) |
-                    NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) =>
-                        (*self.element.unsafe_get()).get_attr_val_for_layout(&ns!(), &local_name!("href")).is_some(),
-                    _ => false,
-                }
-            },
+            NonTSPseudoClass::AnyLink => self.is_link(),
             NonTSPseudoClass::Visited => false,
 
             // FIXME(#15746): This is wrong, we need to instead use extended filtering as per RFC4647
@@ -728,6 +720,20 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
             NonTSPseudoClass::PlaceholderShown |
             NonTSPseudoClass::Target =>
                 self.element.get_state_for_layout().contains(pseudo_class.state_flag())
+        }
+    }
+
+    #[inline]
+    fn is_link(&self) -> bool {
+        unsafe {
+            match self.as_node().script_type_id() {
+                // https://html.spec.whatwg.org/multipage/#selector-link
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) |
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) =>
+                    (*self.element.unsafe_get()).get_attr_val_for_layout(&ns!(), &local_name!("href")).is_some(),
+                _ => false,
+            }
         }
     }
 
@@ -1187,12 +1193,18 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
     fn match_non_ts_pseudo_class<F>(&self,
                                     _: &NonTSPseudoClass,
                                     _: &mut MatchingContext,
+                                    _: &RelevantLinkStatus,
                                     _: &mut F)
                                     -> bool
         where F: FnMut(&Self, ElementSelectorFlags),
     {
         // NB: This could maybe be implemented
         warn!("ServoThreadSafeLayoutElement::match_non_ts_pseudo_class called");
+        false
+    }
+
+    fn is_link(&self) -> bool {
+        warn!("ServoThreadSafeLayoutElement::is_link called");
         false
     }
 
