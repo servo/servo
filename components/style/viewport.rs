@@ -309,7 +309,7 @@ impl<'a, 'b> DeclarationParser for ViewportRuleParser<'a, 'b> {
 }
 
 /// A `@viewport` rule.
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct ViewportRule {
     /// The declarations contained in this @viewport rule.

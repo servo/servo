@@ -792,6 +792,12 @@ pub extern "C" fn Servo_StyleSheet_GetRules(sheet: RawServoStyleSheetBorrowed) -
     Stylesheet::as_arc(&sheet).rules.clone().into_strong()
 }
 
+#[no_mangle]
+pub extern "C" fn Servo_StyleSheet_Clone(raw_sheet: RawServoStyleSheetBorrowed) -> RawServoStyleSheetStrong {
+    let sheet: &Arc<Stylesheet> = HasArcFFI::as_arc(&raw_sheet);
+    Arc::new(sheet.as_ref().clone()).into_strong()
+}
+
 fn read_locked_arc<T, R, F>(raw: &<Locked<T> as HasFFI>::FFIType, func: F) -> R
     where Locked<T>: HasArcFFI, F: FnOnce(&T) -> R
 {

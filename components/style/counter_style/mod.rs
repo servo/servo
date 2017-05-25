@@ -142,7 +142,7 @@ macro_rules! counter_style_descriptors {
         $( #[$doc: meta] $name: tt $ident: ident / $gecko_ident: ident: $ty: ty = $initial: tt )+
     ) => {
         /// An @counter-style rule
-        #[derive(Debug)]
+        #[derive(Clone, Debug)]
         pub struct CounterStyleRuleData {
             name: CustomIdent,
             $(

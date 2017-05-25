@@ -1737,6 +1737,10 @@ extern "C" {
      -> ServoCssRulesStrong;
 }
 extern "C" {
+    pub fn Servo_StyleSheet_Clone(sheet: RawServoStyleSheetBorrowed)
+     -> RawServoStyleSheetStrong;
+}
+extern "C" {
     pub fn Servo_StyleSet_Init(pres_context: RawGeckoPresContextOwned)
      -> RawServoStyleSetOwned;
 }
