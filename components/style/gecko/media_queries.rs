@@ -185,6 +185,10 @@ impl Resolution {
             _ => return Err(()),
         };
 
+        if value <= 0. {
+            return Err(())
+        }
+
         Ok(match_ignore_ascii_case! { &unit,
             "dpi" => Resolution::Dpi(value),
             "dppx" => Resolution::Dppx(value),
