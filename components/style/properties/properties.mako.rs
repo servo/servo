@@ -1828,8 +1828,6 @@ pub struct ComputedValues {
     custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
     /// The writing mode of this computed values struct.
     pub writing_mode: WritingMode,
-    /// The root element's computed font size.
-    pub root_font_size: Au,
     /// The keyword behind the current font-size property, if any
     pub font_computation_data: FontComputationData,
 
@@ -1844,7 +1842,6 @@ impl ComputedValues {
     /// Construct a `ComputedValues` instance.
     pub fn new(custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
                writing_mode: WritingMode,
-               root_font_size: Au,
                font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
                visited_style: Option<Arc<ComputedValues>>,
             % for style_struct in data.active_style_structs():
@@ -1854,7 +1851,6 @@ impl ComputedValues {
         ComputedValues {
             custom_properties: custom_properties,
             writing_mode: writing_mode,
-            root_font_size: root_font_size,
             font_computation_data: FontComputationData::new(font_size_keyword),
             visited_style: visited_style,
         % for style_struct in data.active_style_structs():
@@ -2292,8 +2288,6 @@ pub struct StyleBuilder<'a> {
     ///
     /// TODO(emilio): Make private.
     pub writing_mode: WritingMode,
-    /// The font size of the root element.
-    pub root_font_size: Au,
     /// The keyword behind the current font-size property, if any.
     pub font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
     /// The element's style if visited, only computed if there's a relevant link
@@ -2310,7 +2304,6 @@ impl<'a> StyleBuilder<'a> {
     pub fn new(
         custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
         writing_mode: WritingMode,
-        root_font_size: Au,
         font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
         visited_style: Option<Arc<ComputedValues>>,
         % for style_struct in data.active_style_structs():
@@ -2320,7 +2313,6 @@ impl<'a> StyleBuilder<'a> {
         StyleBuilder {
             custom_properties: custom_properties,
             writing_mode: writing_mode,
-            root_font_size: root_font_size,
             font_size_keyword: font_size_keyword,
             visited_style: visited_style,
         % for style_struct in data.active_style_structs():
@@ -2340,7 +2332,6 @@ impl<'a> StyleBuilder<'a> {
     pub fn for_inheritance(parent: &'a ComputedValues, default: &'a ComputedValues) -> Self {
         Self::new(parent.custom_properties(),
                   parent.writing_mode,
-                  parent.root_font_size,
                   parent.font_computation_data.font_size_keyword,
                   parent.clone_visited_style(),
                   % for style_struct in data.active_style_structs():
@@ -2414,7 +2405,6 @@ impl<'a> StyleBuilder<'a> {
     pub fn build(self) -> ComputedValues {
         ComputedValues::new(self.custom_properties,
                             self.writing_mode,
-                            self.root_font_size,
                             self.font_size_keyword,
                             self.visited_style,
                             % for style_struct in data.active_style_structs():
@@ -2458,8 +2448,7 @@ mod lazy_static_module {
             % endfor
             custom_properties: None,
             writing_mode: WritingMode::empty(),
-            root_font_size: longhands::font_size::get_initial_value(),
-            font_computation_data: FontComputationData::default_values()
+            font_computation_data: FontComputationData::default_values(),
             visited_style: None,
         };
     }
@@ -2608,7 +2597,6 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
     let builder = if !flags.contains(INHERIT_ALL) {
         StyleBuilder::new(custom_properties,
                           WritingMode::empty(),
-                          inherited_style.root_font_size,
                           inherited_style.font_computation_data.font_size_keyword,
                           visited_style,
                           % for style_struct in data.active_style_structs():
@@ -2622,7 +2610,6 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
     } else {
         StyleBuilder::new(custom_properties,
                           WritingMode::empty(),
-                          inherited_style.root_font_size,
                           inherited_style.font_computation_data.font_size_keyword,
                           visited_style,
                           % for style_struct in data.active_style_structs():
@@ -2788,7 +2775,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
 
             if is_root_element {
                 let s = context.style.get_font().clone_font_size();
-                context.style.root_font_size = s;
+                context.device.set_root_font_size(s);
             }
         % endif
     % endfor
