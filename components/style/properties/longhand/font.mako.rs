@@ -2192,7 +2192,7 @@ ${helpers.single_keyword("-moz-math-display",
                          need_clone="True")}
 
 ${helpers.single_keyword("-moz-math-variant",
-                         """normal bold italic bold-italic script bold-script
+                         """none normal bold italic bold-italic script bold-script
                             fraktur double-struck bold-fraktur sans-serif
                             bold-sans-serif sans-serif-italic sans-serif-bold-italic
                             monospace initial tailed looped stretched""",
@@ -2201,6 +2201,7 @@ ${helpers.single_keyword("-moz-math-variant",
                          products="gecko",
                          spec="Internal (not web-exposed)",
                          animation_value_type="none",
+                         need_clone="True",
                          needs_conversion=True)}
 
 <%helpers:longhand name="-moz-script-min-size" products="gecko" animation_value_type="none"
