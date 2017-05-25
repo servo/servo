@@ -241,6 +241,262 @@
     }
 </%helpers:shorthand>
 
+<%helpers:shorthand name="grid-template"
+                    sub_properties="grid-template-rows grid-template-columns grid-template-areas"
+                    spec="https://drafts.csswg.org/css-grid/#propdef-grid-template"
+                    disable_when_testing="True"
+                    products="gecko">
+    use cssparser::serialize_string;
+    use parser::Parse;
+    use properties::longhands::grid_template_rows;
+    use properties::longhands::grid_template_areas::TemplateAreas;
+    use values::{Either, None_};
+    use values::generics::grid::{TrackSize, TrackList, TrackListType, concat_serialize_idents};
+    use values::specified::TrackListOrNone;
+    use values::specified::grid::parse_line_names;
+
+    /// Parsing for `<grid-template>` shorthand (also used by `grid` shorthand).
+    pub fn parse_grid_template(context: &ParserContext, input: &mut Parser)
+                               -> Result<(TrackListOrNone, TrackListOrNone, Either<TemplateAreas, None_>), ()> {
+        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+            return Ok((Either::Second(None_), Either::Second(None_), Either::Second(None_)))
+        }
+
+        let first_line_names = input.try(parse_line_names).unwrap_or(vec![]);
+        if let Ok(s) = input.try(Parser::expect_string) {
+            let mut strings = vec![];
+            let mut values = vec![];
+            let mut line_names = vec![];
+            let mut names = first_line_names;
+            let mut string = s.into_owned().into_boxed_str();
+            loop {
+                line_names.push(names);
+                strings.push(string);
+                let size = input.try(|i| TrackSize::parse(context, i)).unwrap_or_default();
+                values.push(Either::First(size));
+                names = input.try(parse_line_names).unwrap_or(vec![]);
+                if let Ok(v) = input.try(parse_line_names) {
+                    names.extend(v);
+                }
+
+                string = match input.try(Parser::expect_string) {
+                    Ok(s) => s.into_owned().into_boxed_str(),
+                    _ => {      // only the named area determines whether we should bail out
+                        line_names.push(names);
+                        break
+                    },
+                };
+            }
+
+            if line_names.len() == values.len() {
+                line_names.push(vec![]);        // should be one longer than track sizes
+            }
+
+            let template_areas = TemplateAreas::from_vec(strings)?;
+            let template_rows = TrackList {
+                list_type: TrackListType::Normal,
+                values: values,
+                line_names: line_names,
+                auto_repeat: None,
+            };
+
+            let template_cols = if input.try(|i| i.expect_delim('/')).is_ok() {
+                let track_list = TrackList::parse(context, input)?;
+                if track_list.list_type != TrackListType::Explicit {
+                    return Err(())
+                }
+
+                Either::First(track_list)
+            } else {
+                Either::Second(None_)
+            };
+
+            Ok((Either::First(template_rows), template_cols, Either::First(template_areas)))
+        } else {
+            let mut template_rows = grid_template_rows::parse(context, input)?;
+            if let Either::First(ref mut list) = template_rows {
+                list.line_names[0] = first_line_names;      // won't panic
+            }
+
+            Ok((template_rows, grid_template_rows::parse(context, input)?, Either::Second(None_)))
+        }
+    }
+
+    #[inline]
+    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+        let (rows, columns, areas) = parse_grid_template(context, input)?;
+        Ok(expanded! {
+            grid_template_rows: rows,
+            grid_template_columns: columns,
+            grid_template_areas: areas,
+        })
+    }
+
+    /// Serialization for `<grid-template>` shorthand (also used by `grid` shorthand).
+    pub fn serialize_grid_template<W>(template_rows: &TrackListOrNone,
+                                      template_columns: &TrackListOrNone,
+                                      template_areas: &Either<TemplateAreas, None_>,
+                                      dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *template_areas {
+            Either::Second(_none) => {
+                if template_rows == &Either::Second(None_) &&
+                   template_columns == &Either::Second(None_) {
+                    dest.write_str("none")
+                } else {
+                    template_rows.to_css(dest)?;
+                    dest.write_str(" / ")?;
+                    template_columns.to_css(dest)
+                }
+            },
+            Either::First(ref areas) => {
+                let track_list = match *template_rows {
+                    Either::First(ref list) => list,
+                    Either::Second(_none) => unreachable!(),    // should exist!
+                };
+
+                let mut names_iter = track_list.line_names.iter();
+                for (((i, string), names), size) in areas.strings.iter().enumerate()
+                                                                 .zip(&mut names_iter)
+                                                                 .zip(track_list.values.iter()) {
+                    if i > 0 {
+                        dest.write_str(" ")?;
+                    }
+
+                    if !names.is_empty() {
+                        concat_serialize_idents("[", "] ", names, " ", dest)?;
+                    }
+
+                    serialize_string(string, dest)?;
+                    dest.write_str(" ")?;
+                    size.to_css(dest)?;
+                }
+
+                if let Some(names) = names_iter.next() {
+                    concat_serialize_idents(" [", "]", names, " ", dest)?;
+                }
+
+                if let Either::First(ref list) = *template_columns {
+                    dest.write_str(" / ")?;
+                    list.to_css(dest)?;
+                }
+
+                Ok(())
+            },
+        }
+    }
+
+    impl<'a> ToCss for LonghandsToSerialize<'a> {
+        #[inline]
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            serialize_grid_template(self.grid_template_rows, self.grid_template_columns,
+                                    self.grid_template_areas, dest)
+        }
+    }
+</%helpers:shorthand>
+
+<%helpers:shorthand name="grid"
+                    sub_properties="grid-template-rows grid-template-columns grid-template-areas
+                                    grid-auto-rows grid-auto-columns grid-row-gap grid-column-gap
+                                    grid-auto-flow"
+                    spec="https://drafts.csswg.org/css-grid/#propdef-grid"
+                    disable_when_testing="True"
+                    products="gecko">
+    use properties::longhands::{grid_auto_columns, grid_auto_rows, grid_auto_flow};
+    use properties::longhands::{grid_template_columns, grid_template_rows};
+    use properties::longhands::grid_auto_flow::computed_value::{AutoFlow, T as SpecifiedAutoFlow};
+    use values::{Either, None_};
+    use values::specified::{LengthOrPercentage, TrackSize};
+
+    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+        let mut temp_rows = Either::Second(None_);
+        let mut temp_cols = Either::Second(None_);
+        let mut temp_areas = Either::Second(None_);
+        let mut auto_rows = TrackSize::default();
+        let mut auto_cols = TrackSize::default();
+        let mut flow = grid_auto_flow::get_initial_value();
+
+        fn parse_auto_flow(input: &mut Parser, is_row: bool) -> Result<SpecifiedAutoFlow, ()> {
+            let mut auto_flow = None;
+            let mut dense = false;
+            for _ in 0..2 {
+                if input.try(|i| i.expect_ident_matching("auto-flow")).is_ok() {
+                    auto_flow = if is_row {
+                        Some(AutoFlow::Row)
+                    } else {
+                        Some(AutoFlow::Column)
+                    };
+                } else if input.try(|i| i.expect_ident_matching("dense")).is_ok() {
+                    dense = true;
+                } else {
+                    break
+                }
+            }
+
+            auto_flow.map(|flow| {
+                SpecifiedAutoFlow {
+                    autoflow: flow,
+                    dense: dense,
+                }
+            }).ok_or(())
+        }
+
+        if let Ok((rows, cols, areas)) = input.try(|i| super::grid_template::parse_grid_template(context, i)) {
+            temp_rows = rows;
+            temp_cols = cols;
+            temp_areas = areas;
+        } else if let Ok(rows) = input.try(|i| grid_template_rows::parse(context, i)) {
+            temp_rows = rows;
+            input.expect_delim('/')?;
+            flow = parse_auto_flow(input, false)?;
+            auto_cols = grid_auto_columns::parse(context, input).unwrap_or_default();
+        } else {
+            flow = parse_auto_flow(input, true)?;
+            auto_rows = input.try(|i| grid_auto_rows::parse(context, i)).unwrap_or_default();
+            input.expect_delim('/')?;
+            temp_cols = grid_template_columns::parse(context, input)?;
+        }
+
+        Ok(expanded! {
+            grid_template_rows: temp_rows,
+            grid_template_columns: temp_cols,
+            grid_template_areas: temp_areas,
+            grid_auto_rows: auto_rows,
+            grid_auto_columns: auto_cols,
+            grid_auto_flow: flow,
+            // This shorthand also resets grid gap
+            grid_row_gap: LengthOrPercentage::zero(),
+            grid_column_gap: LengthOrPercentage::zero(),
+        })
+    }
+
+    impl<'a> ToCss for LonghandsToSerialize<'a> {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            if let Either::First(_) = *self.grid_template_areas {
+                super::grid_template::serialize_grid_template(self.grid_template_rows,
+                                                              self.grid_template_columns,
+                                                              self.grid_template_areas, dest)
+            } else if self.grid_auto_flow.autoflow == AutoFlow::Row {
+                self.grid_template_rows.to_css(dest)?;
+                dest.write_str(" / auto-flow")?;
+                if self.grid_auto_flow.dense {
+                    dest.write_str(" dense")?;
+                }
+
+                self.grid_auto_columns.to_css(dest)
+            } else {
+                dest.write_str("auto-flow ")?;
+                if self.grid_auto_flow.dense {
+                    dest.write_str("dense ")?;
+                }
+
+                self.grid_auto_rows.to_css(dest)?;
+                dest.write_str(" / ")?;
+                self.grid_template_columns.to_css(dest)
+            }
+        }
+    }
+</%helpers:shorthand>
+
 <%helpers:shorthand name="place-content" sub_properties="align-content justify-content"
                     spec="https://drafts.csswg.org/css-align/#propdef-place-content"
                     products="gecko" disable_when_testing="True">
