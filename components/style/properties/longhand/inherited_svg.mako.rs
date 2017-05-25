@@ -66,9 +66,9 @@ ${helpers.predefined_type(
     spec="https://www.w3.org/TR/SVG2/painting.html#SpecifyingStrokePaint")}
 
 ${helpers.predefined_type(
-    "stroke-width", "LengthOrPercentage",
-    "computed::LengthOrPercentage::one()",
-    "parse_numbers_are_pixels_non_negative",
+    "stroke-width", "LengthOrPercentageOrNumber",
+    "Either::First(1.0)",
+    "parse_non_negative",
     products="gecko",
     animation_value_type="ComputedValue",
     spec="https://www.w3.org/TR/SVG2/painting.html#StrokeWidth")}
@@ -103,9 +103,8 @@ ${helpers.predefined_type("stroke-dasharray",
                           spec="https://www.w3.org/TR/SVG2/painting.html#StrokeDashing")}
 
 ${helpers.predefined_type(
-    "stroke-dashoffset", "LengthOrPercentage",
-    "computed::LengthOrPercentage::zero()",
-    "parse_numbers_are_pixels",
+    "stroke-dashoffset", "LengthOrPercentageOrNumber",
+    "Either::First(0.0)",
     products="gecko",
     animation_value_type="ComputedValue",
     spec="https://www.w3.org/TR/SVG2/painting.html#StrokeDashing")}

@@ -3994,7 +3994,7 @@ clip-path
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="InheritedSVG"
-                  skip_longhands="paint-order stroke-dasharray"
+                  skip_longhands="paint-order stroke-dasharray stroke-dashoffset stroke-width"
                   skip_additionals="*">
     pub fn set_paint_order(&mut self, v: longhands::paint_order::computed_value::T) {
         use self::longhands::paint_order;
@@ -4061,6 +4061,46 @@ clip-path
             }
         }
         longhands::stroke_dasharray::computed_value::T(vec)
+    }
+
+    pub fn set_stroke_dashoffset(&mut self, v: longhands::stroke_dashoffset::computed_value::T) {
+        match v {
+            Either::First(number) => self.gecko.mStrokeDashoffset.set_value(CoordDataValue::Factor(number)),
+            Either::Second(lop) => self.gecko.mStrokeDashoffset.set(lop),
+        }
+    }
+
+    ${impl_coord_copy('stroke_dashoffset', 'mStrokeDashoffset')}
+
+    pub fn clone_stroke_dashoffset(&self) -> longhands::stroke_dashoffset::computed_value::T {
+        use values::computed::LengthOrPercentage;
+        match self.gecko.mStrokeDashoffset.as_value() {
+            CoordDataValue::Factor(number) => Either::First(number),
+            CoordDataValue::Coord(coord) => Either::Second(LengthOrPercentage::Length(Au(coord))),
+            CoordDataValue::Percent(p) => Either::Second(LengthOrPercentage::Percentage(p)),
+            CoordDataValue::Calc(calc) => Either::Second(LengthOrPercentage::Calc(calc.into())),
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn set_stroke_width(&mut self, v: longhands::stroke_width::computed_value::T) {
+        match v {
+            Either::First(number) => self.gecko.mStrokeWidth.set_value(CoordDataValue::Factor(number)),
+            Either::Second(lop) => self.gecko.mStrokeWidth.set(lop),
+        }
+    }
+
+    ${impl_coord_copy('stroke_width', 'mStrokeWidth')}
+
+    pub fn clone_stroke_width(&self) -> longhands::stroke_width::computed_value::T {
+        use values::computed::LengthOrPercentage;
+        match self.gecko.mStrokeWidth.as_value() {
+            CoordDataValue::Factor(number) => Either::First(number),
+            CoordDataValue::Coord(coord) => Either::Second(LengthOrPercentage::Length(Au(coord))),
+            CoordDataValue::Percent(p) => Either::Second(LengthOrPercentage::Percentage(p)),
+            CoordDataValue::Calc(calc) => Either::Second(LengthOrPercentage::Calc(calc.into())),
+            _ => unreachable!(),
+        }
     }
 </%self:impl_trait>
 
