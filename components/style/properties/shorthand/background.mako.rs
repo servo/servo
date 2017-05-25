@@ -72,13 +72,6 @@
                     if ${name}.is_none() {
                         if let Ok(value) = input.try(|input| background_${name}::single_value
                                                                                ::parse(context, input)) {
-                            % if name == "clip" and product == "gecko":
-                            // "text" value of background-clip should not be part of background
-                            // shorthand per current spec and impls.
-                            if value == background_clip::single_value::SpecifiedValue::text {
-                                return Err(());
-                            }
-                            % endif
                             ${name} = Some(value);
                             continue
                         }
