@@ -369,6 +369,7 @@ pub mod basic_shape {
     use values::generics::basic_shape::{BasicShape as GenericBasicShape, InsetRect, Polygon};
     use values::generics::basic_shape::{Circle, Ellipse, FillRule};
     use values::generics::basic_shape::{GeometryBox, ShapeBox};
+    use values::generics::rect::Rect;
 
     // using Borrow so that we can have a non-moving .into()
     impl<T: Borrow<StyleBasicShape>> From<T> for BasicShape {
@@ -381,11 +382,14 @@ pub mod basic_shape {
                     let b = LengthOrPercentage::from_gecko_style_coord(&other.mCoordinates[2]);
                     let l = LengthOrPercentage::from_gecko_style_coord(&other.mCoordinates[3]);
                     let round = (&other.mRadius).into();
+                    let rect = Rect::new(
+                        t.expect("inset() offset should be a length, percentage, or calc value"),
+                        r.expect("inset() offset should be a length, percentage, or calc value"),
+                        b.expect("inset() offset should be a length, percentage, or calc value"),
+                        l.expect("inset() offset should be a length, percentage, or calc value"),
+                    );
                     GenericBasicShape::Inset(InsetRect {
-                        top: t.expect("inset() offset should be a length, percentage, or calc value"),
-                        right: r.expect("inset() offset should be a length, percentage, or calc value"),
-                        bottom: b.expect("inset() offset should be a length, percentage, or calc value"),
-                        left: l.expect("inset() offset should be a length, percentage, or calc value"),
+                        rect: rect,
                         round: Some(round),
                     })
                 }

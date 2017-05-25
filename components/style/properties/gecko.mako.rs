@@ -3914,7 +3914,7 @@ fn static_assert() {
                     }
                 }
                 match servo_shape {
-                    BasicShape::Inset(rect) => {
+                    BasicShape::Inset(inset) => {
                         let mut shape = init_shape(${ident}, StyleBasicShapeType::Inset);
                         unsafe { shape.mCoordinates.set_len(4) };
 
@@ -3926,15 +3926,15 @@ fn static_assert() {
                         // the garbage data without
                         // attempting to clean up.
                         shape.mCoordinates[0].leaky_set_null();
-                        rect.top.to_gecko_style_coord(&mut shape.mCoordinates[0]);
+                        inset.rect.top.to_gecko_style_coord(&mut shape.mCoordinates[0]);
                         shape.mCoordinates[1].leaky_set_null();
-                        rect.right.to_gecko_style_coord(&mut shape.mCoordinates[1]);
+                        inset.rect.right.to_gecko_style_coord(&mut shape.mCoordinates[1]);
                         shape.mCoordinates[2].leaky_set_null();
-                        rect.bottom.to_gecko_style_coord(&mut shape.mCoordinates[2]);
+                        inset.rect.bottom.to_gecko_style_coord(&mut shape.mCoordinates[2]);
                         shape.mCoordinates[3].leaky_set_null();
-                        rect.left.to_gecko_style_coord(&mut shape.mCoordinates[3]);
+                        inset.rect.left.to_gecko_style_coord(&mut shape.mCoordinates[3]);
 
-                        set_corners_from_radius(rect.round, &mut shape.mRadius);
+                        set_corners_from_radius(inset.round, &mut shape.mRadius);
                     }
                     BasicShape::Circle(circ) => {
                         let mut shape = init_shape(${ident}, StyleBasicShapeType::Circle);

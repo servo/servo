@@ -13,7 +13,10 @@ macro_rules! assert_roundtrip_basicshape {
     ($fun:expr, $input:expr, $output:expr) => {
         assert_roundtrip_with_context!($fun, $input, $output);
         assert_roundtrip_with_context!(BasicShape::parse, $input, $output);
-    }
+    };
+    ($fun:expr, $input:expr) => {
+        assert_roundtrip_basicshape!($fun, $input, $input);
+    };
 }
 
 macro_rules! assert_border_radius_values {
@@ -35,20 +38,12 @@ macro_rules! assert_border_radius_values {
 
 #[test]
 fn test_inset() {
-    // these are actually wrong, we should be serializing to the minimum possible result
-    // the advantage of being wrong is that the roundtrip test actually suffices
-    // for testing the intermediate state
-    assert_roundtrip_basicshape!(InsetRect::parse, "inset(10px)", "inset(10px 10px 10px 10px)");
-    assert_roundtrip_basicshape!(InsetRect::parse, "inset(10px 20%)", "inset(10px 20% 10px 20%)");
+    assert_roundtrip_basicshape!(InsetRect::parse, "inset(10px)");
+    assert_roundtrip_basicshape!(InsetRect::parse, "inset(10px 20%)");
 
-    assert_roundtrip_basicshape!(InsetRect::parse, "inset(10px round 10px)",
-                                                   "inset(10px 10px 10px 10px round 10px)");
-    assert_roundtrip_basicshape!(InsetRect::parse, "inset(10px round 10px 20px 30px 40px)",
-                                                   "inset(10px 10px 10px 10px round 10px 20px 30px 40px)");
-    assert_roundtrip_basicshape!(InsetRect::parse, "inset(10px 10px 10px 10px round 10px 20px 30px 40px \
-                                                    / 1px 2px 3px 4px)",
-                                                   "inset(10px 10px 10px 10px round 10px 20px 30px 40px \
-                                                    / 1px 2px 3px 4px)");
+    assert_roundtrip_basicshape!(InsetRect::parse, "inset(10px round 10px)");
+    assert_roundtrip_basicshape!(InsetRect::parse, "inset(10px round 10px 20px 30px 40px)");
+    assert_roundtrip_basicshape!(InsetRect::parse, "inset(10px round 10px 20px 30px 40px / 1px 2px 3px 4px)");
 }
 
 #[test]

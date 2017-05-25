@@ -128,17 +128,14 @@ impl InsetRect {
     /// Parse the inner function arguments of `inset()`
     pub fn parse_function_arguments(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         let rect = Rect::parse_with(context, input, LengthOrPercentage::parse)?;
-        let round_rect = if input.try(|i| i.expect_ident_matching("round")).is_ok() {
+        let round = if input.try(|i| i.expect_ident_matching("round")).is_ok() {
             Some(BorderRadius::parse(context, input)?)
         } else {
             None
         };
         Ok(GenericInsetRect {
-            top: rect.top,
-            right: rect.right,
-            bottom: rect.bottom,
-            left: rect.left,
-            round: round_rect,
+            rect: rect,
+            round: round,
         })
     }
 }

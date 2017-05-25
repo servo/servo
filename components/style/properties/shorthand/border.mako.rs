@@ -33,11 +33,11 @@ ${helpers.four_sides_shorthand("border-style", "border-%s-style",
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let rect = Rect::new(
+            let rect = Rect {
                 % for side in PHYSICAL_SIDES:
-                &self.border_${side}_width,
+                ${side}: &self.border_${side}_width,
                 % endfor
-            );
+            };
             rect.to_css(dest)
         }
     }

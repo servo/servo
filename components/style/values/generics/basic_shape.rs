@@ -67,10 +67,7 @@ pub enum BasicShape<H, V, LengthOrPercentage> {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug, PartialEq, ToComputedValue)]
 pub struct InsetRect<LengthOrPercentage> {
-    pub top: LengthOrPercentage,
-    pub right: LengthOrPercentage,
-    pub bottom: LengthOrPercentage,
-    pub left: LengthOrPercentage,
+    pub rect: Rect<LengthOrPercentage>,
     pub round: Option<BorderRadius<LengthOrPercentage>>,
 }
 
@@ -190,22 +187,16 @@ impl<H, V, L> ToCss for BasicShape<H, V, L>
     }
 }
 
-impl<L: ToCss + PartialEq> ToCss for InsetRect<L> {
-    // XXXManishearth We should try to reduce the number of values printed here
+impl<L> ToCss for InsetRect<L>
+    where L: ToCss + PartialEq
+{
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         dest.write_str("inset(")?;
-        self.top.to_css(dest)?;
-        dest.write_str(" ")?;
-        self.right.to_css(dest)?;
-        dest.write_str(" ")?;
-        self.bottom.to_css(dest)?;
-        dest.write_str(" ")?;
-        self.left.to_css(dest)?;
+        self.rect.to_css(dest)?;
         if let Some(ref radius) = self.round {
             dest.write_str(" round ")?;
             radius.to_css(dest)?;
         }
-
         dest.write_str(")")
     }
 }
