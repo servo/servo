@@ -6,12 +6,12 @@
 //! types that are generic over their `ToCss` implementations.
 
 use euclid::size::Size2D;
-use properties::shorthands::serialize_four_sides;
 use std::fmt;
 use style_traits::{HasViewportPercentage, ToCss};
 use values::computed::ComputedValueAsSpecified;
 use values::generics::BorderRadiusSize;
 use values::generics::position::Position;
+use values::generics::rect::Rect;
 use values::specified::url::SpecifiedUrl;
 
 /// A clipping shape, for `clip-path`.
@@ -224,17 +224,17 @@ pub fn serialize_radius_values<L, W>(dest: &mut W, top_left: &Size2D<L>,
                                      bottom_left: &Size2D<L>) -> fmt::Result
     where L: ToCss + PartialEq, W: fmt::Write
 {
-    if top_left.width == top_left.height && top_right.width == top_right.height &&
-       bottom_right.width == bottom_right.height && bottom_left.width == bottom_left.height {
-        serialize_four_sides(dest, &top_left.width, &top_right.width,
-                             &bottom_right.width, &bottom_left.width)
-    } else {
-        serialize_four_sides(dest, &top_left.width, &top_right.width,
-                             &bottom_right.width, &bottom_left.width)?;
+    Rect::new(&top_left.width, &top_right.width, &bottom_right.width, &bottom_left.width).to_css(dest)?;
+    if
+        top_left.width != top_left.height ||
+        top_right.width != top_right.height ||
+        bottom_right.width != bottom_right.height ||
+        bottom_left.width != bottom_left.height
+    {
         dest.write_str(" / ")?;
-        serialize_four_sides(dest, &top_left.height, &top_right.height,
-                             &bottom_right.height, &bottom_left.height)
+        Rect::new(&top_left.height, &top_right.height, &bottom_right.height, &bottom_left.height).to_css(dest)?;
     }
+    Ok(())
 }
 
 impl<L> Default for ShapeRadius<L> {
