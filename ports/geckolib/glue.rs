@@ -72,6 +72,7 @@ use style::gecko_bindings::structs::IterationCompositeOperation;
 use style::gecko_bindings::structs::Loader;
 use style::gecko_bindings::structs::RawGeckoPresContextOwned;
 use style::gecko_bindings::structs::ServoElementSnapshotTable;
+use style::gecko_bindings::structs::StyleRuleInclusion;
 use style::gecko_bindings::structs::URLExtraData;
 use style::gecko_bindings::structs::nsCSSValueSharedList;
 use style::gecko_bindings::structs::nsCompatibility;
@@ -101,11 +102,13 @@ use style::stylesheets::{CssRule, CssRules, CssRuleType, CssRulesHelpers};
 use style::stylesheets::{ImportRule, KeyframesRule, MediaRule, NamespaceRule, Origin};
 use style::stylesheets::{PageRule, Stylesheet, StyleRule, SupportsRule, DocumentRule};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
+use style::stylist::RuleInclusion;
 use style::supports::parse_condition_or_declaration;
 use style::thread_state;
 use style::timer::Timer;
-use style::traversal::{ANIMATION_ONLY, FOR_CSS_RULE_CHANGES, FOR_RECONSTRUCT, UNSTYLED_CHILDREN_ONLY};
-use style::traversal::{resolve_style, DomTraversal, TraversalDriver, TraversalFlags};
+use style::traversal::{ANIMATION_ONLY, DomTraversal, FOR_CSS_RULE_CHANGES, FOR_RECONSTRUCT};
+use style::traversal::{FOR_DEFAULT_STYLES, TraversalDriver, TraversalFlags, UNSTYLED_CHILDREN_ONLY};
+use style::traversal::{resolve_style, resolve_default_style};
 use style::values::{CustomIdent, KeyframesName};
 use style_traits::ToCss;
 use super::stylesheet_loader::StylesheetLoader;
@@ -1233,7 +1236,8 @@ pub extern "C" fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
 
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
-    match get_pseudo_style(&guard, element, &pseudo, data.styles(), doc_data) {
+    match get_pseudo_style(&guard, element, &pseudo, RuleInclusion::All,
+                           data.styles(), doc_data) {
         Some(values) => values.into_strong(),
         // FIXME(emilio): This looks pretty wrong! Shouldn't it be at least an
         // empty style inheriting from the element?
@@ -1265,6 +1269,7 @@ pub extern "C" fn Servo_HasAuthorSpecifiedRules(element: RawGeckoElementBorrowed
 fn get_pseudo_style(guard: &SharedRwLockReadGuard,
                     element: GeckoElement,
                     pseudo: &PseudoElement,
+                    rule_inclusion: RuleInclusion,
                     styles: &ElementStyles,
                     doc_data: &PerDocumentStyleData)
                     -> Option<Arc<ComputedValues>>
@@ -1284,6 +1289,7 @@ fn get_pseudo_style(guard: &SharedRwLockReadGuard,
             d.stylist.lazily_compute_pseudo_element_style(&guards,
                                                           &element,
                                                           &pseudo,
+                                                          rule_inclusion,
                                                           base,
                                                           &metrics)
                      .map(|s| s.values().clone())
@@ -2305,6 +2311,7 @@ pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
 #[no_mangle]
 pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
                                            pseudo_type: CSSPseudoElementType,
+                                           rule_inclusion: StyleRuleInclusion,
                                            snapshots: *const ServoElementSnapshotTable,
                                            raw_data: RawServoStyleSetBorrowed)
      -> ServoComputedValuesStrong
@@ -2314,26 +2321,35 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
     let guard = global_style_data.shared_lock.read();
     let element = GeckoElement(element);
     let doc_data = PerDocumentStyleData::from_ffi(raw_data);
+    let rule_inclusion = RuleInclusion::from(rule_inclusion);
     let finish = |styles: &ElementStyles| -> Arc<ComputedValues> {
         PseudoElement::from_pseudo_type(pseudo_type).and_then(|ref pseudo| {
-            get_pseudo_style(&guard, element, pseudo, styles, doc_data)
+            get_pseudo_style(&guard, element, pseudo, rule_inclusion, styles, doc_data)
         }).unwrap_or_else(|| styles.primary.values().clone())
     };
 
     // In the common case we already have the style. Check that before setting
-    // up all the computation machinery.
-    let mut result = element.mutate_data()
-                            .and_then(|d| d.get_styles().map(&finish));
-    if result.is_some() {
-        return result.unwrap().into_strong();
+    // up all the computation machinery. (Don't use it when we're getting
+    // default styles, though.)
+    if rule_inclusion == RuleInclusion::All {
+        if let Some(result) = element.mutate_data()
+                                     .and_then(|d| d.get_styles().map(&finish)) {
+            return result.into_strong();
+        }
     }
 
+    let traversal_flags = match rule_inclusion {
+        RuleInclusion::All => TraversalFlags::empty(),
+        RuleInclusion::DefaultOnly => FOR_DEFAULT_STYLES,
+    };
+
     // We don't have the style ready. Go ahead and compute it as necessary.
+    let mut result = None;
     let data = doc_data.borrow();
     let shared = create_shared_context(&global_style_data,
                                        &guard,
                                        &data,
-                                       TraversalFlags::empty(),
+                                       traversal_flags,
                                        unsafe { &*snapshots });
     let mut tlc = ThreadLocalStyleContext::new(&shared);
     let mut context = StyleContext {
@@ -2341,9 +2357,19 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
         thread_local: &mut tlc,
     };
     let ensure = |el: GeckoElement| { unsafe { el.ensure_data(); } };
-    let clear = |el: GeckoElement| el.clear_data();
-    resolve_style(&mut context, element, &ensure, &clear,
-                  |styles| result = Some(finish(styles)));
+
+    match rule_inclusion {
+        RuleInclusion::All => {
+            let clear = |el: GeckoElement| el.clear_data();
+            resolve_style(&mut context, element, &ensure, &clear,
+                          |styles| result = Some(finish(styles)));
+        }
+        RuleInclusion::DefaultOnly => {
+            let set_data = |el: GeckoElement, data| { unsafe { el.set_data(data) } };
+            resolve_default_style(&mut context, element, &ensure, &set_data,
+                                  |styles| result = Some(finish(styles)));
+        }
+    }
 
     result.unwrap().into_strong()
 }

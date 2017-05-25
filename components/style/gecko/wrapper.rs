@@ -72,6 +72,8 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
 use std::hash::{Hash, Hasher};
+use std::mem;
+use std::ops::DerefMut;
 use std::ptr;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use stylearc::Arc;
@@ -419,6 +421,29 @@ impl<'le> GeckoElement<'le> {
                 self.0.mServoData.set(ptr);
                 unsafe { &* ptr }
             },
+        }
+    }
+
+    /// Sets the specified element data, return any existing data.
+    ///
+    /// Like `ensure_data`, only safe to call with exclusive access to the
+    /// element.
+    pub unsafe fn set_data(&self, replace_data: Option<ElementData>) -> Option<ElementData> {
+        match (self.get_data(), replace_data) {
+            (Some(old), Some(replace_data)) => {
+                Some(mem::replace(old.borrow_mut().deref_mut(), replace_data))
+            }
+            (Some(old), None) => {
+                let old_data = mem::replace(old.borrow_mut().deref_mut(), ElementData::new(None));
+                self.0.mServoData.set(ptr::null_mut());
+                Some(old_data)
+            }
+            (None, Some(replace_data)) => {
+                let ptr = Box::into_raw(Box::new(AtomicRefCell::new(replace_data)));
+                self.0.mServoData.set(ptr);
+                None
+            }
+            (None, None) => None,
         }
     }
 

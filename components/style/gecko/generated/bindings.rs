@@ -205,6 +205,7 @@ use gecko_bindings::structs::UpdateAnimationsTasks;
 use gecko_bindings::structs::ParsingMode;
 use gecko_bindings::structs::InheritTarget;
 use gecko_bindings::structs::URLMatchingFunction;
+use gecko_bindings::structs::StyleRuleInclusion;
 pub type nsTArrayBorrowed_uintptr_t<'a> = &'a mut ::gecko_bindings::structs::nsTArray<usize>;
 pub type RawServoStyleSetOwned = ::gecko_bindings::sugar::ownership::Owned<RawServoStyleSet>;
 pub type RawServoStyleSetOwnedOrNull = ::gecko_bindings::sugar::ownership::OwnedOrNull<RawServoStyleSet>;
@@ -2418,6 +2419,11 @@ extern "C" {
      -> ServoComputedValuesStrong;
 }
 extern "C" {
+    pub fn Servo_ComputedValues_GetVisitedStyle(values:
+                                                    ServoComputedValuesBorrowed)
+     -> ServoComputedValuesStrong;
+}
+extern "C" {
     pub fn Servo_Initialize(dummy_url_data: *mut RawGeckoURLExtraData);
 }
 extern "C" {
@@ -2457,6 +2463,7 @@ extern "C" {
 extern "C" {
     pub fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
                                     pseudo_type: CSSPseudoElementType,
+                                    rule_inclusion: StyleRuleInclusion,
                                     snapshots:
                                         *const ServoElementSnapshotTable,
                                     set: RawServoStyleSetBorrowed)
