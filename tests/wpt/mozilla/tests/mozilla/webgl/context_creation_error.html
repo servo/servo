@@ -14,7 +14,8 @@ async_test(function() {
                 "'statusMessage' should be a string, " + typeof(e.statusMessage) + " found");
   }), false);
 
-  // Antialising actually is not supported and thus triggers the error event
+  // TODO: Create a dummy function to fail the webgl context forcefully from js tests.
+  // Now that antialias doesn't throw an error, there isn't a way to force context creation errors.
   var gl = canvas.getContext('webgl', { antialiasing: true });
 
   assert_false(!!gl, "WebGLContext creation succeeded, please update this test!");
