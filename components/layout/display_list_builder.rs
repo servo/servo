@@ -67,8 +67,10 @@ use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
 use to_layout::ToLayout;
 use webrender_helpers::ToTransformStyle;
-use webrender_traits::{BorderRadius, BorderSide, BorderWidths, BorderStyle, BoxShadowClipMode, ColorF, ClipId, ExtendMode};
-use webrender_traits::{GradientStop, ImageRendering, LayerSize, NormalBorder, RepeatMode, ScrollPolicy, TransformStyle};
+use webrender_traits::{BorderRadius, BorderSide, BorderWidths, BorderStyle};
+use webrender_traits::{BoxShadowClipMode, ColorF, ClipId, ExtendMode};
+use webrender_traits::{GradientStop, ImageRendering, LayerSize, NormalBorder};
+use webrender_traits::{RepeatMode, ScrollPolicy, TransformStyle};
 
 trait ResolvePercentage {
     fn resolve(&self, length: u32) -> u32;
