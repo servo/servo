@@ -25,6 +25,7 @@ use style::font_metrics::ServoMetricsProvider;
 use style::properties::{CascadeFlags, ServoComputedValues};
 use style::selector_parser::{PseudoElement, PseudoElementCascadeType, SelectorImpl};
 use style::stylearc::Arc;
+use style::stylist::RuleInclusion;
 use webrender_traits::ClipId;
 
 #[derive(Copy, PartialEq, Clone, Debug)]
@@ -423,6 +424,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
                                    &context.guards,
                                    unsafe { &self.unsafe_get() },
                                    &style_pseudo,
+                                   RuleInclusion::All,
                                    data.styles().primary.values(),
                                    &ServoMetricsProvider)
                                .unwrap()

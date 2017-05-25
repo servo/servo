@@ -13,6 +13,7 @@ use restyle_hints::{HintComputationContext, RestyleHint};
 use selector_parser::RestyleDamage;
 use sharing::StyleSharingBehavior;
 #[cfg(feature = "servo")] use servo_config::opts;
+use smallvec::SmallVec;
 use std::borrow::BorrowMut;
 
 /// A per-traversal-level chunk of data. This is sent down by the traversal, and
@@ -41,6 +42,8 @@ bitflags! {
         /// Traverse and update all elements with CSS animations since
         /// @keyframes rules may have changed
         const FOR_CSS_RULE_CHANGES = 0x08,
+        /// Only include user agent style sheets when selector matching.
+        const FOR_DEFAULT_STYLES = 0x10,
     }
 }
 
@@ -63,6 +66,12 @@ impl TraversalFlags {
     /// Returns true if the traversal is triggered by CSS rule changes.
     pub fn for_css_rule_changes(&self) -> bool {
         self.contains(FOR_CSS_RULE_CHANGES)
+    }
+
+    /// Returns true if the traversal is to compute the default computed
+    /// styles for an element.
+    pub fn for_default_styles(&self) -> bool {
+        self.contains(FOR_DEFAULT_STYLES)
     }
 }
 
@@ -537,10 +546,13 @@ fn resolve_style_internal<E, F>(context: &mut StyleContext<E>,
                                   StyleSharingBehavior::Disallow);
         context.thread_local.end_element(element);
 
-        // Conservatively mark us as having dirty descendants, since there might
-        // be other unstyled siblings we miss when walking straight up the parent
-        // chain.
-        unsafe { element.note_descendants::<DirtyDescendants>() };
+        if !context.shared.traversal_flags.for_default_styles() {
+            // Conservatively mark us as having dirty descendants, since there might
+            // be other unstyled siblings we miss when walking straight up the parent
+            // chain.  No need to do this if we're computing default styles, since
+            // resolve_default_style will want the tree to be left as it is.
+            unsafe { element.note_descendants::<DirtyDescendants>() };
+        }
     }
 
     // If we're display:none and none of our ancestors are, we're the root
@@ -595,6 +607,47 @@ pub fn resolve_style<E, F, G, H>(context: &mut StyleContext<E>, element: E,
                 None => break,
             };
         }
+    }
+}
+
+/// Manually resolve default styles for the given Element, which are the styles
+/// only taking into account user agent and user cascade levels.  The resolved
+/// style is made available via a callback, and will be dropped by the time this
+/// function returns.
+pub fn resolve_default_style<E, F, G, H>(context: &mut StyleContext<E>,
+                                         element: E,
+                                         ensure_data: &F,
+                                         set_data: &G,
+                                         callback: H)
+    where E: TElement,
+          F: Fn(E),
+          G: Fn(E, Option<ElementData>) -> Option<ElementData>,
+          H: FnOnce(&ElementStyles)
+{
+    // Save and clear out element data from the element and its ancestors.
+    let mut old_data: SmallVec<[(E, Option<ElementData>); 8]> = SmallVec::new();
+    {
+        let mut e = element;
+        loop {
+            old_data.push((e, set_data(e, None)));
+            match e.parent_element() {
+                Some(parent) => e = parent,
+                None => break,
+            }
+        }
+    }
+
+    // Resolve styles up the tree.
+    resolve_style_internal(context, element, ensure_data);
+
+    // Make them available for the scope of the callback. The callee may use the
+    // argument, or perform any other processing that requires the styles to exist
+    // on the Element.
+    callback(element.borrow_data().unwrap().styles());
+
+    // Swap the old element data back into the element and its ancestors.
+    for entry in old_data {
+        set_data(entry.0, entry.1);
     }
 }
 

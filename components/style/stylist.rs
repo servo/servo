@@ -13,7 +13,7 @@ use element_state::ElementState;
 use error_reporting::RustLogReporter;
 use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")]
-use gecko_bindings::structs::nsIAtom;
+use gecko_bindings::structs::{nsIAtom, StyleRuleInclusion};
 use keyframes::KeyframesAnimation;
 use media_queries::Device;
 use properties::{self, CascadeFlags, ComputedValues};
@@ -203,6 +203,27 @@ pub struct ExtraStyleData<'a> {
 #[cfg(feature = "servo")]
 impl<'a> ExtraStyleData<'a> {
     fn clear(&mut self) {}
+}
+
+/// What cascade levels to include when styling elements.
+#[derive(Copy, Clone, PartialEq)]
+pub enum RuleInclusion {
+    /// Include rules for style sheets at all cascade levels.  This is the
+    /// normal rule inclusion mode.
+    All,
+    /// Only include rules from UA and user level sheets.  Used to implement
+    /// `getDefaultComputedStyle`.
+    DefaultOnly,
+}
+
+#[cfg(feature = "gecko")]
+impl From<StyleRuleInclusion> for RuleInclusion {
+    fn from(value: StyleRuleInclusion) -> Self {
+        match value {
+            StyleRuleInclusion::All => RuleInclusion::All,
+            StyleRuleInclusion::DefaultOnly => RuleInclusion::DefaultOnly,
+        }
+    }
 }
 
 impl Stylist {
@@ -625,13 +646,14 @@ impl Stylist {
                                                   guards: &StylesheetGuards,
                                                   element: &E,
                                                   pseudo: &PseudoElement,
+                                                  rule_inclusion: RuleInclusion,
                                                   parent_style: &ComputedValues,
                                                   font_metrics: &FontMetricsProvider)
                                                   -> Option<ComputedStyle>
         where E: TElement,
     {
         let rule_node =
-            match self.lazy_pseudo_rules(guards, element, pseudo) {
+            match self.lazy_pseudo_rules(guards, element, pseudo, rule_inclusion) {
                 Some(rule_node) => rule_node,
                 None => return None
             };
@@ -664,7 +686,8 @@ impl Stylist {
     pub fn lazy_pseudo_rules<E>(&self,
                                 guards: &StylesheetGuards,
                                 element: &E,
-                                pseudo: &PseudoElement)
+                                pseudo: &PseudoElement,
+                                rule_inclusion: RuleInclusion)
                                 -> Option<StrongRuleNode>
         where E: TElement
     {
@@ -681,6 +704,12 @@ impl Stylist {
                 // Servo calls this function from the worker, but only for internal
                 // pseudos, so we should never generate selector flags here.
                 unreachable!("internal pseudo generated slow selector flags?");
+            }
+
+            // No need to bother setting the selector flags when we're computing
+            // default styles.
+            if rule_inclusion == RuleInclusion::DefaultOnly {
+                return;
             }
 
             // Gecko calls this from sequential mode, so we can directly apply
@@ -707,6 +736,7 @@ impl Stylist {
                                           None,
                                           None,
                                           AnimationRules(None, None),
+                                          rule_inclusion,
                                           &mut declarations,
                                           &mut matching_context,
                                           &mut set_selector_flags);
@@ -836,6 +866,7 @@ impl Stylist {
                                         style_attribute: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
                                         smil_override: Option<&Arc<Locked<PropertyDeclarationBlock>>>,
                                         animation_rules: AnimationRules,
+                                        rule_inclusion: RuleInclusion,
                                         applicable_declarations: &mut V,
                                         context: &mut MatchingContext,
                                         flags_setter: &mut F)
@@ -871,6 +902,8 @@ impl Stylist {
         debug!("Determining if style is shareable: pseudo: {}",
                pseudo_element.is_some());
 
+        let only_default_rules = rule_inclusion == RuleInclusion::DefaultOnly;
+
         // Step 1: Normal user-agent rules.
         map.user_agent.get_all_matching_rules(element,
                                               &rule_hash_target,
@@ -880,7 +913,7 @@ impl Stylist {
                                               CascadeLevel::UANormal);
         debug!("UA normal: {:?}", context.relations);
 
-        if pseudo_element.is_none() {
+        if pseudo_element.is_none() && !only_default_rules {
             // Step 2: Presentational hints.
             let length_before_preshints = applicable_declarations.len();
             element.synthesize_presentational_hints_for_legacy_attributes(applicable_declarations);
@@ -905,7 +938,7 @@ impl Stylist {
         //
         // Which may be more what you would probably expect.
         if rule_hash_target.matches_user_and_author_rules() {
-            // Step 3: User and author normal rules.
+            // Step 3a: User normal rules.
             map.user.get_all_matching_rules(element,
                                             &rule_hash_target,
                                             applicable_declarations,
@@ -913,6 +946,12 @@ impl Stylist {
                                             flags_setter,
                                             CascadeLevel::UserNormal);
             debug!("user normal: {:?}", context.relations);
+        } else {
+            debug!("skipping user rules");
+        }
+
+        if rule_hash_target.matches_user_and_author_rules() && !only_default_rules {
+            // Step 3b: Author normal rules.
             map.author.get_all_matching_rules(element,
                                               &rule_hash_target,
                                               applicable_declarations,
@@ -961,15 +1000,20 @@ impl Stylist {
         // rule tree insertion.
         //
 
-        // Step 11: Transitions.
-        // The transitions sheet (CSS transitions that are tied to CSS markup)
-        if let Some(anim) = animation_rules.1 {
-            Push::push(
-                applicable_declarations,
-                ApplicableDeclarationBlock::from_declarations(anim.clone(),
-                                                              CascadeLevel::Transitions));
+        if !only_default_rules {
+            // Step 11: Transitions.
+            // The transitions sheet (CSS transitions that are tied to CSS markup)
+            if let Some(anim) = animation_rules.1 {
+                Push::push(
+                    applicable_declarations,
+                    ApplicableDeclarationBlock::from_declarations(anim.clone(),
+                                                                  CascadeLevel::Transitions));
+            }
+            debug!("transition: {:?}", context.relations);
+        } else {
+            debug!("skipping transition rules");
         }
-        debug!("transition: {:?}", context.relations);
+
         debug!("push_applicable_declarations: shareable: {:?}", context.relations);
     }
 
