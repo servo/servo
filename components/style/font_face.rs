@@ -12,7 +12,6 @@
 use computed_values::{font_style, font_weight, font_stretch};
 use computed_values::font_family::FamilyName;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
-use cssparser::{Token, BasicParseError};
 use error_reporting::ContextualParseError;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::CSSFontFaceDescriptors;
 #[cfg(feature = "gecko")] use cssparser::UnicodeRange;
@@ -143,10 +142,10 @@ struct FontFaceRuleParser<'a, 'b: 'a> {
 }
 
 /// Default methods reject all at rules.
-impl<'a, 'b> AtRuleParser for FontFaceRuleParser<'a, 'b> {
+impl<'a, 'b, 'i> AtRuleParser<'i> for FontFaceRuleParser<'a, 'b> {
     type Prelude = ();
     type AtRule = ();
-    type Error = SelectorParseError<StyleParseError>;
+    type Error = SelectorParseError<'i, StyleParseError<'i>>;
 }
 
 impl Parse for Source {
@@ -232,12 +231,12 @@ macro_rules! font_face_descriptors_common {
             }
         }
 
-       impl<'a, 'b> DeclarationParser for FontFaceRuleParser<'a, 'b> {
-            type Declaration = ();
-           type Error = SelectorParseError<StyleParseError>;
+       impl<'a, 'b, 'i> DeclarationParser<'i> for FontFaceRuleParser<'a, 'b> {
+           type Declaration = ();
+           type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-           fn parse_value<'i, 't>(&mut self, name: &str, input: &mut Parser<'i, 't>)
-                                  -> Result<(), ParseError<'i>> {
+           fn parse_value<'t>(&mut self, name: &str, input: &mut Parser<'i, 't>)
+                              -> Result<(), ParseError<'i>> {
                 match_ignore_ascii_case! { name,
                     $(
                         $name => {
@@ -249,8 +248,8 @@ macro_rules! font_face_descriptors_common {
                             self.rule.$ident = Some(value)
                         }
                     )*
-                    _ => return Err(BasicParseError::UnexpectedToken(
-                        Token::Ident(name.to_owned().into())).into())
+                    _ => return Err(SelectorParseError::UnexpectedIdent(
+                        name.to_owned().into()).into())
                 }
                 Ok(())
             }

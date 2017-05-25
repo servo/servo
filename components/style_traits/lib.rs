@@ -22,6 +22,7 @@ extern crate selectors;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;
 
 use selectors::parser::SelectorParseError;
+use std::borrow::Cow;
 
 /// Opaque type stored in type-unsafe work queues for parallel layout.
 /// Must be transmutable to and from `TNode`.
@@ -71,25 +72,39 @@ pub mod viewport;
 pub use values::{ToCss, OneOrMoreCommaSeparated};
 
 /// The error type for all CSS parsing routines.
-pub type ParseError<'i> = cssparser::ParseError<'i, SelectorParseError<StyleParseError>>;
+pub type ParseError<'i> = cssparser::ParseError<'i, SelectorParseError<'i, StyleParseError<'i>>>;
 
 #[derive(Clone, Debug, PartialEq)]
 /// Errors that can be encountered while parsing CSS values.
-pub enum StyleParseError {
+pub enum StyleParseError<'i> {
     /// A bad URL token in a DVB.
     BadUrlInDeclarationValueBlock,
     /// A bad string token in a DVB.
     BadStringInDeclarationValueBlock,
     /// Unexpected closing parenthesis in a DVB.
-    CloseParenthesisInDeclarationValueBlock,
+    UnbalancedCloseParenthesisInDeclarationValueBlock,
     /// Unexpected closing bracket in a DVB.
-    CloseSquareBracketInDeclarationValueBlock,
+    UnbalancedCloseSquareBracketInDeclarationValueBlock,
     /// Unexpected closing curly bracket in a DVB.
-    CloseCurlyBracketInDeclarationValueBlock,
+    UnbalancedCloseCurlyBracketInDeclarationValueBlock,
     /// A property declaration parsing error.
     PropertyDeclaration(PropertyDeclarationParseError),
     /// A property declaration value had input remaining after successfully parsing.
     PropertyDeclarationValueNotExhausted,
+    /// An unexpected dimension token was encountered.
+    UnexpectedDimension(Cow<'i, str>),
+    /// A media query using a ranged expression with no value was encountered.
+    RangedExpressionWithNoValue,
+    /// A function was encountered that was not expected.
+    UnexpectedFunction(Cow<'i, str>),
+    /// @namespace must be before any rule but @charset and @import
+    UnexpectedNamespaceRule,
+    /// @import must be before any rule but @charset
+    UnexpectedImportRule,
+    /// Unexpected @charset rule encountered.
+    UnexpectedCharsetRule,
+    /// Unsupported @ rule
+    UnsupportedAtRule(Cow<'i, str>),
     /// A placeholder for many sources of errors that require more specific variants.
     UnspecifiedError,
 }
@@ -112,8 +127,8 @@ pub enum PropertyDeclarationParseError {
     NotAllowedInPageRule,
 }
 
-impl<'a> From<StyleParseError> for ParseError<'a> {
-    fn from(this: StyleParseError) -> Self {
+impl<'a> From<StyleParseError<'a>> for ParseError<'a> {
+    fn from(this: StyleParseError<'a>) -> Self {
         cssparser::ParseError::Custom(SelectorParseError::Custom(this))
     }
 }

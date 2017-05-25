@@ -7,7 +7,7 @@
 <% from data import SYSTEM_FONT_LONGHANDS %>
 
 use app_units::Au;
-use cssparser::{Color as CSSParserColor, Parser, BasicParseError, RGBA, serialize_identifier};
+use cssparser::{Color as CSSParserColor, Parser, RGBA, serialize_identifier};
 use euclid::{Point2D, Size2D};
 #[cfg(feature = "gecko")] use gecko_bindings::bindings::RawServoAnimationValueMap;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSPropertyID;
@@ -28,6 +28,7 @@ use properties::longhands::transform::computed_value::T as TransformList;
 use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
 use properties::longhands::visibility::computed_value::T as Visibility;
 #[cfg(feature = "gecko")] use properties::{PropertyDeclarationId, LonghandId};
+use selectors::parser::SelectorParseError;
 #[cfg(feature = "servo")] use servo_atoms::Atom;
 use smallvec::SmallVec;
 use std::cmp;
@@ -115,7 +116,7 @@ impl TransitionProperty {
                     None => Ok(TransitionProperty::Unsupported((&*ident).into()))
                 }
             }
-        }).map_err(|()| BasicParseError::UnexpectedToken(::cssparser::Token::Ident(ident.into())).into())
+        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident.into()).into())
     }
 
     /// Get a transition property from a property declaration.

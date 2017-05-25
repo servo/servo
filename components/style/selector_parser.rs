@@ -6,7 +6,7 @@
 
 #![deny(missing_docs)]
 
-use cssparser::Parser as CssParser;
+use cssparser::{Parser as CssParser, ParserInput};
 use selectors::Element;
 use selectors::parser::SelectorList;
 use std::fmt::Debug;
@@ -66,7 +66,8 @@ impl<'a> SelectorParser<'a> {
             stylesheet_origin: Origin::Author,
             namespaces: &namespaces,
         };
-        SelectorList::parse(&parser, &mut CssParser::new(input))
+        let mut input = ParserInput::new(input);
+        SelectorList::parse(&parser, &mut CssParser::new(&mut input))
     }
 
     /// Whether we're parsing selectors in a user-agent stylesheet.

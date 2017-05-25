@@ -107,8 +107,7 @@
             } else {
                 let result = Cursor::from_css_keyword(&ident)
                     .map(computed_value::Keyword::SpecifiedCursor);
-                result.map_err(|()| BasicParseError::UnexpectedToken(
-                    ::cssparser::Token::Ident(ident)).into())
+                result.map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
             }
         }
     }

@@ -7,7 +7,8 @@
 #![deny(missing_docs)]
 
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, RuleListParser};
-use cssparser::{DeclarationListParser, DeclarationParser, parse_one_rule};
+use cssparser::{DeclarationListParser, DeclarationParser};
+use cssparser::{parse_one_rule, ParserInput};
 use error_reporting::{NullReporter, ContextualParseError};
 use parser::{LengthParsingMode, ParserContext, log_css_error};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
@@ -134,7 +135,8 @@ impl Keyframe {
                                          Some(CssRuleType::Keyframe),
                                          LengthParsingMode::Default,
                                          parent_stylesheet.quirks_mode);
-        let mut input = Parser::new(css);
+        let mut input = ParserInput::new(css);
+        let mut input = Parser::new(&mut input);
 
         let mut rule_parser = KeyframeListParser {
             context: &context,
@@ -351,18 +353,18 @@ pub fn parse_keyframe_list(context: &ParserContext, input: &mut Parser, shared_l
 }
 
 enum Void {}
-impl<'a> AtRuleParser for KeyframeListParser<'a> {
+impl<'a, 'i> AtRuleParser<'i> for KeyframeListParser<'a> {
     type Prelude = Void;
     type AtRule = Arc<Locked<Keyframe>>;
-    type Error = SelectorParseError<StyleParseError>;
+    type Error = SelectorParseError<'i, StyleParseError<'i>>;
 }
 
-impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
+impl<'a, 'i> QualifiedRuleParser<'i> for KeyframeListParser<'a> {
     type Prelude = KeyframeSelector;
     type QualifiedRule = Arc<Locked<Keyframe>>;
-    type Error = SelectorParseError<StyleParseError>;
+    type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-    fn parse_prelude<'i, 't>(&mut self, input: &mut Parser<'i, 't>) -> Result<Self::Prelude, ParseError<'i>> {
+    fn parse_prelude<'t>(&mut self, input: &mut Parser<'i, 't>) -> Result<Self::Prelude, ParseError<'i>> {
         let start = input.position();
         match KeyframeSelector::parse(input) {
             Ok(sel) => Ok(sel),
@@ -374,8 +376,8 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
         }
     }
 
-    fn parse_block<'i, 't>(&mut self, prelude: Self::Prelude, input: &mut Parser<'i, 't>)
-                   -> Result<Self::QualifiedRule, ParseError<'i>> {
+    fn parse_block<'t>(&mut self, prelude: Self::Prelude, input: &mut Parser<'i, 't>)
+                       -> Result<Self::QualifiedRule, ParseError<'i>> {
         let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::Keyframe));
         let parser = KeyframeDeclarationParser {
             context: &context,
@@ -406,18 +408,18 @@ struct KeyframeDeclarationParser<'a, 'b: 'a> {
 }
 
 /// Default methods reject all at rules.
-impl<'a, 'b> AtRuleParser for KeyframeDeclarationParser<'a, 'b> {
+impl<'a, 'b, 'i> AtRuleParser<'i> for KeyframeDeclarationParser<'a, 'b> {
     type Prelude = ();
     type AtRule = ParsedDeclaration;
-    type Error = SelectorParseError<StyleParseError>;
+    type Error = SelectorParseError<'i, StyleParseError<'i>>;
 }
 
-impl<'a, 'b> DeclarationParser for KeyframeDeclarationParser<'a, 'b> {
+impl<'a, 'b, 'i> DeclarationParser<'i> for KeyframeDeclarationParser<'a, 'b> {
     type Declaration = ParsedDeclaration;
-    type Error = SelectorParseError<StyleParseError>;
+    type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-    fn parse_value<'i, 't>(&mut self, name: &str, input: &mut Parser<'i, 't>)
-                           -> Result<ParsedDeclaration, ParseError<'i>> {
+    fn parse_value<'t>(&mut self, name: &str, input: &mut Parser<'i, 't>)
+                       -> Result<ParsedDeclaration, ParseError<'i>> {
         let id = try!(PropertyId::parse(name.to_owned().into()));
         match ParsedDeclaration::parse(id, self.context, input) {
             Ok(parsed) => {

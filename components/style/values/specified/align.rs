@@ -9,6 +9,7 @@
 use cssparser::{Parser, BasicParseError, Token};
 use gecko_bindings::structs;
 use parser::{Parse, ParserContext};
+use selectors::parser::SelectorParseError;
 use std::ascii::AsciiExt;
 use std::fmt;
 use style_traits::{ToCss, ParseError, StyleParseError};
@@ -357,7 +358,7 @@ fn parse_auto_normal_stretch_baseline<'i, 't>(input: &mut Parser<'i, 't>)
         "normal" => Ok(ALIGN_NORMAL),
         "stretch" => Ok(ALIGN_STRETCH),
         _ => Err(())
-    }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
+    }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
 }
 
 // normal | stretch | <baseline-position>
@@ -371,7 +372,7 @@ fn parse_normal_stretch_baseline<'i, 't>(input: &mut Parser<'i, 't>) -> Result<A
         "normal" => Ok(ALIGN_NORMAL),
         "stretch" => Ok(ALIGN_STRETCH),
         _ => Err(())
-    }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
+    }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
 }
 
 // normal | <baseline-position>
@@ -384,7 +385,7 @@ fn parse_normal_or_baseline<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignF
     (match_ignore_ascii_case! { &ident,
         "normal" => Ok(ALIGN_NORMAL),
         _ => Err(())
-    }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
+    }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
 }
 
 // <baseline-position>
@@ -395,7 +396,7 @@ fn parse_baseline<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, Pars
         "first" => return input.expect_ident_matching("baseline").map(|_| ALIGN_BASELINE).map_err(|e| e.into()),
         "last" => return input.expect_ident_matching("baseline").map(|_| ALIGN_LAST_BASELINE).map_err(|e| e.into()),
         _ => Err(())
-    }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
+    }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
 }
 
 // <content-distribution>
@@ -407,7 +408,7 @@ fn parse_content_distribution<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Alig
         "space-around" => Ok(ALIGN_SPACE_AROUND),
         "space-evenly" => Ok(ALIGN_SPACE_EVENLY),
         _ => Err(())
-    }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
+    }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
 }
 
 // [ <overflow-position>? && <content-position> ]
@@ -440,7 +441,7 @@ fn parse_content_position<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFla
         "left" => Ok(ALIGN_LEFT),
         "right" => Ok(ALIGN_RIGHT),
         _ => Err(())
-    }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
+    }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
 }
 
 // <overflow-position>
@@ -450,7 +451,7 @@ fn parse_overflow_position<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFl
         "safe" => Ok(ALIGN_SAFE),
         "unsafe" => Ok(ALIGN_UNSAFE),
         _ => Err(())
-    }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
+    }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
 }
 
 // [ <overflow-position>? && <self-position> ]
@@ -485,7 +486,7 @@ fn parse_self_position<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags,
         "self-start" => Ok(ALIGN_SELF_START),
         "self-end" => Ok(ALIGN_SELF_END),
         _ => Err(())
-    }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
+    }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
 }
 
 // [ legacy && [ left | right | center ] ]
@@ -498,14 +499,14 @@ fn parse_legacy<'i, 't>(input: &mut Parser<'i, 't>) -> Result<AlignFlags, ParseE
             "right" => Ok(ALIGN_LEGACY | ALIGN_RIGHT),
             "center" => Ok(ALIGN_LEGACY | ALIGN_CENTER),
             _ => Err(())
-        }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(b)).into())
+        }).map_err(|()| SelectorParseError::UnexpectedIdent(b).into())
     } else if b.eq_ignore_ascii_case("legacy") {
         (match_ignore_ascii_case! { &a,
             "left" => Ok(ALIGN_LEGACY | ALIGN_LEFT),
             "right" => Ok(ALIGN_LEGACY | ALIGN_RIGHT),
             "center" => Ok(ALIGN_LEGACY | ALIGN_CENTER),
             _ => Err(())
-        }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(a)).into())
+        }).map_err(|()| SelectorParseError::UnexpectedIdent(a).into())
     } else {
         Err(StyleParseError::UnspecifiedError.into())
     }

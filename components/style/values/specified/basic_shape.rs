@@ -7,12 +7,13 @@
 //!
 //! [basic-shape]: https://drafts.csswg.org/css-shapes/#typedef-basic-shape
 
-use cssparser::{Parser, BasicParseError, Token};
+use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use properties::shorthands::parse_four_sides;
+use selectors::parser::SelectorParseError;
 use std::ascii::AsciiExt;
 use std::fmt;
-use style_traits::{ToCss, ParseError};
+use style_traits::{ToCss, ParseError, StyleParseError};
 use values::HasViewportPercentage;
 use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use values::computed::basic_shape as computed_basic_shape;
@@ -56,7 +57,7 @@ impl Parse for BasicShape {
                 return input.parse_nested_block(|i| Polygon::parse_function_arguments(context, i))
                      .map(BasicShape::Polygon),
             _ => Err(())
-        }).map_err(|()| BasicParseError::UnexpectedToken(Token::Function(func)).into())
+        }).map_err(|()| StyleParseError::UnexpectedFunction(func).into())
     }
 }
 
@@ -128,7 +129,8 @@ impl Parse for InsetRect {
         match input.try(|i| i.expect_function()) {
             Ok(ref s) if s.eq_ignore_ascii_case("inset") =>
                 input.parse_nested_block(|i| GenericInsetRect::parse_function_arguments(context, i)),
-            _ => Err(BasicParseError::ExpectedToken(Token::Function("inset".into())).into())
+            Ok(s) => Err(StyleParseError::UnexpectedFunction(s).into()),
+            Err(e) => Err(e.into())
         }
     }
 }
@@ -243,12 +245,13 @@ impl Circle {
 impl Parse for Circle {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                      -> Result<Self, ParseError<'i>> {
-        match_ignore_ascii_case! { &try!(input.expect_function()),
+        let func = try!(input.expect_function());
+        (match_ignore_ascii_case! { &func,
            "circle" => {
-               input.parse_nested_block(|i| Circle::parse_function_arguments(context, i))
+               return input.parse_nested_block(|i| Circle::parse_function_arguments(context, i))
            },
-           _ => Err(BasicParseError::ExpectedToken(Token::Function("circle".into())).into())
-        }
+           _ => Err(())
+        }).map_err(|()| StyleParseError::UnexpectedFunction(func).into())
     }
 }
 
@@ -323,7 +326,8 @@ impl Parse for Ellipse {
         match input.try(|i| i.expect_function()) {
             Ok(ref s) if s.eq_ignore_ascii_case("ellipse") =>
                 input.parse_nested_block(|i| Ellipse::parse_function_arguments(context, i)),
-            _ => Err(BasicParseError::ExpectedToken(Token::Function("ellipse".into())).into())
+            Ok(s) => Err(StyleParseError::UnexpectedFunction(s).into()),
+            Err(e) => Err(e.into()),
         }
     }
 }
@@ -384,7 +388,7 @@ impl Parse for ShapeRadius {
             "closest-side" => Ok(GenericShapeRadius::ClosestSide),
             "farthest-side" => Ok(GenericShapeRadius::FarthestSide),
             _ => Err(())
-        }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
+        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
     }
 }
 
@@ -459,7 +463,7 @@ impl Parse for GeometryBox {
             "stroke-box" => Ok(GeometryBox::StrokeBox),
             "view-box" => Ok(GeometryBox::ViewBox),
             _ => Err(()),
-        }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
+        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
     }
 }
 

@@ -7,7 +7,7 @@
 #![deny(missing_docs)]
 
 use context::QuirksMode;
-use cssparser::{DeclarationListParser, parse_important};
+use cssparser::{DeclarationListParser, parse_important, ParserInput};
 use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter};
 use error_reporting::{ParseErrorReporter, ContextualParseError};
 use parser::{LengthParsingMode, ParserContext, log_css_error};
@@ -652,7 +652,8 @@ pub fn parse_style_attribute(input: &str,
                                      Some(CssRuleType::Style),
                                      LengthParsingMode::Default,
                                      quirks_mode);
-    parse_property_declaration_list(&context, &mut Parser::new(input))
+    let mut input = ParserInput::new(input);
+    parse_property_declaration_list(&context, &mut Parser::new(&mut input))
 }
 
 /// Parse a given property declaration. Can result in multiple
@@ -673,7 +674,8 @@ pub fn parse_one_declaration(id: PropertyId,
                                      Some(CssRuleType::Style),
                                      length_parsing_mode,
                                      quirks_mode);
-    Parser::new(input).parse_entirely(|parser| {
+    let mut input = ParserInput::new(input);
+    Parser::new(&mut input).parse_entirely(|parser| {
         ParsedDeclaration::parse(id, &context, parser)
             .map_err(|e| e.into())
     }).map_err(|_| ())
@@ -686,19 +688,18 @@ struct PropertyDeclarationParser<'a, 'b: 'a> {
 
 
 /// Default methods reject all at rules.
-impl<'a, 'b> AtRuleParser for PropertyDeclarationParser<'a, 'b> {
+impl<'a, 'b, 'i> AtRuleParser<'i> for PropertyDeclarationParser<'a, 'b> {
     type Prelude = ();
     type AtRule = (ParsedDeclaration, Importance);
-    type Error = SelectorParseError<StyleParseError>;
+    type Error = SelectorParseError<'i, StyleParseError<'i>>;
 }
 
-
-impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
+impl<'a, 'b, 'i> DeclarationParser<'i> for PropertyDeclarationParser<'a, 'b> {
     type Declaration = (ParsedDeclaration, Importance);
-    type Error = SelectorParseError<StyleParseError>;
+    type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-    fn parse_value<'i, 't>(&mut self, name: &str, input: &mut Parser<'i, 't>)
-                   -> Result<(ParsedDeclaration, Importance), ParseError<'i>> {
+    fn parse_value<'t>(&mut self, name: &str, input: &mut Parser<'i, 't>)
+                       -> Result<(ParsedDeclaration, Importance), ParseError<'i>> {
         let id = try!(PropertyId::parse(name.to_owned().into()));
         let parsed = input.parse_until_before(Delimiter::Bang, |input| {
             ParsedDeclaration::parse(id, self.context, input).map_err(|e| e.into())

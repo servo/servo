@@ -6,6 +6,7 @@
 
 use cssparser::{Parser, Token, BasicParseError};
 use parser::{Parse, ParserContext};
+use selectors::parser::SelectorParseError;
 use std::ascii::AsciiExt;
 use std::fmt;
 use style_traits::{ToCss, ParseError, StyleParseError};
@@ -72,7 +73,7 @@ impl Parse for GridLine {
         for _ in 0..3 {     // Maximum possible entities for <grid-line>
             if input.try(|i| i.expect_ident_matching("span")).is_ok() {
                 if grid_line.is_span {
-                    return Err(BasicParseError::UnexpectedToken(Token::Ident("span".into())).into())
+                    return Err(SelectorParseError::UnexpectedIdent("span".into()).into())
                 }
                 grid_line.is_span = true;
             } else if let Ok(i) = input.try(|i| i.expect_integer()) {
@@ -82,7 +83,7 @@ impl Parse for GridLine {
                 grid_line.integer = Some(i);
             } else if let Ok(name) = input.try(|i| i.expect_ident()) {
                 if grid_line.ident.is_some() {
-                    return Err(BasicParseError::UnexpectedToken(Token::Ident(name)).into())
+                    return Err(SelectorParseError::UnexpectedIdent(name).into())
                 }
                 grid_line.ident = Some(name.into_owned());
             } else {

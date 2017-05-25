@@ -124,7 +124,7 @@
                 },
             % endfor
             _ => Err(())
-        }).map_err(|()| BasicParseError::UnexpectedToken(::cssparser::Token::Ident(ident)).into())
+        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
     }
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -318,7 +318,7 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
                     "${keyword}" => Ok(SpecifiedValue::${to_rust_ident(keyword)}),
                 % endfor
                 _ => Err(())
-            }).map_err(|()| BasicParseError::UnexpectedToken(::cssparser::Token::Ident(ident)).into())
+            }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
         })
     }
 
@@ -631,8 +631,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                                         "start" => Ok(StartEnd::Start),
                                         "end" => Ok(StartEnd::End),
                                         _ => Err(())
-                                    }).map_err(|()| BasicParseError::UnexpectedToken(
-                                        Token::Ident(ident)).into());
+                                    }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into());
                                 start_end = try!(start_end_result);
                             }
                             Ok(())
@@ -647,7 +646,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                         Ok(SpecifiedValue::Frames(frames))
                     },
                     _ => Err(())
-                }).map_err(|()| BasicParseError::UnexpectedToken(Token::Function(function_name)).into())
+                }).map_err(|()| StyleParseError::UnexpectedFunction(function_name).into())
             }
             Ok(SpecifiedValue::Keyword(try!(FunctionKeyword::parse(input))))
         }
@@ -1761,7 +1760,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                 _ => false
             };
             if !valid_fn {
-                return Err(BasicParseError::UnexpectedToken(::cssparser::Token::Function(name)).into());
+                return Err(StyleParseError::UnexpectedFunction(name).into());
             }
         }
 
@@ -2403,7 +2402,7 @@ ${helpers.single_keyword("transform-style",
             };
             let flag = match flag {
                 Some(flag) if !result.contains(flag) => flag,
-                _ => return Err(BasicParseError::UnexpectedToken(::cssparser::Token::Ident(name)).into())
+                _ => return Err(SelectorParseError::UnexpectedIdent(name).into())
             };
             result.insert(flag);
         }
@@ -2534,7 +2533,7 @@ ${helpers.single_keyword("-moz-orient",
                     _ => true,
                 };
                 if bad_keyword {
-                    Err(BasicParseError::UnexpectedToken(::cssparser::Token::Ident(ident.into())).into())
+                    Err(SelectorParseError::UnexpectedIdent(ident.into()).into())
                 } else {
                     Ok(Atom::from(ident))
                 }
@@ -2625,6 +2624,6 @@ ${helpers.predefined_type("shape-outside", "basic_shape::ShapeWithShapeBox",
                 }
             },
             _ => Err(()),
-        }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
+        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
     }
 </%helpers:longhand>

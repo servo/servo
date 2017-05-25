@@ -20,7 +20,7 @@
             if input.try(|input| input.expect_ident_matching("none")).is_ok() {
                 nones = nones + 1;
                 if nones > 2 {
-                    return Err(BasicParseError::UnexpectedToken(::cssparser::Token::Ident("none".into())).into())
+                    return Err(SelectorParseError::UnexpectedIdent("none".into()).into())
                 }
                 any = true;
                 continue

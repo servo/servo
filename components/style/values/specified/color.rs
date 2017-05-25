@@ -73,7 +73,7 @@ mod gecko {
                     "-moz-activehyperlinktext" => Ok(Color::MozActiveHyperlinktext),
                     "-moz-visitedhyperlinktext" => Ok(Color::MozVisitedHyperlinktext),
                     _ => Err(())
-                }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
+                }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
             }
         }
     }

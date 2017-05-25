@@ -92,6 +92,7 @@
                 use cssparser::{Parser, BasicParseError};
                 use parser::{Parse, ParserContext};
                 use properties::ShorthandId;
+                use selectors::parser::SelectorParseError;
                 use style_traits::{ParseError, StyleParseError};
                 use values::computed::{Context, ToComputedValue};
                 use values::{computed, specified};
@@ -273,6 +274,7 @@
         use properties::{DeclaredValue, LonghandId, LonghandIdSet};
         use properties::{CSSWideKeyword, ComputedValues, PropertyDeclaration};
         use properties::style_structs;
+        use selectors::parser::SelectorParseError;
         use stylearc::Arc;
         use style_traits::{ParseError, StyleParseError};
         use values::computed::{Context, ToComputedValue};
@@ -751,6 +753,8 @@
         use parser::ParserContext;
         use properties::{PropertyDeclaration, ParsedDeclaration};
         use properties::{ShorthandId, UnparsedValue, longhands};
+        #[allow(unused_imports)]
+        use selectors::parser::SelectorParseError;
         use std::fmt;
         use stylearc::Arc;
         use style_traits::{ToCss, ParseError, StyleParseError};

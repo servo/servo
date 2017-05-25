@@ -9,7 +9,7 @@ use element_state::ElementState;
 use gecko_bindings::structs::CSSPseudoClassType;
 use gecko_bindings::structs::nsIAtom;
 use selector_parser::{SelectorParser, PseudoElementCascadeType};
-use selectors::parser::{ComplexSelector, SelectorMethods};
+use selectors::parser::{ComplexSelector, SelectorMethods, SelectorParseError};
 use selectors::visitor::SelectorVisitor;
 use std::borrow::Cow;
 use std::fmt;
@@ -399,7 +399,7 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
              string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
                 match_ignore_ascii_case! { &name,
                     $($css => NonTSPseudoClass::$name,)*
-                    _ => return Err(BasicParseError::UnexpectedToken(Token::Ident(name.clone())).into())
+                    _ => return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
             }
         }
@@ -407,7 +407,7 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
         if !pseudo_class.is_internal() || self.in_user_agent_stylesheet() {
             Ok(pseudo_class)
         } else {
-            Err(BasicParseError::UnexpectedToken(Token::Ident(name)).into())
+            Err(SelectorParseError::UnexpectedIdent(name).into())
         }
     }
 
@@ -432,11 +432,11 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
                         })?;
                         // Selectors inside `:-moz-any` may not include combinators.
                         if selectors.iter().flat_map(|x| x.iter_raw()).any(|s| s.is_combinator()) {
-                            return Err(BasicParseError::UnexpectedToken(Token::Ident("-moz-any".into())).into())
+                            return Err(SelectorParseError::UnexpectedIdent("-moz-any".into()).into())
                         }
                         NonTSPseudoClass::MozAny(selectors.into_boxed_slice())
                     }
-                    _ => return Err(BasicParseError::UnexpectedToken(Token::Ident(name.clone())).into())
+                    _ => return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
             }
         }
@@ -444,14 +444,14 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
         if !pseudo_class.is_internal() || self.in_user_agent_stylesheet() {
             Ok(pseudo_class)
         } else {
-            Err(BasicParseError::UnexpectedToken(Token::Ident(name)).into())
+            Err(SelectorParseError::UnexpectedIdent(name).into())
         }
     }
 
     fn parse_pseudo_element<'i>(&self, name: Cow<'i, str>) -> Result<PseudoElement, ParseError<'i>> {
         match PseudoElement::from_slice(&name, self.in_user_agent_stylesheet()) {
             Some(pseudo) => Ok(pseudo),
-            None => Err(BasicParseError::UnexpectedToken(Token::Ident(name.clone())).into()),
+            None => Err(SelectorParseError::UnexpectedIdent(name.clone()).into()),
         }
     }
 

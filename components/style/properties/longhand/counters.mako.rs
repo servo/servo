@@ -227,7 +227,7 @@
                         _ => false,
                     };
                     if !valid {
-                        return Err(BasicParseError::UnexpectedToken(::cssparser::Token::Ident(ident)).into())
+                        return Err(SelectorParseError::UnexpectedIdent(ident).into())
                     }
                 }
                 Err(_) => break,

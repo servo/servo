@@ -353,8 +353,7 @@ ${helpers.predefined_type("clip",
                         "drop-shadow" => specified::Shadow::parse(context, input, true)
                                              .map(SpecifiedFilter::DropShadow),
                         % endif
-                        _ => Err(BasicParseError::UnexpectedToken(
-                            cssparser::Token::Function(function_name.clone())).into())
+                        _ => Err(StyleParseError::UnexpectedFunction(function_name.clone()).into())
                     }
                 })));
             } else if filters.is_empty() {
@@ -446,7 +445,7 @@ pub struct OriginParseResult {
 
 pub fn parse_origin<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                             -> Result<OriginParseResult,::style_traits::ParseError<'i>> {
-    use cssparser::{Token, BasicParseError, ParseError as CssParseError};
+    use selectors::parser::SelectorParseError;
     use style_traits::{ParseError, StyleParseError};
     use values::specified::{LengthOrPercentage, Percentage};
     let (mut horizontal, mut vertical, mut depth, mut horizontal_is_center) = (None, None, None, false);
@@ -462,8 +461,7 @@ pub fn parse_origin<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                         vertical = Some(LengthOrPercentage::Percentage(Percentage(0.5)));
                         horizontal = Some(LengthOrPercentage::Percentage(Percentage(0.0)));
                     } else {
-                        return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(
-                            Token::Ident("left".into()))))
+                        return Err(SelectorParseError::UnexpectedIdent("left".into()).into())
                     }
                 },
                 "center" => {
@@ -473,8 +471,7 @@ pub fn parse_origin<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                     } else if vertical.is_none() {
                         vertical = Some(LengthOrPercentage::Percentage(Percentage(0.5)))
                     } else {
-                        return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(
-                            Token::Ident("center".into()))))
+                        return Err(SelectorParseError::UnexpectedIdent("center".into()).into())
                     }
                 },
                 "right" => {
@@ -484,24 +481,24 @@ pub fn parse_origin<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                         vertical = Some(LengthOrPercentage::Percentage(Percentage(0.5)));
                         horizontal = Some(LengthOrPercentage::Percentage(Percentage(1.0)));
                     } else {
-                        return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(Token::Ident("right".into()))))
+                        return Err(SelectorParseError::UnexpectedIdent("right".into()).into())
                     }
                 },
                 "top" => {
                     if vertical.is_none() {
                         vertical = Some(LengthOrPercentage::Percentage(Percentage(0.0)))
                     } else {
-                        return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(Token::Ident("top".into()))))
+                        return Err(SelectorParseError::UnexpectedIdent("top".into()).into())
                     }
                 },
                 "bottom" => {
                     if vertical.is_none() {
                         vertical = Some(LengthOrPercentage::Percentage(Percentage(1.0)))
                     } else {
-                        return Err(BasicParseError::UnexpectedToken(Token::Ident("bottom".into())).into())
+                        return Err(SelectorParseError::UnexpectedIdent("bottom".into()).into())
                     }
                 },
-                _ => return Err(BasicParseError::UnexpectedToken(Token::Ident(token.clone())).into())
+                _ => return Err(SelectorParseError::UnexpectedIdent(token.clone()).into())
             }
             Ok(())
         });

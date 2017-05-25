@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::{CanvasGradientStop, FillOrStrokeStyle, LinearGradientStyle, RadialGradientStyle};
-use cssparser::{Parser, RGBA};
+use cssparser::{Parser, ParserInput, RGBA};
 use cssparser::Color as CSSColor;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CanvasGradientBinding;
@@ -53,7 +53,8 @@ impl CanvasGradientMethods for CanvasGradient {
             return Err(Error::IndexSize);
         }
 
-        let mut parser = Parser::new(&color);
+        let mut input = ParserInput::new(&color);
+        let mut parser = Parser::new(&mut input);
         let color = CSSColor::parse(&mut parser);
         let color = if parser.is_exhausted() {
             match color {

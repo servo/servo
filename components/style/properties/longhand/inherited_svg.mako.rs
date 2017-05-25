@@ -204,7 +204,7 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
                         "stroke" => Ok(STROKE),
                         "markers" => Ok(MARKERS),
                         _ => Err(())
-                    }).map_err(|()| BasicParseError::UnexpectedToken(::cssparser::Token::Ident(ident.into())).into())
+                    }).map_err(|()| SelectorParseError::UnexpectedIdent(ident.into()).into())
                 });
 
                 match result {

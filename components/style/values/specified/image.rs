@@ -201,7 +201,7 @@ impl Gradient {
 
         let (gradient_kind, items) = match result {
             Some(result) => try!(result),
-            None => return Err(BasicParseError::UnexpectedToken(Token::Function(func)).into()),
+            None => return Err(StyleParseError::UnexpectedFunction(func).into()),
         };
 
         Ok(Gradient {
@@ -466,7 +466,7 @@ impl Parse for ImageRect {
             }
             _ => (),
         }
-        Err(BasicParseError::UnexpectedToken(Token::Function(func)).into())
+        Err(StyleParseError::UnexpectedFunction(func).into())
     }
 }
 

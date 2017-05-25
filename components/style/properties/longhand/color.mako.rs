@@ -137,7 +137,7 @@
                         return Ok(color)
                     }
                 }
-                Err(BasicParseError::UnexpectedToken(::cssparser::Token::Ident(ident.into())).into())
+                Err(SelectorParseError::UnexpectedIdent(ident).into())
             }
         }
     % endif

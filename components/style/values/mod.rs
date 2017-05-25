@@ -13,6 +13,7 @@ pub use cssparser::RGBA;
 use cssparser::{BasicParseError, Token, Parser, serialize_identifier, serialize_string};
 use parser::{Parse, ParserContext};
 use properties::animated_properties::{ComputeDistance, Interpolate};
+use selectors::parser::SelectorParseError;
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::fmt::{self, Debug};
@@ -39,7 +40,7 @@ macro_rules! define_numbered_css_keyword_enum {
                 (match_ignore_ascii_case! { &ident,
                     $( $css => Ok($name::$variant), )+
                     _ => Err(())
-                }).map_err(|()| ::cssparser::BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
+                }).map_err(|()| ::selectors::parser::SelectorParseError::UnexpectedIdent(ident).into())
             }
         }
 
@@ -249,7 +250,7 @@ impl CustomIdent {
             _ => true
         };
         if !valid {
-            return Err(BasicParseError::UnexpectedToken(Token::Ident(ident)).into());
+            return Err(SelectorParseError::UnexpectedIdent(ident).into());
         }
         if excluding.iter().any(|s| ident.eq_ignore_ascii_case(s)) {
             Err(StyleParseError::UnspecifiedError.into())

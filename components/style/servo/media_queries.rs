@@ -6,12 +6,13 @@
 
 use app_units::Au;
 use context::QuirksMode;
-use cssparser::{Parser, BasicParseError, Token, ParseError as CssParseError};
+use cssparser::Parser;
 use euclid::{Size2D, TypedSize2D};
 use font_metrics::ServoMetricsProvider;
 use media_queries::MediaType;
 use parser::ParserContext;
 use properties::{ComputedValues, StyleBuilder};
+use selectors::parser::SelectorParseError;
 use std::fmt;
 use style_traits::{CSSPixel, ToCss, ParseError};
 use style_traits::viewport::ViewportConstraints;
@@ -123,7 +124,7 @@ impl Expression {
                 "width" => {
                     ExpressionKind::Width(Range::Eq(try!(specified::Length::parse_non_negative(context, input))))
                 },
-                _ => return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(Token::Ident(name.clone()))))
+                _ => return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
             }))
         })
     }

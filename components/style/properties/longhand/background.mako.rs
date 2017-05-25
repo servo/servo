@@ -160,8 +160,7 @@ ${helpers.predefined_type("background-image", "LayerImage",
             _ => Err(()),
         }).or_else(|()| {
             let horizontal: Result<_, ParseError> = RepeatKeyword::from_ident(&ident)
-                .map_err(|()| BasicParseError::UnexpectedToken(
-                    ::cssparser::Token::Ident(ident)).into());
+                .map_err(|()| SelectorParseError::UnexpectedIdent(ident).into());
             let horizontal = try!(horizontal);
             let vertical = input.try(RepeatKeyword::parse).ok();
             Ok(SpecifiedValue::Other(horizontal, vertical))

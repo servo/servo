@@ -7,7 +7,8 @@
 //! [counter-style]: https://drafts.csswg.org/css-counter-styles/
 
 use Atom;
-use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, Token};
+use cssparser::{AtRuleParser, DeclarationListParser};
+use cssparser::{DeclarationParser, Parser, Token};
 use cssparser::{serialize_string, serialize_identifier, BasicParseError};
 use error_reporting::ContextualParseError;
 #[cfg(feature = "gecko")] use gecko::rules::CounterStyleDescriptors;
@@ -110,10 +111,10 @@ struct CounterStyleRuleParser<'a, 'b: 'a> {
 }
 
 /// Default methods reject all at rules.
-impl<'a, 'b> AtRuleParser for CounterStyleRuleParser<'a, 'b> {
+impl<'a, 'b, 'i> AtRuleParser<'i> for CounterStyleRuleParser<'a, 'b> {
     type Prelude = ();
     type AtRule = ();
-    type Error = SelectorParseError<StyleParseError>;
+    type Error = SelectorParseError<'i, StyleParseError<'i>>;
 }
 
 macro_rules! accessor {
@@ -175,12 +176,12 @@ macro_rules! counter_style_descriptors {
             }
         }
 
-       impl<'a, 'b> DeclarationParser for CounterStyleRuleParser<'a, 'b> {
+        impl<'a, 'b, 'i> DeclarationParser<'i> for CounterStyleRuleParser<'a, 'b> {
             type Declaration = ();
-            type Error = SelectorParseError<StyleParseError>;
+            type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-            fn parse_value<'i, 't>(&mut self, name: &str, input: &mut Parser<'i, 't>)
-                                   -> Result<(), ParseError<'i>> {
+            fn parse_value<'t>(&mut self, name: &str, input: &mut Parser<'i, 't>)
+                               -> Result<(), ParseError<'i>> {
                 match_ignore_ascii_case! { name,
                     $(
                         $name => {
@@ -307,7 +308,7 @@ impl Parse for System {
                 Ok(System::Extends(other))
             }
             _ => Err(())
-        }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
+        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
     }
 }
 
@@ -612,7 +613,7 @@ impl Parse for SpeakAs {
                     Err(())
                 }
                 _ => Err(())
-            }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
+            }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
         });
         if is_spell_out {
             // spell-out is not supported, but don’t parse it as a <counter-style-name>.

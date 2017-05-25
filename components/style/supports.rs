@@ -5,8 +5,10 @@
 //! [@supports rules](https://drafts.csswg.org/css-conditional-3/#at-supports)
 
 use cssparser::{parse_important, Parser, Token, BasicParseError, ParseError as CssParseError};
+use cssparser::ParserInput;
 use parser::ParserContext;
 use properties::{PropertyId, ParsedDeclaration};
+use selectors::parser::SelectorParseError;
 use std::fmt;
 use style_traits::{ToCss, ParseError};
 use stylesheets::CssRuleType;
@@ -51,8 +53,7 @@ impl SupportsCondition {
                 match_ignore_ascii_case! { &ident,
                     "and" => ("and", SupportsCondition::And as fn(_) -> _),
                     "or" => ("or", SupportsCondition::Or as fn(_) -> _),
-                    _ => return Err(CssParseError::Basic(
-                        BasicParseError::UnexpectedToken(Token::Ident(ident.clone()))))
+                    _ => return Err(SelectorParseError::UnexpectedIdent(ident.clone()).into())
                 }
             }
             Ok(t) => return Err(CssParseError::Basic(BasicParseError::UnexpectedToken(t)))
@@ -214,7 +215,8 @@ impl Declaration {
         } else {
             return false
         };
-        let mut input = Parser::new(&self.val);
+        let mut input = ParserInput::new(&self.val);
+        let mut input = Parser::new(&mut input);
         let context = ParserContext::new_with_rule_type(cx, Some(CssRuleType::Style));
         let res = ParsedDeclaration::parse(id, &context, &mut input);
         let _ = input.try(parse_important);

@@ -18,8 +18,8 @@ use stylearc::{Arc, UniqueArc};
 
 use app_units::Au;
 #[cfg(feature = "servo")] use cssparser::{Color as CSSParserColor, RGBA};
-use cssparser::BasicParseError;
-use cssparser::{Parser, TokenSerializationType, ParseError as CssParseError, Token, serialize_identifier};
+use cssparser::{Parser, TokenSerializationType, serialize_identifier};
+use cssparser::ParserInput;
 use error_reporting::ParseErrorReporter;
 #[cfg(feature = "servo")] use euclid::side_offsets::SideOffsets2D;
 use computed_values;
@@ -32,6 +32,7 @@ use logical_geometry::WritingMode;
 use media_queries::Device;
 use parser::{LengthParsingMode, Parse, ParserContext};
 use properties::animated_properties::TransitionProperty;
+use selectors::parser::SelectorParseError;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
 use shared_lock::StylesheetGuards;
 use style_traits::{ToCss, ParseError, PropertyDeclarationParseError};
@@ -387,7 +388,8 @@ impl PropertyDeclarationIdSet {
                                                      None,
                                                      LengthParsingMode::Default,
                                                      quirks_mode);
-                    Parser::new(&css).parse_entirely(|input| {
+                    let mut input = ParserInput::new(&css);
+                    Parser::new(&mut input).parse_entirely(|input| {
                         match from_shorthand {
                             None => {
                                 longhands::${property.ident}
@@ -396,7 +398,7 @@ impl PropertyDeclarationIdSet {
                             Some(ShorthandId::All) => {
                                 // No need to parse the 'all' shorthand as anything other than a CSS-wide
                                 // keyword, after variable substitution.
-                                Err(CssParseError::Basic(BasicParseError::UnexpectedToken(Token::Ident("all".into()))))
+                                Err(SelectorParseError::UnexpectedIdent("all".into()).into())
                             }
                             % for shorthand in data.shorthands_except_all():
                                 % if property in shorthand.sub_properties:
@@ -476,7 +478,7 @@ impl Parse for CSSWideKeyword {
         let ident = input.expect_ident()?;
         input.expect_exhausted()?;
         CSSWideKeyword::from_ident(&ident)
-            .ok_or(CssParseError::Basic(BasicParseError::UnexpectedToken(Token::Ident(ident))))
+            .ok_or(SelectorParseError::UnexpectedIdent(ident).into())
     }
 }
 
@@ -891,8 +893,7 @@ impl PropertyId {
         match static_id(&property_name) {
             Some(&StaticId::Longhand(id)) => Ok(PropertyId::Longhand(id)),
             Some(&StaticId::Shorthand(id)) => Ok(PropertyId::Shorthand(id)),
-            None => Err(CssParseError::Basic(BasicParseError::UnexpectedToken(
-                ::cssparser::Token::Ident(property_name)))),
+            None => Err(SelectorParseError::UnexpectedIdent(property_name).into()),
         }
     }
 

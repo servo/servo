@@ -37,7 +37,7 @@
                         })
                     }
                     _ => Err(())
-                }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
+                }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
             });
             if moz_kw_found.is_ok() {
                 return moz_kw_found

@@ -17,6 +17,7 @@ use gecko_bindings::structs::RawGeckoPresContextOwned;
 use media_queries::MediaType;
 use parser::ParserContext;
 use properties::{ComputedValues, StyleBuilder};
+use selectors::parser::SelectorParseError;
 use std::fmt::{self, Write};
 use str::starts_with_ignore_ascii_case;
 use string_cache::Atom;
@@ -186,7 +187,7 @@ impl Resolution {
             "dppx" => Ok(Resolution::Dppx(value.value)),
             "dpcm" => Ok(Resolution::Dpcm(value.value)),
             _ => Err(())
-        }).map_err(|()| BasicParseError::UnexpectedToken(Token::Dimension(value, unit)).into())
+        }).map_err(|()| StyleParseError::UnexpectedDimension(unit).into())
     }
 }
 
@@ -435,16 +436,16 @@ impl Expression {
 
             let (feature, range) = match result {
                 Ok((feature, range)) => (feature, range),
-                Err(()) => return Err(BasicParseError::UnexpectedToken(Token::Ident(ident)).into()),
+                Err(()) => return Err(SelectorParseError::UnexpectedIdent(ident).into()),
             };
 
             if (feature.mReqFlags & !flags) != 0 {
-                return Err(BasicParseError::UnexpectedToken(Token::Ident(ident)).into());
+                return Err(SelectorParseError::UnexpectedIdent(ident).into());
             }
 
             if range != nsMediaExpression_Range::eEqual &&
                 feature.mRangeType != nsMediaFeature_RangeType::eMinMaxAllowed {
-                return Err(BasicParseError::UnexpectedToken(Token::Ident(ident)).into());
+                return Err(SelectorParseError::UnexpectedIdent(ident).into());
             }
 
             // If there's no colon, this is a media query of the form
@@ -454,7 +455,7 @@ impl Expression {
             // reject them here too.
             if input.try(|i| i.expect_colon()).is_err() {
                 if range != nsMediaExpression_Range::eEqual {
-                    return Err(BasicParseError::ExpectedToken(Token::Colon).into())
+                    return Err(StyleParseError::RangedExpressionWithNoValue)
                 }
                 return Ok(Expression::new(feature, None, range));
             }

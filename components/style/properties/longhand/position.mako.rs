@@ -398,7 +398,7 @@ ${helpers.predefined_type("object-position",
                 _ => false
             };
             if !success {
-                return Err(BasicParseError::UnexpectedToken(::cssparser::Token::Ident(ident)).into());
+                return Err(SelectorParseError::UnexpectedIdent(ident).into());
             }
         }
 

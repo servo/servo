@@ -57,7 +57,7 @@ ${helpers.predefined_type("outline-color", "CSSColor", "computed::CSSColor::Curr
                     // The outline-style property accepts the same values as
                     // border-style, except that 'hidden' is not a legal outline
                     // style.
-                    Err(BasicParseError::UnexpectedToken(::cssparser::Token::Ident("hidden".into())).into())
+                    Err(SelectorParseError::UnexpectedIdent("hidden".into()).into())
                 } else {
                     Ok(result)
                 }

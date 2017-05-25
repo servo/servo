@@ -400,7 +400,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                 "bolder" => Ok(SpecifiedValue::Bolder),
                 "lighter" => Ok(SpecifiedValue::Lighter),
                 _ => Err(())
-            }).map_err(|()| BasicParseError::UnexpectedToken(::cssparser::Token::Ident(ident)).into())
+            }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
         });
         result.or_else(|_| {
             SpecifiedValue::from_int(input.expect_integer()?)
@@ -644,7 +644,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                 "x-large" => Ok(XLarge),
                 "xx-large" => Ok(XXLarge),
                 _ => Err(())
-            }).map_err(|()| BasicParseError::UnexpectedToken(::cssparser::Token::Ident(ident)).into())
+            }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
         }
     }
 
@@ -883,7 +883,7 @@ ${helpers.single_keyword_system("font-variant-caps",
             "smaller" => Ok(SpecifiedValue::Smaller),
             "larger" => Ok(SpecifiedValue::Larger),
             _ => Err(())
-        }).map_err(|()| BasicParseError::UnexpectedToken(::cssparser::Token::Ident(ident)).into())
+        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
     }
 
     impl SpecifiedValue {
@@ -1168,7 +1168,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                 Ok(result)
             },
             _ => Err(())
-        }).map_err(|()| BasicParseError::UnexpectedToken(::cssparser::Token::Ident(ident)).into())
+        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
     }
 </%helpers:longhand>
 
@@ -1308,7 +1308,7 @@ ${helpers.single_keyword_system("font-kerning",
             };
             let flag = match flag {
                 Some(flag) if !result.intersects(flag) => flag,
-                _ => return Err(BasicParseError::UnexpectedToken(::cssparser::Token::Ident(ident)).into()),
+                _ => return Err(SelectorParseError::UnexpectedIdent(ident).into()),
             };
             result.insert(flag);
         }
@@ -1464,8 +1464,7 @@ macro_rules! exclusive_value {
             };
             let flag = match flag {
                 Some(flag) => flag,
-                None => return Err(BasicParseError::UnexpectedToken(
-                    ::cssparser::Token::Ident(ident)).into()),
+                None => return Err(SelectorParseError::UnexpectedIdent(ident).into()),
             };
             result.insert(flag);
         }
@@ -1621,8 +1620,7 @@ macro_rules! exclusive_value {
             };
             let flag = match flag {
                 Some(flag) => flag,
-                None => return Err(BasicParseError::UnexpectedToken(
-                    ::cssparser::Token::Ident(ident)).into()),
+                None => return Err(SelectorParseError::UnexpectedIdent(ident).into()),
             };
             result.insert(flag);
         }
@@ -1771,8 +1769,7 @@ macro_rules! exclusive_value {
             };
             let flag = match flag {
                 Some(flag) => flag,
-                None => return Err(BasicParseError::UnexpectedToken(
-                    ::cssparser::Token::Ident(ident)).into()),
+                None => return Err(SelectorParseError::UnexpectedIdent(ident).into()),
             };
             result.insert(flag);
         }
@@ -2453,7 +2450,7 @@ ${helpers.single_keyword("-moz-math-variant",
                         "${font}" => Ok(SystemFont::${to_camel_case(font)}),
                     % endfor
                     _ => Err(())
-                }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
+                }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
             }
         }
     }

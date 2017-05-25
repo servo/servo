@@ -90,7 +90,7 @@ impl<'a> ContextualParseError<'a> {
                     format!("found unexpected {}", token_to_str(t)),
                 CssParseError::Basic(BasicParseError::ExpectedToken(ref t)) =>
                     format!("expected {}", token_to_str(t)),
-                CssParseError::Basic(BasicParseError::UnexpectedEof) =>
+                CssParseError::Basic(BasicParseError::EndOfInput) =>
                     format!("unexpected end of input"),
                 CssParseError::Basic(BasicParseError::AtRuleInvalid) =>
                     format!("@ rule invalid"),
@@ -189,14 +189,7 @@ impl ParseErrorReporter for NullReporter {
     }
 }
 
-/// Create an instance of the default error reporter for Servo.
-#[cfg(feature = "servo")]
-pub fn create_error_reporter() -> RustLogReporter {
-    RustLogReporter
-}
-
-/// Create an instance of the default error reporter for Stylo.
-#[cfg(feature = "gecko")]
+/// Create an instance of the default error reporter.
 pub fn create_error_reporter() -> RustLogReporter {
     RustLogReporter
 }

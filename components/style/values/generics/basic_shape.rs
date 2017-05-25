@@ -5,7 +5,7 @@
 //! CSS handling for the [`basic-shape`](https://drafts.csswg.org/css-shapes/#typedef-basic-shape)
 //! types that are generic over their `ToCss` implementations.
 
-use cssparser::{Parser, Token, BasicParseError};
+use cssparser::Parser;
 use euclid::size::Size2D;
 use parser::{Parse, ParserContext};
 use properties::shorthands::serialize_four_sides;
@@ -186,7 +186,7 @@ impl<L: Parse> Parse for Polygon<L> {
         match input.expect_function() {
             Ok(ref s) if s.eq_ignore_ascii_case("polygon") =>
                 input.parse_nested_block(|i| Polygon::parse_function_arguments(context, i)),
-            Ok(s) => Err(BasicParseError::UnexpectedToken(Token::Function(s)).into()),
+            Ok(s) => Err(StyleParseError::UnexpectedFunction(s).into()),
             Err(e) => Err(e.into())
         }
     }

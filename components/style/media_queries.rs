@@ -8,8 +8,9 @@
 
 use Atom;
 use context::QuirksMode;
-use cssparser::{Delimiter, Parser, Token, BasicParseError};
+use cssparser::{Delimiter, Parser, Token, ParserInput};
 use parser::ParserContext;
+use selectors::parser::SelectorParseError;
 use serialize_comma_separated_list;
 use std::ascii::AsciiExt;
 use std::fmt;
@@ -224,7 +225,7 @@ impl MediaQuery {
         let media_type = match input.try(|input| input.expect_ident()) {
             Ok(ident) => {
                 let result: Result<_, ParseError> = MediaQueryType::parse(&*ident)
-                    .map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into());
+                    .map_err(|()| SelectorParseError::UnexpectedIdent(ident).into());
                 try!(result)
             }
             Err(_) => {
@@ -316,7 +317,8 @@ impl MediaList {
     ///
     /// Returns true if added, false if fail to parse the medium string.
     pub fn append_medium(&mut self, context: &ParserContext, new_medium: &str) -> bool {
-        let mut parser = Parser::new(new_medium);
+        let mut input = ParserInput::new(new_medium);
+        let mut parser = Parser::new(&mut input);
         let new_query = match MediaQuery::parse(&context, &mut parser) {
             Ok(query) => query,
             Err(_) => { return false; }
@@ -334,7 +336,8 @@ impl MediaList {
     ///
     /// Returns true if found and deleted, false otherwise.
     pub fn delete_medium(&mut self, context: &ParserContext, old_medium: &str) -> bool {
-        let mut parser = Parser::new(old_medium);
+        let mut input = ParserInput::new(old_medium);
+        let mut parser = Parser::new(&mut input);
         let old_query = match MediaQuery::parse(context, &mut parser) {
             Ok(query) => query,
             Err(_) => { return false; }

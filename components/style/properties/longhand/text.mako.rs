@@ -66,7 +66,7 @@
                     "clip" => Ok(Side::Clip),
                     "ellipsis" => Ok(Side::Ellipsis),
                     _ => Err(())
-                }).map_err(|()| BasicParseError::UnexpectedToken(cssparser::Token::Ident(ident)).into())
+                }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
             } else {
                 Ok(Side::String(try!(input.expect_string()).into_owned().into_boxed_str()))
             }
@@ -199,8 +199,7 @@ ${helpers.single_keyword("unicode-bidi",
                             "blink" => if result.contains(BLINK) { Err(()) }
                                        else { empty = false; result.insert(BLINK); Ok(()) },
                             _ => Err(())
-                        }).map_err(|()| BasicParseError::UnexpectedToken(
-                            ::cssparser::Token::Ident(ident)).into())
+                        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
                     }
                     Err(e) => return Err(e.into())
                 }

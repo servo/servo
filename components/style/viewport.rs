@@ -12,7 +12,7 @@
 use app_units::Au;
 use context::QuirksMode;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, parse_important};
-use cssparser::{ToCss as ParserToCss, BasicParseError, Token};
+use cssparser::ToCss as ParserToCss;
 use error_reporting::ContextualParseError;
 use euclid::size::TypedSize2D;
 use font_metrics::get_metrics_provider_for_product;
@@ -259,18 +259,18 @@ fn parse_shorthand<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
     }
 }
 
-impl<'a, 'b> AtRuleParser for ViewportRuleParser<'a, 'b> {
+impl<'a, 'b, 'i> AtRuleParser<'i> for ViewportRuleParser<'a, 'b> {
     type Prelude = ();
     type AtRule = Vec<ViewportDescriptorDeclaration>;
-    type Error = SelectorParseError<StyleParseError>;
+    type Error = SelectorParseError<'i, StyleParseError<'i>>;
 }
 
-impl<'a, 'b> DeclarationParser for ViewportRuleParser<'a, 'b> {
+impl<'a, 'b, 'i> DeclarationParser<'i> for ViewportRuleParser<'a, 'b> {
     type Declaration = Vec<ViewportDescriptorDeclaration>;
-    type Error = SelectorParseError<StyleParseError>;
+    type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-    fn parse_value<'i, 't>(&mut self, name: &str, input: &mut Parser<'i, 't>)
-                           -> Result<Vec<ViewportDescriptorDeclaration>, ParseError<'i>> {
+    fn parse_value<'t>(&mut self, name: &str, input: &mut Parser<'i, 't>)
+                       -> Result<Vec<ViewportDescriptorDeclaration>, ParseError<'i>> {
         macro_rules! declaration {
             ($declaration:ident($parse:expr)) => {
                 declaration!($declaration(value: try!($parse(input)),
@@ -309,7 +309,7 @@ impl<'a, 'b> DeclarationParser for ViewportRuleParser<'a, 'b> {
             "max-zoom" => ok!(MaxZoom(Zoom::parse)),
             "user-zoom" => ok!(UserZoom(UserZoom::parse)),
             "orientation" => ok!(Orientation(Orientation::parse)),
-            _ => Err(BasicParseError::UnexpectedToken(Token::Ident(name.to_owned().into())).into()),
+            _ => Err(SelectorParseError::UnexpectedIdent(name.to_owned().into()).into()),
         }
     }
 }

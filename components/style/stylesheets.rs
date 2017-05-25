@@ -9,8 +9,8 @@
 use {Atom, Prefix, Namespace};
 use context::QuirksMode;
 use counter_style::{CounterStyleRule, parse_counter_style_name, parse_counter_style_body};
-use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, BasicParseError};
-use cssparser::{AtRuleType, RuleListParser, parse_one_rule, Token};
+use cssparser::{AtRuleParser, Parser, QualifiedRuleParser};
+use cssparser::{AtRuleType, RuleListParser, parse_one_rule, ParserInput};
 use cssparser::ToCss as ParserToCss;
 use error_reporting::{ParseErrorReporter, NullReporter, ContextualParseError};
 #[cfg(feature = "servo")]
@@ -420,7 +420,8 @@ impl CssRule {
                                          None,
                                          LengthParsingMode::Default,
                                          parent_stylesheet.quirks_mode);
-        let mut input = Parser::new(css);
+        let mut input = ParserInput::new(css);
+        let mut input = Parser::new(&mut input);
 
         // nested rules are in the body state
         let state = state.unwrap_or(State::Body);
@@ -689,7 +690,8 @@ impl Stylesheet {
                    line_number_offset: u64)
                    -> (Vec<CssRule>, bool) {
         let mut rules = Vec::new();
-        let mut input = Parser::new(css);
+        let mut input = ParserInput::new(css);
+        let mut input = Parser::new(&mut input);
         let rule_parser = TopLevelRuleParser {
             stylesheet_origin: origin,
             namespaces: namespaces,
@@ -952,13 +954,13 @@ enum AtRulePrelude {
 }
 
 
-impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
+impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
     type Prelude = AtRulePrelude;
     type AtRule = CssRule;
-    type Error = SelectorParseError<StyleParseError>;
+    type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-    fn parse_prelude<'i, 't>(&mut self, name: &str, input: &mut Parser<'i, 't>)
-                     -> Result<AtRuleType<AtRulePrelude, CssRule>, ParseError<'i>> {
+    fn parse_prelude<'t>(&mut self, name: &str, input: &mut Parser<'i, 't>)
+                         -> Result<AtRuleType<AtRulePrelude, CssRule>, ParseError<'i>> {
         match_ignore_ascii_case! { name,
             "import" => {
                 if self.state.get() <= State::Imports {
@@ -999,8 +1001,7 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                 } else {
                     self.state.set(State::Invalid);
                     // "@import must be before any rule but @charset"
-                    return Err(BasicParseError::UnexpectedToken(
-                        Token::AtKeyword("import".into())).into())
+                    return Err(StyleParseError::UnexpectedImportRule.into())
                 }
             },
             "namespace" => {
@@ -1028,13 +1029,12 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                 } else {
                     self.state.set(State::Invalid);
                     // "@namespace must be before any rule but @charset and @import"
-                    return Err(BasicParseError::UnexpectedToken(Token::AtKeyword("namespace".into())).into())
+                    return Err(StyleParseError::UnexpectedNamespaceRule.into())
                 }
             },
             // @charset is removed by rust-cssparser if it’s the first rule in the stylesheet
             // anything left is invalid.
-            "charset" => return Err(BasicParseError::UnexpectedToken(
-                Token::AtKeyword("charset".into())).into()),
+            "charset" => return Err(StyleParseError::UnexpectedCharsetRule.into()),
             _ => {}
         }
         // Don't allow starting with an invalid state
@@ -1047,28 +1047,28 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
     }
 
     #[inline]
-    fn parse_block<'i, 't>(&mut self, prelude: AtRulePrelude, input: &mut Parser<'i, 't>)
-                           -> Result<CssRule, ParseError<'i>> {
+    fn parse_block<'t>(&mut self, prelude: AtRulePrelude, input: &mut Parser<'i, 't>)
+                       -> Result<CssRule, ParseError<'i>> {
         AtRuleParser::parse_block(&mut self.nested(), prelude, input)
     }
 }
 
 
-impl<'a> QualifiedRuleParser for TopLevelRuleParser<'a> {
+impl<'a, 'i> QualifiedRuleParser<'i> for TopLevelRuleParser<'a> {
     type Prelude = SelectorList<SelectorImpl>;
     type QualifiedRule = CssRule;
-    type Error = SelectorParseError<StyleParseError>;
+    type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
     #[inline]
-    fn parse_prelude<'i, 't>(&mut self, input: &mut Parser<'i, 't>)
-                             -> Result<SelectorList<SelectorImpl>, ParseError<'i>> {
+    fn parse_prelude<'t>(&mut self, input: &mut Parser<'i, 't>)
+                         -> Result<SelectorList<SelectorImpl>, ParseError<'i>> {
         self.state.set(State::Body);
         QualifiedRuleParser::parse_prelude(&mut self.nested(), input)
     }
 
     #[inline]
-    fn parse_block<'i, 't>(&mut self, prelude: SelectorList<SelectorImpl>, input: &mut Parser<'i, 't>)
-                   -> Result<CssRule, ParseError<'i>> {
+    fn parse_block<'t>(&mut self, prelude: SelectorList<SelectorImpl>, input: &mut Parser<'i, 't>)
+                       -> Result<CssRule, ParseError<'i>> {
         QualifiedRuleParser::parse_block(&mut self.nested(), prelude, input)
     }
 }
@@ -1117,13 +1117,13 @@ fn is_viewport_enabled() -> bool {
     true
 }
 
-impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
+impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
     type Prelude = AtRulePrelude;
     type AtRule = CssRule;
-    type Error = SelectorParseError<StyleParseError>;
+    type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-    fn parse_prelude<'i, 't>(&mut self, name: &str, input: &mut Parser<'i, 't>)
-                     -> Result<AtRuleType<AtRulePrelude, CssRule>, ParseError<'i>> {
+    fn parse_prelude<'t>(&mut self, name: &str, input: &mut Parser<'i, 't>)
+                         -> Result<AtRuleType<AtRulePrelude, CssRule>, ParseError<'i>> {
         match_ignore_ascii_case! { name,
             "media" => {
                 let media_queries = parse_media_query_list(self.context, input);
@@ -1140,14 +1140,14 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
             "counter-style" => {
                 if !cfg!(feature = "gecko") {
                     // Support for this rule is not fully implemented in Servo yet.
-                    return Err(BasicParseError::UnexpectedToken(Token::AtKeyword("counter-style".into())).into());
+                    return Err(StyleParseError::UnsupportedAtRule("counter-style".into()).into());
                 }
                 let name = parse_counter_style_name(input)?;
                 // ASCII-case-insensitive matches for "decimal" are already lower-cased
                 // by `parse_counter_style_name`, so we can use == here.
                 // FIXME: https://bugzilla.mozilla.org/show_bug.cgi?id=1359323 use atom!("decimal")
                 if name.0 == Atom::from("decimal") {
-                    return Err(BasicParseError::UnexpectedToken(Token::Ident("decimal".into())).into());
+                    return Err(SelectorParseError::UnexpectedIdent("decimal".into()).into());
                 }
                 Ok(AtRuleType::WithBlock(AtRulePrelude::CounterStyle(name)))
             },
@@ -1155,7 +1155,7 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                 if is_viewport_enabled() {
                     Ok(AtRuleType::WithBlock(AtRulePrelude::Viewport))
                 } else {
-                    Err(BasicParseError::UnexpectedToken(Token::AtKeyword("viewport".into())).into())
+                    Err(StyleParseError::UnsupportedAtRule("viewport".into()).into())
                 }
             },
             "keyframes" | "-webkit-keyframes" | "-moz-keyframes" => {
@@ -1169,7 +1169,7 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                 if cfg!(feature = "servo") &&
                    prefix.as_ref().map_or(false, |p| matches!(*p, VendorPrefix::Moz)) {
                     // Servo should not support @-moz-keyframes.
-                    return Err(BasicParseError::UnexpectedToken(Token::AtKeyword("-moz-keyframes".into())).into());
+                    return Err(StyleParseError::UnsupportedAtRule("-moz-keyframes".into()).into());
                 }
                 let name = KeyframesName::parse(self.context, input)?;
 
@@ -1179,15 +1179,15 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                 if cfg!(feature = "gecko") {
                     Ok(AtRuleType::WithBlock(AtRulePrelude::Page))
                 } else {
-                    Err(BasicParseError::UnexpectedToken(Token::Ident("page".into())).into())
+                    Err(SelectorParseError::UnexpectedIdent("page".into()).into())
                 }
             },
-            _ => Err(BasicParseError::UnexpectedToken(Token::Ident(name.to_owned().into())).into())
+            _ => Err(SelectorParseError::UnexpectedIdent(name.to_owned().into()).into())
         }
     }
 
-    fn parse_block<'i, 't>(&mut self, prelude: AtRulePrelude, input: &mut Parser<'i, 't>)
-                           -> Result<CssRule, ParseError<'i>> {
+    fn parse_block<'t>(&mut self, prelude: AtRulePrelude, input: &mut Parser<'i, 't>)
+                       -> Result<CssRule, ParseError<'i>> {
         match prelude {
             AtRulePrelude::FontFace => {
                 let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::FontFace));
@@ -1237,13 +1237,13 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
     }
 }
 
-impl<'a, 'b> QualifiedRuleParser for NestedRuleParser<'a, 'b> {
+impl<'a, 'b, 'i> QualifiedRuleParser<'i> for NestedRuleParser<'a, 'b> {
     type Prelude = SelectorList<SelectorImpl>;
     type QualifiedRule = CssRule;
-    type Error = SelectorParseError<StyleParseError>;
+    type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-    fn parse_prelude<'i, 't>(&mut self, input: &mut Parser<'i, 't>)
-                             -> Result<SelectorList<SelectorImpl>, ParseError<'i>> {
+    fn parse_prelude<'t>(&mut self, input: &mut Parser<'i, 't>)
+                         -> Result<SelectorList<SelectorImpl>, ParseError<'i>> {
         let selector_parser = SelectorParser {
             stylesheet_origin: self.stylesheet_origin,
             namespaces: self.namespaces,
@@ -1251,8 +1251,8 @@ impl<'a, 'b> QualifiedRuleParser for NestedRuleParser<'a, 'b> {
         SelectorList::parse(&selector_parser, input)
     }
 
-    fn parse_block<'i, 't>(&mut self, prelude: SelectorList<SelectorImpl>, input: &mut Parser<'i, 't>)
-                           -> Result<CssRule, ParseError<'i>> {
+    fn parse_block<'t>(&mut self, prelude: SelectorList<SelectorImpl>, input: &mut Parser<'i, 't>)
+                       -> Result<CssRule, ParseError<'i>> {
         let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::Style));
         let declarations = parse_property_declaration_list(&context, input);
         Ok(CssRule::Style(Arc::new(self.shared_lock.wrap(StyleRule {

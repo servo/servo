@@ -11,6 +11,7 @@ use cssparser::{Parser, Token, BasicParseError};
 use euclid::size::Size2D;
 use font_metrics::FontMetricsQueryResult;
 use parser::{Parse, ParserContext};
+use selectors::parser::SelectorParseError;
 use std::{cmp, fmt, mem};
 use std::ascii::AsciiExt;
 use std::ops::Mul;
@@ -1347,7 +1348,7 @@ impl MaxLength {
                     "none" =>
                         Ok(MaxLength::None),
                     _ => Err(())
-                }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
+                }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
             })
     }
 }

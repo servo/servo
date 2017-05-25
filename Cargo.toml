@@ -15,4 +15,4 @@ opt-level = 3
 # lto = false
 
 [replace]
-"cssparser:0.13.1" = { git = 'https://github.com/jdm/rust-cssparser', branch = 'parseerror' }
+"cssparser:0.13.1" = { git = 'https://github.com/jdm/rust-cssparser', branch = 'err2' }

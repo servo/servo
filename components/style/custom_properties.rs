@@ -7,9 +7,10 @@
 //! [custom]: https://drafts.csswg.org/css-variables/
 
 use Atom;
-use cssparser::{Delimiter, Parser, SourcePosition, Token, TokenSerializationType, BasicParseError};
+use cssparser::{Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSerializationType};
 use parser::ParserContext;
 use properties::{CSSWideKeyword, DeclaredValue};
+use selectors::parser::SelectorParseError;
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
@@ -234,11 +235,11 @@ fn parse_declaration_value_block<'i, 't>
             Token::BadString =>
                 return Err(StyleParseError::BadStringInDeclarationValueBlock.into()),
             Token::CloseParenthesis =>
-                return Err(StyleParseError::CloseParenthesisInDeclarationValueBlock.into()),
+                return Err(StyleParseError::UnbalancedCloseParenthesisInDeclarationValueBlock.into()),
             Token::CloseSquareBracket =>
-                return Err(StyleParseError::CloseSquareBracketInDeclarationValueBlock.into()),
+                return Err(StyleParseError::UnbalancedCloseSquareBracketInDeclarationValueBlock.into()),
             Token::CloseCurlyBracket =>
-                return Err(StyleParseError::CloseCurlyBracketInDeclarationValueBlock.into()),
+                return Err(StyleParseError::UnbalancedCloseCurlyBracketInDeclarationValueBlock.into()),
             Token::Function(ref name) => {
                 if name.eq_ignore_ascii_case("var") {
                     let position = input.position();
@@ -311,8 +312,10 @@ fn parse_var_function<'i, 't>(input: &mut Parser<'i, 't>,
                               references: &mut Option<HashSet<Name>>)
                               -> Result<(), ParseError<'i>> {
     let name = try!(input.expect_ident());
-    let name = try!(parse_name(&name)
-                    .map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(name.clone()))).into());
+    let name: Result<_, ParseError> =
+        parse_name(&name)
+        .map_err(|()| SelectorParseError::UnexpectedIdent(name.clone()).into());
+    let name = try!(name);
     if input.try(|input| input.expect_comma()).is_ok() {
         // Exclude `!` and `;` at the top level
         // https://drafts.csswg.org/css-syntax/#typedef-declaration-value
@@ -481,7 +484,8 @@ fn substitute_one(name: &Name,
     }
     let computed_value = if specified_value.references.map(|set| set.is_empty()) == Some(false) {
         let mut partial_computed_value = ComputedValue::empty();
-        let mut input = Parser::new(&specified_value.css);
+        let mut input = ParserInput::new(&specified_value.css);
+        let mut input = Parser::new(&mut input);
         let mut position = (input.position(), specified_value.first_token_type);
         let result = substitute_block(
             &mut input, &mut position, &mut partial_computed_value,
@@ -616,7 +620,8 @@ pub fn substitute<'i>(input: &'i str, first_token_type: TokenSerializationType,
                       computed_values_map: &Option<Arc<HashMap<Name, ComputedValue>>>)
                       -> Result<String, ParseError<'i>> {
     let mut substituted = ComputedValue::empty();
-    let mut input = Parser::new(input);
+    let mut input = ParserInput::new(input);
+    let mut input = Parser::new(&mut input);
     let mut position = (input.position(), first_token_type);
     let last_token_type = try!(substitute_block(
         &mut input, &mut position, &mut substituted, &mut |name, substituted| {

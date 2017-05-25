@@ -11,6 +11,7 @@ use context::QuirksMode;
 use cssparser::{self, Parser, Token, BasicParseError};
 use euclid::size::Size2D;
 use parser::{ParserContext, Parse};
+use selectors::parser::SelectorParseError;
 use self::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
 use self::url::SpecifiedUrl;
 use std::ascii::AsciiExt;
@@ -372,7 +373,7 @@ pub fn parse_border_radius<'i, 't>(context: &ParserContext, input: &mut Parser<'
             "thick" => Ok(BorderRadiusSize::circle(
                               LengthOrPercentage::Length(NoCalcLength::from_px(5.)))),
             _ => Err(())
-        }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
+        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
     })
 }
 
@@ -386,7 +387,7 @@ pub fn parse_border_width<'i, 't>(context: &ParserContext, input: &mut Parser<'i
             "medium" => Ok(Length::from_px(3.)),
             "thick" => Ok(Length::from_px(5.)),
             _ => Err(())
-        }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
+        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
     })
 }
 
@@ -421,7 +422,7 @@ impl BorderWidth {
                    "medium" => Ok(BorderWidth::Medium),
                    "thick" => Ok(BorderWidth::Thick),
                    _ => Err(())
-                }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
+                }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
             }
         }
     }
@@ -1008,7 +1009,7 @@ impl SVGPaintKind {
             "context-fill" => Ok(SVGPaintKind::ContextFill),
             "context-stroke" => Ok(SVGPaintKind::ContextStroke),
             _ => Err(()),
-        }).map_err(|()| BasicParseError::UnexpectedToken(Token::Ident(ident)).into())
+        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
     }
 }
 
@@ -1236,8 +1237,9 @@ impl Parse for ClipRect {
             }
         }
 
-        if !try!(input.expect_function()).eq_ignore_ascii_case("rect") {
-            return Err(BasicParseError::ExpectedToken(Token::Function("rect".into())).into())
+        let func = try!(input.expect_function());
+        if !func.eq_ignore_ascii_case("rect") {
+            return Err(StyleParseError::UnexpectedFunction(func).into())
         }
 
         input.parse_nested_block(|input| {
