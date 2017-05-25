@@ -71,7 +71,9 @@ pub struct VRDisplay {
     frame_data_status: Cell<VRFrameDataStatus>,
     #[ignore_heap_size_of = "channels are hard"]
     frame_data_receiver: DOMRefCell<Option<IpcReceiver<Result<Vec<u8>, ()>>>>,
-    running_display_raf: Cell<bool>
+    running_display_raf: Cell<bool>,
+    paused: Cell<bool>,
+    stopped_on_pause: Cell<bool>,
 }
 
 unsafe_no_jsmanaged_fields!(WebVRDisplayData);
@@ -112,6 +114,12 @@ impl VRDisplay {
             frame_data_status: Cell::new(VRFrameDataStatus::Waiting),
             frame_data_receiver: DOMRefCell::new(None),
             running_display_raf: Cell::new(false),
+            // Some VR implementations (e.g. Daydream) can be paused in some life cycle situations
+            // such as showing and hiding the controller pairing screen.
+            paused: Cell::new(false),
+            // This flag is set when the Display was presenting when it received a VR Pause event.
+            // When the VR Resume event is received and the flag is set, VR presentation automatically restarts.
+            stopped_on_pause: Cell::new(false)
         }
     }
 
@@ -428,6 +436,30 @@ impl VRDisplay {
                 // Change event doesn't exist in WebVR spec.
                 // So we update display data but don't notify JS.
                 self.update_display(&display);
+            },
+            WebVRDisplayEvent::Pause(_) => {
+                if self.paused.get() {
+                    return;
+                }
+                self.paused.set(true);
+                if self.presenting.get() {
+                    self.stop_present();
+                    self.stopped_on_pause.set(true);
+                }
+
+            },
+            WebVRDisplayEvent::Resume(_) => {
+                self.paused.set(false);
+                if self.stopped_on_pause.get() {
+                    self.stopped_on_pause.set(false);
+                    self.init_present();
+                }
+            },
+            WebVRDisplayEvent::Exit(_) => {
+                self.stopped_on_pause.set(false);
+                if self.presenting.get() {
+                    self.stop_present();
+                }
             }
         };
     }

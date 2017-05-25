@@ -29,4 +29,4 @@ env_logger = "0.4"
 xdg = "2.0"
 
 [target.'cfg(target_os = "android")'.dependencies]
-android_injected_glue = {git = "https://github.com/mmatyas/android-rs-injected-glue"}
+android_injected_glue = "0.2"
