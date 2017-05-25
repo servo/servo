@@ -112,7 +112,7 @@ impl FontRelativeLength {
 
         let reference_font_size = base_size.resolve(context);
 
-        let root_font_size = context.style().root_font_size;
+        let root_font_size = context.device.root_font_size();
         match *self {
             FontRelativeLength::Em(length) => reference_font_size.scale_by(length),
             FontRelativeLength::Ex(length) => {
