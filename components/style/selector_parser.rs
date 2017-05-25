@@ -103,9 +103,6 @@ pub enum PseudoElementCascadeType {
 
 /// An extension to rust-selector's `Element` trait.
 pub trait ElementExt: Element<Impl=SelectorImpl> + Debug {
-    /// Whether this element is a `link`.
-    fn is_link(&self) -> bool;
-
     /// Whether this element should match user and author rules.
     ///
     /// We use this for Native Anonymous Content in Gecko.

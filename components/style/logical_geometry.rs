@@ -10,6 +10,7 @@ use euclid::side_offsets::SideOffsets2D;
 use std::cmp::{max, min};
 use std::fmt::{self, Debug, Error, Formatter};
 use std::ops::{Add, Sub};
+use unicode_bidi as bidi;
 
 pub enum BlockFlowDirection {
     TopToBottom,
@@ -131,9 +132,13 @@ impl WritingMode {
     #[inline]
     /// The default bidirectional embedding level for this writing mode.
     ///
-    /// Returns 0 if the mode is LTR, or 1 otherwise.
-    pub fn to_bidi_level(&self) -> u8 {
-        !self.is_bidi_ltr() as u8
+    /// Returns bidi level 0 if the mode is LTR, or 1 otherwise.
+    pub fn to_bidi_level(&self) -> bidi::Level {
+        if self.is_bidi_ltr() {
+            bidi::Level::ltr()
+        } else {
+            bidi::Level::rtl()
+        }
     }
 }
 

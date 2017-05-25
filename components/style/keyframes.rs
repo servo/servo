@@ -71,7 +71,7 @@ impl KeyframePercentage {
 
 /// A keyframes selector is a list of percentages or from/to symbols, which are
 /// converted at parse time to percentages.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct KeyframeSelector(Vec<KeyframePercentage>);
 
 impl ToCss for KeyframeSelector {
@@ -149,6 +149,16 @@ impl Keyframe {
             declarations: &mut declarations,
         };
         parse_one_rule(&mut input, &mut rule_parser)
+    }
+
+    /// Deep clones this Keyframe.
+    pub fn deep_clone_with_lock(&self,
+                                lock: &SharedRwLock) -> Keyframe {
+        let guard = lock.read();
+        Keyframe {
+            selector: self.selector.clone(),
+            block: Arc::new(lock.wrap(self.block.read_with(&guard).clone())),
+        }
     }
 }
 

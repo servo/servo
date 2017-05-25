@@ -239,6 +239,10 @@ impl Atom {
 
     /// Return whether two atoms are ASCII-case-insensitive matches
     pub fn eq_ignore_ascii_case(&self, other: &Self) -> bool {
+        if self == other {
+            return true;
+        }
+
         let a = self.as_slice();
         let b = other.as_slice();
         a.len() == b.len() && a.iter().zip(b).all(|(&a16, &b16)| {

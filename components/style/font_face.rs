@@ -194,7 +194,7 @@ macro_rules! font_face_descriptors_common {
         /// Data inside a `@font-face` rule.
         ///
         /// https://drafts.csswg.org/css-fonts/#font-face-rule
-        #[derive(Debug, PartialEq, Eq)]
+        #[derive(Clone, Debug, PartialEq, Eq)]
         pub struct FontFaceRuleData {
             $(
                 #[$doc]

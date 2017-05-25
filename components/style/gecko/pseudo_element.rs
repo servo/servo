@@ -49,6 +49,15 @@ impl PseudoElement {
         PseudoElementCascadeType::Lazy
     }
 
+    /// Whether the pseudo-element should inherit from the default computed
+    /// values instead of from the parent element.
+    ///
+    /// This is not the common thing, but there are some pseudos (namely:
+    /// ::backdrop), that shouldn't inherit from the parent element.
+    pub fn inherits_from_default_values(&self) -> bool {
+        matches!(*self, PseudoElement::Backdrop)
+    }
+
     /// Gets the canonical index of this eagerly-cascaded pseudo-element.
     #[inline]
     pub fn eager_index(&self) -> usize {
@@ -92,6 +101,15 @@ impl PseudoElement {
     #[inline]
     pub fn is_precomputed(&self) -> bool {
         self.is_anon_box()
+    }
+
+    /// Covert non-canonical pseudo-element to canonical one, and keep a
+    /// canonical one as it is.
+    pub fn canonical(&self) -> PseudoElement {
+        match *self {
+            PseudoElement::MozPlaceholder => PseudoElement::Placeholder,
+            _ => self.clone(),
+        }
     }
 }
 

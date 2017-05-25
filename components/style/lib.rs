@@ -83,6 +83,7 @@ extern crate style_derive;
 #[macro_use]
 extern crate style_traits;
 extern crate time;
+extern crate unicode_bidi;
 #[allow(unused_extern_crates)]
 extern crate unicode_segmentation;
 
@@ -119,6 +120,7 @@ pub mod parser;
 pub mod restyle_hints;
 pub mod rule_tree;
 pub mod scoped_tls;
+pub mod selector_map;
 pub mod selector_parser;
 pub mod shared_lock;
 pub mod sharing;

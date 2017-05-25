@@ -87,8 +87,9 @@ use ref_filter_map::ref_filter_map;
 use script_layout_interface::message::ReflowQueryType;
 use script_thread::Runnable;
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint};
-use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode, matches_selector_list};
+use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode};
 use selectors::matching::{HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
+use selectors::matching::{RelevantLinkStatus, matches_selector_list};
 use servo_atoms::Atom;
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
@@ -2429,6 +2430,7 @@ impl<'a> ::selectors::Element for Root<Element> {
     fn match_non_ts_pseudo_class<F>(&self,
                                     pseudo_class: &NonTSPseudoClass,
                                     _: &mut MatchingContext,
+                                    _: &RelevantLinkStatus,
                                     _: &mut F)
                                     -> bool
         where F: FnMut(&Self, ElementSelectorFlags),
@@ -2475,6 +2477,20 @@ impl<'a> ::selectors::Element for Root<Element> {
             NonTSPseudoClass::PlaceholderShown |
             NonTSPseudoClass::Target =>
                 Element::state(self).contains(pseudo_class.state_flag()),
+        }
+    }
+
+    fn is_link(&self) -> bool {
+        // FIXME: This is HTML only.
+        let node = self.upcast::<Node>();
+        match node.type_id() {
+            // https://html.spec.whatwg.org/multipage/#selector-link
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => {
+                self.has_attribute(&local_name!("href"))
+            },
+            _ => false,
         }
     }
 
@@ -2589,20 +2605,6 @@ impl Element {
                 }
                 None
             }
-        }
-    }
-
-    fn is_link(&self) -> bool {
-        // FIXME: This is HTML only.
-        let node = self.upcast::<Node>();
-        match node.type_id() {
-            // https://html.spec.whatwg.org/multipage/#selector-link
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => {
-                self.has_attribute(&local_name!("href"))
-            },
-            _ => false,
         }
     }
 

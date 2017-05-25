@@ -4,7 +4,7 @@
 
 //! Traversing the DOM tree; the bloom filter.
 
-use atomic_refcell::{AtomicRefCell, AtomicRefMut};
+use atomic_refcell::AtomicRefCell;
 use context::{SharedStyleContext, StyleContext, ThreadLocalStyleContext};
 use data::{ElementData, ElementStyles, StoredRestyleHint};
 use dom::{DirtyDescendants, NodeInfo, OpaqueNode, TElement, TNode};
@@ -13,6 +13,7 @@ use restyle_hints::{HintComputationContext, RestyleHint};
 use selector_parser::RestyleDamage;
 use sharing::StyleSharingBehavior;
 #[cfg(feature = "servo")] use servo_config::opts;
+use smallvec::SmallVec;
 use std::borrow::BorrowMut;
 
 /// A per-traversal-level chunk of data. This is sent down by the traversal, and
@@ -41,6 +42,8 @@ bitflags! {
         /// Traverse and update all elements with CSS animations since
         /// @keyframes rules may have changed
         const FOR_CSS_RULE_CHANGES = 0x08,
+        /// Only include user agent style sheets when selector matching.
+        const FOR_DEFAULT_STYLES = 0x10,
     }
 }
 
@@ -63,6 +66,12 @@ impl TraversalFlags {
     /// Returns true if the traversal is triggered by CSS rule changes.
     pub fn for_css_rule_changes(&self) -> bool {
         self.contains(FOR_CSS_RULE_CHANGES)
+    }
+
+    /// Returns true if the traversal is to compute the default computed
+    /// styles for an element.
+    pub fn for_default_styles(&self) -> bool {
+        self.contains(FOR_DEFAULT_STYLES)
     }
 }
 
@@ -537,10 +546,13 @@ fn resolve_style_internal<E, F>(context: &mut StyleContext<E>,
                                   StyleSharingBehavior::Disallow);
         context.thread_local.end_element(element);
 
-        // Conservatively mark us as having dirty descendants, since there might
-        // be other unstyled siblings we miss when walking straight up the parent
-        // chain.
-        unsafe { element.note_descendants::<DirtyDescendants>() };
+        if !context.shared.traversal_flags.for_default_styles() {
+            // Conservatively mark us as having dirty descendants, since there might
+            // be other unstyled siblings we miss when walking straight up the parent
+            // chain.  No need to do this if we're computing default styles, since
+            // resolve_default_style will want the tree to be left as it is.
+            unsafe { element.note_descendants::<DirtyDescendants>() };
+        }
     }
 
     // If we're display:none and none of our ancestors are, we're the root
@@ -598,6 +610,47 @@ pub fn resolve_style<E, F, G, H>(context: &mut StyleContext<E>, element: E,
     }
 }
 
+/// Manually resolve default styles for the given Element, which are the styles
+/// only taking into account user agent and user cascade levels.  The resolved
+/// style is made available via a callback, and will be dropped by the time this
+/// function returns.
+pub fn resolve_default_style<E, F, G, H>(context: &mut StyleContext<E>,
+                                         element: E,
+                                         ensure_data: &F,
+                                         set_data: &G,
+                                         callback: H)
+    where E: TElement,
+          F: Fn(E),
+          G: Fn(E, Option<ElementData>) -> Option<ElementData>,
+          H: FnOnce(&ElementStyles)
+{
+    // Save and clear out element data from the element and its ancestors.
+    let mut old_data: SmallVec<[(E, Option<ElementData>); 8]> = SmallVec::new();
+    {
+        let mut e = element;
+        loop {
+            old_data.push((e, set_data(e, None)));
+            match e.parent_element() {
+                Some(parent) => e = parent,
+                None => break,
+            }
+        }
+    }
+
+    // Resolve styles up the tree.
+    resolve_style_internal(context, element, ensure_data);
+
+    // Make them available for the scope of the callback. The callee may use the
+    // argument, or perform any other processing that requires the styles to exist
+    // on the Element.
+    callback(element.borrow_data().unwrap().styles());
+
+    // Swap the old element data back into the element and its ancestors.
+    for entry in old_data {
+        set_data(entry.0, entry.1);
+    }
+}
+
 /// Calculates the style for a single node.
 #[inline]
 #[allow(unsafe_code)]
@@ -605,11 +658,11 @@ pub fn recalc_style_at<E, D>(traversal: &D,
                              traversal_data: &PerLevelTraversalData,
                              context: &mut StyleContext<E>,
                              element: E,
-                             mut data: &mut AtomicRefMut<ElementData>)
+                             data: &mut ElementData)
     where E: TElement,
           D: DomTraversal<E>
 {
-    context.thread_local.begin_element(element, &data);
+    context.thread_local.begin_element(element, data);
     context.thread_local.statistics.elements_traversed += 1;
     debug_assert!(!element.has_snapshot() || element.handled_snapshot(),
                   "Should've handled snapshots here already");
@@ -625,7 +678,7 @@ pub fn recalc_style_at<E, D>(traversal: &D,
 
     // Compute style for this element if necessary.
     if compute_self {
-        match compute_style(traversal, traversal_data, context, element, &mut data) {
+        match compute_style(traversal, traversal_data, context, element, data) {
             ChildCascadeRequirement::MustCascade => {
                 inherited_style_changed = true;
             }
@@ -728,7 +781,8 @@ fn compute_style<E, D>(_traversal: &D,
                        traversal_data: &PerLevelTraversalData,
                        context: &mut StyleContext<E>,
                        element: E,
-                       mut data: &mut AtomicRefMut<ElementData>) -> ChildCascadeRequirement
+                       data: &mut ElementData)
+                       -> ChildCascadeRequirement
     where E: TElement,
           D: DomTraversal<E>,
 {
@@ -742,7 +796,7 @@ fn compute_style<E, D>(_traversal: &D,
     // of the work.
     if let MatchAndCascade = kind {
         let sharing_result = unsafe {
-            element.share_style_if_possible(context, &mut data)
+            element.share_style_if_possible(context, data)
         };
         if let StyleWasShared(index, had_damage) = sharing_result {
             context.thread_local.statistics.styles_shared += 1;
@@ -764,22 +818,22 @@ fn compute_style<E, D>(_traversal: &D,
             // Perform the matching and cascading.
             element.match_and_cascade(
                 context,
-                &mut data,
+                data,
                 StyleSharingBehavior::Allow
             )
         }
         CascadeWithReplacements(flags) => {
-            let rules_changed = element.replace_rules(flags, context, &mut data);
+            let important_rules_changed = element.replace_rules(flags, context, data);
             element.cascade_primary_and_pseudos(
                 context,
-                &mut data,
-                rules_changed.important_rules_changed()
+                data,
+                important_rules_changed
             )
         }
         CascadeOnly => {
             element.cascade_primary_and_pseudos(
                 context,
-                &mut data,
+                data,
                 /* important_rules_changed = */ false
             )
         }

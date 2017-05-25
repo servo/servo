@@ -4,7 +4,7 @@ version = "0.0.1"
 dependencies = [
  "ipc-channel 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
- "rust-webvr 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rust-webvr 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.9.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 0.9.15 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -35,7 +35,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "android_injected_glue"
 version = "0.2.2"
-source = "git+https://github.com/mmatyas/android-rs-injected-glue#1995be2c692d8d1f4c82d387c06c56451721cc38"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "angle"
@@ -263,7 +263,7 @@ name = "blurz"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "dbus 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dbus 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.24 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -569,7 +569,7 @@ dependencies = [
 
 [[package]]
 name = "dbus"
-version = "0.5.2"
+version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -971,7 +971,7 @@ dependencies = [
  "log 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "nsstring_vendor 0.1.0",
  "parking_lot 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "selectors 0.18.0",
+ "selectors 0.19.0",
  "style 0.0.1",
  "style_traits 0.0.1",
  "stylo_tests 0.0.1",
@@ -1021,6 +1021,7 @@ dependencies = [
  "style_traits 0.0.1",
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
  "truetype 0.26.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicode-bidi 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-script 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "webrender_traits 0.39.0 (git+https://github.com/servo/webrender)",
  "xi-unicode 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1231,11 +1232,11 @@ dependencies = [
 
 [[package]]
 name = "idna"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "matches 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "unicode-bidi 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicode-bidi 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-normalization 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1397,7 +1398,7 @@ dependencies = [
  "rayon 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "script_layout_interface 0.0.1",
  "script_traits 0.0.1",
- "selectors 0.18.0",
+ "selectors 0.19.0",
  "serde 0.9.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 0.9.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 0.9.10 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1407,7 +1408,7 @@ dependencies = [
  "smallvec 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "style_traits 0.0.1",
- "unicode-bidi 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicode-bidi 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-script 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "webrender_traits 0.39.0 (git+https://github.com/servo/webrender)",
 ]
@@ -1445,7 +1446,7 @@ dependencies = [
  "script 0.0.1",
  "script_layout_interface 0.0.1",
  "script_traits 0.0.1",
- "selectors 0.18.0",
+ "selectors 0.19.0",
  "serde_derive 0.9.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 0.9.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_config 0.0.1",
@@ -2267,11 +2268,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "rust-webvr"
-version = "0.3.1"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
+ "android_injected_glue 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl_generator 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "libloading 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libloading 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.9.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 0.9.15 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2368,7 +2370,7 @@ dependencies = [
  "script_layout_interface 0.0.1",
  "script_plugins 0.0.1",
  "script_traits 0.0.1",
- "selectors 0.18.0",
+ "selectors 0.19.0",
  "serde 0.9.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 0.9.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_atoms 0.0.1",
@@ -2412,7 +2414,7 @@ dependencies = [
  "profile_traits 0.0.1",
  "range 0.0.1",
  "script_traits 0.0.1",
- "selectors 0.18.0",
+ "selectors 0.19.0",
  "servo_url 0.0.1",
  "style 0.0.1",
  "webrender_traits 0.39.0 (git+https://github.com/servo/webrender)",
@@ -2465,7 +2467,7 @@ dependencies = [
 
 [[package]]
 name = "selectors"
-version = "0.18.0"
+version = "0.19.0"
 dependencies = [
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.13.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2518,10 +2520,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_test"
+version = "0.9.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "serde 0.9.15 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "servo"
 version = "0.0.1"
 dependencies = [
- "android_injected_glue 0.2.2 (git+https://github.com/mmatyas/android-rs-injected-glue)",
+ "android_injected_glue 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "backtrace 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "browserhtml 0.1.17 (git+https://github.com/browserhtml/browserhtml?branch=crate)",
  "compiletest_helper 0.0.1",
@@ -2651,7 +2661,7 @@ dependencies = [
 name = "servo_config"
 version = "0.0.1"
 dependencies = [
- "android_injected_glue 0.2.2 (git+https://github.com/mmatyas/android-rs-injected-glue)",
+ "android_injected_glue 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "getopts 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2860,7 +2870,7 @@ dependencies = [
  "precomputed-hash 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rayon 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "selectors 0.18.0",
+ "selectors 0.19.0",
  "serde 0.9.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 0.9.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_atoms 0.0.1",
@@ -2871,6 +2881,7 @@ dependencies = [
  "style_traits 0.0.1",
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
  "toml 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicode-bidi 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-segmentation 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "walkdir 1.0.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -2896,7 +2907,7 @@ dependencies = [
  "parking_lot 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "rayon 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.24 (registry+https://github.com/rust-lang/crates.io-index)",
- "selectors 0.18.0",
+ "selectors 0.19.0",
  "servo_atoms 0.0.1",
  "servo_config 0.0.1",
  "servo_url 0.0.1",
@@ -2929,7 +2940,7 @@ dependencies = [
  "geckoservo 0.0.1",
  "libc 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "selectors 0.18.0",
+ "selectors 0.19.0",
  "size_of_test 0.0.1",
  "style 0.0.1",
  "style_traits 0.0.1",
@@ -3145,10 +3156,13 @@ dependencies = [
 
 [[package]]
 name = "unicode-bidi"
-version = "0.2.5"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "matches 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 0.9.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 0.9.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_test 0.9.15 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3194,7 +3208,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "encoding 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
- "idna 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "idna 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "matches 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -3446,7 +3460,7 @@ dependencies = [
 "checksum aho-corasick 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)" = "500909c4f87a9e52355b26626d890833e9e1d53ac566db76c36faa984b889699"
 "checksum alloc-no-stdlib 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b21f6ad9c9957eb5d70c3dee16d31c092b3cab339628f821766b05e6833d72b8"
 "checksum android_glue 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "d8289e9637439939cc92b1995b0972117905be88bc28116c86b64d6e589bcd38"
-"checksum android_injected_glue 0.2.2 (git+https://github.com/mmatyas/android-rs-injected-glue)" = "<none>"
+"checksum android_injected_glue 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7ec08bc5e100186b5223a24dcfe5655d1488aed9eafeb44fb9a0f67a4f53d0fc"
 "checksum angle 0.2.0 (git+https://github.com/servo/angle?branch=servo)" = "<none>"
 "checksum ansi_term 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)" = "23ac7c30002a5accbf7e8987d0632fa6de155b7c3d39d0067317a391e00a2ef6"
 "checksum antidote 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "34fde25430d87a9388dadbe6e34d7f72a462c8b43ac8d309b42b0a8505d7e2a5"
@@ -3495,7 +3509,7 @@ dependencies = [
 "checksum cssparser 0.13.5 (registry+https://github.com/rust-lang/crates.io-index)" = "88dc7bd2a41b9c6c66456ac709d9efead1deb390d2c252c59e0ddfff9cdf0c94"
 "checksum cssparser-macros 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "079adec4af52bb5275eadd004292028c79eb3c5f5b4ee8086a36d4197032f6df"
 "checksum dbghelp-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "97590ba53bcb8ac28279161ca943a924d1fd4a8fb3fa63302591647c4fc5b850"
-"checksum dbus 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)" = "47f881971824401c27bc1ff9f641d54ac66e0f409631806fa7be8cad8e6be450"
+"checksum dbus 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)" = "4aee01fb76ada3e5e7ca642ea6664ebf7308a810739ca2aca44909a1191ac254"
 "checksum debug_unreachable 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "9a032eac705ca39214d169f83e3d3da290af06d8d1d344d1baad2fd002dca4b3"
 "checksum deflate 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)" = "ebb02aaf4b775afc96684b8402510a338086974e38570a1f65bea8c202eb77a7"
 "checksum deque 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "1614659040e711785ed8ea24219140654da1729f3ec8a47a9719d041112fe7bf"
@@ -3549,7 +3563,7 @@ dependencies = [
 "checksum hyper 0.10.9 (registry+https://github.com/rust-lang/crates.io-index)" = "94da93321c171e26481afeebe8288757b0501901b7c5492648163d8ec4942ec5"
 "checksum hyper-openssl 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)" = "85a372eb692590b3fe014c196c30f9f52d4c42f58cd49dd94caeee1593c9cc37"
 "checksum hyper_serde 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)" = "a43d985c58afed6b59991932e1d9b5f2629472849f0062c0078d82fdc0b788bb"
-"checksum idna 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "6ac85ec3f80c8e4e99d9325521337e14ec7555c458a14e377d189659a427f375"
+"checksum idna 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "2233d4940b1f19f0418c158509cd7396b8d70a5db5705ce410914dc8fa603b37"
 "checksum image 0.12.4 (registry+https://github.com/rust-lang/crates.io-index)" = "d95816db758249fe16f23a4e23f1a3a817fe11892dbfd1c5836f625324702158"
 "checksum immeta 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)" = "0b9260463a221bfe3f02100c56e2d14c050d5ffe7e44a43d0a1b2b1f2b523502"
 "checksum inflate 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "e7e0062d2dc2f17d2f13750d95316ae8a2ff909af0fda957084f5defd87c43bb"
@@ -3634,7 +3648,7 @@ dependencies = [
 "checksum ref_slice 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "825740057197b7d43025e7faf6477eaabc03434e153233da02d1f44602f71527"
 "checksum regex 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "4278c17d0f6d62dfef0ab00028feb45bd7d2102843f80763474eeb1be8a10c01"
 "checksum regex-syntax 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "2f9191b1f57603095f105d317e375d19b1c9c5c3185ea9633a99a6dcbed04457"
-"checksum rust-webvr 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "454fc4c3a786029ab82c5528c14f01bf965f60f61b3f9b1ed51b4646223eab59"
+"checksum rust-webvr 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "263be07c1d462798df737e4dcc6920ac92727340b05985a0328e3a86c9592b19"
 "checksum rustc-demangle 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "3058a43ada2c2d0b92b3ae38007a2d0fa5e9db971be260e0171408a4ff471c95"
 "checksum rustc-serialize 0.3.24 (registry+https://github.com/rust-lang/crates.io-index)" = "dcf128d1287d2ea9d80910b5f1120d0b8eede3fbf1abe91c40d39ea7d51e6fda"
 "checksum rustc_version 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)" = "c5f5376ea5e30ce23c03eb77cbe4962b988deead10910c372b226388b594c084"
@@ -3645,6 +3659,7 @@ dependencies = [
 "checksum serde_codegen_internals 0.14.2 (registry+https://github.com/rust-lang/crates.io-index)" = "bc888bd283bd2420b16ad0d860e35ad8acb21941180a83a189bb2046f9d00400"
 "checksum serde_derive 0.9.15 (registry+https://github.com/rust-lang/crates.io-index)" = "978fd866f4d4872084a81ccc35e275158351d3b9fe620074e7d7504b816b74ba"
 "checksum serde_json 0.9.10 (registry+https://github.com/rust-lang/crates.io-index)" = "ad8bcf487be7d2e15d3d543f04312de991d631cfe1b43ea0ade69e6a8a5b16a1"
+"checksum serde_test 0.9.15 (registry+https://github.com/rust-lang/crates.io-index)" = "8ef7adefe71d2d715b39b93aeeee729e61dae3ac109a6e40e35e6e38317075a4"
 "checksum servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "21069a884c33fe6ee596975e1f3849ed88c4ec857fbaf11d33672d8ebe051217"
 "checksum servo-fontconfig 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "93f799b649b4a2bf362398910eca35240704c7e765e780349b2bb1070d892262"
 "checksum servo-fontconfig-sys 4.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "6be80777ee6edecbbbf8774c76e19dddfe336256c57a4ded06d6ad3df7be358e"
@@ -3690,7 +3705,7 @@ dependencies = [
 "checksum truetype 0.26.0 (registry+https://github.com/rust-lang/crates.io-index)" = "acec30350633d6dac9dc1a625786b6cbe9150664be941aac2c35ad7199eab877"
 "checksum typeable 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "1410f6f91f21d1612654e7cc69193b0334f909dcf2c790c4826254fbb86f8887"
 "checksum unicase 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "13a5906ca2b98c799f4b1ab4557b76367ebd6ae5ef14930ec841c74aed5f3764"
-"checksum unicode-bidi 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)" = "d3a078ebdd62c0e71a709c3d53d2af693fe09fe93fbff8344aebe289b78f9032"
+"checksum unicode-bidi 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "c44d4e7ce691e2538b886bf33669fd6da1653a12d741b9390f351955c0949c03"
 "checksum unicode-normalization 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "e28fa37426fceeb5cf8f41ee273faa7c82c47dc8fba5853402841e665fcd86ff"
 "checksum unicode-script 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "e5430ae21ef212551680d0021fc7dbd936e8b268c5ea8fdae8814e0b2496d80f"
 "checksum unicode-segmentation 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "18127285758f0e2c6cf325bb3f3d138a12fee27de4f23e146cd6a179f26c2cf3"

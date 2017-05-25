@@ -37,6 +37,7 @@ smallvec = "0.3"
 style = {path = "../style"}
 style_traits = {path = "../style_traits"}
 time = "0.1.12"
+unicode-bidi = {version = "0.3", features = ["with_serde"]}
 unicode-script = {version = "0.1", features = ["harfbuzz"]}
 webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 xi-unicode = "0.1.0"
