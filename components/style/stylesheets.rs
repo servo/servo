@@ -1123,56 +1123,69 @@ impl<'a, 'b, C> Iterator for RulesIterator<'a, 'b, C>
     type Item = &'a CssRule;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(mut nested_iter) = self.stack.pop() {
-             let rule = match nested_iter.next() {
-                Some(r) => r,
-                None => continue,
-            };
+        let mut nested_iter_finished = false;
+        while !self.stack.is_empty() {
+            if nested_iter_finished {
+                self.stack.pop();
+                nested_iter_finished = false;
+                continue;
+            }
 
-            let sub_iter = match *rule {
-                CssRule::Import(ref import_rule) => {
-                    let import_rule = import_rule.read_with(self.guard);
+            let rule;
+            let sub_iter;
+            {
+                let mut nested_iter = self.stack.last_mut().unwrap();
+                rule = match nested_iter.next() {
+                    Some(r) => r,
+                    None => {
+                        nested_iter_finished = true;
+                        continue
+                    }
+                };
 
-                    if C::process_import(self.guard, self.device, self.quirks_mode, import_rule) {
-                        Some(import_rule.stylesheet.rules.read_with(self.guard).0.iter())
-                    } else {
-                        None
-                    }
-                }
-                CssRule::Document(ref doc_rule) => {
-                    let doc_rule = doc_rule.read_with(self.guard);
-                    if C::process_document(self.guard, self.device, self.quirks_mode, doc_rule) {
-                        Some(doc_rule.rules.read_with(self.guard).0.iter())
-                    } else {
-                        None
-                    }
-                }
-                CssRule::Media(ref lock) => {
-                    let media_rule = lock.read_with(self.guard);
-                    if C::process_media(self.guard, self.device, self.quirks_mode, media_rule) {
-                        Some(media_rule.rules.read_with(self.guard).0.iter())
-                    } else {
-                        None
-                    }
-                }
-                CssRule::Supports(ref lock) => {
-                    let supports_rule = lock.read_with(self.guard);
-                    if C::process_supports(self.guard, self.device, self.quirks_mode, supports_rule) {
-                        Some(supports_rule.rules.read_with(self.guard).0.iter())
-                    } else {
-                        None
-                    }
-                }
-                CssRule::Namespace(_) |
-                CssRule::Style(_) |
-                CssRule::FontFace(_) |
-                CssRule::CounterStyle(_) |
-                CssRule::Viewport(_) |
-                CssRule::Keyframes(_) |
-                CssRule::Page(_) => None,
-            };
+                sub_iter = match *rule {
+                    CssRule::Import(ref import_rule) => {
+                        let import_rule = import_rule.read_with(self.guard);
 
-            self.stack.push(nested_iter);
+                        if C::process_import(self.guard, self.device, self.quirks_mode, import_rule) {
+                            Some(import_rule.stylesheet.rules.read_with(self.guard).0.iter())
+                        } else {
+                            None
+                        }
+                    }
+                    CssRule::Document(ref doc_rule) => {
+                        let doc_rule = doc_rule.read_with(self.guard);
+                        if C::process_document(self.guard, self.device, self.quirks_mode, doc_rule) {
+                            Some(doc_rule.rules.read_with(self.guard).0.iter())
+                        } else {
+                            None
+                        }
+                    }
+                    CssRule::Media(ref lock) => {
+                        let media_rule = lock.read_with(self.guard);
+                        if C::process_media(self.guard, self.device, self.quirks_mode, media_rule) {
+                            Some(media_rule.rules.read_with(self.guard).0.iter())
+                        } else {
+                            None
+                        }
+                    }
+                    CssRule::Supports(ref lock) => {
+                        let supports_rule = lock.read_with(self.guard);
+                        if C::process_supports(self.guard, self.device, self.quirks_mode, supports_rule) {
+                            Some(supports_rule.rules.read_with(self.guard).0.iter())
+                        } else {
+                            None
+                        }
+                    }
+                    CssRule::Namespace(_) |
+                    CssRule::Style(_) |
+                    CssRule::FontFace(_) |
+                    CssRule::CounterStyle(_) |
+                    CssRule::Viewport(_) |
+                    CssRule::Keyframes(_) |
+                    CssRule::Page(_) => None,
+                };
+            }
 
             if let Some(sub_iter) = sub_iter {
                 self.stack.push(sub_iter);
