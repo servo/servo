@@ -4001,12 +4001,18 @@ impl super::%s {
     }
 }
 
+impl Default for super::%s {
+  fn default() -> super::%s {
+    pairs[0].1
+  }
+}
+
 impl ToJSValConvertible for super::%s {
     unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         pairs[*self as usize].0.to_jsval(cx, rval);
     }
 }
-    """ % (ident, pairs, ident, ident)
+    """ % (ident, pairs, ident, ident, ident, ident)
         self.cgRoot = CGList([
             CGGeneric(decl),
             CGNamespace.build([ident + "Values"],
@@ -5916,17 +5922,22 @@ class CGDictionary(CGThing):
                        (self.makeMemberName(m[0].identifier.name), self.getMemberType(m))
                        for m in self.memberInfo]
 
-        mustRoot = "#[must_root]\n" if self.membersNeedTracing() else ""
+        derive = ["JSTraceable"]
+        mustRoot = ""
+        if self.membersNeedTracing():
+            mustRoot = "#[must_root]\n"
+            derive += ["Default"]
 
         return (string.Template(
-                "#[derive(JSTraceable)]\n"
+                "#[derive(${derive})]\n"
                 "${mustRoot}" +
                 "pub struct ${selfName} {\n" +
                 "${inheritance}" +
                 "\n".join(memberDecls) + "\n" +
                 "}").substitute({"selfName": self.makeClassName(d),
                                  "inheritance": inheritance,
-                                 "mustRoot": mustRoot}))
+                                 "mustRoot": mustRoot,
+                                 "derive": ', '.join(derive)}))
 
     def impl(self):
         d = self.dictionary

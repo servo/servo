@@ -695,6 +695,12 @@ impl<T: JSTraceable + 'static> RootedTraceableBox<T> {
     }
 }
 
+impl<T: JSTraceable + Default> Default for RootedTraceableBox<T> {
+    fn default() -> RootedTraceableBox<T> {
+        RootedTraceableBox::new(T::default())
+    }
+}
+
 impl<T: JSTraceable> Deref for RootedTraceableBox<T> {
     type Target = T;
     fn deref(&self) -> &T {
