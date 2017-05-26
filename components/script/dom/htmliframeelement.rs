@@ -498,7 +498,7 @@ unsafe fn build_mozbrowser_event_detail(event: MozBrowserEvent,
         }
         MozBrowserEvent::LocationChange(url, can_go_back, can_go_forward) => {
             BrowserElementLocationChangeEventDetail {
-                url: Some(DOMString::from(url.as_str())),
+                url: Some(DOMString::from(url)),
                 canGoBack: Some(can_go_back),
                 canGoForward: Some(can_go_forward),
             }.to_jsval(cx, rval);

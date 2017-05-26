@@ -903,7 +903,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.handle_init_load(url);
             }
             // Handle a forward or back request
-            // Handle a forward or back request
             FromCompositorMsg::TraverseHistory(top_level_browsing_context_id, direction) => {
                 debug!("constellation got traverse history message from compositor");
                 self.handle_traverse_history_msg(top_level_browsing_context_id, direction);
@@ -2800,7 +2799,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                         let top_level_browsing_context_id = self.browsing_contexts.get(&pipeline.browsing_context_id)
                             .map(|browsing_context| browsing_context.top_level_id)
                             .unwrap_or(self.root_browsing_context_id);
-                        let url = pipeline.url.clone();
+                        let url = pipeline.url.to_string();
                         let can_go_forward = !self.joint_session_future_is_empty(top_level_browsing_context_id);
                         let can_go_back = !self.joint_session_past_is_empty(top_level_browsing_context_id);
                         let event = MozBrowserEvent::LocationChange(url, can_go_back, can_go_forward);

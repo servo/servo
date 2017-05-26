@@ -602,7 +602,7 @@ pub enum MozBrowserEvent {
     /// Sent when the browser `<iframe>` starts to load a new page.
     LoadStart,
     /// Sent when a browser `<iframe>`'s location changes.
-    LocationChange(ServoUrl, bool, bool),
+    LocationChange(String, bool, bool),
     /// Sent when a new tab is opened within a browser `<iframe>` as a result of the user
     /// issuing a command to open a link target in a new tab (for example ctrl/cmd + click.)
     /// Includes the URL.

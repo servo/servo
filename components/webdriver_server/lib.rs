@@ -782,7 +782,8 @@ impl Handler {
         let keys = try!(keycodes_to_keys(&keys.value).or_else(|_|
             Err(WebDriverError::new(ErrorStatus::UnsupportedOperation, "Failed to convert keycodes"))));
 
-        // TODO: there's a race condition caused by these being two separate messages,
+        // TODO: there's a race condition caused by the focus command and the
+        // send keys command being two separate messages,
         // so the constellation may have changed state between them.
         let cmd_msg = WebDriverCommandMsg::SendKeys(browsing_context_id, keys);
         self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
