@@ -14,7 +14,7 @@ use fnv::FnvHashSet;
 use selector_parser::SelectorImpl;
 use selectors::parser::{Component, Selector};
 use shared_lock::SharedRwLockReadGuard;
-use stylesheets::{CssRule, CssRules, Stylesheet};
+use stylesheets::{CssRule, Stylesheet};
 use stylist::Stylist;
 
 /// An invalidation scope represents a kind of subtree that may need to be
@@ -97,10 +97,13 @@ impl StylesheetInvalidationSet {
             return; // Nothing to do here.
         }
 
-        self.collect_invalidations_for_rule_list(
-            stylesheet.rules.read_with(guard),
-            stylist,
-            guard);
+        for rule in stylesheet.effective_rules(stylist.device(), guard) {
+            self.collect_invalidations_for_rule(rule, guard);
+            if self.fully_invalid {
+                self.invalid_scopes.clear();
+                break;
+            }
+        }
 
         debug!(" > resulting invalidations: {:?}", self.invalid_scopes);
         debug!(" > fully_invalid: {}", self.fully_invalid);
@@ -181,23 +184,6 @@ impl StylesheetInvalidationSet {
         return any_children_invalid
     }
 
-    /// Collects invalidations for a given list of CSS rules.
-    ///
-    /// TODO(emilio): Convert stylesheet.effective_rules into an iterator to
-    /// share code. This needs the ability to stop ASAP.
-    fn collect_invalidations_for_rule_list(
-        &mut self,
-        rules: &CssRules,
-        stylist: &Stylist,
-        guard: &SharedRwLockReadGuard)
-    {
-        for rule in &rules.0 {
-            if !self.collect_invalidations_for_rule(rule, stylist, guard) {
-                return;
-            }
-        }
-    }
-
     fn scan_component(
         component: &Component<SelectorImpl>,
         scope: &mut Option<InvalidationScope>)
@@ -264,77 +250,32 @@ impl StylesheetInvalidationSet {
     }
 
     /// Collects invalidations for a given CSS rule.
-    ///
-    /// Returns true if it needs to keep collecting invalidations for subsequent
-    /// rules in this list.
     fn collect_invalidations_for_rule(
         &mut self,
         rule: &CssRule,
-        stylist: &Stylist,
         guard: &SharedRwLockReadGuard)
-        -> bool
     {
         use stylesheets::CssRule::*;
         debug!("StylesheetInvalidationSet::collect_invalidations_for_rule");
         debug_assert!(!self.fully_invalid, "Not worth to be here!");
 
         match *rule {
-            Document(ref lock) => {
-                let doc_rule = lock.read_with(guard);
-                if !doc_rule.condition.evaluate(stylist.device()) {
-                    return false; // Won't apply anything else after this.
-                }
-            }
             Style(ref lock) => {
                 let style_rule = lock.read_with(guard);
                 for selector in &style_rule.selectors.0 {
                     self.collect_scopes(selector);
                     if self.fully_invalid {
-                        return false;
+                        return;
                     }
                 }
             }
-            Namespace(..) => {
-                // Irrelevant to which selector scopes match.
-            }
-            // NB: We need to do it here, we won't visit the appropriate sheet
-            // otherwise!
-            Import(ref lock) => {
-                let import_rule = lock.read_with(guard);
-
-                let mq = import_rule.stylesheet.media.read_with(guard);
-                if !mq.evaluate(stylist.device(), stylist.quirks_mode()) {
-                    return true;
-                }
-
-                self.collect_invalidations_for_rule_list(
-                    import_rule.stylesheet.rules.read_with(guard),
-                    stylist,
-                    guard);
-            }
-            Media(ref lock) => {
-                let media_rule = lock.read_with(guard);
-
-                let mq = media_rule.media_queries.read_with(guard);
-                if !mq.evaluate(stylist.device(), stylist.quirks_mode()) {
-                    return true;
-                }
-
-                self.collect_invalidations_for_rule_list(
-                    media_rule.rules.read_with(guard),
-                    stylist,
-                    guard);
-            }
-            Supports(ref lock) => {
-                let supports_rule = lock.read_with(guard);
-                if !supports_rule.enabled {
-                    return true;
-                }
-
-                self.collect_invalidations_for_rule_list(
-                    supports_rule.rules.read_with(guard),
-                    stylist,
-                    guard);
+            Document(..) |
+            Namespace(..) |
+            Import(..) |
+            Media(..) |
+            Supports(..) => {
+                // Do nothing, relevant nested rules are visited as part of the
+                // iteration.
             }
             FontFace(..) |
             CounterStyle(..) |
@@ -351,7 +292,5 @@ impl StylesheetInvalidationSet {
                 self.fully_invalid = true;
             }
         }
-
-        return !self.fully_invalid
     }
 }

@@ -39,10 +39,9 @@ use style_traits::viewport::ViewportConstraints;
 use stylearc::Arc;
 #[cfg(feature = "gecko")]
 use stylesheets::{CounterStyleRule, FontFaceRule};
-use stylesheets::{CssRule, Origin};
-use stylesheets::{StyleRule, Stylesheet, UserAgentStylesheets};
-#[cfg(feature = "servo")]
-use stylesheets::NestedRulesResult;
+use stylesheets::{CssRule, DocumentRule, ImportRule, MediaRule, StyleRule, SupportsRule};
+use stylesheets::{Stylesheet, Origin, UserAgentStylesheets};
+use stylesheets::NestedRuleIterationCondition;
 use thread_state;
 use viewport::{self, MaybeNew, ViewportRule};
 
@@ -79,10 +78,7 @@ pub struct Stylist {
     /// On Servo, on the other hand, the device is a really cheap representation
     /// that is recreated each time some constraint changes and calling
     /// `set_device`.
-    ///
-    /// In both cases, the device is actually _owned_ by the Stylist, and it's
-    /// only an `Arc` so we can implement `add_stylesheet` more idiomatically.
-    device: Arc<Device>,
+    device: Device,
 
     /// Viewport constraints based on the current device.
     viewport_constraints: Option<ViewportConstraints>,
@@ -226,6 +222,57 @@ impl From<StyleRuleInclusion> for RuleInclusion {
     }
 }
 
+/// A filter that filters over effective rules, but allowing all potentially
+/// effective `@media` rules.
+pub struct PotentiallyEffectiveMediaRules;
+
+impl NestedRuleIterationCondition for PotentiallyEffectiveMediaRules {
+    fn process_import(
+        _: &SharedRwLockReadGuard,
+        _: &Device,
+        _: QuirksMode,
+        _: &ImportRule)
+        -> bool
+    {
+        true
+    }
+
+    fn process_media(
+        _: &SharedRwLockReadGuard,
+        _: &Device,
+        _: QuirksMode,
+        _: &MediaRule)
+        -> bool
+    {
+        true
+    }
+
+    /// Whether we should process the nested rules in a given `@-moz-document` rule.
+    fn process_document(
+        guard: &SharedRwLockReadGuard,
+        device: &Device,
+        quirks_mode: QuirksMode,
+        rule: &DocumentRule)
+        -> bool
+    {
+        use stylesheets::EffectiveRules;
+        EffectiveRules::process_document(guard, device, quirks_mode, rule)
+    }
+
+    /// Whether we should process the nested rules in a given `@supports` rule.
+    fn process_supports(
+        guard: &SharedRwLockReadGuard,
+        device: &Device,
+        quirks_mode: QuirksMode,
+        rule: &SupportsRule)
+        -> bool
+    {
+        use stylesheets::EffectiveRules;
+        EffectiveRules::process_supports(guard, device, quirks_mode, rule)
+    }
+}
+
+
 impl Stylist {
     /// Construct a new `Stylist`, using given `Device` and `QuirksMode`.
     /// If more members are added here, think about whether they should
@@ -234,7 +281,7 @@ impl Stylist {
     pub fn new(device: Device, quirks_mode: QuirksMode) -> Self {
         let mut stylist = Stylist {
             viewport_constraints: None,
-            device: Arc::new(device),
+            device: device,
             is_device_dirty: true,
             is_cleared: true,
             quirks_mode: quirks_mode,
@@ -364,8 +411,7 @@ impl Stylist {
             ViewportConstraints::maybe_new(&self.device, &cascaded_rule, self.quirks_mode);
 
         if let Some(ref constraints) = self.viewport_constraints {
-            Arc::get_mut(&mut self.device).unwrap()
-                .account_for_viewport_rule(constraints);
+            self.device.account_for_viewport_rule(constraints);
         }
 
         SelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
@@ -431,31 +477,47 @@ impl Stylist {
     fn add_stylesheet<'a>(&mut self,
                           stylesheet: &Stylesheet,
                           guard: &SharedRwLockReadGuard,
-                          extra_data: &mut ExtraStyleData<'a>) {
+                          _extra_data: &mut ExtraStyleData<'a>) {
         if stylesheet.disabled() || !stylesheet.is_effective_for_device(&self.device, guard) {
             return;
         }
 
-        // Cheap `Arc` clone so that the closure below can borrow `&mut Stylist`.
-        let device = self.device.clone();
-
-        stylesheet.effective_rules(&device, guard, |rule| {
+        for rule in stylesheet.effective_rules(&self.device, guard) {
             match *rule {
                 CssRule::Style(ref locked) => {
                     let style_rule = locked.read_with(&guard);
                     self.num_declarations += style_rule.block.read_with(&guard).len();
                     for selector in &style_rule.selectors.0 {
                         self.num_selectors += 1;
-                        self.add_rule_to_map(selector, locked, stylesheet);
+
+                        let map = if let Some(pseudo) = selector.pseudo_element() {
+                            self.pseudos_map
+                                .entry(pseudo.canonical())
+                                .or_insert_with(PerPseudoElementSelectorMap::new)
+                                .borrow_for_origin(&stylesheet.origin)
+                        } else {
+                            self.element_map.borrow_for_origin(&stylesheet.origin)
+                        };
+
+                        map.insert(Rule::new(selector.clone(),
+                                             locked.clone(),
+                                             self.rules_source_order));
+
                         self.dependencies.note_selector(selector);
-                        self.note_for_revalidation(selector);
-                        self.note_attribute_and_state_dependencies(selector);
+                        if needs_revalidation(selector) {
+                            self.selectors_for_cache_revalidation.insert(selector.inner.clone());
+                        }
+                        selector.visit(&mut AttributeAndStateDependencyVisitor {
+                            attribute_dependencies: &mut self.attribute_dependencies,
+                            style_attribute_dependency: &mut self.style_attribute_dependency,
+                            state_dependencies: &mut self.state_dependencies,
+                        });
                     }
                     self.rules_source_order += 1;
                 }
-                CssRule::Import(ref import) => {
-                    let import = import.read_with(guard);
-                    self.add_stylesheet(&import.stylesheet, guard, extra_data)
+                CssRule::Import(..) => {
+                    // effective_rules visits the inner stylesheet if
+                    // appropriate.
                 }
                 CssRule::Keyframes(ref keyframes_rule) => {
                     let keyframes_rule = keyframes_rule.read_with(guard);
@@ -474,42 +536,15 @@ impl Stylist {
                 }
                 #[cfg(feature = "gecko")]
                 CssRule::FontFace(ref rule) => {
-                    extra_data.add_font_face(&rule, stylesheet.origin);
+                    _extra_data.add_font_face(&rule, stylesheet.origin);
                 }
                 #[cfg(feature = "gecko")]
                 CssRule::CounterStyle(ref rule) => {
-                    extra_data.add_counter_style(guard, &rule);
+                    _extra_data.add_counter_style(guard, &rule);
                 }
                 // We don't care about any other rule.
                 _ => {}
             }
-        });
-    }
-
-    #[inline]
-    fn add_rule_to_map(&mut self,
-                       selector: &Selector<SelectorImpl>,
-                       rule: &Arc<Locked<StyleRule>>,
-                       stylesheet: &Stylesheet)
-    {
-        let map = if let Some(pseudo) = selector.pseudo_element() {
-            self.pseudos_map
-                .entry(pseudo.canonical())
-                .or_insert_with(PerPseudoElementSelectorMap::new)
-                .borrow_for_origin(&stylesheet.origin)
-        } else {
-            self.element_map.borrow_for_origin(&stylesheet.origin)
-        };
-
-        map.insert(Rule::new(selector.clone(),
-                             rule.clone(),
-                             self.rules_source_order));
-    }
-
-    #[inline]
-    fn note_for_revalidation(&mut self, selector: &Selector<SelectorImpl>) {
-        if needs_revalidation(selector) {
-            self.selectors_for_cache_revalidation.insert(selector.inner.clone());
         }
     }
 
@@ -518,12 +553,7 @@ impl Stylist {
     pub fn might_have_attribute_dependency(&self,
                                            local_name: &LocalName)
                                            -> bool {
-        #[cfg(feature = "servo")]
-        let style_lower_name = local_name!("style");
-        #[cfg(feature = "gecko")]
-        let style_lower_name = atom!("style");
-
-        if *local_name == style_lower_name {
+        if *local_name == local_name!("style") {
             self.style_attribute_dependency
         } else {
             self.attribute_dependencies.might_contain(local_name)
@@ -534,11 +564,6 @@ impl Stylist {
     /// of some rule in the stylist.
     pub fn has_state_dependency(&self, state: ElementState) -> bool {
         self.state_dependencies.intersects(state)
-    }
-
-    #[inline]
-    fn note_attribute_and_state_dependencies(&mut self, selector: &Selector<SelectorImpl>) {
-        selector.visit(&mut AttributeAndStateDependencyVisitor(self));
     }
 
     /// Computes the style for a given "precomputed" pseudo-element, taking the
@@ -791,44 +816,62 @@ impl Stylist {
             device.account_for_viewport_rule(constraints);
         }
 
-        fn mq_eval_changed(guard: &SharedRwLockReadGuard, rules: &[CssRule],
-                           before: &Device, after: &Device, quirks_mode: QuirksMode) -> bool {
-            for rule in rules {
-                let changed = rule.with_nested_rules_mq_and_doc_rule(guard,
-                                                                     |result| {
-                    let rules = match result {
-                        NestedRulesResult::Rules(rules) => rules,
-                        NestedRulesResult::RulesWithMediaQueries(rules, mq) => {
-                            if mq.evaluate(before, quirks_mode) != mq.evaluate(after, quirks_mode) {
-                                return true;
-                            }
-                            rules
-                        },
-                        NestedRulesResult::RulesWithDocument(rules, doc_rule) => {
-                            if !doc_rule.condition.evaluate(before) {
-                                return false;
-                            }
-                            rules
-                        },
-                    };
-                    mq_eval_changed(guard, rules, before, after, quirks_mode)
-                });
-                if changed {
-                    return true
-                }
-            }
-            false
-        }
         self.is_device_dirty |= stylesheets.iter().any(|stylesheet| {
             let mq = stylesheet.media.read_with(guard);
             if mq.evaluate(&self.device, self.quirks_mode) != mq.evaluate(&device, self.quirks_mode) {
                 return true
             }
 
-            mq_eval_changed(guard, &stylesheet.rules.read_with(guard).0, &self.device, &device, self.quirks_mode)
+            let mut iter =
+                stylesheet.iter_rules::<PotentiallyEffectiveMediaRules>(
+                    &self.device,
+                    guard);
+
+            while let Some(rule) = iter.next() {
+                match *rule {
+                    CssRule::Style(..) |
+                    CssRule::Namespace(..) |
+                    CssRule::FontFace(..) |
+                    CssRule::CounterStyle(..) |
+                    CssRule::Supports(..) |
+                    CssRule::Keyframes(..) |
+                    CssRule::Page(..) |
+                    CssRule::Viewport(..) |
+                    CssRule::Document(..) => {
+                        // Not affected by device changes.
+                        continue;
+                    }
+                    CssRule::Import(ref lock) => {
+                        let import_rule = lock.read_with(guard);
+                        let mq = import_rule.stylesheet.media.read_with(guard);
+                        let effective_now = mq.evaluate(&self.device, self.quirks_mode);
+                        if effective_now != mq.evaluate(&device, self.quirks_mode) {
+                            return true;
+                        }
+
+                        if !effective_now {
+                            iter.skip_children();
+                        }
+                    }
+                    CssRule::Media(ref lock) => {
+                        let media_rule = lock.read_with(guard);
+                        let mq = media_rule.media_queries.read_with(guard);
+                        let effective_now = mq.evaluate(&self.device, self.quirks_mode);
+                        if effective_now != mq.evaluate(&device, self.quirks_mode) {
+                            return true;
+                        }
+
+                        if !effective_now {
+                            iter.skip_children();
+                        }
+                    }
+                }
+            }
+
+            return false;
         });
 
-        self.device = Arc::new(device);
+        self.device = device;
     }
 
     /// Returns the viewport constraints that apply to this document because of
@@ -1119,7 +1162,7 @@ impl Stylist {
     }
 
     /// Accessor for a mutable reference to the device.
-    pub fn device_mut(&mut self) -> &mut Arc<Device> {
+    pub fn device_mut(&mut self) -> &mut Device {
         &mut self.device
     }
 
@@ -1146,7 +1189,11 @@ impl Drop for Stylist {
 
 /// Visitor to collect names that appear in attribute selectors and any
 /// dependencies on ElementState bits.
-struct AttributeAndStateDependencyVisitor<'a>(&'a mut Stylist);
+struct AttributeAndStateDependencyVisitor<'a> {
+    attribute_dependencies: &'a mut BloomFilter,
+    style_attribute_dependency: &'a mut bool,
+    state_dependencies: &'a mut ElementState,
+}
 
 impl<'a> SelectorVisitor for AttributeAndStateDependencyVisitor<'a> {
     type Impl = SelectorImpl;
@@ -1160,17 +1207,17 @@ impl<'a> SelectorVisitor for AttributeAndStateDependencyVisitor<'a> {
         let style_lower_name = atom!("style");
 
         if *lower_name == style_lower_name {
-            self.0.style_attribute_dependency = true;
+            *self.style_attribute_dependency = true;
         } else {
-            self.0.attribute_dependencies.insert(&name);
-            self.0.attribute_dependencies.insert(&lower_name);
+            self.attribute_dependencies.insert(&name);
+            self.attribute_dependencies.insert(&lower_name);
         }
         true
     }
 
     fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) -> bool {
         if let Component::NonTSPseudoClass(ref p) = *s {
-            self.0.state_dependencies.insert(p.state_flag());
+            self.state_dependencies.insert(p.state_flag());
         }
         true
     }

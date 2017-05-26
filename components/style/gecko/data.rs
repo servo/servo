@@ -74,7 +74,7 @@ impl PerDocumentStyleDataImpl {
     ///
     /// Implies also a stylesheet flush.
     pub fn reset_device(&mut self, guard: &SharedRwLockReadGuard) {
-        Arc::get_mut(self.stylist.device_mut()).unwrap().reset();
+        self.stylist.device_mut().reset();
         self.stylesheets.force_dirty();
         self.flush_stylesheets::<GeckoElement>(guard, None);
     }

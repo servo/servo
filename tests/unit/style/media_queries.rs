@@ -13,7 +13,7 @@ use style::media_queries::*;
 use style::servo::media_queries::*;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard};
 use style::stylearc::Arc;
-use style::stylesheets::{Stylesheet, Origin, CssRule, NestedRulesResult};
+use style::stylesheets::{AllRules, Stylesheet, Origin, CssRule};
 use style::values::specified;
 use style_traits::ToCss;
 
@@ -39,31 +39,16 @@ fn test_media_rule<F>(css: &str, callback: F)
     let stylesheet = Stylesheet::from_str(
         css, url, Origin::Author, media_list, lock,
         None, &CSSErrorReporterTest, QuirksMode::NoQuirks, 0u64);
+    let dummy = Device::new(MediaType::Screen, TypedSize2D::new(200.0, 100.0));
     let mut rule_count = 0;
     let guard = stylesheet.shared_lock.read();
-    media_queries(&guard, &stylesheet.rules.read_with(&guard).0, &mut |mq| {
-        rule_count += 1;
-        callback(mq, css);
-    });
-    assert!(rule_count > 0, css_str);
-}
-
-fn media_queries<F>(guard: &SharedRwLockReadGuard, rules: &[CssRule], f: &mut F)
-    where F: FnMut(&MediaList),
-{
-    for rule in rules {
-        rule.with_nested_rules_mq_and_doc_rule(guard, |result| {
-            match result {
-                NestedRulesResult::Rules(rules) |
-                NestedRulesResult::RulesWithDocument(rules, _) => {
-                    media_queries(guard, rules, f)
-                },
-                NestedRulesResult::RulesWithMediaQueries(_, mq) => {
-                    f(mq)
-                }
-            }
-        })
+    for rule in stylesheet.iter_rules::<AllRules>(&dummy, &guard) {
+        if let CssRule::Media(ref lock) = *rule {
+            rule_count += 1;
+            callback(&lock.read_with(&guard).media_queries.read_with(&guard), css);
+        }
     }
+    assert!(rule_count > 0, css_str);
 }
 
 fn media_query_test(device: &Device, css: &str, expected_rule_count: usize) {
