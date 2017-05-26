@@ -14,7 +14,7 @@ use style_traits::CSSPixel;
 
 /// The constellation's view of a browsing context.
 /// Each browsing context has a session history, caused by
-/// navigation and traversing the history. Each browsing contest has its
+/// navigation and traversing the history. Each browsing context has its
 /// current entry, plus past and future entries. The past is sorted
 /// chronologically, the future is sorted reverse chronologically:
 /// in particular prev.pop() is the latest past entry, and
