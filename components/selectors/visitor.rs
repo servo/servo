@@ -37,7 +37,7 @@ pub trait SelectorVisitor {
     /// Visits a complex selector.
     ///
     /// Gets the combinator to the right of the selector, or `None` if the
-    /// selector is the leftmost one.
+    /// selector is the rightmost one.
     fn visit_complex_selector(&mut self,
                               _: SelectorIter<Self::Impl>,
                               _combinator_to_right: Option<Combinator>)
