@@ -369,7 +369,7 @@ impl RuleTree {
         let mut last = path;
         let mut children = vec![];
         for node in iter {
-            if node.cascade_level().is_animation() {
+            if !node.cascade_level().is_animation() {
                 children.push((node.get().source.clone().unwrap(), node.cascade_level()));
             }
             last = node;
