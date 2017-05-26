@@ -182,6 +182,9 @@ impl StylesheetInvalidationSet {
     }
 
     /// Collects invalidations for a given list of CSS rules.
+    ///
+    /// TODO(emilio): Convert stylesheet.effective_rules into an iterator to
+    /// share code. This needs the ability to stop ASAP.
     fn collect_invalidations_for_rule_list(
         &mut self,
         rules: &CssRules,
@@ -294,8 +297,20 @@ impl StylesheetInvalidationSet {
             Namespace(..) => {
                 // Irrelevant to which selector scopes match.
             }
-            Import(..) => {
-                // We'll visit the appropriate stylesheet if/when it matters.
+            // NB: We need to do it here, we won't visit the appropriate sheet
+            // otherwise!
+            Import(ref lock) => {
+                let import_rule = lock.read_with(guard);
+
+                let mq = import_rule.stylesheet.media.read_with(guard);
+                if !mq.evaluate(stylist.device(), stylist.quirks_mode()) {
+                    return true;
+                }
+
+                self.collect_invalidations_for_rule_list(
+                    import_rule.stylesheet.rules.read_with(guard),
+                    stylist,
+                    guard);
             }
             Media(ref lock) => {
                 let media_rule = lock.read_with(guard);
