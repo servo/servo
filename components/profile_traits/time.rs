@@ -90,6 +90,8 @@ pub enum ProfilerCategory {
     ScriptExitFullscreen = 0x78,
     ScriptWebVREvent = 0x79,
     ScriptWorkletEvent = 0x7a,
+    TimeToFirstPaint = 0x80,
+    TimeToFirstContentfulPaint = 0x81,
     ApplicationHeartbeat = 0x90,
 }
 

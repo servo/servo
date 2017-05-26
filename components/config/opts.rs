@@ -219,6 +219,9 @@ pub struct Opts {
 
     /// Unminify Javascript.
     pub unminify_js: bool,
+
+    /// Print Progressive Web Metrics to console.
+    pub print_pwm: bool,
 }
 
 fn print_usage(app: &str, opts: &Options) {
@@ -537,6 +540,7 @@ pub fn default_opts() -> Opts {
         signpost: false,
         certificate_path: None,
         unminify_js: false,
+        print_pwm: false,
     }
 }
 
@@ -598,6 +602,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
                     "config directory following xdg spec on linux platform", "");
     opts.optflag("v", "version", "Display servo version information");
     opts.optflag("", "unminify-js", "Unminify Javascript");
+    opts.optflag("", "print-pwm", "Print Progressive Web Metrics");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -832,6 +837,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         signpost: debug_options.signpost,
         certificate_path: opt_match.opt_str("certificate-path"),
         unminify_js: opt_match.opt_present("unminify-js"),
+        print_pwm: opt_match.opt_present("print-pwm"),
     };
 
     set_defaults(opts);

@@ -22,6 +22,7 @@ extern crate layout_traits;
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
+extern crate metrics;
 extern crate msg;
 extern crate net_traits;
 extern crate parking_lot;
@@ -74,6 +75,7 @@ use layout::webrender_helpers::WebRenderDisplayListConverter;
 use layout::wrapper::LayoutNodeLayoutData;
 use layout::wrapper::drop_style_and_layout_data;
 use layout_traits::LayoutThreadFactory;
+use metrics::PaintTimeMetrics;
 use msg::constellation_msg::PipelineId;
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
@@ -242,7 +244,10 @@ pub struct LayoutThread {
     layout_threads: usize,
 
     /// Which quirks mode are we rendering the document in?
-    quirks_mode: Option<QuirksMode>
+    quirks_mode: Option<QuirksMode>,
+
+    /// Paint time metrics.
+    paint_time_metrics: Option<Arc<PaintTimeMetrics>>,
 }
 
 impl LayoutThreadFactory for LayoutThread {
@@ -538,6 +543,7 @@ impl LayoutThread {
                 },
             layout_threads: layout_threads,
             quirks_mode: None,
+            paint_time_metrics: None,
         }
     }
 
@@ -703,6 +709,9 @@ impl LayoutThread {
                 debug!("Setting the paint worklet executor");
                 debug_assert!(self.paint_worklet_executor.is_none());
                 self.paint_worklet_executor = Some(executor);
+            },
+            Msg::SetPaintTimeMetrics(paint_time_metrics) => {
+                self.paint_time_metrics = Some(paint_time_metrics.clone());
             },
             Msg::PrepareToExit(response_chan) => {
                 self.prepare_to_exit(response_chan);
@@ -995,6 +1004,14 @@ impl LayoutThread {
             self.epoch.set(epoch);
 
             let viewport_size = webrender_traits::LayoutSize::from_untyped(&viewport_size);
+
+            // Set paint metrics if needed right before sending the display list to WebRender.
+            // XXX At some point, we may want to set this metric from WebRender itself.
+            if let Some(ref paint_time_metrics) = self.paint_time_metrics {
+                paint_time_metrics.maybe_set_first_paint(self.profiler_metadata());
+                paint_time_metrics.maybe_set_first_content_paint(self.profiler_metadata(), &display_list);
+            }
+
             self.webrender_api.set_display_list(
                 Some(get_root_flow_background_color(layout_root)),
                 webrender_traits::Epoch(epoch.0),

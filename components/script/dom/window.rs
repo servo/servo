@@ -62,6 +62,7 @@ use js::jsapi::{JS_GC, JS_GetRuntime};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use layout_image::fetch_image_for_layout;
+use metrics::PaintTimeMetrics;
 use msg::constellation_msg::{FrameType, PipelineId};
 use net_traits::{ResourceThreads, ReferrerPolicy};
 use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
@@ -183,6 +184,8 @@ pub struct Window {
     history: MutNullableJS<History>,
     custom_element_registry: MutNullableJS<CustomElementRegistry>,
     performance: MutNullableJS<Performance>,
+    #[ignore_heap_size_of = "Arc"]
+    paint_time_metrics: Arc<PaintTimeMetrics>,
     navigation_start: u64,
     navigation_start_precise: f64,
     screen: MutNullableJS<Screen>,
@@ -1773,6 +1776,10 @@ impl Window {
     pub fn unminified_js_dir(&self) -> Option<String> {
         self.unminified_js_dir.borrow().clone()
     }
+
+    pub fn paint_time_metrics(&self) -> Arc<PaintTimeMetrics> {
+        self.paint_time_metrics.clone()
+    }
 }
 
 impl Window {
@@ -1812,13 +1819,15 @@ impl Window {
             script_chan: Arc::new(Mutex::new(control_chan)),
         };
         let current_time = time::get_time();
+        let navigation_start_precise = time::precise_time_ns() as f64;
+
         let win = box Window {
             globalscope:
                 GlobalScope::new_inherited(
                     id,
-                    devtools_chan,
+                    devtools_chan.clone(),
                     mem_profiler_chan,
-                    time_profiler_chan,
+                    time_profiler_chan.clone(),
                     constellation_chan,
                     scheduler_chan,
                     resource_threads,
@@ -1838,8 +1847,10 @@ impl Window {
             window_proxy: Default::default(),
             document: Default::default(),
             performance: Default::default(),
+            paint_time_metrics:
+                Arc::new(PaintTimeMetrics::new(time_profiler_chan, navigation_start_precise)),
             navigation_start: (current_time.sec * 1000 + current_time.nsec as i64 / 1000000) as u64,
-            navigation_start_precise: time::precise_time_ns() as f64,
+            navigation_start_precise: navigation_start_precise,
             screen: Default::default(),
             session_storage: Default::default(),
             local_storage: Default::default(),
@@ -1858,7 +1869,6 @@ impl Window {
             suppress_reflow: Cell::new(true),
             pending_reflow_count: Cell::new(0),
             current_state: Cell::new(WindowState::Alive),
-
             devtools_marker_sender: DOMRefCell::new(None),
             devtools_markers: DOMRefCell::new(HashSet::new()),
             webdriver_script_chan: DOMRefCell::new(None),

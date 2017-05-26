@@ -8,6 +8,7 @@ use euclid::point::Point2D;
 use euclid::rect::Rect;
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use metrics::PaintTimeMetrics;
 use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::ImageCache;
 use profile_traits::mem::ReportsChan;
@@ -88,6 +89,9 @@ pub enum Msg {
 
     /// Tells layout that script has added some paint worklet modules.
     SetPaintWorkletExecutor(Arc<PaintWorkletExecutor>),
+
+    /// Set the paint time metrics recorder.
+    SetPaintTimeMetrics(Arc<PaintTimeMetrics>),
 }
 
 

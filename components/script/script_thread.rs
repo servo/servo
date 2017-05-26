@@ -1909,12 +1909,19 @@ impl ScriptThread {
                                  self.control_chan.clone(),
                                  self.scheduler_chan.clone(),
                                  ipc_timer_event_chan,
-                                 incomplete.layout_chan,
+                                 incomplete.layout_chan.clone(),
                                  incomplete.pipeline_id,
                                  incomplete.parent_info,
                                  incomplete.window_size,
                                  incomplete.origin.clone(),
                                  self.webvr_thread.clone());
+
+        // Send the paint time metrics recorder to the layout thread.
+        let paint_time_metrics = window.paint_time_metrics();
+        incomplete.layout_chan
+                  .send(message::Msg::SetPaintTimeMetrics(paint_time_metrics.clone()))
+                  .unwrap();
+
 
         // Initialize the browsing context for the window.
         let window_proxy = self.local_window_proxy(&window,
