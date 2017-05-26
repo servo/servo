@@ -722,9 +722,6 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         if type.nullable():
             declType = CGWrapper(declType, pre="Option<", post=" >")
 
-        if isMember != "Dictionary" and type_needs_tracing(type):
-            declType = CGTemplatedType("RootedTraceableBox", declType)
-
         templateBody = ("match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
                         "    Ok(ConversionResult::Success(value)) => value,\n"
                         "    Ok(ConversionResult::Failure(error)) => {\n"
@@ -1418,6 +1415,8 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
         nullable = returnType.nullable()
         dictName = returnType.inner.name if nullable else returnType.name
         result = CGGeneric(dictName)
+        if type_needs_tracing(returnType):
+            result = CGWrapper(result, pre="RootedTraceableBox<", post=">")
         if nullable:
             result = CGWrapper(result, pre="Option<", post=">")
         return result
@@ -2245,6 +2244,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'dom::bindings::str::ByteString',
         'dom::bindings::str::DOMString',
         'dom::bindings::str::USVString',
+        'dom::bindings::trace::RootedTraceableBox',
         'dom::types::*',
         'js::error::throw_type_error',
         'js::jsapi::HandleValue',
@@ -4105,15 +4105,23 @@ class CGUnionStruct(CGThing):
         self.type = type
         self.descriptorProvider = descriptorProvider
 
+    def membersNeedTracing(self):
+        for t in self.type.flatMemberTypes:
+            if type_needs_tracing(t):
+                return True
+        return False
+
     def define(self):
-        templateVars = map(lambda t: getUnionTypeTemplateVars(t, self.descriptorProvider),
+        templateVars = map(lambda t: (getUnionTypeTemplateVars(t, self.descriptorProvider),
+                                      type_needs_tracing(t)),
                            self.type.flatMemberTypes)
         enumValues = [
-            "    %s(%s)," % (v["name"], v["typeName"]) for v in templateVars
+            "    %s(%s)," % (v["name"], "RootedTraceableBox<%s>" % v["typeName"] if trace else v["typeName"])
+            for (v, trace) in templateVars
         ]
         enumConversions = [
             "            %s::%s(ref inner) => inner.to_jsval(cx, rval),"
-            % (self.type, v["name"]) for v in templateVars
+            % (self.type, v["name"]) for (v, _) in templateVars
         ]
         return ("""\
 #[derive(JSTraceable)]
@@ -4139,6 +4147,12 @@ class CGUnionConversionStruct(CGThing):
         CGThing.__init__(self)
         self.type = type
         self.descriptorProvider = descriptorProvider
+
+    def membersNeedTracing(self):
+        for t in self.type.flatMemberTypes:
+            if type_needs_tracing(t):
+                return True
+        return False
 
     def from_jsval(self):
         memberTypes = self.type.flatMemberTypes
@@ -4283,7 +4297,10 @@ class CGUnionConversionStruct(CGThing):
 
     def try_method(self, t):
         templateVars = getUnionTypeTemplateVars(t, self.descriptorProvider)
-        returnType = "Result<Option<%s>, ()>" % templateVars["typeName"]
+        actualType = templateVars["typeName"]
+        if type_needs_tracing(t):
+            actualType = "RootedTraceableBox<%s>" % actualType
+        returnType = "Result<Option<%s>, ()>" % actualType
         jsConversion = templateVars["jsConversion"]
 
         # Any code to convert to Object is unused, since we're already converting
@@ -5900,13 +5917,17 @@ class CGDictionary(CGThing):
                        (self.makeMemberName(m[0].identifier.name), self.getMemberType(m))
                        for m in self.memberInfo]
 
+        mustRoot = "#[must_root]\n" if self.membersNeedTracing() else ""
+
         return (string.Template(
                 "#[derive(JSTraceable)]\n"
+                "${mustRoot}" +
                 "pub struct ${selfName} {\n" +
                 "${inheritance}" +
                 "\n".join(memberDecls) + "\n" +
                 "}").substitute({"selfName": self.makeClassName(d),
-                                 "inheritance": inheritance}))
+                                 "inheritance": inheritance,
+                                 "mustRoot": mustRoot}))
 
     def impl(self):
         d = self.dictionary
@@ -5997,6 +6018,12 @@ class CGDictionary(CGThing):
                 "initMembers": CGIndenter(memberInits, indentLevel=12).define(),
                 "insertMembers": CGIndenter(memberInserts, indentLevel=8).define(),
             })
+
+    def membersNeedTracing(self):
+        for member, _ in self.memberInfo:
+            if type_needs_tracing(member.type):
+                return True
+        return False
 
     @staticmethod
     def makeDictionaryName(dictionary):

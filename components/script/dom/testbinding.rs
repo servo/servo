@@ -338,8 +338,8 @@ impl TestBindingMethods for TestBinding {
         Some(ByteStringOrLong::ByteString(ByteString::new(vec!())))
     }
     fn ReceiveNullableSequence(&self) -> Option<Vec<i32>> { Some(vec![1]) }
-    fn ReceiveTestDictionaryWithSuccessOnKeyword(&self) -> TestDictionary {
-        TestDictionary {
+    fn ReceiveTestDictionaryWithSuccessOnKeyword(&self) -> RootedTraceableBox<TestDictionary> {
+        RootedTraceableBox::new(TestDictionary {
             anyValue: Heap::new(NullValue()),
             booleanValue: None,
             byteValue: None,
@@ -401,7 +401,7 @@ impl TestBindingMethods for TestBinding {
             usvstringValue: None,
             nonRequiredNullable: None,
             nonRequiredNullable2: Some(None), // null
-        }
+        })
     }
 
     fn DictMatchesPassedValues(&self, arg: RootedTraceableBox<TestDictionary>) -> bool {
@@ -436,9 +436,9 @@ impl TestBindingMethods for TestBinding {
     fn PassUnion6(&self, _: UnsignedLongOrBoolean) {}
     fn PassUnion7(&self, _: StringSequenceOrUnsignedLong) {}
     fn PassUnion8(&self, _: ByteStringSequenceOrLong) {}
-    fn PassUnion9(&self, _: RootedTraceableBox<UnionTypes::TestDictionaryOrLong>) {}
+    fn PassUnion9(&self, _: UnionTypes::TestDictionaryOrLong) {}
     #[allow(unsafe_code)]
-    unsafe fn PassUnion10(&self, _: *mut JSContext, _: RootedTraceableBox<UnionTypes::StringOrObject>) {}
+    unsafe fn PassUnion10(&self, _: *mut JSContext, _: UnionTypes::StringOrObject) {}
     fn PassUnionWithTypedef(&self, _: DocumentOrTestTypedef) {}
     fn PassUnionWithTypedef2(&self, _: LongSequenceOrTestTypedef) {}
     #[allow(unsafe_code)]

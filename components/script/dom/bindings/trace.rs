@@ -671,6 +671,7 @@ impl<'a, T: JSTraceable + 'static> Drop for RootedTraceable<'a, T> {
 /// If you have GC things like *mut JSObject or JSVal, use rooted!.
 /// If you have an arbitrary number of DomObjects to root, use rooted_vec!.
 /// If you know what you're doing, use this.
+#[allow_unrooted_interior]
 pub struct RootedTraceableBox<T: 'static + JSTraceable> {
     ptr: *mut T,
 }
