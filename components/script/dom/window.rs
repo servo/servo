@@ -1802,7 +1802,8 @@ impl Window {
                parent_info: Option<(PipelineId, FrameType)>,
                window_size: Option<WindowSizeData>,
                origin: MutableOrigin,
-               webvr_thread: Option<IpcSender<WebVRMsg>>)
+               webvr_thread: Option<IpcSender<WebVRMsg>>,
+               navigation_start_precise: f64)
                -> Root<Window> {
         let layout_rpc: Box<LayoutRPC + Send> = {
             let (rpc_send, rpc_recv) = channel();
@@ -1814,13 +1815,14 @@ impl Window {
             script_chan: Arc::new(Mutex::new(control_chan)),
         };
         let current_time = time::get_time();
+
         let win = box Window {
             globalscope:
                 GlobalScope::new_inherited(
                     id,
                     devtools_chan,
                     mem_profiler_chan,
-                    time_profiler_chan,
+                    time_profiler_chan.clone(),
                     constellation_chan,
                     scheduler_chan,
                     resource_threads,
@@ -1841,7 +1843,7 @@ impl Window {
             document: Default::default(),
             performance: Default::default(),
             navigation_start: (current_time.sec * 1000 + current_time.nsec as i64 / 1000000) as u64,
-            navigation_start_precise: time::precise_time_ns() as f64,
+            navigation_start_precise: navigation_start_precise,
             screen: Default::default(),
             session_storage: Default::default(),
             local_storage: Default::default(),
@@ -1860,7 +1862,6 @@ impl Window {
             suppress_reflow: Cell::new(true),
             pending_reflow_count: Cell::new(0),
             current_state: Cell::new(WindowState::Alive),
-
             devtools_marker_sender: DOMRefCell::new(None),
             devtools_markers: DOMRefCell::new(HashSet::new()),
             webdriver_script_chan: DOMRefCell::new(None),

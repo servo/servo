@@ -154,6 +154,8 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::ScriptExitFullscreen => "Script Exit Fullscreen",
             ProfilerCategory::ScriptWebVREvent => "Script WebVR Event",
             ProfilerCategory::ScriptWorkletEvent => "Script Worklet Event",
+            ProfilerCategory::TimeToFirstPaint => "Time To First Paint",
+            ProfilerCategory::TimeToFirstContentfulPaint => "Time To First Contentful Paint",
             ProfilerCategory::ApplicationHeartbeat => "Application Heartbeat",
         };
         format!("{}{}", padding, name)

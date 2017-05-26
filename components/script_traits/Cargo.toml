@@ -23,6 +23,7 @@ hyper = "0.10"
 hyper_serde = "0.7"
 ipc-channel = "0.8"
 libc = "0.2"
+metrics = {path = "../metrics"}
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 offscreen_gl_context = { version = "0.11", features = ["serde"] }

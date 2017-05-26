@@ -70,6 +70,7 @@ use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use mem::heap_size_of_self_and_children;
+use metrics::PaintTimeMetrics;
 use microtask::{MicrotaskQueue, Microtask};
 use msg::constellation_msg::{BrowsingContextId, FrameType, PipelineId, PipelineNamespace, TopLevelBrowsingContextId};
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg};
@@ -113,7 +114,7 @@ use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::user_interaction::{UserInteractionTask, UserInteractionTaskSource};
-use time::Tm;
+use time::{precise_time_ns, Tm};
 use url::Position;
 use webdriver_handlers;
 use webvr_traits::{WebVREvent, WebVRMsg};
@@ -510,6 +511,9 @@ pub struct ScriptThread {
     /// A list of nodes with in-progress CSS transitions, which roots them for the duration
     /// of the transition.
     transitioning_nodes: DOMRefCell<Vec<JS<Node>>>,
+
+    /// Paint time metrics.
+    paint_time_metrics: Arc<PaintTimeMetrics>,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -818,6 +822,8 @@ impl ScriptThread {
             docs_with_no_blocking_loads: Default::default(),
 
             transitioning_nodes: Default::default(),
+
+            paint_time_metrics: state.paint_time_metrics,
         }
     }
 
@@ -1395,6 +1401,7 @@ impl ScriptThread {
             image_cache: self.image_cache.clone(),
             content_process_shutdown_chan: content_process_shutdown_chan,
             layout_threads: layout_threads,
+            paint_time_metrics: self.paint_time_metrics.clone(),
         });
 
         // Pick a layout thread, any layout thread
@@ -1919,6 +1926,9 @@ impl ScriptThread {
         ROUTER.route_ipc_receiver_to_mpsc_sender(ipc_timer_event_port,
                                                  self.timer_event_chan.clone());
 
+        let navigation_start_precise = precise_time_ns() as f64;
+        self.paint_time_metrics.set_navigation_start(navigation_start_precise);
+
         // Create the window and document objects.
         let window = Window::new(self.js_runtime.clone(),
                                  MainThreadScriptChan(sender.clone()),
@@ -1938,12 +1948,13 @@ impl ScriptThread {
                                  self.control_chan.clone(),
                                  self.scheduler_chan.clone(),
                                  ipc_timer_event_chan,
-                                 incomplete.layout_chan,
+                                 incomplete.layout_chan.clone(),
                                  incomplete.pipeline_id,
                                  incomplete.parent_info,
                                  incomplete.window_size,
                                  incomplete.origin.clone(),
-                                 self.webvr_thread.clone());
+                                 self.webvr_thread.clone(),
+                                 navigation_start_precise);
 
         // Initialize the browsing context for the window.
         let window_proxy = self.local_window_proxy(&window,

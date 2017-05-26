@@ -66,6 +66,7 @@ extern crate lazy_static;
 extern crate libc;
 #[macro_use]
 extern crate log;
+extern crate metrics;
 #[macro_use]
 extern crate mime;
 extern crate mime_guess;

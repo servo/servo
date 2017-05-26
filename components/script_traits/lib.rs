@@ -23,6 +23,7 @@ extern crate hyper;
 extern crate hyper_serde;
 extern crate ipc_channel;
 extern crate libc;
+extern crate metrics;
 extern crate msg;
 extern crate net_traits;
 extern crate offscreen_gl_context;
@@ -50,6 +51,7 @@ use hyper::header::Headers;
 use hyper::method::Method;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
+use metrics::PaintTimeMetrics;
 use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, FrameType, Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineId, PipelineNamespaceId, TraversalDirection};
 use net_traits::{FetchResponseMsg, ReferrerPolicy, ResourceThreads};
@@ -525,7 +527,9 @@ pub struct InitialScriptState {
     /// A ping will be sent on this channel once the script thread shuts down.
     pub content_process_shutdown_chan: IpcSender<()>,
     /// A channel to the webvr thread, if available.
-    pub webvr_thread: Option<IpcSender<WebVRMsg>>
+    pub webvr_thread: Option<IpcSender<WebVRMsg>>,
+    /// Paint time metrics.
+    pub paint_time_metrics: Arc<PaintTimeMetrics>,
 }
 
 /// This trait allows creating a `ScriptThread` without depending on the `script`

@@ -1,0 +1,16 @@
+[package]
+name = "metrics"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+publish = false
+
+[lib]
+name = "metrics"
+path = "lib.rs"
+
+[dependencies]
+gfx = {path = "../gfx"}
+profile_traits = {path = "../profile_traits"}
+servo_config = {path = "../config"}
+time = "0.1.12"

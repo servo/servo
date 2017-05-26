@@ -7,6 +7,7 @@ use app_units::Au;
 use euclid::{Point2D, Rect};
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use metrics::PaintTimeMetrics;
 use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::ImageCache;
 use profile_traits::mem::ReportsChan;
@@ -156,4 +157,5 @@ pub struct NewLayoutThreadInfo {
     pub image_cache: Arc<ImageCache>,
     pub content_process_shutdown_chan: Option<IpcSender<()>>,
     pub layout_threads: usize,
+    pub paint_time_metrics: Arc<PaintTimeMetrics>,
 }
