@@ -715,21 +715,20 @@ pub enum WindowSizeType {
 #[derive(Deserialize, Serialize)]
 pub enum WebDriverCommandMsg {
     /// Get the window size.
-    GetWindowSize(PipelineId, IpcSender<WindowSizeData>),
-    /// Load a URL in the pipeline with the given ID.
-    LoadUrl(PipelineId, LoadData, IpcSender<LoadStatus>),
-    /// Refresh the pipeline with the given ID.
-    Refresh(PipelineId, IpcSender<LoadStatus>),
-    /// Pass a webdriver command to the script thread of the pipeline with the
-    /// given ID for execution.
-    ScriptCommand(PipelineId, WebDriverScriptCommand),
-    /// Act as if keys were pressed in the pipeline with the given ID.
-    SendKeys(PipelineId, Vec<(Key, KeyModifiers, KeyState)>),
+    GetWindowSize(TopLevelBrowsingContextId, IpcSender<WindowSizeData>),
+    /// Load a URL in the top-level browsing context with the given ID.
+    LoadUrl(TopLevelBrowsingContextId, LoadData, IpcSender<LoadStatus>),
+    /// Refresh the top-level browsing context with the given ID.
+    Refresh(TopLevelBrowsingContextId, IpcSender<LoadStatus>),
+    /// Pass a webdriver command to the script thread of the current pipeline
+    /// of a browsing context.
+    ScriptCommand(BrowsingContextId, WebDriverScriptCommand),
+    /// Act as if keys were pressed in the browsing context with the given ID.
+    SendKeys(BrowsingContextId, Vec<(Key, KeyModifiers, KeyState)>),
     /// Set the window size.
-    SetWindowSize(PipelineId, Size2D<u32>, IpcSender<WindowSizeData>),
-    /// Take a screenshot of the window, if the pipeline with the given ID is
-    /// the root pipeline.
-    TakeScreenshot(PipelineId, IpcSender<Option<Image>>),
+    SetWindowSize(TopLevelBrowsingContextId, Size2D<u32>, IpcSender<WindowSizeData>),
+    /// Take a screenshot of the window.
+    TakeScreenshot(TopLevelBrowsingContextId, IpcSender<Option<Image>>),
 }
 
 /// Messages to the constellation.
@@ -740,10 +739,12 @@ pub enum ConstellationMsg {
     /// Request that the constellation send the BrowsingContextId corresponding to the document
     /// with the provided pipeline id
     GetBrowsingContext(PipelineId, IpcSender<Option<BrowsingContextId>>),
-    /// Request that the constellation send the current pipeline id for the provided frame
-    /// id, or for the root frame if this is None, over a provided channel.
-    /// Also returns a boolean saying whether the document has finished loading or not.
-    GetPipeline(Option<BrowsingContextId>, IpcSender<Option<PipelineId>>),
+    /// Request that the constellation send the current pipeline id for the provided
+    /// browsing context id, over a provided channel.
+    GetPipeline(BrowsingContextId, IpcSender<Option<PipelineId>>),
+    /// Request that the constellation send the current focused top-level browsing context id,
+    /// over a provided channel.
+    GetFocusTopLevelBrowsingContext(IpcSender<Option<TopLevelBrowsingContextId>>),
     /// Requests that the constellation inform the compositor of the title of the pipeline
     /// immediately.
     GetPipelineTitle(PipelineId),
@@ -755,16 +756,16 @@ pub enum ConstellationMsg {
     KeyEvent(Option<char>, Key, KeyState, KeyModifiers),
     /// Request to load a page.
     LoadUrl(PipelineId, LoadData),
-    /// Request to traverse the joint session history.
-    TraverseHistory(Option<PipelineId>, TraversalDirection),
+    /// Request to traverse the joint session history of the provided browsing context.
+    TraverseHistory(TopLevelBrowsingContextId, TraversalDirection),
     /// Inform the constellation of a window being resized.
-    WindowSize(WindowSizeData, WindowSizeType),
+    WindowSize(TopLevelBrowsingContextId, WindowSizeData, WindowSizeType),
     /// Requests that the constellation instruct layout to begin a new tick of the animation.
     TickAnimation(PipelineId, AnimationTickType),
     /// Dispatch a webdriver command
     WebDriverCommand(WebDriverCommandMsg),
-    /// Reload the current page.
-    Reload,
+    /// Reload a top-level browsing context.
+    Reload(TopLevelBrowsingContextId),
     /// A log entry, with the top-level browsing context id and thread name
     LogEntry(Option<TopLevelBrowsingContextId>, Option<String>, LogEntry),
     /// Set the WebVR thread channel.

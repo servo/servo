@@ -1280,8 +1280,8 @@ impl ScriptThread {
                 webdriver_handlers::handle_get_rect(&*documents, pipeline_id, node_id, reply),
             WebDriverScriptCommand::GetElementText(node_id, reply) =>
                 webdriver_handlers::handle_get_text(&*documents, pipeline_id, node_id, reply),
-            WebDriverScriptCommand::GetPipelineId(browsing_context_id, reply) =>
-                webdriver_handlers::handle_get_pipeline_id(&*documents, pipeline_id, browsing_context_id, reply),
+            WebDriverScriptCommand::GetBrowsingContextId(webdriver_frame_id, reply) =>
+                webdriver_handlers::handle_get_browsing_context_id(&*documents, pipeline_id, webdriver_frame_id, reply),
             WebDriverScriptCommand::GetUrl(reply) =>
                 webdriver_handlers::handle_get_url(&*documents, pipeline_id, reply),
             WebDriverScriptCommand::IsEnabled(element_id, reply) =>

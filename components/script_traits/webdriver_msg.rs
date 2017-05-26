@@ -8,7 +8,7 @@ use cookie_rs::Cookie;
 use euclid::rect::Rect;
 use hyper_serde::Serde;
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::BrowsingContextId;
 use rustc_serialize::json::{Json, ToJson};
 use servo_url::ServoUrl;
 
@@ -31,7 +31,7 @@ pub enum WebDriverScriptCommand {
     GetElementRect(String, IpcSender<Result<Rect<f64>, ()>>),
     GetElementTagName(String, IpcSender<Result<String, ()>>),
     GetElementText(String, IpcSender<Result<String, ()>>),
-    GetPipelineId(WebDriverFrameId, IpcSender<Result<Option<PipelineId>, ()>>),
+    GetBrowsingContextId(WebDriverFrameId, IpcSender<Result<BrowsingContextId, ()>>),
     GetUrl(IpcSender<ServoUrl>),
     IsEnabled(String, IpcSender<Result<bool, ()>>),
     IsSelected(String, IpcSender<Result<bool, ()>>),

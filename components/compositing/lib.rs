@@ -29,6 +29,7 @@ pub use compositor::IOCompositor;
 use euclid::size::TypedSize2D;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::TopLevelBrowsingContextId;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg};
 use style_traits::CSSPixel;
 
@@ -48,6 +49,7 @@ pub struct SendableFrameTree {
 #[derive(Clone)]
 pub struct CompositionPipeline {
     pub id: PipelineId,
+    pub top_level_browsing_context_id: TopLevelBrowsingContextId,
     pub script_chan: IpcSender<ConstellationControlMsg>,
     pub layout_chan: IpcSender<LayoutControlMsg>,
 }

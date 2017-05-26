@@ -540,18 +540,16 @@ unsafe fn build_mozbrowser_event_detail(event: MozBrowserEvent,
 
 pub fn Navigate(iframe: &HTMLIFrameElement, direction: TraversalDirection) -> ErrorResult {
     if iframe.Mozbrowser() {
-        if iframe.upcast::<Node>().is_in_doc_with_browsing_context() {
+        if let Some(top_level_browsing_context_id) = iframe.top_level_browsing_context_id() {
             let window = window_from_node(iframe);
-            let msg = ConstellationMsg::TraverseHistory(iframe.pipeline_id(), direction);
+            let msg = ConstellationMsg::TraverseHistory(top_level_browsing_context_id, direction);
             window.upcast::<GlobalScope>().constellation_chan().send(msg).unwrap();
+            return Ok(());
         }
-
-        Ok(())
-    } else {
-        debug!(concat!("this frame is not mozbrowser: mozbrowser attribute missing, or not a top",
-            "level window, or mozbrowser preference not set (use --pref dom.mozbrowser.enabled)"));
-        Err(Error::NotSupported)
     }
+    debug!(concat!("this frame is not mozbrowser: mozbrowser attribute missing, or not a top",
+                   "level window, or mozbrowser preference not set (use --pref dom.mozbrowser.enabled)"));
+    Err(Error::NotSupported)
 }
 
 impl HTMLIFrameElementMethods for HTMLIFrameElement {

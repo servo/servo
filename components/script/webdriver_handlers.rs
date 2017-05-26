@@ -29,6 +29,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{HandleValue, JSContext};
 use js::jsval::UndefinedValue;
+use msg::constellation_msg::BrowsingContextId;
 use msg::constellation_msg::PipelineId;
 use net_traits::CookieSource::{HTTP, NonHTTP};
 use net_traits::CoreResourceMsg::{GetCookiesDataForUrl, SetCookieForUrl};
@@ -109,23 +110,23 @@ pub fn handle_execute_async_script(documents: &Documents,
     window.upcast::<GlobalScope>().evaluate_js_on_global_with_result(&eval, rval.handle_mut());
 }
 
-pub fn handle_get_pipeline_id(documents: &Documents,
-                              pipeline: PipelineId,
-                              webdriver_frame_id: WebDriverFrameId,
-                              reply: IpcSender<Result<Option<PipelineId>, ()>>) {
+pub fn handle_get_browsing_context_id(documents: &Documents,
+                                      pipeline: PipelineId,
+                                      webdriver_frame_id: WebDriverFrameId,
+                                      reply: IpcSender<Result<BrowsingContextId, ()>>) {
     let result = match webdriver_frame_id {
         WebDriverFrameId::Short(_) => {
             // This isn't supported yet
-            Ok(None)
+            Err(())
         },
         WebDriverFrameId::Element(x) => {
             find_node_by_unique_id(documents, pipeline, x)
-                .and_then(|node| node.downcast::<HTMLIFrameElement>().map(|elem| elem.pipeline_id()))
+                .and_then(|node| node.downcast::<HTMLIFrameElement>().and_then(|elem| elem.browsing_context_id()))
                 .ok_or(())
         },
         WebDriverFrameId::Parent => {
             documents.find_window(pipeline)
-                .map(|window| window.parent_info().map(|(parent_id, _)| parent_id))
+                .and_then(|window| window.window_proxy().parent().map(|parent| parent.browsing_context_id()))
                 .ok_or(())
         }
     };

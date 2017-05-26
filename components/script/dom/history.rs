@@ -44,10 +44,9 @@ impl History {
         if !self.window.Document().is_fully_active() {
             return Err(Error::Security);
         }
-        let global_scope = self.window.upcast::<GlobalScope>();
-        let pipeline = global_scope.pipeline_id();
-        let msg = ConstellationMsg::TraverseHistory(Some(pipeline), direction);
-        let _ = global_scope.constellation_chan().send(msg);
+        let top_level_browsing_context_id = self.window.window_proxy().top_level_browsing_context_id();
+        let msg = ConstellationMsg::TraverseHistory(top_level_browsing_context_id, direction);
+        let _ = self.window.upcast::<GlobalScope>().constellation_chan().send(msg);
         Ok(())
     }
 }
@@ -58,13 +57,12 @@ impl HistoryMethods for History {
         if !self.window.Document().is_fully_active() {
             return Err(Error::Security);
         }
-        let global_scope = self.window.upcast::<GlobalScope>();
-        let pipeline = global_scope.pipeline_id();
+        let top_level_browsing_context_id = self.window.window_proxy().top_level_browsing_context_id();
         let (sender, recv) = ipc::channel().expect("Failed to create channel to send jsh length.");
-        let msg = ConstellationMsg::JointSessionHistoryLength(pipeline, sender);
-        let _ = global_scope.constellation_chan().send(msg);
+        let msg = ConstellationMsg::JointSessionHistoryLength(top_level_browsing_context_id, sender);
+        let _ = self.window.upcast::<GlobalScope>().constellation_chan().send(msg);
         Ok(recv.recv().unwrap())
-    }
+}
 
     // https://html.spec.whatwg.org/multipage/#dom-history-go
     fn Go(&self, delta: i32) -> ErrorResult {

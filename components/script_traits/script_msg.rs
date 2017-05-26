@@ -86,7 +86,7 @@ pub enum ScriptMsg {
     ForwardEvent(PipelineId, CompositorEvent),
     /// Requests that the constellation retrieve the current contents of the clipboard
     GetClipboardContents(IpcSender<String>),
-    /// Get the frame id for a given pipeline.
+    /// Get the browsing context id for a given pipeline.
     GetBrowsingContextId(PipelineId, IpcSender<Option<BrowsingContextId>>),
     /// Get the parent info for a given pipeline.
     GetParentInfo(PipelineId, IpcSender<Option<(PipelineId, FrameType)>>),
@@ -104,9 +104,9 @@ pub enum ScriptMsg {
     /// The first PipelineId is for the parent, the second is for the originating pipeline.
     MozBrowserEvent(PipelineId, PipelineId, MozBrowserEvent),
     /// HTMLIFrameElement Forward or Back traversal.
-    TraverseHistory(Option<PipelineId>, TraversalDirection),
+    TraverseHistory(TopLevelBrowsingContextId, TraversalDirection),
     /// Gets the length of the joint session history from the constellation.
-    JointSessionHistoryLength(PipelineId, IpcSender<u32>),
+    JointSessionHistoryLength(TopLevelBrowsingContextId, IpcSender<u32>),
     /// Favicon detected
     NewFavicon(ServoUrl),
     /// Status message to be displayed in the chrome, eg. a link URL on mouseover.
