@@ -12,7 +12,7 @@ use dom::bindings::codegen::Bindings::IterableIteratorBinding::IterableKeyOrValu
 use dom::bindings::error::Fallible;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::trace::{JSTraceable, RootedTraceableBox};
+use dom::bindings::trace::JSTraceable;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
@@ -115,7 +115,7 @@ fn dict_return(cx: *mut JSContext,
                result: MutableHandleObject,
                done: bool,
                value: HandleValue) -> Fallible<()> {
-    let mut dict = RootedTraceableBox::new(unsafe { IterableKeyOrValueResult::empty(cx) });
+    let mut dict = unsafe { IterableKeyOrValueResult::empty(cx) };
     dict.done = done;
     dict.value.set(value.get());
     rooted!(in(cx) let mut dict_value = UndefinedValue());
@@ -130,7 +130,7 @@ fn key_and_value_return(cx: *mut JSContext,
                         result: MutableHandleObject,
                         key: HandleValue,
                         value: HandleValue) -> Fallible<()> {
-    let mut dict = RootedTraceableBox::new(unsafe { IterableKeyAndValueResult::empty(cx) });
+    let mut dict = unsafe { IterableKeyAndValueResult::empty(cx) };
     dict.done = false;
     dict.value = Some(vec![Heap::new(key.get()), Heap::new(value.get())]);
     rooted!(in(cx) let mut dict_value = UndefinedValue());

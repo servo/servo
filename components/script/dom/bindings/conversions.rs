@@ -116,19 +116,11 @@ impl <T: DomObject + IDLInterface> FromJSValConvertible for Root<T> {
     }
 }
 
-impl <T: FromJSValConvertible + JSTraceable> FromJSValConvertible for RootedTraceableBox<T> {
-    type Config = T::Config;
-
-    unsafe fn from_jsval(cx: *mut JSContext,
-                         value: HandleValue,
-                         config: Self::Config)
-                         -> Result<ConversionResult<Self>, ()> {
-        T::from_jsval(cx, value, config).map(|result| {
-            match result {
-                ConversionResult::Success(v) => ConversionResult::Success(RootedTraceableBox::new(v)),
-                ConversionResult::Failure(e) => ConversionResult::Failure(e),
-            }
-        })
+impl<T: ToJSValConvertible + JSTraceable> ToJSValConvertible for RootedTraceableBox<T> {
+    #[inline]
+    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+        let value = &**self;
+        value.to_jsval(cx, rval);
     }
 }
 
