@@ -509,6 +509,13 @@ impl WindowMethods for Window {
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-window-closed
+    fn Closed(&self) -> bool {
+        self.window_proxy.get()
+            .map(|ref proxy| proxy.is_browsing_context_discarded())
+            .unwrap_or(true)
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-window-close
     fn Close(&self) {
         self.main_thread_script_chan()
