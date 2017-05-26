@@ -24,6 +24,7 @@ extern crate ipc_channel;
 extern crate libc;
 #[macro_use]
 extern crate log;
+extern crate metrics;
 extern crate msg;
 extern crate net_traits;
 extern crate profile_traits;
