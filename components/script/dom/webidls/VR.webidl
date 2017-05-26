@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://w3c.github.io/webvr/#interface-navigator
-[Pref="dom.webvr.enabled"]
+[NoInterfaceObject]
 interface VR: EventTarget {
   Promise<sequence<VRDisplay>> getDisplays();
   //readonly attribute FrozenArray<VRDisplay> activeVRDisplays;

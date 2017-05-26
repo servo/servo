@@ -4,6 +4,7 @@
 
 use dom::bindings::codegen::Bindings::NavigatorBinding;
 use dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
+use dom::bindings::codegen::Bindings::VRBinding::VRBinding::VRMethods;
 use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::reflector::{Reflector, DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
@@ -13,10 +14,12 @@ use dom::mimetypearray::MimeTypeArray;
 use dom::navigatorinfo;
 use dom::permissions::Permissions;
 use dom::pluginarray::PluginArray;
+use dom::promise::Promise;
 use dom::serviceworkercontainer::ServiceWorkerContainer;
 use dom::vr::VR;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use std::rc::Rc;
 
 #[dom_struct]
 pub struct Navigator {
@@ -124,12 +127,6 @@ impl NavigatorMethods for Navigator {
         true
     }
 
-    #[allow(unrooted_must_root)]
-    // https://w3c.github.io/webvr/#interface-navigator
-    fn Vr(&self) -> Root<VR> {
-        self.vr.or_init(|| VR::new(&self.global()))
-    }
-
     // https://www.w3.org/TR/gamepad/#navigator-interface-extension
     fn GetGamepads(&self) -> Root<GamepadList> {
         let root = self.gamepads.or_init(|| {
@@ -144,5 +141,17 @@ impl NavigatorMethods for Navigator {
     // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
     fn Permissions(&self) -> Root<Permissions> {
         self.permissions.or_init(|| Permissions::new(&self.global()))
+    }
+
+    // https://w3c.github.io/webvr/spec/1.1/#navigator-getvrdisplays-attribute
+    #[allow(unrooted_must_root)]
+    fn GetVRDisplays(&self) -> Rc<Promise> {
+        self.Vr().GetDisplays()
+    }
+}
+
+impl Navigator {
+    pub fn Vr(&self) -> Root<VR> {
+        self.vr.or_init(|| VR::new(&self.global()))
     }
 }

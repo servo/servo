@@ -200,7 +200,7 @@ impl VR {
 
     fn notify_display_event(&self, display: &VRDisplay, event: &WebVRDisplayEvent) {
         let event = VRDisplayEvent::new_from_webvr(&self.global(), &display, &event);
-        event.upcast::<Event>().fire(self.upcast());
+        event.upcast::<Event>().fire(self.global().as_window().upcast::<EventTarget>());
     }
 }
 
