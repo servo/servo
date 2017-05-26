@@ -340,8 +340,9 @@ impl FileReaderMethods for FileReader {
             FileReaderResult::String(ref string) =>
                 StringOrObject::String(string.clone()),
             FileReaderResult::ArrayBuffer(ref arr_buffer) => {
-                StringOrObject::Object(RootedTraceableBox::new(
-                    Heap::new((*arr_buffer.ptr.get()).to_object())))
+                let result = RootedTraceableBox::new(Heap::default());
+                result.set((*arr_buffer.ptr.get()).to_object());
+                StringOrObject::Object(result)
             }
         })
     }

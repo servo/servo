@@ -340,12 +340,12 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveNullableSequence(&self) -> Option<Vec<i32>> { Some(vec![1]) }
     fn ReceiveTestDictionaryWithSuccessOnKeyword(&self) -> RootedTraceableBox<TestDictionary> {
         RootedTraceableBox::new(TestDictionary {
-            anyValue: Heap::new(NullValue()),
+            anyValue: Heap::default(),
             booleanValue: None,
             byteValue: None,
             dict: RootedTraceableBox::new(TestDictionaryDefaults {
                 UnrestrictedDoubleValue: 0.0,
-                anyValue: Heap::new(NullValue()),
+                anyValue: Heap::default(),
                 booleanValue: false,
                 bytestringValue: ByteString::new(vec![]),
                 byteValue: 0,
@@ -361,7 +361,7 @@ impl TestBindingMethods for TestBinding {
                 nullableFloatValue: None,
                 nullableLongLongValue: None,
                 nullableLongValue: None,
-                nullableObjectValue: Heap::new(ptr::null_mut()),
+                nullableObjectValue: Heap::default(),
                 nullableOctetValue: None,
                 nullableShortValue: None,
                 nullableStringValue: None,

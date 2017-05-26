@@ -6577,7 +6577,7 @@ class CallbackMember(CGNativeMember):
             replacements["argCount"] = self.argCountStr
             replacements["argvDecl"] = string.Template(
                 "rooted_vec!(let mut argv);\n"
-                "argv.extend((0..${argCount}).map(|_| Heap::new(UndefinedValue())));\n"
+                "argv.extend((0..${argCount}).map(|_| Heap::default()));\n"
             ).substitute(replacements)
         else:
             # Avoid weird 0-sized arrays
@@ -6652,7 +6652,11 @@ class CallbackMember(CGNativeMember):
 
         conversion = wrapForType(
             "argv_root.handle_mut()", result=argval,
-            successCode="argv[%s] = Heap::new(argv_root.get());" % jsvalIndex,
+            successCode=("{\n" +
+                         "let arg = &mut argv[%s];\n" +
+                         "*arg = Heap::default();\n" +
+                         "arg.set(argv_root.get());\n" +
+                         "}") % jsvalIndex,
             pre="rooted!(in(cx) let mut argv_root = UndefinedValue());")
         if arg.variadic:
             conversion = string.Template(
@@ -6668,7 +6672,7 @@ class CallbackMember(CGNativeMember):
                 "    // This is our current trailing argument; reduce argc\n"
                 "    argc -= 1;\n"
                 "} else {\n"
-                "    argv[%d] = Heap::new(UndefinedValue());\n"
+                "    argv[%d] = Heap::default();\n"
                 "}" % (i + 1, i))
         return conversion
 

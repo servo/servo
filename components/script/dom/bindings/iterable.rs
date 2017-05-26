@@ -132,7 +132,10 @@ fn key_and_value_return(cx: *mut JSContext,
                         value: HandleValue) -> Fallible<()> {
     let mut dict = unsafe { IterableKeyAndValueResult::empty(cx) };
     dict.done = false;
-    dict.value = Some(vec![Heap::new(key.get()), Heap::new(value.get())]);
+    let values = vec![Heap::default(), Heap::default()];
+    values[0].set(key.get());
+    values[1].set(value.get());
+    dict.value = Some(values);
     rooted!(in(cx) let mut dict_value = UndefinedValue());
     unsafe {
         dict.to_jsval(cx, dict_value.handle_mut());
