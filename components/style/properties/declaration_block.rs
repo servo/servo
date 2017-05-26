@@ -16,6 +16,7 @@ use std::fmt;
 use std::slice::Iter;
 use style_traits::ToCss;
 use stylesheets::{CssRuleType, Origin, UrlExtraData};
+use stylesheets::{MallocSizeOf, MallocSizeOfFn};
 use super::*;
 #[cfg(feature = "gecko")] use properties::animated_properties::AnimationValueMap;
 
@@ -46,6 +47,12 @@ pub enum Importance {
     Important,
 }
 
+impl MallocSizeOf for Importance {
+    fn malloc_size_of_children(&self, _malloc_size_of: MallocSizeOfFn) -> usize {
+        0
+    }
+}
+
 impl Importance {
     /// Return whether this is an important declaration.
     pub fn important(self) -> bool {
@@ -68,6 +75,12 @@ pub struct PropertyDeclarationBlock {
     important_count: usize,
 
     longhands: LonghandIdSet,
+}
+
+impl MallocSizeOf for PropertyDeclarationBlock {
+    fn malloc_size_of_children(&self, malloc_size_of: MallocSizeOfFn) -> usize {
+        self.declarations.malloc_size_of_children(malloc_size_of)
+    }
 }
 
 /// Iterator for PropertyDeclaration to be generated from PropertyDeclarationBlock.

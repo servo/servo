@@ -35,7 +35,7 @@ use properties::animated_properties::TransitionProperty;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
 use shared_lock::StylesheetGuards;
 use style_traits::{HasViewportPercentage, ToCss};
-use stylesheets::{CssRuleType, Origin, UrlExtraData};
+use stylesheets::{CssRuleType, MallocSizeOf, MallocSizeOfFn, Origin, UrlExtraData};
 #[cfg(feature = "servo")] use values::Either;
 use values::computed;
 use cascade_info::CascadeInfo;
@@ -1170,6 +1170,14 @@ impl ToCss for PropertyDeclaration {
         }
     % endif
 </%def>
+
+impl MallocSizeOf for PropertyDeclaration {
+    fn malloc_size_of_children(&self, _malloc_size_of: MallocSizeOfFn) -> usize {
+        // The variants of PropertyDeclaration mostly (entirely?) contain
+        // scalars, so this is reasonable.
+        0
+    }
+}
 
 impl PropertyDeclaration {
     /// Given a property declaration, return the property declaration id.
