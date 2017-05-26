@@ -4286,10 +4286,14 @@ class CGUnionConversionStruct(CGThing):
         returnType = "Result<Option<%s>, ()>" % templateVars["typeName"]
         jsConversion = templateVars["jsConversion"]
 
+        # Any code to convert to Object is unused, since we're already converting
+        # from an Object value.
+        if t.name == 'Object':
+            return CGGeneric('')
+
         return CGWrapper(
             CGIndenter(jsConversion, 4),
-            # TryConvertToObject is unused, but not generating it while generating others is tricky.
-            pre="#[allow(dead_code)] unsafe fn TryConvertTo%s(cx: *mut JSContext, value: HandleValue) -> %s {\n"
+            pre="unsafe fn TryConvertTo%s(cx: *mut JSContext, value: HandleValue) -> %s {\n"
                 % (t.name, returnType),
             post="\n}")
 
