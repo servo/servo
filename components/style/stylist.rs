@@ -1017,6 +1017,22 @@ impl Stylist {
         debug!("push_applicable_declarations: shareable: {:?}", context.relations);
     }
 
+    /// Given an id and an optional pseudo, returns whether there are
+    /// any rules for that id in the relevant rule map.
+    #[inline]
+    pub fn has_rules_for_id(&self,
+                            id: &Atom,
+                            pseudo_element: Option<&PseudoElement>) -> bool {
+        let map = match pseudo_element {
+            Some(pseudo) => self.pseudos_map.get(pseudo).unwrap(),
+            None => &self.element_map,
+        };
+
+        map.user_agent.has_rules_for_id(id) ||
+            map.user.has_rules_for_id(id) ||
+            map.author.has_rules_for_id(id)
+    }
+
     /// Return whether the device is dirty, that is, whether the screen size or
     /// media type have changed (for now).
     #[inline]

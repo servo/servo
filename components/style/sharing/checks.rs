@@ -6,6 +6,7 @@
 //! quickly whether it's worth to share style, and whether two different
 //! elements can indeed share the same style.
 
+use Atom;
 use context::{CurrentElementInfo, SelectorFlagsMap, SharedStyleContext};
 use dom::TElement;
 use element_state::*;
@@ -153,4 +154,29 @@ pub fn revalidate<E>(element: E,
     debug_assert_eq!(for_element.len(), for_candidate.len());
 
     for_element == for_candidate
+}
+
+/// Checks whether we have rules for either of the two ids.
+#[inline]
+pub fn have_rules_for_ids(shared_context: &SharedStyleContext,
+                          element_id: Option<Atom>,
+                          candidate_id: Option<Atom>) -> bool
+{
+    // We shouldn't be called unless the ids are different.
+    debug_assert!(element_id.is_some() || candidate_id.is_some());
+    let stylist = &shared_context.stylist;
+
+    let have_rules_for_element = match element_id {
+        Some(ref id) => stylist.has_rules_for_id(id, None),
+        None => false
+    };
+
+    if have_rules_for_element {
+        return true;
+    }
+
+    match element_id {
+        Some(ref id) => stylist.has_rules_for_id(id, None),
+        None => false
+    }
 }

@@ -159,6 +159,12 @@ impl SelectorMap<Rule> {
                     |block| (block.specificity, block.source_order));
     }
 
+    /// Check whether we have rules for the given id
+    #[inline]
+    pub fn has_rules_for_id(&self, id: &Atom) -> bool {
+        self.id_hash.get(id).is_some()
+    }
+
     /// Append to `rule_list` all universal Rules (rules with selector `*|*`) in
     /// `self` sorted by specificity and source order.
     pub fn get_universal_rules(&self,
