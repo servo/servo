@@ -36,6 +36,7 @@ use properties::animated_properties::TransitionProperty;
 use shared_lock::StylesheetGuards;
 use style_traits::{HasViewportPercentage, ToCss};
 use stylesheets::{CssRuleType, Origin, UrlExtraData};
+#[cfg(feature = "gecko")] use stylesheets::{MallocSizeOf, MallocSizeOfFn};
 #[cfg(feature = "servo")] use values::Either;
 use values::computed;
 use cascade_info::CascadeInfo;
@@ -1180,6 +1181,15 @@ impl ToCss for PropertyDeclaration {
         }
     % endif
 </%def>
+
+#[cfg(feature = "gecko")]
+impl MallocSizeOf for PropertyDeclaration {
+    fn malloc_size_of_children(&self, _malloc_size_of: MallocSizeOfFn) -> usize {
+        // The variants of PropertyDeclaration mostly (entirely?) contain
+        // scalars, so this is reasonable.
+        0
+    }
+}
 
 impl PropertyDeclaration {
     /// Given a property declaration, return the property declaration id.

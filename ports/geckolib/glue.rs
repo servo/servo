@@ -70,6 +70,7 @@ use style::gecko_bindings::structs::{nsCSSFontFaceRule, nsCSSCounterStyleRule};
 use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint};
 use style::gecko_bindings::structs::IterationCompositeOperation;
 use style::gecko_bindings::structs::Loader;
+use style::gecko_bindings::structs::MallocSizeOf;
 use style::gecko_bindings::structs::RawGeckoPresContextOwned;
 use style::gecko_bindings::structs::ServoElementSnapshotTable;
 use style::gecko_bindings::structs::StyleRuleInclusion;
@@ -98,9 +99,9 @@ use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards, 
 use style::string_cache::Atom;
 use style::style_adjuster::StyleAdjuster;
 use style::stylearc::Arc;
-use style::stylesheets::{CssRule, CssRules, CssRuleType, CssRulesHelpers};
-use style::stylesheets::{ImportRule, KeyframesRule, MediaRule, NamespaceRule, Origin};
-use style::stylesheets::{PageRule, Stylesheet, StyleRule, SupportsRule, DocumentRule};
+use style::stylesheets::{CssRule, CssRules, CssRuleType, CssRulesHelpers, DocumentRule};
+use style::stylesheets::{ImportRule, KeyframesRule, MallocSizeOfWithGuard, MediaRule};
+use style::stylesheets::{NamespaceRule, Origin, PageRule, Stylesheet, StyleRule, SupportsRule};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::stylist::RuleInclusion;
 use style::supports::parse_condition_or_declaration;
@@ -799,6 +800,15 @@ pub extern "C" fn Servo_StyleSheet_GetRules(sheet: RawServoStyleSheetBorrowed) -
 pub extern "C" fn Servo_StyleSheet_Clone(raw_sheet: RawServoStyleSheetBorrowed) -> RawServoStyleSheetStrong {
     let sheet: &Arc<Stylesheet> = HasArcFFI::as_arc(&raw_sheet);
     Arc::new(sheet.as_ref().clone()).into_strong()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleSheet_SizeOfIncludingThis(malloc_size_of: MallocSizeOf,
+                                                       sheet: RawServoStyleSheetBorrowed) -> usize {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+    let malloc_size_of = malloc_size_of.unwrap();
+    Stylesheet::as_arc(&sheet).malloc_size_of_children(&guard, malloc_size_of)
 }
 
 fn read_locked_arc<T, R, F>(raw: &<Locked<T> as HasFFI>::FFIType, func: F) -> R
