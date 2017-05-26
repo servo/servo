@@ -343,7 +343,7 @@ impl TestBindingMethods for TestBinding {
             anyValue: Heap::new(NullValue()),
             booleanValue: None,
             byteValue: None,
-            dict: TestDictionaryDefaults {
+            dict: RootedTraceableBox::new(TestDictionaryDefaults {
                 UnrestrictedDoubleValue: 0.0,
                 anyValue: Heap::new(NullValue()),
                 booleanValue: false,
@@ -379,7 +379,7 @@ impl TestBindingMethods for TestBinding {
                 unsignedLongValue: 0,
                 unsignedShortValue: 0,
                 usvstringValue: USVString("".to_owned()),
-            },
+            }),
             doubleValue: None,
             enumValue: None,
             floatValue: None,

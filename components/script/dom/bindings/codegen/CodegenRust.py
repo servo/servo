@@ -1090,9 +1090,8 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         declType = CGGeneric(typeName)
         empty = "%s::empty(cx)" % typeName
 
-        if isMember != "Dictionary" and type_needs_tracing(type):
+        if type_needs_tracing(type):
             declType = CGTemplatedType("RootedTraceableBox", declType)
-            empty = "RootedTraceableBox::new(%s)" % empty
 
         template = ("match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
                     "    Ok(ConversionResult::Success(dictionary)) => dictionary,\n"
@@ -5972,16 +5971,24 @@ class CGDictionary(CGThing):
         memberInits = CGList([memberInit(m) for m in self.memberInfo])
         memberInserts = CGList([memberInsert(m) for m in self.memberInfo])
 
+        actualType = self.makeClassName(d)
+        preInitial = ""
+        postInitial = ""
+        if self.membersNeedTracing():
+            actualType = "RootedTraceableBox<%s>" % actualType
+            preInitial = "RootedTraceableBox::new("
+            postInitial = ")"
+
         return string.Template(
             "impl ${selfName} {\n"
-            "    pub unsafe fn empty(cx: *mut JSContext) -> ${selfName} {\n"
+            "    pub unsafe fn empty(cx: *mut JSContext) -> ${actualType} {\n"
             "        match ${selfName}::new(cx, HandleValue::null()) {\n"
             "            Ok(ConversionResult::Success(v)) => v,\n"
             "            _ => unreachable!(),\n"
             "        }\n"
             "    }\n"
             "    pub unsafe fn new(cx: *mut JSContext, val: HandleValue) \n"
-            "                      -> Result<ConversionResult<${selfName}>, ()> {\n"
+            "                      -> Result<ConversionResult<${actualType}>, ()> {\n"
             "        let object = if val.get().is_null_or_undefined() {\n"
             "            ptr::null_mut()\n"
             "        } else if val.get().is_object() {\n"
@@ -5991,17 +5998,18 @@ class CGDictionary(CGThing):
             "            return Err(());\n"
             "        };\n"
             "        rooted!(in(cx) let object = object);\n"
-            "        Ok(ConversionResult::Success(${selfName} {\n"
+            "        let dictionary = ${preInitial}${selfName} {\n"
             "${initParent}"
             "${initMembers}"
-            "        }))\n"
+            "        }${postInitial};\n"
+            "        Ok(ConversionResult::Success(dictionary))\n"
             "    }\n"
             "}\n"
             "\n"
-            "impl FromJSValConvertible for ${selfName} {\n"
+            "impl FromJSValConvertible for ${actualType} {\n"
             "    type Config = ();\n"
             "    unsafe fn from_jsval(cx: *mut JSContext, value: HandleValue, _option: ())\n"
-            "                         -> Result<ConversionResult<${selfName}>, ()> {\n"
+            "                         -> Result<ConversionResult<${actualType}>, ()> {\n"
             "        ${selfName}::new(cx, value)\n"
             "    }\n"
             "}\n"
@@ -6014,9 +6022,12 @@ class CGDictionary(CGThing):
             "    }\n"
             "}\n").substitute({
                 "selfName": self.makeClassName(d),
+                "actualType": actualType,
                 "initParent": CGIndenter(CGGeneric(initParent), indentLevel=12).define(),
                 "initMembers": CGIndenter(memberInits, indentLevel=12).define(),
                 "insertMembers": CGIndenter(memberInserts, indentLevel=8).define(),
+                "preInitial": CGGeneric(preInitial).define(),
+                "postInitial": CGGeneric(postInitial).define(),
             })
 
     def membersNeedTracing(self):
