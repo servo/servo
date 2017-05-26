@@ -2483,6 +2483,15 @@ bitflags! {
         const SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP = 0x02,
         /// Whether to only cascade properties that are visited dependent.
         const VISITED_DEPENDENT_ONLY = 0x04,
+        /// Should we modify the device's root font size
+        /// when computing the root?
+        ///
+        /// Not set for native anonymous content since some NAC
+        /// form their own root, but share the device.
+        ///
+        /// ::backdrop and all NAC will resolve rem units against
+        /// the toplevel root element now.
+        const ALLOW_SET_ROOT_FONT_SIZE = 0x08,
     }
 }
 
@@ -2773,7 +2782,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
             % endif
             }
 
-            if is_root_element {
+            if is_root_element && flags.contains(ALLOW_SET_ROOT_FONT_SIZE) {
                 let s = context.style.get_font().clone_font_size();
                 context.device.set_root_font_size(s);
             }
