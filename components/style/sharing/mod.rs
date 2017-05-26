@@ -445,11 +445,6 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
             return StyleSharingResult::CannotShare;
         }
 
-        if target.get_id().is_some() {
-            debug!("{:?} Cannot share style: element has id", target.element);
-            return StyleSharingResult::CannotShare
-        }
-
         let mut should_clear_cache = false;
         for (i, candidate) in self.iter_mut().enumerate() {
             let sharing_result =
@@ -568,8 +563,14 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
             miss!(State)
         }
 
-        if target.get_id() != candidate.element.get_id() {
-            miss!(IdAttr)
+        let element_id = target.element.get_id();
+        let candidate_id = candidate.element.get_id();
+        if element_id != candidate_id {
+            // It's possible that there are no styles for either id.
+            if checks::have_rules_for_ids(shared, element_id.as_ref(),
+                                          candidate_id.as_ref()) {
+                miss!(IdAttr)
+            }
         }
 
         if !checks::have_same_style_attribute(target, candidate) {
