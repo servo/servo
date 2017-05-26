@@ -1039,12 +1039,12 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             if defaultValue is None:
                 default = None
             elif isinstance(defaultValue, IDLNullValue):
-                default = "Heap::new(NullValue())"
+                default = "NullValue()"
             elif isinstance(defaultValue, IDLUndefinedValue):
-                default = "Heap::new(UndefinedValue())"
+                default = "UndefinedValue()"
             else:
                 raise TypeError("Can't handle non-null, non-undefined default value here")
-            return handleOptional("Heap::new(${val}.get())", declType, default)
+            return handleOptional("${val}.get()", declType, default)
 
         declType = CGGeneric("HandleValue")
 
@@ -1071,8 +1071,6 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
         if isMember in ("Dictionary", "Union"):
             declType = CGGeneric("Heap<*mut JSObject>")
-            templateBody = "Heap::new(%s)" % templateBody
-            default = "Heap::new(%s)" % default
         else:
             # TODO: Need to root somehow
             # https://github.com/servo/servo/issues/6382
@@ -5586,6 +5584,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::iterable::Iterable',
         'dom::bindings::iterable::IteratorType',
         'dom::bindings::js::JS',
+        'dom::bindings::js::OptionalHeapSetter',
         'dom::bindings::js::Root',
         'dom::bindings::js::RootedReference',
         'dom::bindings::namespace::NamespaceObjectClass',
@@ -5942,7 +5941,7 @@ class CGDictionary(CGThing):
     def impl(self):
         d = self.dictionary
         if d.parent:
-            initParent = ("parent: {\n"
+            initParent = ("{\n"
                           "    match try!(%s::%s::new(cx, val)) {\n"
                           "        ConversionResult::Success(v) => v,\n"
                           "        ConversionResult::Failure(error) => {\n"
@@ -5950,16 +5949,20 @@ class CGDictionary(CGThing):
                           "            return Err(());\n"
                           "        }\n"
                           "    }\n"
-                          "},\n" % (self.makeModuleName(d.parent),
-                                    self.makeClassName(d.parent)))
+                          "}" % (self.makeModuleName(d.parent),
+                                 self.makeClassName(d.parent)))
         else:
             initParent = ""
 
-        def memberInit(memberInfo):
+        def memberInit(memberInfo, isInitial):
             member, _ = memberInfo
             name = self.makeMemberName(member.identifier.name)
             conversion = self.getMemberConversion(memberInfo, member.type)
-            return CGGeneric("%s: %s,\n" % (name, conversion.define()))
+            if isInitial:
+                return CGGeneric("%s: %s,\n" % (name, conversion.define()))
+            if member.type.isAny() or member.type.isObject():
+                return CGGeneric("dictionary.%s.set(%s);\n" % (name, conversion.define()))
+            return CGGeneric("dictionary.%s = %s;\n" % (name, conversion.define()))
 
         def varInsert(varName, dictionaryName):
             insertion = ("rooted!(in(cx) let mut %s_js = UndefinedValue());\n"
@@ -5979,16 +5982,21 @@ class CGDictionary(CGThing):
                                       (name, name, varInsert(name, member.identifier.name).define()))
             return CGGeneric("%s\n" % insertion.define())
 
-        memberInits = CGList([memberInit(m) for m in self.memberInfo])
         memberInserts = CGList([memberInsert(m) for m in self.memberInfo])
 
-        actualType = self.makeClassName(d)
-        preInitial = ""
-        postInitial = ""
+        selfName = self.makeClassName(d)
         if self.membersNeedTracing():
-            actualType = "RootedTraceableBox<%s>" % actualType
-            preInitial = "RootedTraceableBox::new("
-            postInitial = ")"
+            actualType = "RootedTraceableBox<%s>" % selfName
+            preInitial = "let mut dictionary = RootedTraceableBox::new(%s::default());\n" % selfName
+            initParent = initParent = ("dictionary.parent = %s;\n" % initParent) if initParent else ""
+            memberInits = CGList([memberInit(m, False) for m in self.memberInfo])
+            postInitial = ""
+        else:
+            actualType = selfName
+            preInitial = "let dictionary = %s {\n" % selfName
+            postInitial = "};\n"
+            initParent = ("parent: %s,\n" % initParent) if initParent else ""
+            memberInits = CGList([memberInit(m, True) for m in self.memberInfo])
 
         return string.Template(
             "impl ${selfName} {\n"
@@ -6009,10 +6017,10 @@ class CGDictionary(CGThing):
             "            return Err(());\n"
             "        };\n"
             "        rooted!(in(cx) let object = object);\n"
-            "        let dictionary = ${preInitial}${selfName} {\n"
+            "${preInitial}"
             "${initParent}"
             "${initMembers}"
-            "        }${postInitial};\n"
+            "${postInitial}"
             "        Ok(ConversionResult::Success(dictionary))\n"
             "    }\n"
             "}\n"
@@ -6032,13 +6040,13 @@ class CGDictionary(CGThing):
             "        rval.set(ObjectOrNullValue(obj.get()))\n"
             "    }\n"
             "}\n").substitute({
-                "selfName": self.makeClassName(d),
+                "selfName": selfName,
                 "actualType": actualType,
                 "initParent": CGIndenter(CGGeneric(initParent), indentLevel=12).define(),
                 "initMembers": CGIndenter(memberInits, indentLevel=12).define(),
                 "insertMembers": CGIndenter(memberInserts, indentLevel=8).define(),
-                "preInitial": CGGeneric(preInitial).define(),
-                "postInitial": CGGeneric(postInitial).define(),
+                "preInitial": CGIndenter(CGGeneric(preInitial), indentLevel=12).define(),
+                "postInitial": CGIndenter(CGGeneric(postInitial), indentLevel=12).define(),
             })
 
     def membersNeedTracing(self):
