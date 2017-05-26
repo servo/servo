@@ -368,7 +368,7 @@ impl RestyleHint {
     /// Returns whether this `RestyleHint` represents at least as much restyle
     /// work as the specified one.
     #[inline]
-    pub fn contains(&mut self, other: &Self) -> bool {
+    pub fn contains(&self, other: &Self) -> bool {
         self.match_under_self.contains(other.match_under_self) &&
         (self.match_later_siblings & other.match_later_siblings) == other.match_later_siblings &&
         self.replacements.contains(other.replacements)

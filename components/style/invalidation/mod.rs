@@ -71,6 +71,7 @@ impl StylesheetInvalidationSet {
 
     /// Mark the DOM tree styles' as fully invalid.
     pub fn invalidate_fully(&mut self) {
+        debug!("StylesheetInvalidationSet::invalidate_fully");
         self.invalid_scopes.clear();
         self.fully_invalid = true;
     }
@@ -84,9 +85,15 @@ impl StylesheetInvalidationSet {
         stylesheet: &Stylesheet,
         guard: &SharedRwLockReadGuard)
     {
-        if self.fully_invalid ||
-           stylesheet.disabled() ||
+        debug!("StylesheetInvalidationSet::collect_invalidations_for");
+        if self.fully_invalid {
+            debug!(" > Fully invalid already");
+            return;
+        }
+
+        if stylesheet.disabled() ||
            !stylesheet.is_effective_for_device(stylist.device(), guard) {
+            debug!(" > Stylesheet was not effective");
             return; // Nothing to do here.
         }
 
@@ -94,6 +101,9 @@ impl StylesheetInvalidationSet {
             stylesheet.rules.read_with(guard),
             stylist,
             guard);
+
+        debug!(" > resulting invalidations: {:?}", self.invalid_scopes);
+        debug!(" > fully_invalid: {}", self.fully_invalid);
     }
 
     /// Clears the invalidation set, invalidating elements as needed if
@@ -126,13 +136,25 @@ impl StylesheetInvalidationSet {
             return false;
         }
 
+        if let Some(ref r) = data.get_restyle() {
+            if r.hint.contains_subtree() {
+                debug!("process_invalidations_in_subtree: {:?} was already invalid",
+                       element);
+                return false;
+            }
+        }
+
         if self.fully_invalid {
+            debug!("process_invalidations_in_subtree: fully_invalid({:?})",
+                   element);
             data.ensure_restyle().hint.insert(StoredRestyleHint::subtree());
             return true;
         }
 
         for scope in &self.invalid_scopes {
             if scope.matches(element) {
+                debug!("process_invalidations_in_subtree: {:?} matched {:?}",
+                       element, scope);
                 data.ensure_restyle().hint.insert(StoredRestyleHint::subtree());
                 return true;
             }
@@ -151,6 +173,8 @@ impl StylesheetInvalidationSet {
         }
 
         if any_children_invalid {
+            debug!("Children of {:?} changed, setting dirty descendants",
+                   element);
             unsafe { element.set_dirty_descendants() }
         }
 
@@ -171,6 +195,27 @@ impl StylesheetInvalidationSet {
         }
     }
 
+    fn scan_component(
+        component: &Component<SelectorImpl>,
+        scope: &mut Option<InvalidationScope>)
+    {
+        match *component {
+            Component::Class(ref class) => {
+                if scope.as_ref().map_or(true, |s| !s.is_id()) {
+                    *scope = Some(InvalidationScope::Class(class.clone()));
+                }
+            }
+            Component::ID(ref id) => {
+                if scope.is_none() {
+                    *scope = Some(InvalidationScope::ID(id.clone()));
+                }
+            }
+            _ => {
+                // Ignore everything else, at least for now.
+            }
+        }
+    }
+
     /// Collect a style scopes for a given selector.
     ///
     /// We look at the outermost class or id selector to the left of an ancestor
@@ -179,29 +224,30 @@ impl StylesheetInvalidationSet {
     /// We prefer id scopes to class scopes, and outermost scopes to innermost
     /// scopes (to reduce the amount of traversal we need to do).
     fn collect_scopes(&mut self, selector: &Selector<SelectorImpl>) {
+        debug!("StylesheetInvalidationSet::collect_scopes({:?})", selector);
+
         let mut scope: Option<InvalidationScope> = None;
 
-        let iter = selector.inner.complex.iter_ancestors();
-        for component in iter {
-            match *component {
-                Component::Class(ref class) => {
-                    if scope.as_ref().map_or(true, |s| !s.is_id()) {
-                        scope = Some(InvalidationScope::Class(class.clone()));
-                    }
+        let mut scan = true;
+        let mut iter = selector.inner.complex.iter();
+
+        loop {
+            for component in &mut iter {
+                if scan {
+                    Self::scan_component(component, &mut scope);
                 }
-                Component::ID(ref id) => {
-                    if scope.is_none() {
-                        scope = Some(InvalidationScope::ID(id.clone()));
-                    }
-                }
-                _ => {
-                    // Ignore everything else, at least for now.
+            }
+            match iter.next_sequence() {
+                None => break,
+                Some(combinator) => {
+                    scan = combinator.is_ancestor();
                 }
             }
         }
 
         match scope {
             Some(s) => {
+                debug!(" > Found scope: {:?}", s);
                 self.invalid_scopes.insert(s);
             }
             None => {
@@ -226,6 +272,7 @@ impl StylesheetInvalidationSet {
         -> bool
     {
         use stylesheets::CssRule::*;
+        debug!("StylesheetInvalidationSet::collect_invalidations_for_rule");
         debug_assert!(!self.fully_invalid, "Not worth to be here!");
 
         match *rule {
@@ -281,6 +328,7 @@ impl StylesheetInvalidationSet {
             Viewport(..) => {
                 debug!(" > Found unsupported rule, marking the whole subtree \
                        invalid.");
+
                 // TODO(emilio): Can we do better here?
                 //
                 // At least in `@page`, we could check the relevant media, I

@@ -78,6 +78,7 @@ impl StylesheetSet {
         unique_id: u64,
         guard: &SharedRwLockReadGuard)
     {
+        debug!("StylesheetSet::append_stylesheet");
         self.remove_stylesheet_if_present(unique_id);
         self.entries.push(StylesheetSetEntry {
             unique_id: unique_id,
@@ -98,6 +99,7 @@ impl StylesheetSet {
         unique_id: u64,
         guard: &SharedRwLockReadGuard)
     {
+        debug!("StylesheetSet::prepend_stylesheet");
         self.remove_stylesheet_if_present(unique_id);
         self.entries.insert(0, StylesheetSetEntry {
             unique_id: unique_id,
@@ -119,6 +121,7 @@ impl StylesheetSet {
         before_unique_id: u64,
         guard: &SharedRwLockReadGuard)
     {
+        debug!("StylesheetSet::insert_stylesheet_before");
         self.remove_stylesheet_if_present(unique_id);
         let index = self.entries.iter().position(|x| {
             x.unique_id == before_unique_id
@@ -136,6 +139,7 @@ impl StylesheetSet {
 
     /// Remove a given stylesheet from the set.
     pub fn remove_stylesheet(&mut self, unique_id: u64) {
+        debug!("StylesheetSet::remove_stylesheet");
         self.remove_stylesheet_if_present(unique_id);
         self.dirty = true;
         // FIXME(emilio): We can do better!
@@ -144,6 +148,7 @@ impl StylesheetSet {
 
     /// Notes that the author style has been disabled for this document.
     pub fn set_author_style_disabled(&mut self, disabled: bool) {
+        debug!("StylesheetSet::set_author_style_disabled");
         if self.author_style_disabled == disabled {
             return;
         }
@@ -164,6 +169,7 @@ impl StylesheetSet {
                     -> StylesheetIterator
         where E: TElement,
     {
+        debug!("StylesheetSet::flush");
         debug_assert!(self.dirty);
 
         self.dirty = false;

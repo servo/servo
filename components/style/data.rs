@@ -388,6 +388,11 @@ impl StoredRestyleHint {
         self.0.insert(other.0)
     }
 
+    /// Contains whether the whole subtree is invalid.
+    pub fn contains_subtree(&self) -> bool {
+        self.0.contains(&RestyleHint::subtree())
+    }
+
     /// Insert another restyle hint, effectively resulting in the union of both.
     pub fn insert_from(&mut self, other: &Self) {
         self.0.insert_from(&other.0)
