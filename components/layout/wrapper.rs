@@ -30,39 +30,37 @@
 
 #![allow(unsafe_code)]
 
-use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
+use atomic_refcell::{AtomicRef, AtomicRefMut};
 use core::nonzero::NonZero;
-use data::{LayoutDataFlags, PersistentLayoutData};
-use script_layout_interface::{OpaqueStyleAndLayoutData, PartialPersistentLayoutData};
+use data::{LayoutData, LayoutDataFlags, StyleAndLayoutData};
+use script_layout_interface::{OpaqueStyleAndLayoutData, StyleData};
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use script_layout_interface::wrapper_traits::GetLayoutData;
 use style::computed_values::content::{self, ContentItem};
 use style::dom::{NodeInfo, TNode};
 use style::selector_parser::RestyleDamage;
 
-pub type NonOpaqueStyleAndLayoutData = AtomicRefCell<PersistentLayoutData>;
-
 pub unsafe fn drop_style_and_layout_data(data: OpaqueStyleAndLayoutData) {
-    let ptr: *mut AtomicRefCell<PartialPersistentLayoutData> = data.ptr.get();
-    let non_opaque: *mut NonOpaqueStyleAndLayoutData = ptr as *mut _;
+    let ptr: *mut StyleData = data.ptr.get();
+    let non_opaque: *mut StyleAndLayoutData = ptr as *mut _;
     let _ = Box::from_raw(non_opaque);
 }
 
 pub trait LayoutNodeLayoutData {
     /// Similar to borrow_data*, but returns the full PersistentLayoutData rather
     /// than only the style::data::ElementData.
-    fn borrow_layout_data(&self) -> Option<AtomicRef<PersistentLayoutData>>;
-    fn mutate_layout_data(&self) -> Option<AtomicRefMut<PersistentLayoutData>>;
+    fn borrow_layout_data(&self) -> Option<AtomicRef<LayoutData>>;
+    fn mutate_layout_data(&self) -> Option<AtomicRefMut<LayoutData>>;
     fn flow_debug_id(self) -> usize;
 }
 
 impl<T: GetLayoutData> LayoutNodeLayoutData for T {
-    fn borrow_layout_data(&self) -> Option<AtomicRef<PersistentLayoutData>> {
-        self.get_raw_data().map(|d| d.borrow())
+    fn borrow_layout_data(&self) -> Option<AtomicRef<LayoutData>> {
+        self.get_raw_data().map(|d| d.layout_data.borrow())
     }
 
-    fn mutate_layout_data(&self) -> Option<AtomicRefMut<PersistentLayoutData>> {
-        self.get_raw_data().map(|d| d.borrow_mut())
+    fn mutate_layout_data(&self) -> Option<AtomicRefMut<LayoutData>> {
+        self.get_raw_data().map(|d| d.layout_data.borrow_mut())
     }
 
     fn flow_debug_id(self) -> usize {
@@ -71,13 +69,13 @@ impl<T: GetLayoutData> LayoutNodeLayoutData for T {
 }
 
 pub trait GetRawData {
-    fn get_raw_data(&self) -> Option<&NonOpaqueStyleAndLayoutData>;
+    fn get_raw_data(&self) -> Option<&StyleAndLayoutData>;
 }
 
 impl<T: GetLayoutData> GetRawData for T {
-    fn get_raw_data(&self) -> Option<&NonOpaqueStyleAndLayoutData> {
+    fn get_raw_data(&self) -> Option<&StyleAndLayoutData> {
         self.get_style_and_layout_data().map(|opaque| {
-            let container = opaque.ptr.get() as *mut NonOpaqueStyleAndLayoutData;
+            let container = opaque.ptr.get() as *mut StyleAndLayoutData;
             unsafe { &*container }
         })
     }
@@ -91,10 +89,10 @@ pub trait LayoutNodeHelpers {
 impl<T: LayoutNode> LayoutNodeHelpers for T {
     fn initialize_data(&self) {
         if self.get_raw_data().is_none() {
-            let ptr: *mut NonOpaqueStyleAndLayoutData =
-                Box::into_raw(box AtomicRefCell::new(PersistentLayoutData::new()));
+            let ptr: *mut StyleAndLayoutData =
+                Box::into_raw(Box::new(StyleAndLayoutData::new()));
             let opaque = OpaqueStyleAndLayoutData {
-                ptr: unsafe { NonZero::new(ptr as *mut AtomicRefCell<PartialPersistentLayoutData>) }
+                ptr: unsafe { NonZero::new(ptr as *mut StyleData) }
             };
             unsafe { self.init_style_and_layout_data(opaque) };
         };
@@ -171,21 +169,25 @@ impl<T: ThreadSafeLayoutNode> ThreadSafeLayoutNodeHelpers for T {
             debug_assert!(node.is_element());
         }
 
-        let data = node.borrow_layout_data().unwrap();
-        if let Some(r) = data.base.style_data.get_restyle() {
-            // We're reflowing a node that just got a restyle, and so the
-            // damage has been computed and stored in the RestyleData.
-            r.damage
-        } else if !data.flags.contains(::data::HAS_BEEN_TRAVERSED) {
-            // We're reflowing a node that was styled for the first time and
-            // has never been visited by layout. Return rebuild_and_reflow,
-            // because that's what the code expects.
-            RestyleDamage::rebuild_and_reflow()
-        } else {
-            // We're reflowing a node whose style data didn't change, but whose
-            // layout may change due to changes in ancestors or descendants.
-            RestyleDamage::empty()
-        }
+        let damage = {
+            let data = node.get_raw_data().unwrap();
+            if let Some(r) = data.style_data.element_data.borrow().get_restyle() {
+                // We're reflowing a node that just got a restyle, and so the
+                // damage has been computed and stored in the RestyleData.
+                r.damage
+            } else if !data.layout_data.borrow().flags.contains(::data::HAS_BEEN_TRAVERSED) {
+                // We're reflowing a node that was styled for the first time and
+                // has never been visited by layout. Return rebuild_and_reflow,
+                // because that's what the code expects.
+                RestyleDamage::rebuild_and_reflow()
+            } else {
+                // We're reflowing a node whose style data didn't change, but whose
+                // layout may change due to changes in ancestors or descendants.
+                RestyleDamage::empty()
+            }
+        };
+
+        damage
     }
 
 }
