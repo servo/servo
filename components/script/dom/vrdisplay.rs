@@ -11,6 +11,7 @@ use dom::bindings::codegen::Bindings::VRDisplayBinding;
 use dom::bindings::codegen::Bindings::VRDisplayBinding::VRDisplayMethods;
 use dom::bindings::codegen::Bindings::VRDisplayBinding::VREye;
 use dom::bindings::codegen::Bindings::VRLayerBinding::VRLayer;
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::FrameRequestCallback;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use dom::bindings::inheritance::Castable;
@@ -391,6 +392,22 @@ impl VRDisplayMethods for VRDisplay {
         let msg = VRCompositorCommand::SubmitFrame(display_id, layer.left_bounds, layer.right_bounds);
         api_sender.send(CanvasMsg::WebVR(msg)).unwrap();
     }
+
+    // https://w3c.github.io/webvr/spec/1.1/#dom-vrdisplay-getlayers
+    fn GetLayers(&self) -> Vec<VRLayer> {
+        // WebVR spec: MUST return an empty array if the VRDisplay is not currently presenting
+        if !self.presenting.get() {
+            return Vec::new();
+        }
+
+        let layer = self.layer.borrow();
+
+        vec![VRLayer {
+            leftBounds: Some(bounds_to_vec(&layer.left_bounds)),
+            rightBounds: Some(bounds_to_vec(&layer.right_bounds)),
+            source: self.layer_ctx.get().map(|ctx| ctx.Canvas()),
+        }]
+    }
 }
 
 impl VRDisplay {
@@ -467,7 +484,7 @@ impl VRDisplay {
     fn notify_event(&self, event: &WebVRDisplayEvent) {
         let root = Root::from_ref(&*self);
         let event = VRDisplayEvent::new_from_webvr(&self.global(), &root, &event);
-        event.upcast::<Event>().fire(self.upcast());
+        event.upcast::<Event>().fire(self.global().upcast::<EventTarget>());
     }
 
     fn init_present(&self) {
@@ -642,4 +659,11 @@ fn validate_layer(cx: *mut JSContext,
     } else {
         Err("VRLayer source must be a WebGL Context")
     }
+}
+
+fn bounds_to_vec(src: &[f32; 4]) -> Vec<Finite<f32>> {
+    vec![Finite::wrap(src[0]),
+         Finite::wrap(src[1]),
+         Finite::wrap(src[2]),
+         Finite::wrap(src[3])]
 }
