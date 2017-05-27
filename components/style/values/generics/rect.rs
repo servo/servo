@@ -9,29 +9,16 @@ use parser::{Parse, ParserContext};
 use std::fmt;
 use style_traits::ToCss;
 
-/// A CSS value made of four sides: top, right, bottom, and left.
+/// A CSS value made of four components, where its `ToCss` impl will try to
+/// serialize as few components as possible, like for example in `border-width`.
 #[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct Rect<T> {
-    /// Top
-    pub top: T,
-    /// Right.
-    pub right: T,
-    /// Bottom.
-    pub bottom: T,
-    /// Left.
-    pub left: T,
-}
+pub struct Rect<T>(pub T, pub T, pub T, pub T);
 
 impl<T> Rect<T> {
     /// Returns a new `Rect<T>` value.
-    pub fn new(top: T, right: T, bottom: T, left: T) -> Self {
-        Rect {
-            top: top,
-            right: right,
-            bottom: bottom,
-            left: left,
-        }
+    pub fn new(first: T, second: T, third: T, fourth: T) -> Self {
+        Rect(first, second, third, fourth)
     }
 }
 
@@ -46,21 +33,21 @@ impl<T> Rect<T>
         -> Result<Self, ()>
         where Parse: Fn(&ParserContext, &mut Parser) -> Result<T, ()>
     {
-        let top = parse(context, input)?;
-        let right = if let Ok(right) = input.try(|i| parse(context, i)) { right } else {
-            // <top>
-            return Ok(Self::new(top.clone(), top.clone(), top.clone(), top));
+        let first = parse(context, input)?;
+        let second = if let Ok(second) = input.try(|i| parse(context, i)) { second } else {
+            // <first>
+            return Ok(Self::new(first.clone(), first.clone(), first.clone(), first));
         };
-        let bottom = if let Ok(bottom) = input.try(|i| parse(context, i)) { bottom } else {
-            // <top> <right>
-            return Ok(Self::new(top.clone(), right.clone(), top, right));
+        let third = if let Ok(third) = input.try(|i| parse(context, i)) { third } else {
+            // <first> <second>
+            return Ok(Self::new(first.clone(), second.clone(), first, second));
         };
-        let left = if let Ok(left) = input.try(|i| parse(context, i)) { left } else {
-            // <top> <right> <bottom>
-            return Ok(Self::new(top, right.clone(), bottom, right));
+        let fourth = if let Ok(fourth) = input.try(|i| parse(context, i)) { fourth } else {
+            // <first> <second> <third>
+            return Ok(Self::new(first, second.clone(), third, second));
         };
-        // <top> <right> <bottom> <left>
-        Ok(Self::new(top, right, bottom, left))
+        // <first> <second> <third> <fourth>
+        Ok(Self::new(first, second, third, fourth))
     }
 }
 
@@ -88,23 +75,23 @@ impl<T> ToCss for Rect<T>
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
         where W: fmt::Write,
     {
-        self.top.to_css(dest)?;
-        let same_vertical = self.top == self.bottom;
-        let same_horizontal = self.right == self.left;
-        if same_vertical && same_horizontal && self.top == self.right {
+        self.0.to_css(dest)?;
+        let same_vertical = self.0 == self.2;
+        let same_horizontal = self.1 == self.3;
+        if same_vertical && same_horizontal && self.0 == self.1 {
             return Ok(());
         }
         dest.write_str(" ")?;
-        self.right.to_css(dest)?;
+        self.1.to_css(dest)?;
         if same_vertical && same_horizontal {
             return Ok(());
         }
         dest.write_str(" ")?;
-        self.bottom.to_css(dest)?;
+        self.2.to_css(dest)?;
         if same_horizontal {
             return Ok(());
         }
         dest.write_str(" ")?;
-        self.left.to_css(dest)
+        self.3.to_css(dest)
     }
 }

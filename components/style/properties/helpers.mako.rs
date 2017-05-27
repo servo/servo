@@ -901,8 +901,8 @@
             % endif
             })?;
             Ok(expanded! {
-                % for side in ["top", "right", "bottom", "left"]:
-                    ${to_rust_ident(sub_property_pattern % side)}: rect.${side},
+                % for index, side in enumerate(["top", "right", "bottom", "left"]):
+                    ${to_rust_ident(sub_property_pattern % side)}: rect.${index},
                 % endfor
             })
         }

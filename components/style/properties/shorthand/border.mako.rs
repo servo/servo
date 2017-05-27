@@ -25,20 +25,19 @@ ${helpers.four_sides_shorthand("border-style", "border-%s-style",
             BorderWidth::parse_quirky(context, i, AllowQuirks::Yes)
         })?;
         Ok(expanded! {
-            % for side in PHYSICAL_SIDES:
-                ${to_rust_ident('border-%s-width' % side)}: rect.${side},
-            % endfor
+            border_top_width: rect.0,
+            border_right_width: rect.1,
+            border_bottom_width: rect.2,
+            border_left_width: rect.3,
         })
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let rect = Rect {
-                % for side in PHYSICAL_SIDES:
-                ${side}: &self.border_${side}_width,
-                % endfor
-            };
-            rect.to_css(dest)
+            % for side in PHYSICAL_SIDES:
+            let ${side} = &self.border_${side}_width;
+            % endfor
+            Rect::new(top, right, bottom, left).to_css(dest)
         }
     }
 </%helpers:shorthand>
