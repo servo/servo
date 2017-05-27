@@ -61,6 +61,12 @@ pub enum StyleSource {
     Declarations(Arc<Locked<PropertyDeclarationBlock>>),
 }
 
+impl PartialEq for StyleSource {
+    fn eq(&self, other: &Self) -> bool {
+        self.ptr_equals(other)
+    }
+}
+
 impl StyleSource {
     #[inline]
     fn ptr_equals(&self, other: &Self) -> bool {

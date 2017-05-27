@@ -8,14 +8,16 @@
 use Atom;
 use bit_vec::BitVec;
 use cache::{LRUCache, LRUCacheMutIterator};
-use context::{CurrentElementInfo, SelectorFlagsMap, SharedStyleContext};
+use context::{SelectorFlagsMap, SharedStyleContext, StyleContext};
 use data::{ComputedStyle, ElementData, ElementStyles};
 use dom::{TElement, SendElement};
 use matching::{ChildCascadeRequirement, MatchMethods};
 use properties::ComputedValues;
 use selectors::bloom::BloomFilter;
-use selectors::matching::StyleRelations;
-use sink::ForgetfulSink;
+use selectors::matching::{ElementSelectorFlags, StyleRelations, AFFECTED_BY_PRESENTATIONAL_HINTS};
+use smallvec::SmallVec;
+use std::ops::Deref;
+use stylist::{ApplicableDeclarationBlock, Stylist};
 
 mod checks;
 
@@ -32,6 +34,88 @@ pub enum StyleSharingBehavior {
     Disallow,
 }
 
+/// Some data we want to avoid recomputing all the time while trying to share
+/// style.
+///
+/// This data structure is shared between the `ElementSharingChecker` and the
+/// `StyleSharingCandidate` (indeed we could try to merge those, though
+/// conceptually we may still want them to be separate).
+#[derive(Debug)]
+pub struct CachedStyleSharingData {
+    /// The class list of the element.
+    class_list: Option<SmallVec<[Atom; 5]>>,
+    /// The presentational hints this element generated.
+    pres_hints: Option<SmallVec<[ApplicableDeclarationBlock; 5]>>,
+    /// The revalidation selectors matching result.
+    revalidation_match_results: Option<BitVec>,
+}
+
+impl CachedStyleSharingData {
+    /// Create an empty `CachedStyleSharingData`.
+    pub fn new() -> Self {
+        Self {
+            class_list: None,
+            pres_hints: None,
+            revalidation_match_results: None,
+        }
+    }
+
+    /// Swap the cached data, leaving `self` empty, and returning a
+    /// `CachedStyleSharingData` with the current cache.
+    pub fn take(&mut self) -> Self {
+        Self {
+            class_list: self.class_list.take(),
+            pres_hints: self.pres_hints.take(),
+            revalidation_match_results: self.revalidation_match_results.take(),
+        }
+    }
+
+    /// Compute the class list of this element if needed, and return it.
+    fn class_list<E>(&mut self, element: E) -> &[Atom]
+        where E: TElement,
+    {
+        if self.class_list.is_none() {
+            let mut ret = SmallVec::new();
+            element.each_class(|c| ret.push(c.clone()));
+            self.class_list = Some(ret);
+        }
+        &*self.class_list.as_ref().unwrap()
+    }
+
+    /// Compute the presentational hints of this element if needed, and return
+    /// it.
+    fn pres_hints<E>(&mut self, element: E) -> &[ApplicableDeclarationBlock]
+        where E: TElement,
+    {
+        if self.pres_hints.is_none() {
+            let mut ret = SmallVec::new();
+            element.synthesize_presentational_hints_for_legacy_attributes(&mut ret);
+            self.pres_hints = Some(ret);
+        }
+        &*self.pres_hints.as_ref().unwrap()
+    }
+
+    /// Computes the revalidation results if needed, and returns it.
+    fn revalidation_match_results<E, F>(
+        &mut self,
+        element: E,
+        stylist: &Stylist,
+        bloom: &BloomFilter,
+        flags_setter: &mut F
+    ) -> &BitVec
+        where E: TElement,
+              F: FnMut(&E, ElementSelectorFlags),
+    {
+        if self.revalidation_match_results.is_none() {
+            self.revalidation_match_results =
+                Some(stylist.match_revalidation_selectors(&element, bloom,
+                                                          flags_setter));
+        }
+
+        self.revalidation_match_results.as_ref().unwrap()
+    }
+}
+
 /// Information regarding a style sharing candidate, that is, an entry in the
 /// style sharing cache.
 ///
@@ -45,10 +129,35 @@ pub struct StyleSharingCandidate<E: TElement> {
     /// The element. We use SendElement here so that the cache may live in
     /// ScopedTLS.
     element: SendElement<E>,
-    /// The cached class names.
-    class_attributes: Option<Vec<Atom>>,
-    /// The cached result of matching this entry against the revalidation selectors.
-    revalidation_match_results: Option<BitVec>,
+    /// The cached data we store to avoid recomputing too much stuff.
+    cache: CachedStyleSharingData,
+}
+
+impl<E> StyleSharingCandidate<E>
+    where E: TElement,
+{
+    /// Computes the pres hints if needed, and returns it.
+    fn pres_hints(&mut self) -> &[ApplicableDeclarationBlock] {
+        self.cache.pres_hints(*self.element)
+    }
+
+    /// Computes the class list if needed.
+    fn class_list(&mut self) -> &[Atom] {
+        self.cache.class_list(*self.element)
+    }
+
+    /// Computes the revalidation results if needed, and returns it.
+    fn revalidation_match_results(
+        &mut self,
+        stylist: &Stylist,
+        bloom: &BloomFilter,
+    ) -> &BitVec {
+        self.cache.revalidation_match_results(*self.element,
+                                              stylist,
+                                              bloom,
+                                              &mut |_, _| {})
+    }
+
 }
 
 impl<E: TElement> PartialEq<StyleSharingCandidate<E>> for StyleSharingCandidate<E> {
@@ -109,6 +218,103 @@ pub struct StyleSharingCandidateCache<E: TElement> {
     cache: LRUCache<StyleSharingCandidate<E>>,
 }
 
+/// A struct we use as a simple cache of stuff we use to test against different
+/// candidates.
+#[derive(Debug)]
+pub struct ElementSharingChecker<E: TElement> {
+    element: E,
+    cache: CachedStyleSharingData,
+}
+
+impl<E: TElement> ElementSharingChecker<E> {
+    /// Creates a new empty checker for `element`.
+    pub fn new(element: E) -> Self {
+        Self {
+            element: element,
+            cache: CachedStyleSharingData::new(),
+        }
+    }
+
+    /// Consumes this checker and obtains the cached data.
+    pub fn take_cache(self) -> CachedStyleSharingData {
+        self.cache
+    }
+
+    /// Get the presentational hints affecting this element.
+    fn pres_hints(&mut self) -> &[ApplicableDeclarationBlock] {
+        self.cache.pres_hints(self.element)
+    }
+
+    /// Get the class list of this element.
+    fn class_list(&mut self) -> &[Atom] {
+        self.cache.class_list(self.element)
+    }
+
+    /// Computes the revalidation results if needed, and returns it.
+    fn revalidation_match_results(
+        &mut self,
+        stylist: &Stylist,
+        bloom: &BloomFilter,
+        selector_flags_map: &mut SelectorFlagsMap<E>
+    ) -> &BitVec {
+        let element = self.element;
+        // It's important to set the selector flags. Otherwise, if we succeed in
+        // sharing the style, we may not set the slow selector flags for the
+        // right elements (which may not necessarily be |element|), causing
+        // missed restyles after future DOM mutations.
+        //
+        // Gecko's test_bug534804.html exercises this. A minimal testcase is:
+        // <style> #e:empty + span { ... } </style>
+        // <span id="e">
+        //   <span></span>
+        // </span>
+        // <span></span>
+        //
+        // The style sharing cache will get a hit for the second span. When the
+        // child span is subsequently removed from the DOM, missing selector
+        // flags would cause us to miss the restyle on the second span.
+        let mut set_selector_flags = |el: &E, flags: ElementSelectorFlags| {
+            element.apply_selector_flags(selector_flags_map, el, flags);
+        };
+
+        self.cache.revalidation_match_results(self.element,
+                                              stylist,
+                                              bloom,
+                                              &mut set_selector_flags)
+    }
+
+    /// Attempts to share a style with another node. This method is unsafe
+    /// because it depends on the `style_sharing_candidate_cache` having only
+    /// live nodes in it, and we have no way to guarantee that at the type
+    /// system level yet.
+    pub unsafe fn share_style_if_possible(
+        &mut self,
+        context: &mut StyleContext<E>,
+        data: &mut ElementData)
+        -> StyleSharingResult
+    {
+        let shared_context = &context.shared;
+        let selector_flags_map = &mut context.thread_local.selector_flags;
+        let bloom_filter = context.thread_local.bloom_filter.filter();
+
+        context.thread_local
+            .style_sharing_candidate_cache
+            .share_style_if_possible(shared_context,
+                                     selector_flags_map,
+                                     bloom_filter,
+                                     self,
+                                     data)
+    }
+}
+
+impl<E: TElement> Deref for ElementSharingChecker<E> {
+    type Target = E;
+
+    fn deref(&self) -> &Self::Target {
+        &self.element
+    }
+}
+
 impl<E: TElement> StyleSharingCandidateCache<E> {
     /// Create a new style sharing candidate cache.
     pub fn new() -> Self {
@@ -133,7 +339,7 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
                               element: &E,
                               style: &ComputedValues,
                               relations: StyleRelations,
-                              revalidation_match_results: Option<BitVec>) {
+                              mut cache: CachedStyleSharingData) {
         let parent = match element.parent_element() {
             Some(element) => element,
             None => {
@@ -154,14 +360,6 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
             return;
         }
 
-        // Make sure we noted any presentational hints in the StyleRelations.
-        if cfg!(debug_assertions) {
-            let mut hints = ForgetfulSink::new();
-            element.synthesize_presentational_hints_for_legacy_attributes(&mut hints);
-            debug_assert!(hints.is_empty(),
-                          "Style relations should not be shareable!");
-        }
-
         let box_style = style.get_box();
         if box_style.specifies_transitions() {
             debug!("Failing to insert to the cache: transitions");
@@ -175,10 +373,16 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
 
         debug!("Inserting into cache: {:?} with parent {:?}", element, parent);
 
+        // If we know the element had no pres hints from the relations, we can
+        // just do as-if we had computed it, regardless of whether we actually
+        // did.
+        if !relations.intersects(AFFECTED_BY_PRESENTATIONAL_HINTS) {
+            cache.pres_hints = Some(SmallVec::new());
+        }
+
         self.cache.insert(StyleSharingCandidate {
             element: unsafe { SendElement::new(*element) },
-            class_attributes: None,
-            revalidation_match_results: revalidation_match_results,
+            cache: cache,
         });
     }
 
@@ -200,10 +404,9 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
     pub unsafe fn share_style_if_possible(
         &mut self,
         shared_context: &SharedStyleContext,
-        current_element_info: &mut CurrentElementInfo,
         selector_flags_map: &mut SelectorFlagsMap<E>,
         bloom_filter: &BloomFilter,
-        element: E,
+        element: &mut ElementSharingChecker<E>,
         data: &mut ElementData
     ) -> StyleSharingResult {
         if shared_context.options.disable_style_sharing_cache {
@@ -228,11 +431,6 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
             return StyleSharingResult::CannotShare
         }
 
-        if element.get_id().is_some() {
-            debug!("{:?} Cannot share style: element has id", element);
-            return StyleSharingResult::CannotShare
-        }
-
         let mut should_clear_cache = false;
         for (i, candidate) in self.iter_mut().enumerate() {
             let sharing_result =
@@ -241,7 +439,6 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
                     candidate,
                     &shared_context,
                     bloom_filter,
-                    current_element_info,
                     selector_flags_map
                 );
 
@@ -285,7 +482,6 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
                         },
                         // Too expensive failure, give up, we don't want another
                         // one of these.
-                        CacheMiss::PresHints |
                         CacheMiss::Revalidation => break,
                         _ => {}
                     }
@@ -303,11 +499,10 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
         StyleSharingResult::CannotShare
     }
 
-    fn test_candidate(element: E,
+    fn test_candidate(element: &mut ElementSharingChecker<E>,
                       candidate: &mut StyleSharingCandidate<E>,
                       shared: &SharedStyleContext,
                       bloom: &BloomFilter,
-                      info: &mut CurrentElementInfo,
                       selector_flags_map: &mut SelectorFlagsMap<E>)
                       -> Result<ComputedStyle, CacheMiss> {
         macro_rules! miss {
@@ -349,7 +544,7 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
             miss!(UserAndAuthorRules)
         }
 
-        if !checks::have_same_state_ignoring_visitedness(element, candidate) {
+        if !checks::have_same_state_ignoring_visitedness(element.element, candidate) {
             miss!(State)
         }
 
@@ -365,11 +560,11 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
             miss!(Class)
         }
 
-        if checks::has_presentational_hints(element) {
+        if !checks::have_same_presentational_hints(element, candidate) {
             miss!(PresHints)
         }
 
-        if !checks::revalidate(element, candidate, shared, bloom, info,
+        if !checks::revalidate(element, candidate, shared, bloom,
                                selector_flags_map) {
             miss!(Revalidation)
         }

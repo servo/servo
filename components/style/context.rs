@@ -7,7 +7,6 @@
 #[cfg(feature = "servo")] use animation::Animation;
 use animation::PropertyAnimation;
 use app_units::Au;
-use bit_vec::BitVec;
 use bloom::StyleBloom;
 use cache::LRUCache;
 use data::ElementData;
@@ -23,7 +22,7 @@ use selector_parser::SnapshotMap;
 use selectors::matching::ElementSelectorFlags;
 #[cfg(feature = "servo")] use servo_config::opts;
 use shared_lock::StylesheetGuards;
-use sharing::StyleSharingCandidateCache;
+use sharing::{CachedStyleSharingData, StyleSharingCandidateCache};
 #[cfg(feature = "servo")] use std::collections::HashMap;
 #[cfg(feature = "gecko")] use std::env;
 use std::fmt;
@@ -154,26 +153,28 @@ impl<'a> SharedStyleContext<'a> {
     }
 }
 
-/// Information about the current element being processed. We group this together
-/// into a single struct within ThreadLocalStyleContext so that we can instantiate
-/// and destroy it easily at the beginning and end of element processing.
+/// Information about the current element being processed. We group this
+/// together into a single struct within ThreadLocalStyleContext so that we can
+/// instantiate and destroy it easily at the beginning and end of element
+/// processing.
 pub struct CurrentElementInfo {
-    /// The element being processed. Currently we use an OpaqueNode since we only
-    /// use this for identity checks, but we could use SendElement if there were
-    /// a good reason to.
+    /// The element being processed. Currently we use an OpaqueNode since we
+    /// only use this for identity checks, but we could use SendElement if there
+    /// were a good reason to.
     element: OpaqueNode,
     /// Whether the element is being styled for the first time.
     is_initial_style: bool,
-    /// Lazy cache of the result of matching the current element against the
-    /// revalidation selectors.
-    pub revalidation_match_results: Option<BitVec>,
+    /// Lazy cache of the stuff we use to share style, in case we tried and
+    /// failed.
+    pub cached_style_sharing_data: CachedStyleSharingData,
     /// A Vec of possibly expired animations. Used only by Servo.
     #[allow(dead_code)]
     pub possibly_expired_animations: Vec<PropertyAnimation>,
 }
 
-/// Statistics gathered during the traversal. We gather statistics on each thread
-/// and then combine them after the threads join via the Add implementation below.
+/// Statistics gathered during the traversal. We gather statistics on each
+/// thread and then combine them after the threads join via the Add
+/// implementation below.
 #[derive(Default)]
 pub struct TraversalStatistics {
     /// The total number of elements traversed.
@@ -463,7 +464,7 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
         self.current_element_info = Some(CurrentElementInfo {
             element: element.as_node().opaque(),
             is_initial_style: !data.has_styles(),
-            revalidation_match_results: None,
+            cached_style_sharing_data: CachedStyleSharingData::new(),
             possibly_expired_animations: Vec::new(),
         });
     }
