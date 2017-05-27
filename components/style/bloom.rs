@@ -139,13 +139,15 @@ impl<E: TElement> StyleBloom<E> {
     pub fn rebuild(&mut self, mut element: E) {
         self.clear();
 
+        let mut parents_to_insert = SmallVec::<[E; 16]>::new();
         while let Some(parent) = element.traversal_parent() {
-            self.push_internal(parent);
+            parents_to_insert.push(parent);
             element = parent;
         }
 
-        // Put them in the order we expect, from root to `element`'s parent.
-        self.elements.reverse();
+        for parent in parents_to_insert.drain().rev() {
+            self.push(parent);
+        }
     }
 
     /// In debug builds, asserts that all the parents of `element` are in the
@@ -238,7 +240,7 @@ impl<E: TElement> StyleBloom<E> {
 
         // Let's collect the parents we are going to need to insert once we've
         // found the common one.
-        let mut parents_to_insert = SmallVec::<[E; 8]>::new();
+        let mut parents_to_insert = SmallVec::<[E; 16]>::new();
 
         // If the bloom filter still doesn't have enough elements, the common
         // parent is up in the dom.
@@ -284,7 +286,7 @@ impl<E: TElement> StyleBloom<E> {
 
         // Now the parents match, so insert the stack of elements we have been
         // collecting so far.
-        for parent in parents_to_insert.into_iter().rev() {
+        for parent in parents_to_insert.drain().rev() {
             self.push(parent);
         }
 
