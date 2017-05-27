@@ -12,6 +12,7 @@ use euclid::{Point2D, Size2D, TypedPoint2D};
 use euclid::rect::TypedRect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
+use tinyfiledialogs;
 #[cfg(target_os = "windows")]
 use gdi32;
 use gleam::gl;
@@ -1268,12 +1269,33 @@ impl WindowMethods for Window {
                     self.event_queue.borrow_mut().push(WindowEvent::Reload);
                 }
             }
+            //On windows 8.1 when pressing ctrl + anything, ch = Some('\u{unicode_value}')
+            //so matching ch with Some('l') doesn't work here
+            //Instead we match with what's inside the key variable
+            (CMD_OR_CONTROL, _, Key::L) => {
+                if let Some(true) = PREFS.get("shell.builtin-key-shortcuts.enabled").as_boolean() {
+                    let user_input: String;
+                    //TODO: 
+                    // 1) make it work when clicking on "validate" button - Currently only works when pressing enter
+                    // 2) Erratic behavior - sometime the dialog reloads empty after pressing enter
+                    // (windows 8.1)
+                    match tinyfiledialogs::input_box("Enter a URL", "URL:", "") {
+                        Some(input) => user_input = input,
+                        None => user_input = "null".to_string(),
+                    }
+                    if user_input != "null" {
+                        let sanitized_url: ServoUrl; 
+                        sanitized_url = sanitize_url(user_input).unwrap();
+                        //Maybe need to change WindowEvent::LoadUrl() to accept a ServoUrl instead of a String?
+                        self.event_queue.borrow_mut().push(WindowEvent::LoadUrl(sanitized_url.to_string()));
+                    }
+                }
+            }
             (CMD_OR_CONTROL, Some('q'), _) => {
                 if let Some(true) = PREFS.get("shell.builtin-key-shortcuts.enabled").as_boolean() {
                     self.event_queue.borrow_mut().push(WindowEvent::Quit);
                 }
             }
-
             _ => {
                 self.platform_handle_key(key, mods);
             }
@@ -1400,6 +1422,10 @@ fn is_printable(key_code: VirtualKeyCode) -> bool {
         WebStop => false,
         _ => true,
     }
+}
+
+fn sanitize_url(url: String) -> Result<ServoUrl, ()> {
+    Ok(ServoUrl::parse(url.trim()).unwrap())
 }
 
 #[cfg(not(target_os = "windows"))]

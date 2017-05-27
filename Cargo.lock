@@ -1102,6 +1102,7 @@ dependencies = [
  "servo_geometry 0.0.1",
  "servo_url 0.0.1",
  "style_traits 0.0.1",
+ "tinyfiledialogs 2.5.9 (git+https://github.com/jdm/tinyfiledialogs-rs)",
  "user32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "webrender_traits 0.39.0 (git+https://github.com/servo/webrender)",
  "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3089,6 +3090,15 @@ dependencies = [
 [[package]]
 name = "tinyfiledialogs"
 version = "2.5.9"
+source = "git+https://github.com/jdm/tinyfiledialogs-rs#4bf666ab49bf9aafcbbc34b6d4383db00d737654"
+dependencies = [
+ "gcc 0.3.45 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "tinyfiledialogs"
+version = "2.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "gcc 0.3.47 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3663,6 +3673,7 @@ dependencies = [
 "checksum thread_profiler 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "5920e77802b177479ab5795767fa48e68f61b2f516c2ac0041e2978dd8efe483"
 "checksum threadpool 1.3.2 (registry+https://github.com/rust-lang/crates.io-index)" = "59f6d3eff89920113dac9db44dde461d71d01e88a5b57b258a0466c32b5d7fe1"
 "checksum time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)" = "ffd7ccbf969a892bf83f1e441126968a07a3941c24ff522a26af9f9f4585d1a3"
+"checksum tinyfiledialogs 2.5.9 (git+https://github.com/jdm/tinyfiledialogs-rs)" = "<none>"
 "checksum tinyfiledialogs 2.5.9 (registry+https://github.com/rust-lang/crates.io-index)" = "1d401358cd71aca93d5f4fccd3db5b87d970ae70fe457911929d99f4a87f7531"
 "checksum toml 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "736b60249cb25337bc196faa43ee12c705e426f3d55c214d73a4e7be06f92cb4"
 "checksum traitobject 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "efd1f82c56340fdf16f2a953d7bda4f8fdffba13d93b00844c25572110b26079"
