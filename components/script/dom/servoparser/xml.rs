@@ -44,13 +44,13 @@ impl Tokenizer {
         if !input.is_empty() {
             while let Some(chunk) = input.pop_front() {
                 self.inner.feed(chunk);
-                if let Some(script) = self.inner.sink().sink().script.take() {
+                if let Some(script) = self.inner.sink.sink.script.take() {
                     return Err(script);
                 }
             }
         } else {
             self.inner.run();
-            if let Some(script) = self.inner.sink().sink().script.take() {
+            if let Some(script) = self.inner.sink.sink.script.take() {
                 return Err(script);
             }
         }
@@ -62,7 +62,7 @@ impl Tokenizer {
     }
 
     pub fn url(&self) -> &ServoUrl {
-        &self.inner.sink().sink().base_url
+        &self.inner.sink.sink.base_url
     }
 }
 
@@ -80,8 +80,8 @@ unsafe impl JSTraceable for XmlTokenizer<XmlTreeBuilder<JS<Node>, Sink>> {
             }
         }
 
-        let tree_builder = self.sink();
+        let tree_builder = &self.sink;
         tree_builder.trace_handles(&tracer);
-        tree_builder.sink().trace(trc);
+        tree_builder.sink.trace(trc);
     }
 }

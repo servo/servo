@@ -87,7 +87,7 @@ impl Tokenizer {
     }
 
     pub fn url(&self) -> &ServoUrl {
-        &self.inner.sink().sink().base_url
+        &self.inner.sink.sink.base_url
     }
 
     pub fn set_plaintext_state(&mut self) {
@@ -109,9 +109,9 @@ unsafe impl JSTraceable for HtmlTokenizer<TreeBuilder<JS<Node>, Sink>> {
             }
         }
 
-        let tree_builder = self.sink();
+        let tree_builder = &self.sink;
         tree_builder.trace_handles(&tracer);
-        tree_builder.sink().trace(trc);
+        tree_builder.sink.trace(trc);
     }
 }
 
