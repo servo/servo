@@ -26,23 +26,24 @@ use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, PixelFormat};
 use range::Range;
 use servo_geometry::max_rect;
-use std::cmp::{self, Ordering};
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
-use style::computed_values::{border_style, filter, image_rendering};
 use style_traits::cursor::Cursor;
 use text::TextRun;
 use text::glyph::ByteIndex;
-use webrender_traits::{self, ClipId, ColorF, GradientStop, MixBlendMode, ScrollPolicy, TransformStyle, WebGLContextId};
-
+use webrender_traits::{self, BorderRadius, BorderWidths, BoxShadowClipMode, ClipId};
+use webrender_traits::{ColorF, ExtendMode, FilterOp, GradientStop};
+use webrender_traits::{ImageRendering, LayoutPoint, LayoutSize, MixBlendMode};
+use webrender_traits::{NormalBorder, ScrollPolicy, TransformStyle, WebGLContextId};
 pub use style::dom::OpaqueNode;
 
 /// The factor that we multiply the blur radius by in order to inflate the boundaries of display
 /// items that involve a blur. This ensures that the display item boundaries include all the ink.
 pub static BLUR_INFLATION_FACTOR: i32 = 3;
 
-#[derive(HeapSizeOf, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct DisplayList {
     pub list: Vec<DisplayItem>,
 }
@@ -386,7 +387,7 @@ impl<'a> Iterator for DisplayListTraversal<'a> {
 /// Display list sections that make up a stacking context. Each section  here refers
 /// to the steps in CSS 2.1 Appendix E.
 ///
-#[derive(Clone, Copy, Debug, Deserialize, Eq, HeapSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum DisplayListSection {
     BackgroundAndBorders,
     BlockBackgroundsAndBorders,
@@ -394,7 +395,7 @@ pub enum DisplayListSection {
     Outlines,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, HeapSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum StackingContextType {
     Real,
     PseudoPositioned,
@@ -402,7 +403,7 @@ pub enum StackingContextType {
     PseudoScrollingArea,
 }
 
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 /// Represents one CSS stacking context, which may or may not have a hardware layer.
 pub struct StackingContext {
     /// The ID of this StackingContext for uniquely identifying it.
@@ -421,7 +422,7 @@ pub struct StackingContext {
     pub z_index: i32,
 
     /// CSS filters to be applied to this stacking context (including opacity).
-    pub filters: filter::T,
+    pub filters: Vec<FilterOp>,
 
     /// The blend mode with which this stacking context blends with its backdrop.
     pub mix_blend_mode: MixBlendMode,
@@ -450,7 +451,7 @@ impl StackingContext {
                bounds: &Rect<Au>,
                overflow: &Rect<Au>,
                z_index: i32,
-               filters: filter::T,
+               filters: Vec<FilterOp>,
                mix_blend_mode: MixBlendMode,
                transform: Option<Matrix4D<f32>>,
                transform_style: TransformStyle,
@@ -481,7 +482,7 @@ impl StackingContext {
                              &Rect::zero(),
                              &Rect::zero(),
                              0,
-                             filter::T::new(Vec::new()),
+                             Vec::new(),
                              MixBlendMode::Normal,
                              None,
                              TransformStyle::Flat,
@@ -558,7 +559,7 @@ impl fmt::Debug for StackingContext {
 }
 
 /// Defines a stacking context.
-#[derive(Clone, Debug, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ScrollRoot {
     /// The WebRender clip id of this scroll root based on the source of this clip
     /// and information about the fragment.
@@ -585,7 +586,7 @@ impl ScrollRoot {
 
 
 /// One drawing command in the list.
-#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum DisplayItem {
     SolidColor(Box<SolidColorDisplayItem>),
     Text(Box<TextDisplayItem>),
@@ -594,7 +595,6 @@ pub enum DisplayItem {
     Border(Box<BorderDisplayItem>),
     Gradient(Box<GradientDisplayItem>),
     RadialGradient(Box<RadialGradientDisplayItem>),
-    Line(Box<LineDisplayItem>),
     BoxShadow(Box<BoxShadowDisplayItem>),
     Iframe(Box<IframeDisplayItem>),
     PushStackingContext(Box<PushStackingContextItem>),
@@ -603,7 +603,7 @@ pub enum DisplayItem {
 }
 
 /// Information common to all display items.
-#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct BaseDisplayItem {
     /// The boundaries of the display item, in layer coordinates.
     pub bounds: Rect<Au>,
@@ -669,7 +669,7 @@ impl BaseDisplayItem {
 /// A clipping region for a display item. Currently, this can describe rectangles, rounded
 /// rectangles (for `border-radius`), or arbitrary intersections of the two. Arbitrary transforms
 /// are not supported because those are handled by the higher-level `StackingContext` abstraction.
-#[derive(Clone, PartialEq, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, Deserialize, Serialize)]
 pub struct ClippingRegion {
     /// The main rectangular region. This does not include any corners.
     pub main: Rect<Au>,
@@ -683,12 +683,12 @@ pub struct ClippingRegion {
 /// A complex clipping region. These don't as easily admit arbitrary intersection operations, so
 /// they're stored in a list over to the side. Currently a complex clipping region is just a
 /// rounded rectangle, but the CSS WGs will probably make us throw more stuff in here eventually.
-#[derive(Clone, PartialEq, Debug, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
 pub struct ComplexClippingRegion {
     /// The boundaries of the rectangle.
     pub rect: Rect<Au>,
     /// Border radii of this rectangle.
-    pub radii: BorderRadii<Au>,
+    pub radii: BorderRadius,
 }
 
 impl ClippingRegion {
@@ -772,7 +772,7 @@ impl ClippingRegion {
 
     /// Intersects this clipping region with the given rounded rectangle.
     #[inline]
-    pub fn intersect_with_rounded_rect(&mut self, rect: &Rect<Au>, radii: &BorderRadii<Au>) {
+    pub fn intersect_with_rounded_rect(&mut self, rect: &Rect<Au>, radii: &BorderRadius) {
         let new_complex_region = ComplexClippingRegion {
             rect: *rect,
             radii: *radii,
@@ -838,10 +838,10 @@ impl ComplexClippingRegion {
     // TODO(pcwalton): This could be more aggressive by considering points that touch the inside of
     // the border radius ellipse.
     fn completely_encloses(&self, other: &ComplexClippingRegion) -> bool {
-        let left = cmp::max(self.radii.top_left.width, self.radii.bottom_left.width);
-        let top = cmp::max(self.radii.top_left.height, self.radii.top_right.height);
-        let right = cmp::max(self.radii.top_right.width, self.radii.bottom_right.width);
-        let bottom = cmp::max(self.radii.bottom_left.height, self.radii.bottom_right.height);
+        let left = Au::from_f32_px(self.radii.top_left.width.max(self.radii.bottom_left.width));
+        let top = Au::from_f32_px(self.radii.top_left.height.max(self.radii.top_right.height));
+        let right = Au::from_f32_px(self.radii.top_right.width.max(self.radii.bottom_right.width));
+        let bottom = Au::from_f32_px(self.radii.bottom_left.height.max(self.radii.bottom_right.height));
         let interior = Rect::new(Point2D::new(self.rect.origin.x + left, self.rect.origin.y + top),
                                  Size2D::new(self.rect.size.width - left - right,
                                              self.rect.size.height - top - bottom));
@@ -853,7 +853,7 @@ impl ComplexClippingRegion {
 /// Metadata attached to each display item. This is useful for performing auxiliary threads with
 /// the display list involving hit testing: finding the originating DOM node and determining the
 /// cursor to use when the element is hovered over.
-#[derive(Clone, Copy, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Copy, Deserialize, Serialize)]
 pub struct DisplayItemMetadata {
     /// The DOM node from which this display item originated.
     pub node: OpaqueNode,
@@ -863,7 +863,7 @@ pub struct DisplayItemMetadata {
 }
 
 /// Paints a solid color.
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct SolidColorDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -873,13 +873,12 @@ pub struct SolidColorDisplayItem {
 }
 
 /// Paints text.
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct TextDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
 
     /// The text run.
-    #[ignore_heap_size_of = "Because it is non-owning"]
     pub text_run: Arc<TextRun>,
 
     /// The range of text within the text run.
@@ -895,10 +894,10 @@ pub struct TextDisplayItem {
     pub orientation: TextOrientation,
 
     /// The blur radius for this text. If zero, this text is not blurred.
-    pub blur_radius: Au,
+    pub blur_radius: f32,
 }
 
-#[derive(Clone, Eq, PartialEq, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub enum TextOrientation {
     Upright,
     SidewaysLeft,
@@ -906,30 +905,29 @@ pub enum TextOrientation {
 }
 
 /// Paints an image.
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct ImageDisplayItem {
     pub base: BaseDisplayItem,
 
     pub webrender_image: WebRenderImageInfo,
 
-    #[ignore_heap_size_of = "Because it is non-owning"]
     pub image_data: Option<Arc<IpcSharedMemory>>,
 
     /// The dimensions to which the image display item should be stretched. If this is smaller than
     /// the bounds of this display item, then the image will be repeated in the appropriate
     /// direction to tile the entire bounds.
-    pub stretch_size: Size2D<Au>,
+    pub stretch_size: LayoutSize,
 
     /// The amount of space to add to the right and bottom part of each tile, when the image
     /// is tiled.
-    pub tile_spacing: Size2D<Au>,
+    pub tile_spacing: LayoutSize,
 
     /// The algorithm we should use to stretch the image. See `image_rendering` in CSS-IMAGES-3 §
     /// 5.3.
-    pub image_rendering: image_rendering::T,
+    pub image_rendering: ImageRendering,
 }
 
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct WebGLDisplayItem {
     pub base: BaseDisplayItem,
     pub context_id: WebGLContextId,
@@ -937,29 +935,29 @@ pub struct WebGLDisplayItem {
 
 
 /// Paints an iframe.
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct IframeDisplayItem {
     pub base: BaseDisplayItem,
     pub iframe: PipelineId,
 }
 
 /// Paints a gradient.
-#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct Gradient {
     /// The start point of the gradient (computed during display list construction).
-    pub start_point: Point2D<Au>,
+    pub start_point: LayoutPoint,
 
     /// The end point of the gradient (computed during display list construction).
-    pub end_point: Point2D<Au>,
+    pub end_point: LayoutPoint,
 
     /// A list of color stops.
     pub stops: Vec<GradientStop>,
 
-    /// True if gradient repeats infinitly.
-    pub repeating: bool,
+    /// Clamp or Repeat depending on the gradient.
+    pub extend_mode: ExtendMode,
 }
 
-#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct GradientDisplayItem {
     /// Fields common to all display item.
     pub base: BaseDisplayItem,
@@ -969,22 +967,22 @@ pub struct GradientDisplayItem {
 }
 
 /// Paints a radial gradient.
-#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct RadialGradient {
     /// The center point of the gradient.
-    pub center: Point2D<Au>,
+    pub center: LayoutPoint,
 
     /// The radius of the gradient with an x and an y component.
-    pub radius: Size2D<Au>,
+    pub radius: LayoutSize,
 
     /// A list of color stops.
     pub stops: Vec<GradientStop>,
 
-    /// True if gradient repeats infinitly.
-    pub repeating: bool,
+    /// Clamp or Repeat depending on the gradient.
+    pub extend_mode: ExtendMode,
 }
 
-#[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct RadialGradientDisplayItem {
     /// Fields common to all display item.
     pub base: BaseDisplayItem,
@@ -993,23 +991,8 @@ pub struct RadialGradientDisplayItem {
     pub gradient: RadialGradient,
 }
 
-/// A normal border, supporting CSS border styles.
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
-pub struct NormalBorder {
-    /// Border colors.
-    pub color: SideOffsets2D<ColorF>,
-
-    /// Border styles.
-    pub style: SideOffsets2D<border_style::T>,
-
-    /// Border radii.
-    ///
-    /// TODO(pcwalton): Elliptical radii.
-    pub radius: BorderRadii<Au>,
-}
-
 /// A border that is made of image segments.
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct ImageBorder {
     /// The image this border uses, border-image-source.
     pub image: WebRenderImageInfo,
@@ -1031,7 +1014,7 @@ pub struct ImageBorder {
 }
 
 /// A border that is made of linear gradient
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct GradientBorder {
     /// The gradient info that this border uses, border-image-source.
     pub gradient: Gradient,
@@ -1041,7 +1024,7 @@ pub struct GradientBorder {
 }
 
 /// A border that is made of radial gradient
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct RadialGradientBorder {
     /// The gradient info that this border uses, border-image-source.
     pub gradient: RadialGradient,
@@ -1051,7 +1034,7 @@ pub struct RadialGradientBorder {
 }
 
 /// Specifies the type of border
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum BorderDetails {
     Normal(NormalBorder),
     Image(ImageBorder),
@@ -1060,96 +1043,20 @@ pub enum BorderDetails {
 }
 
 /// Paints a border.
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct BorderDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
 
     /// Border widths.
-    pub border_widths: SideOffsets2D<Au>,
+    pub border_widths: BorderWidths,
 
     /// Details for specific border type
     pub details: BorderDetails,
 }
 
-/// Information about the border radii.
-///
-/// TODO(pcwalton): Elliptical radii.
-#[derive(Clone, PartialEq, Debug, Copy, HeapSizeOf, Deserialize, Serialize)]
-pub struct BorderRadii<T> {
-    pub top_left: Size2D<T>,
-    pub top_right: Size2D<T>,
-    pub bottom_right: Size2D<T>,
-    pub bottom_left: Size2D<T>,
-}
-
-impl<T> Default for BorderRadii<T> where T: Default, T: Clone {
-    fn default() -> Self {
-        let top_left = Size2D::new(Default::default(),
-                                   Default::default());
-        let top_right = Size2D::new(Default::default(),
-                                    Default::default());
-        let bottom_left = Size2D::new(Default::default(),
-                                      Default::default());
-        let bottom_right = Size2D::new(Default::default(),
-                                       Default::default());
-        BorderRadii { top_left: top_left,
-                      top_right: top_right,
-                      bottom_left: bottom_left,
-                      bottom_right: bottom_right }
-    }
-}
-
-impl BorderRadii<Au> {
-    // Scale the border radii by the specified factor
-    pub fn scale_by(&self, s: f32) -> BorderRadii<Au> {
-        BorderRadii { top_left: BorderRadii::scale_corner_by(self.top_left, s),
-                      top_right: BorderRadii::scale_corner_by(self.top_right, s),
-                      bottom_left: BorderRadii::scale_corner_by(self.bottom_left, s),
-                      bottom_right: BorderRadii::scale_corner_by(self.bottom_right, s) }
-    }
-
-    // Scale the border corner radius by the specified factor
-    pub fn scale_corner_by(corner: Size2D<Au>, s: f32) -> Size2D<Au> {
-        Size2D::new(corner.width.scale_by(s), corner.height.scale_by(s))
-    }
-}
-
-impl<T> BorderRadii<T> where T: PartialEq + Zero {
-    /// Returns true if all the radii are zero.
-    pub fn is_square(&self) -> bool {
-        let zero = Zero::zero();
-        self.top_left == zero && self.top_right == zero && self.bottom_right == zero &&
-            self.bottom_left == zero
-    }
-}
-
-impl<T> BorderRadii<T> where T: PartialEq + Zero + Clone {
-    /// Returns a set of border radii that all have the given value.
-    pub fn all_same(value: T) -> BorderRadii<T> {
-        BorderRadii {
-            top_left: Size2D::new(value.clone(), value.clone()),
-            top_right: Size2D::new(value.clone(), value.clone()),
-            bottom_right: Size2D::new(value.clone(), value.clone()),
-            bottom_left: Size2D::new(value.clone(), value.clone()),
-        }
-    }
-}
-
-/// Paints a line segment.
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
-pub struct LineDisplayItem {
-    pub base: BaseDisplayItem,
-
-    /// The line segment color.
-    pub color: ColorF,
-
-    /// The line segment style.
-    pub style: border_style::T
-}
-
 /// Paints a box shadow per CSS-BACKGROUNDS.
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct BoxShadowDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -1158,28 +1065,28 @@ pub struct BoxShadowDisplayItem {
     pub box_bounds: Rect<Au>,
 
     /// The offset of this shadow from the box.
-    pub offset: Point2D<Au>,
+    pub offset: LayoutPoint,
 
     /// The color of this shadow.
     pub color: ColorF,
 
     /// The blur radius for this shadow.
-    pub blur_radius: Au,
+    pub blur_radius: f32,
 
     /// The spread radius of this shadow.
-    pub spread_radius: Au,
+    pub spread_radius: f32,
 
     /// The border radius of this shadow.
     ///
     /// TODO(pcwalton): Elliptical radii; different radii for each corner.
-    pub border_radius: Au,
+    pub border_radius: f32,
 
     /// How we should clip the result.
     pub clip_mode: BoxShadowClipMode,
 }
 
 /// Defines a stacking context.
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct PushStackingContextItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -1188,7 +1095,7 @@ pub struct PushStackingContextItem {
 }
 
 /// Defines a stacking context.
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct PopStackingContextItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -1197,26 +1104,13 @@ pub struct PopStackingContextItem {
 }
 
 /// Starts a group of items inside a particular scroll root.
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct DefineClipItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
 
     /// The scroll root that this item starts.
     pub scroll_root: ScrollRoot,
-}
-
-/// How a box shadow should be clipped.
-#[derive(Clone, Copy, Debug, PartialEq, HeapSizeOf, Deserialize, Serialize)]
-pub enum BoxShadowClipMode {
-    /// No special clipping should occur. This is used for (shadowed) text decorations.
-    None,
-    /// The area inside `box_bounds` should be clipped out. Corresponds to the normal CSS
-    /// `box-shadow`.
-    Outset,
-    /// The area outside `box_bounds` should be clipped out. Corresponds to the `inset` flag on CSS
-    /// `box-shadow`.
-    Inset,
 }
 
 impl DisplayItem {
@@ -1229,7 +1123,6 @@ impl DisplayItem {
             DisplayItem::Border(ref border) => &border.base,
             DisplayItem::Gradient(ref gradient) => &gradient.base,
             DisplayItem::RadialGradient(ref gradient) => &gradient.base,
-            DisplayItem::Line(ref line) => &line.base,
             DisplayItem::BoxShadow(ref box_shadow) => &box_shadow.base,
             DisplayItem::Iframe(ref iframe) => &iframe.base,
             DisplayItem::PushStackingContext(ref stacking_context) => &stacking_context.base,
@@ -1293,15 +1186,15 @@ impl DisplayItem {
                 let interior_rect =
                     Rect::new(
                         Point2D::new(border.base.bounds.origin.x +
-                                     border.border_widths.left,
+                                     Au::from_f32_px(border.border_widths.left),
                                      border.base.bounds.origin.y +
-                                     border.border_widths.top),
+                                     Au::from_f32_px(border.border_widths.top)),
                         Size2D::new(border.base.bounds.size.width -
-                                    (border.border_widths.left +
-                                     border.border_widths.right),
+                                    (Au::from_f32_px(border.border_widths.left) +
+                                     Au::from_f32_px(border.border_widths.right)),
                                     border.base.bounds.size.height -
-                                    (border.border_widths.top +
-                                     border.border_widths.bottom)));
+                                    (Au::from_f32_px(border.border_widths.top) +
+                                     Au::from_f32_px(border.border_widths.bottom))));
                 if interior_rect.contains(&point) {
                     return None;
                 }
@@ -1349,7 +1242,6 @@ impl fmt::Debug for DisplayItem {
                 DisplayItem::Border(_) => "Border".to_owned(),
                 DisplayItem::Gradient(_) => "Gradient".to_owned(),
                 DisplayItem::RadialGradient(_) => "RadialGradient".to_owned(),
-                DisplayItem::Line(_) => "Line".to_owned(),
                 DisplayItem::BoxShadow(_) => "BoxShadow".to_owned(),
                 DisplayItem::Iframe(_) => "Iframe".to_owned(),
                 DisplayItem::PushStackingContext(_) |
@@ -1362,7 +1254,7 @@ impl fmt::Debug for DisplayItem {
     }
 }
 
-#[derive(Copy, Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Copy, Clone, Deserialize, Serialize)]
 pub struct WebRenderImageInfo {
     pub width: u32,
     pub height: u32,

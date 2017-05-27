@@ -8,14 +8,12 @@
 //           completely converting layout to directly generate WebRender display lists, for example.
 
 use app_units::Au;
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
-use gfx::display_list::{BorderDetails, BorderRadii, BoxShadowClipMode, ClippingRegion};
+use euclid::{Point2D, Rect};
+use gfx::display_list::{BorderDetails, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayList, DisplayListTraversal, StackingContextType};
 use msg::constellation_msg::PipelineId;
-use style::computed_values::{image_rendering, mix_blend_mode, transform_style};
-use style::computed_values::filter::{self, Filter};
-use style::values::computed::BorderStyle;
-use webrender_traits::{self, DisplayListBuilder, ExtendMode};
+use style::computed_values::transform_style;
+use webrender_traits::{self, DisplayListBuilder};
 use webrender_traits::{LayoutTransform, ClipId, ClipRegionToken};
 
 pub trait WebRenderDisplayListConverter {
@@ -26,76 +24,6 @@ trait WebRenderDisplayItemConverter {
     fn convert_to_webrender(&self,
                             builder: &mut DisplayListBuilder,
                             current_scroll_root_id: &mut ClipId);
-}
-
-trait ToBorderStyle {
-    fn to_border_style(&self) -> webrender_traits::BorderStyle;
-}
-
-impl ToBorderStyle for BorderStyle {
-    fn to_border_style(&self) -> webrender_traits::BorderStyle {
-        match *self {
-            BorderStyle::none => webrender_traits::BorderStyle::None,
-            BorderStyle::solid => webrender_traits::BorderStyle::Solid,
-            BorderStyle::double => webrender_traits::BorderStyle::Double,
-            BorderStyle::dotted => webrender_traits::BorderStyle::Dotted,
-            BorderStyle::dashed => webrender_traits::BorderStyle::Dashed,
-            BorderStyle::hidden => webrender_traits::BorderStyle::Hidden,
-            BorderStyle::groove => webrender_traits::BorderStyle::Groove,
-            BorderStyle::ridge => webrender_traits::BorderStyle::Ridge,
-            BorderStyle::inset => webrender_traits::BorderStyle::Inset,
-            BorderStyle::outset => webrender_traits::BorderStyle::Outset,
-        }
-    }
-}
-
-trait ToBorderWidths {
-    fn to_border_widths(&self) -> webrender_traits::BorderWidths;
-}
-
-impl ToBorderWidths for SideOffsets2D<Au> {
-    fn to_border_widths(&self) -> webrender_traits::BorderWidths {
-        webrender_traits::BorderWidths {
-            left: self.left.to_f32_px(),
-            top: self.top.to_f32_px(),
-            right: self.right.to_f32_px(),
-            bottom: self.bottom.to_f32_px(),
-        }
-    }
-}
-
-trait ToBoxShadowClipMode {
-    fn to_clip_mode(&self) -> webrender_traits::BoxShadowClipMode;
-}
-
-impl ToBoxShadowClipMode for BoxShadowClipMode {
-    fn to_clip_mode(&self) -> webrender_traits::BoxShadowClipMode {
-        match *self {
-            BoxShadowClipMode::None => webrender_traits::BoxShadowClipMode::None,
-            BoxShadowClipMode::Inset => webrender_traits::BoxShadowClipMode::Inset,
-            BoxShadowClipMode::Outset => webrender_traits::BoxShadowClipMode::Outset,
-        }
-    }
-}
-
-trait ToSizeF {
-    fn to_sizef(&self) -> webrender_traits::LayoutSize;
-}
-
-trait ToPointF {
-    fn to_pointf(&self) -> webrender_traits::LayoutPoint;
-}
-
-impl ToPointF for Point2D<Au> {
-    fn to_pointf(&self) -> webrender_traits::LayoutPoint {
-        webrender_traits::LayoutPoint::new(self.x.to_f32_px(), self.y.to_f32_px())
-    }
-}
-
-impl ToSizeF for Size2D<Au> {
-    fn to_sizef(&self) -> webrender_traits::LayoutSize {
-        webrender_traits::LayoutSize::new(self.width.to_f32_px(), self.height.to_f32_px())
-    }
 }
 
 trait ToRectF {
@@ -124,90 +52,10 @@ impl ToClipRegion for ClippingRegion {
                                 self.complex.iter().map(|complex_clipping_region| {
                                     webrender_traits::ComplexClipRegion::new(
                                         complex_clipping_region.rect.to_rectf(),
-                                        complex_clipping_region.radii.to_border_radius(),
+                                        complex_clipping_region.radii,
                                      )
                                 }),
                                 None)
-    }
-}
-
-trait ToBorderRadius {
-    fn to_border_radius(&self) -> webrender_traits::BorderRadius;
-}
-
-impl ToBorderRadius for BorderRadii<Au> {
-    fn to_border_radius(&self) -> webrender_traits::BorderRadius {
-        webrender_traits::BorderRadius {
-            top_left: self.top_left.to_sizef(),
-            top_right: self.top_right.to_sizef(),
-            bottom_left: self.bottom_left.to_sizef(),
-            bottom_right: self.bottom_right.to_sizef(),
-        }
-    }
-}
-
-pub trait ToMixBlendMode {
-    fn to_mix_blend_mode(&self) -> webrender_traits::MixBlendMode;
-}
-
-impl ToMixBlendMode for mix_blend_mode::T {
-    fn to_mix_blend_mode(&self) -> webrender_traits::MixBlendMode {
-        match *self {
-            mix_blend_mode::T::normal => webrender_traits::MixBlendMode::Normal,
-            mix_blend_mode::T::multiply => webrender_traits::MixBlendMode::Multiply,
-            mix_blend_mode::T::screen => webrender_traits::MixBlendMode::Screen,
-            mix_blend_mode::T::overlay => webrender_traits::MixBlendMode::Overlay,
-            mix_blend_mode::T::darken => webrender_traits::MixBlendMode::Darken,
-            mix_blend_mode::T::lighten => webrender_traits::MixBlendMode::Lighten,
-            mix_blend_mode::T::color_dodge => webrender_traits::MixBlendMode::ColorDodge,
-            mix_blend_mode::T::color_burn => webrender_traits::MixBlendMode::ColorBurn,
-            mix_blend_mode::T::hard_light => webrender_traits::MixBlendMode::HardLight,
-            mix_blend_mode::T::soft_light => webrender_traits::MixBlendMode::SoftLight,
-            mix_blend_mode::T::difference => webrender_traits::MixBlendMode::Difference,
-            mix_blend_mode::T::exclusion => webrender_traits::MixBlendMode::Exclusion,
-            mix_blend_mode::T::hue => webrender_traits::MixBlendMode::Hue,
-            mix_blend_mode::T::saturation => webrender_traits::MixBlendMode::Saturation,
-            mix_blend_mode::T::color => webrender_traits::MixBlendMode::Color,
-            mix_blend_mode::T::luminosity => webrender_traits::MixBlendMode::Luminosity,
-        }
-    }
-}
-
-trait ToImageRendering {
-    fn to_image_rendering(&self) -> webrender_traits::ImageRendering;
-}
-
-impl ToImageRendering for image_rendering::T {
-    fn to_image_rendering(&self) -> webrender_traits::ImageRendering {
-        match *self {
-            image_rendering::T::crisp_edges => webrender_traits::ImageRendering::CrispEdges,
-            image_rendering::T::auto => webrender_traits::ImageRendering::Auto,
-            image_rendering::T::pixelated => webrender_traits::ImageRendering::Pixelated,
-        }
-    }
-}
-
-trait ToFilterOps {
-    fn to_filter_ops(&self) -> Vec<webrender_traits::FilterOp>;
-}
-
-impl ToFilterOps for filter::T {
-    fn to_filter_ops(&self) -> Vec<webrender_traits::FilterOp> {
-        let mut result = Vec::with_capacity(self.filters.len());
-        for filter in self.filters.iter() {
-            match *filter {
-                Filter::Blur(radius) => result.push(webrender_traits::FilterOp::Blur(radius)),
-                Filter::Brightness(amount) => result.push(webrender_traits::FilterOp::Brightness(amount)),
-                Filter::Contrast(amount) => result.push(webrender_traits::FilterOp::Contrast(amount)),
-                Filter::Grayscale(amount) => result.push(webrender_traits::FilterOp::Grayscale(amount)),
-                Filter::HueRotate(angle) => result.push(webrender_traits::FilterOp::HueRotate(angle.radians())),
-                Filter::Invert(amount) => result.push(webrender_traits::FilterOp::Invert(amount)),
-                Filter::Opacity(amount) => result.push(webrender_traits::FilterOp::Opacity(amount.into())),
-                Filter::Saturate(amount) => result.push(webrender_traits::FilterOp::Saturate(amount)),
-                Filter::Sepia(amount) => result.push(webrender_traits::FilterOp::Sepia(amount)),
-            }
-        }
-        result
     }
 }
 
@@ -228,8 +76,12 @@ impl WebRenderDisplayListConverter for DisplayList {
     fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder {
         let traversal = DisplayListTraversal::new(self);
         let webrender_pipeline_id = pipeline_id.to_webrender();
+        let exact_bounds_size = self.bounds().size;
+        let bounds_size = webrender_traits::LayoutSize::new(
+            exact_bounds_size.width.to_f32_px(),
+            exact_bounds_size.height.to_f32_px());
         let mut builder = DisplayListBuilder::new(webrender_pipeline_id,
-                                                  self.bounds().size.to_sizef());
+                                                  bounds_size);
 
         let mut current_scroll_root_id = ClipId::root_scroll_node(webrender_pipeline_id);
         builder.push_clip_id(current_scroll_root_id);
@@ -294,20 +146,20 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                       item.text_run.font_key,
                                       item.text_color,
                                       item.text_run.actual_pt_size,
-                                      item.blur_radius.to_f32_px(),
+                                      item.blur_radius,
                                       None);
                 }
             }
             DisplayItem::Image(ref item) => {
                 if let Some(id) = item.webrender_image.key {
-                    if item.stretch_size.width > Au(0) &&
-                       item.stretch_size.height > Au(0) {
+                    if item.stretch_size.width > 0.0 &&
+                       item.stretch_size.height > 0.0 {
                         let clip = item.base.clip.push_clip_region(builder);
                         builder.push_image(item.base.bounds.to_rectf(),
                                            clip,
-                                           item.stretch_size.to_sizef(),
-                                           item.tile_spacing.to_sizef(),
-                                           item.image_rendering.to_image_rendering(),
+                                           item.stretch_size,
+                                           item.tile_spacing,
+                                           item.image_rendering,
                                            id);
                     }
                 }
@@ -318,35 +170,12 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             }
             DisplayItem::Border(ref item) => {
                 let rect = item.base.bounds.to_rectf();
-                let widths = item.border_widths.to_border_widths();
+                let widths = item.border_widths;
                 let clip = item.base.clip.push_clip_region(builder);
 
                 let details = match item.details {
                     BorderDetails::Normal(ref border) => {
-                        let left = webrender_traits::BorderSide {
-                            color: border.color.left,
-                            style: border.style.left.to_border_style(),
-                        };
-                        let top = webrender_traits::BorderSide {
-                            color: border.color.top,
-                            style: border.style.top.to_border_style(),
-                        };
-                        let right = webrender_traits::BorderSide {
-                            color: border.color.right,
-                            style: border.style.right.to_border_style(),
-                        };
-                        let bottom = webrender_traits::BorderSide {
-                            color: border.color.bottom,
-                            style: border.style.bottom.to_border_style(),
-                        };
-                        let radius = border.radius.to_border_radius();
-                        webrender_traits::BorderDetails::Normal(webrender_traits::NormalBorder {
-                            left: left,
-                            top: top,
-                            right: right,
-                            bottom: bottom,
-                            radius: radius,
-                        })
+                        webrender_traits::BorderDetails::Normal(border.clone())
                     }
                     BorderDetails::Image(ref image) => {
                         match image.image.key {
@@ -367,32 +196,22 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                         }
                     }
                     BorderDetails::Gradient(ref gradient) => {
-                        let extend_mode = if gradient.gradient.repeating {
-                            ExtendMode::Repeat
-                        } else {
-                            ExtendMode::Clamp
-                        };
                         webrender_traits::BorderDetails::Gradient(webrender_traits::GradientBorder {
                             gradient: builder.create_gradient(
-                                          gradient.gradient.start_point.to_pointf(),
-                                          gradient.gradient.end_point.to_pointf(),
+                                          gradient.gradient.start_point,
+                                          gradient.gradient.end_point,
                                           gradient.gradient.stops.clone(),
-                                          extend_mode),
+                                          gradient.gradient.extend_mode),
                             outset: gradient.outset,
                         })
                     }
                     BorderDetails::RadialGradient(ref gradient) => {
-                        let extend_mode = if gradient.gradient.repeating {
-                            ExtendMode::Repeat
-                        } else {
-                            ExtendMode::Clamp
-                        };
                        webrender_traits::BorderDetails::RadialGradient(webrender_traits::RadialGradientBorder {
                            gradient: builder.create_radial_gradient(
-                               gradient.gradient.center.to_pointf(),
-                               gradient.gradient.radius.to_sizef(),
+                               gradient.gradient.center,
+                               gradient.gradient.radius,
                                gradient.gradient.stops.clone(),
-                               extend_mode),
+                               gradient.gradient.extend_mode),
                            outset: gradient.outset,
                        })
                     }
@@ -402,18 +221,13 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             }
             DisplayItem::Gradient(ref item) => {
                 let rect = item.base.bounds.to_rectf();
-                let start_point = item.gradient.start_point.to_pointf();
-                let end_point = item.gradient.end_point.to_pointf();
+                let start_point = item.gradient.start_point;
+                let end_point = item.gradient.end_point;
                 let clip = item.base.clip.push_clip_region(builder);
-                let extend_mode = if item.gradient.repeating {
-                    ExtendMode::Repeat
-                } else {
-                    ExtendMode::Clamp
-                };
                 let gradient = builder.create_gradient(start_point,
                                                        end_point,
                                                        item.gradient.stops.clone(),
-                                                       extend_mode);
+                                                       item.gradient.extend_mode);
                 builder.push_gradient(rect,
                                       clip,
                                       gradient,
@@ -422,26 +236,18 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             }
             DisplayItem::RadialGradient(ref item) => {
                 let rect = item.base.bounds.to_rectf();
-                let center = item.gradient.center.to_pointf();
-                let radius = item.gradient.radius.to_sizef();
+                let center = item.gradient.center;
+                let radius = item.gradient.radius;
                 let clip = item.base.clip.push_clip_region(builder);
-                let extend_mode = if item.gradient.repeating {
-                    ExtendMode::Repeat
-                } else {
-                    ExtendMode::Clamp
-                };
                 let gradient = builder.create_radial_gradient(center,
                                                               radius,
                                                               item.gradient.stops.clone(),
-                                                              extend_mode);
+                                                              item.gradient.extend_mode);
                 builder.push_radial_gradient(rect,
                                              clip,
                                              gradient,
                                              rect.size,
                                              webrender_traits::LayoutSize::zero());
-            }
-            DisplayItem::Line(..) => {
-                println!("TODO DisplayItem::Line");
             }
             DisplayItem::BoxShadow(ref item) => {
                 let rect = item.base.bounds.to_rectf();
@@ -450,12 +256,12 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 builder.push_box_shadow(rect,
                                         clip,
                                         box_bounds,
-                                        item.offset.to_pointf(),
+                                        item.offset,
                                         item.color,
-                                        item.blur_radius.to_f32_px(),
-                                        item.spread_radius.to_f32_px(),
-                                        item.border_radius.to_f32_px(),
-                                        item.clip_mode.to_clip_mode());
+                                        item.blur_radius,
+                                        item.spread_radius,
+                                        item.border_radius,
+                                        item.clip_mode);
             }
             DisplayItem::Iframe(ref item) => {
                 let rect = item.base.bounds.to_rectf();
@@ -480,7 +286,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                               stacking_context.transform_style,
                                               perspective,
                                               stacking_context.mix_blend_mode,
-                                              stacking_context.filters.to_filter_ops());
+                                              stacking_context.filters.clone());
             }
             DisplayItem::PopStackingContext(_) => builder.pop_stacking_context(),
             DisplayItem::DefineClip(ref item) => {

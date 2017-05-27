@@ -17,6 +17,7 @@ use style::properties::ServoComputedValues;
 use style::values::computed::{BorderRadiusSize, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrNone};
 use style::values::generics;
+use webrender_traits::LayoutSize;
 
 /// A collapsible margin. See CSS 2.1 § 8.3.1.
 #[derive(Copy, Clone, Debug)]
@@ -474,12 +475,12 @@ pub fn style_length(style_length: LengthOrPercentageOrAuto,
 pub fn specified_border_radius(
     radius: BorderRadiusSize,
     containing_size: Size2D<Au>)
-    -> Size2D<Au>
+    -> LayoutSize
 {
     let generics::BorderRadiusSize(size) = radius;
-    let w = size.width.to_used_value(containing_size.width);
-    let h = size.height.to_used_value(containing_size.height);
-    Size2D::new(w, h)
+    let w = size.width.to_used_value(containing_size.width).to_f32_px();
+    let h = size.height.to_used_value(containing_size.height).to_f32_px();
+    LayoutSize::new(w, h)
 }
 
 #[inline]
