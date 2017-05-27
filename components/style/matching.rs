@@ -13,8 +13,9 @@ use data::{ComputedStyle, ElementData, RestyleData};
 use dom::{TElement, TNode};
 use font_metrics::FontMetricsProvider;
 use log::LogLevel::Trace;
+use properties::{ALLOW_SET_ROOT_FONT_SIZE, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP};
 use properties::{AnimationRules, CascadeFlags, ComputedValues};
-use properties::{SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, VISITED_DEPENDENT_ONLY, cascade};
+use properties::{VISITED_DEPENDENT_ONLY, cascade};
 use properties::longhands::display::computed_value as display;
 use restyle_hints::{RESTYLE_CSS_ANIMATIONS, RESTYLE_CSS_TRANSITIONS, RestyleReplacements};
 use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RESTYLE_SMIL};
@@ -255,6 +256,9 @@ trait PrivateMatchMethods: TElement {
         }
         if cascade_visited.visited_dependent_only() {
             cascade_flags.insert(VISITED_DEPENDENT_ONLY);
+        }
+        if !self.is_native_anonymous() {
+            cascade_flags.insert(ALLOW_SET_ROOT_FONT_SIZE);
         }
 
         // Grab the inherited values.
