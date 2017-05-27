@@ -964,7 +964,7 @@ fn static_assert() {
 
     pub fn set_border_image_outset(&mut self, v: longhands::border_image_outset::computed_value::T) {
         % for side in SIDES:
-        v.${side.ident}.to_gecko_style_coord(&mut self.gecko.mBorderImageOutset.data_at_mut(${side.index}));
+        v.${side.index}.to_gecko_style_coord(&mut self.gecko.mBorderImageOutset.data_at_mut(${side.index}));
         % endfor
     }
 
@@ -1001,7 +1001,7 @@ fn static_assert() {
         use values::generics::border::BorderImageWidthSide;
 
         % for side in SIDES:
-        match v.${side.ident} {
+        match v.${side.index} {
             BorderImageWidthSide::Auto => {
                 self.gecko.mBorderImageWidth.data_at_mut(${side.index}).set_value(CoordDataValue::Auto)
             },
@@ -1026,7 +1026,7 @@ fn static_assert() {
         use gecko_bindings::structs::{NS_STYLE_BORDER_IMAGE_SLICE_NOFILL, NS_STYLE_BORDER_IMAGE_SLICE_FILL};
 
         % for side in SIDES:
-        v.offsets.${side.ident}.to_gecko_style_coord(&mut self.gecko.mBorderImageSlice.data_at_mut(${side.index}));
+        v.offsets.${side.index}.to_gecko_style_coord(&mut self.gecko.mBorderImageSlice.data_at_mut(${side.index}));
         % endfor
 
         let fill = if v.fill {
