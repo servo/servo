@@ -12,7 +12,7 @@ use floats::SpeculatedFloatPlacement;
 use flow::{self, Flow, ImmutableFlowUtils, InorderFlowTraversal, MutableFlowUtils};
 use flow::{PostorderFlowTraversal, PreorderFlowTraversal};
 use flow::IS_ABSOLUTELY_POSITIONED;
-use fragment::FragmentBorderBoxIterator;
+use fragment::{FragmentBorderBoxIterator, CoordinateSystem};
 use generated_content::ResolveGeneratedContent;
 use incremental::RelayoutMode;
 use servo_config::opts;
@@ -105,15 +105,22 @@ pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut Flow, iterator
         flow.iterate_through_fragment_border_boxes(iterator, level, stacking_context_position);
 
         for kid in flow::mut_base(flow).child_iter_mut() {
-            let stacking_context_position = if kid.is_block_flow() &&
-                                               kid.as_block().fragment.establishes_stacking_context() {
-                let margin = Point2D::new(kid.as_block().fragment.margin.inline_start, Au(0));
-                *stacking_context_position + flow::base(kid).stacking_relative_position + margin
-            } else {
-                *stacking_context_position
-            };
-
-            // FIXME(#2795): Get the real container size.
+            let mut stacking_context_position = *stacking_context_position;
+            if kid.is_block_flow() && kid.as_block().fragment.establishes_stacking_context() {
+                stacking_context_position = Point2D::new(kid.as_block().fragment.margin.inline_start, Au(0)) +
+                                            flow::base(kid).stacking_relative_position +
+                                            stacking_context_position;
+                let relative_position = kid.as_block()
+                    .stacking_relative_position(CoordinateSystem::Own);
+                if let Some(matrix) = kid.as_block()
+                       .fragment
+                       .transform_matrix(&relative_position) {
+                    let transform_matrix = matrix.transform_point(&Point2D::zero());
+                    stacking_context_position = stacking_context_position +
+                                                Point2D::new(Au::from_f32_px(transform_matrix.x),
+                                                             Au::from_f32_px(transform_matrix.y))
+                }
+            }
             doit(kid, level + 1, iterator, &stacking_context_position);
         }
     }
