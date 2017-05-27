@@ -8,7 +8,9 @@
 
 use app_units::Au;
 use cssparser::RGBA;
-use gecko_bindings::structs::{nsStyleCoord, StyleGridTrackBreadth, StyleShapeRadius};
+use gecko_bindings::bindings;
+use gecko_bindings::structs::{CounterStylePtr, nsStyleCoord};
+use gecko_bindings::structs::{StyleGridTrackBreadth, StyleShapeRadius};
 use gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
 use std::cmp::max;
 use values::{Auto, Either, ExtremumLength, None_, Normal};
@@ -16,6 +18,7 @@ use values::computed::{Angle, LengthOrPercentage, LengthOrPercentageOrAuto};
 use values::computed::{LengthOrPercentageOrNone, Number, NumberOrPercentage};
 use values::computed::{MaxLength, MozLength};
 use values::computed::basic_shape::ShapeRadius as ComputedShapeRadius;
+use values::generics::CounterStyleOrNone;
 use values::generics::basic_shape::ShapeRadius;
 use values::generics::grid::{TrackBreadth, TrackKeyword};
 use values::specified::Percentage;
@@ -388,5 +391,18 @@ pub fn round_border_to_device_pixels(width: Au, au_per_device_px: Au) -> Au {
         Au(0)
     } else {
         max(au_per_device_px, Au(width.0 / au_per_device_px.0 * au_per_device_px.0))
+    }
+}
+
+impl CounterStyleOrNone {
+    /// Convert this counter style to a Gecko CounterStylePtr.
+    pub fn to_gecko_value(self, gecko_value: &mut CounterStylePtr) {
+        let ptr = match self {
+            CounterStyleOrNone::None_ => atom!("none"),
+            CounterStyleOrNone::Name(name) => name.0,
+        };
+        unsafe {
+            bindings::Gecko_SetCounterStyleToName(gecko_value, ptr.into_addrefed());
+        }
     }
 }
