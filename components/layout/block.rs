@@ -31,7 +31,7 @@ use app_units::{Au, MAX_AU};
 use context::LayoutContext;
 use display_list_builder::{BorderPaintingMode, DisplayListBuildState};
 use display_list_builder::BlockFlowDisplayListBuilding;
-use euclid::{Point2D, Size2D};
+use euclid::{Point2D, Size2D, Rect};
 use floats::{ClearType, FloatKind, Floats, PlacementInfo};
 use flow::{self, BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag};
 use flow::{BLOCK_POSITION_IS_STATIC, CLEARS_LEFT, CLEARS_RIGHT};
@@ -645,6 +645,14 @@ impl BlockFlow {
     /// Return this flow's fragment.
     pub fn fragment(&mut self) -> &mut Fragment {
         &mut self.fragment
+    }
+
+    pub fn stacking_relative_position(&self, coor: CoordinateSystem) -> Rect<Au> {
+        return self.fragment.stacking_relative_border_box(
+            &self.base.stacking_relative_position,
+            &self.base.early_absolute_position_info.relative_containing_block_size,
+            self.base.early_absolute_position_info.relative_containing_block_mode,
+            coor);
     }
 
     /// Return the size of the containing block for the given immediate absolute descendant of this
