@@ -54,9 +54,8 @@ ${helpers.predefined_type("column-rule-color", "CSSColor",
                           complex_color=True, need_clone=True,
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule-color")}
 
-// It's not implemented in servo or gecko yet.
 ${helpers.single_keyword("column-span", "none all",
-                         products="none", animation_value_type="none",
+                         products="gecko", animation_value_type="none",
                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-span")}
 
 ${helpers.single_keyword("column-rule-style",

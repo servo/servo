@@ -1486,27 +1486,28 @@ fn static_assert() {
                              font-synthesis -x-lang font-variant-alternates
                              font-variant-east-asian font-variant-ligatures
                              font-variant-numeric font-language-override
-                             font-feature-settings"""
+                             font-feature-settings font-variation-settings
+                             -moz-min-font-size-ratio"""
 %>
 <%self:impl_trait style_struct_name="Font"
     skip_longhands="${skip_font_longhands}"
     skip_additionals="*">
 
     pub fn set_font_feature_settings(&mut self, v: longhands::font_feature_settings::computed_value::T) {
-        use properties::longhands::font_feature_settings::computed_value::T;
+        use values::generics::FontSettings;
 
         let current_settings = &mut self.gecko.mFont.fontFeatureSettings;
         current_settings.clear_pod();
 
         match v {
-            T::Normal => unsafe { current_settings.set_len_pod(0) },
+            FontSettings::Normal => (), // do nothing, length is already 0
 
-            T::Tag(feature_settings) => {
+            FontSettings::Tag(feature_settings) => {
                 unsafe { current_settings.set_len_pod(feature_settings.len() as u32) };
 
                 for (current, feature) in current_settings.iter_mut().zip(feature_settings) {
                     current.mTag = feature.tag;
-                    current.mValue = feature.value;
+                    current.mValue = feature.value.0;
                 }
             }
         };
@@ -1515,6 +1516,40 @@ fn static_assert() {
     pub fn copy_font_feature_settings_from(&mut self, other: &Self ) {
         let current_settings = &mut self.gecko.mFont.fontFeatureSettings;
         let feature_settings = &other.gecko.mFont.fontFeatureSettings;
+        let settings_length = feature_settings.len() as u32;
+
+        current_settings.clear_pod();
+        unsafe { current_settings.set_len_pod(settings_length) };
+
+        for (current, feature) in current_settings.iter_mut().zip(feature_settings.iter()) {
+            current.mTag = feature.mTag;
+            current.mValue = feature.mValue;
+        }
+    }
+
+    pub fn set_font_variation_settings(&mut self, v: longhands::font_variation_settings::computed_value::T) {
+        use values::generics::FontSettings;
+
+        let current_settings = &mut self.gecko.mFont.fontVariationSettings;
+        current_settings.clear_pod();
+
+        match v {
+            FontSettings::Normal => (), // do nothing, length is already 0
+
+            FontSettings::Tag(feature_settings) => {
+                unsafe { current_settings.set_len_pod(feature_settings.len() as u32) };
+
+                for (current, feature) in current_settings.iter_mut().zip(feature_settings) {
+                    current.mTag = feature.tag;
+                    current.mValue = feature.value.0;
+                }
+            }
+        };
+    }
+
+    pub fn copy_font_variation_settings_from(&mut self, other: &Self ) {
+        let current_settings = &mut self.gecko.mFont.fontVariationSettings;
+        let feature_settings = &other.gecko.mFont.fontVariationSettings;
         let settings_length = feature_settings.len() as u32;
 
         current_settings.clear_pod();
@@ -1595,7 +1630,6 @@ fn static_assert() {
     // actual computed size, and the other of which (mFont.size) is the 'display
     // size' which takes font zooming into account. We don't handle font zooming yet.
     pub fn set_font_size(&mut self, v: longhands::font_size::computed_value::T) {
-        self.gecko.mFont.size = v.0;
         self.gecko.mSize = v.0;
         self.gecko.mScriptUnconstrainedSize = v.0;
     }
@@ -1603,19 +1637,25 @@ fn static_assert() {
     /// Set font size, taking into account scriptminsize and scriptlevel
     /// Returns Some(size) if we have to recompute the script unconstrained size
     pub fn apply_font_size(&mut self, v: longhands::font_size::computed_value::T,
-                           parent: &Self) -> Option<Au> {
+                           parent: &Self,
+                           device: &Device) -> Option<Au> {
         let (adjusted_size, adjusted_unconstrained_size)
             = self.calculate_script_level_size(parent);
         // In this case, we have been unaffected by scriptminsize, ignore it
         if parent.gecko.mSize == parent.gecko.mScriptUnconstrainedSize &&
            adjusted_size == adjusted_unconstrained_size {
             self.set_font_size(v);
+            self.fixup_font_min_size(device);
             None
         } else {
-            self.gecko.mFont.size = v.0;
             self.gecko.mSize = v.0;
+            self.fixup_font_min_size(device);
             Some(Au(parent.gecko.mScriptUnconstrainedSize))
         }
+    }
+
+    pub fn fixup_font_min_size(&mut self, device: &Device) {
+        unsafe { bindings::Gecko_nsStyleFont_FixupMinFontSize(&mut self.gecko, &*device.pres_context) }
     }
 
     pub fn apply_unconstrained_font_size(&mut self, v: Au) {
@@ -1726,7 +1766,8 @@ fn static_assert() {
     ///
     /// Returns true if the inherited keyword size was actually used
     pub fn inherit_font_size_from(&mut self, parent: &Self,
-                                  kw_inherited_size: Option<Au>) -> bool {
+                                  kw_inherited_size: Option<Au>,
+                                  device: &Device) -> bool {
         let (adjusted_size, adjusted_unconstrained_size)
             = self.calculate_script_level_size(parent);
         if adjusted_size.0 != parent.gecko.mSize ||
@@ -1745,23 +1786,23 @@ fn static_assert() {
 
             // In the case that MathML has given us an adjusted size, apply it.
             // Keep track of the unconstrained adjusted size.
-            self.gecko.mFont.size = adjusted_size.0;
             self.gecko.mSize = adjusted_size.0;
             self.gecko.mScriptUnconstrainedSize = adjusted_unconstrained_size.0;
+            self.fixup_font_min_size(device);
             false
         } else if let Some(size) = kw_inherited_size {
             // Parent element was a keyword-derived size.
-            self.gecko.mFont.size = size.0;
             self.gecko.mSize = size.0;
             // MathML constraints didn't apply here, so we can ignore this.
             self.gecko.mScriptUnconstrainedSize = size.0;
+            self.fixup_font_min_size(device);
             true
         } else {
             // MathML isn't affecting us, and our parent element does not
             // have a keyword-derived size. Set things normally.
-            self.gecko.mFont.size = parent.gecko.mFont.size;
             self.gecko.mSize = parent.gecko.mSize;
             self.gecko.mScriptUnconstrainedSize = parent.gecko.mScriptUnconstrainedSize;
+            self.fixup_font_min_size(device);
             false
         }
     }
@@ -1864,6 +1905,21 @@ fn static_assert() {
     }
 
     ${impl_simple_copy('font_variant_numeric', 'mFont.variantNumeric')}
+
+    #[allow(non_snake_case)]
+    pub fn set__moz_min_font_size_ratio(&mut self, v: longhands::_moz_min_font_size_ratio::computed_value::T) {
+        let percentage = if v.0 > 255. {
+            255.
+        } else if v.0 < 0. {
+            0.
+        } else {
+            v.0
+        };
+
+        self.gecko.mMinFontSizeRatio = percentage as u8;
+    }
+
+    ${impl_simple_copy('_moz_min_font_size_ratio', 'mMinFontSizeRatio')}
 </%self:impl_trait>
 
 <%def name="impl_copy_animation_or_transition_value(type, ident, gecko_ffi_name)">
@@ -4003,7 +4059,7 @@ clip-path
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="InheritedSVG"
-                  skip_longhands="paint-order stroke-dasharray stroke-dashoffset stroke-width"
+                  skip_longhands="paint-order stroke-dasharray stroke-dashoffset stroke-width -moz-context-properties"
                   skip_additionals="*">
     pub fn set_paint_order(&mut self, v: longhands::paint_order::computed_value::T) {
         use self::longhands::paint_order;
@@ -4109,6 +4165,34 @@ clip-path
             CoordDataValue::Percent(p) => Either::Second(LengthOrPercentage::Percentage(p)),
             CoordDataValue::Calc(calc) => Either::Second(LengthOrPercentage::Calc(calc.into())),
             _ => unreachable!(),
+        }
+    }
+
+    #[allow(non_snake_case)]
+    pub fn set__moz_context_properties<I>(&mut self, v: I)
+        where I: IntoIterator<Item = longhands::_moz_context_properties::computed_value::single_value::T>,
+              I::IntoIter: ExactSizeIterator
+    {
+        let v = v.into_iter();
+        unsafe {
+            bindings::Gecko_nsStyleSVG_SetContextPropertiesLength(&mut self.gecko, v.len() as u32);
+        }
+
+        self.gecko.mContextPropsBits = 0;
+        for (mut gecko, servo) in self.gecko.mContextProps.iter_mut().zip(v) {
+            if servo.0 == atom!("fill") {
+                self.gecko.mContextPropsBits |= structs::NS_STYLE_CONTEXT_PROPERTY_FILL as u8;
+            } else if servo.0 == atom!("stroke") {
+                self.gecko.mContextPropsBits |= structs::NS_STYLE_CONTEXT_PROPERTY_STROKE as u8;
+            }
+            unsafe { gecko.set_raw_from_addrefed::<structs::nsIAtom>(servo.0.into_addrefed()) }
+        }
+    }
+
+    #[allow(non_snake_case)]
+    pub fn copy__moz_context_properties_from(&mut self, other: &Self) {
+        unsafe {
+            bindings::Gecko_nsStyleSVG_CopyContextProperties(&mut self.gecko, &other.gecko);
         }
     }
 </%self:impl_trait>

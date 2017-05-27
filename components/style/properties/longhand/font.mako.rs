@@ -925,10 +925,12 @@ ${helpers.single_keyword_system("font-variant-caps",
             }
         % endif
 
-        let parent_unconstrained = context.mutate_style()
-                                       .mutate_font()
-                                       .apply_font_size(computed,
-                                                        parent);
+        let parent_unconstrained = {
+            let (style, device) = context.mutate_style_with_device();
+
+            style.mutate_font().apply_font_size(computed, parent, device)
+        };
+
 
         if let Some(parent) = parent_unconstrained {
             let new_unconstrained = specified_value
@@ -946,13 +948,14 @@ ${helpers.single_keyword_system("font-variant-caps",
         let kw_inherited_size = context.style().font_size_keyword.map(|(kw, ratio)| {
             SpecifiedValue::Keyword(kw, ratio).to_computed_value(context)
         });
-        let used_kw = context.mutate_style().mutate_font()
-               .inherit_font_size_from(parent, kw_inherited_size);
+        let parent_kw = context.inherited_style.font_computation_data.font_size_keyword;
+        let (style, device) = context.mutate_style_with_device();
+        let used_kw = style.mutate_font()
+               .inherit_font_size_from(parent, kw_inherited_size, device);
         if used_kw {
-            context.mutate_style().font_size_keyword =
-                context.inherited_style.font_computation_data.font_size_keyword;
+            style.font_size_keyword = parent_kw;
         } else {
-            context.mutate_style().font_size_keyword = None;
+            style.font_size_keyword = None;
         }
     }
 
@@ -961,9 +964,12 @@ ${helpers.single_keyword_system("font-variant-caps",
         // compute to the same value and depends on the font
         let computed = longhands::font_size::get_initial_specified_value()
                             .to_computed_value(context);
-        context.mutate_style().mutate_${data.current_style_struct.name_lower}()
-               .set_font_size(computed);
-        context.mutate_style().font_size_keyword = Some((Default::default(), 1.));
+        let (style, _device) = context.mutate_style_with_device();
+        style.mutate_font().set_font_size(computed);
+        % if product == "gecko":
+            style.mutate_font().fixup_font_min_size(_device);
+        % endif
+        style.font_size_keyword = Some((Default::default(), 1.));
     }
 </%helpers:longhand>
 
@@ -1774,6 +1780,7 @@ ${helpers.single_keyword_system("font-variant-position",
     use properties::longhands::system_font::SystemFont;
     use std::fmt;
     use style_traits::ToCss;
+    use values::generics::FontSettings;
 
     #[derive(Debug, Clone, PartialEq)]
     pub enum SpecifiedValue {
@@ -1785,125 +1792,57 @@ ${helpers.single_keyword_system("font-variant-position",
     <%self:simple_system_boilerplate name="font_feature_settings"></%self:simple_system_boilerplate>
 
     pub mod computed_value {
-        use cssparser::Parser;
-        use parser::{Parse, ParserContext};
-        use std::fmt;
-        use style_traits::ToCss;
-
-        #[derive(Clone, Debug, Eq, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub enum T {
-            Normal,
-            Tag(Vec<FeatureTagValue>)
-        }
-
-        #[derive(Clone, Debug, Eq, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct FeatureTagValue {
-            pub tag: u32,
-            pub value: u32
-        }
-
-        impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                match *self {
-                    T::Normal => dest.write_str("normal"),
-                    T::Tag(ref ftvs) => {
-                        let mut iter = ftvs.iter();
-                        // handle head element
-                        try!(iter.next().unwrap().to_css(dest));
-                        // handle tail, precede each with a delimiter
-                        for ftv in iter {
-                            try!(dest.write_str(", "));
-                            try!(ftv.to_css(dest));
-                        }
-                        Ok(())
-                    }
-                }
-            }
-        }
-
-        impl Parse for T {
-            /// https://www.w3.org/TR/css-fonts-3/#propdef-font-feature-settings
-            fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-                if input.try(|i| i.expect_ident_matching("normal")).is_ok() {
-                    return Ok(T::Normal);
-                }
-                input.parse_comma_separated(|i| FeatureTagValue::parse(context, i)).map(T::Tag)
-            }
-        }
-
-        impl ToCss for FeatureTagValue {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                use std::str;
-                use byteorder::{WriteBytesExt, BigEndian};
-                use cssparser::serialize_string;
-
-                let mut raw: Vec<u8> = vec!();
-                raw.write_u32::<BigEndian>(self.tag).unwrap();
-                serialize_string(str::from_utf8(&raw).unwrap_or_default(), dest)?;
-
-                match self.value {
-                    1 => Ok(()),
-                    0 => dest.write_str(" off"),
-                    x => write!(dest, " {}", x)
-                }
-            }
-        }
-
-        impl Parse for FeatureTagValue {
-            /// https://www.w3.org/TR/css-fonts-3/#propdef-font-feature-settings
-            /// <string> [ on | off | <integer> ]
-            fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-                use std::io::Cursor;
-                use byteorder::{ReadBytesExt, BigEndian};
-
-                let tag = try!(input.expect_string());
-
-                // allowed strings of length 4 containing chars: <U+20, U+7E>
-                if tag.len() != 4 ||
-                   tag.chars().any(|c| c < ' ' || c > '~')
-                {
-                    return Err(())
-                }
-
-                let mut raw = Cursor::new(tag.as_bytes());
-                let u_tag = raw.read_u32::<BigEndian>().unwrap();
-
-                if let Ok(value) = input.try(|input| input.expect_integer()) {
-                    // handle integer, throw if it is negative
-                    if value >= 0 {
-                        Ok(FeatureTagValue { tag: u_tag, value: value as u32 })
-                    } else {
-                        Err(())
-                    }
-                } else if let Ok(_) = input.try(|input| input.expect_ident_matching("on")) {
-                    // on is an alias for '1'
-                    Ok(FeatureTagValue { tag: u_tag, value: 1 })
-                } else if let Ok(_) = input.try(|input| input.expect_ident_matching("off")) {
-                    // off is an alias for '0'
-                    Ok(FeatureTagValue { tag: u_tag, value: 0 })
-                } else {
-                    // empty value is an alias for '1'
-                    Ok(FeatureTagValue { tag: u_tag, value: 1 })
-                }
-            }
-        }
+        use values::generics::{FontSettings, FontSettingTagInt};
+        pub type T = FontSettings<FontSettingTagInt>;
     }
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::Normal
+        FontSettings::Normal
     }
 
     #[inline]
     pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue::Value(computed_value::T::Normal)
+        SpecifiedValue::Value(FontSettings::Normal)
     }
 
     /// normal | <feature-tag-value>#
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         computed_value::T::parse(context, input).map(SpecifiedValue::Value)
+    }
+</%helpers:longhand>
+
+<%
+# This spec link is too long to fit elsewhere
+variation_spec = """\
+https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-the-font-variation-settings-property\
+"""
+%>
+<%helpers:longhand name="font-variation-settings" products="gecko" animation_value_type="none"
+                   spec="${variation_spec}">
+    use values::computed::ComputedValueAsSpecified;
+    use values::generics::FontSettings;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+
+    pub type SpecifiedValue = computed_value::T;
+
+    no_viewport_percentage!(SpecifiedValue);
+
+
+    pub mod computed_value {
+        use values::generics::{FontSettings, FontSettingTagFloat};
+        pub type T = FontSettings<FontSettingTagFloat>;
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        FontSettings::Normal
+    }
+
+    /// normal | <feature-tag-value>#
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        computed_value::T::parse(context, input)
     }
 </%helpers:longhand>
 
@@ -2453,3 +2392,11 @@ ${helpers.single_keyword("-moz-osx-font-smoothing",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/font-smooth)",
                          animation_value_type="none",
                          need_clone=True)}
+
+${helpers.predefined_type("-moz-min-font-size-ratio",
+                          "Percentage",
+                          "computed::Percentage::hundred()",
+                          animation_value_type="none",
+                          products="gecko",
+                          internal=True,
+                          spec="Nonstandard (Internal-only)")}

@@ -607,6 +607,7 @@ impl LonghandId {
             LonghandId::TransitionProperty |
             LonghandId::XLang |
             LonghandId::MozScriptLevel |
+            LonghandId::MozMinFontSizeRatio |
             % endif
             LonghandId::FontSize |
             LonghandId::FontFamily |
@@ -1524,6 +1525,7 @@ pub mod style_structs {
     use super::longhands;
     use std::hash::{Hash, Hasher};
     use logical_geometry::WritingMode;
+    use media_queries::Device;
 
     % for style_struct in data.active_style_structs():
         % if style_struct.name == "Font":
@@ -1634,14 +1636,15 @@ pub mod style_structs {
 
                 /// (Servo does not handle MathML, so this just calls copy_font_size_from)
                 pub fn inherit_font_size_from(&mut self, parent: &Self,
-                                              _: Option<Au>) -> bool {
+                                              _: Option<Au>, _: &Device) -> bool {
                     self.copy_font_size_from(parent);
                     false
                 }
                 /// (Servo does not handle MathML, so this just calls set_font_size)
                 pub fn apply_font_size(&mut self,
                                        v: longhands::font_size::computed_value::T,
-                                       _: &Self) -> Option<Au> {
+                                       _: &Self,
+                                       _: &Device) -> Option<Au> {
                     self.set_font_size(v);
                     None
                 }
@@ -2628,17 +2631,6 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                 continue
             }
 
-            // The computed value of some properties depends on the
-            // (sometimes computed) value of *other* properties.
-            //
-            // So we classify properties into "early" and "other", such that
-            // the only dependencies can be from "other" to "early".
-            //
-            // We iterate applicable_declarations twice, first cascading
-            // "early" properties then "other".
-            //
-            // Unfortunately, it’s not easy to check that this
-            // classification is correct.
             if
                 % if category_to_cascade_now == "early":
                     !
@@ -2718,6 +2710,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
             // scriptlevel changes.
             } else if seen.contains(LonghandId::XLang) ||
                       seen.contains(LonghandId::MozScriptLevel) ||
+                      seen.contains(LonghandId::MozMinFontSizeRatio) ||
                       font_family.is_some() {
                 let discriminant = LonghandId::FontSize as usize;
                 let size = PropertyDeclaration::CSSWideKeyword(

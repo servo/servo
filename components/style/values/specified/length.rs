@@ -734,6 +734,12 @@ impl Percentage {
     pub fn parse_non_negative(input: &mut Parser) -> Result<Self, ()> {
         Self::parse_with_clamping_mode(input, AllowedNumericType::NonNegative)
     }
+
+    /// 100%
+    #[inline]
+    pub fn hundred() -> Self {
+        Percentage(1.)
+    }
 }
 
 impl Parse for Percentage {

@@ -1134,6 +1134,14 @@ extern "C" {
                                           src: *const nsStyleSVG);
 }
 extern "C" {
+    pub fn Gecko_nsStyleSVG_SetContextPropertiesLength(svg: *mut nsStyleSVG,
+                                                       len: u32);
+}
+extern "C" {
+    pub fn Gecko_nsStyleSVG_CopyContextProperties(dst: *mut nsStyleSVG,
+                                                  src: *const nsStyleSVG);
+}
+extern "C" {
     pub fn Gecko_NewURLValue(uri: ServoBundledURI) -> *mut URLValue;
 }
 extern "C" {
@@ -1304,6 +1312,11 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_nsStyleFont_FixupNoneGeneric(font: *mut nsStyleFont,
+                                              pres_context:
+                                                  RawGeckoPresContextBorrowed);
+}
+extern "C" {
+    pub fn Gecko_nsStyleFont_FixupMinFontSize(font: *mut nsStyleFont,
                                               pres_context:
                                                   RawGeckoPresContextBorrowed);
 }

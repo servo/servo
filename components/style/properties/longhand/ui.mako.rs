@@ -31,6 +31,13 @@ ${helpers.single_keyword("-moz-window-dragging", "default drag no-drag", product
                          animation_value_type="none",
                          spec="None (Nonstandard Firefox-only property)")}
 
+${helpers.single_keyword("-moz-window-shadow", "none default menu tooltip sheet", products="gecko",
+                         gecko_ffi_name="mWindowShadow",
+                         gecko_constant_prefix="NS_STYLE_WINDOW_SHADOW",
+                         animation_value_type="none",
+                         internal=True,
+                         spec="None (Nonstandard internal property)")}
+
 <%helpers:longhand name="-moz-force-broken-image-icon"
                    products="gecko"
                    animation_value_type="none"
