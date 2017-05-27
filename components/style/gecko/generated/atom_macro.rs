@@ -1874,6 +1874,10 @@ cfg_if! {
             pub static nsGkAtoms_onsent: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms5onsetE"]
             pub static nsGkAtoms_onset: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms23onshippingaddresschangeE"]
+            pub static nsGkAtoms_onshippingaddresschange: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms22onshippingoptionchangeE"]
+            pub static nsGkAtoms_onshippingoptionchange: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms6onshowE"]
             pub static nsGkAtoms_onshow: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms13onstatechangeE"]
@@ -6893,6 +6897,10 @@ cfg_if! {
             pub static nsGkAtoms_onsent: *mut nsIAtom;
             #[link_name = "?onset@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onset: *mut nsIAtom;
+            #[link_name = "?onshippingaddresschange@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_onshippingaddresschange: *mut nsIAtom;
+            #[link_name = "?onshippingoptionchange@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_onshippingoptionchange: *mut nsIAtom;
             #[link_name = "?onshow@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onshow: *mut nsIAtom;
             #[link_name = "?onstatechange@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -11912,6 +11920,10 @@ cfg_if! {
             pub static nsGkAtoms_onsent: *mut nsIAtom;
             #[link_name = "\x01?onset@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onset: *mut nsIAtom;
+            #[link_name = "\x01?onshippingaddresschange@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_onshippingaddresschange: *mut nsIAtom;
+            #[link_name = "\x01?onshippingoptionchange@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_onshippingoptionchange: *mut nsIAtom;
             #[link_name = "\x01?onshow@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onshow: *mut nsIAtom;
             #[link_name = "\x01?onstatechange@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -16934,6 +16946,10 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onsent as *mut _) } };
 ("onset") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onset as *mut _) } };
+("onshippingaddresschange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onshippingaddresschange as *mut _) } };
+("onshippingoptionchange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onshippingoptionchange as *mut _) } };
 ("onshow") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onshow as *mut _) } };
 ("onstatechange") =>

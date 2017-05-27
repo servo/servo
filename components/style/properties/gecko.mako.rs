@@ -21,11 +21,11 @@ use gecko_bindings::bindings::Gecko_CopyConstruct_${style_struct.gecko_ffi_name}
 use gecko_bindings::bindings::Gecko_Destroy_${style_struct.gecko_ffi_name};
 % endfor
 use gecko_bindings::bindings::Gecko_Construct_nsStyleVariables;
+use gecko_bindings::bindings::Gecko_CopyCounterStyle;
 use gecko_bindings::bindings::Gecko_CopyCursorArrayFrom;
 use gecko_bindings::bindings::Gecko_CopyFontFamilyFrom;
 use gecko_bindings::bindings::Gecko_CopyImageValueFrom;
 use gecko_bindings::bindings::Gecko_CopyListStyleImageFrom;
-use gecko_bindings::bindings::Gecko_CopyListStyleTypeFrom;
 use gecko_bindings::bindings::Gecko_Destroy_nsStyleVariables;
 use gecko_bindings::bindings::Gecko_EnsureImageLayersLength;
 use gecko_bindings::bindings::Gecko_FontFamilyList_AppendGeneric;
@@ -39,7 +39,6 @@ use gecko_bindings::bindings::Gecko_nsStyleFont_SetLang;
 use gecko_bindings::bindings::Gecko_nsStyleFont_CopyLangFrom;
 use gecko_bindings::bindings::Gecko_SetListStyleImageNone;
 use gecko_bindings::bindings::Gecko_SetListStyleImageImageValue;
-use gecko_bindings::bindings::Gecko_SetListStyleType;
 use gecko_bindings::bindings::Gecko_SetNullImageValue;
 use gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use gecko_bindings::bindings::{Gecko_ResetFilters, Gecko_CopyFiltersFrom};
@@ -3157,18 +3156,21 @@ fn static_assert() {
     }
 
     pub fn set_list_style_type(&mut self, v: longhands::list_style_type::computed_value::T) {
-        use values::generics::CounterStyleOrNone;
-        let name = match v.0 {
-            CounterStyleOrNone::None_ => atom!("none"),
-            CounterStyleOrNone::Name(name) => name.0,
-        };
-        unsafe { Gecko_SetListStyleType(&mut self.gecko, name.as_ptr()); }
+        use gecko_bindings::bindings::Gecko_SetCounterStyleToString;
+        use nsstring::{nsACString, nsCString};
+        use self::longhands::list_style_type::computed_value::T;
+        match v {
+            T::CounterStyle(s) => s.to_gecko_value(&mut self.gecko.mCounterStyle),
+            T::String(s) => unsafe {
+                Gecko_SetCounterStyleToString(&mut self.gecko.mCounterStyle,
+                                              &nsCString::from(s) as &nsACString)
+            }
+        }
     }
-
 
     pub fn copy_list_style_type_from(&mut self, other: &Self) {
         unsafe {
-            Gecko_CopyListStyleTypeFrom(&mut self.gecko, &other.gecko);
+            Gecko_CopyCounterStyle(&mut self.gecko.mCounterStyle, &other.gecko.mCounterStyle);
         }
     }
 
@@ -4264,7 +4266,6 @@ clip-path
         use properties::longhands::content::computed_value::T;
         use properties::longhands::content::computed_value::ContentItem;
         use values::generics::CounterStyleOrNone;
-        use gecko_bindings::structs::nsIAtom;
         use gecko_bindings::structs::nsStyleContentData;
         use gecko_bindings::structs::nsStyleContentType;
         use gecko_bindings::structs::nsStyleContentType::*;
@@ -4292,11 +4293,7 @@ clip-path
             if content_type == eStyleContentType_Counters {
                 counter_func.mSeparator.assign_utf8(sep);
             }
-            let ptr = match style {
-                CounterStyleOrNone::None_ => atom!("none"),
-                CounterStyleOrNone::Name(name) => name.0,
-            }.into_addrefed();
-            unsafe { counter_func.mCounterStyleName.set_raw_from_addrefed::<nsIAtom>(ptr); }
+            style.to_gecko_value(&mut counter_func.mCounterStyle);
         }
 
         match v {

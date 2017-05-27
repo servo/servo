@@ -61,7 +61,7 @@
             list_style_type::SpecifiedValue::none
             % else:
             use values::generics::CounterStyleOrNone;
-            list_style_type::SpecifiedValue(CounterStyleOrNone::None_)
+            list_style_type::SpecifiedValue::CounterStyle(CounterStyleOrNone::None_)
             % endif
         }
 

@@ -31,8 +31,9 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
         animation_value_type="none",
         spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type")}
 % else:
-    <%helpers:longhand name="list-style-type" animation_value_type="none"
+    <%helpers:longhand name="list-style-type" animation_value_type="none" boxed="True"
                        spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type">
+        use cssparser;
         use std::fmt;
         use style_traits::ToCss;
         use values::CustomIdent;
@@ -44,9 +45,12 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
         pub mod computed_value {
             use values::generics::CounterStyleOrNone;
 
-            /// <counter-style> | none
+            /// <counter-style> | <string> | none
             #[derive(Debug, Clone, PartialEq, Eq)]
-            pub struct T(pub CounterStyleOrNone);
+            pub enum T {
+                CounterStyle(CounterStyleOrNone),
+                String(String),
+            }
         }
 
         impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -54,7 +58,10 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
 
         impl ToCss for SpecifiedValue {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                self.0.to_css(dest)
+                match *self {
+                    SpecifiedValue::CounterStyle(ref s) => s.to_css(dest),
+                    SpecifiedValue::String(ref s) => cssparser::serialize_string(s, dest)
+                }
             }
         }
 
@@ -67,7 +74,7 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
             /// attribute is considered here.
             pub fn from_gecko_keyword(value: u32) -> Self {
                 use gecko_bindings::structs;
-                SpecifiedValue(if value == structs::NS_STYLE_LIST_STYLE_NONE {
+                SpecifiedValue::CounterStyle(if value == structs::NS_STYLE_LIST_STYLE_NONE {
                     CounterStyleOrNone::None_
                 } else {
                     <%
@@ -86,16 +93,20 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
 
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
-            computed_value::T(CounterStyleOrNone::disc())
+            computed_value::T::CounterStyle(CounterStyleOrNone::disc())
         }
 
         #[inline]
         pub fn get_initial_specified_value() -> SpecifiedValue {
-            SpecifiedValue(CounterStyleOrNone::disc())
+            SpecifiedValue::CounterStyle(CounterStyleOrNone::disc())
         }
 
         pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-            CounterStyleOrNone::parse(context, input).map(SpecifiedValue)
+            Ok(if let Ok(style) = input.try(|i| CounterStyleOrNone::parse(context, i)) {
+                SpecifiedValue::CounterStyle(style)
+            } else {
+                SpecifiedValue::String(input.expect_string()?.into_owned())
+            })
         }
     </%helpers:longhand>
 % endif

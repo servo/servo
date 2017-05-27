@@ -5,7 +5,7 @@
 //! Generic types that share their serialization implementations
 //! for both specified and computed values.
 
-use counter_style::parse_counter_style_name;
+use counter_style::{Symbols, parse_counter_style_name};
 use cssparser::Parser;
 use euclid::size::Size2D;
 use parser::{Parse, ParserContext};
@@ -64,16 +64,43 @@ impl<L: ToCss> ToCss for BorderRadiusSize<L> {
     }
 }
 
+// https://drafts.csswg.org/css-counter-styles/#typedef-symbols-type
+define_css_keyword_enum! { SymbolsType:
+    "cyclic" => Cyclic,
+    "numeric" => Numeric,
+    "alphabetic" => Alphabetic,
+    "symbolic" => Symbolic,
+    "fixed" => Fixed,
+}
+add_impls_for_keyword_enum!(SymbolsType);
+
+#[cfg(feature = "gecko")]
+impl SymbolsType {
+    /// Convert symbols type to their corresponding Gecko values.
+    pub fn to_gecko_keyword(self) -> u8 {
+        use gecko_bindings::structs;
+        match self {
+            SymbolsType::Cyclic => structs::NS_STYLE_COUNTER_SYSTEM_CYCLIC as u8,
+            SymbolsType::Numeric => structs::NS_STYLE_COUNTER_SYSTEM_NUMERIC as u8,
+            SymbolsType::Alphabetic => structs::NS_STYLE_COUNTER_SYSTEM_ALPHABETIC as u8,
+            SymbolsType::Symbolic => structs::NS_STYLE_COUNTER_SYSTEM_SYMBOLIC as u8,
+            SymbolsType::Fixed => structs::NS_STYLE_COUNTER_SYSTEM_FIXED as u8,
+        }
+    }
+}
+
 /// https://drafts.csswg.org/css-counter-styles/#typedef-counter-style
 ///
 /// Since wherever <counter-style> is used, 'none' is a valid value as
 /// well, we combine them into one type to make code simpler.
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CounterStyleOrNone {
     /// none
     None_,
     /// <counter-style-name>
     Name(CustomIdent),
+    /// symbols()
+    Symbols(SymbolsType, Symbols),
 }
 
 impl CounterStyleOrNone {
@@ -91,12 +118,32 @@ impl CounterStyleOrNone {
 no_viewport_percentage!(CounterStyleOrNone);
 
 impl Parse for CounterStyleOrNone {
-    fn parse(_: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        input.try(|input| {
-            parse_counter_style_name(input).map(CounterStyleOrNone::Name)
-        }).or_else(|_| {
-            input.expect_ident_matching("none").map(|_| CounterStyleOrNone::None_)
-        })
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        if let Ok(name) = input.try(|i| parse_counter_style_name(i)) {
+            return Ok(CounterStyleOrNone::Name(name));
+        }
+        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+            return Ok(CounterStyleOrNone::None_);
+        }
+        if input.try(|i| i.expect_function_matching("symbols")).is_ok() {
+            return input.parse_nested_block(|input| {
+                let symbols_type = input.try(|i| SymbolsType::parse(i))
+                    .unwrap_or(SymbolsType::Symbolic);
+                let symbols = Symbols::parse(context, input)?;
+                // There must be at least two symbols for alphabetic or
+                // numeric system.
+                if (symbols_type == SymbolsType::Alphabetic ||
+                    symbols_type == SymbolsType::Numeric) && symbols.0.len() < 2 {
+                    return Err(());
+                }
+                // Identifier is not allowed in symbols() function.
+                if symbols.0.iter().any(|sym| !sym.is_allowed_in_symbols()) {
+                    return Err(());
+                }
+                Ok(CounterStyleOrNone::Symbols(symbols_type, symbols))
+            });
+        }
+        Err(())
     }
 }
 
@@ -106,6 +153,13 @@ impl ToCss for CounterStyleOrNone {
         match self {
             &CounterStyleOrNone::None_ => dest.write_str("none"),
             &CounterStyleOrNone::Name(ref name) => name.to_css(dest),
+            &CounterStyleOrNone::Symbols(ref symbols_type, ref symbols) => {
+                dest.write_str("symbols(")?;
+                symbols_type.to_css(dest)?;
+                dest.write_str(" ")?;
+                symbols.to_css(dest)?;
+                dest.write_str(")")
+            }
         }
     }
 }
