@@ -337,7 +337,7 @@ impl ToCss for System {
 }
 
 /// https://drafts.csswg.org/css-counter-styles/#typedef-symbol
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Symbol {
     /// <string>
     String(String),
@@ -363,6 +363,17 @@ impl ToCss for Symbol {
         match *self {
             Symbol::String(ref s) => serialize_string(s, dest),
             Symbol::Ident(ref s) => serialize_identifier(s, dest),
+        }
+    }
+}
+
+impl Symbol {
+    /// Returns whether this symbol is allowed in symbols() function.
+    pub fn is_allowed_in_symbols(&self) -> bool {
+        match self {
+            // Identifier is not allowed.
+            &Symbol::Ident(_) => false,
+            _ => true,
         }
     }
 }
@@ -495,7 +506,7 @@ impl ToCss for Fallback {
 }
 
 /// https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-symbols
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Symbols(pub Vec<Symbol>);
 
 impl Parse for Symbols {

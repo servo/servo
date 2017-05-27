@@ -7,11 +7,12 @@
 //! Different kind of helpers to interact with Gecko values.
 
 use app_units::Au;
+use counter_style::Symbol;
 use cssparser::RGBA;
-use gecko_bindings::bindings;
 use gecko_bindings::structs::{CounterStylePtr, nsStyleCoord};
 use gecko_bindings::structs::{StyleGridTrackBreadth, StyleShapeRadius};
 use gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
+use nsstring::{nsACString, nsCString};
 use std::cmp::max;
 use values::{Auto, Either, ExtremumLength, None_, Normal};
 use values::computed::{Angle, LengthOrPercentage, LengthOrPercentageOrAuto};
@@ -397,12 +398,26 @@ pub fn round_border_to_device_pixels(width: Au, au_per_device_px: Au) -> Au {
 impl CounterStyleOrNone {
     /// Convert this counter style to a Gecko CounterStylePtr.
     pub fn to_gecko_value(self, gecko_value: &mut CounterStylePtr) {
-        let ptr = match self {
-            CounterStyleOrNone::None_ => atom!("none"),
-            CounterStyleOrNone::Name(name) => name.0,
-        };
-        unsafe {
-            bindings::Gecko_SetCounterStyleToName(gecko_value, ptr.into_addrefed());
+        use gecko_bindings::bindings::Gecko_SetCounterStyleToName as set_name;
+        use gecko_bindings::bindings::Gecko_SetCounterStyleToSymbols as set_symbols;
+        match self {
+            CounterStyleOrNone::None_ => unsafe {
+                set_name(gecko_value, atom!("none").into_addrefed());
+            },
+            CounterStyleOrNone::Name(name) => unsafe {
+                set_name(gecko_value, name.0.into_addrefed());
+            },
+            CounterStyleOrNone::Symbols(symbols_type, symbols) => {
+                let symbols: Vec<_> = symbols.0.iter().map(|symbol| match *symbol {
+                    Symbol::String(ref s) => nsCString::from(s),
+                    Symbol::Ident(_) => unreachable!("Should not have identifier in symbols()"),
+                }).collect();
+                let symbols: Vec<_> = symbols.iter()
+                    .map(|symbol| symbol as &nsACString as *const _)
+                    .collect();
+                unsafe { set_symbols(gecko_value, symbols_type.to_gecko_keyword(),
+                                     symbols.as_ptr(), symbols.len() as u32) };
+            }
         }
     }
 }
