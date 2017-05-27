@@ -172,55 +172,6 @@ pub mod shorthands {
     use parser::{Parse, ParserContext};
     use values::specified;
 
-    /// Parses a property for four different sides per CSS syntax.
-    ///
-    ///  * Zero or more than four values is invalid.
-    ///  * One value sets them all
-    ///  * Two values set (top, bottom) and (left, right)
-    ///  * Three values set top, (left, right) and bottom
-    ///  * Four values set them in order
-    ///
-    /// returns the values in (top, right, bottom, left) order.
-    pub fn parse_four_sides<F, T>(input: &mut Parser, parse_one: F) -> Result<(T, T, T, T), ()>
-        where F: Fn(&mut Parser) -> Result<T, ()>,
-              T: Clone,
-    {
-        let top = try!(parse_one(input));
-        let right;
-        let bottom;
-        let left;
-        match input.try(|i| parse_one(i)) {
-            Err(()) => {
-                right = top.clone();
-                bottom = top.clone();
-                left = top.clone();
-            }
-            Ok(value) => {
-                right = value;
-                match input.try(|i| parse_one(i)) {
-                    Err(()) => {
-                        bottom = top.clone();
-                        left = right.clone();
-                    }
-                    Ok(value) => {
-                        bottom = value;
-                        match input.try(|i| parse_one(i)) {
-                            Err(()) => {
-                                left = right.clone();
-                            }
-                            Ok(value) => {
-                                left = value;
-                            }
-                        }
-
-                    }
-                }
-
-            }
-        }
-        Ok((top, right, bottom, left))
-    }
-
     <%include file="/shorthand/serialize.mako.rs" />
     <%include file="/shorthand/background.mako.rs" />
     <%include file="/shorthand/border.mako.rs" />

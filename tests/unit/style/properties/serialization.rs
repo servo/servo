@@ -806,6 +806,7 @@ mod shorthand_serialization {
         use style::properties::longhands::mask_repeat as repeat;
         use style::properties::longhands::mask_size as size;
         use style::values::Either;
+        use style::values::generics::background::BackgroundSize;
         use style::values::generics::image::Image;
         use super::*;
 
@@ -852,13 +853,12 @@ mod shorthand_serialization {
                 )
             );
 
-            let size = single_vec_variant_value!(size,
-                size::single_value::SpecifiedValue::Explicit(
-                    size::single_value::ExplicitSize {
-                        width: LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(70f32)),
-                        height: LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(50f32))
-                    }
-                )
+            let size = single_vec_variant_value!(
+                size,
+                BackgroundSize::Explicit {
+                    width: LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(70f32)),
+                    height: LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(50f32)),
+                }
             );
 
             let repeat = single_vec_keyword_value!(repeat, RepeatX);
@@ -903,13 +903,12 @@ mod shorthand_serialization {
                 PositionComponent::Length(LengthOrPercentage::Length(NoCalcLength::from_px(4f32)))
             );
 
-            let size = single_vec_variant_value!(size,
-                size::single_value::SpecifiedValue::Explicit(
-                    size::single_value::ExplicitSize {
-                        width: LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(70f32)),
-                        height: LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(50f32))
-                    }
-                )
+            let size = single_vec_variant_value!(
+                size,
+                BackgroundSize::Explicit {
+                    width: LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(70f32)),
+                    height: LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(50f32)),
+                }
             );
 
             let repeat = single_vec_keyword_value!(repeat, RepeatX);

@@ -17,27 +17,28 @@ ${helpers.four_sides_shorthand("border-style", "border-%s-style",
         ' '.join('border-%s-width' % side
                  for side in PHYSICAL_SIDES)}"
     spec="https://drafts.csswg.org/css-backgrounds/#border-width">
-    use super::parse_four_sides;
+    use values::generics::rect::Rect;
     use values::specified::{AllowQuirks, BorderWidth};
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
-        let (top, right, bottom, left) = try!(parse_four_sides(input, |i| {
+        let rect = Rect::parse_with(context, input, |_, i| {
             BorderWidth::parse_quirky(context, i, AllowQuirks::Yes)
-        }));
+        })?;
         Ok(expanded! {
             % for side in PHYSICAL_SIDES:
-                ${to_rust_ident('border-%s-width' % side)}: ${side},
+                ${to_rust_ident('border-%s-width' % side)}: rect.${side},
             % endfor
         })
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            % for side in PHYSICAL_SIDES:
-                let ${side} = self.border_${side}_width.clone();
-            % endfor
-
-            super::serialize_four_sides(dest, &top, &right, &bottom, &left)
+            let rect = Rect {
+                % for side in PHYSICAL_SIDES:
+                ${side}: &self.border_${side}_width,
+                % endfor
+            };
+            rect.to_css(dest)
         }
     }
 </%helpers:shorthand>

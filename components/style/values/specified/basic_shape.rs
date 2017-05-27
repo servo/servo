@@ -9,7 +9,6 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
-use properties::shorthands::parse_four_sides;
 use std::borrow::Cow;
 use std::fmt;
 use style_traits::ToCss;
@@ -20,6 +19,7 @@ use values::generics::basic_shape::{FillRule, BasicShape as GenericBasicShape};
 use values::generics::basic_shape::{FloatAreaShape as GenericFloatAreaShape, InsetRect as GenericInsetRect};
 use values::generics::basic_shape::{GeometryBox, ShapeBox, ShapeSource};
 use values::generics::basic_shape::{Polygon as GenericPolygon, ShapeRadius as GenericShapeRadius};
+use values::generics::rect::Rect;
 use values::specified::{LengthOrPercentage, Percentage};
 use values::specified::position::{HorizontalPosition, Position, PositionComponent, Side, VerticalPosition};
 use values::specified::url::SpecifiedUrl;
@@ -127,18 +127,15 @@ impl Parse for InsetRect {
 impl InsetRect {
     /// Parse the inner function arguments of `inset()`
     pub fn parse_function_arguments(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        let (t, r, b, l) = parse_four_sides(input, |i| LengthOrPercentage::parse(context, i))?;
-        let rect = if input.try(|i| i.expect_ident_matching("round")).is_ok() {
+        let rect = Rect::parse_with(context, input, LengthOrPercentage::parse)?;
+        let round = if input.try(|i| i.expect_ident_matching("round")).is_ok() {
             Some(BorderRadius::parse(context, input)?)
         } else {
             None
         };
         Ok(GenericInsetRect {
-            top: t,
-            right: r,
-            bottom: b,
-            left: l,
-            round: rect,
+            rect: rect,
+            round: round,
         })
     }
 }
