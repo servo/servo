@@ -3149,7 +3149,16 @@ fn static_assert() {
     }
 
     pub fn set_list_style_type(&mut self, v: longhands::list_style_type::computed_value::T) {
-        v.0.to_gecko_value(&mut self.gecko.mCounterStyle);
+        use gecko_bindings::bindings::Gecko_SetCounterStyleToString;
+        use nsstring::{nsACString, nsCString};
+        use self::longhands::list_style_type::computed_value::T;
+        match v {
+            T::CounterStyle(s) => s.to_gecko_value(&mut self.gecko.mCounterStyle),
+            T::String(s) => unsafe {
+                Gecko_SetCounterStyleToString(&mut self.gecko.mCounterStyle,
+                                              &nsCString::from(s) as &nsACString)
+            }
+        }
     }
 
     pub fn copy_list_style_type_from(&mut self, other: &Self) {
