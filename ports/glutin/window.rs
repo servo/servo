@@ -1285,7 +1285,7 @@ impl WindowMethods for Window {
     }
 
     fn supports_clipboard(&self) -> bool {
-        false
+        true
     }
 }
 

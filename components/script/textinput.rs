@@ -613,17 +613,17 @@ impl<T: ClipboardProvider> TextInput<T> {
                 self.adjust_horizontal_to_line_end(Direction::Forward, maybe_select);
                 KeyReaction::RedrawSelection
             },
-            (Some('a'), _) if is_control_key(mods) => {
+            (_, Key::A) if is_control_key(mods) => {
                 self.select_all();
                 KeyReaction::RedrawSelection
             },
-            (Some('c'), _) if is_control_key(mods) => {
+            (_, Key::C) if is_control_key(mods) => {
                 if let Some(text) = self.get_selection_text() {
                     self.clipboard_provider.set_clipboard_contents(text);
                 }
                 KeyReaction::DispatchInput
             },
-            (Some('v'), _) if is_control_key(mods) => {
+            (_, Key::V) if is_control_key(mods) => {
                 let contents = self.clipboard_provider.clipboard_contents();
                 self.insert_string(contents);
                 KeyReaction::DispatchInput

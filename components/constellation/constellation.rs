@@ -71,6 +71,7 @@ use browsingcontext::{FullyActiveBrowsingContextsIterator, AllBrowsingContextsIt
 use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas::webgl_paint_thread::WebGLPaintThread;
 use canvas_traits::CanvasMsg;
+use clipboard::{ClipboardContext, ClipboardProvider};
 use compositing::SendableFrameTree;
 use compositing::compositor_thread::CompositorProxy;
 use compositing::compositor_thread::Msg as ToCompositorMsg;
@@ -262,6 +263,9 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// The size of the top-level window.
     window_size: WindowSizeData,
+
+    /// Means of accessing the clipboard
+    clipboard_ctx: Option<ClipboardContext>,
 
     /// Bits of state used to interact with the webdriver implementation
     webdriver: WebDriverData,
@@ -535,6 +539,17 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                         ScaleFactor::new(opts::get().device_pixels_per_px.unwrap_or(1.0)),
                 },
                 phantom: PhantomData,
+                clipboard_ctx: if state.supports_clipboard {
+                    match ClipboardContext::new() {
+                        Ok(c) => Some(c),
+                        Err(e) => {
+                            warn!("Error creating clipboard context ({})", e);
+                            None
+                        },
+                    }
+                } else {
+                    None
+                },
                 webdriver: WebDriverData::new(),
                 scheduler_chan: TimerScheduler::start(),
                 document_states: HashMap::new(),
@@ -1019,11 +1034,26 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 }
             }
             FromScriptMsg::GetClipboardContents(sender) => {
-                if let Err(e) = sender.send("".to_owned()) {
+                let contents = match self.clipboard_ctx {
+                    Some(ref mut ctx) => match ctx.get_contents() {
+                        Ok(c) => c,
+                        Err(e) => {
+                            warn!("Error getting clipboard contents ({}), defaulting to empty string", e);
+                            "".to_owned()
+                        },
+                    },
+                    None => "".to_owned(),
+                };
+                if let Err(e) = sender.send(contents.to_owned()) {
                     warn!("Failed to send clipboard ({})", e);
                 }
             }
-            FromScriptMsg::SetClipboardContents(_) => {
+            FromScriptMsg::SetClipboardContents(s) => {
+                if let Some(ref mut ctx) = self.clipboard_ctx {
+                    if let Err(e) = ctx.set_contents(s) {
+                        warn!("Error setting clipboard contents ({})", e);
+                    }
+                }
             }
             FromScriptMsg::SetVisible(pipeline_id, visible) => {
                 debug!("constellation got set visible messsage");
