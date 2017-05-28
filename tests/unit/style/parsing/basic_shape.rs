@@ -19,23 +19,6 @@ macro_rules! assert_roundtrip_basicshape {
     };
 }
 
-macro_rules! assert_border_radius_values {
-    ($input:expr; $tlw:expr, $trw:expr, $brw:expr, $blw:expr ;
-                  $tlh:expr, $trh:expr, $brh:expr, $blh:expr) => {
-        let input = parse(BorderRadius::parse, $input)
-                          .expect(&format!("Failed parsing {} as border radius",
-                                  $input));
-        assert_eq!(::style_traits::ToCss::to_css_string(&input.top_left.0.width), $tlw);
-        assert_eq!(::style_traits::ToCss::to_css_string(&input.top_right.0.width), $trw);
-        assert_eq!(::style_traits::ToCss::to_css_string(&input.bottom_right.0.width), $brw);
-        assert_eq!(::style_traits::ToCss::to_css_string(&input.bottom_left.0.width), $blw);
-        assert_eq!(::style_traits::ToCss::to_css_string(&input.top_left.0.height), $tlh);
-        assert_eq!(::style_traits::ToCss::to_css_string(&input.top_right.0.height), $trh);
-        assert_eq!(::style_traits::ToCss::to_css_string(&input.bottom_right.0.height), $brh);
-        assert_eq!(::style_traits::ToCss::to_css_string(&input.bottom_left.0.height), $blh);
-    }
-}
-
 #[test]
 fn test_inset() {
     assert_roundtrip_basicshape!(InsetRect::parse, "inset(10px)");
@@ -44,47 +27,6 @@ fn test_inset() {
     assert_roundtrip_basicshape!(InsetRect::parse, "inset(10px round 10px)");
     assert_roundtrip_basicshape!(InsetRect::parse, "inset(10px round 10px 20px 30px 40px)");
     assert_roundtrip_basicshape!(InsetRect::parse, "inset(10px round 10px 20px 30px 40px / 1px 2px 3px 4px)");
-}
-
-#[test]
-fn test_border_radius() {
-    assert_border_radius_values!("10px";
-                                 "10px", "10px", "10px", "10px" ;
-                                 "10px", "10px", "10px", "10px");
-    assert_border_radius_values!("10px 20px";
-                                 "10px", "20px", "10px", "20px" ;
-                                 "10px", "20px", "10px", "20px");
-    assert_border_radius_values!("10px 20px 30px";
-                                 "10px", "20px", "30px", "20px" ;
-                                 "10px", "20px", "30px", "20px");
-    assert_border_radius_values!("10px 20px 30px 40px";
-                                 "10px", "20px", "30px", "40px" ;
-                                 "10px", "20px", "30px", "40px");
-    assert_border_radius_values!("10% / 20px";
-                                 "10%", "10%", "10%", "10%" ;
-                                 "20px", "20px", "20px", "20px");
-    assert_border_radius_values!("10px / 20px 30px";
-                                 "10px", "10px", "10px", "10px" ;
-                                 "20px", "30px", "20px", "30px");
-    assert_border_radius_values!("10px 20px 30px 40px / 1px 2px 3px 4px";
-                                 "10px", "20px", "30px", "40px" ;
-                                 "1px", "2px", "3px", "4px");
-    assert_border_radius_values!("10px 20px 30px 40px / 1px 2px 3px 4px";
-                                 "10px", "20px", "30px", "40px" ;
-                                 "1px", "2px", "3px", "4px");
-    assert_border_radius_values!("10px 20px 30px 40px / 1px 2px 3px 4px";
-                                 "10px", "20px", "30px", "40px" ;
-                                 "1px", "2px", "3px", "4px");
-    assert_border_radius_values!("10px -20px 30px 40px";
-                                 "10px", "10px", "10px", "10px";
-                                 "10px", "10px", "10px", "10px");
-    assert_border_radius_values!("10px 20px -30px 40px";
-                                 "10px", "20px", "10px", "20px";
-                                 "10px", "20px", "10px", "20px");
-    assert_border_radius_values!("10px 20px 30px -40px";
-                                 "10px", "20px", "30px", "20px";
-                                 "10px", "20px", "30px", "20px");
-    assert!(parse(BorderRadius::parse, "-10px 20px 30px 40px").is_err());
 }
 
 #[test]

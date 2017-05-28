@@ -10,7 +10,7 @@
 use std::fmt;
 use style_traits::ToCss;
 use values::computed::LengthOrPercentage;
-use values::generics::basic_shape::{BasicShape as GenericBasicShape, BorderRadius as GenericBorderRadius};
+use values::generics::basic_shape::{BasicShape as GenericBasicShape};
 use values::generics::basic_shape::{Circle as GenericCircle, ClippingShape as GenericClippingShape};
 use values::generics::basic_shape::{Ellipse as GenericEllipse, FloatAreaShape as GenericFloatAreaShape};
 use values::generics::basic_shape::{InsetRect as GenericInsetRect, ShapeRadius as GenericShapeRadius};
@@ -26,9 +26,6 @@ pub type BasicShape = GenericBasicShape<LengthOrPercentage, LengthOrPercentage, 
 
 /// The computed value of `inset()`
 pub type InsetRect = GenericInsetRect<LengthOrPercentage>;
-
-/// The computed value of `BorderRadius`
-pub type BorderRadius = GenericBorderRadius<LengthOrPercentage>;
 
 /// A computed circle.
 pub type Circle = GenericCircle<LengthOrPercentage, LengthOrPercentage, LengthOrPercentage>;

@@ -109,8 +109,8 @@ ${helpers.predefined_type("outline-color", "CSSColor", "computed::CSSColor::Curr
 // TODO: Should they animate?
 % for corner in ["topleft", "topright", "bottomright", "bottomleft"]:
     ${helpers.predefined_type("-moz-outline-radius-" + corner, "BorderRadiusSize",
-        "computed::BorderRadiusSize::zero()",
-        "parse", products="gecko",
+        "computed::LengthOrPercentage::zero().into()",
+        products="gecko",
         boxed=True,
         animation_value_type="none",
         spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-outline-radius)")}

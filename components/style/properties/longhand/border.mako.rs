@@ -47,7 +47,7 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
 // FIXME(#4126): when gfx supports painting it, make this Size2D<LengthOrPercentage>
 % for corner in ["top-left", "top-right", "bottom-right", "bottom-left"]:
     ${helpers.predefined_type("border-" + corner + "-radius", "BorderRadiusSize",
-                              "computed::BorderRadiusSize::zero()",
+                              "computed::LengthOrPercentage::zero().into()",
                               "parse", extra_prefixes="webkit",
                               spec="https://drafts.csswg.org/css-backgrounds/#border-%s-radius" % corner,
                               boxed=True,
