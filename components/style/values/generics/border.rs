@@ -38,19 +38,19 @@ pub struct BorderImageSlice<NumberOrPercentage> {
 #[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
 pub struct BorderRadius<LengthOrPercentage> {
     /// The top left radius.
-    pub top_left: BorderRadiusSize<LengthOrPercentage>,
+    pub top_left: BorderCornerRadius<LengthOrPercentage>,
     /// The top right radius.
-    pub top_right: BorderRadiusSize<LengthOrPercentage>,
+    pub top_right: BorderCornerRadius<LengthOrPercentage>,
     /// The bottom right radius.
-    pub bottom_right: BorderRadiusSize<LengthOrPercentage>,
+    pub bottom_right: BorderCornerRadius<LengthOrPercentage>,
     /// The bottom left radius.
-    pub bottom_left: BorderRadiusSize<LengthOrPercentage>,
+    pub bottom_left: BorderCornerRadius<LengthOrPercentage>,
 }
 
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
 /// A generic value for `border-*-radius` longhand properties.
-pub struct BorderRadiusSize<L>(pub Size2D<L>);
+pub struct BorderCornerRadius<L>(pub Size2D<L>);
 
 impl<L, N> ToCss for BorderImageWidthSide<L, N>
     where L: ToCss, N: ToCss,
@@ -95,10 +95,10 @@ impl<N> ToCss for BorderImageSlice<N>
 impl<L> BorderRadius<L> {
     /// Returns a new `BorderRadius<L>`.
     #[inline]
-    pub fn new(tl: BorderRadiusSize<L>,
-               tr: BorderRadiusSize<L>,
-               br: BorderRadiusSize<L>,
-               bl: BorderRadiusSize<L>)
+    pub fn new(tl: BorderCornerRadius<L>,
+               tr: BorderCornerRadius<L>,
+               br: BorderCornerRadius<L>,
+               bl: BorderCornerRadius<L>)
                -> Self {
         BorderRadius {
             top_left: tl,
@@ -144,21 +144,21 @@ impl<L> ToCss for BorderRadius<L>
     }
 }
 
-impl<L> BorderRadiusSize<L> {
+impl<L> BorderCornerRadius<L> {
     #[inline]
-    /// Create a new `BorderRadiusSize` for an area of given width and height.
-    pub fn new(width: L, height: L) -> BorderRadiusSize<L> {
-        BorderRadiusSize(Size2D::new(width, height))
+    /// Create a new `BorderCornerRadius` for an area of given width and height.
+    pub fn new(width: L, height: L) -> BorderCornerRadius<L> {
+        BorderCornerRadius(Size2D::new(width, height))
     }
 }
 
-impl<L: Clone> From<L> for BorderRadiusSize<L> {
+impl<L: Clone> From<L> for BorderCornerRadius<L> {
     fn from(radius: L) -> Self {
         Self::new(radius.clone(), radius)
     }
 }
 
-impl<L> ToCss for BorderRadiusSize<L>
+impl<L> ToCss for BorderCornerRadius<L>
     where L: ToCss,
 {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result

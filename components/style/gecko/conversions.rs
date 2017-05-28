@@ -363,7 +363,7 @@ pub mod basic_shape {
     use gecko_bindings::sugar::ns_style_coord::{CoordDataMut, CoordDataValue};
     use std::borrow::Borrow;
     use values::computed::basic_shape::{BasicShape, ShapeRadius};
-    use values::computed::border::{BorderRadius, BorderRadiusSize};
+    use values::computed::border::{BorderCornerRadius, BorderRadius};
     use values::computed::length::LengthOrPercentage;
     use values::computed::position;
     use values::generics::basic_shape::{BasicShape as GenericBasicShape, InsetRect, Polygon};
@@ -436,7 +436,7 @@ pub mod basic_shape {
         fn from(other: T) -> Self {
             let other = other.borrow();
             let get_corner = |index| {
-                BorderRadiusSize::new(
+                BorderCornerRadius::new(
                     LengthOrPercentage::from_gecko_style_coord(&other.data_at(index))
                         .expect("<border-radius> should be a length, percentage, or calc value"),
                     LengthOrPercentage::from_gecko_style_coord(&other.data_at(index + 1))
@@ -457,7 +457,7 @@ pub mod basic_shape {
     impl BorderRadius {
         /// Set this `BorderRadius` into a given `nsStyleCoord`.
         pub fn set_corners(&self, other: &mut nsStyleCorners) {
-            let mut set_corner = |field: &BorderRadiusSize, index| {
+            let mut set_corner = |field: &BorderCornerRadius, index| {
                 field.0.width.to_gecko_style_coord(&mut other.data_at_mut(index));
                 field.0.height.to_gecko_style_coord(&mut other.data_at_mut(index + 1));
             };

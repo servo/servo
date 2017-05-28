@@ -558,14 +558,14 @@ fn color_to_nscolor_zero_currentcolor(color: Color) -> structs::nscolor {
     % if need_clone:
         #[allow(non_snake_case)]
         pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-            use values::computed::border::BorderRadiusSize;
+            use values::computed::border::BorderCornerRadius;
             let width = GeckoStyleCoordConvertible::from_gecko_style_coord(
                             &self.gecko.${gecko_ffi_name}.data_at(${x_index}))
                             .expect("Failed to clone ${ident}");
             let height = GeckoStyleCoordConvertible::from_gecko_style_coord(
                             &self.gecko.${gecko_ffi_name}.data_at(${y_index}))
                             .expect("Failed to clone ${ident}");
-            BorderRadiusSize::new(width, height)
+            BorderCornerRadius::new(width, height)
         }
     % endif
 </%def>

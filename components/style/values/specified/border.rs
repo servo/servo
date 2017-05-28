@@ -6,10 +6,10 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
+use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::border::BorderImageSlice as GenericBorderImageSlice;
 use values::generics::border::BorderImageWidthSide as GenericBorderImageWidthSide;
 use values::generics::border::BorderRadius as GenericBorderRadius;
-use values::generics::border::BorderRadiusSize as GenericBorderRadiusSize;
 use values::generics::rect::Rect;
 use values::specified::{Number, NumberOrPercentage};
 use values::specified::length::LengthOrPercentage;
@@ -27,7 +27,7 @@ pub type BorderImageSlice = GenericBorderImageSlice<NumberOrPercentage>;
 pub type BorderRadius = GenericBorderRadius<LengthOrPercentage>;
 
 /// A specified value for the `border-*-radius` longhand properties.
-pub type BorderRadiusSize = GenericBorderRadiusSize<LengthOrPercentage>;
+pub type BorderCornerRadius = GenericBorderCornerRadius<LengthOrPercentage>;
 
 impl BorderImageWidthSide {
     /// Returns `1`.
@@ -76,15 +76,15 @@ impl Parse for BorderRadius {
         };
 
         Ok(GenericBorderRadius {
-            top_left: BorderRadiusSize::new(widths.0, heights.0),
-            top_right: BorderRadiusSize::new(widths.1, heights.1),
-            bottom_right: BorderRadiusSize::new(widths.2, heights.2),
-            bottom_left: BorderRadiusSize::new(widths.3, heights.3),
+            top_left: BorderCornerRadius::new(widths.0, heights.0),
+            top_right: BorderCornerRadius::new(widths.1, heights.1),
+            bottom_right: BorderCornerRadius::new(widths.2, heights.2),
+            bottom_left: BorderCornerRadius::new(widths.3, heights.3),
         })
     }
 }
 
-impl Parse for BorderRadiusSize {
+impl Parse for BorderCornerRadius {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         let first = LengthOrPercentage::parse_non_negative(context, input)?;
         let second = input
