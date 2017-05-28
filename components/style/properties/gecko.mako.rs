@@ -558,7 +558,7 @@ fn color_to_nscolor_zero_currentcolor(color: Color) -> structs::nscolor {
     % if need_clone:
         #[allow(non_snake_case)]
         pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-            use values::generics::BorderRadiusSize;
+            use values::computed::border::BorderRadiusSize;
             let width = GeckoStyleCoordConvertible::from_gecko_style_coord(
                             &self.gecko.${gecko_ffi_name}.data_at(${x_index}))
                             .expect("Failed to clone ${ident}");
@@ -3965,13 +3965,13 @@ fn static_assert() {
                         // the garbage data without
                         // attempting to clean up.
                         shape.mCoordinates[0].leaky_set_null();
-                        inset.rect.top.to_gecko_style_coord(&mut shape.mCoordinates[0]);
+                        inset.rect.0.to_gecko_style_coord(&mut shape.mCoordinates[0]);
                         shape.mCoordinates[1].leaky_set_null();
-                        inset.rect.right.to_gecko_style_coord(&mut shape.mCoordinates[1]);
+                        inset.rect.1.to_gecko_style_coord(&mut shape.mCoordinates[1]);
                         shape.mCoordinates[2].leaky_set_null();
-                        inset.rect.bottom.to_gecko_style_coord(&mut shape.mCoordinates[2]);
+                        inset.rect.2.to_gecko_style_coord(&mut shape.mCoordinates[2]);
                         shape.mCoordinates[3].leaky_set_null();
-                        inset.rect.left.to_gecko_style_coord(&mut shape.mCoordinates[3]);
+                        inset.rect.3.to_gecko_style_coord(&mut shape.mCoordinates[3]);
 
                         set_corners_from_radius(inset.round, &mut shape.mRadius);
                     }

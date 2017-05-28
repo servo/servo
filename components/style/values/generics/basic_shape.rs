@@ -5,11 +5,10 @@
 //! CSS handling for the [`basic-shape`](https://drafts.csswg.org/css-shapes/#typedef-basic-shape)
 //! types that are generic over their `ToCss` implementations.
 
-use euclid::size::Size2D;
 use std::fmt;
 use style_traits::{HasViewportPercentage, ToCss};
 use values::computed::ComputedValueAsSpecified;
-use values::generics::BorderRadiusSize;
+use values::generics::border::BorderRadius;
 use values::generics::position::Position;
 use values::generics::rect::Rect;
 use values::specified::url::SpecifiedUrl;
@@ -69,22 +68,6 @@ pub enum BasicShape<H, V, LengthOrPercentage> {
 pub struct InsetRect<LengthOrPercentage> {
     pub rect: Rect<LengthOrPercentage>,
     pub round: Option<BorderRadius<LengthOrPercentage>>,
-}
-
-/// A generic type used for `border-radius`, `outline-radius` and `inset()` values.
-///
-/// https://drafts.csswg.org/css-backgrounds-3/#border-radius
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, PartialEq, ToComputedValue)]
-pub struct BorderRadius<LengthOrPercentage> {
-    /// The top left radius.
-    pub top_left: BorderRadiusSize<LengthOrPercentage>,
-    /// The top right radius.
-    pub top_right: BorderRadiusSize<LengthOrPercentage>,
-    /// The bottom right radius.
-    pub bottom_right: BorderRadiusSize<LengthOrPercentage>,
-    /// The bottom left radius.
-    pub bottom_left: BorderRadiusSize<LengthOrPercentage>,
 }
 
 /// https://drafts.csswg.org/css-shapes/#funcdef-circle
@@ -199,33 +182,6 @@ impl<L> ToCss for InsetRect<L>
         }
         dest.write_str(")")
     }
-}
-
-impl<L: ToCss + PartialEq> ToCss for BorderRadius<L> {
-    #[inline]
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        serialize_radius_values(dest, &self.top_left.0, &self.top_right.0,
-                                &self.bottom_right.0, &self.bottom_left.0)
-    }
-}
-
-/// Serialization helper for types of longhands like `border-radius` and `outline-radius`
-pub fn serialize_radius_values<L, W>(dest: &mut W, top_left: &Size2D<L>,
-                                     top_right: &Size2D<L>, bottom_right: &Size2D<L>,
-                                     bottom_left: &Size2D<L>) -> fmt::Result
-    where L: ToCss + PartialEq, W: fmt::Write
-{
-    Rect::new(&top_left.width, &top_right.width, &bottom_right.width, &bottom_left.width).to_css(dest)?;
-    if
-        top_left.width != top_left.height ||
-        top_right.width != top_right.height ||
-        bottom_right.width != bottom_right.height ||
-        bottom_left.width != bottom_left.height
-    {
-        dest.write_str(" / ")?;
-        Rect::new(&top_left.height, &top_right.height, &bottom_right.height, &bottom_left.height).to_css(dest)?;
-    }
-    Ok(())
 }
 
 impl<L> Default for ShapeRadius<L> {
