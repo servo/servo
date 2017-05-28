@@ -23,7 +23,7 @@ pub struct DelayedCompositionTimerProxy {
 }
 
 struct DelayedCompositionTimer {
-    compositor_proxy: Box<CompositorProxy>,
+    compositor_proxy: CompositorProxy,
     receiver: Receiver<ToDelayedCompositionTimerMsg>,
 }
 
@@ -33,7 +33,7 @@ enum ToDelayedCompositionTimerMsg {
 }
 
 impl DelayedCompositionTimerProxy {
-    pub fn new(compositor_proxy: Box<CompositorProxy + Send>) -> DelayedCompositionTimerProxy {
+    pub fn new(compositor_proxy: CompositorProxy) -> DelayedCompositionTimerProxy {
         let (to_timer_sender, to_timer_receiver) = channel();
         Builder::new().spawn(move || {
             let mut timer = DelayedCompositionTimer {

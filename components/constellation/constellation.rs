@@ -172,7 +172,7 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// A channel (the implementation of which is port-specific) for the
     /// constellation to send messages to the compositor thread.
-    compositor_proxy: Box<CompositorProxy>,
+    compositor_proxy: CompositorProxy,
 
     /// Channels for the constellation to send messages to the public
     /// resource-related threads.  There are two groups of resource
@@ -302,7 +302,7 @@ pub struct Constellation<Message, LTF, STF> {
 /// State needed to construct a constellation.
 pub struct InitialConstellationState {
     /// A channel through which messages can be sent to the compositor.
-    pub compositor_proxy: Box<CompositorProxy + Send>,
+    pub compositor_proxy: CompositorProxy,
 
     /// A channel to the debugger, if applicable.
     pub debugger_chan: Option<debugger::Sender>,
