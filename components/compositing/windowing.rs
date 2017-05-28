@@ -4,7 +4,7 @@
 
 //! Abstract windowing methods. The concrete implementations of these can be found in `platform/`.
 
-use compositor_thread::{CompositorProxy, CompositorReceiver};
+use compositor_thread::EventLoopRiser;
 use euclid::{Point2D, Size2D};
 use euclid::point::TypedPoint2D;
 use euclid::rect::TypedRect;
@@ -147,12 +147,8 @@ pub trait WindowMethods {
     /// Returns the scale factor of the system (device pixels / device independent pixels).
     fn hidpi_factor(&self) -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel>;
 
-    /// Creates a channel to the compositor. The dummy parameter is needed because we don't have
-    /// UFCS in Rust yet.
-    ///
-    /// This is part of the windowing system because its implementation often involves OS-specific
-    /// magic to wake the up window's event loop.
-    fn create_compositor_channel(&self) -> (Box<CompositorProxy + Send>, Box<CompositorReceiver>);
+    /// Creates a thread-safe object to wake the up window's event loop.
+    fn create_event_loop_riser(&self) -> Box<EventLoopRiser>;
 
     /// Requests that the window system prepare a composite. Typically this will involve making
     /// some type of platform-specific graphics context current. Returns true if the composite may

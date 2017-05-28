@@ -22,9 +22,7 @@ use style_traits::viewport::ViewportConstraints;
 use webrender;
 use webrender_traits;
 
-/// Sends messages to the compositor. This is a trait supplied by the port because the method used
-/// to communicate with the compositor may have to kick OS event loops awake, communicate cross-
-/// process, and so forth.
+/// Sends messages to the compositor.
 pub trait CompositorProxy : 'static + Send {
     /// Sends a message to the compositor.
     fn send(&self, msg: Msg);
@@ -32,13 +30,18 @@ pub trait CompositorProxy : 'static + Send {
     fn clone_compositor_proxy(&self) -> Box<CompositorProxy + 'static + Send>;
 }
 
-/// The port that the compositor receives messages on. As above, this is a trait supplied by the
-/// Servo port.
+/// The port that the compositor receives messages on.
 pub trait CompositorReceiver : 'static {
     /// Receives the next message inbound for the compositor. This must not block.
     fn try_recv_compositor_msg(&mut self) -> Option<Msg>;
     /// Synchronously waits for, and returns, the next message inbound for the compositor.
     fn recv_compositor_msg(&mut self) -> Msg;
+}
+
+/// Used to wake up the event loop, provided by the Servo port.
+pub trait EventLoopRiser : 'static + Send {
+    fn clone(&self) -> Box<EventLoopRiser + Send>;
+    fn rise(&self);
 }
 
 /// A convenience implementation of `CompositorReceiver` for a plain old Rust `Receiver`.

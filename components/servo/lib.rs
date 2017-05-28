@@ -68,8 +68,8 @@ fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) { }
 
 use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
-use compositing::{CompositorProxy, IOCompositor};
-use compositing::compositor_thread::InitialCompositorState;
+use compositing::IOCompositor;
+use compositing::compositor_thread::{self, CompositorProxy, CompositorReceiver, InitialCompositorState};
 use compositing::windowing::WindowEvent;
 use compositing::windowing::WindowMethods;
 use constellation::{Constellation, InitialConstellationState, UnprivilegedPipelineContent};
@@ -97,7 +97,7 @@ use std::borrow::Cow;
 use std::cmp::max;
 use std::path::PathBuf;
 use std::rc::Rc;
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::{Sender, channel};
 use webrender::renderer::RendererKind;
 use webvr::{WebVRThread, WebVRCompositorHandler};
 
@@ -134,7 +134,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         // messages to client may need to pump a platform-specific event loop
         // to deliver the message.
         let (compositor_proxy, compositor_receiver) =
-            window.create_compositor_channel();
+            create_compositor_channel(window.create_event_loop_riser());
         let supports_clipboard = window.supports_clipboard();
         let time_profiler_chan = profile_time::Profiler::create(&opts.time_profiling,
                                                                 opts.time_profiler_trace_path.clone());
@@ -271,6 +271,36 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
             Box::new(logger)
         }).expect("Failed to set logger.")
     }
+}
+
+fn create_compositor_channel(event_loop_riser: Box<compositor_thread::EventLoopRiser>)
+    -> (Box<CompositorProxy + Send>, Box<CompositorReceiver>) {
+    struct BrowserCompositorProxy {
+        sender: Sender<compositor_thread::Msg>,
+        event_loop_riser: Box<compositor_thread::EventLoopRiser>,
+    }
+    impl CompositorProxy for BrowserCompositorProxy {
+        fn send(&self, msg: compositor_thread::Msg) {
+            // Send a message and kick the OS event loop awake.
+            if let Err(err) = self.sender.send(msg) {
+                // NOTE: how to add the warn! macro?
+                //warn!("Failed to send response ({}).", err);
+            }
+            self.event_loop_riser.rise();
+        }
+        fn clone_compositor_proxy(&self) -> Box<CompositorProxy + Send> {
+            Box::new(BrowserCompositorProxy {
+                sender: self.sender.clone(),
+                event_loop_riser: self.event_loop_riser.clone(),
+            }) as Box<CompositorProxy + Send>
+        }
+    }
+    let (sender, receiver) = channel();
+    (Box::new(BrowserCompositorProxy {
+         sender: sender,
+         event_loop_riser: event_loop_riser,
+     }) as Box<CompositorProxy + Send>,
+     Box::new(receiver) as Box<CompositorReceiver>)
 }
 
 fn create_constellation(user_agent: Cow<'static, str>,
