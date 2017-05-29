@@ -59,6 +59,24 @@ PACKAGES = {
 }
 
 
+TemporaryDirectory = None
+if sys.version_info >= (3, 2):
+    TemporaryDirectory = tempfile.TemporaryDirectory
+else:
+    import contextlib
+
+    # Not quite as robust as tempfile.TemporaryDirectory,
+    # but good enough for most purposes
+    @contextlib.contextmanager
+    def TemporaryDirectory(**kwargs):
+        dir_name = tempfile.mkdtemp(**kwargs)
+        try:
+            yield dir_name
+        except Exception as e:
+            shutil.rmtree(dir_name)
+            raise e
+
+
 def otool(s):
     o = subprocess.Popen(['/usr/bin/otool', '-L', s], stdout=subprocess.PIPE)
     for l in o.stdout:
@@ -442,7 +460,7 @@ class PackageCommands(CommandBase):
 
             brew_version = timestamp.strftime('%Y.%m.%d')
 
-            with tempfile.TemporaryDirectory(prefix='homebrew-servo') as tmp_dir:
+            with TemporaryDirectory(prefix='homebrew-servo') as tmp_dir:
                 def call_git(cmd, **kwargs):
                     subprocess.check_call(
                         ['git', '-C', tmp_dir] + cmd,
@@ -461,7 +479,7 @@ class PackageCommands(CommandBase):
                 formula = formula.replace('PACKAGEURL', package_url)
                 formula = formula.replace('SHA', digest)
                 formula = formula.replace('VERSION', brew_version)
-                with open(path.join(tmp_dir, 'Formula', 'servo-bin.rb')) as f:
+                with open(path.join(tmp_dir, 'Formula', 'servo-bin.rb'), 'w') as f:
                     f.write(formula)
 
                 call_git(['add', path.join('.', 'Formula', 'servo-bin.rb')])
@@ -491,6 +509,8 @@ class PackageCommands(CommandBase):
             upload_to_s3(platform, package, timestamp)
 
         if platform == 'macbrew':
-            update_brew(package, timestamp)
+            packages = PACKAGES[platform]
+            assert(len(packages) == 1)
+            update_brew(packages[0], timestamp)
 
         return 0
