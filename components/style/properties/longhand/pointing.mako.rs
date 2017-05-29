@@ -166,7 +166,8 @@ ${helpers.single_keyword("-moz-user-modify", "read-only read-write write-only",
                          products="gecko", gecko_ffi_name="mUserModify",
                          gecko_enum_prefix="StyleUserModify",
                          needs_conversion=True,
-                         animation_value_type="none",
+                         gecko_inexhaustive=True,
+                         animation_value_type="discrete",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-user-modify)")}
 
 ${helpers.single_keyword("-moz-user-focus",
