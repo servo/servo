@@ -1072,7 +1072,7 @@ fn static_assert() {
 
 <% skip_position_longhands = " ".join(x.ident for x in SIDES + GRID_LINES) %>
 <%self:impl_trait style_struct_name="Position"
-                  skip_longhands="${skip_position_longhands} z-index box-sizing order align-content
+                  skip_longhands="${skip_position_longhands} z-index order align-content
                                   justify-content align-self justify-self align-items
                                   justify-items grid-auto-rows grid-auto-columns grid-auto-flow
                                   grid-template-areas grid-template-rows grid-template-columns">
@@ -1158,17 +1158,6 @@ fn static_assert() {
         JustifyItems(AlignFlags::from_bits(self.gecko.mJustifyItems)
                                           .expect("mJustifyItems contains valid flags"))
     }
-
-    pub fn set_box_sizing(&mut self, v: longhands::box_sizing::computed_value::T) {
-        use computed_values::box_sizing::T;
-        use gecko_bindings::structs::StyleBoxSizing;
-        // TODO: guess what to do with box-sizing: padding-box
-        self.gecko.mBoxSizing = match v {
-            T::content_box => StyleBoxSizing::Content,
-            T::border_box => StyleBoxSizing::Border
-        }
-    }
-    ${impl_simple_copy('box_sizing', 'mBoxSizing')}
 
     pub fn set_order(&mut self, v: longhands::order::computed_value::T) {
         self.gecko.mOrder = v;

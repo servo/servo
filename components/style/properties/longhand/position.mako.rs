@@ -205,7 +205,10 @@ ${helpers.single_keyword("box-sizing",
                          "content-box border-box",
                          extra_prefixes="moz webkit",
                          spec="https://drafts.csswg.org/css-ui/#propdef-box-sizing",
-                         animation_value_type="none")}
+                         gecko_enum_prefix="StyleBoxSizing",
+                         custom_consts={ "content-box": "Content", "border-box": "Border" },
+                         gecko_inexhaustive=True,
+                         animation_value_type="discrete")}
 
 ${helpers.single_keyword("object-fit", "fill contain cover none scale-down",
                          products="gecko", animation_value_type="discrete",
