@@ -6,13 +6,12 @@
 //! quickly whether it's worth to share style, and whether two different
 //! elements can indeed share the same style.
 
-use context::{CurrentElementInfo, SelectorFlagsMap, SharedStyleContext};
+use context::{SelectorFlagsMap, SharedStyleContext};
 use dom::TElement;
 use element_state::*;
-use matching::MatchMethods;
 use selectors::bloom::BloomFilter;
-use selectors::matching::{ElementSelectorFlags, StyleRelations};
-use sharing::StyleSharingCandidate;
+use selectors::matching::StyleRelations;
+use sharing::{StyleSharingCandidate, StyleSharingTarget};
 use sink::ForgetfulSink;
 use stylearc::Arc;
 
@@ -63,16 +62,12 @@ pub fn has_presentational_hints<E>(element: E) -> bool
 /// Whether a given element has the same class attribute than a given candidate.
 ///
 /// We don't try to share style across elements with different class attributes.
-pub fn have_same_class<E>(element: E,
+pub fn have_same_class<E>(target: &mut StyleSharingTarget<E>,
                           candidate: &mut StyleSharingCandidate<E>)
                           -> bool
     where E: TElement,
 {
-    // XXX Efficiency here, I'm only validating ideas.
-    let mut element_class_attributes = vec![];
-    element.each_class(|c| element_class_attributes.push(c.clone()));
-
-    element_class_attributes == candidate.class_list()
+    target.class_list() == candidate.class_list()
 }
 
 /// Compare element and candidate state, but ignore visitedness.  Styles don't
@@ -96,42 +91,19 @@ pub fn have_same_state_ignoring_visitedness<E>(element: E,
 /// :first-child, etc, or on attributes that we don't check off-hand (pretty
 /// much every attribute selector except `id` and `class`.
 #[inline]
-pub fn revalidate<E>(element: E,
+pub fn revalidate<E>(target: &mut StyleSharingTarget<E>,
                      candidate: &mut StyleSharingCandidate<E>,
                      shared_context: &SharedStyleContext,
                      bloom: &BloomFilter,
-                     info: &mut CurrentElementInfo,
                      selector_flags_map: &mut SelectorFlagsMap<E>)
                      -> bool
     where E: TElement,
 {
     let stylist = &shared_context.stylist;
 
-    if info.revalidation_match_results.is_none() {
-        // It's important to set the selector flags. Otherwise, if we succeed in
-        // sharing the style, we may not set the slow selector flags for the
-        // right elements (which may not necessarily be |element|), causing
-        // missed restyles after future DOM mutations.
-        //
-        // Gecko's test_bug534804.html exercises this. A minimal testcase is:
-        // <style> #e:empty + span { ... } </style>
-        // <span id="e">
-        //   <span></span>
-        // </span>
-        // <span></span>
-        //
-        // The style sharing cache will get a hit for the second span. When the
-        // child span is subsequently removed from the DOM, missing selector
-        // flags would cause us to miss the restyle on the second span.
-        let mut set_selector_flags = |el: &E, flags: ElementSelectorFlags| {
-            element.apply_selector_flags(selector_flags_map, el, flags);
-        };
-        info.revalidation_match_results =
-            Some(stylist.match_revalidation_selectors(&element, bloom,
-                                                      &mut set_selector_flags));
-    }
+    let for_element =
+        target.revalidation_match_results(stylist, bloom, selector_flags_map);
 
-    let for_element = info.revalidation_match_results.as_ref().unwrap();
     let for_candidate = candidate.revalidation_match_results(stylist, bloom);
 
     // This assert "ensures", to some extent, that the two candidates have

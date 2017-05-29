@@ -7,7 +7,6 @@
 #[cfg(feature = "servo")] use animation::Animation;
 use animation::PropertyAnimation;
 use app_units::Au;
-use bit_vec::BitVec;
 use bloom::StyleBloom;
 use cache::LRUCache;
 use data::ElementData;
@@ -23,7 +22,7 @@ use selector_parser::SnapshotMap;
 use selectors::matching::ElementSelectorFlags;
 #[cfg(feature = "servo")] use servo_config::opts;
 use shared_lock::StylesheetGuards;
-use sharing::StyleSharingCandidateCache;
+use sharing::{CachedStyleSharingData, StyleSharingCandidateCache};
 #[cfg(feature = "servo")] use std::collections::HashMap;
 #[cfg(feature = "gecko")] use std::env;
 use std::fmt;
@@ -165,9 +164,8 @@ pub struct CurrentElementInfo {
     element: OpaqueNode,
     /// Whether the element is being styled for the first time.
     is_initial_style: bool,
-    /// Lazy cache of the result of matching the current element against the
-    /// revalidation selectors.
-    pub revalidation_match_results: Option<BitVec>,
+    /// Lazy cache of the different data used for style sharing.
+    pub cached_style_sharing_data: CachedStyleSharingData,
     /// A Vec of possibly expired animations. Used only by Servo.
     #[allow(dead_code)]
     pub possibly_expired_animations: Vec<PropertyAnimation>,
@@ -465,7 +463,7 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
         self.current_element_info = Some(CurrentElementInfo {
             element: element.as_node().opaque(),
             is_initial_style: !data.has_styles(),
-            revalidation_match_results: None,
+            cached_style_sharing_data: CachedStyleSharingData::new(),
             possibly_expired_animations: Vec::new(),
         });
     }
