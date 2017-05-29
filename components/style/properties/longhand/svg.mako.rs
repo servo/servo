@@ -6,16 +6,15 @@
 
 <% data.new_style_struct("SVG", inherited=False, gecko_name="SVGReset") %>
 
-// TODO: Which of these should be animatable properties?
 ${helpers.single_keyword("dominant-baseline",
                  """auto use-script no-change reset-size ideographic alphabetic hanging
                     mathematical central middle text-after-edge text-before-edge""",
                  products="gecko",
-                 animation_value_type="none",
+                 animation_value_type="discrete",
                  spec="https://www.w3.org/TR/SVG11/text.html#DominantBaselineProperty")}
 
 ${helpers.single_keyword("vector-effect", "none non-scaling-stroke",
-                         products="gecko", animation_value_type="none",
+                         products="gecko", animation_value_type="discrete",
                          spec="https://www.w3.org/TR/SVGTiny12/painting.html#VectorEffectProperty")}
 
 // Section 13 - Gradients and Patterns
@@ -55,7 +54,7 @@ ${helpers.predefined_type(
 // CSS Masking Module Level 1
 // https://drafts.fxtf.org/css-masking
 ${helpers.single_keyword("mask-type", "luminance alpha",
-                         products="gecko", animation_value_type="none",
+                         products="gecko", animation_value_type="discrete",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-type")}
 
 ${helpers.predefined_type("clip-path", "basic_shape::ClippingShape",
@@ -68,7 +67,7 @@ ${helpers.single_keyword("mask-mode",
                          "match-source alpha luminance",
                          vector=True,
                          products="gecko",
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-mode")}
 
 <%helpers:vector_longhand name="mask-repeat" products="gecko" animation_value_type="none" extra_prefixes="webkit"
@@ -104,7 +103,8 @@ ${helpers.single_keyword("mask-clip",
                          vector=True,
                          products="gecko",
                          extra_prefixes="webkit",
-                         animation_value_type="none",
+                         gecko_enum_prefix="StyleGeometryBox",
+                         animation_value_type="discrete",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-clip")}
 
 ${helpers.single_keyword("mask-origin",
@@ -113,7 +113,8 @@ ${helpers.single_keyword("mask-origin",
                          vector=True,
                          products="gecko",
                          extra_prefixes="webkit",
-                         animation_value_type="none",
+                         gecko_enum_prefix="StyleGeometryBox",
+                         animation_value_type="discrete",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-origin")}
 
 <%helpers:longhand name="mask-size" products="gecko" animation_value_type="ComputedValue" extra_prefixes="webkit"
@@ -138,7 +139,7 @@ ${helpers.single_keyword("mask-composite",
                          vector=True,
                          products="gecko",
                          extra_prefixes="webkit",
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-composite")}
 
 ${helpers.predefined_type("mask-image", "ImageLayer",

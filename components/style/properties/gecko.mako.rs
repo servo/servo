@@ -1072,7 +1072,7 @@ fn static_assert() {
 
 <% skip_position_longhands = " ".join(x.ident for x in SIDES + GRID_LINES) %>
 <%self:impl_trait style_struct_name="Position"
-                  skip_longhands="${skip_position_longhands} z-index box-sizing order align-content
+                  skip_longhands="${skip_position_longhands} z-index order align-content
                                   justify-content align-self justify-self align-items
                                   justify-items grid-auto-rows grid-auto-columns grid-auto-flow
                                   grid-template-areas grid-template-rows grid-template-columns">
@@ -1158,17 +1158,6 @@ fn static_assert() {
         JustifyItems(AlignFlags::from_bits(self.gecko.mJustifyItems)
                                           .expect("mJustifyItems contains valid flags"))
     }
-
-    pub fn set_box_sizing(&mut self, v: longhands::box_sizing::computed_value::T) {
-        use computed_values::box_sizing::T;
-        use gecko_bindings::structs::StyleBoxSizing;
-        // TODO: guess what to do with box-sizing: padding-box
-        self.gecko.mBoxSizing = match v {
-            T::content_box => StyleBoxSizing::Content,
-            T::border_box => StyleBoxSizing::Border
-        }
-    }
-    ${impl_simple_copy('box_sizing', 'mBoxSizing')}
 
     pub fn set_order(&mut self, v: longhands::order::computed_value::T) {
         self.gecko.mOrder = v;
@@ -2182,12 +2171,14 @@ fn static_assert() {
 
     <%call expr="impl_coord_copy('vertical_align', 'mVerticalAlign')"></%call>
 
+    % for kind in ["before", "after"]:
     // Temp fix for Bugzilla bug 24000.
     // Map 'auto' and 'avoid' to false, and 'always', 'left', and 'right' to true.
     // "A conforming user agent may interpret the values 'left' and 'right'
     // as 'always'." - CSS2.1, section 13.3.1
-    pub fn set_page_break_before(&mut self, v: longhands::page_break_before::computed_value::T) {
-        use computed_values::page_break_before::T;
+    pub fn set_page_break_${kind}(&mut self, v: longhands::page_break_${kind}::computed_value::T) {
+        use computed_values::page_break_${kind}::T;
+
         let result = match v {
             T::auto   => false,
             T::always => true,
@@ -2195,26 +2186,22 @@ fn static_assert() {
             T::left   => true,
             T::right  => true
         };
-        self.gecko.mBreakBefore = result;
+        self.gecko.mBreak${kind.title()} = result;
     }
 
-    ${impl_simple_copy('page_break_before', 'mBreakBefore')}
+    ${impl_simple_copy('page_break_' + kind, 'mBreak' + kind.title())}
 
     // Temp fix for Bugzilla bug 24000.
-    // See set_page_break_before for detail.
-    pub fn set_page_break_after(&mut self, v: longhands::page_break_after::computed_value::T) {
-        use computed_values::page_break_after::T;
-        let result = match v {
-            T::auto   => false,
-            T::always => true,
-            T::avoid  => false,
-            T::left   => true,
-            T::right  => true
-        };
-        self.gecko.mBreakAfter = result;
-    }
+    // See set_page_break_before/after for detail.
+    pub fn clone_page_break_${kind}(&self) -> longhands::page_break_${kind}::computed_value::T {
+        use computed_values::page_break_${kind}::T;
 
-    ${impl_simple_copy('page_break_after', 'mBreakAfter')}
+        match self.gecko.mBreak${kind.title()} {
+            true => T::always,
+            false => T::auto,
+        }
+    }
+    % endfor
 
     pub fn set_scroll_snap_points_x(&mut self, v: longhands::scroll_snap_points_x::computed_value::T) {
         match v.0 {
@@ -2825,24 +2812,8 @@ fn static_assert() {
 <%def name="simple_image_array_property(name, shorthand, field_name)">
     <%
         image_layers_field = "mImage" if shorthand == "background" else "mMask"
+        copy_simple_image_array_property(name, shorthand, image_layers_field, field_name)
     %>
-    pub fn copy_${shorthand}_${name}_from(&mut self, other: &Self) {
-        use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
-
-        let count = other.gecko.${image_layers_field}.${field_name}Count;
-        unsafe {
-            Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field},
-                                          count as usize,
-                                          LayerType::${shorthand.title()});
-        }
-        for (layer, other) in self.gecko.${image_layers_field}.mLayers.iter_mut()
-                                  .zip(other.gecko.${image_layers_field}.mLayers.iter())
-                                  .take(count as usize) {
-            layer.${field_name} = other.${field_name};
-        }
-        self.gecko.${image_layers_field}.${field_name}Count = count;
-    }
-
 
     pub fn set_${shorthand}_${name}<I>(&mut self, v: I)
         where I: IntoIterator<Item=longhands::${shorthand}_${name}::computed_value::single_value::T>,
@@ -2864,9 +2835,102 @@ fn static_assert() {
         }
     }
 </%def>
+
+<%def name="copy_simple_image_array_property(name, shorthand, layers_field_name, field_name)">
+    pub fn copy_${shorthand}_${name}_from(&mut self, other: &Self) {
+        use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
+
+        let count = other.gecko.${layers_field_name}.${field_name}Count;
+        unsafe {
+            Gecko_EnsureImageLayersLength(&mut self.gecko.${layers_field_name},
+                                          count as usize,
+                                          LayerType::${shorthand.title()});
+        }
+        for (layer, other) in self.gecko.${layers_field_name}.mLayers.iter_mut()
+                                  .zip(other.gecko.${layers_field_name}.mLayers.iter())
+                                  .take(count as usize) {
+            layer.${field_name} = other.${field_name};
+        }
+        self.gecko.${layers_field_name}.${field_name}Count = count;
+    }
+</%def>
+
+<%def name="impl_simple_image_array_property(name, shorthand, layer_field_name, field_name, struct_name)">
+    <%
+        ident = "%s_%s" % (shorthand, name)
+        style_struct = next(x for x in data.style_structs if x.name == struct_name)
+        longhand = next(x for x in style_struct.longhands if x.ident == ident)
+        keyword = longhand.keyword
+    %>
+
+    <% copy_simple_image_array_property(name, shorthand, layer_field_name, field_name) %>
+
+    pub fn set_${ident}<I>(&mut self, v: I)
+        where I: IntoIterator<Item=longhands::${ident}::computed_value::single_value::T>,
+              I::IntoIter: ExactSizeIterator
+    {
+        use properties::longhands::${ident}::single_value::computed_value::T as Keyword;
+        use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
+
+        let v = v.into_iter();
+
+        unsafe {
+          Gecko_EnsureImageLayersLength(&mut self.gecko.${layer_field_name}, v.len(),
+                                        LayerType::${shorthand.title()});
+        }
+
+        self.gecko.${layer_field_name}.${field_name}Count = v.len() as u32;
+        for (servo, geckolayer) in v.zip(self.gecko.${layer_field_name}.mLayers.iter_mut()) {
+            geckolayer.${field_name} = {
+                match servo {
+                    % for value in keyword.values_for("gecko"):
+                    Keyword::${to_rust_ident(value)} =>
+                        structs::${keyword.gecko_constant(value)} ${keyword.maybe_cast('u8')},
+                    % endfor
+                }
+            };
+        }
+    }
+
+    pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T
+    {
+        use properties::longhands::${ident}::single_value::computed_value::T as Keyword;
+
+        % if keyword.needs_cast():
+        % for value in keyword.values_for('gecko'):
+        const ${keyword.casted_constant_name(value, "u8")} : u8 =
+            structs::${keyword.gecko_constant(value)} as u8;
+        % endfor
+        % endif
+
+        longhands::${ident}::computed_value::T (
+            self.gecko.${layer_field_name}.mLayers.iter()
+                .take(self.gecko.${layer_field_name}.${field_name}Count as usize)
+                .map(|ref layer| {
+                    match layer.${field_name} {
+                        % for value in longhand.keyword.values_for("gecko"):
+                        % if keyword.needs_cast():
+                        ${keyword.casted_constant_name(value, "u8")}
+                        % else:
+                        structs::${keyword.gecko_constant(value)}
+                        % endif
+                            => Keyword::${to_rust_ident(value)},
+                        % endfor
+                        x => panic!("Found unexpected value in style struct for ${ident} property: {:?}", x),
+                    }
+                }).collect()
+        )
+    }
+</%def>
+
 <%def name="impl_common_image_layer_properties(shorthand)">
     <%
-        image_layers_field = "mImage" if shorthand == "background" else "mMask"
+        if shorthand == "background":
+            image_layers_field = "mImage"
+            struct_name = "Background"
+        else:
+            image_layers_field = "mMask"
+            struct_name = "SVG"
     %>
 
     <%self:simple_image_array_property name="repeat" shorthand="${shorthand}" field_name="mRepeat">
@@ -2894,40 +2958,8 @@ fn static_assert() {
         }
     </%self:simple_image_array_property>
 
-    <%self:simple_image_array_property name="clip" shorthand="${shorthand}" field_name="mClip">
-        use gecko_bindings::structs::StyleGeometryBox;
-        use properties::longhands::${shorthand}_clip::single_value::computed_value::T;
-
-        match servo {
-            T::border_box => StyleGeometryBox::BorderBox,
-            T::padding_box => StyleGeometryBox::PaddingBox,
-            T::content_box => StyleGeometryBox::ContentBox,
-            % if shorthand == "mask":
-            T::fill_box => StyleGeometryBox::FillBox,
-            T::stroke_box => StyleGeometryBox::StrokeBox,
-            T::view_box => StyleGeometryBox::ViewBox,
-            T::no_clip => StyleGeometryBox::NoClip,
-            % elif shorthand == "background":
-            T::text => StyleGeometryBox::Text,
-            % endif
-        }
-    </%self:simple_image_array_property>
-
-    <%self:simple_image_array_property name="origin" shorthand="${shorthand}" field_name="mOrigin">
-        use gecko_bindings::structs::StyleGeometryBox;
-        use properties::longhands::${shorthand}_origin::single_value::computed_value::T;
-
-        match servo {
-            T::border_box => StyleGeometryBox::BorderBox,
-            T::padding_box => StyleGeometryBox::PaddingBox,
-            T::content_box => StyleGeometryBox::ContentBox,
-            % if shorthand == "mask":
-            T::fill_box => StyleGeometryBox::FillBox,
-            T::stroke_box => StyleGeometryBox::StrokeBox,
-            T::view_box => StyleGeometryBox::ViewBox,
-            % endif
-        }
-    </%self:simple_image_array_property>
+    <% impl_simple_image_array_property("clip", shorthand, image_layers_field, "mClip", struct_name) %>
+    <% impl_simple_image_array_property("origin", shorthand, image_layers_field, "mOrigin", struct_name) %>
 
     % for orientation in ["x", "y"]:
     pub fn copy_${shorthand}_position_${orientation}_from(&mut self, other: &Self) {
@@ -3148,38 +3180,8 @@ fn static_assert() {
                   skip_additionals="*">
 
     <% impl_common_image_layer_properties("background") %>
-
-    <%self:simple_image_array_property name="attachment" shorthand="background" field_name="mAttachment">
-        use properties::longhands::background_attachment::single_value::computed_value::T;
-        match servo {
-            T::scroll => structs::NS_STYLE_IMAGELAYER_ATTACHMENT_SCROLL as u8,
-            T::fixed => structs::NS_STYLE_IMAGELAYER_ATTACHMENT_FIXED as u8,
-            T::local => structs::NS_STYLE_IMAGELAYER_ATTACHMENT_LOCAL as u8,
-        }
-    </%self:simple_image_array_property>
-
-    <%self:simple_image_array_property name="blend_mode" shorthand="background" field_name="mBlendMode">
-        use properties::longhands::background_blend_mode::single_value::computed_value::T;
-
-        match servo {
-            T::normal => structs::NS_STYLE_BLEND_NORMAL as u8,
-            T::multiply => structs::NS_STYLE_BLEND_MULTIPLY as u8,
-            T::screen => structs::NS_STYLE_BLEND_SCREEN as u8,
-            T::overlay => structs::NS_STYLE_BLEND_OVERLAY as u8,
-            T::darken => structs::NS_STYLE_BLEND_DARKEN as u8,
-            T::lighten => structs::NS_STYLE_BLEND_LIGHTEN as u8,
-            T::color_dodge => structs::NS_STYLE_BLEND_COLOR_DODGE as u8,
-            T::color_burn => structs::NS_STYLE_BLEND_COLOR_BURN as u8,
-            T::hard_light => structs::NS_STYLE_BLEND_HARD_LIGHT as u8,
-            T::soft_light => structs::NS_STYLE_BLEND_SOFT_LIGHT as u8,
-            T::difference => structs::NS_STYLE_BLEND_DIFFERENCE as u8,
-            T::exclusion => structs::NS_STYLE_BLEND_EXCLUSION as u8,
-            T::hue => structs::NS_STYLE_BLEND_HUE as u8,
-            T::saturation => structs::NS_STYLE_BLEND_SATURATION as u8,
-            T::color => structs::NS_STYLE_BLEND_COLOR as u8,
-            T::luminosity => structs::NS_STYLE_BLEND_LUMINOSITY as u8,
-        }
-    </%self:simple_image_array_property>
+    <% impl_simple_image_array_property("attachment", "background", "mImage", "mAttachment", "Background") %>
+    <% impl_simple_image_array_property("blend_mode", "background", "mImage", "mBlendMode", "Background") %>
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="List"
@@ -4034,27 +4036,8 @@ clip-path
                   skip_additionals="*">
 
     <% impl_common_image_layer_properties("mask") %>
-
-    <%self:simple_image_array_property name="mode" shorthand="mask" field_name="mMaskMode">
-        use properties::longhands::mask_mode::single_value::computed_value::T;
-
-        match servo {
-          T::alpha => structs::NS_STYLE_MASK_MODE_ALPHA as u8,
-          T::luminance => structs::NS_STYLE_MASK_MODE_LUMINANCE as u8,
-          T::match_source => structs::NS_STYLE_MASK_MODE_MATCH_SOURCE as u8,
-        }
-    </%self:simple_image_array_property>
-    <%self:simple_image_array_property name="composite" shorthand="mask" field_name="mComposite">
-        use properties::longhands::mask_composite::single_value::computed_value::T;
-
-        match servo {
-            T::add => structs::NS_STYLE_MASK_COMPOSITE_ADD as u8,
-            T::subtract => structs::NS_STYLE_MASK_COMPOSITE_SUBTRACT as u8,
-            T::intersect => structs::NS_STYLE_MASK_COMPOSITE_INTERSECT as u8,
-            T::exclude => structs::NS_STYLE_MASK_COMPOSITE_EXCLUDE as u8,
-        }
-    </%self:simple_image_array_property>
-
+    <% impl_simple_image_array_property("mode", "mask", "mMask", "mMaskMode", "SVG") %>
+    <% impl_simple_image_array_property("composite", "mask", "mMask", "mComposite", "SVG") %>
     <% impl_shape_source("clip_path", "mClipPath") %>
 </%self:impl_trait>
 

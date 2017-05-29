@@ -13,7 +13,7 @@
 // we should probably remove from gecko (https://bugzilla.mozilla.org/show_bug.cgi?id=1328331)
 ${helpers.single_keyword("ime-mode", "auto normal active disabled inactive",
                          products="gecko", gecko_ffi_name="mIMEMode",
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-ui/#input-method-editor")}
 
 ${helpers.single_keyword("-moz-user-select", "auto text none all element elements" +
@@ -28,13 +28,15 @@ ${helpers.single_keyword("-moz-user-select", "auto text none all element element
 ${helpers.single_keyword("-moz-window-dragging", "default drag no-drag", products="gecko",
                          gecko_ffi_name="mWindowDragging",
                          gecko_enum_prefix="StyleWindowDragging",
-                         animation_value_type="none",
+                         gecko_inexhaustive=True,
+                         animation_value_type="discrete",
                          spec="None (Nonstandard Firefox-only property)")}
 
 ${helpers.single_keyword("-moz-window-shadow", "none default menu tooltip sheet", products="gecko",
                          gecko_ffi_name="mWindowShadow",
                          gecko_constant_prefix="NS_STYLE_WINDOW_SHADOW",
-                         animation_value_type="none",
+                         gecko_inexhaustive=True,
+                         animation_value_type="discrete",
                          internal=True,
                          spec="None (Nonstandard internal property)")}
 

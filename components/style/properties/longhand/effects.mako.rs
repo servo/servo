@@ -522,6 +522,6 @@ ${helpers.single_keyword("mix-blend-mode",
                          """normal multiply screen overlay darken lighten color-dodge
                             color-burn hard-light soft-light difference exclusion hue
                             saturation color luminosity""", gecko_constant_prefix="NS_STYLE_BLEND",
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          flags="CREATES_STACKING_CONTEXT",
                          spec="https://drafts.fxtf.org/compositing/#propdef-mix-blend-mode")}

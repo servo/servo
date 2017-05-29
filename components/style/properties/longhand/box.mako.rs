@@ -152,9 +152,8 @@ ${helpers.single_keyword("-moz-top-layer", "none top",
                          spec="Internal (not web-exposed)")}
 
 ${helpers.single_keyword("position", "static absolute relative fixed",
-                         need_clone="True",
                          extra_gecko_values="sticky",
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          flags="CREATES_STACKING_CONTEXT ABSPOS_CB",
                          spec="https://drafts.csswg.org/css-position/#position-property")}
 
@@ -163,8 +162,7 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
                                   // https://drafts.csswg.org/css-logical-props/#float-clear
                                   extra_specified="inline-start inline-end"
                                   needs_conversion="True"
-                                  animation_value_type="none"
-                                  need_clone="True"
+                                  animation_value_type="discrete"
                                   gecko_enum_prefix="StyleFloat"
                                   gecko_inexhaustive="True"
                                   gecko_ffi_name="mFloat"
@@ -203,7 +201,8 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
                                   // https://drafts.csswg.org/css-logical-props/#float-clear
                                   extra_specified="inline-start inline-end"
                                   needs_conversion="True"
-                                  animation_value_type="none"
+                                  gecko_inexhaustive="True"
+                                  animation_value_type="discrete"
                                   gecko_enum_prefix="StyleClear"
                                   gecko_ffi_name="mBreakType"
                                   spec="https://www.w3.org/TR/CSS2/visuren.html#flow-control">
@@ -382,7 +381,7 @@ ${helpers.single_keyword("-servo-overflow-clip-box", "padding-box content-box",
           may be standardized in the future (https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box)")}
 
 ${helpers.single_keyword("overflow-clip-box", "padding-box content-box",
-    products="gecko", animation_value_type="none", internal=True,
+    products="gecko", animation_value_type="discrete", internal=True,
     spec="Internal, not web-exposed, \
           may be standardized in the future (https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box)")}
 
@@ -392,14 +391,14 @@ ${helpers.single_keyword("overflow-clip-box", "padding-box content-box",
 
 // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
 ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
-                         need_clone=True, animation_value_type="none",
+                         need_clone=True, animation_value_type="discrete",
                          extra_gecko_values="-moz-hidden-unscrollable",
                          custom_consts=overflow_custom_consts,
                          gecko_constant_prefix="NS_STYLE_OVERFLOW",
                          spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-x")}
 
 // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
-<%helpers:longhand name="overflow-y" need_clone="True" animation_value_type="none"
+<%helpers:longhand name="overflow-y" need_clone="True" animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-y">
     pub use super::overflow_x::{SpecifiedValue, parse, get_initial_value, computed_value};
 </%helpers:longhand>
@@ -2005,14 +2004,14 @@ ${helpers.single_keyword("scroll-behavior",
                          "auto smooth",
                          products="gecko",
                          spec="https://drafts.csswg.org/cssom-view/#propdef-scroll-behavior",
-                         animation_value_type="none")}
+                         animation_value_type="discrete")}
 
 ${helpers.single_keyword("scroll-snap-type-x",
                          "none mandatory proximity",
                          products="gecko",
                          gecko_constant_prefix="NS_STYLE_SCROLL_SNAP_TYPE",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-type-x)",
-                         animation_value_type="none")}
+                         animation_value_type="discrete")}
 
 <%helpers:longhand products="gecko" name="scroll-snap-type-y" animation_value_type="none"
                    spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-type-x)">
@@ -2029,26 +2028,26 @@ ${helpers.single_keyword("isolation",
                          products="gecko",
                          spec="https://drafts.fxtf.org/compositing/#isolation",
                          flags="CREATES_STACKING_CONTEXT",
-                         animation_value_type="none")}
+                         animation_value_type="discrete")}
 
 // TODO add support for logical values recto and verso
 ${helpers.single_keyword("page-break-after",
                          "auto always avoid left right",
                          products="gecko",
                          spec="https://drafts.csswg.org/css2/page.html#propdef-page-break-after",
-                         animation_value_type="none")}
+                         animation_value_type="discrete")}
 ${helpers.single_keyword("page-break-before",
                          "auto always avoid left right",
                          products="gecko",
                          spec="https://drafts.csswg.org/css2/page.html#propdef-page-break-before",
-                         animation_value_type="none")}
+                         animation_value_type="discrete")}
 ${helpers.single_keyword("page-break-inside",
                          "auto avoid",
                          products="gecko",
                          gecko_ffi_name="mBreakInside",
                          gecko_constant_prefix="NS_STYLE_PAGE_BREAK",
                          spec="https://drafts.csswg.org/css2/page.html#propdef-page-break-inside",
-                         animation_value_type="none")}
+                         animation_value_type="discrete")}
 
 // CSS Basic User Interface Module Level 3
 // http://dev.w3.org/csswg/css-ui
@@ -2057,7 +2056,7 @@ ${helpers.single_keyword("resize",
                          "none both horizontal vertical",
                          products="gecko",
                          spec="https://drafts.csswg.org/css-ui/#propdef-resize",
-                         animation_value_type="none")}
+                         animation_value_type="discrete")}
 
 
 ${helpers.predefined_type("perspective",
@@ -2082,14 +2081,15 @@ ${helpers.single_keyword("backface-visibility",
                          "visible hidden",
                          spec="https://drafts.csswg.org/css-transforms/#backface-visibility-property",
                          extra_prefixes="moz webkit",
-                         animation_value_type="none")}
+                         animation_value_type="discrete")}
 
 ${helpers.single_keyword("transform-box",
                          "border-box fill-box view-box",
                          gecko_enum_prefix="StyleGeometryBox",
                          products="gecko",
                          spec="https://drafts.csswg.org/css-transforms/#transform-box",
-                         animation_value_type="none")}
+                         gecko_inexhaustive="True",
+                         animation_value_type="discrete")}
 
 // `auto` keyword is not supported in gecko yet.
 ${helpers.single_keyword("transform-style",
@@ -2098,7 +2098,7 @@ ${helpers.single_keyword("transform-style",
                          spec="https://drafts.csswg.org/css-transforms/#transform-style-property",
                          extra_prefixes="moz webkit",
                          flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
-                         animation_value_type="none")}
+                         animation_value_type="discrete")}
 
 <%helpers:longhand name="transform-origin" animation_value_type="ComputedValue" extra_prefixes="moz webkit" boxed="True"
                    spec="https://drafts.csswg.org/css-transforms/#transform-origin-property">
@@ -2359,7 +2359,8 @@ ${helpers.single_keyword("-moz-orient",
                           gecko_ffi_name="mOrient",
                           gecko_enum_prefix="StyleOrient",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-orient)",
-                          animation_value_type="none")}
+                          gecko_inexhaustive="True",
+                          animation_value_type="discrete")}
 
 <%helpers:longhand name="will-change" products="gecko" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-will-change/#will-change">
