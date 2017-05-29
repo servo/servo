@@ -1479,11 +1479,6 @@ pub mod root {
                 _unused: [u8; 0],
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
-            pub struct ImportRule {
-                _unused: [u8; 0],
-            }
-            #[repr(C)]
             #[derive(Debug)]
             pub struct Rule {
                 pub _base: root::nsIDOMCSSRule,
@@ -3250,6 +3245,11 @@ pub mod root {
             #[repr(C)]
             #[derive(Debug, Copy, Clone)]
             pub struct Promise {
+                _unused: [u8; 0],
+            }
+            #[repr(C)]
+            #[derive(Debug, Copy, Clone)]
+            pub struct CSSImportRule {
                 _unused: [u8; 0],
             }
             #[repr(C)]
@@ -6562,6 +6562,7 @@ pub mod root {
             pub mTitle: ::nsstring::nsStringRepr,
             pub mDocument: *mut root::nsIDocument,
             pub mOwningNode: *mut root::nsINode,
+            pub mOwnerRule: *mut root::mozilla::dom::CSSImportRule,
             pub mMedia: root::RefPtr<root::mozilla::dom::MediaList>,
             pub mNext: root::RefPtr<root::mozilla::StyleSheet>,
             pub mParsingMode: root::mozilla::css::SheetParsingMode,
@@ -6656,7 +6657,7 @@ pub mod root {
         }
         #[test]
         fn bindgen_test_layout_StyleSheet() {
-            assert_eq!(::std::mem::size_of::<StyleSheet>() , 144usize , concat
+            assert_eq!(::std::mem::size_of::<StyleSheet>() , 152usize , concat
                        ! ( "Size of: " , stringify ! ( StyleSheet ) ));
             assert_eq! (::std::mem::align_of::<StyleSheet>() , 8usize , concat
                         ! ( "Alignment of " , stringify ! ( StyleSheet ) ));
