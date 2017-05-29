@@ -14,8 +14,10 @@ use dom::{TElement, SendElement};
 use matching::{ChildCascadeRequirement, MatchMethods};
 use properties::ComputedValues;
 use selectors::bloom::BloomFilter;
-use selectors::matching::StyleRelations;
+use selectors::matching::{ElementSelectorFlags, StyleRelations};
 use sink::ForgetfulSink;
+use smallvec::SmallVec;
+use stylist::Stylist;
 
 mod checks;
 
@@ -32,23 +34,86 @@ pub enum StyleSharingBehavior {
     Disallow,
 }
 
+/// Some data we want to avoid recomputing all the time while trying to share
+/// style.
+#[derive(Debug)]
+pub struct CachedStyleSharingData {
+    /// The class list of this element.
+    ///
+    /// TODO(emilio): See if it's worth to sort them, or doing something else in
+    /// a similar fashion as what Boris is doing for the ID attribute.
+    class_list: Option<SmallVec<[Atom; 5]>>,
+
+    /// The cached result of matching this entry against the revalidation
+    /// selectors.
+    revalidation_match_results: Option<BitVec>,
+}
+
+impl CachedStyleSharingData {
+    /// Get or compute the class-list associated with this element.
+    pub fn class_list<E>(&mut self, element: E) -> &[Atom]
+        where E: TElement,
+    {
+        if self.class_list.is_none() {
+            let mut class_list = SmallVec::new();
+            element.each_class(|c| class_list.push(c.clone()));
+            self.class_list = Some(class_list);
+        }
+        &*self.class_list.as_ref().unwrap()
+    }
+
+    /// Computes the revalidation results if needed, and returns it.
+    fn revalidation_match_results<E, F>(
+        &mut self,
+        element: E,
+        stylist: &Stylist,
+        bloom: &BloomFilter,
+        flags_setter: &mut F
+    ) -> &BitVec
+        where E: TElement,
+              F: FnMut(&E, ElementSelectorFlags),
+    {
+        if self.revalidation_match_results.is_none() {
+            self.revalidation_match_results =
+                Some(stylist.match_revalidation_selectors(&element, bloom,
+                                                          flags_setter));
+        }
+
+        self.revalidation_match_results.as_ref().unwrap()
+    }
+}
+
 /// Information regarding a style sharing candidate, that is, an entry in the
 /// style sharing cache.
 ///
 /// Note that this information is stored in TLS and cleared after the traversal,
 /// and once here, the style information of the element is immutable, so it's
 /// safe to access.
-///
-/// TODO: We can stick a lot more info here.
 #[derive(Debug)]
 pub struct StyleSharingCandidate<E: TElement> {
     /// The element. We use SendElement here so that the cache may live in
     /// ScopedTLS.
     element: SendElement<E>,
-    /// The cached class names.
-    class_attributes: Option<Vec<Atom>>,
-    /// The cached result of matching this entry against the revalidation selectors.
-    revalidation_match_results: Option<BitVec>,
+    cache: CachedStyleSharingData,
+}
+
+impl<E: TElement> StyleSharingCandidate<E> {
+    /// Get the classlist of this candidate.
+    fn class_list(&mut self) -> &[Atom] {
+        self.cache.class_list(*self.element)
+    }
+
+    /// Get the classlist of this candidate.
+    fn revalidation_match_results(
+        &mut self,
+        stylist: &Stylist,
+        bloom: &BloomFilter,
+    ) -> &BitVec {
+        self.cache.revalidation_match_results(*self.element,
+                                              stylist,
+                                              bloom,
+                                              &mut |_, _| {})
+    }
 }
 
 impl<E: TElement> PartialEq<StyleSharingCandidate<E>> for StyleSharingCandidate<E> {
@@ -177,8 +242,10 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
 
         self.cache.insert(StyleSharingCandidate {
             element: unsafe { SendElement::new(*element) },
-            class_attributes: None,
-            revalidation_match_results: revalidation_match_results,
+            cache: CachedStyleSharingData {
+                class_list: None,
+                revalidation_match_results: revalidation_match_results,
+            }
         });
     }
 

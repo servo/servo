@@ -72,13 +72,7 @@ pub fn have_same_class<E>(element: E,
     let mut element_class_attributes = vec![];
     element.each_class(|c| element_class_attributes.push(c.clone()));
 
-    if candidate.class_attributes.is_none() {
-        let mut attrs = vec![];
-        candidate.element.each_class(|c| attrs.push(c.clone()));
-        candidate.class_attributes = Some(attrs)
-    }
-
-    element_class_attributes == *candidate.class_attributes.as_ref().unwrap()
+    element_class_attributes == candidate.class_list()
 }
 
 /// Compare element and candidate state, but ignore visitedness.  Styles don't
@@ -137,15 +131,8 @@ pub fn revalidate<E>(element: E,
                                                       &mut set_selector_flags));
     }
 
-    if candidate.revalidation_match_results.is_none() {
-        let results =
-            stylist.match_revalidation_selectors(&*candidate.element, bloom,
-                                                 &mut |_, _| {});
-        candidate.revalidation_match_results = Some(results);
-    }
-
     let for_element = info.revalidation_match_results.as_ref().unwrap();
-    let for_candidate = candidate.revalidation_match_results.as_ref().unwrap();
+    let for_candidate = candidate.revalidation_match_results(stylist, bloom);
 
     // This assert "ensures", to some extent, that the two candidates have
     // matched the same rulehash buckets, and as such, that the bits we're
