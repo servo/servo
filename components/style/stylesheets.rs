@@ -633,6 +633,9 @@ pub struct ImportRule {
     /// It contains an empty list of rules and namespace set that is updated
     /// when it loads.
     pub stylesheet: Arc<Stylesheet>,
+
+    /// The line and column of the rule's source code.
+    pub source_location: SourceLocation,
 }
 
 impl Clone for ImportRule {
@@ -641,6 +644,7 @@ impl Clone for ImportRule {
         ImportRule {
             url: self.url.clone(),
             stylesheet: Arc::new(stylesheet.clone()),
+            source_location: self.source_location.clone(),
         }
     }
 }
@@ -1530,6 +1534,8 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
 
     fn parse_prelude(&mut self, name: &str, input: &mut Parser)
                      -> Result<AtRuleType<AtRulePrelude, CssRule>, ()> {
+        let location = get_location_with_offset(input.current_source_location(),
+                                                self.context.line_number_offset);
         match_ignore_ascii_case! { name,
             "import" => {
                 if self.state.get() <= State::Imports {
@@ -1561,7 +1567,8 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                                 dirty_on_viewport_size_change: AtomicBool::new(false),
                                 disabled: AtomicBool::new(false),
                                 quirks_mode: self.context.quirks_mode,
-                            })
+                            }),
+                            source_location: location,
                         }
                     }, &mut |import_rule| {
                         Arc::new(self.shared_lock.wrap(import_rule))
@@ -1575,9 +1582,6 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
             "namespace" => {
                 if self.state.get() <= State::Namespaces {
                     self.state.set(State::Namespaces);
-
-                    let location = get_location_with_offset(input.current_source_location(),
-                                                            self.context.line_number_offset);
 
                     let prefix_result = input.try(|input| input.expect_ident());
                     let url = Namespace::from(try!(input.expect_url_or_string()));

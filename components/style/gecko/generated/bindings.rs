@@ -1740,10 +1740,6 @@ extern "C" {
      -> RawServoStyleSheetStrong;
 }
 extern "C" {
-    pub fn Servo_ImportRule_GetSheet(import_rule: RawServoImportRuleBorrowed)
-     -> RawServoStyleSheetStrong;
-}
-extern "C" {
     pub fn Servo_StyleSheet_ClearAndUpdate(stylesheet:
                                                RawServoStyleSheetBorrowed,
                                            loader: *mut Loader,
@@ -1874,6 +1870,20 @@ extern "C" {
                                       result: *mut nsAString);
 }
 extern "C" {
+    pub fn Servo_CssRules_GetImportRuleAt(rules: ServoCssRulesBorrowed,
+                                          index: u32, line: *mut u32,
+                                          column: *mut u32)
+     -> RawServoImportRuleStrong;
+}
+extern "C" {
+    pub fn Servo_ImportRule_Debug(rule: RawServoImportRuleBorrowed,
+                                  result: *mut nsACString);
+}
+extern "C" {
+    pub fn Servo_ImportRule_GetCssText(rule: RawServoImportRuleBorrowed,
+                                       result: *mut nsAString);
+}
+extern "C" {
     pub fn Servo_Keyframe_Debug(rule: RawServoKeyframeBorrowed,
                                 result: *mut nsACString);
 }
@@ -1999,6 +2009,14 @@ extern "C" {
 extern "C" {
     pub fn Servo_StyleRule_GetSelectorText(rule: RawServoStyleRuleBorrowed,
                                            result: *mut nsAString);
+}
+extern "C" {
+    pub fn Servo_ImportRule_GetHref(rule: RawServoImportRuleBorrowed,
+                                    result: *mut nsAString);
+}
+extern "C" {
+    pub fn Servo_ImportRule_GetSheet(rule: RawServoImportRuleBorrowed)
+     -> *const RawServoStyleSheet;
 }
 extern "C" {
     pub fn Servo_Keyframe_GetKeyText(keyframe: RawServoKeyframeBorrowed,

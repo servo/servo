@@ -30,6 +30,7 @@ use style::gecko_bindings::bindings::{RawGeckoElementBorrowed, RawGeckoElementBo
 use style::gecko_bindings::bindings::{RawGeckoKeyframeListBorrowed, RawGeckoKeyframeListBorrowedMut};
 use style::gecko_bindings::bindings::{RawServoDeclarationBlockBorrowed, RawServoDeclarationBlockStrong};
 use style::gecko_bindings::bindings::{RawServoDocumentRule, RawServoDocumentRuleBorrowed};
+use style::gecko_bindings::bindings::{RawServoImportRule, RawServoImportRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoKeyframe, RawServoKeyframeBorrowed, RawServoKeyframeStrong};
 use style::gecko_bindings::bindings::{RawServoKeyframesRule, RawServoKeyframesRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoMediaList, RawServoMediaListBorrowed, RawServoMediaListStrong};
@@ -56,8 +57,8 @@ use style::gecko_bindings::bindings::RawGeckoServoStyleRuleListBorrowedMut;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueMapBorrowedMut;
 use style::gecko_bindings::bindings::RawServoAnimationValueStrong;
-use style::gecko_bindings::bindings::RawServoImportRuleBorrowed;
 use style::gecko_bindings::bindings::RawServoStyleRuleBorrowed;
+use style::gecko_bindings::bindings::RawServoStyleSheet;
 use style::gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
 use style::gecko_bindings::bindings::nsTimingFunctionBorrowed;
@@ -988,6 +989,12 @@ impl_basic_rule_funcs! { (Style, StyleRule, RawServoStyleRule),
     to_css: Servo_StyleRule_GetCssText,
 }
 
+impl_basic_rule_funcs! { (Import, ImportRule, RawServoImportRule),
+    getter: Servo_CssRules_GetImportRuleAt,
+    debug: Servo_ImportRule_Debug,
+    to_css: Servo_ImportRule_GetCssText,
+}
+
 impl_basic_rule_funcs_without_getter! { (Keyframe, RawServoKeyframe),
     debug: Servo_Keyframe_Debug,
     to_css: Servo_Keyframe_GetCssText,
@@ -1074,6 +1081,20 @@ pub extern "C" fn Servo_StyleRule_SetStyle(rule: RawServoStyleRuleBorrowed,
 pub extern "C" fn Servo_StyleRule_GetSelectorText(rule: RawServoStyleRuleBorrowed, result: *mut nsAString) {
     read_locked_arc(rule, |rule: &StyleRule| {
         rule.selectors.to_css(unsafe { result.as_mut().unwrap() }).unwrap();
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ImportRule_GetHref(rule: RawServoImportRuleBorrowed, result: *mut nsAString) {
+    read_locked_arc(rule, |rule: &ImportRule| {
+        write!(unsafe { &mut *result }, "{}", rule.url.as_str()).unwrap();
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ImportRule_GetSheet(rule: RawServoImportRuleBorrowed) -> *const RawServoStyleSheet {
+    read_locked_arc(rule, |rule: &ImportRule| {
+        rule.stylesheet.as_borrowed_opt().unwrap() as *const _
     })
 }
 
@@ -2292,15 +2313,6 @@ pub extern "C" fn Servo_NoteExplicitHints(element: RawGeckoElementBorrowed,
     } else {
         debug!("(Element not styled, discarding hints)");
     }
-}
-
-#[no_mangle]
-pub extern "C" fn Servo_ImportRule_GetSheet(import_rule:
-                                            RawServoImportRuleBorrowed)
-                                            -> RawServoStyleSheetStrong {
-    read_locked_arc(import_rule, |rule: &ImportRule| {
-        rule.stylesheet.clone().into_strong()
-    })
 }
 
 #[no_mangle]
