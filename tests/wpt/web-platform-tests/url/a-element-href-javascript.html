@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset=utf-8>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<script>
+var linkStatus = 'link not clicked';
+
+function changeStatus() {
+  linkStatus = 'link has been clicked';
+}
+</script>
+
+<a id="javascript-link" href="javascript:changeStatus()">link</a>
+
+<script>
+setup({explicit_done:true});
+
+document.querySelector("#javascript-link").click();
+
+step_timeout(function() {
+  test(function() {
+    assert_equals(linkStatus, "link has been clicked");
+  }, "javascript: scheme urls should be executed in correct global scope");
+
+  done();
+});
+</script>
