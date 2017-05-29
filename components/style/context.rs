@@ -154,13 +154,14 @@ impl<'a> SharedStyleContext<'a> {
     }
 }
 
-/// Information about the current element being processed. We group this together
-/// into a single struct within ThreadLocalStyleContext so that we can instantiate
-/// and destroy it easily at the beginning and end of element processing.
+/// Information about the current element being processed. We group this
+/// together into a single struct within ThreadLocalStyleContext so that we can
+/// instantiate and destroy it easily at the beginning and end of element
+/// processing.
 pub struct CurrentElementInfo {
-    /// The element being processed. Currently we use an OpaqueNode since we only
-    /// use this for identity checks, but we could use SendElement if there were
-    /// a good reason to.
+    /// The element being processed. Currently we use an OpaqueNode since we
+    /// only use this for identity checks, but we could use SendElement if there
+    /// were a good reason to.
     element: OpaqueNode,
     /// Whether the element is being styled for the first time.
     is_initial_style: bool,
@@ -172,8 +173,9 @@ pub struct CurrentElementInfo {
     pub possibly_expired_animations: Vec<PropertyAnimation>,
 }
 
-/// Statistics gathered during the traversal. We gather statistics on each thread
-/// and then combine them after the threads join via the Add implementation below.
+/// Statistics gathered during the traversal. We gather statistics on each
+/// thread and then combine them after the threads join via the Add
+/// implementation below.
 #[derive(Default)]
 pub struct TraversalStatistics {
     /// The total number of elements traversed.
