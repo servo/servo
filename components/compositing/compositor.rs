@@ -120,9 +120,6 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// The position and size of the window within the rendering area.
     window_rect: TypedRect<u32, DevicePixel>,
 
-    /// The overridden viewport.
-    viewport: Option<(TypedPoint2D<u32, DevicePixel>, TypedSize2D<u32, DevicePixel>)>,
-
     /// "Mobile-style" zoom that does not reflow the page.
     viewport_zoom: PinchZoomFactor,
 
@@ -373,7 +370,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             frame_size: frame_size,
             window_rect: window_rect,
             scale: ScaleFactor::new(1.0),
-            viewport: None,
             scale_factor: scale_factor,
             channel_to_self: state.sender.clone_compositor_proxy(),
             delayed_composition_timer: DelayedCompositionTimerProxy::new(state.sender),
@@ -796,10 +792,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             WindowEvent::InitializeCompositing => {
                 self.initialize_compositing();
-            }
-
-            WindowEvent::Viewport(point, size) => {
-              self.viewport = Some((point, size));
             }
 
             WindowEvent::Resize(size) => {
