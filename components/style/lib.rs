@@ -110,6 +110,7 @@ pub mod font_face;
 pub mod font_metrics;
 #[cfg(feature = "gecko")] #[allow(unsafe_code)] pub mod gecko;
 #[cfg(feature = "gecko")] #[allow(unsafe_code)] pub mod gecko_bindings;
+pub mod invalidation;
 pub mod keyframes;
 #[allow(missing_docs)] // TODO.
 pub mod logical_geometry;

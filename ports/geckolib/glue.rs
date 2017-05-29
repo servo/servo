@@ -26,6 +26,7 @@ use style::gecko::selector_parser::PseudoElement;
 use style::gecko::traversal::RecalcStyleOnly;
 use style::gecko::wrapper::GeckoElement;
 use style::gecko_bindings::bindings;
+use style::gecko_bindings::bindings::{RawGeckoElementBorrowed, RawGeckoElementBorrowedOrNull};
 use style::gecko_bindings::bindings::{RawGeckoKeyframeListBorrowed, RawGeckoKeyframeListBorrowedMut};
 use style::gecko_bindings::bindings::{RawServoDeclarationBlockBorrowed, RawServoDeclarationBlockStrong};
 use style::gecko_bindings::bindings::{RawServoDocumentRule, RawServoDocumentRuleBorrowed};
@@ -50,7 +51,6 @@ use style::gecko_bindings::bindings::RawGeckoAnimationPropertySegmentBorrowed;
 use style::gecko_bindings::bindings::RawGeckoCSSPropertyIDListBorrowed;
 use style::gecko_bindings::bindings::RawGeckoComputedKeyframeValuesListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoComputedTimingBorrowed;
-use style::gecko_bindings::bindings::RawGeckoElementBorrowed;
 use style::gecko_bindings::bindings::RawGeckoFontFaceRuleListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoServoStyleRuleListBorrowedMut;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
@@ -732,9 +732,16 @@ pub extern "C" fn Servo_StyleSheet_ClearAndUpdate(stylesheet: RawServoStyleSheet
 pub extern "C" fn Servo_StyleSet_AppendStyleSheet(raw_data: RawServoStyleSetBorrowed,
                                                   raw_sheet: RawServoStyleSheetBorrowed,
                                                   unique_id: u64) {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
+    let mut data = &mut *data;
     let sheet = HasArcFFI::as_arc(&raw_sheet);
-    data.stylesheets.append_stylesheet(sheet, unique_id);
+    let guard = global_style_data.shared_lock.read();
+    data.stylesheets.append_stylesheet(
+        &data.stylist,
+        sheet,
+        unique_id,
+        &guard);
     data.clear_stylist();
 }
 
@@ -742,9 +749,16 @@ pub extern "C" fn Servo_StyleSet_AppendStyleSheet(raw_data: RawServoStyleSetBorr
 pub extern "C" fn Servo_StyleSet_PrependStyleSheet(raw_data: RawServoStyleSetBorrowed,
                                                    raw_sheet: RawServoStyleSheetBorrowed,
                                                    unique_id: u64) {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
+    let mut data = &mut *data;
     let sheet = HasArcFFI::as_arc(&raw_sheet);
-    data.stylesheets.prepend_stylesheet(sheet, unique_id);
+    let guard = global_style_data.shared_lock.read();
+    data.stylesheets.prepend_stylesheet(
+        &data.stylist,
+        sheet,
+        unique_id,
+        &guard);
     data.clear_stylist();
 }
 
@@ -753,9 +767,17 @@ pub extern "C" fn Servo_StyleSet_InsertStyleSheetBefore(raw_data: RawServoStyleS
                                                         raw_sheet: RawServoStyleSheetBorrowed,
                                                         unique_id: u64,
                                                         before_unique_id: u64) {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
+    let mut data = &mut *data;
     let sheet = HasArcFFI::as_arc(&raw_sheet);
-    data.stylesheets.insert_stylesheet_before(sheet, unique_id, before_unique_id);
+    let guard = global_style_data.shared_lock.read();
+    data.stylesheets.insert_stylesheet_before(
+        &data.stylist,
+        sheet,
+        unique_id,
+        before_unique_id,
+        &guard);
     data.clear_stylist();
 }
 
@@ -768,16 +790,22 @@ pub extern "C" fn Servo_StyleSet_RemoveStyleSheet(raw_data: RawServoStyleSetBorr
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSet_FlushStyleSheets(raw_data: RawServoStyleSetBorrowed) {
+pub extern "C" fn Servo_StyleSet_FlushStyleSheets(
+    raw_data: RawServoStyleSetBorrowed,
+    doc_element: RawGeckoElementBorrowedOrNull)
+{
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    data.flush_stylesheets(&guard);
+    let doc_element = doc_element.map(GeckoElement);
+    data.flush_stylesheets(&guard, doc_element);
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSet_NoteStyleSheetsChanged(raw_data: RawServoStyleSetBorrowed,
-                                                        author_style_disabled: bool) {
+pub extern "C" fn Servo_StyleSet_NoteStyleSheetsChanged(
+    raw_data: RawServoStyleSetBorrowed,
+    author_style_disabled: bool)
+{
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     data.stylesheets.force_dirty();
     data.stylesheets.set_author_style_disabled(author_style_disabled);

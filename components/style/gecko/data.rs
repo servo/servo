@@ -6,8 +6,10 @@
 
 use Atom;
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
+use dom::TElement;
 use fnv::FnvHashMap;
 use gecko::rules::{CounterStyleRule, FontFaceRule};
+use gecko::wrapper::GeckoElement;
 use gecko_bindings::bindings::RawServoStyleSet;
 use gecko_bindings::structs::RawGeckoPresContextOwned;
 use gecko_bindings::structs::nsIDocument;
@@ -72,13 +74,17 @@ impl PerDocumentStyleDataImpl {
     ///
     /// Implies also a stylesheet flush.
     pub fn reset_device(&mut self, guard: &SharedRwLockReadGuard) {
-        Arc::get_mut(self.stylist.device_mut()).unwrap().reset();
+        self.stylist.device_mut().reset();
         self.stylesheets.force_dirty();
-        self.flush_stylesheets(guard);
+        self.flush_stylesheets::<GeckoElement>(guard, None);
     }
 
     /// Recreate the style data if the stylesheets have changed.
-    pub fn flush_stylesheets(&mut self, guard: &SharedRwLockReadGuard) {
+    pub fn flush_stylesheets<E>(&mut self,
+                                guard: &SharedRwLockReadGuard,
+                                document_element: Option<E>)
+        where E: TElement,
+    {
         if !self.stylesheets.has_changed() {
             return;
         }
@@ -90,7 +96,8 @@ impl PerDocumentStyleDataImpl {
 
         let author_style_disabled = self.stylesheets.author_style_disabled();
         self.stylist.clear();
-        self.stylist.rebuild(self.stylesheets.flush(),
+        let iter = self.stylesheets.flush(document_element);
+        self.stylist.rebuild(iter,
                              &StylesheetGuards::same(guard),
                              /* ua_sheets = */ None,
                              /* stylesheets_changed = */ true,
