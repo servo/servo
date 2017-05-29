@@ -92,7 +92,10 @@
         Ok(expanded! {
             flex_grow: grow.unwrap_or(Number::new(1.0)),
             flex_shrink: shrink.unwrap_or(Number::new(1.0)),
-            flex_basis: basis.unwrap_or(longhands::flex_basis::SpecifiedValue::zero()),
+            // Per spec, this should be SpecifiedValue::zero(), but all
+            // browsers currently agree on using `0%`. This is a spec
+            // change which hasn't be adopted by browsers.
+            flex_basis: basis.unwrap_or(longhands::flex_basis::SpecifiedValue::zero_percent()),
         })
     }
 

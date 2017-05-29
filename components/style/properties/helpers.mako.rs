@@ -1099,9 +1099,14 @@
 
             /// Returns a value representing a `0` length.
             pub fn zero() -> Self {
-                use values::specified::length::{LengthOrPercentageOrAuto, NoCalcLength};
-                SpecifiedValue(MozLength::LengthOrPercentageOrAuto(
-                    LengthOrPercentageOrAuto::Length(NoCalcLength::zero())))
+                use values::specified::length::LengthOrPercentageOrAuto;
+                SpecifiedValue(MozLength::LengthOrPercentageOrAuto(LengthOrPercentageOrAuto::zero()))
+            }
+
+            /// Returns a value representing a `0%` length.
+            pub fn zero_percent() -> Self {
+                use values::specified::length::LengthOrPercentageOrAuto;
+                SpecifiedValue(MozLength::LengthOrPercentageOrAuto(LengthOrPercentageOrAuto::zero_percent()))
             }
         }
         % endif
