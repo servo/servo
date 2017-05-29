@@ -735,6 +735,12 @@ impl Percentage {
         Self::parse_with_clamping_mode(input, AllowedNumericType::NonNegative)
     }
 
+    /// 0%
+    #[inline]
+    pub fn zero() -> Self {
+        Percentage(0.)
+    }
+
     /// 100%
     #[inline]
     pub fn hundred() -> Self {
@@ -999,6 +1005,11 @@ impl LengthOrPercentageOrAuto {
     pub fn zero() -> Self {
         LengthOrPercentageOrAuto::Length(NoCalcLength::zero())
     }
+
+    /// Returns a value representing `0%`.
+    pub fn zero_percent() -> Self {
+        LengthOrPercentageOrAuto::Percentage(Percentage::zero())
+    }
 }
 
 impl Parse for LengthOrPercentageOrAuto {
@@ -1156,6 +1167,11 @@ impl LengthOrPercentageOrAutoOrContent {
     /// Returns a value representing a `0` length.
     pub fn zero() -> Self {
         LengthOrPercentageOrAutoOrContent::Length(NoCalcLength::zero())
+    }
+
+    /// Returns a value representing `0%`.
+    pub fn zero_percent() -> Self {
+        LengthOrPercentageOrAutoOrContent::Percentage(Percentage::zero())
     }
 }
 
