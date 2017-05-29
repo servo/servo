@@ -4049,27 +4049,8 @@ clip-path
                   skip_additionals="*">
 
     <% impl_common_image_layer_properties("mask") %>
-
-    <%self:simple_image_array_property name="mode" shorthand="mask" field_name="mMaskMode">
-        use properties::longhands::mask_mode::single_value::computed_value::T;
-
-        match servo {
-          T::alpha => structs::NS_STYLE_MASK_MODE_ALPHA as u8,
-          T::luminance => structs::NS_STYLE_MASK_MODE_LUMINANCE as u8,
-          T::match_source => structs::NS_STYLE_MASK_MODE_MATCH_SOURCE as u8,
-        }
-    </%self:simple_image_array_property>
-    <%self:simple_image_array_property name="composite" shorthand="mask" field_name="mComposite">
-        use properties::longhands::mask_composite::single_value::computed_value::T;
-
-        match servo {
-            T::add => structs::NS_STYLE_MASK_COMPOSITE_ADD as u8,
-            T::subtract => structs::NS_STYLE_MASK_COMPOSITE_SUBTRACT as u8,
-            T::intersect => structs::NS_STYLE_MASK_COMPOSITE_INTERSECT as u8,
-            T::exclude => structs::NS_STYLE_MASK_COMPOSITE_EXCLUDE as u8,
-        }
-    </%self:simple_image_array_property>
-
+    <% impl_simple_image_array_property("mode", "mask", "mMask", "mMaskMode", "SVG") %>
+    <% impl_simple_image_array_property("composite", "mask", "mMask", "mComposite", "SVG") %>
     <% impl_shape_source("clip_path", "mClipPath") %>
 </%self:impl_trait>
 

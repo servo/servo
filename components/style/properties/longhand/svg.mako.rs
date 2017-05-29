@@ -67,7 +67,7 @@ ${helpers.single_keyword("mask-mode",
                          "match-source alpha luminance",
                          vector=True,
                          products="gecko",
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-mode")}
 
 <%helpers:vector_longhand name="mask-repeat" products="gecko" animation_value_type="none" extra_prefixes="webkit"
@@ -104,7 +104,7 @@ ${helpers.single_keyword("mask-clip",
                          products="gecko",
                          extra_prefixes="webkit",
                          gecko_enum_prefix="StyleGeometryBox",
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-clip")}
 
 ${helpers.single_keyword("mask-origin",
@@ -114,7 +114,7 @@ ${helpers.single_keyword("mask-origin",
                          products="gecko",
                          extra_prefixes="webkit",
                          gecko_enum_prefix="StyleGeometryBox",
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-origin")}
 
 <%helpers:longhand name="mask-size" products="gecko" animation_value_type="ComputedValue" extra_prefixes="webkit"
@@ -139,7 +139,7 @@ ${helpers.single_keyword("mask-composite",
                          vector=True,
                          products="gecko",
                          extra_prefixes="webkit",
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-composite")}
 
 ${helpers.predefined_type("mask-image", "ImageLayer",
