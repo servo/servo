@@ -58,6 +58,7 @@ use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueMapBorrowedMut;
 use style::gecko_bindings::bindings::RawServoAnimationValueStrong;
 use style::gecko_bindings::bindings::RawServoStyleRuleBorrowed;
+use style::gecko_bindings::bindings::RawServoStyleSheet;
 use style::gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
 use style::gecko_bindings::bindings::nsTimingFunctionBorrowed;
@@ -1087,6 +1088,13 @@ pub extern "C" fn Servo_StyleRule_GetSelectorText(rule: RawServoStyleRuleBorrowe
 pub extern "C" fn Servo_ImportRule_GetHref(rule: RawServoImportRuleBorrowed, result: *mut nsAString) {
     read_locked_arc(rule, |rule: &ImportRule| {
         write!(unsafe { &mut *result }, "{}", rule.url.as_str()).unwrap();
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ImportRule_GetSheet(rule: RawServoImportRuleBorrowed) -> *const RawServoStyleSheet {
+    read_locked_arc(rule, |rule: &ImportRule| {
+        rule.stylesheet.as_borrowed_opt().unwrap() as *const _
     })
 }
 
