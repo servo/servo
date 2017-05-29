@@ -2308,15 +2308,6 @@ pub extern "C" fn Servo_NoteExplicitHints(element: RawGeckoElementBorrowed,
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ImportRule_GetSheet(import_rule:
-                                            RawServoImportRuleBorrowed)
-                                            -> RawServoStyleSheetStrong {
-    read_locked_arc(import_rule, |rule: &ImportRule| {
-        rule.stylesheet.clone().into_strong()
-    })
-}
-
-#[no_mangle]
 pub extern "C" fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed) -> nsChangeHint
 {
     let element = GeckoElement(element);
