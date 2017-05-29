@@ -39,6 +39,7 @@ use gecko_bindings::structs::FontSizePrefs;
 use gecko_bindings::structs::GeckoFontMetrics;
 use gecko_bindings::structs::IterationCompositeOperation;
 use gecko_bindings::structs::Keyframe;
+use gecko_bindings::structs::MallocSizeOf;
 use gecko_bindings::structs::ServoBundledURI;
 use gecko_bindings::structs::ServoElementSnapshot;
 use gecko_bindings::structs::ServoElementSnapshotTable;
@@ -1764,6 +1765,11 @@ extern "C" {
 extern "C" {
     pub fn Servo_StyleSheet_Clone(sheet: RawServoStyleSheetBorrowed)
      -> RawServoStyleSheetStrong;
+}
+extern "C" {
+    pub fn Servo_StyleSheet_SizeOfIncludingThis(malloc_size_of: MallocSizeOf,
+                                                sheet: RawServoStyleSheetBorrowed)
+     -> usize;
 }
 extern "C" {
     pub fn Servo_StyleSet_Init(pres_context: RawGeckoPresContextOwned)
