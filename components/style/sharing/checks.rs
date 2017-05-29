@@ -12,7 +12,6 @@ use element_state::*;
 use selectors::bloom::BloomFilter;
 use selectors::matching::StyleRelations;
 use sharing::{StyleSharingCandidate, StyleSharingTarget};
-use sink::ForgetfulSink;
 use stylearc::Arc;
 
 /// Determines, based on the results of selector matching, whether it's worth to
@@ -23,8 +22,7 @@ pub fn relations_are_shareable(relations: &StyleRelations) -> bool {
     use selectors::matching::*;
     !relations.intersects(AFFECTED_BY_ID_SELECTOR |
                           AFFECTED_BY_PSEUDO_ELEMENTS |
-                          AFFECTED_BY_STYLE_ATTRIBUTE |
-                          AFFECTED_BY_PRESENTATIONAL_HINTS)
+                          AFFECTED_BY_STYLE_ATTRIBUTE)
 }
 
 /// Whether, given two elements, they have pointer-equal computed values.
@@ -51,12 +49,13 @@ pub fn same_computed_values<E>(first: Option<E>, second: Option<E>) -> bool
 /// We consider not worth to share style with an element that has presentational
 /// hints, both because implementing the code that compares that the hints are
 /// equal is somewhat annoying, and also because it'd be expensive enough.
-pub fn has_presentational_hints<E>(element: E) -> bool
+pub fn have_same_presentational_hints<E>(
+    target: &mut StyleSharingTarget<E>,
+    candidate: &mut StyleSharingCandidate<E>
+) -> bool
     where E: TElement,
 {
-    let mut hints = ForgetfulSink::new();
-    element.synthesize_presentational_hints_for_legacy_attributes(&mut hints);
-    !hints.is_empty()
+    target.pres_hints() == candidate.pres_hints()
 }
 
 /// Whether a given element has the same class attribute than a given candidate.

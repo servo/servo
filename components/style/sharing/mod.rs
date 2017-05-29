@@ -15,10 +15,9 @@ use matching::{ChildCascadeRequirement, MatchMethods};
 use properties::ComputedValues;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{ElementSelectorFlags, StyleRelations};
-use sink::ForgetfulSink;
 use smallvec::SmallVec;
 use std::ops::Deref;
-use stylist::Stylist;
+use stylist::{ApplicableDeclarationBlock, Stylist};
 
 mod checks;
 
@@ -45,6 +44,9 @@ pub struct CachedStyleSharingData {
     /// a similar fashion as what Boris is doing for the ID attribute.
     class_list: Option<SmallVec<[Atom; 5]>>,
 
+    /// The list of presentational attributes of the element.
+    pres_hints: Option<SmallVec<[ApplicableDeclarationBlock; 5]>>,
+
     /// The cached result of matching this entry against the revalidation
     /// selectors.
     revalidation_match_results: Option<BitVec>,
@@ -56,6 +58,7 @@ impl CachedStyleSharingData {
     pub fn new() -> Self {
         Self {
             class_list: None,
+            pres_hints: None,
             revalidation_match_results: None,
         }
     }
@@ -64,8 +67,22 @@ impl CachedStyleSharingData {
     pub fn take(&mut self) -> Self {
         Self {
             class_list: self.class_list.take(),
+            pres_hints: self.pres_hints.take(),
             revalidation_match_results: self.revalidation_match_results.take(),
         }
+    }
+
+    /// Get or compute the list of presentational attributes associated with
+    /// this element.
+    pub fn pres_hints<E>(&mut self, element: E) -> &[ApplicableDeclarationBlock]
+        where E: TElement,
+    {
+        if self.pres_hints.is_none() {
+            let mut pres_hints = SmallVec::new();
+            element.synthesize_presentational_hints_for_legacy_attributes(&mut pres_hints);
+            self.pres_hints = Some(pres_hints);
+        }
+        &*self.pres_hints.as_ref().unwrap()
     }
 
     /// Get or compute the class-list associated with this element.
@@ -121,6 +138,11 @@ impl<E: TElement> StyleSharingCandidate<E> {
         self.cache.class_list(*self.element)
     }
 
+    /// Get the pres hints of this candidate.
+    fn pres_hints(&mut self) -> &[ApplicableDeclarationBlock] {
+        self.cache.pres_hints(*self.element)
+    }
+
     /// Get the classlist of this candidate.
     fn revalidation_match_results(
         &mut self,
@@ -165,6 +187,11 @@ impl<E: TElement> StyleSharingTarget<E> {
 
     fn class_list(&mut self) -> &[Atom] {
         self.cache.class_list(self.element)
+    }
+
+    /// Get the pres hints of this candidate.
+    fn pres_hints(&mut self) -> &[ApplicableDeclarationBlock] {
+        self.cache.pres_hints(self.element)
     }
 
     fn revalidation_match_results(
@@ -307,7 +334,9 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
                               element: &E,
                               style: &ComputedValues,
                               relations: StyleRelations,
-                              cache: CachedStyleSharingData) {
+                              mut cache: CachedStyleSharingData) {
+        use selectors::matching::AFFECTED_BY_PRESENTATIONAL_HINTS;
+
         let parent = match element.parent_element() {
             Some(element) => element,
             None => {
@@ -328,14 +357,6 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
             return;
         }
 
-        // Make sure we noted any presentational hints in the StyleRelations.
-        if cfg!(debug_assertions) {
-            let mut hints = ForgetfulSink::new();
-            element.synthesize_presentational_hints_for_legacy_attributes(&mut hints);
-            debug_assert!(hints.is_empty(),
-                          "Style relations should not be shareable!");
-        }
-
         let box_style = style.get_box();
         if box_style.specifies_transitions() {
             debug!("Failing to insert to the cache: transitions");
@@ -345,6 +366,13 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
         if box_style.specifies_animations() {
             debug!("Failing to insert to the cache: animations");
             return;
+        }
+
+        // Take advantage of the information we've learned during
+        // selector-matching.
+        if !relations.intersects(AFFECTED_BY_PRESENTATIONAL_HINTS) {
+            debug_assert!(cache.pres_hints.as_ref().map_or(true, |v| v.is_empty()));
+            cache.pres_hints = Some(SmallVec::new());
         }
 
         debug!("Inserting into cache: {:?} with parent {:?}", element, parent);
@@ -532,7 +560,7 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
             miss!(Class)
         }
 
-        if checks::has_presentational_hints(target.element) {
+        if !checks::have_same_presentational_hints(target, candidate) {
             miss!(PresHints)
         }
 
