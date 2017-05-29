@@ -144,21 +144,24 @@ ${helpers.predefined_type("background-image", "ImageLayer",
 ${helpers.single_keyword("background-attachment",
                          "scroll fixed" + (" local" if product == "gecko" else ""),
                          vector=True,
+                         gecko_constant_prefix="NS_STYLE_IMAGELAYER_ATTACHMENT",
                          spec="https://drafts.csswg.org/css-backgrounds/#the-background-attachment",
-                         animation_value_type="none")}
+                         animation_value_type="discrete")}
 
 ${helpers.single_keyword("background-clip",
                          "border-box padding-box content-box",
                          extra_gecko_values="text",
                          vector=True, extra_prefixes="webkit",
+                         gecko_enum_prefix="StyleGeometryBox",
                          spec="https://drafts.csswg.org/css-backgrounds/#the-background-clip",
-                         animation_value_type="none")}
+                         animation_value_type="discrete")}
 
 ${helpers.single_keyword("background-origin",
                          "padding-box border-box content-box",
                          vector=True, extra_prefixes="webkit",
+                         gecko_enum_prefix="StyleGeometryBox",
                          spec="https://drafts.csswg.org/css-backgrounds/#the-background-origin",
-                         animation_value_type="none")}
+                         animation_value_type="discrete")}
 
 ${helpers.predefined_type("background-size", "BackgroundSize",
     initial_value="computed::LengthOrPercentageOrAuto::Auto.into()",
@@ -173,5 +176,6 @@ ${helpers.single_keyword("background-blend-mode",
                          """normal multiply screen overlay darken lighten color-dodge
                             color-burn hard-light soft-light difference exclusion hue
                             saturation color luminosity""",
-                         vector=True, products="gecko", animation_value_type="none",
+                         gecko_constant_prefix="NS_STYLE_BLEND",
+                         vector=True, products="gecko", animation_value_type="discrete",
                          spec="https://drafts.fxtf.org/compositing/#background-blend-mode")}

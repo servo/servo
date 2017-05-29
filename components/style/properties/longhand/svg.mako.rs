@@ -103,6 +103,7 @@ ${helpers.single_keyword("mask-clip",
                          vector=True,
                          products="gecko",
                          extra_prefixes="webkit",
+                         gecko_enum_prefix="StyleGeometryBox",
                          animation_value_type="none",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-clip")}
 
@@ -112,6 +113,7 @@ ${helpers.single_keyword("mask-origin",
                          vector=True,
                          products="gecko",
                          extra_prefixes="webkit",
+                         gecko_enum_prefix="StyleGeometryBox",
                          animation_value_type="none",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-origin")}
 

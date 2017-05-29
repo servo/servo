@@ -349,7 +349,7 @@ impl AnimatedProperty {
                     AnimatedProperty::${prop.camel_case}(ref from, ref to) => {
                         // https://w3c.github.io/web-animations/#discrete-animation-type
                         % if prop.animation_value_type == "discrete":
-                            let value = if progress < 0.5 { *from } else { *to };
+                            let value = if progress < 0.5 { from.clone() } else { to.clone() };
                         % else:
                             let value = match from.interpolate(to, progress) {
                                 Ok(value) => value,
@@ -591,9 +591,9 @@ impl Animatable for AnimationValue {
                      &AnimationValue::${prop.camel_case}(ref to)) => {
                         % if prop.animation_value_type == "discrete":
                             if self_portion > other_portion {
-                                Ok(AnimationValue::${prop.camel_case}(*from))
+                                Ok(AnimationValue::${prop.camel_case}(from.clone()))
                             } else {
-                                Ok(AnimationValue::${prop.camel_case}(*to))
+                                Ok(AnimationValue::${prop.camel_case}(to.clone()))
                             }
                         % else:
                             from.add_weighted(to, self_portion, other_portion)
