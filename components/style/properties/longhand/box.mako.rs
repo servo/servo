@@ -201,7 +201,8 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
                                   // https://drafts.csswg.org/css-logical-props/#float-clear
                                   extra_specified="inline-start inline-end"
                                   needs_conversion="True"
-                                  animation_value_type="none"
+                                  gecko_inexhaustive="True"
+                                  animation_value_type="discrete"
                                   gecko_enum_prefix="StyleClear"
                                   gecko_ffi_name="mBreakType"
                                   spec="https://www.w3.org/TR/CSS2/visuren.html#flow-control">
@@ -2034,12 +2035,12 @@ ${helpers.single_keyword("page-break-after",
                          "auto always avoid left right",
                          products="gecko",
                          spec="https://drafts.csswg.org/css2/page.html#propdef-page-break-after",
-                         animation_value_type="none")}
+                         animation_value_type="discrete")}
 ${helpers.single_keyword("page-break-before",
                          "auto always avoid left right",
                          products="gecko",
                          spec="https://drafts.csswg.org/css2/page.html#propdef-page-break-before",
-                         animation_value_type="none")}
+                         animation_value_type="discrete")}
 ${helpers.single_keyword("page-break-inside",
                          "auto avoid",
                          products="gecko",
@@ -2087,7 +2088,8 @@ ${helpers.single_keyword("transform-box",
                          gecko_enum_prefix="StyleGeometryBox",
                          products="gecko",
                          spec="https://drafts.csswg.org/css-transforms/#transform-box",
-                         animation_value_type="none")}
+                         gecko_inexhaustive="True",
+                         animation_value_type="discrete")}
 
 // `auto` keyword is not supported in gecko yet.
 ${helpers.single_keyword("transform-style",
@@ -2357,7 +2359,8 @@ ${helpers.single_keyword("-moz-orient",
                           gecko_ffi_name="mOrient",
                           gecko_enum_prefix="StyleOrient",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-orient)",
-                          animation_value_type="none")}
+                          gecko_inexhaustive="True",
+                          animation_value_type="discrete")}
 
 <%helpers:longhand name="will-change" products="gecko" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-will-change/#will-change">

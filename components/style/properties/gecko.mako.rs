@@ -2171,12 +2171,14 @@ fn static_assert() {
 
     <%call expr="impl_coord_copy('vertical_align', 'mVerticalAlign')"></%call>
 
+    % for kind in ["before", "after"]:
     // Temp fix for Bugzilla bug 24000.
     // Map 'auto' and 'avoid' to false, and 'always', 'left', and 'right' to true.
     // "A conforming user agent may interpret the values 'left' and 'right'
     // as 'always'." - CSS2.1, section 13.3.1
-    pub fn set_page_break_before(&mut self, v: longhands::page_break_before::computed_value::T) {
-        use computed_values::page_break_before::T;
+    pub fn set_page_break_${kind}(&mut self, v: longhands::page_break_${kind}::computed_value::T) {
+        use computed_values::page_break_${kind}::T;
+
         let result = match v {
             T::auto   => false,
             T::always => true,
@@ -2184,26 +2186,22 @@ fn static_assert() {
             T::left   => true,
             T::right  => true
         };
-        self.gecko.mBreakBefore = result;
+        self.gecko.mBreak${kind.title()} = result;
     }
 
-    ${impl_simple_copy('page_break_before', 'mBreakBefore')}
+    ${impl_simple_copy('page_break_' + kind, 'mBreak' + kind.title())}
 
     // Temp fix for Bugzilla bug 24000.
-    // See set_page_break_before for detail.
-    pub fn set_page_break_after(&mut self, v: longhands::page_break_after::computed_value::T) {
-        use computed_values::page_break_after::T;
-        let result = match v {
-            T::auto   => false,
-            T::always => true,
-            T::avoid  => false,
-            T::left   => true,
-            T::right  => true
-        };
-        self.gecko.mBreakAfter = result;
-    }
+    // See set_page_break_before/after for detail.
+    pub fn clone_page_break_${kind}(&self) -> longhands::page_break_${kind}::computed_value::T {
+        use computed_values::page_break_${kind}::T;
 
-    ${impl_simple_copy('page_break_after', 'mBreakAfter')}
+        match self.gecko.mBreak${kind.title()} {
+            true => T::always,
+            false => T::auto,
+        }
+    }
+    % endfor
 
     pub fn set_scroll_snap_points_x(&mut self, v: longhands::scroll_snap_points_x::computed_value::T) {
         match v.0 {
