@@ -6,7 +6,7 @@
 
 <% data.new_style_struct("List", inherited=True) %>
 
-${helpers.single_keyword("list-style-position", "outside inside", animation_value_type="none",
+${helpers.single_keyword("list-style-position", "outside inside", animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-lists/#propdef-list-style-position")}
 
 // TODO(pcwalton): Implement the full set of counter styles per CSS-COUNTER-STYLES [1] 6.1:

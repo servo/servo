@@ -37,11 +37,11 @@ ${helpers.predefined_type("z-index", "IntegerOrAuto",
 // Flex container properties
 ${helpers.single_keyword("flex-direction", "row row-reverse column column-reverse",
                          spec="https://drafts.csswg.org/css-flexbox/#flex-direction-property",
-                         extra_prefixes="webkit", animation_value_type="none")}
+                         extra_prefixes="webkit", animation_value_type="discrete")}
 
 ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse",
                          spec="https://drafts.csswg.org/css-flexbox/#flex-wrap-property",
-                         extra_prefixes="webkit", animation_value_type="none")}
+                         extra_prefixes="webkit", animation_value_type="discrete")}
 
 % if product == "servo":
     // FIXME: Update Servo to support the same Syntax as Gecko.
@@ -208,7 +208,7 @@ ${helpers.single_keyword("box-sizing",
                          animation_value_type="none")}
 
 ${helpers.single_keyword("object-fit", "fill contain cover none scale-down",
-                         products="gecko", animation_value_type="none",
+                         products="gecko", animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-images/#propdef-object-fit")}
 
 ${helpers.predefined_type("object-position",

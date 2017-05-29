@@ -1155,24 +1155,24 @@ ${helpers.predefined_type("-webkit-text-stroke-width", "BorderWidth", "Au::from_
 // CSS Ruby Layout Module Level 1
 // https://drafts.csswg.org/css-ruby/
 ${helpers.single_keyword("ruby-align", "space-around start center space-between",
-                         products="gecko", animation_value_type="none",
+                         products="gecko", animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-ruby/#ruby-align-property")}
 
 ${helpers.single_keyword("ruby-position", "over under",
-                         products="gecko", animation_value_type="none",
+                         products="gecko", animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-ruby/#ruby-position-property")}
 
 // CSS Writing Modes Module Level 3
 // https://drafts.csswg.org/css-writing-modes-3/
 
 ${helpers.single_keyword("text-combine-upright", "none all",
-                         products="gecko", animation_value_type="none", need_clone=True,
+                         products="gecko", animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-writing-modes-3/#text-combine-upright")}
 
 // SVG 1.1: Section 11 - Painting: Filling, Stroking and Marker Symbols
 ${helpers.single_keyword("text-rendering",
                          "auto optimizespeed optimizelegibility geometricprecision",
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          spec="https://www.w3.org/TR/SVG11/painting.html#TextRenderingProperty")}
 
 ${helpers.single_keyword("-moz-control-character-visibility",

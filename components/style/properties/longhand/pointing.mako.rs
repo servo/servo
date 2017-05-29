@@ -151,7 +151,7 @@
 // NB: `pointer-events: auto` (and use of `pointer-events` in anything that isn't SVG, in fact)
 // is nonstandard, slated for CSS4-UI.
 // TODO(pcwalton): SVG-only values.
-${helpers.single_keyword("pointer-events", "auto none", animation_value_type="none",
+${helpers.single_keyword("pointer-events", "auto none", animation_value_type="discrete",
                          extra_gecko_values="visiblepainted visiblefill visiblestroke visible painted fill stroke all",
                          spec="https://www.w3.org/TR/SVG11/interact.html#PointerEventsProperty")}
 
@@ -159,7 +159,7 @@ ${helpers.single_keyword("-moz-user-input", "auto none enabled disabled",
                          products="gecko", gecko_ffi_name="mUserInput",
                          gecko_enum_prefix="StyleUserInput",
                          gecko_inexhaustive=True,
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-user-input)")}
 
 ${helpers.single_keyword("-moz-user-modify", "read-only read-write write-only",
@@ -174,7 +174,7 @@ ${helpers.single_keyword("-moz-user-focus",
                          products="gecko", gecko_ffi_name="mUserFocus",
                          gecko_enum_prefix="StyleUserFocus",
                          gecko_inexhaustive=True,
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-user-focus)")}
 
 ${helpers.predefined_type("caret-color",

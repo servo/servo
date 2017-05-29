@@ -12,7 +12,7 @@ ${helpers.single_keyword("-moz-box-align", "stretch start center baseline end",
                          products="gecko", gecko_ffi_name="mBoxAlign",
                          gecko_enum_prefix="StyleBoxAlign",
                          gecko_inexhaustive=True,
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          alias="-webkit-box-align",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/box-align)")}
 

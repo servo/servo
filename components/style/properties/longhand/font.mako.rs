@@ -330,7 +330,7 @@ ${helpers.single_keyword_system("font-style",
                                 gecko_constant_prefix="NS_FONT_STYLE",
                                 gecko_ffi_name="mFont.style",
                                 spec="https://drafts.csswg.org/css-fonts/#propdef-font-style",
-                                animation_value_type="none")}
+                                animation_value_type="discrete")}
 
 
 <% font_variant_caps_custom_consts= { "small-caps": "SMALLCAPS",
@@ -346,7 +346,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                                gecko_ffi_name="mFont.variantCaps",
                                spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-caps",
                                custom_consts=font_variant_caps_custom_consts,
-                               animation_value_type="none")}
+                               animation_value_type="discrete")}
 
 <%helpers:longhand name="font-weight" need_clone="True" animation_value_type="ComputedValue"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-weight">
@@ -1193,7 +1193,7 @@ ${helpers.single_keyword_system("font-kerning",
                                 gecko_ffi_name="mFont.kerning",
                                 gecko_constant_prefix="NS_FONT_KERNING",
                                 spec="https://drafts.csswg.org/css-fonts/#propdef-font-kerning",
-                                animation_value_type="none")}
+                                animation_value_type="discrete")}
 
 /// FIXME: Implement proper handling of each values.
 /// https://github.com/servo/servo/issues/15957
@@ -1772,7 +1772,7 @@ ${helpers.single_keyword_system("font-variant-position",
                                 gecko_ffi_name="mFont.variantPosition",
                                 gecko_constant_prefix="NS_FONT_VARIANT_POSITION",
                                 spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-position",
-                                animation_value_type="none")}
+                                animation_value_type="discrete")}
 
 <%helpers:longhand name="font-feature-settings" products="gecko" animation_value_type="none"
                    extra_prefixes="moz" boxed="True"
@@ -2390,8 +2390,7 @@ ${helpers.single_keyword("-moz-osx-font-smoothing",
                          gecko_ffi_name="mFont.smoothing",
                          products="gecko",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/font-smooth)",
-                         animation_value_type="none",
-                         need_clone=True)}
+                         animation_value_type="discrete")}
 
 ${helpers.predefined_type("-moz-min-font-size-ratio",
                           "Percentage",

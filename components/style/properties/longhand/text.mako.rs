@@ -153,7 +153,7 @@
 
 ${helpers.single_keyword("unicode-bidi",
                          "normal embed isolate bidi-override isolate-override plaintext",
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-writing-modes/#propdef-unicode-bidi")}
 
 // FIXME: This prop should be animatable.
@@ -274,7 +274,7 @@ ${helpers.single_keyword("unicode-bidi",
 ${helpers.single_keyword("text-decoration-style",
                          "solid double dotted dashed wavy -moz-none",
                          products="gecko",
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-style")}
 
 ${helpers.predefined_type(

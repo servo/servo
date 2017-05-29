@@ -23,11 +23,10 @@ ${helpers.single_keyword("writing-mode",
                                               rl=horizontal-tb rl-tb=horizontal-tb \
                                               tb=vertical-rl   tb-rl=vertical-rl",
                          experimental=True,
-                         need_clone=True,
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-writing-modes/#propdef-writing-mode")}
 
-${helpers.single_keyword("direction", "ltr rtl", need_clone=True, animation_value_type="none",
+${helpers.single_keyword("direction", "ltr rtl", animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-writing-modes/#propdef-direction",
                          needs_conversion=True)}
 
@@ -35,15 +34,14 @@ ${helpers.single_keyword("text-orientation",
                          "mixed upright sideways",
                          extra_gecko_aliases="sideways-right=sideways",
                          products="gecko",
-                         need_clone=True,
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-writing-modes/#propdef-text-orientation")}
 
 // CSS Color Module Level 4
 // https://drafts.csswg.org/css-color/
 ${helpers.single_keyword("color-adjust",
                          "economy exact", products="gecko",
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-color/#propdef-color-adjust")}
 
 <% image_rendering_custom_consts = { "crisp-edges": "CRISPEDGES",
@@ -55,7 +53,7 @@ ${helpers.single_keyword("image-rendering",
                          extra_gecko_values="optimizespeed optimizequality -moz-crisp-edges",
                          extra_servo_values="pixelated crisp-edges",
                          custom_consts=image_rendering_custom_consts,
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-images/#propdef-image-rendering")}
 
 // Image Orientation

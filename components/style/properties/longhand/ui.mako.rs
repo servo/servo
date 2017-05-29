@@ -13,7 +13,7 @@
 // we should probably remove from gecko (https://bugzilla.mozilla.org/show_bug.cgi?id=1328331)
 ${helpers.single_keyword("ime-mode", "auto normal active disabled inactive",
                          products="gecko", gecko_ffi_name="mIMEMode",
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-ui/#input-method-editor")}
 
 ${helpers.single_keyword("-moz-user-select", "auto text none all element elements" +
