@@ -20,11 +20,8 @@ use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")] use properties::ComputedValues;
 use selector_parser::SnapshotMap;
 use selectors::matching::ElementSelectorFlags;
-#[cfg(feature = "servo")] use servo_config::opts;
 use shared_lock::StylesheetGuards;
 use sharing::{CachedStyleSharingData, StyleSharingCandidateCache};
-#[cfg(feature = "servo")] use std::collections::HashMap;
-#[cfg(feature = "gecko")] use std::env;
 use std::fmt;
 use std::ops::Add;
 #[cfg(feature = "servo")] use std::sync::Mutex;
@@ -78,6 +75,7 @@ pub struct StyleSystemOptions {
 
 #[cfg(feature = "gecko")]
 fn get_env(name: &str) -> bool {
+    use std::env;
     match env::var(name) {
         Ok(s) => !s.is_empty(),
         Err(_) => false,
@@ -87,6 +85,8 @@ fn get_env(name: &str) -> bool {
 impl Default for StyleSystemOptions {
     #[cfg(feature = "servo")]
     fn default() -> Self {
+        use servo_config::opts;
+
         StyleSystemOptions {
             disable_style_sharing_cache: opts::get().disable_share_style_cache,
             dump_style_statistics: opts::get().style_sharing_stats,
@@ -134,11 +134,11 @@ pub struct SharedStyleContext<'a> {
 
     /// The animations that are currently running.
     #[cfg(feature = "servo")]
-    pub running_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
+    pub running_animations: Arc<RwLock<FnvHashMap<OpaqueNode, Vec<Animation>>>>,
 
     /// The list of animations that have expired since the last style recalculation.
     #[cfg(feature = "servo")]
-    pub expired_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
+    pub expired_animations: Arc<RwLock<FnvHashMap<OpaqueNode, Vec<Animation>>>>,
 
     /// Data needed to create the thread-local style context from the shared one.
     #[cfg(feature = "servo")]
