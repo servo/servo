@@ -45,6 +45,9 @@ pub struct RestyleHint {
     /// of their descendants.
     match_later_siblings: bool,
 
+    /// Whether the current element and/or all descendants must be recascade.
+    recascade: CascadeHint,
+
     /// Levels of the cascade whose rule nodes should be recomputed and
     /// replaced.
     pub replacements: RestyleReplacements,
@@ -155,6 +158,37 @@ impl RestyleDepths {
     }
 }
 
+bitflags! {
+    /// Flags representing whether the current element or its descendants
+    /// must be recascaded.
+    ///
+    /// FIXME(bholley): This should eventually become more fine-grained.
+    pub flags CascadeHint: u8 {
+        /// Recascade the current element.
+        const RECASCADE_SELF = 0x01,
+        /// Recascade all descendant elements.
+        const RECASCADE_DESCENDANTS = 0x02,
+    }
+}
+
+impl CascadeHint {
+    /// Creates a new `CascadeHint` indicating that the current element and all
+    /// its descendants must be recascaded.
+    fn subtree() -> CascadeHint {
+        RECASCADE_SELF | RECASCADE_DESCENDANTS
+    }
+
+    /// Returns a new `CascadeHint` appropriate for children of the current
+    /// element.
+    fn propagate(&self) -> Self {
+        if self.contains(RECASCADE_DESCENDANTS) {
+            CascadeHint::subtree()
+        } else {
+            CascadeHint::empty()
+        }
+    }
+}
+
 /// Asserts that all RestyleReplacements have a matching nsRestyleHint value.
 #[cfg(feature = "gecko")]
 #[inline]
@@ -191,6 +225,7 @@ impl RestyleHint {
         RestyleHint {
             match_under_self: RestyleDepths::empty(),
             match_later_siblings: false,
+            recascade: CascadeHint::empty(),
             replacements: RestyleReplacements::empty(),
         }
     }
@@ -202,6 +237,7 @@ impl RestyleHint {
         RestyleHint {
             match_under_self: RestyleDepths::for_self(),
             match_later_siblings: false,
+            recascade: CascadeHint::empty(),
             replacements: RestyleReplacements::empty(),
         }
     }
@@ -213,6 +249,7 @@ impl RestyleHint {
         RestyleHint {
             match_under_self: RestyleDepths::for_descendants(),
             match_later_siblings: false,
+            recascade: CascadeHint::empty(),
             replacements: RestyleReplacements::empty(),
         }
     }
@@ -226,6 +263,7 @@ impl RestyleHint {
         RestyleHint {
             match_under_self: RestyleDepths::for_depth(depth),
             match_later_siblings: false,
+            recascade: CascadeHint::empty(),
             replacements: RestyleReplacements::empty(),
         }
     }
@@ -237,6 +275,7 @@ impl RestyleHint {
         RestyleHint {
             match_under_self: RestyleDepths::empty(),
             match_later_siblings: true,
+            recascade: CascadeHint::empty(),
             replacements: RestyleReplacements::empty(),
         }
     }
@@ -248,6 +287,7 @@ impl RestyleHint {
         RestyleHint {
             match_under_self: RestyleDepths::for_self_and_descendants(),
             match_later_siblings: false,
+            recascade: CascadeHint::empty(),
             replacements: RestyleReplacements::empty(),
         }
     }
@@ -260,6 +300,7 @@ impl RestyleHint {
         RestyleHint {
             match_under_self: RestyleDepths::for_self_and_descendants(),
             match_later_siblings: true,
+            recascade: CascadeHint::empty(),
             replacements: RestyleReplacements::empty(),
         }
     }
@@ -271,7 +312,19 @@ impl RestyleHint {
         RestyleHint {
             match_under_self: RestyleDepths::empty(),
             match_later_siblings: false,
+            recascade: CascadeHint::empty(),
             replacements: replacements,
+        }
+    }
+
+    /// Creates a new `RestyleHint` that indicates the element must be
+    /// recascaded.
+    pub fn recascade_self() -> Self {
+        RestyleHint {
+            match_under_self: RestyleDepths::empty(),
+            match_later_siblings: false,
+            recascade: RECASCADE_SELF,
+            replacements: RestyleReplacements::empty(),
         }
     }
 
@@ -287,6 +340,7 @@ impl RestyleHint {
     pub fn is_maximum(&self) -> bool {
         self.match_under_self.is_self_and_descendants() &&
             self.match_later_siblings &&
+            self.recascade.is_all() &&
             self.replacements.is_all()
     }
 
@@ -294,7 +348,13 @@ impl RestyleHint {
     /// the current element.
     #[inline]
     pub fn affects_self(&self) -> bool {
-        self.match_self() || !self.replacements.is_empty()
+        self.match_self() || self.has_recascade_self() || !self.replacements.is_empty()
+    }
+
+    /// Returns whether the hint specifies that the currently element must be
+    /// recascaded.
+    pub fn has_recascade_self(&self) -> bool {
+        self.recascade.contains(RECASCADE_SELF)
     }
 
     /// Returns whether the hint specifies that later siblings must be restyled.
@@ -315,6 +375,7 @@ impl RestyleHint {
     #[inline]
     pub fn has_non_animation_hint(&self) -> bool {
         self.match_under_self.is_any() || self.match_later_siblings ||
+            !self.recascade.is_empty() ||
             self.replacements.contains(RESTYLE_STYLE_ATTRIBUTE)
     }
 
@@ -325,6 +386,13 @@ impl RestyleHint {
         self.match_under_self.has_self()
     }
 
+    /// Returns whether the hint specifies that some cascade levels must be
+    /// replaced.
+    #[inline]
+    pub fn has_replacements(&self) -> bool {
+        !self.replacements.is_empty()
+    }
+
     /// Returns a new `RestyleHint` appropriate for children of the current
     /// element.
     #[inline]
@@ -332,6 +400,7 @@ impl RestyleHint {
         RestyleHint {
             match_under_self: self.match_under_self.propagate(),
             match_later_siblings: false,
+            recascade: self.recascade.propagate(),
             replacements: RestyleReplacements::empty(),
         }
     }
@@ -340,6 +409,17 @@ impl RestyleHint {
     #[inline]
     pub fn remove_animation_hints(&mut self) {
         self.replacements.remove(RestyleReplacements::for_animations());
+
+        // While RECASCADE_SELF is not animation-specific, we only ever add and
+        // process it during traversal.  If we are here, removing animation
+        // hints, then we are in an animation-only traversal, and we know that
+        // any RECASCADE_SELF flag must have been set due to changes in
+        // inherited values after restyling for animations, and thus we
+        // want to remove it so that we don't later try to restyle the element
+        // during a normal restyle.  (We could have separate
+        // RECASCADE_SELF_NORMAL and RECASCADE_SELF_ANIMATIONS flags to make it
+        // clear, but this isn't currently necessary.)
+        self.recascade.remove(RECASCADE_SELF);
     }
 
     /// Removes the later siblings hint, and returns whether it was present.
@@ -354,6 +434,7 @@ impl RestyleHint {
     pub fn insert_from(&mut self, other: &Self) {
         self.match_under_self.insert(other.match_under_self);
         self.match_later_siblings |= other.match_later_siblings;
+        self.recascade.insert(other.recascade);
         self.replacements.insert(other.replacements);
     }
 
@@ -371,6 +452,7 @@ impl RestyleHint {
     pub fn contains(&self, other: &Self) -> bool {
         self.match_under_self.contains(other.match_under_self) &&
         (self.match_later_siblings & other.match_later_siblings) == other.match_later_siblings &&
+        self.recascade.contains(other.recascade) &&
         self.replacements.contains(other.replacements)
     }
 }
@@ -393,6 +475,7 @@ impl From<nsRestyleHint> for RestyleReplacements {
 #[cfg(feature = "gecko")]
 impl From<nsRestyleHint> for RestyleHint {
     fn from(raw: nsRestyleHint) -> Self {
+        use gecko_bindings::structs::nsRestyleHint_eRestyle_ForceDescendants as eRestyle_ForceDescendants;
         use gecko_bindings::structs::nsRestyleHint_eRestyle_LaterSiblings as eRestyle_LaterSiblings;
         use gecko_bindings::structs::nsRestyleHint_eRestyle_Self as eRestyle_Self;
         use gecko_bindings::structs::nsRestyleHint_eRestyle_SomeDescendants as eRestyle_SomeDescendants;
@@ -406,9 +489,15 @@ impl From<nsRestyleHint> for RestyleHint {
             match_under_self.insert(RestyleDepths::for_descendants());
         }
 
+        let mut recascade = CascadeHint::empty();
+        if (raw.0 & eRestyle_ForceDescendants.0) != 0 {
+            recascade.insert(CascadeHint::subtree())
+        }
+
         RestyleHint {
             match_under_self: match_under_self,
             match_later_siblings: (raw.0 & eRestyle_LaterSiblings.0) != 0,
+            recascade: recascade,
             replacements: raw.into(),
         }
     }
