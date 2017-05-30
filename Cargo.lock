@@ -95,7 +95,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "mp3-metadata 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "mp4parse 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "ogg_metadata 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ogg_metadata 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1912,7 +1912,7 @@ dependencies = [
 
 [[package]]
 name = "ogg"
-version = "0.4.1"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1920,11 +1920,11 @@ dependencies = [
 
 [[package]]
 name = "ogg_metadata"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "ogg 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ogg 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3579,8 +3579,8 @@ dependencies = [
 "checksum objc 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "877f30f37acef6749b1841cceab289707f211aecfc756553cd63976190e6cc2e"
 "checksum odds 0.2.25 (registry+https://github.com/rust-lang/crates.io-index)" = "c3df9b730298cea3a1c3faa90b7e2f9df3a9c400d0936d6015e6165734eefcba"
 "checksum offscreen_gl_context 0.8.9 (registry+https://github.com/rust-lang/crates.io-index)" = "3cadec7378139fd7e48badba0d59cbb6312c7e0eca9b5e3b8ec7a78fc0c6cb28"
-"checksum ogg 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "013b78ceb7fb82555a2f8a95d8e40866fe64a5d15b83c51b3e1fdd40cd903ed3"
-"checksum ogg_metadata 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "bb1753e64956b3afd900f788bf6d2e9d0986df39168be86f4b47ec2058d0c2f7"
+"checksum ogg 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "7137bf02687385302f4c0aecd77cfce052b69f5b4ee937be778e125c62f67e30"
+"checksum ogg_metadata 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "fc665717454399cba557c55ad226148996e9266ee291f8a37a98bb2cded0a490"
 "checksum open 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3478ed1686bd1300c8a981a940abc92b06fac9cbef747f4c668d4e032ff7b842"
 "checksum openssl 0.9.12 (registry+https://github.com/rust-lang/crates.io-index)" = "bb5d1663b73d10c6a3eda53e2e9d0346f822394e7b858d7257718f65f61dfbe2"
 "checksum openssl-sys 0.9.12 (registry+https://github.com/rust-lang/crates.io-index)" = "3a5886d87d3e2a0d890bf62dc8944f5e3769a405f7e1e9ef6e517e47fd7a0897"
