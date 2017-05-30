@@ -11,6 +11,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use dom::bindings::js::Root;
 use dom::globalscope::GlobalScope;
+use dom::htmlimageelement::ImageElementMicrotask;
 use dom::htmlmediaelement::MediaElementMicrotask;
 use dom::mutationobserver::MutationObserver;
 use msg::constellation_msg::PipelineId;
@@ -31,6 +32,7 @@ pub struct MicrotaskQueue {
 pub enum Microtask {
     Promise(EnqueuedPromiseCallback),
     MediaElement(MediaElementMicrotask),
+    ImageElement(ImageElementMicrotask),
     NotifyMutationObservers,
 }
 
@@ -81,7 +83,10 @@ impl MicrotaskQueue {
                     },
                     Microtask::MediaElement(ref task) => {
                         task.handler();
-                    }
+                    },
+                    Microtask::ImageElement(ref task) => {
+                        task.handler();
+                    },
                     Microtask::NotifyMutationObservers => {
                         MutationObserver::notify_mutation_observers();
                     }
