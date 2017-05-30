@@ -68,7 +68,7 @@ use style::gecko_bindings::structs::{CSSPseudoElementType, CompositeOperation};
 use style::gecko_bindings::structs::{RawServoStyleRule, ServoStyleSheet};
 use style::gecko_bindings::structs::{SheetParsingMode, nsIAtom, nsCSSPropertyID};
 use style::gecko_bindings::structs::{nsCSSFontFaceRule, nsCSSCounterStyleRule};
-use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint};
+use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint, PropertyValuePair};
 use style::gecko_bindings::structs::IterationCompositeOperation;
 use style::gecko_bindings::structs::Loader;
 use style::gecko_bindings::structs::MallocSizeOf;
@@ -2424,6 +2424,18 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
     result.unwrap().into_strong()
 }
 
+#[cfg(feature = "gecko_debug")]
+fn simulate_compute_values_failure(property: &PropertyValuePair) -> bool {
+    let p = property.mProperty;
+    let id = get_property_id_from_nscsspropertyid!(p, false);
+    id.as_shorthand().is_ok() && property.mSimulateComputeValuesFailure
+}
+
+#[cfg(not(feature = "gecko_debug"))]
+fn simulate_compute_values_failure(_: &PropertyValuePair) -> bool {
+    false
+}
+
 #[no_mangle]
 pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeListBorrowed,
                                                   style: ServoComputedValuesBorrowed,
@@ -2470,6 +2482,10 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
                                            .filter(|&property| !property.mServoDeclarationBlock.mRawPtr.is_null());
         let mut property_index = 0;
         for property in iter {
+            if simulate_compute_values_failure(property) {
+                continue;
+            }
+
             let declarations = unsafe { &*property.mServoDeclarationBlock.mRawPtr.clone() };
             let declarations = Locked::<PropertyDeclarationBlock>::as_arc(&declarations);
             let guard = declarations.read_with(&guard);
