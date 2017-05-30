@@ -505,11 +505,6 @@ mod system_reporter {
         None
     }
 
-    // Like std::macros::try!, but for Option<>.
-    macro_rules! option_try(
-        ($e:expr) => (match $e { Some(e) => e, None => return None })
-    );
-
     #[cfg(target_os = "linux")]
     fn page_size() -> usize {
         unsafe {
@@ -521,6 +516,11 @@ mod system_reporter {
     fn proc_self_statm_field(field: usize) -> Option<usize> {
         use std::fs::File;
         use std::io::Read;
+
+        // Like std::macros::try!, but for Option<>.
+        macro_rules! option_try(
+            ($e:expr) => (match $e { Some(e) => e, None => return None })
+        );
 
         let mut f = option_try!(File::open("/proc/self/statm").ok());
         let mut contents = String::new();
