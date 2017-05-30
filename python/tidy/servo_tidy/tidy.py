@@ -384,6 +384,14 @@ def check_toml(file_name, lines):
         yield (0, ".toml file should contain a valid license.")
 
 
+def check_html_title_tag(file_name, lines):
+    if not file_name.endswith(".html"):
+        raise StopIteration
+    for idx, line in enumerate(lines):
+        if '></title>' in line:
+            yield (idx + 1, "Found empty title tag. Please add descriptive title.")
+
+
 def check_shell(file_name, lines):
     if not file_name.endswith(".sh"):
         raise StopIteration
@@ -1081,7 +1089,7 @@ def scan(only_changed_files=False, progress=True, stylo=False):
     files_to_check = filter_files('.', only_changed_files and not stylo, progress)
     checking_functions = (check_flake8, check_lock, check_webidl_spec, check_json, check_yaml)
     line_checking_functions = (check_license, check_by_line, check_toml, check_shell,
-                               check_rust, check_spec, check_modeline)
+                               check_rust, check_spec, check_modeline, check_html_title_tag)
     file_errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
     # check dependecy licenses
     dep_license_errors = check_dep_license_errors(get_dep_toml_files(only_changed_files), progress)
