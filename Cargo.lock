@@ -112,7 +112,7 @@ dependencies = [
  "libc 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-freetype-sys 4.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo-skia 0.30000004.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo-skia 0.30000004.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "x11 2.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -247,7 +247,7 @@ dependencies = [
 
 [[package]]
 name = "blurdroid"
-version = "0.1.3"
+version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -622,7 +622,7 @@ name = "device"
 version = "0.0.1"
 source = "git+https://github.com/servo/devices#1bb5a200c7ae1f42ddf3c42b235b3db66226aabf"
 dependencies = [
- "blurdroid 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "blurdroid 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "blurmock 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "blurz 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -1299,7 +1299,7 @@ dependencies = [
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
- "mio 0.6.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mio 0.6.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.9.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "uuid 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1329,8 +1329,8 @@ dependencies = [
 
 [[package]]
 name = "js"
-version = "0.1.4"
-source = "git+https://github.com/servo/rust-mozjs#08af3654a1e781af7d6690838545975234ddd2a0"
+version = "0.1.6"
+source = "git+https://github.com/servo/rust-mozjs#bc7af508c194d56eef3a2c52772ae261b9a1facb"
 dependencies = [
  "cmake 0.1.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1648,7 +1648,7 @@ dependencies = [
 
 [[package]]
 name = "mio"
-version = "0.6.7"
+version = "0.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "iovec 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2333,7 +2333,7 @@ dependencies = [
  "hyper_serde 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.12.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "js 0.1.4 (git+https://github.com/servo/rust-mozjs)",
+ "js 0.1.6 (git+https://github.com/servo/rust-mozjs)",
  "jstraceable_derive 0.0.1",
  "lazy_static 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2595,7 +2595,7 @@ dependencies = [
 
 [[package]]
 name = "servo-skia"
-version = "0.30000004.1"
+version = "0.30000004.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cgl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3358,7 +3358,7 @@ dependencies = [
  "bytes 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "httparse 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "mio 0.6.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mio 0.6.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "sha1 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "slab 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3450,7 +3450,7 @@ dependencies = [
 "checksum bitflags 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)" = "1370e9fc2a6ae53aea8b7a5110edbd08836ed87c88736dfabccade1c2b44bff4"
 "checksum bitreader 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "80b13e2ab064ff3aa0bdbf1eff533f9822dc37899821f5f98c67f263eab51707"
 "checksum block 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "0d8c1fef690941d3e7788d328517591fecc684c084084702d6ff1641e993699a"
-"checksum blurdroid 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "9880ddea1a97824ae9fc176f718e2a029491cd7d10bac4061ba4063569f4bc64"
+"checksum blurdroid 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "d7daba519d29beebfc7d302795af88a16b43f431b9b268586926ac61cc655a68"
 "checksum blurmock 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "68dd72da3a3bb40f3d3bdd366c4cf8e2b1d208c366304f382c80cef8126ca8da"
 "checksum blurz 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "e73bda0f4c71c63a047351070097f3f507e6718e86b9ee525173371ef7b94b73"
 "checksum brotli 1.0.8 (registry+https://github.com/rust-lang/crates.io-index)" = "951f20a2cc403194b2746d9ac6f796292e3c0344e983c72c7d6bd6cff6c3d102"
@@ -3540,7 +3540,7 @@ dependencies = [
 "checksum itertools 0.5.10 (registry+https://github.com/rust-lang/crates.io-index)" = "4833d6978da405305126af4ac88569b5d71ff758581ce5a987dbfa3755f694fc"
 "checksum itoa 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "eb2f404fbc66fd9aac13e998248505e7ecb2ad8e44ab6388684c5fb11c6c251c"
 "checksum jpeg-decoder 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)" = "919d49b634cde303392353c5dd51153ec005a1a981c6f4b8277692a51e9d260d"
-"checksum js 0.1.4 (git+https://github.com/servo/rust-mozjs)" = "<none>"
+"checksum js 0.1.6 (git+https://github.com/servo/rust-mozjs)" = "<none>"
 "checksum kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7507624b29483431c0ba2d82aece8ca6cdba9382bff4ddd0f7490560c056098d"
 "checksum khronos_api 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "09c9d3760673c427d46f91a0350f0a84a52e6bc5a84adf26dc610b6c52436630"
 "checksum language-tags 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "a91d884b6667cd606bb5a69aa0c99ba811a115fc68915e7056ec08a46e93199a"
@@ -3562,7 +3562,7 @@ dependencies = [
 "checksum mime 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)" = "9d69889cdc6336ed56b174514ce876c4c3dc564cc23dd872e7bca589bb2a36c8"
 "checksum mime_guess 1.8.1 (registry+https://github.com/rust-lang/crates.io-index)" = "76da6df85047af8c0edfa53f48eb1073012ce1cc95c8fedc0a374f659a89dd65"
 "checksum miniz-sys 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)" = "28eaee17666671fa872e567547e8428e83308ebe5808cdf6a0e28397dbe2c726"
-"checksum mio 0.6.7 (registry+https://github.com/rust-lang/crates.io-index)" = "6d19442734abd7d780b981c590c325680d933e99795fe1f693f0686c9ed48022"
+"checksum mio 0.6.8 (registry+https://github.com/rust-lang/crates.io-index)" = "c8ba718a36791275c6782c0445a5f79b5ef4e68c01a4e60ac04aae28290e4957"
 "checksum miow 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "8c1f2f3b1cf331de6896aabf6e9d55dca90356cc9960cca7eaaf408a355ae919"
 "checksum mozjs_sys 0.0.0 (git+https://github.com/servo/mozjs)" = "<none>"
 "checksum mp3-metadata 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "2f61cf32f7fc3cec83a15a255ac60bceb6cac59a7ce190cb824ca25c0fce0feb"
@@ -3630,7 +3630,7 @@ dependencies = [
 "checksum servo-fontconfig-sys 4.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "6be80777ee6edecbbbf8774c76e19dddfe336256c57a4ded06d6ad3df7be358e"
 "checksum servo-freetype-sys 4.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "9232032c2e85118c0282c6562c84cab12316e655491ba0a5d1905b2320060d1b"
 "checksum servo-glutin 0.10.2 (registry+https://github.com/rust-lang/crates.io-index)" = "8398095f9b3dc3c6d706d395e192624be1f1bcc6f366b009fe17a20cb5dd3d72"
-"checksum servo-skia 0.30000004.1 (registry+https://github.com/rust-lang/crates.io-index)" = "22ba980da523e91b9d2f7da9fb35f721138a1e604b8d8191e56f403e4760a9e4"
+"checksum servo-skia 0.30000004.3 (registry+https://github.com/rust-lang/crates.io-index)" = "109e567850bad212ee98ed9651e256de862bd9764476f2b16355af5f6ef59cfe"
 "checksum servo-websocket 0.19.1 (registry+https://github.com/rust-lang/crates.io-index)" = "8a1ff13c5d852c2793805226e688044309f2c1d8f063784805a13e99cb75b611"
 "checksum sha1 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "cc30b1e1e8c40c121ca33b86c23308a090d19974ef001b4bf6e61fd1a0fb095c"
 "checksum shared_library 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "fb04126b6fcfd2710fb5b6d18f4207b6c535f2850a7e1a43bcd526d44f30a79a"

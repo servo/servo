@@ -22,12 +22,40 @@ _ANDROID_NDK="android-ndk-r9"
 # list in $ANDROID_NDK_ROOT/toolchains. This value is always used.
 # _ANDROID_EABI="x86-4.6"
 # _ANDROID_EABI="arm-linux-androideabi-4.6"
-_ANDROID_EABI="arm-linux-androideabi-4.9"
 
 # Set _ANDROID_ARCH to the architecture you are building for.
 # This value is always used.
 # _ANDROID_ARCH=arch-x86
-_ANDROID_ARCH=arch-arm
+
+
+case $RUST_TARGET in
+    armv7*)
+      _ANDROID_TARGET="arm-linux-androideabi"
+      _ANDROID_ARCH=arch-arm
+      _OPENSSL_MACHINE="armv7"
+      ;;
+    arm*)
+      _ANDROID_TARGET=$RUST_TARGET
+      _ANDROID_ARCH=arch-arm
+      _OPENSSL_MACHINE="arm"
+      ;;
+    aarch64*)
+      _ANDROID_TARGET=$RUST_TARGET
+      _ANDROID_ARCH=arch-arm64
+      _OPENSSL_MACHINE="arm"
+      ;;
+    x86*)
+      _ANDROID_TARGET=$RUST_TARGET
+      _ANDROID_ARCH=arch-x86
+      _OPENSSL_MACHINE="x86"
+      ;;
+    *)
+      echo "Error: Invalid TARGET platform: $RUST_TARGET"
+      ;;
+esac
+
+_ANDROID_EABI="$_ANDROID_TARGET-4.9"
+
 
 # Set _ANDROID_API to the API you want to use. You should set it
 # to one of: android-14, android-9, android-8, android-14, android-5
@@ -93,17 +121,7 @@ if [ -z "$ANDROID_TOOLCHAIN" ] || [ ! -d "$ANDROID_TOOLCHAIN" ]; then
   # exit 1
 fi
 
-case $_ANDROID_ARCH in
-    arch-arm)
-      ANDROID_TOOLS="arm-linux-androideabi-gcc arm-linux-androideabi-ranlib arm-linux-androideabi-ld"
-      ;;
-    arch-x86)
-      ANDROID_TOOLS="i686-linux-android-gcc i686-linux-android-ranlib i686-linux-android-ld"
-      ;;
-    *)
-      echo "ERROR ERROR ERROR"
-      ;;
-esac
+ANDROID_TOOLS="$_ANDROID_TARGET-gcc $_ANDROID_TARGET-ranlib $_ANDROID_TARGET-ld"
 
 for tool in $ANDROID_TOOLS
 do
@@ -141,24 +159,17 @@ fi
 #####################################################################
 
 # Most of these should be OK (MACHINE, SYSTEM, ARCH). RELEASE is ignored.
-export MACHINE=armv7
+export MACHINE=$_OPENSSL_MACHINE
 export RELEASE=2.6.37
 export SYSTEM=android
 export ARCH=arm
-export CROSS_COMPILE="arm-linux-androideabi-"
-
-if [ "$_ANDROID_ARCH" == "arch-x86" ]; then
-    export MACHINE=i686
-    export RELEASE=2.6.37
-    export SYSTEM=android
-    export ARCH=x86
-    export CROSS_COMPILE="i686-linux-android-"
-fi
+export CROSS_COMPILE="$_ANDROID_TARGET-"
 
 # For the Android toolchain
 # https://android.googlesource.com/platform/ndk/+/ics-mr0/docs/STANDALONE-TOOLCHAIN.html
 export ANDROID_SYSROOT="$ANDROID_NDK_ROOT/platforms/$_ANDROID_API/$_ANDROID_ARCH"
 export SYSROOT="$ANDROID_SYSROOT"
+export CROSS_SYSROOT="$ANDROID_SYSROOT"
 export NDK_SYSROOT="$ANDROID_SYSROOT"
 export ANDROID_NDK_SYSROOT="$ANDROID_SYSROOT"
 export ANDROID_API="$_ANDROID_API"
@@ -181,8 +192,14 @@ if [ ! -z "$VERBOSE" ] && [ "$VERBOSE" != "0" ]; then
   echo "ANDROID_DEV: $ANDROID_DEV"
 fi
 
-cd openssl-1.0.1t
+cd openssl-1.1.0f
 perl -pi -e 's/install: all install_docs install_sw/install: install_docs install_sw/g' Makefile.org
+
+if [[ $RUST_TARGET == "aarch64"* ]]; then
+  # android64-aarch64 target exists but it isn't available yet in config file.
+  # Apply this patch to add support for selecting this configuration.
+  perl -pi -e 's/OUT="android-armeabi"/OUT="android64-aarch64"/g' config
+fi
 
 # The code being built isn't maintained by us, so we redirect stderr to stdout
 # so that the warnings don't clutter up buildbot
