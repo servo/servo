@@ -67,28 +67,33 @@
     '-moz-outline-radius-%s' % corner
     for corner in ['topleft', 'topright', 'bottomright', 'bottomleft']
 )}" products="gecko" spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-outline-radius)">
-    use properties::shorthands;
-    use values::generics::serialize_radius_values;
+    use values::generics::rect::Rect;
+    use values::specified::border::BorderRadius;
+    use parser::Parse;
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
-        // Re-use border-radius parsing.
-        shorthands::border_radius::parse_value(context, input).map(|longhands| {
-            expanded! {
-                % for corner in ["top_left", "top_right", "bottom_right", "bottom_left"]:
-                _moz_outline_radius_${corner.replace("_", "")}: longhands.border_${corner}_radius,
-                % endfor
-            }
+        let radii = try!(BorderRadius::parse(context, input));
+        Ok(expanded! {
+            _moz_outline_radius_topleft: radii.top_left,
+            _moz_outline_radius_topright: radii.top_right,
+            _moz_outline_radius_bottomright: radii.bottom_right,
+            _moz_outline_radius_bottomleft: radii.bottom_left,
         })
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            serialize_radius_values(dest,
-                &self._moz_outline_radius_topleft.0,
-                &self._moz_outline_radius_topright.0,
-                &self._moz_outline_radius_bottomright.0,
-                &self._moz_outline_radius_bottomleft.0,
-            )
+            let LonghandsToSerialize {
+                _moz_outline_radius_topleft: ref tl,
+                _moz_outline_radius_topright: ref tr,
+                _moz_outline_radius_bottomright: ref br,
+                _moz_outline_radius_bottomleft: ref bl,
+            } = *self;
+
+            let widths = Rect::new(&tl.0.width, &tr.0.width, &br.0.width, &bl.0.width);
+            let heights = Rect::new(&tl.0.height, &tr.0.height, &br.0.height, &bl.0.height);
+
+            BorderRadius::serialize_rects(widths, heights, dest)
         }
     }
 </%helpers:shorthand>

@@ -362,13 +362,14 @@ pub mod basic_shape {
     use gecko_bindings::structs::StyleGeometryBox;
     use gecko_bindings::sugar::ns_style_coord::{CoordDataMut, CoordDataValue};
     use std::borrow::Borrow;
-    use values::computed::{BorderRadiusSize, LengthOrPercentage};
-    use values::computed::basic_shape::{BasicShape, BorderRadius, ShapeRadius};
+    use values::computed::basic_shape::{BasicShape, ShapeRadius};
+    use values::computed::border::{BorderRadius, BorderRadiusSize};
+    use values::computed::length::LengthOrPercentage;
     use values::computed::position;
-    use values::generics::BorderRadiusSize as GenericBorderRadiusSize;
     use values::generics::basic_shape::{BasicShape as GenericBasicShape, InsetRect, Polygon};
     use values::generics::basic_shape::{Circle, Ellipse, FillRule};
     use values::generics::basic_shape::{GeometryBox, ShapeBox};
+    use values::generics::border::BorderRadius as GenericBorderRadius;
     use values::generics::rect::Rect;
 
     // using Borrow so that we can have a non-moving .into()
@@ -435,14 +436,14 @@ pub mod basic_shape {
         fn from(other: T) -> Self {
             let other = other.borrow();
             let get_corner = |index| {
-                GenericBorderRadiusSize::new(
+                BorderRadiusSize::new(
                     LengthOrPercentage::from_gecko_style_coord(&other.data_at(index))
                         .expect("<border-radius> should be a length, percentage, or calc value"),
                     LengthOrPercentage::from_gecko_style_coord(&other.data_at(index + 1))
                         .expect("<border-radius> should be a length, percentage, or calc value"))
             };
 
-            BorderRadius {
+            GenericBorderRadius {
                 top_left: get_corner(0),
                 top_right: get_corner(2),
                 bottom_right: get_corner(4),

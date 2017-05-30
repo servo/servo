@@ -1424,10 +1424,10 @@ impl FragmentDisplayListBuilding for Fragment {
                             details: BorderDetails::Image(ImageBorder {
                                 image: webrender_image,
                                 fill: border_style_struct.border_image_slice.fill,
-                                slice: SideOffsets2D::new(corners.top.resolve(webrender_image.height),
-                                                          corners.right.resolve(webrender_image.width),
-                                                          corners.bottom.resolve(webrender_image.height),
-                                                          corners.left.resolve(webrender_image.width)),
+                                slice: SideOffsets2D::new(corners.0.resolve(webrender_image.height),
+                                                          corners.1.resolve(webrender_image.width),
+                                                          corners.2.resolve(webrender_image.height),
+                                                          corners.3.resolve(webrender_image.width)),
                                 // TODO(gw): Support border-image-outset
                                 outset: SideOffsets2D::zero(),
                                 repeat_horizontal: convert_repeat_mode(border_style_struct.border_image_repeat.0),
