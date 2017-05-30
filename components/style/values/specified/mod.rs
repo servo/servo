@@ -1177,7 +1177,11 @@ impl ToComputedValue for SVGPaintKind {
             SVGPaintKind::ContextStroke => super::computed::SVGPaintKind::ContextStroke,
             SVGPaintKind::ContextFill => super::computed::SVGPaintKind::ContextFill,
             SVGPaintKind::Color(ref color) => {
-                super::computed::SVGPaintKind::Color(color.to_computed_value(context))
+                let color = match color.parsed {
+                    Color::CurrentColor => cssparser::Color::RGBA(context.style().get_color().clone_color()),
+                    _ => color.to_computed_value(context),
+                };
+                super::computed::SVGPaintKind::Color(color)
             }
             SVGPaintKind::PaintServer(ref server) => {
                 super::computed::SVGPaintKind::PaintServer(server.to_computed_value(context))
