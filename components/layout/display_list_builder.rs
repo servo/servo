@@ -2208,13 +2208,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         if state.clip_stack.is_empty() {
             return;
         }
-
-        let border_box = self.fragment.stacking_relative_border_box(
-            &self.base.stacking_relative_position,
-            &self.base.early_absolute_position_info.relative_containing_block_size,
-            self.base.early_absolute_position_info.relative_containing_block_mode,
-            CoordinateSystem::Parent);
-
+        let border_box = self.stacking_relative_position(CoordinateSystem::Parent);
         let transform = match self.fragment.transform_matrix(&border_box) {
             Some(transform) => transform,
             None => return,
