@@ -12,8 +12,6 @@ use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use encoding::all::UTF_8;
-use encoding::types::{EncoderTrap, Encoding};
 use ipc_channel::ipc;
 use net_traits::{CoreResourceMsg, IpcSend};
 use net_traits::blob_url_store::{BlobBuf, get_blob_origin};
@@ -337,12 +335,11 @@ pub fn blob_parts_to_bytes(blobparts: Vec<BlobOrString>) -> Result<Vec<u8>, ()> 
     for blobpart in &blobparts {
         match blobpart {
             &BlobOrString::String(ref s) => {
-                let mut bytes = UTF_8.encode(s, EncoderTrap::Replace).map_err(|_|())?;
-                ret.append(&mut bytes);
+                ret.extend(s.as_bytes());
             },
             &BlobOrString::Blob(ref b) => {
-                let mut bytes = b.get_bytes().unwrap_or(vec![]);
-                ret.append(&mut bytes);
+                let bytes = b.get_bytes().unwrap_or(vec![]);
+                ret.extend(bytes);
             },
         }
     }

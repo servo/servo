@@ -102,6 +102,7 @@ extern crate time;
 extern crate tinyfiledialogs;
 extern crate unicode_segmentation;
 extern crate url;
+extern crate utf8;
 extern crate uuid;
 extern crate webrender_traits;
 extern crate webvr_traits;

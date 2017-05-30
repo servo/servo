@@ -632,7 +632,6 @@ name = "devtools"
 version = "0.0.1"
 dependencies = [
  "devtools_traits 0.0.1",
- "encoding 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.10.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper_serde 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2374,6 +2373,7 @@ dependencies = [
  "tinyfiledialogs 2.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-segmentation 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "utf-8 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "uuid 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "webrender_traits 0.39.0 (git+https://github.com/servo/webrender)",
  "webvr 0.0.1",

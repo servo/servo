@@ -89,6 +89,7 @@ swapper = "0.0.4"
 time = "0.1.12"
 unicode-segmentation = "1.1.0"
 url = {version = "1.2", features = ["heap_size", "query_encoding"]}
+utf-8 = "0.7"
 uuid = {version = "0.4", features = ["v4"]}
 xml5ever = {version = "0.7", features = ["unstable"]}
 webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}

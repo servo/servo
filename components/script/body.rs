@@ -11,8 +11,6 @@ use dom::blob::{Blob, BlobImpl};
 use dom::formdata::FormData;
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
-use encoding::all::UTF_8;
-use encoding::types::{DecoderTrap, Encoding};
 use js::jsapi::JSContext;
 use js::jsapi::JS_ClearPendingException;
 use js::jsapi::JS_ParseJSON;
@@ -110,14 +108,13 @@ fn run_package_data_algorithm<T: BodyOperations + DomObject>(object: &T,
 }
 
 fn run_text_data_algorithm(bytes: Vec<u8>) -> Fallible<FetchedData> {
-    let text = UTF_8.decode(&bytes, DecoderTrap::Replace).unwrap();
-    Ok(FetchedData::Text(text))
+    Ok(FetchedData::Text(String::from_utf8_lossy(&bytes).into_owned()))
 }
 
 #[allow(unsafe_code)]
 fn run_json_data_algorithm(cx: *mut JSContext,
                            bytes: Vec<u8>) -> Fallible<FetchedData> {
-    let json_text = UTF_8.decode(&bytes, DecoderTrap::Replace).unwrap();
+    let json_text = String::from_utf8_lossy(&bytes);
     let json_text: Vec<u16> = json_text.encode_utf16().collect();
     rooted!(in(cx) let mut rval = UndefinedValue());
     unsafe {
