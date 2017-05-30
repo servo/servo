@@ -11,4 +11,4 @@ set -o pipefail
 source fake-ld.sh
 
 export _GCC_PARAMS="${@}"
-call_gcc "arch-arm" "arm-linux-androideabi-4.9" "android-18" "armeabi"
+call_gcc "arch-arm" "arm-linux-androideabi" "android-18" "armeabi"

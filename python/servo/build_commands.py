@@ -246,6 +246,10 @@ class MachCommands(CommandBase):
             env["RUSTFLAGS"] = "-C debug_assertions"
 
         if android:
+            android_platform = self.config["android"]["platform"]
+            android_toolchain = self.config["android"]["toolchain_name"]
+            android_arch = "arch-" + self.config["android"]["arch"]
+
             # Build OpenSSL for android
             env["OPENSSL_VERSION"] = "1.0.2k"
             make_cmd = ["make"]
@@ -258,6 +262,7 @@ class MachCommands(CommandBase):
             shutil.copy(path.join(self.android_support_dir(), "openssl.makefile"), openssl_dir)
             shutil.copy(path.join(self.android_support_dir(), "openssl.sh"), openssl_dir)
             env["ANDROID_NDK_ROOT"] = env["ANDROID_NDK"]
+            env["RUST_TARGET"] = target
             with cd(openssl_dir):
                 status = call(
                     make_cmd + ["-f", "openssl.makefile"],
@@ -282,10 +287,6 @@ class MachCommands(CommandBase):
             elif cpu_type in ["x86_64", "x86-64", "x64", "amd64"]:
                 host_suffix = "x86_64"
             host = os_type + "-" + host_suffix
-
-            android_platform = self.config["android"]["platform"]
-            android_toolchain = self.config["android"]["toolchain_name"]
-            android_arch = "arch-" + self.config["android"]["arch"]
 
             env['PATH'] = path.join(
                 env['ANDROID_NDK'], "toolchains", android_toolchain, "prebuilt", host, "bin"

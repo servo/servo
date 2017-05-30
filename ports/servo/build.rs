@@ -80,7 +80,7 @@ fn android_main() {
     }
 
     // compiling libandroid_native_app_glue.a
-    if Command::new(toolchain_path.join("bin").join("arm-linux-androideabi-ar"))
+    if Command::new(toolchain_path.join("bin").join(format!("{}-ar", toolchain)))
         .arg("rcs")
         .arg(directory.join("libandroid_native_app_glue.a"))
         .arg(directory.join("android_native_app_glue.o"))
