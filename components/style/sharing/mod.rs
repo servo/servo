@@ -90,8 +90,15 @@ impl ValidationData {
         where E: TElement,
     {
         if self.class_list.is_none() {
-            let mut class_list = SmallVec::new();
+            let mut class_list = SmallVec::<[Atom; 5]>::new();
             element.each_class(|c| class_list.push(c.clone()));
+            // Assuming there are a reasonable number of classes (we use the
+            // inline capacity as "reasonable number"), sort them to so that
+            // we don't mistakenly reject sharing candidates when one element
+            // has "foo bar" and the other has "bar foo".
+            if !class_list.spilled() {
+                class_list.sort_by(|a, b| a.get_hash().cmp(&b.get_hash()));
+            }
             self.class_list = Some(class_list);
         }
         &*self.class_list.as_ref().unwrap()

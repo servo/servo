@@ -966,7 +966,9 @@ impl Stylist {
                         assert_eq!(declaration.level, CascadeLevel::PresHints);
                     }
                 }
-                // Never share style for elements with preshints
+                // Note the existence of presentational attributes so that the
+                // style sharing cache can avoid re-querying them if they don't
+                // exist.
                 context.relations |= AFFECTED_BY_PRESENTATIONAL_HINTS;
             }
             debug!("preshints: {:?}", context.relations);
