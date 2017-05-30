@@ -12,8 +12,7 @@ use parser::{Parse, ParserContext};
 use std::borrow::Cow;
 use std::fmt;
 use style_traits::ToCss;
-use values::generics::BorderRadiusSize;
-use values::generics::basic_shape::{BorderRadius as GenericBorderRadius, Circle as GenericCircle};
+use values::generics::basic_shape::{Circle as GenericCircle};
 use values::generics::basic_shape::{ClippingShape as GenericClippingShape, Ellipse as GenericEllipse};
 use values::generics::basic_shape::{FillRule, BasicShape as GenericBasicShape};
 use values::generics::basic_shape::{FloatAreaShape as GenericFloatAreaShape, InsetRect as GenericInsetRect};
@@ -21,6 +20,7 @@ use values::generics::basic_shape::{GeometryBox, ShapeBox, ShapeSource};
 use values::generics::basic_shape::{Polygon as GenericPolygon, ShapeRadius as GenericShapeRadius};
 use values::generics::rect::Rect;
 use values::specified::{LengthOrPercentage, Percentage};
+use values::specified::border::BorderRadius;
 use values::specified::position::{HorizontalPosition, Position, PositionComponent, Side, VerticalPosition};
 use values::specified::url::SpecifiedUrl;
 
@@ -35,9 +35,6 @@ pub type BasicShape = GenericBasicShape<HorizontalPosition, VerticalPosition, Le
 
 /// The specified value of `inset()`
 pub type InsetRect = GenericInsetRect<LengthOrPercentage>;
-
-/// The specified value of `BorderRadius`
-pub type BorderRadius = GenericBorderRadius<LengthOrPercentage>;
 
 /// A specified circle.
 pub type Circle = GenericCircle<HorizontalPosition, VerticalPosition, LengthOrPercentage>;
@@ -137,49 +134,6 @@ impl InsetRect {
             rect: rect,
             round: round,
         })
-    }
-}
-
-impl Parse for BorderRadius {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        let mut widths = parse_one_set_of_border_values(context, input)?;
-        let mut heights = if input.try(|input| input.expect_delim('/')).is_ok() {
-            parse_one_set_of_border_values(context, input)?
-        } else {
-            [widths[0].clone(),
-             widths[1].clone(),
-             widths[2].clone(),
-             widths[3].clone()]
-        };
-
-        Ok(BorderRadius {
-            top_left: BorderRadiusSize::new(widths[0].take(), heights[0].take()),
-            top_right: BorderRadiusSize::new(widths[1].take(), heights[1].take()),
-            bottom_right: BorderRadiusSize::new(widths[2].take(), heights[2].take()),
-            bottom_left: BorderRadiusSize::new(widths[3].take(), heights[3].take()),
-        })
-    }
-}
-
-fn parse_one_set_of_border_values(context: &ParserContext, mut input: &mut Parser)
-                                 -> Result<[LengthOrPercentage; 4], ()> {
-    let a = try!(LengthOrPercentage::parse_non_negative(context, input));
-    let b = if let Ok(b) = input.try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
-        b
-    } else {
-        return Ok([a.clone(), a.clone(), a.clone(), a])
-    };
-
-    let c = if let Ok(c) = input.try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
-        c
-    } else {
-        return Ok([a.clone(), b.clone(), a, b])
-    };
-
-    if let Ok(d) = input.try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
-        Ok([a, b, c, d])
-    } else {
-        Ok([a, b.clone(), c, b])
     }
 }
 

@@ -14,9 +14,8 @@ use std::fmt;
 use style::computed_values::transform::ComputedMatrix;
 use style::logical_geometry::{LogicalMargin, WritingMode};
 use style::properties::ServoComputedValues;
-use style::values::computed::{BorderRadiusSize, LengthOrPercentageOrAuto};
+use style::values::computed::{BorderCornerRadius, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrNone};
-use style::values::generics;
 
 /// A collapsible margin. See CSS 2.1 § 8.3.1.
 #[derive(Copy, Clone, Debug)]
@@ -472,13 +471,12 @@ pub fn style_length(style_length: LengthOrPercentageOrAuto,
 ///
 /// [1]: https://drafts.csswg.org/css-backgrounds-3/#border-radius
 pub fn specified_border_radius(
-    radius: BorderRadiusSize,
+    radius: BorderCornerRadius,
     containing_size: Size2D<Au>)
     -> Size2D<Au>
 {
-    let generics::BorderRadiusSize(size) = radius;
-    let w = size.width.to_used_value(containing_size.width);
-    let h = size.height.to_used_value(containing_size.height);
+    let w = radius.0.width.to_used_value(containing_size.width);
+    let h = radius.0.height.to_used_value(containing_size.height);
     Size2D::new(w, h)
 }
 

@@ -56,6 +56,13 @@ impl<T: HasViewportPercentage> HasViewportPercentage for Option<T> {
     }
 }
 
+impl<T: HasViewportPercentage, U> HasViewportPercentage for TypedSize2D<T, U> {
+    #[inline]
+    fn has_viewport_percentage(&self) -> bool {
+        self.width.has_viewport_percentage() || self.height.has_viewport_percentage()
+    }
+}
+
 impl<T: HasViewportPercentage> HasViewportPercentage for Vec<T> {
     #[inline]
     fn has_viewport_percentage(&self) -> bool {

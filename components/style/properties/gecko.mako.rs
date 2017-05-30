@@ -558,14 +558,14 @@ fn color_to_nscolor_zero_currentcolor(color: Color) -> structs::nscolor {
     % if need_clone:
         #[allow(non_snake_case)]
         pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-            use values::generics::BorderRadiusSize;
+            use values::computed::border::BorderCornerRadius;
             let width = GeckoStyleCoordConvertible::from_gecko_style_coord(
                             &self.gecko.${gecko_ffi_name}.data_at(${x_index}))
                             .expect("Failed to clone ${ident}");
             let height = GeckoStyleCoordConvertible::from_gecko_style_coord(
                             &self.gecko.${gecko_ffi_name}.data_at(${y_index}))
                             .expect("Failed to clone ${ident}");
-            BorderRadiusSize::new(width, height)
+            BorderCornerRadius::new(width, height)
         }
     % endif
 </%def>
@@ -964,7 +964,7 @@ fn static_assert() {
 
     pub fn set_border_image_outset(&mut self, v: longhands::border_image_outset::computed_value::T) {
         % for side in SIDES:
-        v.${side.ident}.to_gecko_style_coord(&mut self.gecko.mBorderImageOutset.data_at_mut(${side.index}));
+        v.${side.index}.to_gecko_style_coord(&mut self.gecko.mBorderImageOutset.data_at_mut(${side.index}));
         % endfor
     }
 
@@ -1001,7 +1001,7 @@ fn static_assert() {
         use values::generics::border::BorderImageWidthSide;
 
         % for side in SIDES:
-        match v.${side.ident} {
+        match v.${side.index} {
             BorderImageWidthSide::Auto => {
                 self.gecko.mBorderImageWidth.data_at_mut(${side.index}).set_value(CoordDataValue::Auto)
             },
@@ -1026,7 +1026,7 @@ fn static_assert() {
         use gecko_bindings::structs::{NS_STYLE_BORDER_IMAGE_SLICE_NOFILL, NS_STYLE_BORDER_IMAGE_SLICE_FILL};
 
         % for side in SIDES:
-        v.offsets.${side.ident}.to_gecko_style_coord(&mut self.gecko.mBorderImageSlice.data_at_mut(${side.index}));
+        v.offsets.${side.index}.to_gecko_style_coord(&mut self.gecko.mBorderImageSlice.data_at_mut(${side.index}));
         % endfor
 
         let fill = if v.fill {
@@ -3967,13 +3967,13 @@ fn static_assert() {
                         // the garbage data without
                         // attempting to clean up.
                         shape.mCoordinates[0].leaky_set_null();
-                        inset.rect.top.to_gecko_style_coord(&mut shape.mCoordinates[0]);
+                        inset.rect.0.to_gecko_style_coord(&mut shape.mCoordinates[0]);
                         shape.mCoordinates[1].leaky_set_null();
-                        inset.rect.right.to_gecko_style_coord(&mut shape.mCoordinates[1]);
+                        inset.rect.1.to_gecko_style_coord(&mut shape.mCoordinates[1]);
                         shape.mCoordinates[2].leaky_set_null();
-                        inset.rect.bottom.to_gecko_style_coord(&mut shape.mCoordinates[2]);
+                        inset.rect.2.to_gecko_style_coord(&mut shape.mCoordinates[2]);
                         shape.mCoordinates[3].leaky_set_null();
-                        inset.rect.left.to_gecko_style_coord(&mut shape.mCoordinates[3]);
+                        inset.rect.3.to_gecko_style_coord(&mut shape.mCoordinates[3]);
 
                         set_corners_from_radius(inset.round, &mut shape.mRadius);
                     }

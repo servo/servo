@@ -6,8 +6,10 @@
 
 use values::computed::{Number, NumberOrPercentage};
 use values::computed::length::LengthOrPercentage;
+use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::border::BorderImageSlice as GenericBorderImageSlice;
 use values::generics::border::BorderImageWidthSide as GenericBorderImageWidthSide;
+use values::generics::border::BorderRadius as GenericBorderRadius;
 use values::generics::rect::Rect;
 
 /// A computed value for the `border-image-width` property.
@@ -18,6 +20,12 @@ pub type BorderImageWidthSide = GenericBorderImageWidthSide<LengthOrPercentage, 
 
 /// A computed value for the `border-image-slice` property.
 pub type BorderImageSlice = GenericBorderImageSlice<NumberOrPercentage>;
+
+/// A computed value for the `border-radius` property.
+pub type BorderRadius = GenericBorderRadius<LengthOrPercentage>;
+
+/// A computed value for the `border-*-radius` longhand properties.
+pub type BorderCornerRadius = GenericBorderCornerRadius<LengthOrPercentage>;
 
 impl BorderImageWidthSide {
     /// Returns `1`.
