@@ -403,34 +403,16 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     pub use super::overflow_x::{SpecifiedValue, parse, get_initial_value, computed_value};
 </%helpers:longhand>
 
-<%helpers:vector_longhand name="transition-duration"
-                          need_index="True"
-                          animation_value_type="none"
-                          extra_prefixes="moz webkit"
-                          spec="https://drafts.csswg.org/css-transitions/#propdef-transition-duration">
-    use values::specified::Time;
-
-    pub use values::specified::Time as SpecifiedValue;
-    no_viewport_percentage!(SpecifiedValue);
-
-    pub mod computed_value {
-        pub use values::computed::Time as T;
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::zero()
-    }
-
-    #[inline]
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        Time::zero()
-    }
-
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-        Time::parse_non_negative(context, input)
-    }
-</%helpers:vector_longhand>
+${helpers.predefined_type("transition-duration",
+                          "Time",
+                          "computed::Time::zero()",
+                          initial_specified_value="specified::Time::zero()",
+                          parse_method="parse_non_negative",
+                          vector=True,
+                          need_index=True,
+                          animation_value_type="none",
+                          extra_prefixes="moz webkit",
+                          spec="https://drafts.csswg.org/css-transitions/#propdef-transition-duration")}
 
 // TODO(pcwalton): Lots more timing functions.
 <%helpers:vector_longhand name="transition-timing-function"
@@ -794,20 +776,15 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     impl ComputedValueAsSpecified for SpecifiedValue { }
 </%helpers:vector_longhand>
 
-<%helpers:vector_longhand name="transition-delay"
-                          need_index="True"
-                          animation_value_type="none"
-                          extra_prefixes="moz webkit"
-                          spec="https://drafts.csswg.org/css-transitions/#propdef-transition-delay">
-    pub use properties::longhands::transition_duration::single_value::SpecifiedValue;
-    pub use properties::longhands::transition_duration::single_value::computed_value;
-    pub use properties::longhands::transition_duration::single_value::{get_initial_value, get_initial_specified_value};
-
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        use values::specified::Time;
-        Time::parse(context, input)
-    }
-</%helpers:vector_longhand>
+${helpers.predefined_type("transition-delay",
+                          "Time",
+                          "computed::Time::zero()",
+                          initial_specified_value="specified::Time::zero()",
+                          vector=True,
+                          need_index=True,
+                          animation_value_type="none",
+                          extra_prefixes="moz webkit",
+                          spec="https://drafts.csswg.org/css-transitions/#propdef-transition-duration")}
 
 <%helpers:vector_longhand name="animation-name"
                           need_index="True"
@@ -880,17 +857,16 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     impl ComputedValueAsSpecified for SpecifiedValue {}
 </%helpers:vector_longhand>
 
-<%helpers:vector_longhand name="animation-duration"
-                          need_index="True"
+${helpers.predefined_type("animation-duration",
+                          "Time",
+                          "computed::Time::zero()",
+                          initial_specified_value="specified::Time::zero()",
+                          parse_method="parse_non_negative",
+                          vector=True,
+                          need_index=True,
                           animation_value_type="none",
-                          extra_prefixes="moz webkit"
-                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-duration",
-                          allowed_in_keyframe_block="False">
-    pub use properties::longhands::transition_duration::single_value::computed_value;
-    pub use properties::longhands::transition_duration::single_value::get_initial_specified_value;
-    pub use properties::longhands::transition_duration::single_value::{get_initial_value, parse};
-    pub use properties::longhands::transition_duration::single_value::SpecifiedValue;
-</%helpers:vector_longhand>
+                          extra_prefixes="moz webkit",
+                          spec="https://drafts.csswg.org/css-transitions/#propdef-transition-duration")}
 
 <%helpers:vector_longhand name="animation-timing-function"
                           need_index="True"
