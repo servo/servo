@@ -17,6 +17,7 @@ ${helpers.predefined_type("opacity",
 <%helpers:vector_longhand name="box-shadow" allow_empty="True"
                           animation_value_type="IntermediateBoxShadowList"
                           extra_prefixes="webkit"
+                          ignored_when_colors_disabled="True"
                           spec="https://drafts.csswg.org/css-backgrounds/#box-shadow">
     use std::fmt;
     use style_traits::ToCss;

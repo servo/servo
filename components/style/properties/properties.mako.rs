@@ -37,9 +37,10 @@ use shared_lock::StylesheetGuards;
 use style_traits::{HasViewportPercentage, ToCss};
 use stylesheets::{CssRuleType, MallocSizeOf, MallocSizeOfFn, Origin, UrlExtraData};
 #[cfg(feature = "servo")] use values::Either;
+use values::specified::Color;
 use values::computed;
 use cascade_info::CascadeInfo;
-use rule_tree::StrongRuleNode;
+use rule_tree::{CascadeLevel, StrongRuleNode};
 use style_adjuster::StyleAdjuster;
 #[cfg(feature = "servo")] use values::specified::BorderStyle;
 
@@ -588,6 +589,15 @@ impl LonghandId {
             LonghandId::BorderBottomColor |
             LonghandId::BorderLeftColor |
             LonghandId::OutlineColor
+        )
+    }
+
+    /// Returns true if the property is one that is ignored when document
+    /// colors are disabled.
+    fn is_ignored_when_document_colors_disabled(&self) -> bool {
+        matches!(*self,
+            ${" | ".join([("LonghandId::" + p.camel_case)
+                          for p in data.longhands if p.ignored_when_colors_disabled])}
         )
     }
 
@@ -2499,8 +2509,9 @@ pub fn cascade(device: &Device,
 
     let iter_declarations = || {
         rule_node.self_and_ancestors().flat_map(|node| {
+            let cascade_level = node.cascade_level();
             let declarations = match node.style_source() {
-                Some(source) => source.read(node.cascade_level().guard(guards)).declarations(),
+                Some(source) => source.read(cascade_level.guard(guards)).declarations(),
                 // The root node has no style source.
                 None => &[]
             };
@@ -2511,7 +2522,7 @@ pub fn cascade(device: &Device,
                 .rev()
                 .filter_map(move |&(ref declaration, declaration_importance)| {
                     if declaration_importance == node_importance {
-                        Some(declaration)
+                        Some((declaration, cascade_level))
                     } else {
                         None
                     }
@@ -2547,13 +2558,13 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                                     quirks_mode: QuirksMode)
                                     -> ComputedValues
     where F: Fn() -> I,
-          I: Iterator<Item = &'a PropertyDeclaration>,
+          I: Iterator<Item = (&'a PropertyDeclaration, CascadeLevel)>,
 {
     let default_style = device.default_computed_values();
     let inherited_custom_properties = inherited_style.custom_properties();
     let mut custom_properties = None;
     let mut seen_custom = HashSet::new();
-    for declaration in iter_declarations() {
+    for (declaration, _cascade_level) in iter_declarations() {
         if let PropertyDeclaration::Custom(ref name, ref value) = *declaration {
             ::custom_properties::cascade(
                 &mut custom_properties, &inherited_custom_properties,
@@ -2601,6 +2612,14 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
         quirks_mode: quirks_mode,
     };
 
+    let ignore_colors = !device.use_document_colors();
+    let default_background_color_decl = if ignore_colors {
+        let color = device.default_background_color();
+        Some(PropertyDeclaration::BackgroundColor(Color::RGBA(color).into()))
+    } else {
+        None
+    };
+
     // Set computed values, overwriting earlier declarations for the same
     // property.
     //
@@ -2625,7 +2644,8 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
             let mut font_size = None;
             let mut font_family = None;
         % endif
-        for declaration in iter_declarations() {
+        for (declaration, cascade_level) in iter_declarations() {
+            let mut declaration = declaration;
             let longhand_id = match declaration.id() {
                 PropertyDeclarationId::Longhand(id) => id,
                 PropertyDeclarationId::Custom(..) => continue,
@@ -2637,6 +2657,28 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
             if flags.contains(VISITED_DEPENDENT_ONLY) &&
                !longhand_id.is_visited_dependent() {
                 continue
+            }
+
+            // When document colors are disabled, skip properties that are
+            // marked as ignored in that mode, if they come from a UA or
+            // user style sheet.
+            if ignore_colors &&
+               longhand_id.is_ignored_when_document_colors_disabled() &&
+               !matches!(cascade_level,
+                         CascadeLevel::UANormal |
+                         CascadeLevel::UserNormal |
+                         CascadeLevel::UserImportant |
+                         CascadeLevel::UAImportant) {
+                if let PropertyDeclaration::BackgroundColor(ref color) = *declaration {
+                    // Treat background-color a bit differently.  If the specified
+                    // color is anything other than a fully transparent color, convert
+                    // it into the Device's default background color.
+                    if color.is_non_transparent() {
+                        declaration = default_background_color_decl.as_ref().unwrap();
+                    }
+                } else {
+                    continue
+                }
             }
 
             if

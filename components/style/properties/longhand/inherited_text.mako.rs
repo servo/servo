@@ -680,6 +680,7 @@ ${helpers.single_keyword("text-align-last",
 
 <%helpers:longhand name="text-shadow"
                    animation_value_type="IntermediateTextShadowList",
+                   ignored_when_colors_disabled="True",
                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-shadow">
     use cssparser;
     use std::fmt;
@@ -1117,6 +1118,7 @@ ${helpers.predefined_type("text-emphasis-color", "CSSColor",
                           initial_specified_value="specified::CSSColor::currentcolor()",
                           products="gecko", animation_value_type="IntermediateColor",
                           complex_color=True, need_clone=True,
+                          ignored_when_colors_disabled=True,
                           spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-color")}
 
 
@@ -1135,6 +1137,7 @@ ${helpers.predefined_type(
     "CSSParserColor::CurrentColor",
     products="gecko", animation_value_type="IntermediateColor",
     complex_color=True, need_clone=True,
+    ignored_when_colors_disabled=True,
     spec="https://compat.spec.whatwg.org/#the-webkit-text-fill-color")}
 
 ${helpers.predefined_type(
@@ -1143,6 +1146,7 @@ ${helpers.predefined_type(
     initial_specified_value="specified::CSSColor::currentcolor()",
     products="gecko", animation_value_type="IntermediateColor",
     complex_color=True, need_clone=True,
+    ignored_when_colors_disabled=True,
     spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-color")}
 
 ${helpers.predefined_type("-webkit-text-stroke-width", "BorderWidth", "Au::from_px(0)",

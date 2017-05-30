@@ -19,6 +19,7 @@ use properties::longhands::animation_iteration_count::single_value::computed_val
 use properties::longhands::animation_play_state::computed_value::single_value::T as AnimationPlayState;
 use properties::longhands::transition_timing_function::single_value::computed_value::StartEnd;
 use properties::longhands::transition_timing_function::single_value::computed_value::T as TransitionTimingFunction;
+use rule_tree::CascadeLevel;
 use std::sync::mpsc::Sender;
 use stylearc::Arc;
 use timer::Timer;
@@ -472,7 +473,8 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
                             .all(|&(_, importance)| importance == Importance::Normal));
 
             let iter = || {
-                guard.declarations().iter().rev().map(|&(ref decl, _importance)| decl)
+                guard.declarations().iter().rev()
+                     .map(|&(ref decl, _importance)| (decl, CascadeLevel::Animations))
             };
 
             // This currently ignores visited styles, which seems acceptable,

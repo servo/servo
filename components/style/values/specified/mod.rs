@@ -177,6 +177,15 @@ impl CSSColor {
             authored: None,
         })
     }
+
+    /// Returns false if the color is completely transparent, and
+    /// true otherwise.
+    pub fn is_non_transparent(&self) -> bool {
+        match self.parsed {
+            Color::RGBA(rgba) if rgba.alpha == 0 => false,
+            _ => true,
+        }
+    }
 }
 
 no_viewport_percentage!(CSSColor);

@@ -10,6 +10,7 @@
 
 <%helpers:longhand name="color" need_clone="True"
                    animation_value_type="IntermediateRGBA"
+                   ignored_when_colors_disabled="True"
                    spec="https://drafts.csswg.org/css-color/#color">
     use cssparser::RGBA;
     use std::fmt;

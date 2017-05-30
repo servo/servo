@@ -12,6 +12,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
     spec="https://drafts.csswg.org/css-backgrounds/#background-color",
     animation_value_type="IntermediateColor",
     complex_color=True,
+    ignored_when_colors_disabled=True,
     allow_quirks=True)}
 
 ${helpers.predefined_type("background-image", "ImageLayer",
@@ -20,7 +21,8 @@ ${helpers.predefined_type("background-image", "ImageLayer",
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-image",
     vector="True",
     animation_value_type="none",
-    has_uncacheable_values="True" if product == "gecko" else "False")}
+    has_uncacheable_values="True" if product == "gecko" else "False",
+    ignored_when_colors_disabled="True")}
 
 % for (axis, direction, initial) in [("x", "Horizontal", "left"), ("y", "Vertical", "top")]:
     ${helpers.predefined_type("background-position-" + axis, "position::" + direction + "Position",

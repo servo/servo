@@ -284,6 +284,7 @@ ${helpers.predefined_type(
     complex_color=True,
     products="gecko",
     animation_value_type="IntermediateColor",
+    ignored_when_colors_disabled=True,
     spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-color")}
 
 <%helpers:longhand name="initial-letter"

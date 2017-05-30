@@ -6,7 +6,7 @@
 
 use app_units::Au;
 use context::QuirksMode;
-use cssparser::Parser;
+use cssparser::{Parser, RGBA};
 use euclid::{Size2D, TypedSize2D};
 use font_metrics::ServoMetricsProvider;
 use media_queries::MediaType;
@@ -95,6 +95,16 @@ impl Device {
     /// Return the media type of the current device.
     pub fn media_type(&self) -> MediaType {
         self.media_type.clone()
+    }
+
+    /// Returns whether document colors are enabled.
+    pub fn use_document_colors(&self) -> bool {
+        true
+    }
+
+    /// Returns the default background color.
+    pub fn default_background_color(&self) -> RGBA {
+        RGBA::new(255, 255, 255, 255)
     }
 }
 
