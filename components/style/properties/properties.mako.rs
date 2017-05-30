@@ -130,10 +130,6 @@ macro_rules! expanded {
 /// A module with all the code for longhand properties.
 #[allow(missing_docs)]
 pub mod longhands {
-    use cssparser::Parser;
-    use parser::{Parse, ParserContext};
-    use values::specified;
-
     <%include file="/longhand/background.mako.rs" />
     <%include file="/longhand/border.mako.rs" />
     <%include file="/longhand/box.mako.rs" />

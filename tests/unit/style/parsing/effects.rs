@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use parsing::parse;
-use style::properties::longhands::{self, perspective_origin, transform_origin};
+use style::properties::longhands::{perspective_origin, transform_origin};
 use style_traits::ToCss;
 
 #[test]
@@ -28,16 +28,6 @@ fn test_clip() {
     assert_roundtrip_with_context!(clip::parse,
                                    "rect(auto auto auto auto)",
                                    "rect(auto, auto, auto, auto)");
-}
-
-#[test]
-fn test_longhands_parse_origin() {
-    assert_parser_exhausted!(longhands::parse_origin, "1px some-rubbish", false);
-    assert_parser_exhausted!(longhands::parse_origin, "1px 2px", true);
-    assert_parser_exhausted!(longhands::parse_origin, "center left", true);
-    assert_parser_exhausted!(longhands::parse_origin, "center right", true);
-    assert_parser_exhausted!(longhands::parse_origin, "center right 1px", true);
-    assert_parser_exhausted!(longhands::parse_origin, "1% right", false);
 }
 
 #[test]

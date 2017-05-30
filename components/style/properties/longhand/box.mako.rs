@@ -2076,120 +2076,13 @@ ${helpers.single_keyword("transform-style",
                          flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
                          animation_value_type="discrete")}
 
-<%helpers:longhand name="transform-origin" animation_value_type="ComputedValue" extra_prefixes="moz webkit" boxed="True"
-                   spec="https://drafts.csswg.org/css-transforms/#transform-origin-property">
-    use app_units::Au;
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::specified::{NoCalcLength, LengthOrPercentage, Percentage};
-
-    pub mod computed_value {
-        use properties::animated_properties::Animatable;
-        use values::computed::{Length, LengthOrPercentage};
-
-        #[derive(Clone, Copy, Debug, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T {
-            pub horizontal: LengthOrPercentage,
-            pub vertical: LengthOrPercentage,
-            pub depth: Length,
-        }
-
-        impl Animatable for T {
-            #[inline]
-            fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
-                -> Result<Self, ()> {
-                Ok(T {
-                    horizontal: try!(self.horizontal.add_weighted(&other.horizontal,
-                                                                  self_portion, other_portion)),
-                    vertical: try!(self.vertical.add_weighted(&other.vertical,
-                                                              self_portion, other_portion)),
-                    depth: try!(self.depth.add_weighted(&other.depth, self_portion, other_portion)),
-                })
-            }
-
-            #[inline]
-            fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-                self.compute_squared_distance(other).map(|sd| sd.sqrt())
-            }
-
-            #[inline]
-            fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-                Ok(try!(self.horizontal.compute_squared_distance(&other.horizontal)) +
-                   try!(self.vertical.compute_squared_distance(&other.vertical)) +
-                   try!(self.depth.compute_squared_distance(&other.depth)))
-            }
-        }
-    }
-
-    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedValue {
-        horizontal: LengthOrPercentage,
-        vertical: LengthOrPercentage,
-        depth: NoCalcLength,
-    }
-
-    impl ToCss for computed_value::T {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            try!(self.horizontal.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(self.vertical.to_css(dest));
-            try!(dest.write_str(" "));
-            self.depth.to_css(dest)
-        }
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            try!(self.horizontal.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(self.vertical.to_css(dest));
-            try!(dest.write_str(" "));
-            self.depth.to_css(dest)
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T {
-            horizontal: computed::LengthOrPercentage::Percentage(0.5),
-            vertical: computed::LengthOrPercentage::Percentage(0.5),
-            depth: Au(0),
-        }
-    }
-
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-        let result = try!(super::parse_origin(context, input));
-        Ok(SpecifiedValue {
-            horizontal: result.horizontal.unwrap_or(LengthOrPercentage::Percentage(Percentage(0.5))),
-            vertical: result.vertical.unwrap_or(LengthOrPercentage::Percentage(Percentage(0.5))),
-            depth: result.depth.unwrap_or(NoCalcLength::zero()),
-        })
-    }
-
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            computed_value::T {
-                horizontal: self.horizontal.to_computed_value(context),
-                vertical: self.vertical.to_computed_value(context),
-                depth: self.depth.to_computed_value(context),
-            }
-        }
-
-        #[inline]
-        fn from_computed_value(computed: &computed_value::T) -> Self {
-            SpecifiedValue {
-                horizontal: ToComputedValue::from_computed_value(&computed.horizontal),
-                vertical: ToComputedValue::from_computed_value(&computed.vertical),
-                depth: ToComputedValue::from_computed_value(&computed.depth),
-            }
-        }
-    }
-</%helpers:longhand>
+${helpers.predefined_type("transform-origin",
+                          "TransformOrigin",
+                          "computed::TransformOrigin::initial_value()",
+                          animation_value_type="ComputedValue",
+                          extra_prefixes="moz webkit",
+                          boxed=True,
+                          spec="https://drafts.csswg.org/css-transforms/#transform-origin-property")}
 
 // FIXME: `size` and `content` values are not implemented and `strict` is implemented
 // like `content`(layout style paint) in gecko. We should implement `size` and `content`,
