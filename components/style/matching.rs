@@ -1254,8 +1254,10 @@ pub trait MatchMethods : TElement {
         let mut result = false;
         result |= self.replace_rules_internal(replacements, context, data,
                                               CascadeVisitedMode::Unvisited);
-        result |= self.replace_rules_internal(replacements, context, data,
-                                              CascadeVisitedMode::Visited);
+        if !context.shared.traversal_flags.for_animation_only() {
+            result |= self.replace_rules_internal(replacements, context, data,
+                                                  CascadeVisitedMode::Visited);
+        }
         result
     }
 
