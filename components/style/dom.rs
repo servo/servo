@@ -329,6 +329,11 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// Get this element's style attribute.
     fn style_attribute(&self) -> Option<&Arc<Locked<PropertyDeclarationBlock>>>;
 
+    /// Unset the style attribute's dirty bit.
+    /// Servo doesn't need to manage ditry bit for style attribute.
+    fn unset_dirty_style_attribute(&self) {
+    }
+
     /// Get this element's SMIL override declarations.
     fn get_smil_override(&self) -> Option<&Arc<Locked<PropertyDeclarationBlock>>> {
         None

@@ -1019,6 +1019,7 @@ pub trait MatchMethods : TElement {
                                                  &mut matching_context,
                                                  &mut set_selector_flags);
         }
+        self.unset_dirty_style_attribute();
 
         let primary_rule_node = stylist.rule_tree().compute_rule_node(
             &mut applicable_declarations,
@@ -1301,6 +1302,7 @@ pub trait MatchMethods : TElement {
                 result |= replace_rule_node(CascadeLevel::StyleAttributeImportant,
                                             style_attribute,
                                             primary_rules);
+                self.unset_dirty_style_attribute();
             }
             return result;
         }
