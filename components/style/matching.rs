@@ -855,17 +855,19 @@ pub trait MatchMethods : TElement {
             //
             // If we do have the results, grab them here to satisfy the borrow
             // checker.
-            let revalidation_match_results = context.thread_local
-                                                    .current_element_info
-                                                    .as_mut().unwrap()
-                                                    .cached_style_sharing_data
-                                                    .take();
+            let validation_data =
+                context.thread_local
+                    .current_element_info
+                    .as_mut().unwrap()
+                    .validation_data
+                    .take();
+
             context.thread_local
                    .style_sharing_candidate_cache
                    .insert_if_possible(self,
                                        data.styles().primary.values(),
                                        primary_results.relations,
-                                       revalidation_match_results);
+                                       validation_data);
         }
 
         child_cascade_requirement

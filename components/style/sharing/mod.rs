@@ -37,7 +37,7 @@ pub enum StyleSharingBehavior {
 /// Some data we want to avoid recomputing all the time while trying to share
 /// style.
 #[derive(Debug)]
-pub struct CachedStyleSharingData {
+pub struct ValidationData {
     /// The class list of this element.
     ///
     /// TODO(emilio): See if it's worth to sort them, or doing something else in
@@ -52,8 +52,8 @@ pub struct CachedStyleSharingData {
     revalidation_match_results: Option<BitVec>,
 }
 
-impl CachedStyleSharingData {
-    /// Trivially construct an empty `CachedStyleSharingData` with nothing on
+impl ValidationData {
+    /// Trivially construct an empty `ValidationData` with nothing on
     /// it.
     pub fn new() -> Self {
         Self {
@@ -129,18 +129,18 @@ pub struct StyleSharingCandidate<E: TElement> {
     /// The element. We use SendElement here so that the cache may live in
     /// ScopedTLS.
     element: SendElement<E>,
-    cache: CachedStyleSharingData,
+    validation_data: ValidationData,
 }
 
 impl<E: TElement> StyleSharingCandidate<E> {
     /// Get the classlist of this candidate.
     fn class_list(&mut self) -> &[Atom] {
-        self.cache.class_list(*self.element)
+        self.validation_data.class_list(*self.element)
     }
 
     /// Get the pres hints of this candidate.
     fn pres_hints(&mut self) -> &[ApplicableDeclarationBlock] {
-        self.cache.pres_hints(*self.element)
+        self.validation_data.pres_hints(*self.element)
     }
 
     /// Get the classlist of this candidate.
@@ -149,10 +149,11 @@ impl<E: TElement> StyleSharingCandidate<E> {
         stylist: &Stylist,
         bloom: &BloomFilter,
     ) -> &BitVec {
-        self.cache.revalidation_match_results(*self.element,
-                                              stylist,
-                                              bloom,
-                                              &mut |_, _| {})
+        self.validation_data.revalidation_match_results(
+            *self.element,
+            stylist,
+            bloom,
+            &mut |_, _| {})
     }
 }
 
@@ -165,7 +166,7 @@ impl<E: TElement> PartialEq<StyleSharingCandidate<E>> for StyleSharingCandidate<
 /// An element we want to test against the style sharing cache.
 pub struct StyleSharingTarget<E: TElement> {
     element: E,
-    cache: CachedStyleSharingData,
+    validation_data: ValidationData,
 }
 
 impl<E: TElement> Deref for StyleSharingTarget<E> {
@@ -181,17 +182,17 @@ impl<E: TElement> StyleSharingTarget<E> {
     pub fn new(element: E) -> Self {
         Self {
             element: element,
-            cache: CachedStyleSharingData::new(),
+            validation_data: ValidationData::new(),
         }
     }
 
     fn class_list(&mut self) -> &[Atom] {
-        self.cache.class_list(self.element)
+        self.validation_data.class_list(self.element)
     }
 
     /// Get the pres hints of this candidate.
     fn pres_hints(&mut self) -> &[ApplicableDeclarationBlock] {
-        self.cache.pres_hints(self.element)
+        self.validation_data.pres_hints(self.element)
     }
 
     fn revalidation_match_results(
@@ -220,10 +221,11 @@ impl<E: TElement> StyleSharingTarget<E> {
             element.apply_selector_flags(selector_flags_map, el, flags);
         };
 
-        self.cache.revalidation_match_results(self.element,
-                                              stylist,
-                                              bloom,
-                                              &mut set_selector_flags)
+        self.validation_data.revalidation_match_results(
+            self.element,
+            stylist,
+            bloom,
+            &mut set_selector_flags)
     }
 
     /// Attempts to share a style with another node.
@@ -247,12 +249,11 @@ impl<E: TElement> StyleSharingTarget<E> {
                                      &mut self,
                                      data);
 
-        // FIXME(emilio): Do this in a cleaner way.
-        mem::swap(&mut self.cache,
+        mem::swap(&mut self.validation_data,
                   &mut context
                       .thread_local
                       .current_element_info.as_mut().unwrap()
-                      .cached_style_sharing_data);
+                      .validation_data);
 
         result
     }
@@ -334,7 +335,7 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
                               element: &E,
                               style: &ComputedValues,
                               relations: StyleRelations,
-                              mut cache: CachedStyleSharingData) {
+                              mut validation_data: ValidationData) {
         use selectors::matching::AFFECTED_BY_PRESENTATIONAL_HINTS;
 
         let parent = match element.parent_element() {
@@ -371,15 +372,15 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
         // Take advantage of the information we've learned during
         // selector-matching.
         if !relations.intersects(AFFECTED_BY_PRESENTATIONAL_HINTS) {
-            debug_assert!(cache.pres_hints.as_ref().map_or(true, |v| v.is_empty()));
-            cache.pres_hints = Some(SmallVec::new());
+            debug_assert!(validation_data.pres_hints.as_ref().map_or(true, |v| v.is_empty()));
+            validation_data.pres_hints = Some(SmallVec::new());
         }
 
         debug!("Inserting into cache: {:?} with parent {:?}", element, parent);
 
         self.cache.insert(StyleSharingCandidate {
             element: unsafe { SendElement::new(*element) },
-            cache: cache,
+            validation_data: validation_data,
         });
     }
 
