@@ -13,6 +13,7 @@
 ${helpers.predefined_type("outline-color", "CSSColor", "computed::CSSColor::CurrentColor",
                           initial_specified_value="specified::CSSColor::currentcolor()",
                           animation_value_type="IntermediateColor", complex_color=True, need_clone=True,
+                          ignored_when_colors_disabled=True,
                           spec="https://drafts.csswg.org/css-ui/#propdef-outline-color")}
 
 <%helpers:longhand name="outline-style" need_clone="True" animation_value_type="none"

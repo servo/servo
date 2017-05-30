@@ -150,7 +150,8 @@ class Longhand(object):
                  need_clone=False, need_index=False, gecko_ffi_name=None, depend_on_viewport_size=False,
                  allowed_in_keyframe_block=True, complex_color=False, cast_type='u8',
                  has_uncacheable_values=False, logical=False, alias=None, extra_prefixes=None, boxed=False,
-                 flags=None, allowed_in_page_rule=False, allow_quirks=False, vector=False):
+                 flags=None, allowed_in_page_rule=False, allow_quirks=False, ignored_when_colors_disabled=False,
+                 vector=False):
         self.name = name
         if not spec:
             raise TypeError("Spec should be specified for %s" % name)
@@ -177,6 +178,7 @@ class Longhand(object):
         self.flags = flags.split() if flags else []
         self.allowed_in_page_rule = arg_to_bool(allowed_in_page_rule)
         self.allow_quirks = allow_quirks
+        self.ignored_when_colors_disabled = ignored_when_colors_disabled
         self.is_vector = vector
 
         # https://drafts.csswg.org/css-animations/#keyframes

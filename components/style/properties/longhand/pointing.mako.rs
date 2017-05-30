@@ -184,4 +184,5 @@ ${helpers.predefined_type("caret-color",
                           spec="https://drafts.csswg.org/css-ui/#caret-color",
                           animation_value_type="Either<IntermediateColor, Auto>",
                           boxed=True,
+                          ignored_when_colors_disabled=True,
                           products="gecko")}

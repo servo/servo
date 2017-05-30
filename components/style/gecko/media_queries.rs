@@ -6,9 +6,10 @@
 
 use app_units::Au;
 use context::QuirksMode;
-use cssparser::{CssStringWriter, Parser, Token};
+use cssparser::{CssStringWriter, Parser, RGBA, Token};
 use euclid::Size2D;
 use font_metrics::get_metrics_provider_for_product;
+use gecko::values::convert_nscolor_to_rgba;
 use gecko_bindings::bindings;
 use gecko_bindings::structs::{nsCSSKeyword, nsCSSProps_KTableEntry, nsCSSValue, nsCSSUnit, nsStringBuffer};
 use gecko_bindings::structs::{nsMediaExpression_Range, nsMediaFeature};
@@ -133,6 +134,16 @@ impl Device {
             Size2D::new(Au((*self.pres_context).mVisibleArea.width),
                         Au((*self.pres_context).mVisibleArea.height))
         })
+    }
+
+    /// Returns whether document colors are enabled.
+    pub fn use_document_colors(&self) -> bool {
+        unsafe { (*self.pres_context).mUseDocumentColors() != 0 }
+    }
+
+    /// Returns the default background color.
+    pub fn default_background_color(&self) -> RGBA {
+        convert_nscolor_to_rgba(unsafe { (*self.pres_context).mBackgroundColor })
     }
 }
 

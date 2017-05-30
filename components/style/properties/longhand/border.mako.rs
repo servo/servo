@@ -22,7 +22,8 @@
                               spec=maybe_logical_spec(side, "color"),
                               animation_value_type="IntermediateColor",
                               logical=side[1],
-                              allow_quirks=not side[1])}
+                              allow_quirks=not side[1],
+                              ignored_when_colors_disabled=True)}
 
     ${helpers.predefined_type("border-%s-style" % side[0], "BorderStyle",
                               "specified::BorderStyle::none",
@@ -59,7 +60,8 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
 % for side in PHYSICAL_SIDES:
     <%helpers:longhand name="-moz-border-${side}-colors" animation_value_type="none"
                        spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-border-*-colors)"
-                       products="gecko">
+                       products="gecko"
+                       ignored_when_colors_disabled="True">
         use std::fmt;
         use style_traits::ToCss;
         use values::specified::CSSColor;
