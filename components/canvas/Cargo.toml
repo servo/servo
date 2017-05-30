@@ -13,7 +13,7 @@ path = "lib.rs"
 azure = {git = "https://github.com/servo/rust-azure"}
 canvas_traits = {path = "../canvas_traits"}
 cssparser = "0.13.7"
-euclid = "0.11"
+euclid = "0.13"
 gleam = "0.4"
 ipc-channel = "0.7"
 log = "0.3.5"

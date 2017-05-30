@@ -11,7 +11,7 @@ name = "range"
 path = "lib.rs"
 
 [dependencies]
-heapsize = "0.3.0"
+heapsize = "0.4"
 heapsize_derive = "0.1"
 num-traits = "0.1.32"
 serde = "0.9"

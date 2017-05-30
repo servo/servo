@@ -28,7 +28,7 @@ cssparser = "0.13.7"
 fnv = "1.0"
 phf = "0.7.18"
 precomputed-hash = "0.1"
-smallvec = "0.3"
+smallvec = "0.4"
 
 [dev-dependencies]
 size_of_test = {path = "../size_of_test"}

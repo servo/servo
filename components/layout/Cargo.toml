@@ -15,11 +15,11 @@ atomic_refcell = "0.1"
 bitflags = "0.7"
 canvas_traits = {path = "../canvas_traits"}
 cssparser = "0.13.7"
-euclid = "0.11"
+euclid = "0.13"
 fnv = "1.0"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
-heapsize = "0.3.0"
+heapsize = "0.4"
 html5ever = "0.17"
 ipc-channel = "0.7"
 libc = "0.2"
@@ -40,7 +40,7 @@ servo_geometry = {path = "../geometry"}
 serde_json = "0.9"
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
-smallvec = "0.3"
+smallvec = "0.4"
 style = {path = "../style"}
 style_traits = {path = "../style_traits"}
 unicode-bidi = {version = "0.3", features = ["with_serde"]}
