@@ -11,7 +11,7 @@ use style::context::QuirksMode;
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries::*;
 use style::servo::media_queries::*;
-use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard};
+use style::shared_lock::SharedRwLock;
 use style::stylearc::Arc;
 use style::stylesheets::{AllRules, Stylesheet, Origin, CssRule};
 use style::values::specified;
