@@ -490,13 +490,15 @@ class PackageCommands(CommandBase):
                     '--message=Version Bump: {}'.format(brew_version),
                 ])
 
-                token = os.environ['GITHUB_HOMEBREW_TOKEN']
-                call_git([
-                    'push',
-                    '-qf',
-                    'https://{}@github.com/servo/homebrew-servo.git'.format(token),
-                    'master',
-                ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                push_url = 'https://{}@github.com/servo/homebrew-servo.git'
+                # TODO(aneeshusa): Use subprocess.DEVNULL with Python 3.3+
+                with open(os.devnull, 'wb') as DEVNULL:
+                    call_git([
+                        'push',
+                        '-qf',
+                        push_url.format(os.environ['GITHUB_HOMEBREW_TOKEN']),
+                        'master',
+                    ], stdout=DEVNULL, stderr=DEVNULL)
 
         timestamp = datetime.utcnow().replace(microsecond=0)
         for package in PACKAGES[platform]:
