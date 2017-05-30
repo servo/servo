@@ -18,7 +18,7 @@ use types::{cef_cursor_handle_t, cef_cursor_type_t, cef_rect_t};
 use wrappers::CefWrap;
 
 use compositing::compositor_thread::{self, CompositorProxy, CompositorReceiver};
-use compositing::windowing::{WindowEvent, WindowMethods};
+use compositing::windowing::{ViewGeometry, WindowEvent, WindowMethods};
 use euclid::point::{Point2D, TypedPoint2D};
 use euclid::rect::TypedRect;
 use euclid::scale_factor::ScaleFactor;
@@ -27,7 +27,6 @@ use gleam::gl;
 use msg::constellation_msg::{Key, KeyModifiers};
 use net_traits::net_error_list::NetError;
 use script_traits::{DevicePixel, LoadData};
-use servo_geometry::DeviceIndependentPixel;
 use std::cell::RefCell;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_void};
@@ -176,71 +175,60 @@ impl WindowMethods for Window {
         self.gl.clone()
     }
 
-    fn framebuffer_size(&self) -> TypedSize2D<u32, DevicePixel> {
+    fn get_geometry(&self) -> ViewGeometry {
+
         let browser = self.cef_browser.borrow();
-        match *browser {
-            None => self.size,
+
+        let (size, hidpi_factor) = match *browser {
+            None => (self.size, ScaleFactor::new(1.0 as f32)),
             Some(ref browser) => {
                 if browser.downcast().callback_executed.get() != true {
-                    self.size
+                    (self.size, ScaleFactor::new(1.0 as f32))
                 } else {
-                    let mut rect = cef_rect_t::zero();
-                    rect.width = self.size.width as i32;
-                    rect.height = self.size.height as i32;
-                    if cfg!(target_os="macos") {
-                        // osx relies on virtual pixel scaling to provide sizes different from actual
-                        // pixel size on screen. other platforms are just 1.0 unless the desktop/toolkit says otherwise
-                        if check_ptr_exist!(browser.get_host().get_client(), get_render_handler) &&
-                           check_ptr_exist!(browser.get_host().get_client().get_render_handler(), get_backing_rect) {
-                            browser.get_host()
-                                   .get_client()
-                                   .get_render_handler()
-                                   .get_backing_rect((*browser).clone(), &mut rect);
-                        }
-                    } else {
-                        if check_ptr_exist!(browser.get_host().get_client(), get_render_handler) &&
-                           check_ptr_exist!(browser.get_host().get_client().get_render_handler(), get_view_rect) {
-                            browser.get_host()
-                                   .get_client()
-                                   .get_render_handler()
-                                   .get_view_rect((*browser).clone(), &mut rect);
-                        }
+                    let mut view_rect = cef_rect_t::zero();
+                    if check_ptr_exist!(browser.get_host().get_client(), get_render_handler) &&
+                       check_ptr_exist!(browser.get_host().get_client().get_render_handler(), get_view_rect) {
+                        browser.get_host()
+                               .get_client()
+                               .get_render_handler()
+                               .get_view_rect((*browser).clone(), &mut view_rect);
+                    }
+                    let mut backing_rect = cef_rect_t::zero();
+                    if check_ptr_exist!(browser.get_host().get_client(), get_render_handler) &&
+                       check_ptr_exist!(browser.get_host().get_client().get_render_handler(), get_backing_rect) {
+                        browser.get_host()
+                               .get_client()
+                               .get_render_handler()
+                               .get_backing_rect((*browser).clone(), &mut backing_rect);
                     }
 
-                    TypedSize2D::new(rect.width as u32, rect.height as u32)
+                    if cfg!(target_os="macos") {
+                        // size is backing_rect
+                        let size = TypedSize2D::new(backing_rect.width as u32, backing_rect.height as u32);
+                        let hidpi_factor = ScaleFactor::new(backing_rect.width as f32 / view_rect.width as f32);
+                        (size, hidpi_factor)
+                    } else {
+                        let size = TypedSize2D::new(view_rect.width as u32, view_rect.height as u32);
+                        // FIXME(zmike)
+                        // need to figure out a method for actually getting the scale factor instead of this nonsense
+                        let hidpi_factor = ScaleFactor::new(1.0 as f32);
+                        (size, hidpi_factor)
+                    }
+
                 }
             }
+        };
+
+        let rect: TypedRect<u32, DevicePixel> = TypedRect::new(TypedPoint2D::zero(), size);
+
+        ViewGeometry {
+            rendering_rect: rect,
+            viewport_rect: rect,
+            hidpi_factor: hidpi_factor,
+            window_rect: (size.to_untyped(), Point2D::zero()),
         }
     }
 
-    fn window_rect(&self) -> TypedRect<u32, DevicePixel> {
-        let size = self.framebuffer_size();
-        let origin = TypedPoint2D::zero();
-        TypedRect::new(origin, size)
-    }
-
-    fn size(&self) -> TypedSize2D<f32, DeviceIndependentPixel> {
-        let browser = self.cef_browser.borrow();
-        match *browser {
-            None => TypedSize2D::new(400.0, 300.0),
-            Some(ref browser) => {
-                let mut rect = cef_rect_t::zero();
-                browser.get_host()
-                       .get_client()
-                       .get_render_handler()
-                       .get_view_rect((*browser).clone(), &mut rect);
-                TypedSize2D::new(rect.width as f32, rect.height as f32)
-            }
-        }
-    }
-
-    fn client_window(&self) -> (Size2D<u32>, Point2D<i32>) {
-        let size = self.size().to_untyped();
-        let width = size.width as u32;
-        let height = size.height as u32;
-        //TODO get real window position
-        (Size2D::new(width, height), Point2D::zero())
-    }
 
     fn set_inner_size(&self, _size: Size2D<u32>) {
 
@@ -260,38 +248,6 @@ impl WindowMethods for Window {
                check_ptr_exist!(browser.get_host().get_client().get_render_handler(), on_present) {
                 browser.get_host().get_client().get_render_handler().on_present(browser.clone());
             }
-        }
-    }
-
-    fn hidpi_factor(&self) -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel> {
-        if cfg!(target_os="macos") {
-            let browser = self.cef_browser.borrow();
-            match *browser {
-                None => ScaleFactor::new(1.0),
-                Some(ref browser) => {
-                    let mut view_rect = cef_rect_t::zero();
-                    if check_ptr_exist!(browser.get_host().get_client(), get_render_handler) &&
-                       check_ptr_exist!(browser.get_host().get_client().get_render_handler(), get_view_rect) {
-                        browser.get_host()
-                               .get_client()
-                               .get_render_handler()
-                               .get_view_rect((*browser).clone(), &mut view_rect);
-                    }
-                    let mut backing_rect = cef_rect_t::zero();
-                    if check_ptr_exist!(browser.get_host().get_client(), get_render_handler) &&
-                       check_ptr_exist!(browser.get_host().get_client().get_render_handler(), get_backing_rect) {
-                        browser.get_host()
-                               .get_client()
-                               .get_render_handler()
-                               .get_backing_rect((*browser).clone(), &mut backing_rect);
-                    }
-                    ScaleFactor::new(backing_rect.width as f32 / view_rect.width as f32)
-                }
-            }
-        } else {
-            // FIXME(zmike)
-            // need to figure out a method for actually getting the scale factor instead of this nonsense
-            ScaleFactor::new(1.0 as f32)
         }
     }
 

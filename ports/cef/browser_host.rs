@@ -7,13 +7,11 @@ use eutil::Downcast;
 use interfaces::{CefBrowser, CefBrowserHost, CefClient, cef_browser_t, cef_browser_host_t, cef_client_t};
 use types::cef_event_flags_t::{EVENTFLAG_ALT_DOWN, EVENTFLAG_CONTROL_DOWN, EVENTFLAG_SHIFT_DOWN};
 use types::cef_key_event_type_t::{KEYEVENT_CHAR, KEYEVENT_KEYDOWN, KEYEVENT_KEYUP, KEYEVENT_RAWKEYDOWN};
-use types::{cef_mouse_button_type_t, cef_mouse_event, cef_rect_t, cef_key_event, cef_window_handle_t};
+use types::{cef_mouse_button_type_t, cef_mouse_event, cef_key_event, cef_window_handle_t};
 use webrender_traits::ScrollLocation;
-use wrappers::CefWrap;
 
 use compositing::windowing::{WindowEvent, MouseWindowEvent};
 use euclid::point::TypedPoint2D;
-use euclid::size::TypedSize2D;
 use libc::{c_double, c_int};
 use msg::constellation_msg::{self, KeyModifiers, KeyState};
 use script_traits::{MouseButton, TouchEventType};
@@ -371,22 +369,7 @@ full_cef_class_impl! {
         }}
 
         fn was_resized(&this,) -> () {{
-            let mut rect = cef_rect_t::zero();
-            if cfg!(target_os="macos") {
-                if check_ptr_exist!(this.get_client(), get_render_handler) &&
-                   check_ptr_exist!(this.get_client().get_render_handler(), get_backing_rect) {
-                    this.get_client()
-                        .get_render_handler()
-                        .get_backing_rect(this.downcast().browser.borrow().clone().unwrap(), &mut rect);
-                }
-            } else if check_ptr_exist!(this.get_client(), get_render_handler) &&
-               check_ptr_exist!(this.get_client().get_render_handler(), get_view_rect) {
-                this.get_client()
-                    .get_render_handler()
-                    .get_view_rect(this.downcast().browser.borrow().clone().unwrap(), &mut rect);
-               }
-            let size = TypedSize2D::new(rect.width as u32, rect.height as u32);
-            this.downcast().send_window_event(WindowEvent::Resize(size));
+            this.downcast().send_window_event(WindowEvent::Resize);
         }}
 
         fn close_browser(&this, _force: c_int [c_int],) -> () {{
