@@ -11,7 +11,7 @@ use dom::{DirtyDescendants, NodeInfo, OpaqueNode, TElement, TNode};
 use matching::{ChildCascadeRequirement, MatchMethods};
 use restyle_hints::{HintComputationContext, RestyleHint};
 use selector_parser::RestyleDamage;
-use sharing::StyleSharingBehavior;
+use sharing::{StyleSharingBehavior, StyleSharingTarget};
 #[cfg(feature = "servo")] use servo_config::opts;
 use smallvec::SmallVec;
 use std::borrow::BorrowMut;
@@ -800,9 +800,9 @@ fn compute_style<E, D>(_traversal: &D,
     // First, try the style sharing cache. If we get a match we can skip the rest
     // of the work.
     if let MatchAndCascade = kind {
-        let sharing_result = unsafe {
-            element.share_style_if_possible(context, data)
-        };
+        let target = StyleSharingTarget::new(element);
+        let sharing_result = target.share_style_if_possible(context, data);
+
         if let StyleWasShared(index, had_damage) = sharing_result {
             context.thread_local.statistics.styles_shared += 1;
             context.thread_local.style_sharing_candidate_cache.touch(index);

@@ -44,7 +44,7 @@ use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::Size2D;
-use fnv::FnvHasher;
+use fnv::FnvHashMap;
 use gfx::display_list::{OpaqueNode, WebRenderImageInfo};
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
@@ -99,7 +99,6 @@ use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
-use std::hash::BuildHasherDefault;
 use std::marker::PhantomData;
 use std::mem as std_mem;
 use std::ops::{Deref, DerefMut};
@@ -203,10 +202,10 @@ pub struct LayoutThread {
     document_shared_lock: Option<SharedRwLock>,
 
     /// The list of currently-running animations.
-    running_animations: StyleArc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
+    running_animations: StyleArc<RwLock<FnvHashMap<OpaqueNode, Vec<Animation>>>>,
 
     /// The list of animations that have expired since the last style recalculation.
-    expired_animations: StyleArc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
+    expired_animations: StyleArc<RwLock<FnvHashMap<OpaqueNode, Vec<Animation>>>>,
 
     /// A counter for epoch messages
     epoch: Cell<Epoch>,
@@ -224,9 +223,8 @@ pub struct LayoutThread {
     /// The CSS error reporter for all CSS loaded in this layout thread
     error_reporter: CSSErrorReporter,
 
-    webrender_image_cache: Arc<RwLock<HashMap<(ServoUrl, UsePlaceholder),
-                                              WebRenderImageInfo,
-                                              BuildHasherDefault<FnvHasher>>>>,
+    webrender_image_cache: Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder),
+                                                 WebRenderImageInfo>>>,
 
     /// Webrender interface.
     webrender_api: webrender_traits::RenderApi,
@@ -492,8 +490,8 @@ impl LayoutThread {
             outstanding_web_fonts: outstanding_web_fonts_counter,
             root_flow: RefCell::new(None),
             document_shared_lock: None,
-            running_animations: StyleArc::new(RwLock::new(HashMap::new())),
-            expired_animations: StyleArc::new(RwLock::new(HashMap::new())),
+            running_animations: StyleArc::new(RwLock::new(FnvHashMap::default())),
+            expired_animations: StyleArc::new(RwLock::new(FnvHashMap::default())),
             epoch: Cell::new(Epoch(0)),
             viewport_size: Size2D::new(Au(0), Au(0)),
             webrender_api: webrender_api_sender.create_api(),
@@ -521,7 +519,7 @@ impl LayoutThread {
                 script_chan: Arc::new(Mutex::new(script_chan)),
             },
             webrender_image_cache:
-                Arc::new(RwLock::new(HashMap::with_hasher(Default::default()))),
+                Arc::new(RwLock::new(FnvHashMap::default())),
             timer:
                 if PREFS.get("layout.animations.test.enabled")
                            .as_boolean().unwrap_or(false) {

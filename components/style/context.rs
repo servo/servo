@@ -7,7 +7,6 @@
 #[cfg(feature = "servo")] use animation::Animation;
 use animation::PropertyAnimation;
 use app_units::Au;
-use bit_vec::BitVec;
 use bloom::StyleBloom;
 use cache::LRUCache;
 use data::ElementData;
@@ -21,11 +20,8 @@ use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")] use properties::ComputedValues;
 use selector_parser::SnapshotMap;
 use selectors::matching::ElementSelectorFlags;
-#[cfg(feature = "servo")] use servo_config::opts;
 use shared_lock::StylesheetGuards;
-use sharing::StyleSharingCandidateCache;
-#[cfg(feature = "servo")] use std::collections::HashMap;
-#[cfg(feature = "gecko")] use std::env;
+use sharing::{ValidationData, StyleSharingCandidateCache};
 use std::fmt;
 use std::ops::Add;
 #[cfg(feature = "servo")] use std::sync::Mutex;
@@ -79,6 +75,7 @@ pub struct StyleSystemOptions {
 
 #[cfg(feature = "gecko")]
 fn get_env(name: &str) -> bool {
+    use std::env;
     match env::var(name) {
         Ok(s) => !s.is_empty(),
         Err(_) => false,
@@ -88,6 +85,8 @@ fn get_env(name: &str) -> bool {
 impl Default for StyleSystemOptions {
     #[cfg(feature = "servo")]
     fn default() -> Self {
+        use servo_config::opts;
+
         StyleSystemOptions {
             disable_style_sharing_cache: opts::get().disable_share_style_cache,
             dump_style_statistics: opts::get().style_sharing_stats,
@@ -135,11 +134,11 @@ pub struct SharedStyleContext<'a> {
 
     /// The animations that are currently running.
     #[cfg(feature = "servo")]
-    pub running_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
+    pub running_animations: Arc<RwLock<FnvHashMap<OpaqueNode, Vec<Animation>>>>,
 
     /// The list of animations that have expired since the last style recalculation.
     #[cfg(feature = "servo")]
-    pub expired_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
+    pub expired_animations: Arc<RwLock<FnvHashMap<OpaqueNode, Vec<Animation>>>>,
 
     /// Data needed to create the thread-local style context from the shared one.
     #[cfg(feature = "servo")]
@@ -154,26 +153,27 @@ impl<'a> SharedStyleContext<'a> {
     }
 }
 
-/// Information about the current element being processed. We group this together
-/// into a single struct within ThreadLocalStyleContext so that we can instantiate
-/// and destroy it easily at the beginning and end of element processing.
+/// Information about the current element being processed. We group this
+/// together into a single struct within ThreadLocalStyleContext so that we can
+/// instantiate and destroy it easily at the beginning and end of element
+/// processing.
 pub struct CurrentElementInfo {
-    /// The element being processed. Currently we use an OpaqueNode since we only
-    /// use this for identity checks, but we could use SendElement if there were
-    /// a good reason to.
+    /// The element being processed. Currently we use an OpaqueNode since we
+    /// only use this for identity checks, but we could use SendElement if there
+    /// were a good reason to.
     element: OpaqueNode,
     /// Whether the element is being styled for the first time.
     is_initial_style: bool,
-    /// Lazy cache of the result of matching the current element against the
-    /// revalidation selectors.
-    pub revalidation_match_results: Option<BitVec>,
+    /// Lazy cache of the different data used for style sharing.
+    pub validation_data: ValidationData,
     /// A Vec of possibly expired animations. Used only by Servo.
     #[allow(dead_code)]
     pub possibly_expired_animations: Vec<PropertyAnimation>,
 }
 
-/// Statistics gathered during the traversal. We gather statistics on each thread
-/// and then combine them after the threads join via the Add implementation below.
+/// Statistics gathered during the traversal. We gather statistics on each
+/// thread and then combine them after the threads join via the Add
+/// implementation below.
 #[derive(Default)]
 pub struct TraversalStatistics {
     /// The total number of elements traversed.
@@ -463,7 +463,7 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
         self.current_element_info = Some(CurrentElementInfo {
             element: element.as_node().opaque(),
             is_initial_style: !data.has_styles(),
-            revalidation_match_results: None,
+            validation_data: ValidationData::new(),
             possibly_expired_animations: Vec::new(),
         });
     }

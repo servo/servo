@@ -1397,7 +1397,7 @@ impl Rule {
 /// This represents the declarations in a given declaration block for a given
 /// importance.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ApplicableDeclarationBlock {
     /// The style source, either a style rule, or a property declaration block.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
