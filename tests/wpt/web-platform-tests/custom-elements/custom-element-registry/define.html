@@ -12,6 +12,7 @@
   // https://html.spec.whatwg.org/multipage/scripting.html#element-definition
 
   // Use window from iframe to isolate the test.
+  const iframe = document.getElementById("iframe");
   const testWindow = iframe.contentDocument.defaultView;
   const customElements = testWindow.customElements;
 
