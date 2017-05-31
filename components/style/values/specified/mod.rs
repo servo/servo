@@ -42,6 +42,7 @@ pub use self::length::{Percentage, LengthOrNone, LengthOrNumber, LengthOrPercent
 pub use self::length::{LengthOrPercentageOrNone, LengthOrPercentageOrAutoOrContent, NoCalcLength};
 pub use self::length::{MaxLength, MozLength};
 pub use self::position::{Position, PositionComponent};
+pub use self::transform::TransformOrigin;
 
 #[cfg(feature = "gecko")]
 pub mod align;
@@ -55,6 +56,7 @@ pub mod image;
 pub mod length;
 pub mod position;
 pub mod rect;
+pub mod transform;
 
 /// Common handling for the specified value CSS url() values.
 pub mod url {
@@ -539,7 +541,7 @@ impl BorderStyle {
 }
 
 /// A time in seconds according to CSS-VALUES § 6.2.
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Time {
     seconds: CSSFloat,
