@@ -38,6 +38,7 @@ pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNumber, LengthOrP
 pub use self::length::{LengthOrPercentageOrAutoOrContent, LengthOrPercentageOrNone, LengthOrNone};
 pub use self::length::{MaxLength, MozLength};
 pub use self::position::Position;
+pub use self::text::LineHeight;
 pub use self::transform::TransformOrigin;
 
 pub mod background;
@@ -47,6 +48,7 @@ pub mod image;
 pub mod length;
 pub mod position;
 pub mod rect;
+pub mod text;
 pub mod transform;
 
 /// A `Context` is all the data a specified value could ever need to compute
