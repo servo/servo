@@ -18,7 +18,6 @@ use properties::longhands;
 use properties::longhands::background_size::computed_value::T as BackgroundSizeList;
 use properties::longhands::font_weight::computed_value::T as FontWeight;
 use properties::longhands::font_stretch::computed_value::T as FontStretch;
-use properties::longhands::line_height::computed_value::T as LineHeight;
 use properties::longhands::text_shadow::computed_value::T as TextShadowList;
 use properties::longhands::text_shadow::computed_value::TextShadow;
 use properties::longhands::box_shadow::computed_value::T as BoxShadowList;
@@ -1293,43 +1292,6 @@ impl Animatable for MaxLength {
         match (*self, *other) {
             (MaxLength::LengthOrPercentageOrNone(ref this),
              MaxLength::LengthOrPercentageOrNone(ref other)) => {
-                this.compute_distance(other)
-            },
-            _ => Err(()),
-        }
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-number
-/// https://drafts.csswg.org/css-transitions/#animtype-length
-impl Animatable for LineHeight {
-    #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        match (*self, *other) {
-            (LineHeight::Length(ref this),
-             LineHeight::Length(ref other)) => {
-                this.add_weighted(other, self_portion, other_portion).map(LineHeight::Length)
-            }
-            (LineHeight::Number(ref this),
-             LineHeight::Number(ref other)) => {
-                this.add_weighted(other, self_portion, other_portion).map(LineHeight::Number)
-            }
-            (LineHeight::Normal, LineHeight::Normal) => {
-                Ok(LineHeight::Normal)
-            }
-            _ => Err(()),
-        }
-    }
-
-    #[inline]
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        match (*self, *other) {
-            (LineHeight::Length(ref this),
-             LineHeight::Length(ref other)) => {
-                this.compute_distance(other)
-            },
-            (LineHeight::Number(ref this),
-             LineHeight::Number(ref other)) => {
                 this.compute_distance(other)
             },
             _ => Err(()),

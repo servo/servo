@@ -42,6 +42,7 @@ pub use self::length::{Percentage, LengthOrNone, LengthOrNumber, LengthOrPercent
 pub use self::length::{LengthOrPercentageOrNone, LengthOrPercentageOrAutoOrContent, NoCalcLength};
 pub use self::length::{MaxLength, MozLength};
 pub use self::position::{Position, PositionComponent};
+pub use self::text::LineHeight;
 pub use self::transform::TransformOrigin;
 
 #[cfg(feature = "gecko")]
@@ -56,6 +57,7 @@ pub mod image;
 pub mod length;
 pub mod position;
 pub mod rect;
+pub mod text;
 pub mod transform;
 
 /// Common handling for the specified value CSS url() values.
