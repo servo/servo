@@ -2348,7 +2348,9 @@ fn static_assert() {
                     ${transform_function_arm("Perspective", "perspective", ["length"])}
                     _ => {
                         // TODO: Convert ComputedOperation::InterpolateMatrix into
-                        //       eCSSKeyword_interpolatematrix.
+                        //       eCSSKeyword_interpolatematrix, and convert
+                        //       ComputedOperation::AccumulateMatrix into
+                        //       eCSSKeyword_accumulatematrix in the patch series.
                         gecko_value.mUnit = structs::nsCSSUnit::eCSSUnit_None;
                     }
                 }

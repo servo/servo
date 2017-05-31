@@ -639,7 +639,31 @@ impl Animatable for AnimationValue {
                 % endif
             % endfor
             _ => {
-                panic!("Expected weighted addition of computed values of the same \
+                panic!("Expected addition of computed values of the same \
+                        property, got: {:?}, {:?}", self, other);
+            }
+        }
+    }
+
+    fn accumulate(&self, other: &Self, count: u64) -> Result<Self, ()> {
+        match (self, other) {
+            % for prop in data.longhands:
+                % if prop.animatable:
+                    % if prop.animation_value_type == "discrete":
+                        (&AnimationValue::${prop.camel_case}(_),
+                         &AnimationValue::${prop.camel_case}(_)) => {
+                            Err(())
+                        }
+                    % else:
+                        (&AnimationValue::${prop.camel_case}(ref from),
+                         &AnimationValue::${prop.camel_case}(ref to)) => {
+                            from.accumulate(to, count).map(AnimationValue::${prop.camel_case})
+                        }
+                    % endif
+                % endif
+            % endfor
+            _ => {
+                panic!("Expected accumulation of computed values of the same \
                         property, got: {:?}, {:?}", self, other);
             }
         }
@@ -1638,7 +1662,14 @@ fn build_identity_transform_list(list: &[TransformOperation]) -> Vec<TransformOp
             TransformOperation::Rotate(..) => {
                 result.push(TransformOperation::Rotate(0.0, 0.0, 1.0, Angle::zero()));
             }
-            TransformOperation::Perspective(..) => {
+            TransformOperation::Perspective(..) |
+            TransformOperation::AccumulateMatrix { .. } => {
+                // Perspective: We convert a perspective function into an equivalent
+                //     ComputedMatrix, and then decompose/interpolate/recompose these matrices.
+                // AccumulateMatrix: We do interpolation on AccumulateMatrix by reading it as a
+                //     ComputedMatrix (with layout information), and then do matrix interpolation.
+                //
+                // Therefore, we use an identity matrix to represent the identity transform list.
                 // http://dev.w3.org/csswg/css-transforms/#identity-transform-function
                 let identity = ComputedMatrix::identity();
                 result.push(TransformOperation::Matrix(identity));
@@ -2590,6 +2621,45 @@ impl Animatable for TransformList {
                 Ok(self.clone())
             }
             (&None, &Some(_)) => {
+                Ok(other.clone())
+            }
+            _ => {
+                Ok(TransformList(None))
+            }
+        }
+    }
+
+    #[inline]
+    fn accumulate(&self, other: &Self, count: u64) -> Result<Self, ()> {
+        match (&self.0, &other.0) {
+            (&Some(ref from_list), &Some(ref to_list)) => {
+                if can_interpolate_list(from_list, to_list) {
+                    Ok(add_weighted_transform_lists(from_list, &to_list, count as f64, 1.0))
+                } else {
+                    use std::i32;
+                    let result = vec![TransformOperation::AccumulateMatrix {
+                        from_list: self.clone(),
+                        to_list: other.clone(),
+                        // For accumulation, we need to increase accumulation count for |other| if
+                        // we do matrix decomposition/interpolation/recomposition on Gecko. After
+                        // changing to Servo matrix decomposition/interpolation/recomposition, we
+                        // don't need to increase one. I will remove this in the patch series.
+                        count: cmp::min(count + 1, i32::MAX as u64) as i32
+                    }];
+                    Ok(TransformList(Some(result)))
+                }
+            }
+            (&Some(ref from_list), &None) => {
+                Ok(add_weighted_transform_lists(from_list, from_list, count as f64, 0.0))
+            }
+            (&None, &Some(_)) => {
+                // If |self| is 'none' then we are calculating:
+                //
+                //    none * |count| + |other|
+                //    = none + |other|
+                //    = |other|
+                //
+                // Hence the result is just |other|.
                 Ok(other.clone())
             }
             _ => {

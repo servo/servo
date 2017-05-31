@@ -688,7 +688,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
     use app_units::Au;
     use values::computed::{LengthOrPercentageOrNumber as ComputedLoPoNumber, LengthOrNumber as ComputedLoN};
     use values::computed::{LengthOrPercentage as ComputedLoP, Length as ComputedLength};
-    use values::specified::{Angle, Length, LengthOrPercentage, Percentage};
+    use values::specified::{Angle, Integer, Length, LengthOrPercentage, Percentage};
     use values::specified::{LengthOrNumber, LengthOrPercentageOrNumber as LoPoNumber, Number};
     use style_traits::ToCss;
     use style_traits::values::Css;
@@ -762,14 +762,18 @@ ${helpers.predefined_type("scroll-snap-coordinate",
             // e.g.
             // [ InterpolateMatrix { from_list: [ InterpolateMatrix { ... },
             //                                    Scale(...) ],
-            //                       to_list: [ InterpolateMatrix { from_list: ...,
-            //                                                      to_list: [ InterpolateMatrix,
+            //                       to_list: [ AccumulateMatrix { from_list: ...,
+            //                                                     to_list: [ InterpolateMatrix,
             //                                                                 ... ],
-            //                                                      progress: ... } ],
+            //                                                     count: ... } ],
             //                       progress: ... } ]
             InterpolateMatrix { from_list: T,
                                 to_list: T,
                                 progress: Percentage },
+            // For accumulate operation of mismatched transform lists.
+            AccumulateMatrix { from_list: T,
+                               to_list: T,
+                               count: computed::Integer },
         }
 
         #[derive(Clone, Debug, PartialEq)]
@@ -853,6 +857,10 @@ ${helpers.predefined_type("scroll-snap-coordinate",
         InterpolateMatrix { from_list: SpecifiedValue,
                             to_list: SpecifiedValue,
                             progress: Percentage },
+        /// A intermediate type for accumulation of mismatched transform lists.
+        AccumulateMatrix { from_list: SpecifiedValue,
+                           to_list: SpecifiedValue,
+                           count: Integer },
     }
 
     impl ToCss for computed_value::T {
@@ -1466,6 +1474,13 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                             progress: progress
                         });
                     }
+                    AccumulateMatrix { ref from_list, ref to_list, count } => {
+                        result.push(computed_value::ComputedOperation::AccumulateMatrix {
+                            from_list: from_list.to_computed_value(context),
+                            to_list: to_list.to_computed_value(context),
+                            count: count.value()
+                        });
+                    }
                 };
             }
 
@@ -1556,6 +1571,15 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                                 from_list: SpecifiedValue::from_computed_value(from_list),
                                 to_list: SpecifiedValue::from_computed_value(to_list),
                                 progress: progress
+                            });
+                        }
+                        computed_value::ComputedOperation::AccumulateMatrix { ref from_list,
+                                                                              ref to_list,
+                                                                              count } => {
+                            result.push(SpecifiedOperation::AccumulateMatrix {
+                                from_list: SpecifiedValue::from_computed_value(from_list),
+                                to_list: SpecifiedValue::from_computed_value(to_list),
+                                count: Integer::new(count)
                             });
                         }
                     };
