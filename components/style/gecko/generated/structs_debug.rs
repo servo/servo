@@ -9306,10 +9306,11 @@ pub mod root {
             pub mProperty: root::nsCSSPropertyID,
             pub mValue: root::nsCSSValue,
             pub mServoDeclarationBlock: root::RefPtr<root::RawServoDeclarationBlock>,
+            pub mSimulateComputeValuesFailure: bool,
         }
         #[test]
         fn bindgen_test_layout_PropertyValuePair() {
-            assert_eq!(::std::mem::size_of::<PropertyValuePair>() , 32usize ,
+            assert_eq!(::std::mem::size_of::<PropertyValuePair>() , 40usize ,
                        concat ! (
                        "Size of: " , stringify ! ( PropertyValuePair ) ));
             assert_eq! (::std::mem::align_of::<PropertyValuePair>() , 8usize ,
@@ -9335,6 +9336,13 @@ pub mod root {
                         "Alignment of field: " , stringify ! (
                         PropertyValuePair ) , "::" , stringify ! (
                         mServoDeclarationBlock ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const PropertyValuePair ) ) .
+                        mSimulateComputeValuesFailure as * const _ as usize }
+                        , 32usize , concat ! (
+                        "Alignment of field: " , stringify ! (
+                        PropertyValuePair ) , "::" , stringify ! (
+                        mSimulateComputeValuesFailure ) ));
         }
         #[repr(C)]
         #[derive(Debug, Copy, Clone)]
