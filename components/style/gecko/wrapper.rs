@@ -43,6 +43,7 @@ use gecko_bindings::bindings::Gecko_GetStyleAttrDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetStyleContext;
 use gecko_bindings::bindings::Gecko_IsSignificantChild;
 use gecko_bindings::bindings::Gecko_MatchStringArgPseudo;
+use gecko_bindings::bindings::Gecko_UnsetDirtyStyleAttr;
 use gecko_bindings::bindings::Gecko_UpdateAnimations;
 use gecko_bindings::structs;
 use gecko_bindings::structs::{RawGeckoElement, RawGeckoNode};
@@ -626,6 +627,14 @@ impl<'le> TElement for GeckoElement<'le> {
 
         let declarations = unsafe { Gecko_GetStyleAttrDeclarationBlock(self.0) };
         declarations.map_or(None, |s| s.as_arc_opt())
+    }
+
+    fn unset_dirty_style_attribute(&self) {
+        if !self.may_have_style_attribute() {
+            return;
+        }
+
+        unsafe { Gecko_UnsetDirtyStyleAttr(self.0) };
     }
 
     fn get_smil_override(&self) -> Option<&Arc<Locked<PropertyDeclarationBlock>>> {

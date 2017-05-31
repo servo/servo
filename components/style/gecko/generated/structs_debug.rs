@@ -1387,12 +1387,6 @@ pub mod root {
             pub struct WeakReference {
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
-            pub struct FramePropertyTypeHelper {
-                pub _address: u8,
-            }
-            pub type FramePropertyTypeHelper_Type<T> = *mut T;
-            #[repr(C)]
             #[derive(Debug)]
             pub struct MutexImpl {
                 pub platformData_: [*mut ::std::os::raw::c_void; 5usize],
@@ -2530,40 +2524,21 @@ pub mod root {
                                       mDoSmoothScroll: bool,
                                       mUseDisplayPortMargins: bool,
                                       mIsScrollInfoLayer: bool) -> u8 {
-                    let bitfield_unit_val =
-                        {
-                            let bitfield_unit_val =
-                                {
-                                    let bitfield_unit_val =
-                                        {
-                                            let bitfield_unit_val = { 0 };
-                                            let mIsRootContent =
-                                                mIsRootContent as u8 as u8;
-                                            let mask = 1usize as u8;
-                                            let mIsRootContent =
-                                                (mIsRootContent << 0usize) &
-                                                    mask;
-                                            bitfield_unit_val | mIsRootContent
-                                        };
-                                    let mDoSmoothScroll =
-                                        mDoSmoothScroll as u8 as u8;
-                                    let mask = 2usize as u8;
-                                    let mDoSmoothScroll =
-                                        (mDoSmoothScroll << 1usize) & mask;
-                                    bitfield_unit_val | mDoSmoothScroll
-                                };
-                            let mUseDisplayPortMargins =
-                                mUseDisplayPortMargins as u8 as u8;
-                            let mask = 4usize as u8;
-                            let mUseDisplayPortMargins =
-                                (mUseDisplayPortMargins << 2usize) & mask;
-                            bitfield_unit_val | mUseDisplayPortMargins
-                        };
-                    let mIsScrollInfoLayer = mIsScrollInfoLayer as u8 as u8;
-                    let mask = 8usize as u8;
-                    let mIsScrollInfoLayer =
-                        (mIsScrollInfoLayer << 3usize) & mask;
-                    bitfield_unit_val | mIsScrollInfoLayer
+                    ({
+                         ({
+                              ({
+                                   ({ 0 } |
+                                        ((mIsRootContent as u8 as u8) <<
+                                             0usize) & (1usize as u8))
+                               } |
+                                   ((mDoSmoothScroll as u8 as u8) << 1usize) &
+                                       (2usize as u8))
+                          } |
+                              ((mUseDisplayPortMargins as u8 as u8) << 2usize)
+                                  & (4usize as u8))
+                     } |
+                         ((mIsScrollInfoLayer as u8 as u8) << 3usize) &
+                             (8usize as u8))
                 }
             }
             #[repr(C)]
@@ -2855,55 +2830,26 @@ pub mod root {
                                       mIsLayersIdRoot: bool,
                                       mUsesContainerScrolling: bool,
                                       mForceDisableApz: bool) -> u8 {
-                    let bitfield_unit_val =
-                        {
-                            let bitfield_unit_val =
-                                {
-                                    let bitfield_unit_val =
-                                        {
-                                            let bitfield_unit_val =
-                                                {
-                                                    let bitfield_unit_val =
-                                                        { 0 };
-                                                    let mHasScrollgrab =
-                                                        mHasScrollgrab as u8
-                                                            as u8;
-                                                    let mask = 1usize as u8;
-                                                    let mHasScrollgrab =
-                                                        (mHasScrollgrab <<
-                                                             0usize) & mask;
-                                                    bitfield_unit_val |
-                                                        mHasScrollgrab
-                                                };
-                                            let mAllowVerticalScrollWithWheel =
-                                                mAllowVerticalScrollWithWheel
-                                                    as u8 as u8;
-                                            let mask = 2usize as u8;
-                                            let mAllowVerticalScrollWithWheel =
-                                                (mAllowVerticalScrollWithWheel
-                                                     << 1usize) & mask;
-                                            bitfield_unit_val |
-                                                mAllowVerticalScrollWithWheel
-                                        };
-                                    let mIsLayersIdRoot =
-                                        mIsLayersIdRoot as u8 as u8;
-                                    let mask = 4usize as u8;
-                                    let mIsLayersIdRoot =
-                                        (mIsLayersIdRoot << 2usize) & mask;
-                                    bitfield_unit_val | mIsLayersIdRoot
-                                };
-                            let mUsesContainerScrolling =
-                                mUsesContainerScrolling as u8 as u8;
-                            let mask = 8usize as u8;
-                            let mUsesContainerScrolling =
-                                (mUsesContainerScrolling << 3usize) & mask;
-                            bitfield_unit_val | mUsesContainerScrolling
-                        };
-                    let mForceDisableApz = mForceDisableApz as u8 as u8;
-                    let mask = 16usize as u8;
-                    let mForceDisableApz =
-                        (mForceDisableApz << 4usize) & mask;
-                    bitfield_unit_val | mForceDisableApz
+                    ({
+                         ({
+                              ({
+                                   ({
+                                        ({ 0 } |
+                                             ((mHasScrollgrab as u8 as u8) <<
+                                                  0usize) & (1usize as u8))
+                                    } |
+                                        ((mAllowVerticalScrollWithWheel as u8
+                                              as u8) << 1usize) &
+                                            (2usize as u8))
+                               } |
+                                   ((mIsLayersIdRoot as u8 as u8) << 2usize) &
+                                       (4usize as u8))
+                          } |
+                              ((mUsesContainerScrolling as u8 as u8) <<
+                                   3usize) & (8usize as u8))
+                     } |
+                         ((mForceDisableApz as u8 as u8) << 4usize) &
+                             (16usize as u8))
                 }
             }
             #[repr(C)]
@@ -7170,231 +7116,6 @@ pub mod root {
             pub struct DocAccessible {
                 _unused: [u8; 0],
             }
-        }
-        #[repr(C)]
-        #[derive(Debug, Copy)]
-        pub struct FramePropertyDescriptorUntyped {
-            pub mDestructor: root::mozilla::FramePropertyDescriptorUntyped_UntypedDestructor,
-            pub mDestructorWithFrame: root::mozilla::FramePropertyDescriptorUntyped_UntypedDestructorWithFrame,
-        }
-        /**
-   * mDestructor will be called if it's non-null.
-   */
-        pub type FramePropertyDescriptorUntyped_UntypedDestructor =
-            ::std::option::Option<unsafe extern "C" fn(aPropertyValue:
-                                                           *mut ::std::os::raw::c_void)>;
-        /**
-   * mDestructorWithFrame will be called if it's non-null and mDestructor
-   * is null. WARNING: The frame passed to mDestructorWithFrame may
-   * be a dangling frame pointer, if this is being called during
-   * presshell teardown. Do not use it except to compare against
-   * other frame pointers. No frame will have been allocated with
-   * the same address yet.
-   */
-        pub type FramePropertyDescriptorUntyped_UntypedDestructorWithFrame =
-            ::std::option::Option<unsafe extern "C" fn(aFrame:
-                                                           *const root::nsIFrame,
-                                                       aPropertyValue:
-                                                           *mut ::std::os::raw::c_void)>;
-        #[test]
-        fn bindgen_test_layout_FramePropertyDescriptorUntyped() {
-            assert_eq!(::std::mem::size_of::<FramePropertyDescriptorUntyped>()
-                       , 16usize , concat ! (
-                       "Size of: " , stringify ! (
-                       FramePropertyDescriptorUntyped ) ));
-            assert_eq! (::std::mem::align_of::<FramePropertyDescriptorUntyped>()
-                        , 8usize , concat ! (
-                        "Alignment of " , stringify ! (
-                        FramePropertyDescriptorUntyped ) ));
-            assert_eq! (unsafe {
-                        & ( * ( 0 as * const FramePropertyDescriptorUntyped )
-                        ) . mDestructor as * const _ as usize } , 0usize ,
-                        concat ! (
-                        "Alignment of field: " , stringify ! (
-                        FramePropertyDescriptorUntyped ) , "::" , stringify !
-                        ( mDestructor ) ));
-            assert_eq! (unsafe {
-                        & ( * ( 0 as * const FramePropertyDescriptorUntyped )
-                        ) . mDestructorWithFrame as * const _ as usize } ,
-                        8usize , concat ! (
-                        "Alignment of field: " , stringify ! (
-                        FramePropertyDescriptorUntyped ) , "::" , stringify !
-                        ( mDestructorWithFrame ) ));
-        }
-        impl Clone for FramePropertyDescriptorUntyped {
-            fn clone(&self) -> Self { *self }
-        }
-        /**
- * A pointer to a FramePropertyDescriptor serves as a unique property ID.
- * The FramePropertyDescriptor stores metadata about the property.
- * Currently the only metadata is a destructor function. The destructor
- * function is called on property values when they are overwritten or
- * deleted.
- *
- * To use this class, declare a global (i.e., file, class or function-scope
- * static member) FramePropertyDescriptor and pass its address as
- * aProperty in the FramePropertyTable methods.
- */
-        #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
-        pub struct FramePropertyDescriptor {
-            pub _base: root::mozilla::FramePropertyDescriptorUntyped,
-        }
-        pub type FramePropertyDescriptor_Destructor<T> =
-            ::std::option::Option<unsafe extern "C" fn(aPropertyValue:
-                                                           *mut T)>;
-        pub type FramePropertyDescriptor_DestructorWithFrame<T> =
-            ::std::option::Option<unsafe extern "C" fn(aaFrame:
-                                                           *const root::nsIFrame,
-                                                       aPropertyValue:
-                                                           *mut T)>;
-        /**
- * The FramePropertyTable is optimized for storing 0 or 1 properties on
- * a given frame. Storing very large numbers of properties on a single
- * frame will not be efficient.
- * 
- * Property values are passed as void* but do not actually have to be
- * valid pointers. You can use NS_INT32_TO_PTR/NS_PTR_TO_INT32 to
- * store int32_t values. Null/zero values can be stored and retrieved.
- * Of course, the destructor function (if any) must handle such values
- * correctly.
- */
-        #[repr(C)]
-        #[derive(Debug)]
-        pub struct FramePropertyTable {
-            pub mEntries: [u64; 6usize],
-            pub mLastFrame: *const root::nsIFrame,
-            pub mLastEntry: *mut root::mozilla::FramePropertyTable_Entry,
-        }
-        pub type FramePropertyTable_Descriptor =
-            *const root::mozilla::FramePropertyDescriptor;
-        pub type FramePropertyTable_UntypedDescriptor =
-            *const root::mozilla::FramePropertyDescriptorUntyped;
-        pub type FramePropertyTable_PropertyType =
-            root::mozilla::detail::FramePropertyTypeHelper;
-        #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
-        pub struct FramePropertyTable_ReinterpretHelper {
-            pub _address: u8,
-        }
-        /**
-   * Stores a property descriptor/value pair. It can also be used to
-   * store an nsTArray of PropertyValues.
-   */
-        #[repr(C)]
-        #[derive(Debug, Copy)]
-        pub struct FramePropertyTable_PropertyValue {
-            pub mProperty: root::mozilla::FramePropertyTable_UntypedDescriptor,
-            pub mValue: *mut ::std::os::raw::c_void,
-        }
-        #[test]
-        fn bindgen_test_layout_FramePropertyTable_PropertyValue() {
-            assert_eq!(::std::mem::size_of::<FramePropertyTable_PropertyValue>()
-                       , 16usize , concat ! (
-                       "Size of: " , stringify ! (
-                       FramePropertyTable_PropertyValue ) ));
-            assert_eq! (::std::mem::align_of::<FramePropertyTable_PropertyValue>()
-                        , 8usize , concat ! (
-                        "Alignment of " , stringify ! (
-                        FramePropertyTable_PropertyValue ) ));
-            assert_eq! (unsafe {
-                        & (
-                        * ( 0 as * const FramePropertyTable_PropertyValue ) )
-                        . mProperty as * const _ as usize } , 0usize , concat
-                        ! (
-                        "Alignment of field: " , stringify ! (
-                        FramePropertyTable_PropertyValue ) , "::" , stringify
-                        ! ( mProperty ) ));
-            assert_eq! (unsafe {
-                        & (
-                        * ( 0 as * const FramePropertyTable_PropertyValue ) )
-                        . mValue as * const _ as usize } , 8usize , concat ! (
-                        "Alignment of field: " , stringify ! (
-                        FramePropertyTable_PropertyValue ) , "::" , stringify
-                        ! ( mValue ) ));
-        }
-        impl Clone for FramePropertyTable_PropertyValue {
-            fn clone(&self) -> Self { *self }
-        }
-        /**
-   * Used with an array of PropertyValues to allow lookups that compare
-   * only on the FramePropertyDescriptor.
-   */
-        #[repr(C)]
-        #[derive(Debug, Copy)]
-        pub struct FramePropertyTable_PropertyComparator {
-            pub _address: u8,
-        }
-        #[test]
-        fn bindgen_test_layout_FramePropertyTable_PropertyComparator() {
-            assert_eq!(::std::mem::size_of::<FramePropertyTable_PropertyComparator>()
-                       , 1usize , concat ! (
-                       "Size of: " , stringify ! (
-                       FramePropertyTable_PropertyComparator ) ));
-            assert_eq! (::std::mem::align_of::<FramePropertyTable_PropertyComparator>()
-                        , 1usize , concat ! (
-                        "Alignment of " , stringify ! (
-                        FramePropertyTable_PropertyComparator ) ));
-        }
-        impl Clone for FramePropertyTable_PropertyComparator {
-            fn clone(&self) -> Self { *self }
-        }
-        /**
-   * Our hashtable entry. The key is an nsIFrame*, the value is a
-   * PropertyValue representing one or more property/value pairs.
-   */
-        #[repr(C)]
-        #[derive(Debug)]
-        pub struct FramePropertyTable_Entry {
-            pub _base: root::nsPtrHashKey<root::nsIFrame>,
-            pub mProp: root::mozilla::FramePropertyTable_PropertyValue,
-        }
-        #[test]
-        fn bindgen_test_layout_FramePropertyTable_Entry() {
-            assert_eq!(::std::mem::size_of::<FramePropertyTable_Entry>() ,
-                       32usize , concat ! (
-                       "Size of: " , stringify ! ( FramePropertyTable_Entry )
-                       ));
-            assert_eq! (::std::mem::align_of::<FramePropertyTable_Entry>() ,
-                        8usize , concat ! (
-                        "Alignment of " , stringify ! (
-                        FramePropertyTable_Entry ) ));
-            assert_eq! (unsafe {
-                        & ( * ( 0 as * const FramePropertyTable_Entry ) ) .
-                        mProp as * const _ as usize } , 16usize , concat ! (
-                        "Alignment of field: " , stringify ! (
-                        FramePropertyTable_Entry ) , "::" , stringify ! (
-                        mProp ) ));
-        }
-        #[test]
-        fn bindgen_test_layout_FramePropertyTable() {
-            assert_eq!(::std::mem::size_of::<FramePropertyTable>() , 64usize ,
-                       concat ! (
-                       "Size of: " , stringify ! ( FramePropertyTable ) ));
-            assert_eq! (::std::mem::align_of::<FramePropertyTable>() , 8usize
-                        , concat ! (
-                        "Alignment of " , stringify ! ( FramePropertyTable )
-                        ));
-            assert_eq! (unsafe {
-                        & ( * ( 0 as * const FramePropertyTable ) ) . mEntries
-                        as * const _ as usize } , 0usize , concat ! (
-                        "Alignment of field: " , stringify ! (
-                        FramePropertyTable ) , "::" , stringify ! ( mEntries )
-                        ));
-            assert_eq! (unsafe {
-                        & ( * ( 0 as * const FramePropertyTable ) ) .
-                        mLastFrame as * const _ as usize } , 48usize , concat
-                        ! (
-                        "Alignment of field: " , stringify ! (
-                        FramePropertyTable ) , "::" , stringify ! ( mLastFrame
-                        ) ));
-            assert_eq! (unsafe {
-                        & ( * ( 0 as * const FramePropertyTable ) ) .
-                        mLastEntry as * const _ as usize } , 56usize , concat
-                        ! (
-                        "Alignment of field: " , stringify ! (
-                        FramePropertyTable ) , "::" , stringify ! ( mLastEntry
-                        ) ));
         }
         #[repr(C)]
         #[derive(Debug)]
@@ -12557,18 +12278,13 @@ pub mod root {
             #[inline]
             pub fn new_bitfield_1(payload47: u64, tag: root::JSValueTag)
              -> u64 {
-                let bitfield_unit_val =
-                    {
-                        let bitfield_unit_val = { 0 };
-                        let payload47 = payload47 as u64 as u64;
-                        let mask = 140737488355327usize as u64;
-                        let payload47 = (payload47 << 0usize) & mask;
-                        bitfield_unit_val | payload47
-                    };
-                let tag = tag as u32 as u64;
-                let mask = 18446603336221196288usize as u64;
-                let tag = (tag << 47usize) & mask;
-                bitfield_unit_val | tag
+                ({
+                     ({ 0 } |
+                          ((payload47 as u64 as u64) << 0usize) &
+                              (140737488355327usize as u64))
+                 } |
+                     ((tag as u32 as u64) << 47usize) &
+                         (18446603336221196288usize as u64))
             }
         }
         #[repr(C)]
@@ -14022,18 +13738,13 @@ pub mod root {
         }
         #[inline]
         pub fn new_bitfield_1(mCapacity: u32, mIsAutoArray: u32) -> u32 {
-            let bitfield_unit_val =
-                {
-                    let bitfield_unit_val = { 0 };
-                    let mCapacity = mCapacity as u32 as u32;
-                    let mask = 2147483647usize as u32;
-                    let mCapacity = (mCapacity << 0usize) & mask;
-                    bitfield_unit_val | mCapacity
-                };
-            let mIsAutoArray = mIsAutoArray as u32 as u32;
-            let mask = 2147483648usize as u32;
-            let mIsAutoArray = (mIsAutoArray << 31usize) & mask;
-            bitfield_unit_val | mIsAutoArray
+            ({
+                 ({ 0 } |
+                      ((mCapacity as u32 as u32) << 0usize) &
+                          (2147483647usize as u32))
+             } |
+                 ((mIsAutoArray as u32 as u32) << 31usize) &
+                     (2147483648usize as u32))
         }
     }
     pub type nscoord = i32;
@@ -15100,18 +14811,13 @@ pub mod root {
         }
         #[inline]
         pub fn new_bitfield_1(mLength: u32, mIsStatic: u32) -> u32 {
-            let bitfield_unit_val =
-                {
-                    let bitfield_unit_val = { 0 };
-                    let mLength = mLength as u32 as u32;
-                    let mask = 2147483647usize as u32;
-                    let mLength = (mLength << 0usize) & mask;
-                    bitfield_unit_val | mLength
-                };
-            let mIsStatic = mIsStatic as u32 as u32;
-            let mask = 2147483648usize as u32;
-            let mIsStatic = (mIsStatic << 31usize) & mask;
-            bitfield_unit_val | mIsStatic
+            ({
+                 ({ 0 } |
+                      ((mLength as u32 as u32) << 0usize) &
+                          (2147483647usize as u32))
+             } |
+                 ((mIsStatic as u32 as u32) << 31usize) &
+                     (2147483648usize as u32))
         }
     }
     #[repr(C)]
@@ -15930,11 +15636,7 @@ pub mod root {
         }
         #[inline]
         pub fn new_bitfield_1(ownsMessage_: bool) -> u8 {
-            let bitfield_unit_val = { 0 };
-            let ownsMessage_ = ownsMessage_ as u8 as u8;
-            let mask = 1usize as u8;
-            let ownsMessage_ = (ownsMessage_ << 0usize) & mask;
-            bitfield_unit_val | ownsMessage_
+            ({ 0 } | ((ownsMessage_ as u8 as u8) << 0usize) & (1usize as u8))
         }
     }
     /**
@@ -17258,102 +16960,40 @@ pub mod root {
                               mLoadedAsInteractiveData: bool,
                               mMayStartLayout: bool,
                               mHaveFiredTitleChange: bool) -> u8 {
-            let bitfield_unit_val =
-                {
-                    let bitfield_unit_val =
-                        {
-                            let bitfield_unit_val =
-                                {
-                                    let bitfield_unit_val =
-                                        {
-                                            let bitfield_unit_val =
-                                                {
-                                                    let bitfield_unit_val =
-                                                        {
-                                                            let bitfield_unit_val =
-                                                                {
-                                                                    let bitfield_unit_val =
-                                                                        { 0 };
-                                                                    let mBidiEnabled =
-                                                                        mBidiEnabled
-                                                                            as
-                                                                            u8
-                                                                            as
-                                                                            u8;
-                                                                    let mask =
-                                                                        1usize
-                                                                            as
-                                                                            u8;
-                                                                    let mBidiEnabled =
-                                                                        (mBidiEnabled
-                                                                             <<
-                                                                             0usize)
-                                                                            &
-                                                                            mask;
-                                                                    bitfield_unit_val
-                                                                        |
-                                                                        mBidiEnabled
-                                                                };
-                                                            let mMathMLEnabled =
-                                                                mMathMLEnabled
-                                                                    as u8 as
-                                                                    u8;
-                                                            let mask =
-                                                                2usize as u8;
-                                                            let mMathMLEnabled =
-                                                                (mMathMLEnabled
-                                                                     <<
-                                                                     1usize) &
-                                                                    mask;
-                                                            bitfield_unit_val
-                                                                |
-                                                                mMathMLEnabled
-                                                        };
-                                                    let mIsInitialDocumentInWindow =
-                                                        mIsInitialDocumentInWindow
-                                                            as u8 as u8;
-                                                    let mask = 4usize as u8;
-                                                    let mIsInitialDocumentInWindow =
-                                                        (mIsInitialDocumentInWindow
-                                                             << 2usize) &
-                                                            mask;
-                                                    bitfield_unit_val |
-                                                        mIsInitialDocumentInWindow
-                                                };
-                                            let mIgnoreDocGroupMismatches =
-                                                mIgnoreDocGroupMismatches as
-                                                    u8 as u8;
-                                            let mask = 8usize as u8;
-                                            let mIgnoreDocGroupMismatches =
-                                                (mIgnoreDocGroupMismatches <<
-                                                     3usize) & mask;
-                                            bitfield_unit_val |
-                                                mIgnoreDocGroupMismatches
-                                        };
-                                    let mLoadedAsData =
-                                        mLoadedAsData as u8 as u8;
-                                    let mask = 16usize as u8;
-                                    let mLoadedAsData =
-                                        (mLoadedAsData << 4usize) & mask;
-                                    bitfield_unit_val | mLoadedAsData
-                                };
-                            let mLoadedAsInteractiveData =
-                                mLoadedAsInteractiveData as u8 as u8;
-                            let mask = 32usize as u8;
-                            let mLoadedAsInteractiveData =
-                                (mLoadedAsInteractiveData << 5usize) & mask;
-                            bitfield_unit_val | mLoadedAsInteractiveData
-                        };
-                    let mMayStartLayout = mMayStartLayout as u8 as u8;
-                    let mask = 64usize as u8;
-                    let mMayStartLayout = (mMayStartLayout << 6usize) & mask;
-                    bitfield_unit_val | mMayStartLayout
-                };
-            let mHaveFiredTitleChange = mHaveFiredTitleChange as u8 as u8;
-            let mask = 128usize as u8;
-            let mHaveFiredTitleChange =
-                (mHaveFiredTitleChange << 7usize) & mask;
-            bitfield_unit_val | mHaveFiredTitleChange
+            ({
+                 ({
+                      ({
+                           ({
+                                ({
+                                     ({
+                                          ({
+                                               ({ 0 } |
+                                                    ((mBidiEnabled as u8 as
+                                                          u8) << 0usize) &
+                                                        (1usize as u8))
+                                           } |
+                                               ((mMathMLEnabled as u8 as u8)
+                                                    << 1usize) &
+                                                   (2usize as u8))
+                                      } |
+                                          ((mIsInitialDocumentInWindow as u8
+                                                as u8) << 2usize) &
+                                              (4usize as u8))
+                                 } |
+                                     ((mIgnoreDocGroupMismatches as u8 as u8)
+                                          << 3usize) & (8usize as u8))
+                            } |
+                                ((mLoadedAsData as u8 as u8) << 4usize) &
+                                    (16usize as u8))
+                       } |
+                           ((mLoadedAsInteractiveData as u8 as u8) << 5usize)
+                               & (32usize as u8))
+                  } |
+                      ((mMayStartLayout as u8 as u8) << 6usize) &
+                          (64usize as u8))
+             } |
+                 ((mHaveFiredTitleChange as u8 as u8) << 7usize) &
+                     (128usize as u8))
         }
         #[inline]
         pub fn mIsShowing(&self) -> bool {
@@ -17515,100 +17155,38 @@ pub mod root {
                               mIsStaticDocument: bool,
                               mCreatingStaticClone: bool,
                               mInUnlinkOrDeletion: bool) -> u8 {
-            let bitfield_unit_val =
-                {
-                    let bitfield_unit_val =
-                        {
-                            let bitfield_unit_val =
-                                {
-                                    let bitfield_unit_val =
-                                        {
-                                            let bitfield_unit_val =
-                                                {
-                                                    let bitfield_unit_val =
-                                                        {
-                                                            let bitfield_unit_val =
-                                                                {
-                                                                    let bitfield_unit_val =
-                                                                        { 0 };
-                                                                    let mIsShowing =
-                                                                        mIsShowing
-                                                                            as
-                                                                            u8
-                                                                            as
-                                                                            u8;
-                                                                    let mask =
-                                                                        1usize
-                                                                            as
-                                                                            u8;
-                                                                    let mIsShowing =
-                                                                        (mIsShowing
-                                                                             <<
-                                                                             0usize)
-                                                                            &
-                                                                            mask;
-                                                                    bitfield_unit_val
-                                                                        |
-                                                                        mIsShowing
-                                                                };
-                                                            let mVisible =
-                                                                mVisible as u8
-                                                                    as u8;
-                                                            let mask =
-                                                                2usize as u8;
-                                                            let mVisible =
-                                                                (mVisible <<
-                                                                     1usize) &
-                                                                    mask;
-                                                            bitfield_unit_val
-                                                                | mVisible
-                                                        };
-                                                    let mHasReferrerPolicyCSP =
-                                                        mHasReferrerPolicyCSP
-                                                            as u8 as u8;
-                                                    let mask = 4usize as u8;
-                                                    let mHasReferrerPolicyCSP =
-                                                        (mHasReferrerPolicyCSP
-                                                             << 2usize) &
-                                                            mask;
-                                                    bitfield_unit_val |
-                                                        mHasReferrerPolicyCSP
-                                                };
-                                            let mRemovedFromDocShell =
-                                                mRemovedFromDocShell as u8 as
-                                                    u8;
-                                            let mask = 8usize as u8;
-                                            let mRemovedFromDocShell =
-                                                (mRemovedFromDocShell <<
-                                                     3usize) & mask;
-                                            bitfield_unit_val |
-                                                mRemovedFromDocShell
-                                        };
-                                    let mAllowDNSPrefetch =
-                                        mAllowDNSPrefetch as u8 as u8;
-                                    let mask = 16usize as u8;
-                                    let mAllowDNSPrefetch =
-                                        (mAllowDNSPrefetch << 4usize) & mask;
-                                    bitfield_unit_val | mAllowDNSPrefetch
-                                };
-                            let mIsStaticDocument =
-                                mIsStaticDocument as u8 as u8;
-                            let mask = 32usize as u8;
-                            let mIsStaticDocument =
-                                (mIsStaticDocument << 5usize) & mask;
-                            bitfield_unit_val | mIsStaticDocument
-                        };
-                    let mCreatingStaticClone =
-                        mCreatingStaticClone as u8 as u8;
-                    let mask = 64usize as u8;
-                    let mCreatingStaticClone =
-                        (mCreatingStaticClone << 6usize) & mask;
-                    bitfield_unit_val | mCreatingStaticClone
-                };
-            let mInUnlinkOrDeletion = mInUnlinkOrDeletion as u8 as u8;
-            let mask = 128usize as u8;
-            let mInUnlinkOrDeletion = (mInUnlinkOrDeletion << 7usize) & mask;
-            bitfield_unit_val | mInUnlinkOrDeletion
+            ({
+                 ({
+                      ({
+                           ({
+                                ({
+                                     ({
+                                          ({
+                                               ({ 0 } |
+                                                    ((mIsShowing as u8 as u8)
+                                                         << 0usize) &
+                                                        (1usize as u8))
+                                           } |
+                                               ((mVisible as u8 as u8) <<
+                                                    1usize) & (2usize as u8))
+                                      } |
+                                          ((mHasReferrerPolicyCSP as u8 as u8)
+                                               << 2usize) & (4usize as u8))
+                                 } |
+                                     ((mRemovedFromDocShell as u8 as u8) <<
+                                          3usize) & (8usize as u8))
+                            } |
+                                ((mAllowDNSPrefetch as u8 as u8) << 4usize) &
+                                    (16usize as u8))
+                       } |
+                           ((mIsStaticDocument as u8 as u8) << 5usize) &
+                               (32usize as u8))
+                  } |
+                      ((mCreatingStaticClone as u8 as u8) << 6usize) &
+                          (64usize as u8))
+             } |
+                 ((mInUnlinkOrDeletion as u8 as u8) << 7usize) &
+                     (128usize as u8))
         }
         #[inline]
         pub fn mHasHadScriptHandlingObject(&self) -> bool {
@@ -17771,107 +17349,40 @@ pub mod root {
                               mMayHaveDOMMutationObservers: bool,
                               mMayHaveAnimationObservers: bool,
                               mHasMixedActiveContentLoaded: bool) -> u8 {
-            let bitfield_unit_val =
-                {
-                    let bitfield_unit_val =
-                        {
-                            let bitfield_unit_val =
-                                {
-                                    let bitfield_unit_val =
-                                        {
-                                            let bitfield_unit_val =
-                                                {
-                                                    let bitfield_unit_val =
-                                                        {
-                                                            let bitfield_unit_val =
-                                                                {
-                                                                    let bitfield_unit_val =
-                                                                        { 0 };
-                                                                    let mHasHadScriptHandlingObject =
-                                                                        mHasHadScriptHandlingObject
-                                                                            as
-                                                                            u8
-                                                                            as
-                                                                            u8;
-                                                                    let mask =
-                                                                        1usize
-                                                                            as
-                                                                            u8;
-                                                                    let mHasHadScriptHandlingObject =
-                                                                        (mHasHadScriptHandlingObject
-                                                                             <<
-                                                                             0usize)
-                                                                            &
-                                                                            mask;
-                                                                    bitfield_unit_val
-                                                                        |
-                                                                        mHasHadScriptHandlingObject
-                                                                };
-                                                            let mIsBeingUsedAsImage =
-                                                                mIsBeingUsedAsImage
-                                                                    as u8 as
-                                                                    u8;
-                                                            let mask =
-                                                                2usize as u8;
-                                                            let mIsBeingUsedAsImage =
-                                                                (mIsBeingUsedAsImage
-                                                                     <<
-                                                                     1usize) &
-                                                                    mask;
-                                                            bitfield_unit_val
-                                                                |
-                                                                mIsBeingUsedAsImage
-                                                        };
-                                                    let mIsSyntheticDocument =
-                                                        mIsSyntheticDocument
-                                                            as u8 as u8;
-                                                    let mask = 4usize as u8;
-                                                    let mIsSyntheticDocument =
-                                                        (mIsSyntheticDocument
-                                                             << 2usize) &
-                                                            mask;
-                                                    bitfield_unit_val |
-                                                        mIsSyntheticDocument
-                                                };
-                                            let mHasLinksToUpdate =
-                                                mHasLinksToUpdate as u8 as u8;
-                                            let mask = 8usize as u8;
-                                            let mHasLinksToUpdate =
-                                                (mHasLinksToUpdate << 3usize)
-                                                    & mask;
-                                            bitfield_unit_val |
-                                                mHasLinksToUpdate
-                                        };
-                                    let mHasLinksToUpdateRunnable =
-                                        mHasLinksToUpdateRunnable as u8 as u8;
-                                    let mask = 16usize as u8;
-                                    let mHasLinksToUpdateRunnable =
-                                        (mHasLinksToUpdateRunnable << 4usize)
-                                            & mask;
-                                    bitfield_unit_val |
-                                        mHasLinksToUpdateRunnable
-                                };
-                            let mMayHaveDOMMutationObservers =
-                                mMayHaveDOMMutationObservers as u8 as u8;
-                            let mask = 32usize as u8;
-                            let mMayHaveDOMMutationObservers =
-                                (mMayHaveDOMMutationObservers << 5usize) &
-                                    mask;
-                            bitfield_unit_val | mMayHaveDOMMutationObservers
-                        };
-                    let mMayHaveAnimationObservers =
-                        mMayHaveAnimationObservers as u8 as u8;
-                    let mask = 64usize as u8;
-                    let mMayHaveAnimationObservers =
-                        (mMayHaveAnimationObservers << 6usize) & mask;
-                    bitfield_unit_val | mMayHaveAnimationObservers
-                };
-            let mHasMixedActiveContentLoaded =
-                mHasMixedActiveContentLoaded as u8 as u8;
-            let mask = 128usize as u8;
-            let mHasMixedActiveContentLoaded =
-                (mHasMixedActiveContentLoaded << 7usize) & mask;
-            bitfield_unit_val | mHasMixedActiveContentLoaded
+            ({
+                 ({
+                      ({
+                           ({
+                                ({
+                                     ({
+                                          ({
+                                               ({ 0 } |
+                                                    ((mHasHadScriptHandlingObject
+                                                          as u8 as u8) <<
+                                                         0usize) &
+                                                        (1usize as u8))
+                                           } |
+                                               ((mIsBeingUsedAsImage as u8 as
+                                                     u8) << 1usize) &
+                                                   (2usize as u8))
+                                      } |
+                                          ((mIsSyntheticDocument as u8 as u8)
+                                               << 2usize) & (4usize as u8))
+                                 } |
+                                     ((mHasLinksToUpdate as u8 as u8) <<
+                                          3usize) & (8usize as u8))
+                            } |
+                                ((mHasLinksToUpdateRunnable as u8 as u8) <<
+                                     4usize) & (16usize as u8))
+                       } |
+                           ((mMayHaveDOMMutationObservers as u8 as u8) <<
+                                5usize) & (32usize as u8))
+                  } |
+                      ((mMayHaveAnimationObservers as u8 as u8) << 6usize) &
+                          (64usize as u8))
+             } |
+                 ((mHasMixedActiveContentLoaded as u8 as u8) << 7usize) &
+                     (128usize as u8))
         }
         #[inline]
         pub fn mHasMixedActiveContentBlocked(&self) -> bool {
@@ -18033,102 +17544,41 @@ pub mod root {
                               mHasCSP: bool, mHasUnsafeEvalCSP: bool,
                               mHasUnsafeInlineCSP: bool,
                               mHasTrackingContentBlocked: bool) -> u8 {
-            let bitfield_unit_val =
-                {
-                    let bitfield_unit_val =
-                        {
-                            let bitfield_unit_val =
-                                {
-                                    let bitfield_unit_val =
-                                        {
-                                            let bitfield_unit_val =
-                                                {
-                                                    let bitfield_unit_val =
-                                                        {
-                                                            let bitfield_unit_val =
-                                                                {
-                                                                    let bitfield_unit_val =
-                                                                        { 0 };
-                                                                    let mHasMixedActiveContentBlocked =
-                                                                        mHasMixedActiveContentBlocked
-                                                                            as
-                                                                            u8
-                                                                            as
-                                                                            u8;
-                                                                    let mask =
-                                                                        1usize
-                                                                            as
-                                                                            u8;
-                                                                    let mHasMixedActiveContentBlocked =
-                                                                        (mHasMixedActiveContentBlocked
-                                                                             <<
-                                                                             0usize)
-                                                                            &
-                                                                            mask;
-                                                                    bitfield_unit_val
-                                                                        |
-                                                                        mHasMixedActiveContentBlocked
-                                                                };
-                                                            let mHasMixedDisplayContentLoaded =
-                                                                mHasMixedDisplayContentLoaded
-                                                                    as u8 as
-                                                                    u8;
-                                                            let mask =
-                                                                2usize as u8;
-                                                            let mHasMixedDisplayContentLoaded =
-                                                                (mHasMixedDisplayContentLoaded
-                                                                     <<
-                                                                     1usize) &
-                                                                    mask;
-                                                            bitfield_unit_val
-                                                                |
-                                                                mHasMixedDisplayContentLoaded
-                                                        };
-                                                    let mHasMixedDisplayContentBlocked =
-                                                        mHasMixedDisplayContentBlocked
-                                                            as u8 as u8;
-                                                    let mask = 4usize as u8;
-                                                    let mHasMixedDisplayContentBlocked =
-                                                        (mHasMixedDisplayContentBlocked
-                                                             << 2usize) &
-                                                            mask;
-                                                    bitfield_unit_val |
-                                                        mHasMixedDisplayContentBlocked
-                                                };
-                                            let mHasMixedContentObjectSubrequest =
-                                                mHasMixedContentObjectSubrequest
-                                                    as u8 as u8;
-                                            let mask = 8usize as u8;
-                                            let mHasMixedContentObjectSubrequest =
-                                                (mHasMixedContentObjectSubrequest
-                                                     << 3usize) & mask;
-                                            bitfield_unit_val |
-                                                mHasMixedContentObjectSubrequest
-                                        };
-                                    let mHasCSP = mHasCSP as u8 as u8;
-                                    let mask = 16usize as u8;
-                                    let mHasCSP = (mHasCSP << 4usize) & mask;
-                                    bitfield_unit_val | mHasCSP
-                                };
-                            let mHasUnsafeEvalCSP =
-                                mHasUnsafeEvalCSP as u8 as u8;
-                            let mask = 32usize as u8;
-                            let mHasUnsafeEvalCSP =
-                                (mHasUnsafeEvalCSP << 5usize) & mask;
-                            bitfield_unit_val | mHasUnsafeEvalCSP
-                        };
-                    let mHasUnsafeInlineCSP = mHasUnsafeInlineCSP as u8 as u8;
-                    let mask = 64usize as u8;
-                    let mHasUnsafeInlineCSP =
-                        (mHasUnsafeInlineCSP << 6usize) & mask;
-                    bitfield_unit_val | mHasUnsafeInlineCSP
-                };
-            let mHasTrackingContentBlocked =
-                mHasTrackingContentBlocked as u8 as u8;
-            let mask = 128usize as u8;
-            let mHasTrackingContentBlocked =
-                (mHasTrackingContentBlocked << 7usize) & mask;
-            bitfield_unit_val | mHasTrackingContentBlocked
+            ({
+                 ({
+                      ({
+                           ({
+                                ({
+                                     ({
+                                          ({
+                                               ({ 0 } |
+                                                    ((mHasMixedActiveContentBlocked
+                                                          as u8 as u8) <<
+                                                         0usize) &
+                                                        (1usize as u8))
+                                           } |
+                                               ((mHasMixedDisplayContentLoaded
+                                                     as u8 as u8) << 1usize) &
+                                                   (2usize as u8))
+                                      } |
+                                          ((mHasMixedDisplayContentBlocked as
+                                                u8 as u8) << 2usize) &
+                                              (4usize as u8))
+                                 } |
+                                     ((mHasMixedContentObjectSubrequest as u8
+                                           as u8) << 3usize) & (8usize as u8))
+                            } |
+                                ((mHasCSP as u8 as u8) << 4usize) &
+                                    (16usize as u8))
+                       } |
+                           ((mHasUnsafeEvalCSP as u8 as u8) << 5usize) &
+                               (32usize as u8))
+                  } |
+                      ((mHasUnsafeInlineCSP as u8 as u8) << 6usize) &
+                          (64usize as u8))
+             } |
+                 ((mHasTrackingContentBlocked as u8 as u8) << 7usize) &
+                     (128usize as u8))
         }
         #[inline]
         pub fn mHasTrackingContentLoaded(&self) -> bool {
@@ -18290,101 +17740,40 @@ pub mod root {
                               mIsSrcdocDocument: bool, mDidDocumentOpen: bool,
                               mHasDisplayDocument: bool,
                               mFontFaceSetDirty: bool) -> u8 {
-            let bitfield_unit_val =
-                {
-                    let bitfield_unit_val =
-                        {
-                            let bitfield_unit_val =
-                                {
-                                    let bitfield_unit_val =
-                                        {
-                                            let bitfield_unit_val =
-                                                {
-                                                    let bitfield_unit_val =
-                                                        {
-                                                            let bitfield_unit_val =
-                                                                {
-                                                                    let bitfield_unit_val =
-                                                                        { 0 };
-                                                                    let mHasTrackingContentLoaded =
-                                                                        mHasTrackingContentLoaded
-                                                                            as
-                                                                            u8
-                                                                            as
-                                                                            u8;
-                                                                    let mask =
-                                                                        1usize
-                                                                            as
-                                                                            u8;
-                                                                    let mHasTrackingContentLoaded =
-                                                                        (mHasTrackingContentLoaded
-                                                                             <<
-                                                                             0usize)
-                                                                            &
-                                                                            mask;
-                                                                    bitfield_unit_val
-                                                                        |
-                                                                        mHasTrackingContentLoaded
-                                                                };
-                                                            let mBFCacheDisallowed =
-                                                                mBFCacheDisallowed
-                                                                    as u8 as
-                                                                    u8;
-                                                            let mask =
-                                                                2usize as u8;
-                                                            let mBFCacheDisallowed =
-                                                                (mBFCacheDisallowed
-                                                                     <<
-                                                                     1usize) &
-                                                                    mask;
-                                                            bitfield_unit_val
-                                                                |
-                                                                mBFCacheDisallowed
-                                                        };
-                                                    let mHasHadDefaultView =
-                                                        mHasHadDefaultView as
-                                                            u8 as u8;
-                                                    let mask = 4usize as u8;
-                                                    let mHasHadDefaultView =
-                                                        (mHasHadDefaultView <<
-                                                             2usize) & mask;
-                                                    bitfield_unit_val |
-                                                        mHasHadDefaultView
-                                                };
-                                            let mStyleSheetChangeEventsEnabled =
-                                                mStyleSheetChangeEventsEnabled
-                                                    as u8 as u8;
-                                            let mask = 8usize as u8;
-                                            let mStyleSheetChangeEventsEnabled =
-                                                (mStyleSheetChangeEventsEnabled
-                                                     << 3usize) & mask;
-                                            bitfield_unit_val |
-                                                mStyleSheetChangeEventsEnabled
-                                        };
-                                    let mIsSrcdocDocument =
-                                        mIsSrcdocDocument as u8 as u8;
-                                    let mask = 16usize as u8;
-                                    let mIsSrcdocDocument =
-                                        (mIsSrcdocDocument << 4usize) & mask;
-                                    bitfield_unit_val | mIsSrcdocDocument
-                                };
-                            let mDidDocumentOpen =
-                                mDidDocumentOpen as u8 as u8;
-                            let mask = 32usize as u8;
-                            let mDidDocumentOpen =
-                                (mDidDocumentOpen << 5usize) & mask;
-                            bitfield_unit_val | mDidDocumentOpen
-                        };
-                    let mHasDisplayDocument = mHasDisplayDocument as u8 as u8;
-                    let mask = 64usize as u8;
-                    let mHasDisplayDocument =
-                        (mHasDisplayDocument << 6usize) & mask;
-                    bitfield_unit_val | mHasDisplayDocument
-                };
-            let mFontFaceSetDirty = mFontFaceSetDirty as u8 as u8;
-            let mask = 128usize as u8;
-            let mFontFaceSetDirty = (mFontFaceSetDirty << 7usize) & mask;
-            bitfield_unit_val | mFontFaceSetDirty
+            ({
+                 ({
+                      ({
+                           ({
+                                ({
+                                     ({
+                                          ({
+                                               ({ 0 } |
+                                                    ((mHasTrackingContentLoaded
+                                                          as u8 as u8) <<
+                                                         0usize) &
+                                                        (1usize as u8))
+                                           } |
+                                               ((mBFCacheDisallowed as u8 as
+                                                     u8) << 1usize) &
+                                                   (2usize as u8))
+                                      } |
+                                          ((mHasHadDefaultView as u8 as u8) <<
+                                               2usize) & (4usize as u8))
+                                 } |
+                                     ((mStyleSheetChangeEventsEnabled as u8 as
+                                           u8) << 3usize) & (8usize as u8))
+                            } |
+                                ((mIsSrcdocDocument as u8 as u8) << 4usize) &
+                                    (16usize as u8))
+                       } |
+                           ((mDidDocumentOpen as u8 as u8) << 5usize) &
+                               (32usize as u8))
+                  } |
+                      ((mHasDisplayDocument as u8 as u8) << 6usize) &
+                          (64usize as u8))
+             } |
+                 ((mFontFaceSetDirty as u8 as u8) << 7usize) &
+                     (128usize as u8))
         }
         #[inline]
         pub fn mGetUserFontSetCalled(&self) -> bool {
@@ -18527,84 +17916,35 @@ pub mod root {
                               mFrameRequestCallbacksScheduled: bool,
                               mIsTopLevelContentDocument: bool,
                               mIsContentDocument: bool) -> u8 {
-            let bitfield_unit_val =
-                {
-                    let bitfield_unit_val =
-                        {
-                            let bitfield_unit_val =
-                                {
-                                    let bitfield_unit_val =
-                                        {
-                                            let bitfield_unit_val =
-                                                {
-                                                    let bitfield_unit_val =
-                                                        {
-                                                            let bitfield_unit_val =
-                                                                { 0 };
-                                                            let mGetUserFontSetCalled =
-                                                                mGetUserFontSetCalled
-                                                                    as u8 as
-                                                                    u8;
-                                                            let mask =
-                                                                1usize as u8;
-                                                            let mGetUserFontSetCalled =
-                                                                (mGetUserFontSetCalled
-                                                                     <<
-                                                                     0usize) &
-                                                                    mask;
-                                                            bitfield_unit_val
-                                                                |
-                                                                mGetUserFontSetCalled
-                                                        };
-                                                    let mPostedFlushUserFontSet =
-                                                        mPostedFlushUserFontSet
-                                                            as u8 as u8;
-                                                    let mask = 2usize as u8;
-                                                    let mPostedFlushUserFontSet =
-                                                        (mPostedFlushUserFontSet
-                                                             << 1usize) &
-                                                            mask;
-                                                    bitfield_unit_val |
-                                                        mPostedFlushUserFontSet
-                                                };
-                                            let mDidFireDOMContentLoaded =
-                                                mDidFireDOMContentLoaded as u8
-                                                    as u8;
-                                            let mask = 4usize as u8;
-                                            let mDidFireDOMContentLoaded =
-                                                (mDidFireDOMContentLoaded <<
-                                                     2usize) & mask;
-                                            bitfield_unit_val |
-                                                mDidFireDOMContentLoaded
-                                        };
-                                    let mHasScrollLinkedEffect =
-                                        mHasScrollLinkedEffect as u8 as u8;
-                                    let mask = 8usize as u8;
-                                    let mHasScrollLinkedEffect =
-                                        (mHasScrollLinkedEffect << 3usize) &
-                                            mask;
-                                    bitfield_unit_val | mHasScrollLinkedEffect
-                                };
-                            let mFrameRequestCallbacksScheduled =
-                                mFrameRequestCallbacksScheduled as u8 as u8;
-                            let mask = 16usize as u8;
-                            let mFrameRequestCallbacksScheduled =
-                                (mFrameRequestCallbacksScheduled << 4usize) &
-                                    mask;
-                            bitfield_unit_val |
-                                mFrameRequestCallbacksScheduled
-                        };
-                    let mIsTopLevelContentDocument =
-                        mIsTopLevelContentDocument as u8 as u8;
-                    let mask = 32usize as u8;
-                    let mIsTopLevelContentDocument =
-                        (mIsTopLevelContentDocument << 5usize) & mask;
-                    bitfield_unit_val | mIsTopLevelContentDocument
-                };
-            let mIsContentDocument = mIsContentDocument as u8 as u8;
-            let mask = 64usize as u8;
-            let mIsContentDocument = (mIsContentDocument << 6usize) & mask;
-            bitfield_unit_val | mIsContentDocument
+            ({
+                 ({
+                      ({
+                           ({
+                                ({
+                                     ({
+                                          ({ 0 } |
+                                               ((mGetUserFontSetCalled as u8
+                                                     as u8) << 0usize) &
+                                                   (1usize as u8))
+                                      } |
+                                          ((mPostedFlushUserFontSet as u8 as
+                                                u8) << 1usize) &
+                                              (2usize as u8))
+                                 } |
+                                     ((mDidFireDOMContentLoaded as u8 as u8)
+                                          << 2usize) & (4usize as u8))
+                            } |
+                                ((mHasScrollLinkedEffect as u8 as u8) <<
+                                     3usize) & (8usize as u8))
+                       } |
+                           ((mFrameRequestCallbacksScheduled as u8 as u8) <<
+                                4usize) & (16usize as u8))
+                  } |
+                      ((mIsTopLevelContentDocument as u8 as u8) << 5usize) &
+                          (32usize as u8))
+             } |
+                 ((mIsContentDocument as u8 as u8) << 6usize) &
+                     (64usize as u8))
         }
     }
     #[repr(C)]
@@ -18793,7 +18133,6 @@ pub mod root {
         pub mPrintSettings: root::nsCOMPtr<root::nsIPrintSettings>,
         pub mPrefChangedTimer: root::nsCOMPtr<root::nsITimer>,
         pub mBidiEngine: root::mozilla::UniquePtr<root::nsBidi>,
-        pub mPropertyTable: root::nsPresContext_FramePropertyTable,
         pub mTransactions: [u64; 10usize],
         pub mTextPerf: root::nsAutoPtr<root::gfxTextPerfMetrics>,
         pub mMissingFonts: root::nsAutoPtr<root::gfxMissingFontRecorder>,
@@ -18840,8 +18179,6 @@ pub mod root {
         pub mInitialized: bool,
         pub mLayoutPhaseCount: [u32; 3usize],
     }
-    pub type nsPresContext_FramePropertyTable =
-        root::mozilla::FramePropertyTable;
     pub type nsPresContext_LangGroupFontPrefs =
         root::mozilla::LangGroupFontPrefs;
     pub type nsPresContext_ScrollbarStyles = root::mozilla::ScrollbarStyles;
@@ -18963,7 +18300,7 @@ pub mod root {
     }
     #[test]
     fn bindgen_test_layout_nsPresContext() {
-        assert_eq!(::std::mem::size_of::<nsPresContext>() , 1392usize , concat
+        assert_eq!(::std::mem::size_of::<nsPresContext>() , 1328usize , concat
                    ! ( "Size of: " , stringify ! ( nsPresContext ) ));
         assert_eq! (::std::mem::align_of::<nsPresContext>() , 8usize , concat
                     ! ( "Alignment of " , stringify ! ( nsPresContext ) ));
@@ -19141,242 +18478,237 @@ pub mod root {
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mBidiEngine ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsPresContext ) ) . mPropertyTable as
-                    * const _ as usize } , 256usize , concat ! (
-                    "Alignment of field: " , stringify ! ( nsPresContext ) ,
-                    "::" , stringify ! ( mPropertyTable ) ));
-        assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) . mTransactions as
-                    * const _ as usize } , 320usize , concat ! (
+                    * const _ as usize } , 256usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mTransactions ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) . mTextPerf as *
-                    const _ as usize } , 400usize , concat ! (
+                    const _ as usize } , 336usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mTextPerf ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) . mMissingFonts as
-                    * const _ as usize } , 408usize , concat ! (
+                    * const _ as usize } , 344usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mMissingFonts ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) . mVisibleArea as *
-                    const _ as usize } , 416usize , concat ! (
+                    const _ as usize } , 352usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mVisibleArea ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) . mPageSize as *
-                    const _ as usize } , 432usize , concat ! (
+                    const _ as usize } , 368usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mPageSize ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) . mPageScale as *
-                    const _ as usize } , 440usize , concat ! (
+                    const _ as usize } , 376usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mPageScale ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) . mPPScale as *
-                    const _ as usize } , 444usize , concat ! (
+                    const _ as usize } , 380usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mPPScale ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) . mDefaultColor as
-                    * const _ as usize } , 448usize , concat ! (
+                    * const _ as usize } , 384usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mDefaultColor ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) . mBackgroundColor
-                    as * const _ as usize } , 452usize , concat ! (
+                    as * const _ as usize } , 388usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mBackgroundColor ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) . mLinkColor as *
-                    const _ as usize } , 456usize , concat ! (
+                    const _ as usize } , 392usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mLinkColor ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) . mActiveLinkColor
-                    as * const _ as usize } , 460usize , concat ! (
+                    as * const _ as usize } , 396usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mActiveLinkColor ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) . mVisitedLinkColor
-                    as * const _ as usize } , 464usize , concat ! (
+                    as * const _ as usize } , 400usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mVisitedLinkColor ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) .
-                    mFocusBackgroundColor as * const _ as usize } , 468usize ,
+                    mFocusBackgroundColor as * const _ as usize } , 404usize ,
                     concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mFocusBackgroundColor ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) . mFocusTextColor
-                    as * const _ as usize } , 472usize , concat ! (
+                    as * const _ as usize } , 408usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mFocusTextColor ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) . mBodyTextColor as
-                    * const _ as usize } , 476usize , concat ! (
+                    * const _ as usize } , 412usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mBodyTextColor ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) .
                     mViewportScrollbarOverrideNode as * const _ as usize } ,
-                    480usize , concat ! (
+                    416usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mViewportScrollbarOverrideNode ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) .
-                    mViewportStyleScrollbar as * const _ as usize } , 488usize
+                    mViewportStyleScrollbar as * const _ as usize } , 424usize
                     , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mViewportStyleScrollbar ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) . mFocusRingWidth
-                    as * const _ as usize } , 552usize , concat ! (
+                    as * const _ as usize } , 488usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mFocusRingWidth ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) .
-                    mExistThrottledUpdates as * const _ as usize } , 553usize
+                    mExistThrottledUpdates as * const _ as usize } , 489usize
                     , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mExistThrottledUpdates ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) .
-                    mImageAnimationMode as * const _ as usize } , 554usize ,
+                    mImageAnimationMode as * const _ as usize } , 490usize ,
                     concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mImageAnimationMode ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) .
-                    mImageAnimationModePref as * const _ as usize } , 556usize
+                    mImageAnimationModePref as * const _ as usize } , 492usize
                     , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mImageAnimationModePref ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) .
-                    mLangGroupFontPrefs as * const _ as usize } , 560usize ,
+                    mLangGroupFontPrefs as * const _ as usize } , 496usize ,
                     concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mLangGroupFontPrefs ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) .
-                    mFontGroupCacheDirty as * const _ as usize } , 1200usize ,
+                    mFontGroupCacheDirty as * const _ as usize } , 1136usize ,
                     concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mFontGroupCacheDirty ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) . mLanguagesUsed as
-                    * const _ as usize } , 1208usize , concat ! (
+                    * const _ as usize } , 1144usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mLanguagesUsed ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) . mBorderWidthTable
-                    as * const _ as usize } , 1256usize , concat ! (
+                    as * const _ as usize } , 1192usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mBorderWidthTable ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) .
-                    mInterruptChecksToSkip as * const _ as usize } , 1268usize
+                    mInterruptChecksToSkip as * const _ as usize } , 1204usize
                     , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mInterruptChecksToSkip ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) . mElementsRestyled
-                    as * const _ as usize } , 1272usize , concat ! (
+                    as * const _ as usize } , 1208usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mElementsRestyled ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) .
-                    mFramesConstructed as * const _ as usize } , 1280usize ,
+                    mFramesConstructed as * const _ as usize } , 1216usize ,
                     concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mFramesConstructed ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) . mFramesReflowed
-                    as * const _ as usize } , 1288usize , concat ! (
+                    as * const _ as usize } , 1224usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mFramesReflowed ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) . mReflowStartTime
-                    as * const _ as usize } , 1296usize , concat ! (
+                    as * const _ as usize } , 1232usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mReflowStartTime ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) .
                     mFirstNonBlankPaintTime as * const _ as usize } ,
-                    1304usize , concat ! (
+                    1240usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mFirstNonBlankPaintTime ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) . mFirstClickTime
-                    as * const _ as usize } , 1312usize , concat ! (
+                    as * const _ as usize } , 1248usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mFirstClickTime ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) . mFirstKeyTime as
-                    * const _ as usize } , 1320usize , concat ! (
+                    * const _ as usize } , 1256usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mFirstKeyTime ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) .
-                    mFirstMouseMoveTime as * const _ as usize } , 1328usize ,
+                    mFirstMouseMoveTime as * const _ as usize } , 1264usize ,
                     concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mFirstMouseMoveTime ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) . mFirstScrollTime
-                    as * const _ as usize } , 1336usize , concat ! (
+                    as * const _ as usize } , 1272usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mFirstScrollTime ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) .
                     mInteractionTimeEnabled as * const _ as usize } ,
-                    1344usize , concat ! (
+                    1280usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mInteractionTimeEnabled ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) .
                     mLastStyleUpdateForAllAnimations as * const _ as usize } ,
-                    1352usize , concat ! (
+                    1288usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mLastStyleUpdateForAllAnimations )
                     ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) .
-                    mTelemetryScrollLastY as * const _ as usize } , 1360usize
+                    mTelemetryScrollLastY as * const _ as usize } , 1296usize
                     , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mTelemetryScrollLastY ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) .
-                    mTelemetryScrollMaxY as * const _ as usize } , 1364usize ,
+                    mTelemetryScrollMaxY as * const _ as usize } , 1300usize ,
                     concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mTelemetryScrollMaxY ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) .
-                    mTelemetryScrollTotalY as * const _ as usize } , 1368usize
+                    mTelemetryScrollTotalY as * const _ as usize } , 1304usize
                     , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mTelemetryScrollTotalY ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) .
-                    mRestyleLoggingEnabled as * const _ as usize } , 1378usize
+                    mRestyleLoggingEnabled as * const _ as usize } , 1314usize
                     , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mRestyleLoggingEnabled ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) . mInitialized as *
-                    const _ as usize } , 1379usize , concat ! (
+                    const _ as usize } , 1315usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mInitialized ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) . mLayoutPhaseCount
-                    as * const _ as usize } , 1380usize , concat ! (
+                    as * const _ as usize } , 1316usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mLayoutPhaseCount ) ));
     }
@@ -20034,608 +19366,352 @@ pub mod root {
                               mUsesViewportUnits: ::std::os::raw::c_uint,
                               mPendingViewportChange: ::std::os::raw::c_uint)
          -> u32 {
-            let bitfield_unit_val =
-                {
-                    let bitfield_unit_val =
-                        {
-                            let bitfield_unit_val =
-                                {
-                                    let bitfield_unit_val =
-                                        {
-                                            let bitfield_unit_val =
-                                                {
-                                                    let bitfield_unit_val =
-                                                        {
-                                                            let bitfield_unit_val =
-                                                                {
-                                                                    let bitfield_unit_val =
-                                                                        {
-                                                                            let bitfield_unit_val =
-                                                                                {
-                                                                                    let bitfield_unit_val =
-                                                                                        {
-                                                                                            let bitfield_unit_val =
-                                                                                                {
-                                                                                                    let bitfield_unit_val =
-                                                                                                        {
-                                                                                                            let bitfield_unit_val =
-                                                                                                                {
-                                                                                                                    let bitfield_unit_val =
-                                                                                                                        {
-                                                                                                                            let bitfield_unit_val =
-                                                                                                                                {
-                                                                                                                                    let bitfield_unit_val =
-                                                                                                                                        {
-                                                                                                                                            let bitfield_unit_val =
-                                                                                                                                                {
-                                                                                                                                                    let bitfield_unit_val =
-                                                                                                                                                        {
-                                                                                                                                                            let bitfield_unit_val =
-                                                                                                                                                                {
-                                                                                                                                                                    let bitfield_unit_val =
-                                                                                                                                                                        {
-                                                                                                                                                                            let bitfield_unit_val =
-                                                                                                                                                                                {
-                                                                                                                                                                                    let bitfield_unit_val =
-                                                                                                                                                                                        {
-                                                                                                                                                                                            let bitfield_unit_val =
-                                                                                                                                                                                                {
-                                                                                                                                                                                                    let bitfield_unit_val =
-                                                                                                                                                                                                        {
-                                                                                                                                                                                                            let bitfield_unit_val =
-                                                                                                                                                                                                                {
-                                                                                                                                                                                                                    let bitfield_unit_val =
-                                                                                                                                                                                                                        {
-                                                                                                                                                                                                                            let bitfield_unit_val =
-                                                                                                                                                                                                                                {
-                                                                                                                                                                                                                                    let bitfield_unit_val =
-                                                                                                                                                                                                                                        {
-                                                                                                                                                                                                                                            let bitfield_unit_val =
-                                                                                                                                                                                                                                                {
-                                                                                                                                                                                                                                                    let bitfield_unit_val =
-                                                                                                                                                                                                                                                        {
-                                                                                                                                                                                                                                                            let bitfield_unit_val =
-                                                                                                                                                                                                                                                                {
-                                                                                                                                                                                                                                                                    0
-                                                                                                                                                                                                                                                                };
-                                                                                                                                                                                                                                                            let mHasPendingInterrupt =
-                                                                                                                                                                                                                                                                mHasPendingInterrupt
-                                                                                                                                                                                                                                                                    as
-                                                                                                                                                                                                                                                                    u32
-                                                                                                                                                                                                                                                                    as
-                                                                                                                                                                                                                                                                    u32;
-                                                                                                                                                                                                                                                            let mask =
-                                                                                                                                                                                                                                                                1usize
-                                                                                                                                                                                                                                                                    as
-                                                                                                                                                                                                                                                                    u32;
-                                                                                                                                                                                                                                                            let mHasPendingInterrupt =
-                                                                                                                                                                                                                                                                (mHasPendingInterrupt
-                                                                                                                                                                                                                                                                     <<
-                                                                                                                                                                                                                                                                     0usize)
-                                                                                                                                                                                                                                                                    &
-                                                                                                                                                                                                                                                                    mask;
-                                                                                                                                                                                                                                                            bitfield_unit_val
-                                                                                                                                                                                                                                                                |
-                                                                                                                                                                                                                                                                mHasPendingInterrupt
-                                                                                                                                                                                                                                                        };
-                                                                                                                                                                                                                                                    let mPendingInterruptFromTest =
-                                                                                                                                                                                                                                                        mPendingInterruptFromTest
-                                                                                                                                                                                                                                                            as
-                                                                                                                                                                                                                                                            u32
-                                                                                                                                                                                                                                                            as
-                                                                                                                                                                                                                                                            u32;
-                                                                                                                                                                                                                                                    let mask =
-                                                                                                                                                                                                                                                        2usize
-                                                                                                                                                                                                                                                            as
-                                                                                                                                                                                                                                                            u32;
-                                                                                                                                                                                                                                                    let mPendingInterruptFromTest =
-                                                                                                                                                                                                                                                        (mPendingInterruptFromTest
-                                                                                                                                                                                                                                                             <<
-                                                                                                                                                                                                                                                             1usize)
-                                                                                                                                                                                                                                                            &
-                                                                                                                                                                                                                                                            mask;
-                                                                                                                                                                                                                                                    bitfield_unit_val
-                                                                                                                                                                                                                                                        |
-                                                                                                                                                                                                                                                        mPendingInterruptFromTest
-                                                                                                                                                                                                                                                };
-                                                                                                                                                                                                                                            let mInterruptsEnabled =
-                                                                                                                                                                                                                                                mInterruptsEnabled
-                                                                                                                                                                                                                                                    as
-                                                                                                                                                                                                                                                    u32
-                                                                                                                                                                                                                                                    as
-                                                                                                                                                                                                                                                    u32;
-                                                                                                                                                                                                                                            let mask =
-                                                                                                                                                                                                                                                4usize
-                                                                                                                                                                                                                                                    as
-                                                                                                                                                                                                                                                    u32;
-                                                                                                                                                                                                                                            let mInterruptsEnabled =
-                                                                                                                                                                                                                                                (mInterruptsEnabled
-                                                                                                                                                                                                                                                     <<
-                                                                                                                                                                                                                                                     2usize)
-                                                                                                                                                                                                                                                    &
-                                                                                                                                                                                                                                                    mask;
-                                                                                                                                                                                                                                            bitfield_unit_val
-                                                                                                                                                                                                                                                |
-                                                                                                                                                                                                                                                mInterruptsEnabled
-                                                                                                                                                                                                                                        };
-                                                                                                                                                                                                                                    let mUseDocumentFonts =
-                                                                                                                                                                                                                                        mUseDocumentFonts
-                                                                                                                                                                                                                                            as
-                                                                                                                                                                                                                                            u32
-                                                                                                                                                                                                                                            as
-                                                                                                                                                                                                                                            u32;
-                                                                                                                                                                                                                                    let mask =
-                                                                                                                                                                                                                                        8usize
-                                                                                                                                                                                                                                            as
-                                                                                                                                                                                                                                            u32;
-                                                                                                                                                                                                                                    let mUseDocumentFonts =
-                                                                                                                                                                                                                                        (mUseDocumentFonts
-                                                                                                                                                                                                                                             <<
-                                                                                                                                                                                                                                             3usize)
-                                                                                                                                                                                                                                            &
-                                                                                                                                                                                                                                            mask;
-                                                                                                                                                                                                                                    bitfield_unit_val
-                                                                                                                                                                                                                                        |
-                                                                                                                                                                                                                                        mUseDocumentFonts
-                                                                                                                                                                                                                                };
-                                                                                                                                                                                                                            let mUseDocumentColors =
-                                                                                                                                                                                                                                mUseDocumentColors
-                                                                                                                                                                                                                                    as
-                                                                                                                                                                                                                                    u32
-                                                                                                                                                                                                                                    as
-                                                                                                                                                                                                                                    u32;
-                                                                                                                                                                                                                            let mask =
-                                                                                                                                                                                                                                16usize
-                                                                                                                                                                                                                                    as
-                                                                                                                                                                                                                                    u32;
-                                                                                                                                                                                                                            let mUseDocumentColors =
-                                                                                                                                                                                                                                (mUseDocumentColors
-                                                                                                                                                                                                                                     <<
-                                                                                                                                                                                                                                     4usize)
-                                                                                                                                                                                                                                    &
-                                                                                                                                                                                                                                    mask;
-                                                                                                                                                                                                                            bitfield_unit_val
-                                                                                                                                                                                                                                |
-                                                                                                                                                                                                                                mUseDocumentColors
-                                                                                                                                                                                                                        };
-                                                                                                                                                                                                                    let mUnderlineLinks =
-                                                                                                                                                                                                                        mUnderlineLinks
-                                                                                                                                                                                                                            as
-                                                                                                                                                                                                                            u32
-                                                                                                                                                                                                                            as
-                                                                                                                                                                                                                            u32;
-                                                                                                                                                                                                                    let mask =
-                                                                                                                                                                                                                        32usize
-                                                                                                                                                                                                                            as
-                                                                                                                                                                                                                            u32;
-                                                                                                                                                                                                                    let mUnderlineLinks =
-                                                                                                                                                                                                                        (mUnderlineLinks
-                                                                                                                                                                                                                             <<
-                                                                                                                                                                                                                             5usize)
-                                                                                                                                                                                                                            &
-                                                                                                                                                                                                                            mask;
-                                                                                                                                                                                                                    bitfield_unit_val
-                                                                                                                                                                                                                        |
-                                                                                                                                                                                                                        mUnderlineLinks
-                                                                                                                                                                                                                };
-                                                                                                                                                                                                            let mSendAfterPaintToContent =
-                                                                                                                                                                                                                mSendAfterPaintToContent
-                                                                                                                                                                                                                    as
-                                                                                                                                                                                                                    u32
-                                                                                                                                                                                                                    as
-                                                                                                                                                                                                                    u32;
-                                                                                                                                                                                                            let mask =
-                                                                                                                                                                                                                64usize
-                                                                                                                                                                                                                    as
-                                                                                                                                                                                                                    u32;
-                                                                                                                                                                                                            let mSendAfterPaintToContent =
-                                                                                                                                                                                                                (mSendAfterPaintToContent
-                                                                                                                                                                                                                     <<
-                                                                                                                                                                                                                     6usize)
-                                                                                                                                                                                                                    &
-                                                                                                                                                                                                                    mask;
-                                                                                                                                                                                                            bitfield_unit_val
-                                                                                                                                                                                                                |
-                                                                                                                                                                                                                mSendAfterPaintToContent
-                                                                                                                                                                                                        };
-                                                                                                                                                                                                    let mUseFocusColors =
-                                                                                                                                                                                                        mUseFocusColors
-                                                                                                                                                                                                            as
-                                                                                                                                                                                                            u32
-                                                                                                                                                                                                            as
-                                                                                                                                                                                                            u32;
-                                                                                                                                                                                                    let mask =
-                                                                                                                                                                                                        128usize
-                                                                                                                                                                                                            as
-                                                                                                                                                                                                            u32;
-                                                                                                                                                                                                    let mUseFocusColors =
-                                                                                                                                                                                                        (mUseFocusColors
-                                                                                                                                                                                                             <<
-                                                                                                                                                                                                             7usize)
-                                                                                                                                                                                                            &
-                                                                                                                                                                                                            mask;
-                                                                                                                                                                                                    bitfield_unit_val
-                                                                                                                                                                                                        |
-                                                                                                                                                                                                        mUseFocusColors
-                                                                                                                                                                                                };
-                                                                                                                                                                                            let mFocusRingOnAnything =
-                                                                                                                                                                                                mFocusRingOnAnything
-                                                                                                                                                                                                    as
-                                                                                                                                                                                                    u32
-                                                                                                                                                                                                    as
-                                                                                                                                                                                                    u32;
-                                                                                                                                                                                            let mask =
-                                                                                                                                                                                                256usize
-                                                                                                                                                                                                    as
-                                                                                                                                                                                                    u32;
-                                                                                                                                                                                            let mFocusRingOnAnything =
-                                                                                                                                                                                                (mFocusRingOnAnything
-                                                                                                                                                                                                     <<
-                                                                                                                                                                                                     8usize)
-                                                                                                                                                                                                    &
-                                                                                                                                                                                                    mask;
-                                                                                                                                                                                            bitfield_unit_val
-                                                                                                                                                                                                |
-                                                                                                                                                                                                mFocusRingOnAnything
-                                                                                                                                                                                        };
-                                                                                                                                                                                    let mFocusRingStyle =
-                                                                                                                                                                                        mFocusRingStyle
-                                                                                                                                                                                            as
-                                                                                                                                                                                            u32
-                                                                                                                                                                                            as
-                                                                                                                                                                                            u32;
-                                                                                                                                                                                    let mask =
-                                                                                                                                                                                        512usize
-                                                                                                                                                                                            as
-                                                                                                                                                                                            u32;
-                                                                                                                                                                                    let mFocusRingStyle =
-                                                                                                                                                                                        (mFocusRingStyle
-                                                                                                                                                                                             <<
-                                                                                                                                                                                             9usize)
-                                                                                                                                                                                            &
-                                                                                                                                                                                            mask;
-                                                                                                                                                                                    bitfield_unit_val
-                                                                                                                                                                                        |
-                                                                                                                                                                                        mFocusRingStyle
-                                                                                                                                                                                };
-                                                                                                                                                                            let mDrawImageBackground =
-                                                                                                                                                                                mDrawImageBackground
-                                                                                                                                                                                    as
-                                                                                                                                                                                    u32
-                                                                                                                                                                                    as
-                                                                                                                                                                                    u32;
-                                                                                                                                                                            let mask =
-                                                                                                                                                                                1024usize
-                                                                                                                                                                                    as
-                                                                                                                                                                                    u32;
-                                                                                                                                                                            let mDrawImageBackground =
-                                                                                                                                                                                (mDrawImageBackground
-                                                                                                                                                                                     <<
-                                                                                                                                                                                     10usize)
-                                                                                                                                                                                    &
-                                                                                                                                                                                    mask;
-                                                                                                                                                                            bitfield_unit_val
-                                                                                                                                                                                |
-                                                                                                                                                                                mDrawImageBackground
-                                                                                                                                                                        };
-                                                                                                                                                                    let mDrawColorBackground =
-                                                                                                                                                                        mDrawColorBackground
-                                                                                                                                                                            as
-                                                                                                                                                                            u32
-                                                                                                                                                                            as
-                                                                                                                                                                            u32;
-                                                                                                                                                                    let mask =
-                                                                                                                                                                        2048usize
-                                                                                                                                                                            as
-                                                                                                                                                                            u32;
-                                                                                                                                                                    let mDrawColorBackground =
-                                                                                                                                                                        (mDrawColorBackground
-                                                                                                                                                                             <<
-                                                                                                                                                                             11usize)
-                                                                                                                                                                            &
-                                                                                                                                                                            mask;
-                                                                                                                                                                    bitfield_unit_val
-                                                                                                                                                                        |
-                                                                                                                                                                        mDrawColorBackground
-                                                                                                                                                                };
-                                                                                                                                                            let mNeverAnimate =
-                                                                                                                                                                mNeverAnimate
-                                                                                                                                                                    as
-                                                                                                                                                                    u32
-                                                                                                                                                                    as
-                                                                                                                                                                    u32;
-                                                                                                                                                            let mask =
-                                                                                                                                                                4096usize
-                                                                                                                                                                    as
-                                                                                                                                                                    u32;
-                                                                                                                                                            let mNeverAnimate =
-                                                                                                                                                                (mNeverAnimate
-                                                                                                                                                                     <<
-                                                                                                                                                                     12usize)
-                                                                                                                                                                    &
-                                                                                                                                                                    mask;
-                                                                                                                                                            bitfield_unit_val
-                                                                                                                                                                |
-                                                                                                                                                                mNeverAnimate
-                                                                                                                                                        };
-                                                                                                                                                    let mIsRenderingOnlySelection =
-                                                                                                                                                        mIsRenderingOnlySelection
-                                                                                                                                                            as
-                                                                                                                                                            u32
-                                                                                                                                                            as
-                                                                                                                                                            u32;
-                                                                                                                                                    let mask =
-                                                                                                                                                        8192usize
-                                                                                                                                                            as
-                                                                                                                                                            u32;
-                                                                                                                                                    let mIsRenderingOnlySelection =
-                                                                                                                                                        (mIsRenderingOnlySelection
-                                                                                                                                                             <<
-                                                                                                                                                             13usize)
-                                                                                                                                                            &
-                                                                                                                                                            mask;
-                                                                                                                                                    bitfield_unit_val
+            ({
+                 ({
+                      ({
+                           ({
+                                ({
+                                     ({
+                                          ({
+                                               ({
+                                                    ({
+                                                         ({
+                                                              ({
+                                                                   ({
+                                                                        ({
+                                                                             ({
+                                                                                  ({
+                                                                                       ({
+                                                                                            ({
+                                                                                                 ({
+                                                                                                      ({
+                                                                                                           ({
+                                                                                                                ({
+                                                                                                                     ({
+                                                                                                                          ({
+                                                                                                                               ({
+                                                                                                                                    ({
+                                                                                                                                         ({
+                                                                                                                                              ({
+                                                                                                                                                   ({
+                                                                                                                                                        ({
+                                                                                                                                                             ({
+                                                                                                                                                                  ({
+                                                                                                                                                                       0
+                                                                                                                                                                   }
+                                                                                                                                                                       |
+                                                                                                                                                                       ((mHasPendingInterrupt
+                                                                                                                                                                             as
+                                                                                                                                                                             u32
+                                                                                                                                                                             as
+                                                                                                                                                                             u32)
+                                                                                                                                                                            <<
+                                                                                                                                                                            0usize)
+                                                                                                                                                                           &
+                                                                                                                                                                           (1usize
+                                                                                                                                                                                as
+                                                                                                                                                                                u32))
+                                                                                                                                                              }
+                                                                                                                                                                  |
+                                                                                                                                                                  ((mPendingInterruptFromTest
+                                                                                                                                                                        as
+                                                                                                                                                                        u32
+                                                                                                                                                                        as
+                                                                                                                                                                        u32)
+                                                                                                                                                                       <<
+                                                                                                                                                                       1usize)
+                                                                                                                                                                      &
+                                                                                                                                                                      (2usize
+                                                                                                                                                                           as
+                                                                                                                                                                           u32))
+                                                                                                                                                         }
+                                                                                                                                                             |
+                                                                                                                                                             ((mInterruptsEnabled
+                                                                                                                                                                   as
+                                                                                                                                                                   u32
+                                                                                                                                                                   as
+                                                                                                                                                                   u32)
+                                                                                                                                                                  <<
+                                                                                                                                                                  2usize)
+                                                                                                                                                                 &
+                                                                                                                                                                 (4usize
+                                                                                                                                                                      as
+                                                                                                                                                                      u32))
+                                                                                                                                                    }
                                                                                                                                                         |
-                                                                                                                                                        mIsRenderingOnlySelection
-                                                                                                                                                };
-                                                                                                                                            let mPaginated =
-                                                                                                                                                mPaginated
+                                                                                                                                                        ((mUseDocumentFonts
+                                                                                                                                                              as
+                                                                                                                                                              u32
+                                                                                                                                                              as
+                                                                                                                                                              u32)
+                                                                                                                                                             <<
+                                                                                                                                                             3usize)
+                                                                                                                                                            &
+                                                                                                                                                            (8usize
+                                                                                                                                                                 as
+                                                                                                                                                                 u32))
+                                                                                                                                               }
+                                                                                                                                                   |
+                                                                                                                                                   ((mUseDocumentColors
+                                                                                                                                                         as
+                                                                                                                                                         u32
+                                                                                                                                                         as
+                                                                                                                                                         u32)
+                                                                                                                                                        <<
+                                                                                                                                                        4usize)
+                                                                                                                                                       &
+                                                                                                                                                       (16usize
+                                                                                                                                                            as
+                                                                                                                                                            u32))
+                                                                                                                                          }
+                                                                                                                                              |
+                                                                                                                                              ((mUnderlineLinks
                                                                                                                                                     as
                                                                                                                                                     u32
                                                                                                                                                     as
-                                                                                                                                                    u32;
-                                                                                                                                            let mask =
-                                                                                                                                                16384usize
-                                                                                                                                                    as
-                                                                                                                                                    u32;
-                                                                                                                                            let mPaginated =
-                                                                                                                                                (mPaginated
-                                                                                                                                                     <<
-                                                                                                                                                     14usize)
-                                                                                                                                                    &
-                                                                                                                                                    mask;
-                                                                                                                                            bitfield_unit_val
-                                                                                                                                                |
-                                                                                                                                                mPaginated
-                                                                                                                                        };
-                                                                                                                                    let mCanPaginatedScroll =
-                                                                                                                                        mCanPaginatedScroll
-                                                                                                                                            as
-                                                                                                                                            u32
-                                                                                                                                            as
-                                                                                                                                            u32;
-                                                                                                                                    let mask =
-                                                                                                                                        32768usize
-                                                                                                                                            as
-                                                                                                                                            u32;
-                                                                                                                                    let mCanPaginatedScroll =
-                                                                                                                                        (mCanPaginatedScroll
-                                                                                                                                             <<
-                                                                                                                                             15usize)
-                                                                                                                                            &
-                                                                                                                                            mask;
-                                                                                                                                    bitfield_unit_val
-                                                                                                                                        |
-                                                                                                                                        mCanPaginatedScroll
-                                                                                                                                };
-                                                                                                                            let mDoScaledTwips =
-                                                                                                                                mDoScaledTwips
-                                                                                                                                    as
-                                                                                                                                    u32
-                                                                                                                                    as
-                                                                                                                                    u32;
-                                                                                                                            let mask =
-                                                                                                                                65536usize
-                                                                                                                                    as
-                                                                                                                                    u32;
-                                                                                                                            let mDoScaledTwips =
-                                                                                                                                (mDoScaledTwips
-                                                                                                                                     <<
-                                                                                                                                     16usize)
-                                                                                                                                    &
-                                                                                                                                    mask;
-                                                                                                                            bitfield_unit_val
-                                                                                                                                |
-                                                                                                                                mDoScaledTwips
-                                                                                                                        };
-                                                                                                                    let mIsRootPaginatedDocument =
-                                                                                                                        mIsRootPaginatedDocument
-                                                                                                                            as
-                                                                                                                            u32
-                                                                                                                            as
-                                                                                                                            u32;
-                                                                                                                    let mask =
-                                                                                                                        131072usize
-                                                                                                                            as
-                                                                                                                            u32;
-                                                                                                                    let mIsRootPaginatedDocument =
-                                                                                                                        (mIsRootPaginatedDocument
-                                                                                                                             <<
-                                                                                                                             17usize)
-                                                                                                                            &
-                                                                                                                            mask;
-                                                                                                                    bitfield_unit_val
-                                                                                                                        |
-                                                                                                                        mIsRootPaginatedDocument
-                                                                                                                };
-                                                                                                            let mPrefBidiDirection =
-                                                                                                                mPrefBidiDirection
-                                                                                                                    as
-                                                                                                                    u32
-                                                                                                                    as
-                                                                                                                    u32;
-                                                                                                            let mask =
-                                                                                                                262144usize
-                                                                                                                    as
-                                                                                                                    u32;
-                                                                                                            let mPrefBidiDirection =
-                                                                                                                (mPrefBidiDirection
-                                                                                                                     <<
-                                                                                                                     18usize)
-                                                                                                                    &
-                                                                                                                    mask;
-                                                                                                            bitfield_unit_val
+                                                                                                                                                    u32)
+                                                                                                                                                   <<
+                                                                                                                                                   5usize)
+                                                                                                                                                  &
+                                                                                                                                                  (32usize
+                                                                                                                                                       as
+                                                                                                                                                       u32))
+                                                                                                                                     }
+                                                                                                                                         |
+                                                                                                                                         ((mSendAfterPaintToContent
+                                                                                                                                               as
+                                                                                                                                               u32
+                                                                                                                                               as
+                                                                                                                                               u32)
+                                                                                                                                              <<
+                                                                                                                                              6usize)
+                                                                                                                                             &
+                                                                                                                                             (64usize
+                                                                                                                                                  as
+                                                                                                                                                  u32))
+                                                                                                                                }
+                                                                                                                                    |
+                                                                                                                                    ((mUseFocusColors
+                                                                                                                                          as
+                                                                                                                                          u32
+                                                                                                                                          as
+                                                                                                                                          u32)
+                                                                                                                                         <<
+                                                                                                                                         7usize)
+                                                                                                                                        &
+                                                                                                                                        (128usize
+                                                                                                                                             as
+                                                                                                                                             u32))
+                                                                                                                           }
+                                                                                                                               |
+                                                                                                                               ((mFocusRingOnAnything
+                                                                                                                                     as
+                                                                                                                                     u32
+                                                                                                                                     as
+                                                                                                                                     u32)
+                                                                                                                                    <<
+                                                                                                                                    8usize)
+                                                                                                                                   &
+                                                                                                                                   (256usize
+                                                                                                                                        as
+                                                                                                                                        u32))
+                                                                                                                      }
+                                                                                                                          |
+                                                                                                                          ((mFocusRingStyle
+                                                                                                                                as
+                                                                                                                                u32
+                                                                                                                                as
+                                                                                                                                u32)
+                                                                                                                               <<
+                                                                                                                               9usize)
+                                                                                                                              &
+                                                                                                                              (512usize
+                                                                                                                                   as
+                                                                                                                                   u32))
+                                                                                                                 }
+                                                                                                                     |
+                                                                                                                     ((mDrawImageBackground
+                                                                                                                           as
+                                                                                                                           u32
+                                                                                                                           as
+                                                                                                                           u32)
+                                                                                                                          <<
+                                                                                                                          10usize)
+                                                                                                                         &
+                                                                                                                         (1024usize
+                                                                                                                              as
+                                                                                                                              u32))
+                                                                                                            }
                                                                                                                 |
-                                                                                                                mPrefBidiDirection
-                                                                                                        };
-                                                                                                    let mPrefScrollbarSide =
-                                                                                                        mPrefScrollbarSide
+                                                                                                                ((mDrawColorBackground
+                                                                                                                      as
+                                                                                                                      u32
+                                                                                                                      as
+                                                                                                                      u32)
+                                                                                                                     <<
+                                                                                                                     11usize)
+                                                                                                                    &
+                                                                                                                    (2048usize
+                                                                                                                         as
+                                                                                                                         u32))
+                                                                                                       }
+                                                                                                           |
+                                                                                                           ((mNeverAnimate
+                                                                                                                 as
+                                                                                                                 u32
+                                                                                                                 as
+                                                                                                                 u32)
+                                                                                                                <<
+                                                                                                                12usize)
+                                                                                                               &
+                                                                                                               (4096usize
+                                                                                                                    as
+                                                                                                                    u32))
+                                                                                                  }
+                                                                                                      |
+                                                                                                      ((mIsRenderingOnlySelection
                                                                                                             as
                                                                                                             u32
                                                                                                             as
-                                                                                                            u32;
-                                                                                                    let mask =
-                                                                                                        1572864usize
-                                                                                                            as
-                                                                                                            u32;
-                                                                                                    let mPrefScrollbarSide =
-                                                                                                        (mPrefScrollbarSide
-                                                                                                             <<
-                                                                                                             19usize)
-                                                                                                            &
-                                                                                                            mask;
-                                                                                                    bitfield_unit_val
-                                                                                                        |
-                                                                                                        mPrefScrollbarSide
-                                                                                                };
-                                                                                            let mPendingSysColorChanged =
-                                                                                                mPendingSysColorChanged
-                                                                                                    as
-                                                                                                    u32
-                                                                                                    as
-                                                                                                    u32;
-                                                                                            let mask =
-                                                                                                2097152usize
-                                                                                                    as
-                                                                                                    u32;
-                                                                                            let mPendingSysColorChanged =
-                                                                                                (mPendingSysColorChanged
-                                                                                                     <<
-                                                                                                     21usize)
-                                                                                                    &
-                                                                                                    mask;
-                                                                                            bitfield_unit_val
-                                                                                                |
-                                                                                                mPendingSysColorChanged
-                                                                                        };
-                                                                                    let mPendingThemeChanged =
-                                                                                        mPendingThemeChanged
-                                                                                            as
-                                                                                            u32
-                                                                                            as
-                                                                                            u32;
-                                                                                    let mask =
-                                                                                        4194304usize
-                                                                                            as
-                                                                                            u32;
-                                                                                    let mPendingThemeChanged =
-                                                                                        (mPendingThemeChanged
-                                                                                             <<
-                                                                                             22usize)
-                                                                                            &
-                                                                                            mask;
-                                                                                    bitfield_unit_val
-                                                                                        |
-                                                                                        mPendingThemeChanged
-                                                                                };
-                                                                            let mPendingUIResolutionChanged =
-                                                                                mPendingUIResolutionChanged
-                                                                                    as
-                                                                                    u32
-                                                                                    as
-                                                                                    u32;
-                                                                            let mask =
-                                                                                8388608usize
-                                                                                    as
-                                                                                    u32;
-                                                                            let mPendingUIResolutionChanged =
-                                                                                (mPendingUIResolutionChanged
-                                                                                     <<
-                                                                                     23usize)
-                                                                                    &
-                                                                                    mask;
-                                                                            bitfield_unit_val
-                                                                                |
-                                                                                mPendingUIResolutionChanged
-                                                                        };
-                                                                    let mPendingMediaFeatureValuesChanged =
-                                                                        mPendingMediaFeatureValuesChanged
-                                                                            as
-                                                                            u32
-                                                                            as
-                                                                            u32;
-                                                                    let mask =
-                                                                        16777216usize
-                                                                            as
-                                                                            u32;
-                                                                    let mPendingMediaFeatureValuesChanged =
-                                                                        (mPendingMediaFeatureValuesChanged
+                                                                                                            u32)
+                                                                                                           <<
+                                                                                                           13usize)
+                                                                                                          &
+                                                                                                          (8192usize
+                                                                                                               as
+                                                                                                               u32))
+                                                                                             }
+                                                                                                 |
+                                                                                                 ((mPaginated
+                                                                                                       as
+                                                                                                       u32
+                                                                                                       as
+                                                                                                       u32)
+                                                                                                      <<
+                                                                                                      14usize)
+                                                                                                     &
+                                                                                                     (16384usize
+                                                                                                          as
+                                                                                                          u32))
+                                                                                        }
+                                                                                            |
+                                                                                            ((mCanPaginatedScroll
+                                                                                                  as
+                                                                                                  u32
+                                                                                                  as
+                                                                                                  u32)
+                                                                                                 <<
+                                                                                                 15usize)
+                                                                                                &
+                                                                                                (32768usize
+                                                                                                     as
+                                                                                                     u32))
+                                                                                   }
+                                                                                       |
+                                                                                       ((mDoScaledTwips
+                                                                                             as
+                                                                                             u32
+                                                                                             as
+                                                                                             u32)
+                                                                                            <<
+                                                                                            16usize)
+                                                                                           &
+                                                                                           (65536usize
+                                                                                                as
+                                                                                                u32))
+                                                                              }
+                                                                                  |
+                                                                                  ((mIsRootPaginatedDocument
+                                                                                        as
+                                                                                        u32
+                                                                                        as
+                                                                                        u32)
+                                                                                       <<
+                                                                                       17usize)
+                                                                                      &
+                                                                                      (131072usize
+                                                                                           as
+                                                                                           u32))
+                                                                         } |
+                                                                             ((mPrefBidiDirection
+                                                                                   as
+                                                                                   u32
+                                                                                   as
+                                                                                   u32)
+                                                                                  <<
+                                                                                  18usize)
+                                                                                 &
+                                                                                 (262144usize
+                                                                                      as
+                                                                                      u32))
+                                                                    } |
+                                                                        ((mPrefScrollbarSide
+                                                                              as
+                                                                              u32
+                                                                              as
+                                                                              u32)
                                                                              <<
-                                                                             24usize)
+                                                                             19usize)
                                                                             &
-                                                                            mask;
-                                                                    bitfield_unit_val
-                                                                        |
-                                                                        mPendingMediaFeatureValuesChanged
-                                                                };
-                                                            let mPrefChangePendingNeedsReflow =
-                                                                mPrefChangePendingNeedsReflow
+                                                                            (1572864usize
+                                                                                 as
+                                                                                 u32))
+                                                               } |
+                                                                   ((mPendingSysColorChanged
+                                                                         as
+                                                                         u32
+                                                                         as
+                                                                         u32)
+                                                                        <<
+                                                                        21usize)
+                                                                       &
+                                                                       (2097152usize
+                                                                            as
+                                                                            u32))
+                                                          } |
+                                                              ((mPendingThemeChanged
                                                                     as u32 as
-                                                                    u32;
-                                                            let mask =
-                                                                33554432usize
-                                                                    as u32;
-                                                            let mPrefChangePendingNeedsReflow =
-                                                                (mPrefChangePendingNeedsReflow
-                                                                     <<
-                                                                     25usize)
-                                                                    & mask;
-                                                            bitfield_unit_val
-                                                                |
-                                                                mPrefChangePendingNeedsReflow
-                                                        };
-                                                    let mIsEmulatingMedia =
-                                                        mIsEmulatingMedia as
-                                                            u32 as u32;
-                                                    let mask =
-                                                        67108864usize as u32;
-                                                    let mIsEmulatingMedia =
-                                                        (mIsEmulatingMedia <<
-                                                             26usize) & mask;
-                                                    bitfield_unit_val |
-                                                        mIsEmulatingMedia
-                                                };
-                                            let mIsGlyph =
-                                                mIsGlyph as u32 as u32;
-                                            let mask = 134217728usize as u32;
-                                            let mIsGlyph =
-                                                (mIsGlyph << 27usize) & mask;
-                                            bitfield_unit_val | mIsGlyph
-                                        };
-                                    let mUsesRootEMUnits =
-                                        mUsesRootEMUnits as u32 as u32;
-                                    let mask = 268435456usize as u32;
-                                    let mUsesRootEMUnits =
-                                        (mUsesRootEMUnits << 28usize) & mask;
-                                    bitfield_unit_val | mUsesRootEMUnits
-                                };
-                            let mUsesExChUnits = mUsesExChUnits as u32 as u32;
-                            let mask = 536870912usize as u32;
-                            let mUsesExChUnits =
-                                (mUsesExChUnits << 29usize) & mask;
-                            bitfield_unit_val | mUsesExChUnits
-                        };
-                    let mUsesViewportUnits = mUsesViewportUnits as u32 as u32;
-                    let mask = 1073741824usize as u32;
-                    let mUsesViewportUnits =
-                        (mUsesViewportUnits << 30usize) & mask;
-                    bitfield_unit_val | mUsesViewportUnits
-                };
-            let mPendingViewportChange = mPendingViewportChange as u32 as u32;
-            let mask = 2147483648usize as u32;
-            let mPendingViewportChange =
-                (mPendingViewportChange << 31usize) & mask;
-            bitfield_unit_val | mPendingViewportChange
+                                                                    u32) <<
+                                                                   22usize) &
+                                                                  (4194304usize
+                                                                       as
+                                                                       u32))
+                                                     } |
+                                                         ((mPendingUIResolutionChanged
+                                                               as u32 as u32)
+                                                              << 23usize) &
+                                                             (8388608usize as
+                                                                  u32))
+                                                } |
+                                                    ((mPendingMediaFeatureValuesChanged
+                                                          as u32 as u32) <<
+                                                         24usize) &
+                                                        (16777216usize as
+                                                             u32))
+                                           } |
+                                               ((mPrefChangePendingNeedsReflow
+                                                     as u32 as u32) <<
+                                                    25usize) &
+                                                   (33554432usize as u32))
+                                      } |
+                                          ((mIsEmulatingMedia as u32 as u32)
+                                               << 26usize) &
+                                              (67108864usize as u32))
+                                 } |
+                                     ((mIsGlyph as u32 as u32) << 27usize) &
+                                         (134217728usize as u32))
+                            } |
+                                ((mUsesRootEMUnits as u32 as u32) << 28usize)
+                                    & (268435456usize as u32))
+                       } |
+                           ((mUsesExChUnits as u32 as u32) << 29usize) &
+                               (536870912usize as u32))
+                  } |
+                      ((mUsesViewportUnits as u32 as u32) << 30usize) &
+                          (1073741824usize as u32))
+             } |
+                 ((mPendingViewportChange as u32 as u32) << 31usize) &
+                     (2147483648usize as u32))
         }
         #[inline]
         pub fn mCounterStylesDirty(&self) -> ::std::os::raw::c_uint {
@@ -20935,241 +20011,112 @@ pub mod root {
                               mNeedsPrefUpdate: ::std::os::raw::c_uint,
                               mHadNonBlankPaint: ::std::os::raw::c_uint)
          -> u16 {
-            let bitfield_unit_val =
-                {
-                    let bitfield_unit_val =
-                        {
-                            let bitfield_unit_val =
-                                {
-                                    let bitfield_unit_val =
-                                        {
-                                            let bitfield_unit_val =
-                                                {
-                                                    let bitfield_unit_val =
-                                                        {
-                                                            let bitfield_unit_val =
-                                                                {
-                                                                    let bitfield_unit_val =
-                                                                        {
-                                                                            let bitfield_unit_val =
-                                                                                {
-                                                                                    let bitfield_unit_val =
-                                                                                        {
-                                                                                            let bitfield_unit_val =
-                                                                                                {
-                                                                                                    let bitfield_unit_val =
-                                                                                                        {
-                                                                                                            let bitfield_unit_val =
-                                                                                                                {
-                                                                                                                    let bitfield_unit_val =
-                                                                                                                        {
-                                                                                                                            0
-                                                                                                                        };
-                                                                                                                    let mCounterStylesDirty =
-                                                                                                                        mCounterStylesDirty
-                                                                                                                            as
-                                                                                                                            u32
-                                                                                                                            as
-                                                                                                                            u16;
-                                                                                                                    let mask =
-                                                                                                                        1usize
-                                                                                                                            as
-                                                                                                                            u16;
-                                                                                                                    let mCounterStylesDirty =
-                                                                                                                        (mCounterStylesDirty
-                                                                                                                             <<
-                                                                                                                             0usize)
-                                                                                                                            &
-                                                                                                                            mask;
-                                                                                                                    bitfield_unit_val
-                                                                                                                        |
-                                                                                                                        mCounterStylesDirty
-                                                                                                                };
-                                                                                                            let mPostedFlushCounterStyles =
-                                                                                                                mPostedFlushCounterStyles
-                                                                                                                    as
-                                                                                                                    u32
-                                                                                                                    as
-                                                                                                                    u16;
-                                                                                                            let mask =
-                                                                                                                2usize
-                                                                                                                    as
-                                                                                                                    u16;
-                                                                                                            let mPostedFlushCounterStyles =
-                                                                                                                (mPostedFlushCounterStyles
-                                                                                                                     <<
-                                                                                                                     1usize)
-                                                                                                                    &
-                                                                                                                    mask;
-                                                                                                            bitfield_unit_val
-                                                                                                                |
-                                                                                                                mPostedFlushCounterStyles
-                                                                                                        };
-                                                                                                    let mSuppressResizeReflow =
-                                                                                                        mSuppressResizeReflow
-                                                                                                            as
-                                                                                                            u32
-                                                                                                            as
-                                                                                                            u16;
-                                                                                                    let mask =
-                                                                                                        4usize
-                                                                                                            as
-                                                                                                            u16;
-                                                                                                    let mSuppressResizeReflow =
-                                                                                                        (mSuppressResizeReflow
-                                                                                                             <<
-                                                                                                             2usize)
-                                                                                                            &
-                                                                                                            mask;
-                                                                                                    bitfield_unit_val
-                                                                                                        |
-                                                                                                        mSuppressResizeReflow
-                                                                                                };
-                                                                                            let mIsVisual =
-                                                                                                mIsVisual
-                                                                                                    as
-                                                                                                    u32
-                                                                                                    as
-                                                                                                    u16;
-                                                                                            let mask =
-                                                                                                8usize
-                                                                                                    as
-                                                                                                    u16;
-                                                                                            let mIsVisual =
-                                                                                                (mIsVisual
-                                                                                                     <<
-                                                                                                     3usize)
-                                                                                                    &
-                                                                                                    mask;
-                                                                                            bitfield_unit_val
-                                                                                                |
-                                                                                                mIsVisual
-                                                                                        };
-                                                                                    let mFireAfterPaintEvents =
-                                                                                        mFireAfterPaintEvents
-                                                                                            as
-                                                                                            u32
-                                                                                            as
-                                                                                            u16;
-                                                                                    let mask =
-                                                                                        16usize
-                                                                                            as
-                                                                                            u16;
-                                                                                    let mFireAfterPaintEvents =
-                                                                                        (mFireAfterPaintEvents
-                                                                                             <<
-                                                                                             4usize)
-                                                                                            &
-                                                                                            mask;
-                                                                                    bitfield_unit_val
-                                                                                        |
-                                                                                        mFireAfterPaintEvents
-                                                                                };
-                                                                            let mIsChrome =
-                                                                                mIsChrome
-                                                                                    as
-                                                                                    u32
-                                                                                    as
-                                                                                    u16;
-                                                                            let mask =
-                                                                                32usize
-                                                                                    as
-                                                                                    u16;
-                                                                            let mIsChrome =
-                                                                                (mIsChrome
-                                                                                     <<
-                                                                                     5usize)
-                                                                                    &
-                                                                                    mask;
-                                                                            bitfield_unit_val
-                                                                                |
-                                                                                mIsChrome
-                                                                        };
-                                                                    let mIsChromeOriginImage =
-                                                                        mIsChromeOriginImage
-                                                                            as
-                                                                            u32
-                                                                            as
-                                                                            u16;
-                                                                    let mask =
-                                                                        64usize
-                                                                            as
-                                                                            u16;
-                                                                    let mIsChromeOriginImage =
-                                                                        (mIsChromeOriginImage
+            ({
+                 ({
+                      ({
+                           ({
+                                ({
+                                     ({
+                                          ({
+                                               ({
+                                                    ({
+                                                         ({
+                                                              ({
+                                                                   ({
+                                                                        ({
+                                                                             ({
+                                                                                  0
+                                                                              }
+                                                                                  |
+                                                                                  ((mCounterStylesDirty
+                                                                                        as
+                                                                                        u32
+                                                                                        as
+                                                                                        u16)
+                                                                                       <<
+                                                                                       0usize)
+                                                                                      &
+                                                                                      (1usize
+                                                                                           as
+                                                                                           u16))
+                                                                         } |
+                                                                             ((mPostedFlushCounterStyles
+                                                                                   as
+                                                                                   u32
+                                                                                   as
+                                                                                   u16)
+                                                                                  <<
+                                                                                  1usize)
+                                                                                 &
+                                                                                 (2usize
+                                                                                      as
+                                                                                      u16))
+                                                                    } |
+                                                                        ((mSuppressResizeReflow
+                                                                              as
+                                                                              u32
+                                                                              as
+                                                                              u16)
                                                                              <<
-                                                                             6usize)
+                                                                             2usize)
                                                                             &
-                                                                            mask;
-                                                                    bitfield_unit_val
-                                                                        |
-                                                                        mIsChromeOriginImage
-                                                                };
-                                                            let mPaintFlashing =
-                                                                mPaintFlashing
+                                                                            (4usize
+                                                                                 as
+                                                                                 u16))
+                                                               } |
+                                                                   ((mIsVisual
+                                                                         as
+                                                                         u32
+                                                                         as
+                                                                         u16)
+                                                                        <<
+                                                                        3usize)
+                                                                       &
+                                                                       (8usize
+                                                                            as
+                                                                            u16))
+                                                          } |
+                                                              ((mFireAfterPaintEvents
                                                                     as u32 as
-                                                                    u16;
-                                                            let mask =
-                                                                128usize as
-                                                                    u16;
-                                                            let mPaintFlashing =
-                                                                (mPaintFlashing
-                                                                     <<
-                                                                     7usize) &
-                                                                    mask;
-                                                            bitfield_unit_val
-                                                                |
-                                                                mPaintFlashing
-                                                        };
-                                                    let mPaintFlashingInitialized =
-                                                        mPaintFlashingInitialized
-                                                            as u32 as u16;
-                                                    let mask =
-                                                        256usize as u16;
-                                                    let mPaintFlashingInitialized =
-                                                        (mPaintFlashingInitialized
-                                                             << 8usize) &
-                                                            mask;
-                                                    bitfield_unit_val |
-                                                        mPaintFlashingInitialized
-                                                };
-                                            let mHasWarnedAboutPositionedTableParts =
-                                                mHasWarnedAboutPositionedTableParts
-                                                    as u32 as u16;
-                                            let mask = 512usize as u16;
-                                            let mHasWarnedAboutPositionedTableParts =
-                                                (mHasWarnedAboutPositionedTableParts
-                                                     << 9usize) & mask;
-                                            bitfield_unit_val |
-                                                mHasWarnedAboutPositionedTableParts
-                                        };
-                                    let mHasWarnedAboutTooLargeDashedOrDottedRadius =
-                                        mHasWarnedAboutTooLargeDashedOrDottedRadius
-                                            as u32 as u16;
-                                    let mask = 1024usize as u16;
-                                    let mHasWarnedAboutTooLargeDashedOrDottedRadius =
-                                        (mHasWarnedAboutTooLargeDashedOrDottedRadius
-                                             << 10usize) & mask;
-                                    bitfield_unit_val |
-                                        mHasWarnedAboutTooLargeDashedOrDottedRadius
-                                };
-                            let mQuirkSheetAdded =
-                                mQuirkSheetAdded as u32 as u16;
-                            let mask = 2048usize as u16;
-                            let mQuirkSheetAdded =
-                                (mQuirkSheetAdded << 11usize) & mask;
-                            bitfield_unit_val | mQuirkSheetAdded
-                        };
-                    let mNeedsPrefUpdate = mNeedsPrefUpdate as u32 as u16;
-                    let mask = 4096usize as u16;
-                    let mNeedsPrefUpdate =
-                        (mNeedsPrefUpdate << 12usize) & mask;
-                    bitfield_unit_val | mNeedsPrefUpdate
-                };
-            let mHadNonBlankPaint = mHadNonBlankPaint as u32 as u16;
-            let mask = 8192usize as u16;
-            let mHadNonBlankPaint = (mHadNonBlankPaint << 13usize) & mask;
-            bitfield_unit_val | mHadNonBlankPaint
+                                                                    u16) <<
+                                                                   4usize) &
+                                                                  (16usize as
+                                                                       u16))
+                                                     } |
+                                                         ((mIsChrome as u32 as
+                                                               u16) << 5usize)
+                                                             &
+                                                             (32usize as u16))
+                                                } |
+                                                    ((mIsChromeOriginImage as
+                                                          u32 as u16) <<
+                                                         6usize) &
+                                                        (64usize as u16))
+                                           } |
+                                               ((mPaintFlashing as u32 as u16)
+                                                    << 7usize) &
+                                                   (128usize as u16))
+                                      } |
+                                          ((mPaintFlashingInitialized as u32
+                                                as u16) << 8usize) &
+                                              (256usize as u16))
+                                 } |
+                                     ((mHasWarnedAboutPositionedTableParts as
+                                           u32 as u16) << 9usize) &
+                                         (512usize as u16))
+                            } |
+                                ((mHasWarnedAboutTooLargeDashedOrDottedRadius
+                                      as u32 as u16) << 10usize) &
+                                    (1024usize as u16))
+                       } |
+                           ((mQuirkSheetAdded as u32 as u16) << 11usize) &
+                               (2048usize as u16))
+                  } |
+                      ((mNeedsPrefUpdate as u32 as u16) << 12usize) &
+                          (4096usize as u16))
+             } |
+                 ((mHadNonBlankPaint as u32 as u16) << 13usize) &
+                     (8192usize as u16))
         }
     }
     #[repr(C)]
@@ -22593,100 +21540,34 @@ pub mod root {
                               mIsReflowing: bool, mPaintingSuppressed: bool,
                               mIsThemeSupportDisabled: bool, mIsActive: bool,
                               mFrozen: bool, mIsFirstPaint: bool) -> u8 {
-            let bitfield_unit_val =
-                {
-                    let bitfield_unit_val =
-                        {
-                            let bitfield_unit_val =
-                                {
-                                    let bitfield_unit_val =
-                                        {
-                                            let bitfield_unit_val =
-                                                {
-                                                    let bitfield_unit_val =
-                                                        {
-                                                            let bitfield_unit_val =
-                                                                {
-                                                                    let bitfield_unit_val =
-                                                                        { 0 };
-                                                                    let mDidInitialize =
-                                                                        mDidInitialize
-                                                                            as
-                                                                            u8
-                                                                            as
-                                                                            u8;
-                                                                    let mask =
-                                                                        1usize
-                                                                            as
-                                                                            u8;
-                                                                    let mDidInitialize =
-                                                                        (mDidInitialize
-                                                                             <<
-                                                                             0usize)
-                                                                            &
-                                                                            mask;
-                                                                    bitfield_unit_val
-                                                                        |
-                                                                        mDidInitialize
-                                                                };
-                                                            let mIsDestroying =
-                                                                mIsDestroying
-                                                                    as u8 as
-                                                                    u8;
-                                                            let mask =
-                                                                2usize as u8;
-                                                            let mIsDestroying =
-                                                                (mIsDestroying
-                                                                     <<
-                                                                     1usize) &
-                                                                    mask;
-                                                            bitfield_unit_val
-                                                                |
-                                                                mIsDestroying
-                                                        };
-                                                    let mIsReflowing =
-                                                        mIsReflowing as u8 as
-                                                            u8;
-                                                    let mask = 4usize as u8;
-                                                    let mIsReflowing =
-                                                        (mIsReflowing <<
-                                                             2usize) & mask;
-                                                    bitfield_unit_val |
-                                                        mIsReflowing
-                                                };
-                                            let mPaintingSuppressed =
-                                                mPaintingSuppressed as u8 as
-                                                    u8;
-                                            let mask = 8usize as u8;
-                                            let mPaintingSuppressed =
-                                                (mPaintingSuppressed <<
-                                                     3usize) & mask;
-                                            bitfield_unit_val |
-                                                mPaintingSuppressed
-                                        };
-                                    let mIsThemeSupportDisabled =
-                                        mIsThemeSupportDisabled as u8 as u8;
-                                    let mask = 16usize as u8;
-                                    let mIsThemeSupportDisabled =
-                                        (mIsThemeSupportDisabled << 4usize) &
-                                            mask;
-                                    bitfield_unit_val |
-                                        mIsThemeSupportDisabled
-                                };
-                            let mIsActive = mIsActive as u8 as u8;
-                            let mask = 32usize as u8;
-                            let mIsActive = (mIsActive << 5usize) & mask;
-                            bitfield_unit_val | mIsActive
-                        };
-                    let mFrozen = mFrozen as u8 as u8;
-                    let mask = 64usize as u8;
-                    let mFrozen = (mFrozen << 6usize) & mask;
-                    bitfield_unit_val | mFrozen
-                };
-            let mIsFirstPaint = mIsFirstPaint as u8 as u8;
-            let mask = 128usize as u8;
-            let mIsFirstPaint = (mIsFirstPaint << 7usize) & mask;
-            bitfield_unit_val | mIsFirstPaint
+            ({
+                 ({
+                      ({
+                           ({
+                                ({
+                                     ({
+                                          ({
+                                               ({ 0 } |
+                                                    ((mDidInitialize as u8 as
+                                                          u8) << 0usize) &
+                                                        (1usize as u8))
+                                           } |
+                                               ((mIsDestroying as u8 as u8) <<
+                                                    1usize) & (2usize as u8))
+                                      } |
+                                          ((mIsReflowing as u8 as u8) <<
+                                               2usize) & (4usize as u8))
+                                 } |
+                                     ((mPaintingSuppressed as u8 as u8) <<
+                                          3usize) & (8usize as u8))
+                            } |
+                                ((mIsThemeSupportDisabled as u8 as u8) <<
+                                     4usize) & (16usize as u8))
+                       } |
+                           ((mIsActive as u8 as u8) << 5usize) &
+                               (32usize as u8))
+                  } | ((mFrozen as u8 as u8) << 6usize) & (64usize as u8))
+             } | ((mIsFirstPaint as u8 as u8) << 7usize) & (128usize as u8))
         }
         #[inline]
         pub fn mObservesMutationsForPrint(&self) -> bool {
@@ -22849,104 +21730,41 @@ pub mod root {
                               mObservingStyleFlushes: bool,
                               mObservingLayoutFlushes: bool,
                               mNeedThrottledAnimationFlush: bool) -> u8 {
-            let bitfield_unit_val =
-                {
-                    let bitfield_unit_val =
-                        {
-                            let bitfield_unit_val =
-                                {
-                                    let bitfield_unit_val =
-                                        {
-                                            let bitfield_unit_val =
-                                                {
-                                                    let bitfield_unit_val =
-                                                        {
-                                                            let bitfield_unit_val =
-                                                                {
-                                                                    let bitfield_unit_val =
-                                                                        { 0 };
-                                                                    let mObservesMutationsForPrint =
-                                                                        mObservesMutationsForPrint
-                                                                            as
-                                                                            u8
-                                                                            as
-                                                                            u8;
-                                                                    let mask =
-                                                                        1usize
-                                                                            as
-                                                                            u8;
-                                                                    let mObservesMutationsForPrint =
-                                                                        (mObservesMutationsForPrint
-                                                                             <<
-                                                                             0usize)
-                                                                            &
-                                                                            mask;
-                                                                    bitfield_unit_val
-                                                                        |
-                                                                        mObservesMutationsForPrint
-                                                                };
-                                                            let mSuppressInterruptibleReflows =
-                                                                mSuppressInterruptibleReflows
-                                                                    as u8 as
-                                                                    u8;
-                                                            let mask =
-                                                                2usize as u8;
-                                                            let mSuppressInterruptibleReflows =
-                                                                (mSuppressInterruptibleReflows
-                                                                     <<
-                                                                     1usize) &
-                                                                    mask;
-                                                            bitfield_unit_val
-                                                                |
-                                                                mSuppressInterruptibleReflows
-                                                        };
-                                                    let mScrollPositionClampingScrollPortSizeSet =
-                                                        mScrollPositionClampingScrollPortSizeSet
-                                                            as u8 as u8;
-                                                    let mask = 4usize as u8;
-                                                    let mScrollPositionClampingScrollPortSizeSet =
-                                                        (mScrollPositionClampingScrollPortSizeSet
-                                                             << 2usize) &
-                                                            mask;
-                                                    bitfield_unit_val |
-                                                        mScrollPositionClampingScrollPortSizeSet
-                                                };
-                                            let mNeedLayoutFlush =
-                                                mNeedLayoutFlush as u8 as u8;
-                                            let mask = 8usize as u8;
-                                            let mNeedLayoutFlush =
-                                                (mNeedLayoutFlush << 3usize) &
-                                                    mask;
-                                            bitfield_unit_val |
-                                                mNeedLayoutFlush
-                                        };
-                                    let mNeedStyleFlush =
-                                        mNeedStyleFlush as u8 as u8;
-                                    let mask = 16usize as u8;
-                                    let mNeedStyleFlush =
-                                        (mNeedStyleFlush << 4usize) & mask;
-                                    bitfield_unit_val | mNeedStyleFlush
-                                };
-                            let mObservingStyleFlushes =
-                                mObservingStyleFlushes as u8 as u8;
-                            let mask = 32usize as u8;
-                            let mObservingStyleFlushes =
-                                (mObservingStyleFlushes << 5usize) & mask;
-                            bitfield_unit_val | mObservingStyleFlushes
-                        };
-                    let mObservingLayoutFlushes =
-                        mObservingLayoutFlushes as u8 as u8;
-                    let mask = 64usize as u8;
-                    let mObservingLayoutFlushes =
-                        (mObservingLayoutFlushes << 6usize) & mask;
-                    bitfield_unit_val | mObservingLayoutFlushes
-                };
-            let mNeedThrottledAnimationFlush =
-                mNeedThrottledAnimationFlush as u8 as u8;
-            let mask = 128usize as u8;
-            let mNeedThrottledAnimationFlush =
-                (mNeedThrottledAnimationFlush << 7usize) & mask;
-            bitfield_unit_val | mNeedThrottledAnimationFlush
+            ({
+                 ({
+                      ({
+                           ({
+                                ({
+                                     ({
+                                          ({
+                                               ({ 0 } |
+                                                    ((mObservesMutationsForPrint
+                                                          as u8 as u8) <<
+                                                         0usize) &
+                                                        (1usize as u8))
+                                           } |
+                                               ((mSuppressInterruptibleReflows
+                                                     as u8 as u8) << 1usize) &
+                                                   (2usize as u8))
+                                      } |
+                                          ((mScrollPositionClampingScrollPortSizeSet
+                                                as u8 as u8) << 2usize) &
+                                              (4usize as u8))
+                                 } |
+                                     ((mNeedLayoutFlush as u8 as u8) <<
+                                          3usize) & (8usize as u8))
+                            } |
+                                ((mNeedStyleFlush as u8 as u8) << 4usize) &
+                                    (16usize as u8))
+                       } |
+                           ((mObservingStyleFlushes as u8 as u8) << 5usize) &
+                               (32usize as u8))
+                  } |
+                      ((mObservingLayoutFlushes as u8 as u8) << 6usize) &
+                          (64usize as u8))
+             } |
+                 ((mNeedThrottledAnimationFlush as u8 as u8) << 7usize) &
+                     (128usize as u8))
         }
     }
     /**
@@ -23830,7 +22648,6 @@ pub mod root {
         NS_FRAME_IS_NONDISPLAY = 9007199254740992,
         NS_FRAME_HAS_LAYER_ACTIVITY_PROPERTY = 18014398509481984,
         NS_FRAME_OWNS_ANON_BOXES = 36028797018963968,
-        NS_FRAME_HAS_PROPERTIES = 72057594037927936,
         NS_FRAME_SIMPLE_DISPLAYLIST = 144115188075855872,
         NS_FRAME_MATHML_SCRIPT_DESCENDANT = 288230376151711744,
         NS_FRAME_IS_IN_SINGLE_CHAR_MI = 576460752303423488,
@@ -25087,18 +23904,13 @@ pub mod root {
         #[inline]
         pub fn new_bitfield_1(mGeneration: u32, mIndexInGeneration: u32)
          -> u32 {
-            let bitfield_unit_val =
-                {
-                    let bitfield_unit_val = { 0 };
-                    let mGeneration = mGeneration as u32 as u32;
-                    let mask = 15usize as u32;
-                    let mGeneration = (mGeneration << 0usize) & mask;
-                    bitfield_unit_val | mGeneration
-                };
-            let mIndexInGeneration = mIndexInGeneration as u32 as u32;
-            let mask = 4294967280usize as u32;
-            let mIndexInGeneration = (mIndexInGeneration << 4usize) & mask;
-            bitfield_unit_val | mIndexInGeneration
+            ({
+                 ({ 0 } |
+                      ((mGeneration as u32 as u32) << 0usize) &
+                          (15usize as u32))
+             } |
+                 ((mIndexInGeneration as u32 as u32) << 4usize) &
+                     (4294967280usize as u32))
         }
     }
     #[repr(C)]
@@ -25727,7 +24539,7 @@ pub mod root {
     }
     #[test]
     fn bindgen_test_layout_nsRootPresContext() {
-        assert_eq!(::std::mem::size_of::<nsRootPresContext>() , 1552usize ,
+        assert_eq!(::std::mem::size_of::<nsRootPresContext>() , 1488usize ,
                    concat ! ( "Size of: " , stringify ! ( nsRootPresContext )
                    ));
         assert_eq! (::std::mem::align_of::<nsRootPresContext>() , 8usize ,
@@ -25735,37 +24547,37 @@ pub mod root {
                     "Alignment of " , stringify ! ( nsRootPresContext ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsRootPresContext ) ) .
-                    mNotifyDidPaintTimers as * const _ as usize } , 1392usize
+                    mNotifyDidPaintTimers as * const _ as usize } , 1328usize
                     , concat ! (
                     "Alignment of field: " , stringify ! ( nsRootPresContext )
                     , "::" , stringify ! ( mNotifyDidPaintTimers ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsRootPresContext ) ) .
                     mApplyPluginGeometryTimer as * const _ as usize } ,
-                    1472usize , concat ! (
+                    1408usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsRootPresContext )
                     , "::" , stringify ! ( mApplyPluginGeometryTimer ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsRootPresContext ) ) .
-                    mRegisteredPlugins as * const _ as usize } , 1480usize ,
+                    mRegisteredPlugins as * const _ as usize } , 1416usize ,
                     concat ! (
                     "Alignment of field: " , stringify ! ( nsRootPresContext )
                     , "::" , stringify ! ( mRegisteredPlugins ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsRootPresContext ) ) .
-                    mWillPaintObservers as * const _ as usize } , 1528usize ,
+                    mWillPaintObservers as * const _ as usize } , 1464usize ,
                     concat ! (
                     "Alignment of field: " , stringify ! ( nsRootPresContext )
                     , "::" , stringify ! ( mWillPaintObservers ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsRootPresContext ) ) .
                     mWillPaintFallbackEvent as * const _ as usize } ,
-                    1536usize , concat ! (
+                    1472usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsRootPresContext )
                     , "::" , stringify ! ( mWillPaintFallbackEvent ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsRootPresContext ) ) .
-                    mDOMGeneration as * const _ as usize } , 1544usize ,
+                    mDOMGeneration as * const _ as usize } , 1480usize ,
                     concat ! (
                     "Alignment of field: " , stringify ! ( nsRootPresContext )
                     , "::" , stringify ! ( mDOMGeneration ) ));
@@ -29625,59 +28437,29 @@ pub mod root {
                               mIsInCache: bool, mDecodeRequested: bool,
                               mNewPartPending: bool,
                               mHadInsecureRedirect: bool) -> u8 {
-            let bitfield_unit_val =
-                {
-                    let bitfield_unit_val =
-                        {
-                            let bitfield_unit_val =
-                                {
-                                    let bitfield_unit_val =
-                                        {
-                                            let bitfield_unit_val =
-                                                {
-                                                    let bitfield_unit_val =
-                                                        { 0 };
-                                                    let mIsMultiPartChannel =
-                                                        mIsMultiPartChannel as
-                                                            u8 as u8;
-                                                    let mask = 1usize as u8;
-                                                    let mIsMultiPartChannel =
-                                                        (mIsMultiPartChannel
-                                                             << 0usize) &
-                                                            mask;
-                                                    bitfield_unit_val |
-                                                        mIsMultiPartChannel
-                                                };
-                                            let mGotData =
-                                                mGotData as u8 as u8;
-                                            let mask = 2usize as u8;
-                                            let mGotData =
-                                                (mGotData << 1usize) & mask;
-                                            bitfield_unit_val | mGotData
-                                        };
-                                    let mIsInCache = mIsInCache as u8 as u8;
-                                    let mask = 4usize as u8;
-                                    let mIsInCache =
-                                        (mIsInCache << 2usize) & mask;
-                                    bitfield_unit_val | mIsInCache
-                                };
-                            let mDecodeRequested =
-                                mDecodeRequested as u8 as u8;
-                            let mask = 8usize as u8;
-                            let mDecodeRequested =
-                                (mDecodeRequested << 3usize) & mask;
-                            bitfield_unit_val | mDecodeRequested
-                        };
-                    let mNewPartPending = mNewPartPending as u8 as u8;
-                    let mask = 16usize as u8;
-                    let mNewPartPending = (mNewPartPending << 4usize) & mask;
-                    bitfield_unit_val | mNewPartPending
-                };
-            let mHadInsecureRedirect = mHadInsecureRedirect as u8 as u8;
-            let mask = 32usize as u8;
-            let mHadInsecureRedirect =
-                (mHadInsecureRedirect << 5usize) & mask;
-            bitfield_unit_val | mHadInsecureRedirect
+            ({
+                 ({
+                      ({
+                           ({
+                                ({
+                                     ({ 0 } |
+                                          ((mIsMultiPartChannel as u8 as u8)
+                                               << 0usize) & (1usize as u8))
+                                 } |
+                                     ((mGotData as u8 as u8) << 1usize) &
+                                         (2usize as u8))
+                            } |
+                                ((mIsInCache as u8 as u8) << 2usize) &
+                                    (4usize as u8))
+                       } |
+                           ((mDecodeRequested as u8 as u8) << 3usize) &
+                               (8usize as u8))
+                  } |
+                      ((mNewPartPending as u8 as u8) << 4usize) &
+                          (16usize as u8))
+             } |
+                 ((mHadInsecureRedirect as u8 as u8) << 5usize) &
+                     (32usize as u8))
         }
     }
     #[repr(C)]
@@ -31185,18 +29967,10 @@ pub mod root {
         }
         #[inline]
         pub fn new_bitfield_1(mIsAutoFill: bool, mIsSubgrid: bool) -> u8 {
-            let bitfield_unit_val =
-                {
-                    let bitfield_unit_val = { 0 };
-                    let mIsAutoFill = mIsAutoFill as u8 as u8;
-                    let mask = 1usize as u8;
-                    let mIsAutoFill = (mIsAutoFill << 0usize) & mask;
-                    bitfield_unit_val | mIsAutoFill
-                };
-            let mIsSubgrid = mIsSubgrid as u8 as u8;
-            let mask = 2usize as u8;
-            let mIsSubgrid = (mIsSubgrid << 1usize) & mask;
-            bitfield_unit_val | mIsSubgrid
+            ({
+                 ({ 0 } |
+                      ((mIsAutoFill as u8 as u8) << 0usize) & (1usize as u8))
+             } | ((mIsSubgrid as u8 as u8) << 1usize) & (2usize as u8))
         }
     }
     #[repr(C)]
@@ -31784,18 +30558,13 @@ pub mod root {
         #[inline]
         pub fn new_bitfield_1(mTextAlignTrue: bool, mTextAlignLastTrue: bool)
          -> u8 {
-            let bitfield_unit_val =
-                {
-                    let bitfield_unit_val = { 0 };
-                    let mTextAlignTrue = mTextAlignTrue as u8 as u8;
-                    let mask = 1usize as u8;
-                    let mTextAlignTrue = (mTextAlignTrue << 0usize) & mask;
-                    bitfield_unit_val | mTextAlignTrue
-                };
-            let mTextAlignLastTrue = mTextAlignLastTrue as u8 as u8;
-            let mask = 2usize as u8;
-            let mTextAlignLastTrue = (mTextAlignLastTrue << 1usize) & mask;
-            bitfield_unit_val | mTextAlignLastTrue
+            ({
+                 ({ 0 } |
+                      ((mTextAlignTrue as u8 as u8) << 0usize) &
+                          (1usize as u8))
+             } |
+                 ((mTextAlignLastTrue as u8 as u8) << 1usize) &
+                     (2usize as u8))
         }
     }
     #[repr(C)]
@@ -34731,7 +33500,7 @@ pub mod root {
                    root::nsCharTraits ) ));
     }
     #[test]
-    fn __bindgen_test_layout__bindgen_ty_id_211631_instantiation_99() {
+    fn __bindgen_test_layout__bindgen_ty_id_211462_instantiation_99() {
         assert_eq!(::std::mem::size_of::<u8>() , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u8 )
                    ));
@@ -34740,7 +33509,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout__bindgen_ty_id_211667_instantiation_100() {
+    fn __bindgen_test_layout__bindgen_ty_id_211498_instantiation_100() {
         assert_eq!(::std::mem::size_of::<u8>() , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u8 )
                    ));
@@ -36320,31 +35089,7 @@ pub mod root {
                    root::already_AddRefed<root::nsIAtom> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_instantiation_244() {
-        assert_eq!(::std::mem::size_of::<root::nsTArray<root::mozilla::FramePropertyTable_PropertyValue>>()
-                   , 8usize , concat ! (
-                   "Size of template specialization: " , stringify ! (
-                   root::nsTArray<root::mozilla::FramePropertyTable_PropertyValue>
-                   ) ));
-        assert_eq!(::std::mem::align_of::<root::nsTArray<root::mozilla::FramePropertyTable_PropertyValue>>()
-                   , 8usize , concat ! (
-                   "Alignment of template specialization: " , stringify ! (
-                   root::nsTArray<root::mozilla::FramePropertyTable_PropertyValue>
-                   ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_nsPtrHashKey_instantiation_245() {
-        assert_eq!(::std::mem::size_of::<root::nsPtrHashKey<root::nsIFrame>>()
-                   , 16usize , concat ! (
-                   "Size of template specialization: " , stringify ! (
-                   root::nsPtrHashKey<root::nsIFrame> ) ));
-        assert_eq!(::std::mem::align_of::<root::nsPtrHashKey<root::nsIFrame>>()
-                   , 8usize , concat ! (
-                   "Alignment of template specialization: " , stringify ! (
-                   root::nsPtrHashKey<root::nsIFrame> ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_already_AddRefed_instantiation_246() {
+    fn __bindgen_test_layout_already_AddRefed_instantiation_244() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsIRunnable>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36355,7 +35100,7 @@ pub mod root {
                    root::already_AddRefed<root::nsIRunnable> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsPIDOMWindow_instantiation_247() {
+    fn __bindgen_test_layout_nsPIDOMWindow_instantiation_245() {
         assert_eq!(::std::mem::size_of::<[u64; 29usize]>() , 232usize , concat
                    ! (
                    "Size of template specialization: " , stringify ! (
@@ -36366,7 +35111,7 @@ pub mod root {
                    [u64; 29usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_MutableHandle_instantiation_248() {
+    fn __bindgen_test_layout_MutableHandle_instantiation_246() {
         assert_eq!(::std::mem::size_of::<root::JS::MutableHandle<root::JS::Value>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36377,7 +35122,7 @@ pub mod root {
                    root::JS::MutableHandle<root::JS::Value> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_MutableHandle_instantiation_249() {
+    fn __bindgen_test_layout_MutableHandle_instantiation_247() {
         assert_eq!(::std::mem::size_of::<root::JS::MutableHandle<root::JS::Value>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36388,7 +35133,7 @@ pub mod root {
                    root::JS::MutableHandle<root::JS::Value> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_already_AddRefed_instantiation_250() {
+    fn __bindgen_test_layout_already_AddRefed_instantiation_248() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::mozilla::dom::CSSValue>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36399,7 +35144,7 @@ pub mod root {
                    root::already_AddRefed<root::mozilla::dom::CSSValue> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_DefaultDelete_instantiation_251() {
+    fn __bindgen_test_layout_DefaultDelete_instantiation_249() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete>() ,
                    1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36410,7 +35155,7 @@ pub mod root {
                    root::mozilla::DefaultDelete ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsRefPtrHashtable_instantiation_252() {
+    fn __bindgen_test_layout_nsRefPtrHashtable_instantiation_250() {
         assert_eq!(::std::mem::size_of::<[u64; 6usize]>() , 48usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -36421,7 +35166,7 @@ pub mod root {
                    [u64; 6usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_Rooted_instantiation_253() {
+    fn __bindgen_test_layout_Rooted_instantiation_251() {
         assert_eq!(::std::mem::size_of::<[u64; 3usize]>() , 24usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -36432,7 +35177,7 @@ pub mod root {
                    [u64; 3usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_Rooted_instantiation_254() {
+    fn __bindgen_test_layout_Rooted_instantiation_252() {
         assert_eq!(::std::mem::size_of::<[u64; 3usize]>() , 24usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -36443,7 +35188,7 @@ pub mod root {
                    [u64; 3usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_already_AddRefed_instantiation_255() {
+    fn __bindgen_test_layout_already_AddRefed_instantiation_253() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsISupports>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36454,7 +35199,7 @@ pub mod root {
                    root::already_AddRefed<root::nsISupports> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_instantiation_256() {
+    fn __bindgen_test_layout_nsCOMPtr_instantiation_254() {
         assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsISupports>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36465,7 +35210,7 @@ pub mod root {
                    root::nsCOMPtr<root::nsISupports> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_instantiation_257() {
+    fn __bindgen_test_layout_nsCOMPtr_instantiation_255() {
         assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsIRunnable>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36476,7 +35221,7 @@ pub mod root {
                    root::nsCOMPtr<root::nsIRunnable> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_instantiation_258() {
+    fn __bindgen_test_layout_nsTArray_instantiation_256() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<::nsstring::nsStringRepr>>() ,
                    8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36487,7 +35232,7 @@ pub mod root {
                    root::nsTArray<::nsstring::nsStringRepr> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_Handle_instantiation_259() {
+    fn __bindgen_test_layout_Handle_instantiation_257() {
         assert_eq!(::std::mem::size_of::<root::JS::Handle<root::JS::Value>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36496,6 +35241,28 @@ pub mod root {
                    , 8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
                    root::JS::Handle<root::JS::Value> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_MutableHandle_instantiation_258() {
+        assert_eq!(::std::mem::size_of::<root::JS::MutableHandle<root::JS::Value>>()
+                   , 8usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::JS::MutableHandle<root::JS::Value> ) ));
+        assert_eq!(::std::mem::align_of::<root::JS::MutableHandle<root::JS::Value>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::JS::MutableHandle<root::JS::Value> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_Handle_instantiation_259() {
+        assert_eq!(::std::mem::size_of::<root::JS::Handle<*mut root::JSObject>>()
+                   , 8usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::JS::Handle<*mut root::JSObject> ) ));
+        assert_eq!(::std::mem::align_of::<root::JS::Handle<*mut root::JSObject>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::JS::Handle<*mut root::JSObject> ) ));
     }
     #[test]
     fn __bindgen_test_layout_MutableHandle_instantiation_260() {
@@ -36509,29 +35276,7 @@ pub mod root {
                    root::JS::MutableHandle<root::JS::Value> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_Handle_instantiation_261() {
-        assert_eq!(::std::mem::size_of::<root::JS::Handle<*mut root::JSObject>>()
-                   , 8usize , concat ! (
-                   "Size of template specialization: " , stringify ! (
-                   root::JS::Handle<*mut root::JSObject> ) ));
-        assert_eq!(::std::mem::align_of::<root::JS::Handle<*mut root::JSObject>>()
-                   , 8usize , concat ! (
-                   "Alignment of template specialization: " , stringify ! (
-                   root::JS::Handle<*mut root::JSObject> ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_MutableHandle_instantiation_262() {
-        assert_eq!(::std::mem::size_of::<root::JS::MutableHandle<root::JS::Value>>()
-                   , 8usize , concat ! (
-                   "Size of template specialization: " , stringify ! (
-                   root::JS::MutableHandle<root::JS::Value> ) ));
-        assert_eq!(::std::mem::align_of::<root::JS::MutableHandle<root::JS::Value>>()
-                   , 8usize , concat ! (
-                   "Alignment of template specialization: " , stringify ! (
-                   root::JS::MutableHandle<root::JS::Value> ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_nsTArray_instantiation_263() {
+    fn __bindgen_test_layout_nsTArray_instantiation_261() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<::nsstring::nsStringRepr>>() ,
                    8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36542,7 +35287,7 @@ pub mod root {
                    root::nsTArray<::nsstring::nsStringRepr> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_Handle_instantiation_264() {
+    fn __bindgen_test_layout_Handle_instantiation_262() {
         assert_eq!(::std::mem::size_of::<root::JS::Handle<*mut root::JSObject>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36553,7 +35298,7 @@ pub mod root {
                    root::JS::Handle<*mut root::JSObject> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_already_AddRefed_instantiation_265() {
+    fn __bindgen_test_layout_already_AddRefed_instantiation_263() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::mozilla::dom::NodeInfo>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36564,7 +35309,7 @@ pub mod root {
                    root::already_AddRefed<root::mozilla::dom::NodeInfo> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_already_AddRefed_instantiation_266() {
+    fn __bindgen_test_layout_already_AddRefed_instantiation_264() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsIURI>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36575,7 +35320,7 @@ pub mod root {
                    root::already_AddRefed<root::nsIURI> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_Handle_instantiation_267() {
+    fn __bindgen_test_layout_Handle_instantiation_265() {
         assert_eq!(::std::mem::size_of::<root::JS::Handle<*mut root::JSObject>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36586,7 +35331,7 @@ pub mod root {
                    root::JS::Handle<*mut root::JSObject> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_instantiation_268() {
+    fn __bindgen_test_layout_nsTArray_instantiation_266() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<f64>>() , 8usize ,
                    concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36597,7 +35342,7 @@ pub mod root {
                    root::nsTArray<f64> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_instantiation_269() {
+    fn __bindgen_test_layout_RefPtr_instantiation_267() {
         assert_eq!(::std::mem::size_of::<root::RefPtr<root::mozilla::dom::DOMIntersectionObserverEntry>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36610,7 +35355,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_instantiation_270() {
+    fn __bindgen_test_layout_nsTArray_instantiation_268() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::RefPtr<root::mozilla::dom::DOMIntersectionObserverEntry>>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36623,7 +35368,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsPtrHashKey_instantiation_271() {
+    fn __bindgen_test_layout_nsPtrHashKey_instantiation_269() {
         assert_eq!(::std::mem::size_of::<root::nsPtrHashKey<root::mozilla::dom::Element>>()
                    , 16usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36634,7 +35379,7 @@ pub mod root {
                    root::nsPtrHashKey<root::mozilla::dom::Element> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_instantiation_272() {
+    fn __bindgen_test_layout_RefPtr_instantiation_270() {
         assert_eq!(::std::mem::size_of::<root::RefPtr<root::mozilla::dom::DOMIntersectionObserverEntry>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36647,7 +35392,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_UniquePtr_instantiation_273() {
+    fn __bindgen_test_layout_UniquePtr_instantiation_271() {
         assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::ProfilerBacktrace>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36658,7 +35403,7 @@ pub mod root {
                    root::mozilla::UniquePtr<root::ProfilerBacktrace> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_instantiation_274() {
+    fn __bindgen_test_layout_nsTArray_instantiation_272() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<::nsstring::nsStringRepr>>() ,
                    8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36667,6 +35412,28 @@ pub mod root {
                    8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
                    root::nsTArray<::nsstring::nsStringRepr> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_Handle_instantiation_273() {
+        assert_eq!(::std::mem::size_of::<root::JS::Handle<root::JS::Value>>()
+                   , 8usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::JS::Handle<root::JS::Value> ) ));
+        assert_eq!(::std::mem::align_of::<root::JS::Handle<root::JS::Value>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::JS::Handle<root::JS::Value> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_MutableHandle_instantiation_274() {
+        assert_eq!(::std::mem::size_of::<root::JS::MutableHandle<root::JS::Value>>()
+                   , 8usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::JS::MutableHandle<root::JS::Value> ) ));
+        assert_eq!(::std::mem::align_of::<root::JS::MutableHandle<root::JS::Value>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::JS::MutableHandle<root::JS::Value> ) ));
     }
     #[test]
     fn __bindgen_test_layout_Handle_instantiation_275() {
@@ -36691,29 +35458,7 @@ pub mod root {
                    root::JS::MutableHandle<root::JS::Value> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_Handle_instantiation_277() {
-        assert_eq!(::std::mem::size_of::<root::JS::Handle<root::JS::Value>>()
-                   , 8usize , concat ! (
-                   "Size of template specialization: " , stringify ! (
-                   root::JS::Handle<root::JS::Value> ) ));
-        assert_eq!(::std::mem::align_of::<root::JS::Handle<root::JS::Value>>()
-                   , 8usize , concat ! (
-                   "Alignment of template specialization: " , stringify ! (
-                   root::JS::Handle<root::JS::Value> ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_MutableHandle_instantiation_278() {
-        assert_eq!(::std::mem::size_of::<root::JS::MutableHandle<root::JS::Value>>()
-                   , 8usize , concat ! (
-                   "Size of template specialization: " , stringify ! (
-                   root::JS::MutableHandle<root::JS::Value> ) ));
-        assert_eq!(::std::mem::align_of::<root::JS::MutableHandle<root::JS::Value>>()
-                   , 8usize , concat ! (
-                   "Alignment of template specialization: " , stringify ! (
-                   root::JS::MutableHandle<root::JS::Value> ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_already_AddRefed_instantiation_279() {
+    fn __bindgen_test_layout_already_AddRefed_instantiation_277() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsIAtom>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36724,7 +35469,7 @@ pub mod root {
                    root::already_AddRefed<root::nsIAtom> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsDataHashtable_instantiation_280() {
+    fn __bindgen_test_layout_nsDataHashtable_instantiation_278() {
         assert_eq!(::std::mem::size_of::<[u64; 6usize]>() , 48usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -36735,7 +35480,7 @@ pub mod root {
                    [u64; 6usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_OwningNonNull_instantiation_281() {
+    fn __bindgen_test_layout_OwningNonNull_instantiation_279() {
         assert_eq!(::std::mem::size_of::<root::mozilla::OwningNonNull<root::mozilla::EffectCompositor_AnimationStyleRuleProcessor>>()
                    , 16usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36748,7 +35493,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsRefPtrHashKey_instantiation_282() {
+    fn __bindgen_test_layout_nsRefPtrHashKey_instantiation_280() {
         assert_eq!(::std::mem::size_of::<root::nsRefPtrHashKey<root::nsIAtom>>()
                    , 16usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36759,7 +35504,7 @@ pub mod root {
                    root::nsRefPtrHashKey<root::nsIAtom> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsRefPtrHashKey_instantiation_283() {
+    fn __bindgen_test_layout_nsRefPtrHashKey_instantiation_281() {
         assert_eq!(::std::mem::size_of::<root::nsRefPtrHashKey<root::nsIContent>>()
                    , 16usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36770,7 +35515,7 @@ pub mod root {
                    root::nsRefPtrHashKey<root::nsIContent> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_instantiation_284() {
+    fn __bindgen_test_layout_nsCOMPtr_instantiation_282() {
         assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsIRunnable>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36781,7 +35526,7 @@ pub mod root {
                    root::nsCOMPtr<root::nsIRunnable> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_DefaultDelete_instantiation_285() {
+    fn __bindgen_test_layout_DefaultDelete_instantiation_283() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete>() ,
                    1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36790,6 +35535,28 @@ pub mod root {
                    1usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
                    root::mozilla::DefaultDelete ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_already_AddRefed_instantiation_284() {
+        assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::mozilla::URLExtraData>>()
+                   , 8usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::already_AddRefed<root::mozilla::URLExtraData> ) ));
+        assert_eq!(::std::mem::align_of::<root::already_AddRefed<root::mozilla::URLExtraData>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::already_AddRefed<root::mozilla::URLExtraData> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_nsMainThreadPtrHolder_instantiation_285() {
+        assert_eq!(::std::mem::size_of::<root::nsMainThreadPtrHolder<root::nsIURI>>()
+                   , 24usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::nsMainThreadPtrHolder<root::nsIURI> ) ));
+        assert_eq!(::std::mem::align_of::<root::nsMainThreadPtrHolder<root::nsIURI>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::nsMainThreadPtrHolder<root::nsIURI> ) ));
     }
     #[test]
     fn __bindgen_test_layout_already_AddRefed_instantiation_286() {
@@ -36803,51 +35570,40 @@ pub mod root {
                    root::already_AddRefed<root::mozilla::URLExtraData> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsMainThreadPtrHolder_instantiation_287() {
-        assert_eq!(::std::mem::size_of::<root::nsMainThreadPtrHolder<root::nsIURI>>()
-                   , 24usize , concat ! (
+    fn __bindgen_test_layout_already_AddRefed_instantiation_287() {
+        assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsIURI>>()
+                   , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
-                   root::nsMainThreadPtrHolder<root::nsIURI> ) ));
-        assert_eq!(::std::mem::align_of::<root::nsMainThreadPtrHolder<root::nsIURI>>()
+                   root::already_AddRefed<root::nsIURI> ) ));
+        assert_eq!(::std::mem::align_of::<root::already_AddRefed<root::nsIURI>>()
                    , 8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
-                   root::nsMainThreadPtrHolder<root::nsIURI> ) ));
+                   root::already_AddRefed<root::nsIURI> ) ));
     }
     #[test]
     fn __bindgen_test_layout_already_AddRefed_instantiation_288() {
-        assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::mozilla::URLExtraData>>()
+        assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsIURI>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
-                   root::already_AddRefed<root::mozilla::URLExtraData> ) ));
-        assert_eq!(::std::mem::align_of::<root::already_AddRefed<root::mozilla::URLExtraData>>()
+                   root::already_AddRefed<root::nsIURI> ) ));
+        assert_eq!(::std::mem::align_of::<root::already_AddRefed<root::nsIURI>>()
                    , 8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
-                   root::already_AddRefed<root::mozilla::URLExtraData> ) ));
+                   root::already_AddRefed<root::nsIURI> ) ));
     }
     #[test]
     fn __bindgen_test_layout_already_AddRefed_instantiation_289() {
-        assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsIURI>>()
+        assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::mozilla::URLExtraData>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
-                   root::already_AddRefed<root::nsIURI> ) ));
-        assert_eq!(::std::mem::align_of::<root::already_AddRefed<root::nsIURI>>()
+                   root::already_AddRefed<root::mozilla::URLExtraData> ) ));
+        assert_eq!(::std::mem::align_of::<root::already_AddRefed<root::mozilla::URLExtraData>>()
                    , 8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
-                   root::already_AddRefed<root::nsIURI> ) ));
+                   root::already_AddRefed<root::mozilla::URLExtraData> ) ));
     }
     #[test]
     fn __bindgen_test_layout_already_AddRefed_instantiation_290() {
-        assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsIURI>>()
-                   , 8usize , concat ! (
-                   "Size of template specialization: " , stringify ! (
-                   root::already_AddRefed<root::nsIURI> ) ));
-        assert_eq!(::std::mem::align_of::<root::already_AddRefed<root::nsIURI>>()
-                   , 8usize , concat ! (
-                   "Alignment of template specialization: " , stringify ! (
-                   root::already_AddRefed<root::nsIURI> ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_already_AddRefed_instantiation_291() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::mozilla::URLExtraData>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36858,18 +35614,7 @@ pub mod root {
                    root::already_AddRefed<root::mozilla::URLExtraData> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_already_AddRefed_instantiation_292() {
-        assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::mozilla::URLExtraData>>()
-                   , 8usize , concat ! (
-                   "Size of template specialization: " , stringify ! (
-                   root::already_AddRefed<root::mozilla::URLExtraData> ) ));
-        assert_eq!(::std::mem::align_of::<root::already_AddRefed<root::mozilla::URLExtraData>>()
-                   , 8usize , concat ! (
-                   "Alignment of template specialization: " , stringify ! (
-                   root::already_AddRefed<root::mozilla::URLExtraData> ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_nsPtrHashKey_instantiation_293() {
+    fn __bindgen_test_layout_nsPtrHashKey_instantiation_291() {
         assert_eq!(::std::mem::size_of::<root::nsPtrHashKey<root::nsIDocument>>()
                    , 16usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36880,7 +35625,7 @@ pub mod root {
                    root::nsPtrHashKey<root::nsIDocument> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_already_AddRefed_instantiation_294() {
+    fn __bindgen_test_layout_already_AddRefed_instantiation_292() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsIAtom>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36889,6 +35634,28 @@ pub mod root {
                    , 8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
                    root::already_AddRefed<root::nsIAtom> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_DefaultDelete_instantiation_293() {
+        assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete>() ,
+                   1usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::mozilla::DefaultDelete ) ));
+        assert_eq!(::std::mem::align_of::<root::mozilla::DefaultDelete>() ,
+                   1usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::mozilla::DefaultDelete ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_UniquePtr_instantiation_294() {
+        assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsCSSValueList>>()
+                   , 8usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::mozilla::UniquePtr<root::nsCSSValueList> ) ));
+        assert_eq!(::std::mem::align_of::<root::mozilla::UniquePtr<root::nsCSSValueList>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::mozilla::UniquePtr<root::nsCSSValueList> ) ));
     }
     #[test]
     fn __bindgen_test_layout_DefaultDelete_instantiation_295() {
@@ -36903,28 +35670,6 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_UniquePtr_instantiation_296() {
-        assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsCSSValueList>>()
-                   , 8usize , concat ! (
-                   "Size of template specialization: " , stringify ! (
-                   root::mozilla::UniquePtr<root::nsCSSValueList> ) ));
-        assert_eq!(::std::mem::align_of::<root::mozilla::UniquePtr<root::nsCSSValueList>>()
-                   , 8usize , concat ! (
-                   "Alignment of template specialization: " , stringify ! (
-                   root::mozilla::UniquePtr<root::nsCSSValueList> ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_DefaultDelete_instantiation_297() {
-        assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete>() ,
-                   1usize , concat ! (
-                   "Size of template specialization: " , stringify ! (
-                   root::mozilla::DefaultDelete ) ));
-        assert_eq!(::std::mem::align_of::<root::mozilla::DefaultDelete>() ,
-                   1usize , concat ! (
-                   "Alignment of template specialization: " , stringify ! (
-                   root::mozilla::DefaultDelete ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_UniquePtr_instantiation_298() {
         assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsCSSValuePairList>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36935,7 +35680,7 @@ pub mod root {
                    root::mozilla::UniquePtr<root::nsCSSValuePairList> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_already_AddRefed_instantiation_299() {
+    fn __bindgen_test_layout_already_AddRefed_instantiation_297() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsStringBuffer>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36946,7 +35691,7 @@ pub mod root {
                    root::already_AddRefed<root::nsStringBuffer> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_SupportsWeakPtr_instantiation_300() {
+    fn __bindgen_test_layout_SupportsWeakPtr_instantiation_298() {
         assert_eq!(::std::mem::size_of::<u64>() , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u64 )
                    ));
@@ -36955,7 +35700,7 @@ pub mod root {
                    u64 ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_instantiation_301() {
+    fn __bindgen_test_layout_nsTArray_instantiation_299() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<::nsstring::nsStringRepr>>() ,
                    8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36966,7 +35711,7 @@ pub mod root {
                    root::nsTArray<::nsstring::nsStringRepr> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_instantiation_302() {
+    fn __bindgen_test_layout_nsTArray_instantiation_300() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<::nsstring::nsStringRepr>>() ,
                    8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36977,7 +35722,7 @@ pub mod root {
                    root::nsTArray<::nsstring::nsStringRepr> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_already_AddRefed_instantiation_303() {
+    fn __bindgen_test_layout_already_AddRefed_instantiation_301() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsIAtom>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36988,7 +35733,7 @@ pub mod root {
                    root::already_AddRefed<root::nsIAtom> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_already_AddRefed_instantiation_304() {
+    fn __bindgen_test_layout_already_AddRefed_instantiation_302() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsIURI>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -36999,7 +35744,7 @@ pub mod root {
                    root::already_AddRefed<root::nsIURI> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_Maybe_instantiation_305() {
+    fn __bindgen_test_layout_Maybe_instantiation_303() {
         assert_eq!(::std::mem::size_of::<[u32; 3usize]>() , 12usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -37010,7 +35755,7 @@ pub mod root {
                    [u32; 3usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_Maybe_instantiation_306() {
+    fn __bindgen_test_layout_Maybe_instantiation_304() {
         assert_eq!(::std::mem::size_of::<[u32; 3usize]>() , 12usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -37021,7 +35766,7 @@ pub mod root {
                    [u32; 3usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_already_AddRefed_instantiation_307() {
+    fn __bindgen_test_layout_already_AddRefed_instantiation_305() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsStyleImageRequest>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37032,7 +35777,7 @@ pub mod root {
                    root::already_AddRefed<root::nsStyleImageRequest> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_already_AddRefed_instantiation_308() {
+    fn __bindgen_test_layout_already_AddRefed_instantiation_306() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsIAtom>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37041,6 +35786,28 @@ pub mod root {
                    , 8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
                    root::already_AddRefed<root::nsIAtom> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_DefaultDelete_instantiation_307() {
+        assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete>() ,
+                   1usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::mozilla::DefaultDelete ) ));
+        assert_eq!(::std::mem::align_of::<root::mozilla::DefaultDelete>() ,
+                   1usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::mozilla::DefaultDelete ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_UniquePtr_instantiation_308() {
+        assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsStyleSides>>()
+                   , 8usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::mozilla::UniquePtr<root::nsStyleSides> ) ));
+        assert_eq!(::std::mem::align_of::<root::mozilla::UniquePtr<root::nsStyleSides>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::mozilla::UniquePtr<root::nsStyleSides> ) ));
     }
     #[test]
     fn __bindgen_test_layout_DefaultDelete_instantiation_309() {
@@ -37065,29 +35832,7 @@ pub mod root {
                    root::mozilla::UniquePtr<root::nsStyleSides> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_DefaultDelete_instantiation_311() {
-        assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete>() ,
-                   1usize , concat ! (
-                   "Size of template specialization: " , stringify ! (
-                   root::mozilla::DefaultDelete ) ));
-        assert_eq!(::std::mem::align_of::<root::mozilla::DefaultDelete>() ,
-                   1usize , concat ! (
-                   "Alignment of template specialization: " , stringify ! (
-                   root::mozilla::DefaultDelete ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_UniquePtr_instantiation_312() {
-        assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsStyleSides>>()
-                   , 8usize , concat ! (
-                   "Size of template specialization: " , stringify ! (
-                   root::mozilla::UniquePtr<root::nsStyleSides> ) ));
-        assert_eq!(::std::mem::align_of::<root::mozilla::UniquePtr<root::nsStyleSides>>()
-                   , 8usize , concat ! (
-                   "Alignment of template specialization: " , stringify ! (
-                   root::mozilla::UniquePtr<root::nsStyleSides> ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_already_AddRefed_instantiation_313() {
+    fn __bindgen_test_layout_already_AddRefed_instantiation_311() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsIURI>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37098,7 +35843,7 @@ pub mod root {
                    root::already_AddRefed<root::nsIURI> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_Maybe_instantiation_314() {
+    fn __bindgen_test_layout_Maybe_instantiation_312() {
         assert_eq!(::std::mem::size_of::<[u32; 3usize]>() , 12usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -37109,7 +35854,7 @@ pub mod root {
                    [u32; 3usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_DefaultDelete_instantiation_315() {
+    fn __bindgen_test_layout_DefaultDelete_instantiation_313() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete>() ,
                    1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37120,7 +35865,7 @@ pub mod root {
                    root::mozilla::DefaultDelete ) ));
     }
     #[test]
-    fn __bindgen_test_layout_DefaultDelete_instantiation_316() {
+    fn __bindgen_test_layout_DefaultDelete_instantiation_314() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete>() ,
                    1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37131,7 +35876,7 @@ pub mod root {
                    root::mozilla::DefaultDelete ) ));
     }
     #[test]
-    fn __bindgen_test_layout_pair_instantiation_317() {
+    fn __bindgen_test_layout_pair_instantiation_315() {
         assert_eq!(::std::mem::size_of::<root::std::pair<::nsstring::nsStringRepr, ::nsstring::nsStringRepr>>()
                    , 32usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37142,7 +35887,7 @@ pub mod root {
                    root::std::pair<::nsstring::nsStringRepr, ::nsstring::nsStringRepr> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_instantiation_318() {
+    fn __bindgen_test_layout_nsTArray_instantiation_316() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::std::pair<::nsstring::nsStringRepr,
                                                      ::nsstring::nsStringRepr>>>()
                    , 8usize , concat ! (
@@ -37157,7 +35902,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_already_AddRefed_instantiation_319() {
+    fn __bindgen_test_layout_already_AddRefed_instantiation_317() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsIURI>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37168,7 +35913,7 @@ pub mod root {
                    root::already_AddRefed<root::nsIURI> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_instantiation_320() {
+    fn __bindgen_test_layout_nsTArray_instantiation_318() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<::nsstring::nsStringRepr>>() ,
                    8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37179,7 +35924,7 @@ pub mod root {
                    root::nsTArray<::nsstring::nsStringRepr> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_instantiation_321() {
+    fn __bindgen_test_layout_nsTArray_instantiation_319() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::nsStyleCoord>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37190,7 +35935,7 @@ pub mod root {
                    root::nsTArray<root::nsStyleCoord> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_instantiation_322() {
+    fn __bindgen_test_layout_nsTArray_instantiation_320() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::nsStyleCoord>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37201,7 +35946,7 @@ pub mod root {
                    root::nsTArray<root::nsStyleCoord> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_instantiation_323() {
+    fn __bindgen_test_layout_nsCOMPtr_instantiation_321() {
         assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsIAtom>>() ,
                    8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37212,7 +35957,7 @@ pub mod root {
                    root::nsCOMPtr<root::nsIAtom> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsStyleAutoArray_instantiation_324() {
+    fn __bindgen_test_layout_nsStyleAutoArray_instantiation_322() {
         assert_eq!(::std::mem::size_of::<root::nsStyleAutoArray<root::mozilla::StyleAnimation>>()
                    , 64usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37221,6 +35966,28 @@ pub mod root {
                    , 8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
                    root::nsStyleAutoArray<root::mozilla::StyleAnimation> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_DefaultDelete_instantiation_323() {
+        assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete>() ,
+                   1usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::mozilla::DefaultDelete ) ));
+        assert_eq!(::std::mem::align_of::<root::mozilla::DefaultDelete>() ,
+                   1usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::mozilla::DefaultDelete ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_UniquePtr_instantiation_324() {
+        assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsCSSValueList>>()
+                   , 8usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::mozilla::UniquePtr<root::nsCSSValueList> ) ));
+        assert_eq!(::std::mem::align_of::<root::mozilla::UniquePtr<root::nsCSSValueList>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::mozilla::UniquePtr<root::nsCSSValueList> ) ));
     }
     #[test]
     fn __bindgen_test_layout_DefaultDelete_instantiation_325() {
@@ -37235,28 +36002,6 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_UniquePtr_instantiation_326() {
-        assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsCSSValueList>>()
-                   , 8usize , concat ! (
-                   "Size of template specialization: " , stringify ! (
-                   root::mozilla::UniquePtr<root::nsCSSValueList> ) ));
-        assert_eq!(::std::mem::align_of::<root::mozilla::UniquePtr<root::nsCSSValueList>>()
-                   , 8usize , concat ! (
-                   "Alignment of template specialization: " , stringify ! (
-                   root::mozilla::UniquePtr<root::nsCSSValueList> ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_DefaultDelete_instantiation_327() {
-        assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete>() ,
-                   1usize , concat ! (
-                   "Size of template specialization: " , stringify ! (
-                   root::mozilla::DefaultDelete ) ));
-        assert_eq!(::std::mem::align_of::<root::mozilla::DefaultDelete>() ,
-                   1usize , concat ! (
-                   "Alignment of template specialization: " , stringify ! (
-                   root::mozilla::DefaultDelete ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_UniquePtr_instantiation_328() {
         assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsCSSValuePairList>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37267,7 +36012,7 @@ pub mod root {
                    root::mozilla::UniquePtr<root::nsCSSValuePairList> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_NonNull_instantiation_329() {
+    fn __bindgen_test_layout_NonNull_instantiation_327() {
         assert_eq!(::std::mem::size_of::<root::mozilla::dom::NonNull<root::mozilla::dom::Element>>()
                    , 16usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37280,7 +36025,7 @@ pub mod root {
                    ));
     }
     #[test]
-    fn __bindgen_test_layout_NonNull_instantiation_330() {
+    fn __bindgen_test_layout_NonNull_instantiation_328() {
         assert_eq!(::std::mem::size_of::<root::mozilla::dom::NonNull<root::mozilla::dom::CSSPseudoElement>>()
                    , 16usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37293,7 +36038,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_Handle_instantiation_331() {
+    fn __bindgen_test_layout_Handle_instantiation_329() {
         assert_eq!(::std::mem::size_of::<root::JS::Handle<*mut root::JSObject>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37304,7 +36049,7 @@ pub mod root {
                    root::JS::Handle<*mut root::JSObject> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_MutableHandle_instantiation_332() {
+    fn __bindgen_test_layout_MutableHandle_instantiation_330() {
         assert_eq!(::std::mem::size_of::<root::JS::MutableHandle<root::JS::Value>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37315,7 +36060,7 @@ pub mod root {
                    root::JS::MutableHandle<root::JS::Value> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_Maybe_instantiation_333() {
+    fn __bindgen_test_layout_Maybe_instantiation_331() {
         assert_eq!(::std::mem::size_of::<[u64; 18usize]>() , 144usize , concat
                    ! (
                    "Size of template specialization: " , stringify ! (
@@ -37326,7 +36071,7 @@ pub mod root {
                    [u64; 18usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_Maybe_instantiation_334() {
+    fn __bindgen_test_layout_Maybe_instantiation_332() {
         assert_eq!(::std::mem::size_of::<[u64; 18usize]>() , 144usize , concat
                    ! (
                    "Size of template specialization: " , stringify ! (
@@ -37337,7 +36082,7 @@ pub mod root {
                    [u64; 18usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_BaseTimeDuration_instantiation_335() {
+    fn __bindgen_test_layout_BaseTimeDuration_instantiation_333() {
         assert_eq!(::std::mem::size_of::<root::mozilla::BaseTimeDuration>() ,
                    8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37348,7 +36093,7 @@ pub mod root {
                    root::mozilla::BaseTimeDuration ) ));
     }
     #[test]
-    fn __bindgen_test_layout_already_AddRefed_instantiation_336() {
+    fn __bindgen_test_layout_already_AddRefed_instantiation_334() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::mozilla::dom::NodeInfo>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37359,7 +36104,7 @@ pub mod root {
                    root::already_AddRefed<root::mozilla::dom::NodeInfo> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_already_AddRefed_instantiation_337() {
+    fn __bindgen_test_layout_already_AddRefed_instantiation_335() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::mozilla::dom::NodeInfo>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37370,7 +36115,7 @@ pub mod root {
                    root::already_AddRefed<root::mozilla::dom::NodeInfo> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_instantiation_338() {
+    fn __bindgen_test_layout_nsTArray_instantiation_336() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsIContent>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37381,7 +36126,7 @@ pub mod root {
                    root::nsTArray<*mut root::nsIContent> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_instantiation_339() {
+    fn __bindgen_test_layout_nsTArray_instantiation_337() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsIContent>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37392,7 +36137,7 @@ pub mod root {
                    root::nsTArray<*mut root::nsIContent> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsCOMPtr_instantiation_340() {
+    fn __bindgen_test_layout_nsCOMPtr_instantiation_338() {
         assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsIContent>>() ,
                    8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37403,7 +36148,7 @@ pub mod root {
                    root::nsCOMPtr<root::nsIContent> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsRefPtrHashKey_instantiation_341() {
+    fn __bindgen_test_layout_nsRefPtrHashKey_instantiation_339() {
         assert_eq!(::std::mem::size_of::<root::nsRefPtrHashKey<root::mozilla::dom::DOMIntersectionObserver>>()
                    , 16usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37416,7 +36161,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_already_AddRefed_instantiation_342() {
+    fn __bindgen_test_layout_already_AddRefed_instantiation_340() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::mozilla::dom::NodeInfo>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37427,7 +36172,7 @@ pub mod root {
                    root::already_AddRefed<root::mozilla::dom::NodeInfo> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_instantiation_343() {
+    fn __bindgen_test_layout_nsTArray_instantiation_341() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::mozilla::DisplayItemClip_RoundedRect>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37440,7 +36185,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_Handle_instantiation_344() {
+    fn __bindgen_test_layout_Handle_instantiation_342() {
         assert_eq!(::std::mem::size_of::<root::JS::Handle<*mut root::JSObject>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37451,7 +36196,7 @@ pub mod root {
                    root::JS::Handle<*mut root::JSObject> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_Handle_instantiation_345() {
+    fn __bindgen_test_layout_Handle_instantiation_343() {
         assert_eq!(::std::mem::size_of::<root::JS::Handle<*mut root::JSObject>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37462,7 +36207,7 @@ pub mod root {
                    root::JS::Handle<*mut root::JSObject> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_RefPtr_instantiation_346() {
+    fn __bindgen_test_layout_RefPtr_instantiation_344() {
         assert_eq!(::std::mem::size_of::<root::RefPtr<root::mozilla::dom::DOMRect>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37473,7 +36218,7 @@ pub mod root {
                    root::RefPtr<root::mozilla::dom::DOMRect> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_Handle_instantiation_347() {
+    fn __bindgen_test_layout_Handle_instantiation_345() {
         assert_eq!(::std::mem::size_of::<root::JS::Handle<root::JS::Value>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37484,7 +36229,7 @@ pub mod root {
                    root::JS::Handle<root::JS::Value> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_MutableHandle_instantiation_348() {
+    fn __bindgen_test_layout_MutableHandle_instantiation_346() {
         assert_eq!(::std::mem::size_of::<root::JS::MutableHandle<root::JS::Value>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37493,6 +36238,26 @@ pub mod root {
                    , 8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
                    root::JS::MutableHandle<root::JS::Value> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_Sequence_instantiation_347() {
+        assert_eq!(::std::mem::size_of::<u64>() , 8usize , concat ! (
+                   "Size of template specialization: " , stringify ! ( u64 )
+                   ));
+        assert_eq!(::std::mem::align_of::<u64>() , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   u64 ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_Handle_instantiation_348() {
+        assert_eq!(::std::mem::size_of::<root::JS::Handle<root::JS::Value>>()
+                   , 8usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::JS::Handle<root::JS::Value> ) ));
+        assert_eq!(::std::mem::align_of::<root::JS::Handle<root::JS::Value>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::JS::Handle<root::JS::Value> ) ));
     }
     #[test]
     fn __bindgen_test_layout_Sequence_instantiation_349() {
@@ -37504,7 +36269,16 @@ pub mod root {
                    u64 ) ));
     }
     #[test]
-    fn __bindgen_test_layout_Handle_instantiation_350() {
+    fn __bindgen_test_layout_Sequence_instantiation_350() {
+        assert_eq!(::std::mem::size_of::<u64>() , 8usize , concat ! (
+                   "Size of template specialization: " , stringify ! ( u64 )
+                   ));
+        assert_eq!(::std::mem::align_of::<u64>() , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   u64 ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_Handle_instantiation_351() {
         assert_eq!(::std::mem::size_of::<root::JS::Handle<root::JS::Value>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37515,36 +36289,7 @@ pub mod root {
                    root::JS::Handle<root::JS::Value> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_Sequence_instantiation_351() {
-        assert_eq!(::std::mem::size_of::<u64>() , 8usize , concat ! (
-                   "Size of template specialization: " , stringify ! ( u64 )
-                   ));
-        assert_eq!(::std::mem::align_of::<u64>() , 8usize , concat ! (
-                   "Alignment of template specialization: " , stringify ! (
-                   u64 ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_Sequence_instantiation_352() {
-        assert_eq!(::std::mem::size_of::<u64>() , 8usize , concat ! (
-                   "Size of template specialization: " , stringify ! ( u64 )
-                   ));
-        assert_eq!(::std::mem::align_of::<u64>() , 8usize , concat ! (
-                   "Alignment of template specialization: " , stringify ! (
-                   u64 ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_Handle_instantiation_353() {
-        assert_eq!(::std::mem::size_of::<root::JS::Handle<root::JS::Value>>()
-                   , 8usize , concat ! (
-                   "Size of template specialization: " , stringify ! (
-                   root::JS::Handle<root::JS::Value> ) ));
-        assert_eq!(::std::mem::align_of::<root::JS::Handle<root::JS::Value>>()
-                   , 8usize , concat ! (
-                   "Alignment of template specialization: " , stringify ! (
-                   root::JS::Handle<root::JS::Value> ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_Handle_instantiation_354() {
+    fn __bindgen_test_layout_Handle_instantiation_352() {
         assert_eq!(::std::mem::size_of::<root::JS::Handle<*mut root::JSObject>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37553,6 +36298,28 @@ pub mod root {
                    , 8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
                    root::JS::Handle<*mut root::JSObject> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_MutableHandle_instantiation_353() {
+        assert_eq!(::std::mem::size_of::<root::JS::MutableHandle<root::JS::Value>>()
+                   , 8usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::JS::MutableHandle<root::JS::Value> ) ));
+        assert_eq!(::std::mem::align_of::<root::JS::MutableHandle<root::JS::Value>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::JS::MutableHandle<root::JS::Value> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_Handle_instantiation_354() {
+        assert_eq!(::std::mem::size_of::<root::JS::Handle<root::JS::Value>>()
+                   , 8usize , concat ! (
+                   "Size of template specialization: " , stringify ! (
+                   root::JS::Handle<root::JS::Value> ) ));
+        assert_eq!(::std::mem::align_of::<root::JS::Handle<root::JS::Value>>()
+                   , 8usize , concat ! (
+                   "Alignment of template specialization: " , stringify ! (
+                   root::JS::Handle<root::JS::Value> ) ));
     }
     #[test]
     fn __bindgen_test_layout_MutableHandle_instantiation_355() {
@@ -37567,28 +36334,6 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_Handle_instantiation_356() {
-        assert_eq!(::std::mem::size_of::<root::JS::Handle<root::JS::Value>>()
-                   , 8usize , concat ! (
-                   "Size of template specialization: " , stringify ! (
-                   root::JS::Handle<root::JS::Value> ) ));
-        assert_eq!(::std::mem::align_of::<root::JS::Handle<root::JS::Value>>()
-                   , 8usize , concat ! (
-                   "Alignment of template specialization: " , stringify ! (
-                   root::JS::Handle<root::JS::Value> ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_MutableHandle_instantiation_357() {
-        assert_eq!(::std::mem::size_of::<root::JS::MutableHandle<root::JS::Value>>()
-                   , 8usize , concat ! (
-                   "Size of template specialization: " , stringify ! (
-                   root::JS::MutableHandle<root::JS::Value> ) ));
-        assert_eq!(::std::mem::align_of::<root::JS::MutableHandle<root::JS::Value>>()
-                   , 8usize , concat ! (
-                   "Alignment of template specialization: " , stringify ! (
-                   root::JS::MutableHandle<root::JS::Value> ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_Handle_instantiation_358() {
         assert_eq!(::std::mem::size_of::<root::JS::Handle<*mut root::JSObject>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37599,7 +36344,7 @@ pub mod root {
                    root::JS::Handle<*mut root::JSObject> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsRefPtrHashKey_instantiation_359() {
+    fn __bindgen_test_layout_nsRefPtrHashKey_instantiation_357() {
         assert_eq!(::std::mem::size_of::<root::nsRefPtrHashKey<root::mozilla::dom::Element>>()
                    , 16usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37610,7 +36355,7 @@ pub mod root {
                    root::nsRefPtrHashKey<root::mozilla::dom::Element> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsClassHashtable_instantiation_360() {
+    fn __bindgen_test_layout_nsClassHashtable_instantiation_358() {
         assert_eq!(::std::mem::size_of::<[u64; 6usize]>() , 48usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -37621,7 +36366,7 @@ pub mod root {
                    [u64; 6usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_Handle_instantiation_361() {
+    fn __bindgen_test_layout_Handle_instantiation_359() {
         assert_eq!(::std::mem::size_of::<root::JS::Handle<*mut root::JSObject>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37632,7 +36377,7 @@ pub mod root {
                    root::JS::Handle<*mut root::JSObject> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_instantiation_362() {
+    fn __bindgen_test_layout_nsTArray_instantiation_360() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<::nsstring::nsStringRepr>>() ,
                    8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37643,7 +36388,7 @@ pub mod root {
                    root::nsTArray<::nsstring::nsStringRepr> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_already_AddRefed_instantiation_363() {
+    fn __bindgen_test_layout_already_AddRefed_instantiation_361() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::mozilla::dom::CSSValue>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37654,7 +36399,7 @@ pub mod root {
                    root::already_AddRefed<root::mozilla::dom::CSSValue> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_Handle_instantiation_364() {
+    fn __bindgen_test_layout_Handle_instantiation_362() {
         assert_eq!(::std::mem::size_of::<root::JS::Handle<*mut root::JSObject>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37665,7 +36410,7 @@ pub mod root {
                    root::JS::Handle<*mut root::JSObject> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsTArray_instantiation_365() {
+    fn __bindgen_test_layout_nsTArray_instantiation_363() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::css::DocumentRule>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -37676,7 +36421,7 @@ pub mod root {
                    root::nsTArray<*mut root::mozilla::css::DocumentRule> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_nsAutoPtr_instantiation_366() {
+    fn __bindgen_test_layout_nsAutoPtr_instantiation_364() {
         assert_eq!(::std::mem::size_of::<root::nsAutoPtr<root::nsMediaQuery>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (

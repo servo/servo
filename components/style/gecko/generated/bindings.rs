@@ -7,6 +7,7 @@ type nsAString_internal = nsAString;
 use gecko_bindings::structs::mozilla::css::GridTemplateAreasValue;
 use gecko_bindings::structs::mozilla::css::ImageValue;
 use gecko_bindings::structs::mozilla::css::URLValue;
+use gecko_bindings::structs::mozilla::MallocSizeOf;
 use gecko_bindings::structs::mozilla::Side;
 use gecko_bindings::structs::RawGeckoAnimationPropertySegment;
 use gecko_bindings::structs::RawGeckoComputedTiming;
@@ -39,7 +40,6 @@ use gecko_bindings::structs::FontSizePrefs;
 use gecko_bindings::structs::GeckoFontMetrics;
 use gecko_bindings::structs::IterationCompositeOperation;
 use gecko_bindings::structs::Keyframe;
-use gecko_bindings::structs::MallocSizeOf;
 use gecko_bindings::structs::ServoBundledURI;
 use gecko_bindings::structs::ServoElementSnapshot;
 use gecko_bindings::structs::ServoElementSnapshotTable;
@@ -680,6 +680,9 @@ extern "C" {
     pub fn Gecko_GetStyleAttrDeclarationBlock(element:
                                                   RawGeckoElementBorrowed)
      -> RawServoDeclarationBlockStrongBorrowedOrNull;
+}
+extern "C" {
+    pub fn Gecko_UnsetDirtyStyleAttr(element: RawGeckoElementBorrowed);
 }
 extern "C" {
     pub fn Gecko_GetHTMLPresentationAttrDeclarationBlock(element:
@@ -1764,7 +1767,8 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_StyleSheet_SizeOfIncludingThis(malloc_size_of: MallocSizeOf,
-                                                sheet: RawServoStyleSheetBorrowed)
+                                                sheet:
+                                                    RawServoStyleSheetBorrowed)
      -> usize;
 }
 extern "C" {
