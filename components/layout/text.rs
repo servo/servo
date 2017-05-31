@@ -167,7 +167,7 @@ impl TextRunScanner {
                 };
                 text_transform = inherited_text_style.text_transform;
                 letter_spacing = inherited_text_style.letter_spacing;
-                word_spacing = inherited_text_style.word_spacing.value().cloned()
+                word_spacing = inherited_text_style.word_spacing.value()
                                .map(|lop| lop.to_hash_key())
                                .unwrap_or((Au(0), NotNaN::new(0.0).unwrap()));
                 text_rendering = inherited_text_style.text_rendering;

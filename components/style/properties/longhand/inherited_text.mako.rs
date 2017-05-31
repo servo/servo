@@ -872,12 +872,14 @@ ${helpers.predefined_type(
     ignored_when_colors_disabled=True,
     spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-color")}
 
-${helpers.predefined_type("-webkit-text-stroke-width", "BorderWidth", "Au::from_px(0)",
-                          initial_specified_value="specified::BorderWidth::from_length(specified::Length::zero())",
-                          computed_type="::app_units::Au", products="gecko",
+${helpers.predefined_type("-webkit-text-stroke-width",
+                          "BorderSideWidth",
+                          "Au::from_px(0)",
+                          initial_specified_value="specified::BorderSideWidth::Length(specified::Length::zero())",
+                          computed_type="::app_units::Au",
+                          products="gecko",
                           spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-width",
                           animation_value_type="none")}
-
 
 // CSS Ruby Layout Module Level 1
 // https://drafts.csswg.org/css-ruby/

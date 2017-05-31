@@ -4,22 +4,22 @@
 
 use app_units::Au;
 use style::properties::PropertyDeclaration;
-use style::properties::longhands::border_top_width;
 use style::values::specified::{AbsoluteLength, Length, NoCalcLength, ViewportPercentageLength};
+use style::values::specified::border::BorderSideWidth;
 use style_traits::HasViewportPercentage;
 
 #[test]
 fn has_viewport_percentage_for_specified_value() {
     //TODO: test all specified value with a HasViewportPercentage impl
     let pvw = PropertyDeclaration::BorderTopWidth(
-        border_top_width::SpecifiedValue::from_length(
+        BorderSideWidth::Length(
             Length::NoCalc(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vw(100.)))
         )
     );
     assert!(pvw.has_viewport_percentage());
 
     let pabs = PropertyDeclaration::BorderTopWidth(
-        border_top_width::SpecifiedValue::from_length(
+        BorderSideWidth::Length(
             Length::NoCalc(NoCalcLength::Absolute(AbsoluteLength::Px(Au(100).to_f32_px())))
         )
     );

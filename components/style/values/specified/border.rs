@@ -4,15 +4,33 @@
 
 //! Specified types for CSS values related to borders.
 
+use app_units::Au;
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
+use std::fmt;
+use style_traits::ToCss;
+use values::computed::{Context, ToComputedValue};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::border::BorderImageSlice as GenericBorderImageSlice;
 use values::generics::border::BorderImageWidthSide as GenericBorderImageWidthSide;
 use values::generics::border::BorderRadius as GenericBorderRadius;
 use values::generics::rect::Rect;
-use values::specified::{Number, NumberOrPercentage};
-use values::specified::length::LengthOrPercentage;
+use values::specified::{AllowQuirks, Number, NumberOrPercentage};
+use values::specified::length::{Length, LengthOrPercentage};
+
+/// A specified value for a single side of the `border-width` property.
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
+pub enum BorderSideWidth {
+    /// `thin`
+    Thin,
+    /// `medium`
+    Medium,
+    /// `thick`
+    Thick,
+    /// `<length>`
+    Length(Length),
+}
 
 /// A specified value for the `border-image-width` property.
 pub type BorderImageWidth = Rect<BorderImageWidthSide>;
@@ -28,6 +46,65 @@ pub type BorderRadius = GenericBorderRadius<LengthOrPercentage>;
 
 /// A specified value for the `border-*-radius` longhand properties.
 pub type BorderCornerRadius = GenericBorderCornerRadius<LengthOrPercentage>;
+
+impl BorderSideWidth {
+    /// Parses, with quirks.
+    pub fn parse_quirky(
+        context: &ParserContext,
+        input: &mut Parser,
+        allow_quirks: AllowQuirks)
+        -> Result<Self, ()>
+    {
+        if let Ok(length) = input.try(|i| Length::parse_non_negative_quirky(context, i, allow_quirks)) {
+            return Ok(BorderSideWidth::Length(length));
+        }
+        match_ignore_ascii_case! { &input.expect_ident()?,
+            "thin" => Ok(BorderSideWidth::Thin),
+            "medium" => Ok(BorderSideWidth::Medium),
+            "thick" => Ok(BorderSideWidth::Thick),
+            _ => Err(())
+        }
+    }
+}
+
+impl Parse for BorderSideWidth {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        Self::parse_quirky(context, input, AllowQuirks::No)
+    }
+}
+
+impl ToCss for BorderSideWidth {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            BorderSideWidth::Thin => dest.write_str("thin"),
+            BorderSideWidth::Medium => dest.write_str("medium"),
+            BorderSideWidth::Thick => dest.write_str("thick"),
+            BorderSideWidth::Length(ref length) => length.to_css(dest)
+        }
+    }
+}
+
+impl ToComputedValue for BorderSideWidth {
+    type ComputedValue = Au;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        // We choose the pixel length of the keyword values the same as both spec and gecko.
+        // Spec: https://drafts.csswg.org/css-backgrounds-3/#line-width
+        // Gecko: https://bugzilla.mozilla.org/show_bug.cgi?id=1312155#c0
+        match *self {
+            BorderSideWidth::Thin => Length::from_px(1.).to_computed_value(context),
+            BorderSideWidth::Medium => Length::from_px(3.).to_computed_value(context),
+            BorderSideWidth::Thick => Length::from_px(5.).to_computed_value(context),
+            BorderSideWidth::Length(ref length) => length.to_computed_value(context)
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        BorderSideWidth::Length(ToComputedValue::from_computed_value(computed))
+    }
+}
 
 impl BorderImageWidthSide {
     /// Returns `1`.
