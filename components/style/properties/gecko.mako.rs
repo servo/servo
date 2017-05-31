@@ -3664,35 +3664,37 @@ fn static_assert() {
     <%call expr="impl_coord_copy('line_height', 'mLineHeight')"></%call>
 
     pub fn set_letter_spacing(&mut self, v: longhands::letter_spacing::computed_value::T) {
-        match v.0 {
-            Some(au) => self.gecko.mLetterSpacing.set(au),
-            None => self.gecko.mLetterSpacing.set_value(CoordDataValue::Normal)
+        use values::generics::text::Spacing;
+        match v {
+            Spacing::Value(value) => self.gecko.mLetterSpacing.set(value),
+            Spacing::Normal => self.gecko.mLetterSpacing.set_value(CoordDataValue::Normal)
         }
     }
 
     pub fn clone_letter_spacing(&self) -> longhands::letter_spacing::computed_value::T {
-        use properties::longhands::letter_spacing::computed_value::T;
+        use values::generics::text::Spacing;
         debug_assert!(
             matches!(self.gecko.mLetterSpacing.as_value(),
                      CoordDataValue::Normal |
                      CoordDataValue::Coord(_)),
             "Unexpected computed value for letter-spacing");
-        T(Au::from_gecko_style_coord(&self.gecko.mLetterSpacing))
+        Au::from_gecko_style_coord(&self.gecko.mLetterSpacing).map_or(Spacing::Normal, Spacing::Value)
     }
 
     <%call expr="impl_coord_copy('letter_spacing', 'mLetterSpacing')"></%call>
 
     pub fn set_word_spacing(&mut self, v: longhands::word_spacing::computed_value::T) {
-        match v.0 {
-            Some(lop) => self.gecko.mWordSpacing.set(lop),
+        use values::generics::text::Spacing;
+        match v {
+            Spacing::Value(lop) => self.gecko.mWordSpacing.set(lop),
             // https://drafts.csswg.org/css-text-3/#valdef-word-spacing-normal
-            None => self.gecko.mWordSpacing.set_value(CoordDataValue::Coord(0)),
+            Spacing::Normal => self.gecko.mWordSpacing.set_value(CoordDataValue::Coord(0)),
         }
     }
 
     pub fn clone_word_spacing(&self) -> longhands::word_spacing::computed_value::T {
-        use properties::longhands::word_spacing::computed_value::T;
         use values::computed::LengthOrPercentage;
+        use values::generics::text::Spacing;
         debug_assert!(
             matches!(self.gecko.mWordSpacing.as_value(),
                      CoordDataValue::Normal |
@@ -3700,7 +3702,7 @@ fn static_assert() {
                      CoordDataValue::Percent(_) |
                      CoordDataValue::Calc(_)),
             "Unexpected computed value for word-spacing");
-        T(LengthOrPercentage::from_gecko_style_coord(&self.gecko.mWordSpacing))
+        LengthOrPercentage::from_gecko_style_coord(&self.gecko.mWordSpacing).map_or(Spacing::Normal, Spacing::Value)
     }
 
     <%call expr="impl_coord_copy('word_spacing', 'mWordSpacing')"></%call>

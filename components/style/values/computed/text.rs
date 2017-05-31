@@ -7,7 +7,14 @@
 use app_units::Au;
 use properties::animated_properties::Animatable;
 use values::CSSFloat;
-use values::generics::text::LineHeight as GenericLineHeight;
+use values::computed::length::{Length, LengthOrPercentage};
+use values::generics::text::{LineHeight as GenericLineHeight, Spacing};
+
+/// A computed value for the `letter-spacing` property.
+pub type LetterSpacing = Spacing<Length>;
+
+/// A specified value for the `letter-spacing` property.
+pub type WordSpacing = Spacing<LengthOrPercentage>;
 
 /// A computed value for the `line-height` property.
 pub type LineHeight = GenericLineHeight<CSSFloat, Au>;
