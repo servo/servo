@@ -463,7 +463,7 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
         self.current_element_info = Some(CurrentElementInfo {
             element: element.as_node().opaque(),
             is_initial_style: !data.has_styles(),
-            validation_data: ValidationData::new(),
+            validation_data: ValidationData::default(),
             possibly_expired_animations: Vec::new(),
         });
     }

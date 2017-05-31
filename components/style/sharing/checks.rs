@@ -21,8 +21,7 @@ use stylearc::Arc;
 pub fn relations_are_shareable(relations: &StyleRelations) -> bool {
     use selectors::matching::*;
     !relations.intersects(AFFECTED_BY_ID_SELECTOR |
-                          AFFECTED_BY_PSEUDO_ELEMENTS |
-                          AFFECTED_BY_STYLE_ATTRIBUTE)
+                          AFFECTED_BY_PSEUDO_ELEMENTS)
 }
 
 /// Whether, given two elements, they have pointer-equal computed values.
@@ -44,11 +43,21 @@ pub fn same_computed_values<E>(first: Option<E>, second: Option<E>) -> bool
     eq
 }
 
-/// Whether a given element has presentational hints.
-///
-/// We consider not worth to share style with an element that has presentational
-/// hints, both because implementing the code that compares that the hints are
-/// equal is somewhat annoying, and also because it'd be expensive enough.
+/// Whether two elements have the same same style attribute (by pointer identity).
+pub fn have_same_style_attribute<E>(
+    target: &mut StyleSharingTarget<E>,
+    candidate: &mut StyleSharingCandidate<E>
+) -> bool
+    where E: TElement,
+{
+    match (target.style_attribute(), candidate.style_attribute()) {
+        (None, None) => true,
+        (Some(_), None) | (None, Some(_)) => false,
+        (Some(a), Some(b)) => Arc::ptr_eq(a, b)
+    }
+}
+
+/// Whether two elements have the same same presentational attributes.
 pub fn have_same_presentational_hints<E>(
     target: &mut StyleSharingTarget<E>,
     candidate: &mut StyleSharingCandidate<E>

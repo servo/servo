@@ -16,6 +16,7 @@ use properties::ComputedValues;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{ElementSelectorFlags, StyleRelations};
 use smallvec::SmallVec;
+use std::mem;
 use std::ops::Deref;
 use stylist::{ApplicableDeclarationBlock, Stylist};
 
@@ -36,7 +37,7 @@ pub enum StyleSharingBehavior {
 
 /// Some data we want to avoid recomputing all the time while trying to share
 /// style.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ValidationData {
     /// The class list of this element.
     ///
@@ -53,23 +54,9 @@ pub struct ValidationData {
 }
 
 impl ValidationData {
-    /// Trivially construct an empty `ValidationData` with nothing on
-    /// it.
-    pub fn new() -> Self {
-        Self {
-            class_list: None,
-            pres_hints: None,
-            revalidation_match_results: None,
-        }
-    }
-
     /// Move the cached data to a new instance, and return it.
     pub fn take(&mut self) -> Self {
-        Self {
-            class_list: self.class_list.take(),
-            pres_hints: self.pres_hints.take(),
-            revalidation_match_results: self.revalidation_match_results.take(),
-        }
+        mem::replace(self, Self::default())
     }
 
     /// Get or compute the list of presentational attributes associated with
@@ -90,8 +77,15 @@ impl ValidationData {
         where E: TElement,
     {
         if self.class_list.is_none() {
-            let mut class_list = SmallVec::new();
+            let mut class_list = SmallVec::<[Atom; 5]>::new();
             element.each_class(|c| class_list.push(c.clone()));
+            // Assuming there are a reasonable number of classes (we use the
+            // inline capacity as "reasonable number"), sort them to so that
+            // we don't mistakenly reject sharing candidates when one element
+            // has "foo bar" and the other has "bar foo".
+            if !class_list.spilled() {
+                class_list.sort_by(|a, b| a.get_hash().cmp(&b.get_hash()));
+            }
             self.class_list = Some(class_list);
         }
         &*self.class_list.as_ref().unwrap()
@@ -131,6 +125,15 @@ pub struct StyleSharingCandidate<E: TElement> {
     element: SendElement<E>,
     validation_data: ValidationData,
 }
+
+impl<E: TElement> Deref for StyleSharingCandidate<E> {
+    type Target = E;
+
+    fn deref(&self) -> &Self::Target {
+        &self.element
+    }
+}
+
 
 impl<E: TElement> StyleSharingCandidate<E> {
     /// Get the classlist of this candidate.
@@ -182,7 +185,7 @@ impl<E: TElement> StyleSharingTarget<E> {
     pub fn new(element: E) -> Self {
         Self {
             element: element,
-            validation_data: ValidationData::new(),
+            validation_data: ValidationData::default(),
         }
     }
 
@@ -235,8 +238,6 @@ impl<E: TElement> StyleSharingTarget<E> {
         data: &mut ElementData)
         -> StyleSharingResult
     {
-        use std::mem;
-
         let shared_context = &context.shared;
         let selector_flags_map = &mut context.thread_local.selector_flags;
         let bloom_filter = context.thread_local.bloom_filter.filter();
@@ -249,12 +250,9 @@ impl<E: TElement> StyleSharingTarget<E> {
                                      &mut self,
                                      data);
 
-        mem::swap(&mut self.validation_data,
-                  &mut context
-                      .thread_local
-                      .current_element_info.as_mut().unwrap()
-                      .validation_data);
 
+        context.thread_local.current_element_info.as_mut().unwrap().validation_data =
+            self.validation_data.take();
         result
     }
 }
@@ -420,12 +418,6 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
             return StyleSharingResult::CannotShare;
         }
 
-        if target.style_attribute().is_some() {
-            debug!("{:?} Cannot share style: element has style attribute",
-                   target.element);
-            return StyleSharingResult::CannotShare
-        }
-
         if target.get_id().is_some() {
             debug!("{:?} Cannot share style: element has id", target.element);
             return StyleSharingResult::CannotShare
@@ -553,7 +545,7 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
             miss!(IdAttr)
         }
 
-        if target.style_attribute().is_some() {
+        if !checks::have_same_style_attribute(target, candidate) {
             miss!(StyleAttr)
         }
 

@@ -26,8 +26,8 @@ use selector_map::{SelectorMap, SelectorMapEntry};
 use selector_parser::{SelectorImpl, PseudoElement};
 use selectors::attr::NamespaceConstraint;
 use selectors::bloom::BloomFilter;
-use selectors::matching::{AFFECTED_BY_STYLE_ATTRIBUTE, AFFECTED_BY_PRESENTATIONAL_HINTS};
 use selectors::matching::{ElementSelectorFlags, matches_selector, MatchingContext, MatchingMode};
+use selectors::matching::AFFECTED_BY_PRESENTATIONAL_HINTS;
 use selectors::parser::{Combinator, Component, Selector, SelectorInner, SelectorIter, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
 use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
@@ -966,7 +966,9 @@ impl Stylist {
                         assert_eq!(declaration.level, CascadeLevel::PresHints);
                     }
                 }
-                // Never share style for elements with preshints
+                // Note the existence of presentational attributes so that the
+                // style sharing cache can avoid re-querying them if they don't
+                // exist.
                 context.relations |= AFFECTED_BY_PRESENTATIONAL_HINTS;
             }
             debug!("preshints: {:?}", context.relations);
@@ -1005,7 +1007,6 @@ impl Stylist {
 
             // Step 4: Normal style attributes.
             if let Some(sa) = style_attribute {
-                context.relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
                 Push::push(
                     applicable_declarations,
                     ApplicableDeclarationBlock::from_declarations(sa.clone(),
