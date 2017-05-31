@@ -175,10 +175,18 @@ class PackageCommands(CommandBase):
                      default=None,
                      action='store_true',
                      help='Package Android')
-    def package(self, release=False, dev=False, android=None, debug=False, debugger=None):
+    @CommandArgument('--target', '-t',
+                     default=None,
+                     help='Package for given target platform')
+    def package(self, release=False, dev=False, android=None, debug=False, debugger=None, target=None):
         env = self.build_env()
         if android is None:
             android = self.config["build"]["android"]
+        if target and android:
+            print("Please specify either --target or --android.")
+            sys.exit(1)
+        if not android:
+            android = self.handle_android_target(target)
         binary_path = self.get_binary_path(release, dev, android=android)
         dir_to_root = self.get_top_dir()
         target_dir = path.dirname(binary_path)
@@ -384,7 +392,15 @@ class PackageCommands(CommandBase):
     @CommandArgument('--android',
                      action='store_true',
                      help='Install on Android')
-    def install(self, release=False, dev=False, android=False):
+    @CommandArgument('--target', '-t',
+                     default=None,
+                     help='Install the given target platform')
+    def install(self, release=False, dev=False, android=False, target=None):
+        if target and android:
+            print("Please specify either --target or --android.")
+            sys.exit(1)
+        if not android:
+            android = self.handle_android_target(target)
         try:
             binary_path = self.get_binary_path(release, dev, android=android)
         except BuildNotFound:

@@ -112,7 +112,7 @@ dependencies = [
  "libc 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-freetype-sys 4.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo-skia 0.30000004.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo-skia 0.30000004.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "x11 2.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -2595,7 +2595,7 @@ dependencies = [
 
 [[package]]
 name = "servo-skia"
-version = "0.30000004.1"
+version = "0.30000004.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cgl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3630,7 +3630,7 @@ dependencies = [
 "checksum servo-fontconfig-sys 4.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "6be80777ee6edecbbbf8774c76e19dddfe336256c57a4ded06d6ad3df7be358e"
 "checksum servo-freetype-sys 4.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "9232032c2e85118c0282c6562c84cab12316e655491ba0a5d1905b2320060d1b"
 "checksum servo-glutin 0.10.2 (registry+https://github.com/rust-lang/crates.io-index)" = "8398095f9b3dc3c6d706d395e192624be1f1bcc6f366b009fe17a20cb5dd3d72"
-"checksum servo-skia 0.30000004.1 (registry+https://github.com/rust-lang/crates.io-index)" = "22ba980da523e91b9d2f7da9fb35f721138a1e604b8d8191e56f403e4760a9e4"
+"checksum servo-skia 0.30000004.3 (registry+https://github.com/rust-lang/crates.io-index)" = "109e567850bad212ee98ed9651e256de862bd9764476f2b16355af5f6ef59cfe"
 "checksum servo-websocket 0.19.1 (registry+https://github.com/rust-lang/crates.io-index)" = "8a1ff13c5d852c2793805226e688044309f2c1d8f063784805a13e99cb75b611"
 "checksum sha1 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "cc30b1e1e8c40c121ca33b86c23308a090d19974ef001b4bf6e61fd1a0fb095c"
 "checksum shared_library 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "fb04126b6fcfd2710fb5b6d18f4207b6c535f2850a7e1a43bcd526d44f30a79a"
