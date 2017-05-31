@@ -3637,30 +3637,27 @@ fn static_assert() {
     }
 
     pub fn set_line_height(&mut self, v: longhands::line_height::computed_value::T) {
-        use properties::longhands::line_height::computed_value::T;
+        use values::generics::text::LineHeight;
         // FIXME: Align binary representations and ditch |match| for cast + static_asserts
         let en = match v {
-            T::Normal => CoordDataValue::Normal,
-            T::Length(val) => CoordDataValue::Coord(val.0),
-            T::Number(val) => CoordDataValue::Factor(val),
-            T::MozBlockHeight =>
+            LineHeight::Normal => CoordDataValue::Normal,
+            LineHeight::Length(val) => CoordDataValue::Coord(val.0),
+            LineHeight::Number(val) => CoordDataValue::Factor(val),
+            LineHeight::MozBlockHeight =>
                     CoordDataValue::Enumerated(structs::NS_STYLE_LINE_HEIGHT_BLOCK_HEIGHT),
         };
         self.gecko.mLineHeight.set_value(en);
     }
 
     pub fn clone_line_height(&self) -> longhands::line_height::computed_value::T {
-        use properties::longhands::line_height::computed_value::T;
+        use values::generics::text::LineHeight;
         return match self.gecko.mLineHeight.as_value() {
-            CoordDataValue::Normal => T::Normal,
-            CoordDataValue::Coord(coord) => T::Length(Au(coord)),
-            CoordDataValue::Factor(n) => T::Number(n),
+            CoordDataValue::Normal => LineHeight::Normal,
+            CoordDataValue::Coord(coord) => LineHeight::Length(Au(coord)),
+            CoordDataValue::Factor(n) => LineHeight::Number(n),
             CoordDataValue::Enumerated(val) if val == structs::NS_STYLE_LINE_HEIGHT_BLOCK_HEIGHT =>
-                T::MozBlockHeight,
-            _ => {
-                debug_assert!(false);
-                T::MozBlockHeight
-            }
+                LineHeight::MozBlockHeight,
+            _ => panic!("this should not happen"),
         }
     }
 

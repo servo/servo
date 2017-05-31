@@ -38,8 +38,9 @@ use shared_lock::StylesheetGuards;
 use style_traits::{HasViewportPercentage, ToCss};
 use stylesheets::{CssRuleType, MallocSizeOf, MallocSizeOfFn, Origin, UrlExtraData};
 #[cfg(feature = "servo")] use values::Either;
-use values::specified::Color;
+use values::generics::text::LineHeight;
 use values::computed;
+use values::specified::Color;
 use cascade_info::CascadeInfo;
 use rule_tree::{CascadeLevel, StrongRuleNode};
 use style_adjuster::StyleAdjuster;
@@ -1262,11 +1263,9 @@ impl PropertyDeclaration {
     }
 
     /// Is it the default value of line-height?
-    ///
-    /// (using match because it generates less code than)
     pub fn is_default_line_height(&self) -> bool {
         match *self {
-            PropertyDeclaration::LineHeight(longhands::line_height::SpecifiedValue::Normal) => true,
+            PropertyDeclaration::LineHeight(LineHeight::Normal) => true,
             _ => false
         }
     }

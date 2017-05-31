@@ -18,10 +18,12 @@
                                     ${'font-language-override' if product == 'gecko' or data.testing else ''}
                                     ${'font-feature-settings' if product == 'gecko' or data.testing else ''}"
                     spec="https://drafts.csswg.org/css-fonts-3/#propdef-font">
+    use parser::Parse;
     use properties::longhands::{font_family, font_style, font_weight, font_stretch};
-    use properties::longhands::{font_size, line_height, font_variant_caps};
+    use properties::longhands::{font_size, font_variant_caps};
     #[cfg(feature = "gecko")]
     use properties::longhands::system_font::SystemFont;
+    use values::specified::text::LineHeight;
 
     <%
         gecko_sub_properties = "kerning language_override size_adjust \
@@ -50,7 +52,7 @@
                          ${name}: ${name}::SpecifiedValue::system_font(sys),
                      % endfor
                      // line-height is just reset to initial
-                     line_height: line_height::get_initial_specified_value(),
+                     line_height: LineHeight::normal(),
                  })
             }
         % endif
@@ -98,7 +100,7 @@
             return Err(())
         }
         let line_height = if input.try(|input| input.expect_delim('/')).is_ok() {
-            Some(try!(line_height::parse(context, input)))
+            Some(try!(LineHeight::parse(context, input)))
         } else {
             None
         };
@@ -107,7 +109,7 @@
             % for name in "style weight stretch size variant_caps".split():
                 font_${name}: unwrap_or_initial!(font_${name}, ${name}),
             % endfor
-            line_height: unwrap_or_initial!(line_height),
+            line_height: line_height.unwrap_or(LineHeight::normal()),
             font_family: family,
             % if product == "gecko" or data.testing:
                 % for name in gecko_sub_properties:
@@ -169,12 +171,9 @@
 
             self.font_size.to_css(dest)?;
 
-            match *self.line_height {
-                line_height::SpecifiedValue::Normal => {},
-                _ => {
-                    dest.write_str("/")?;
-                    self.line_height.to_css(dest)?;
-                }
+            if *self.line_height != LineHeight::normal() {
+                dest.write_str("/")?;
+                self.line_height.to_css(dest)?;
             }
 
             dest.write_str(" ")?;
@@ -197,7 +196,7 @@
                         all = false;
                     }
                 % endfor
-                if self.line_height != &line_height::get_initial_specified_value() {
+                if self.line_height != &LineHeight::normal() {
                     all = false
                 }
                 if all {
