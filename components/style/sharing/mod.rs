@@ -126,6 +126,15 @@ pub struct StyleSharingCandidate<E: TElement> {
     validation_data: ValidationData,
 }
 
+impl<E: TElement> Deref for StyleSharingCandidate<E> {
+    type Target = E;
+
+    fn deref(&self) -> &Self::Target {
+        &self.element
+    }
+}
+
+
 impl<E: TElement> StyleSharingCandidate<E> {
     /// Get the classlist of this candidate.
     fn class_list(&mut self) -> &[Atom] {
@@ -409,12 +418,6 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
             return StyleSharingResult::CannotShare;
         }
 
-        if target.style_attribute().is_some() {
-            debug!("{:?} Cannot share style: element has style attribute",
-                   target.element);
-            return StyleSharingResult::CannotShare
-        }
-
         if target.get_id().is_some() {
             debug!("{:?} Cannot share style: element has id", target.element);
             return StyleSharingResult::CannotShare
@@ -542,7 +545,7 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
             miss!(IdAttr)
         }
 
-        if target.style_attribute().is_some() {
+        if !checks::have_same_style_attribute(target, candidate) {
             miss!(StyleAttr)
         }
 
