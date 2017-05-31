@@ -3,27 +3,27 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use parsing::parse;
+use style::values::generics::text::Spacing;
 
 #[test]
 fn negative_letter_spacing_should_parse_properly() {
     use style::properties::longhands::letter_spacing;
-    use style::properties::longhands::letter_spacing::SpecifiedValue;
     use style::values::specified::length::{Length, NoCalcLength, FontRelativeLength};
 
     let negative_value = parse_longhand!(letter_spacing, "-0.5em");
-    let expected = SpecifiedValue::Specified(Length::NoCalc(NoCalcLength::FontRelative(FontRelativeLength::Em(-0.5))));
+    let expected = Spacing::Value(Length::NoCalc(NoCalcLength::FontRelative(FontRelativeLength::Em(-0.5))));
     assert_eq!(negative_value, expected);
 }
 
 #[test]
 fn negative_word_spacing_should_parse_properly() {
     use style::properties::longhands::word_spacing;
-    use style::properties::longhands::word_spacing::SpecifiedValue;
     use style::values::specified::length::{NoCalcLength, LengthOrPercentage, FontRelativeLength};
 
     let negative_value = parse_longhand!(word_spacing, "-0.5em");
-    let expected = SpecifiedValue::Specified(LengthOrPercentage::Length(NoCalcLength::FontRelative(
-                                             FontRelativeLength::Em(-0.5))));
+    let expected = Spacing::Value(LengthOrPercentage::Length(
+        NoCalcLength::FontRelative(FontRelativeLength::Em(-0.5))
+    ));
     assert_eq!(negative_value, expected);
 }
 

@@ -258,157 +258,17 @@ ${helpers.single_keyword("text-align-last",
     % endif
 </%helpers:longhand>
 
-<%helpers:longhand name="letter-spacing" animation_value_type="ComputedValue"
-                   spec="https://drafts.csswg.org/css-text/#propdef-letter-spacing">
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::specified::AllowQuirks;
+${helpers.predefined_type("letter-spacing",
+                          "LetterSpacing",
+                          "computed::LetterSpacing::normal()",
+                          animation_value_type="ComputedValue",
+                          spec="https://drafts.csswg.org/css-text/#propdef-letter-spacing")}
 
-    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub enum SpecifiedValue {
-        Normal,
-        Specified(specified::Length),
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                SpecifiedValue::Normal => dest.write_str("normal"),
-                SpecifiedValue::Specified(ref l) => l.to_css(dest),
-            }
-        }
-    }
-
-    pub mod computed_value {
-        use app_units::Au;
-        use properties::animated_properties::Animatable;
-
-        #[derive(Debug, Clone, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Option<Au>);
-
-        ${helpers.impl_animatable_for_option_tuple('Au(0)')}
-    }
-
-    impl ToCss for computed_value::T {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match self.0 {
-                None => dest.write_str("normal"),
-                Some(l) => l.to_css(dest),
-            }
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(None)
-    }
-
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            match *self {
-                SpecifiedValue::Normal => computed_value::T(None),
-                SpecifiedValue::Specified(ref l) =>
-                    computed_value::T(Some(l.to_computed_value(context)))
-            }
-        }
-
-        #[inline]
-        fn from_computed_value(computed: &computed_value::T) -> Self {
-            computed.0.map(|ref au| {
-                SpecifiedValue::Specified(ToComputedValue::from_computed_value(au))
-            }).unwrap_or(SpecifiedValue::Normal)
-        }
-    }
-
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
-            Ok(SpecifiedValue::Normal)
-        } else {
-            specified::Length::parse_quirky(context, input, AllowQuirks::Yes).map(SpecifiedValue::Specified)
-        }
-    }
-</%helpers:longhand>
-
-<%helpers:longhand name="word-spacing" animation_value_type="ComputedValue"
-                   spec="https://drafts.csswg.org/css-text/#propdef-word-spacing">
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::specified::AllowQuirks;
-
-    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub enum SpecifiedValue {
-        Normal,
-        Specified(specified::LengthOrPercentage),
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                SpecifiedValue::Normal => dest.write_str("normal"),
-                SpecifiedValue::Specified(ref l) => l.to_css(dest),
-            }
-        }
-    }
-
-    pub mod computed_value {
-        use properties::animated_properties::Animatable;
-        use values::computed::LengthOrPercentage;
-        #[derive(Debug, Clone, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Option<LengthOrPercentage>);
-
-        ${helpers.impl_animatable_for_option_tuple('LengthOrPercentage::zero()')}
-    }
-
-    impl ToCss for computed_value::T {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match self.0 {
-                None => dest.write_str("normal"),
-                Some(l) => l.to_css(dest),
-            }
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(None)
-    }
-
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            match *self {
-                SpecifiedValue::Normal => computed_value::T(None),
-                SpecifiedValue::Specified(ref l) =>
-                    computed_value::T(Some(l.to_computed_value(context))),
-            }
-        }
-
-        #[inline]
-        fn from_computed_value(computed: &computed_value::T) -> Self {
-            computed.0.map(|ref lop| {
-                SpecifiedValue::Specified(ToComputedValue::from_computed_value(lop))
-            }).unwrap_or(SpecifiedValue::Normal)
-        }
-    }
-
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
-            Ok(SpecifiedValue::Normal)
-        } else {
-            specified::LengthOrPercentage::parse_quirky(context, input, AllowQuirks::Yes)
-                                          .map(SpecifiedValue::Specified)
-        }
-    }
-</%helpers:longhand>
+${helpers.predefined_type("word-spacing",
+                          "WordSpacing",
+                          "computed::WordSpacing::normal()",
+                          animation_value_type="ComputedValue",
+                          spec="https://drafts.csswg.org/css-text/#propdef-word-spacing")}
 
 <%helpers:longhand name="-servo-text-decorations-in-effect"
                    derived_from="display text-decoration"

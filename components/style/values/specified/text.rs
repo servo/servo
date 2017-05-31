@@ -9,12 +9,34 @@ use parser::{Parse, ParserContext};
 use std::ascii::AsciiExt;
 use values::computed::{Context, ToComputedValue};
 use values::computed::text::LineHeight as ComputedLineHeight;
-use values::generics::text::LineHeight as GenericLineHeight;
-use values::specified::Number;
+use values::generics::text::{LineHeight as GenericLineHeight, Spacing};
+use values::specified::{AllowQuirks, Number};
 use values::specified::length::{FontRelativeLength, Length, LengthOrPercentage, NoCalcLength};
+
+/// A specified value for the `letter-spacing` property.
+pub type LetterSpacing = Spacing<Length>;
+
+/// A specified value for the `word-spacing` property.
+pub type WordSpacing = Spacing<LengthOrPercentage>;
 
 /// A specified value for the `line-height` property.
 pub type LineHeight = GenericLineHeight<Number, LengthOrPercentage>;
+
+impl Parse for LetterSpacing {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        Spacing::parse_with(context, input, |c, i| {
+            Length::parse_quirky(c, i, AllowQuirks::Yes)
+        })
+    }
+}
+
+impl Parse for WordSpacing {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        Spacing::parse_with(context, input, |c, i| {
+            LengthOrPercentage::parse_quirky(c, i, AllowQuirks::Yes)
+        })
+    }
+}
 
 impl Parse for LineHeight {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {

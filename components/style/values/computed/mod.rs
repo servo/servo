@@ -38,7 +38,7 @@ pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNumber, LengthOrP
 pub use self::length::{LengthOrPercentageOrAutoOrContent, LengthOrPercentageOrNone, LengthOrNone};
 pub use self::length::{MaxLength, MozLength};
 pub use self::position::Position;
-pub use self::text::LineHeight;
+pub use self::text::{LetterSpacing, LineHeight, WordSpacing};
 pub use self::transform::TransformOrigin;
 
 pub mod background;
