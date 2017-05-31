@@ -32,7 +32,9 @@
                               spec=maybe_logical_spec(side, "style"),
                               animation_value_type="none", logical=side[1])}
 
-    ${helpers.predefined_type("border-%s-width" % side[0], "BorderWidth", "Au::from_px(3)",
+    ${helpers.predefined_type("border-%s-width" % side[0],
+                              "BorderSideWidth",
+                              "Au::from_px(3)",
                               computed_type="::app_units::Au",
                               alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-width"),
                               spec=maybe_logical_spec(side, "width"),
