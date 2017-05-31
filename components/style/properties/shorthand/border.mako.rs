@@ -18,11 +18,11 @@ ${helpers.four_sides_shorthand("border-style", "border-%s-style",
                  for side in PHYSICAL_SIDES)}"
     spec="https://drafts.csswg.org/css-backgrounds/#border-width">
     use values::generics::rect::Rect;
-    use values::specified::{AllowQuirks, BorderWidth};
+    use values::specified::{AllowQuirks, BorderSideWidth};
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let rect = Rect::parse_with(context, input, |_, i| {
-            BorderWidth::parse_quirky(context, i, AllowQuirks::Yes)
+            BorderSideWidth::parse_quirky(context, i, AllowQuirks::Yes)
         })?;
         Ok(expanded! {
             border_top_width: rect.0,
@@ -46,8 +46,8 @@ ${helpers.four_sides_shorthand("border-style", "border-%s-style",
 pub fn parse_border(context: &ParserContext, input: &mut Parser)
                  -> Result<(specified::CSSColor,
                             specified::BorderStyle,
-                            specified::BorderWidth), ()> {
-    use values::specified::{CSSColor, BorderStyle, BorderWidth};
+                            specified::BorderSideWidth), ()> {
+    use values::specified::{CSSColor, BorderStyle, BorderSideWidth};
     let _unused = context;
     let mut color = None;
     let mut style = None;
@@ -69,7 +69,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
             }
         }
         if width.is_none() {
-            if let Ok(value) = input.try(|i| BorderWidth::parse(context, i)) {
+            if let Ok(value) = input.try(|i| BorderSideWidth::parse(context, i)) {
                 width = Some(value);
                 any = true;
                 continue
@@ -80,7 +80,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
     if any {
         Ok((color.unwrap_or_else(|| CSSColor::currentcolor()),
             style.unwrap_or(BorderStyle::none),
-            width.unwrap_or(BorderWidth::Medium)))
+            width.unwrap_or(BorderSideWidth::Medium)))
     } else {
         Err(())
     }
