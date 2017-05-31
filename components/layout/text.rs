@@ -166,8 +166,8 @@ impl TextRunScanner {
                     white_space::T::pre_line => CompressionMode::CompressWhitespace,
                 };
                 text_transform = inherited_text_style.text_transform;
-                letter_spacing = inherited_text_style.letter_spacing.0;
-                word_spacing = inherited_text_style.word_spacing.0
+                letter_spacing = inherited_text_style.letter_spacing;
+                word_spacing = inherited_text_style.word_spacing.value().cloned()
                                .map(|lop| lop.to_hash_key())
                                .unwrap_or((Au(0), NotNaN::new(0.0).unwrap()));
                 text_rendering = inherited_text_style.text_rendering;
@@ -289,8 +289,8 @@ impl TextRunScanner {
             // example, `finally` with a wide `letter-spacing` renders as `f i n a l l y` and not
             // `ﬁ n a l l y`.
             let mut flags = ShapingFlags::empty();
-            match letter_spacing {
-                Some(Au(0)) | None => {}
+            match letter_spacing.value() {
+                Some(&Au(0)) | None => {}
                 Some(_) => flags.insert(IGNORE_LIGATURES_SHAPING_FLAG),
             }
             if text_rendering == text_rendering::T::optimizespeed {
@@ -301,7 +301,7 @@ impl TextRunScanner {
                 flags.insert(KEEP_ALL_FLAG);
             }
             let options = ShapingOptions {
-                letter_spacing: letter_spacing,
+                letter_spacing: letter_spacing.value().cloned(),
                 word_spacing: word_spacing,
                 script: Script::Common,
                 flags: flags,

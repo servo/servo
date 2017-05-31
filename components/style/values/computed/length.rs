@@ -222,6 +222,13 @@ pub enum LengthOrPercentage {
     Calc(CalcLengthOrPercentage),
 }
 
+impl From<Au> for LengthOrPercentage {
+    #[inline]
+    fn from(length: Au) -> Self {
+        LengthOrPercentage::Length(length)
+    }
+}
+
 impl LengthOrPercentage {
     #[inline]
     #[allow(missing_docs)]
