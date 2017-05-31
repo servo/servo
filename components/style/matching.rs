@@ -1106,6 +1106,10 @@ pub trait MatchMethods : TElement {
                 return
             }
 
+            if !self.may_generate_pseudo(&pseudo, data.styles().primary.values()) {
+                return;
+            }
+
             debug_assert!(applicable_declarations.is_empty());
             // NB: We handle animation rules for ::before and ::after when
             // traversing them.
