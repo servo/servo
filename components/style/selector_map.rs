@@ -231,7 +231,7 @@ impl SelectorMap<Rule> {
               F: FnMut(&E, ElementSelectorFlags),
     {
         for rule in rules {
-            if matches_selector(&rule.selector.inner,
+            if matches_selector(&rule.selector,
                                 &rule.hashes,
                                 element,
                                 context,
@@ -403,7 +403,7 @@ fn find_from_right<F, R>(selector: &Selector<SelectorImpl>,
                          -> Option<R>
     where F: FnMut(&Component<SelectorImpl>) -> Option<R>,
 {
-    let mut iter = selector.inner.complex.iter();
+    let mut iter = selector.iter();
     for ss in &mut iter {
         if let Some(r) = f(ss) {
             return Some(r)

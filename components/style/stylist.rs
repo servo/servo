@@ -1133,7 +1133,7 @@ impl Stylist {
         // this in the caller by asserting that the bitvecs are same-length.
         let mut results = BitVec::new();
         self.selectors_for_cache_revalidation.lookup(*element, &mut |selector_and_hashes| {
-            results.push(matches_selector(&selector_and_hashes.selector.inner,
+            results.push(matches_selector(&selector_and_hashes.selector,
                                           &selector_and_hashes.hashes,
                                           element,
                                           &mut matching_context,

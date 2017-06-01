@@ -8,7 +8,7 @@ use cssparser::{Parser, ToCss};
 use element_state::ElementState;
 use gecko_bindings::structs::CSSPseudoClassType;
 use selector_parser::{SelectorParser, PseudoElementCascadeType};
-use selectors::parser::{ComplexSelector, SelectorMethods};
+use selectors::parser::{Selector, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
 use std::borrow::Cow;
 use std::fmt;
@@ -47,7 +47,7 @@ macro_rules! pseudo_class_name {
             ///
             /// TODO(emilio): We disallow combinators and pseudos here, so we
             /// should use SimpleSelector instead
-            MozAny(Box<[ComplexSelector<SelectorImpl>]>),
+            MozAny(Box<[Selector<SelectorImpl>]>),
         }
     }
 }
@@ -273,7 +273,7 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
                     }, )*
                     "-moz-any" => {
                         let selectors = parser.parse_comma_separated(|input| {
-                            ComplexSelector::parse(self, input)
+                            Selector::parse(self, input)
                         })?;
                         // Selectors inside `:-moz-any` may not include combinators.
                         if selectors.iter().flat_map(|x| x.iter_raw()).any(|s| s.is_combinator()) {

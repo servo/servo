@@ -218,7 +218,7 @@ impl StylesheetInvalidationSet {
         let mut scope: Option<InvalidationScope> = None;
 
         let mut scan = true;
-        let mut iter = selector.inner.complex.iter();
+        let mut iter = selector.iter();
 
         loop {
             for component in &mut iter {

@@ -23,7 +23,7 @@ use selectors::attr::{AttrSelectorOperation, NamespaceConstraint};
 use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode};
 use selectors::matching::{RelevantLinkStatus, VisitedHandlingMode, matches_selector};
 use selectors::parser::{AncestorHashes, Combinator, Component};
-use selectors::parser::{Selector, SelectorAndHashes, SelectorInner, SelectorMethods};
+use selectors::parser::{Selector, SelectorAndHashes, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
 use smallvec::SmallVec;
 use std::cell::Cell;
@@ -949,7 +949,7 @@ impl DependencySet {
     /// Adds a selector to this `DependencySet`.
     pub fn note_selector(&mut self, selector_and_hashes: &SelectorAndHashes<SelectorImpl>) {
         let mut combinator = None;
-        let mut iter = selector_and_hashes.selector.inner.complex.iter();
+        let mut iter = selector_and_hashes.selector.iter();
         let mut index = 0;
         let mut child_combinators_seen = 0;
         let mut saw_descendant_combinator = false;
@@ -1001,14 +1001,9 @@ impl DependencySet {
 
                 let (dep_selector, hashes) = if sequence_start == 0 {
                     // Reuse the bloom hashes if this is the base selector.
-                    (selector_and_hashes.selector.clone(),
-                     selector_and_hashes.hashes.clone())
-
+                    (selector_and_hashes.selector.clone(), selector_and_hashes.hashes.clone())
                 } else {
-                    let inner = SelectorInner::new(selector_and_hashes.selector
-                                                                      .inner
-                                                                      .complex.slice_from(sequence_start));
-                    let selector = Selector { inner: inner };
+                    let selector = selector_and_hashes.selector.slice_from(sequence_start);
                     let hashes = AncestorHashes::new(&selector);
                     (selector, hashes)
                 };
@@ -1145,7 +1140,7 @@ impl DependencySet {
                 MatchingContext::new_for_visited(MatchingMode::Normal, None,
                                                  VisitedHandlingMode::AllLinksUnvisited);
             let matched_then =
-                matches_selector(&dep.selector.inner,
+                matches_selector(&dep.selector,
                                  &dep.hashes,
                                  &snapshot_el,
                                  &mut then_context,
@@ -1154,7 +1149,7 @@ impl DependencySet {
                 MatchingContext::new_for_visited(MatchingMode::Normal, bloom_filter,
                                                  VisitedHandlingMode::AllLinksUnvisited);
             let matches_now =
-                matches_selector(&dep.selector.inner,
+                matches_selector(&dep.selector,
                                  &dep.hashes,
                                  el,
                                  &mut now_context,
@@ -1181,14 +1176,14 @@ impl DependencySet {
                dep.sensitivities.states.intersects(IN_VISITED_OR_UNVISITED_STATE) {
                 then_context.visited_handling = VisitedHandlingMode::RelevantLinkVisited;
                 let matched_then =
-                    matches_selector(&dep.selector.inner,
+                    matches_selector(&dep.selector,
                                      &dep.hashes,
                                      &snapshot_el,
                                      &mut then_context,
                                      &mut |_, _| {});
                 now_context.visited_handling = VisitedHandlingMode::RelevantLinkVisited;
                 let matches_now =
-                    matches_selector(&dep.selector.inner,
+                    matches_selector(&dep.selector,
                                      &dep.hashes,
                                      el,
                                      &mut now_context,

@@ -4,8 +4,8 @@
 
 use attr::{ParsedAttrSelectorOperation, AttrSelectorOperation, NamespaceConstraint};
 use bloom::BloomFilter;
-use parser::{AncestorHashes, Combinator, ComplexSelector, Component, LocalName};
-use parser::{SelectorInner, SelectorIter, SelectorList};
+use parser::{AncestorHashes, Combinator, Component, LocalName};
+use parser::{Selector, SelectorIter, SelectorList};
 use std::borrow::Borrow;
 use tree::Element;
 
@@ -159,7 +159,7 @@ pub fn matches_selector_list<E>(selector_list: &SelectorList<E::Impl>,
     where E: Element
 {
     selector_list.0.iter().any(|selector_and_hashes| {
-        matches_selector(&selector_and_hashes.selector.inner,
+        matches_selector(&selector_and_hashes.selector,
                          &selector_and_hashes.hashes,
                          element,
                          context,
@@ -334,7 +334,7 @@ enum SelectorMatchingResult {
 
 /// Matches a selector, fast-rejecting against a bloom filter.
 #[inline(always)]
-pub fn matches_selector<E, F>(selector: &SelectorInner<E::Impl>,
+pub fn matches_selector<E, F>(selector: &Selector<E::Impl>,
                               hashes: &AncestorHashes,
                               element: &E,
                               context: &mut MatchingContext,
@@ -350,13 +350,11 @@ pub fn matches_selector<E, F>(selector: &SelectorInner<E::Impl>,
         }
     }
 
-    matches_complex_selector(&selector.complex, element, context, flags_setter)
+    matches_complex_selector(selector, element, context, flags_setter)
 }
 
 /// Matches a complex selector.
-///
-/// Use `matches_selector` if you need to skip pseudos.
-pub fn matches_complex_selector<E, F>(complex_selector: &ComplexSelector<E::Impl>,
+pub fn matches_complex_selector<E, F>(complex_selector: &Selector<E::Impl>,
                                       element: &E,
                                       context: &mut MatchingContext,
                                       flags_setter: &mut F)

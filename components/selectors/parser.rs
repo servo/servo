@@ -176,10 +176,10 @@ const NUM_ANCESTOR_HASHES: usize = 4;
 pub struct AncestorHashes(pub [u32; NUM_ANCESTOR_HASHES]);
 
 impl AncestorHashes {
-    pub fn new<Impl: SelectorImpl>(c: &Selector<Impl>) -> Self {
+    pub fn new<Impl: SelectorImpl>(s: &Selector<Impl>) -> Self {
         let mut hashes = [0; NUM_ANCESTOR_HASHES];
         // Compute ancestor hashes for the bloom filter.
-        let mut hash_iter = c.inner.complex.iter_ancestors()
+        let mut hash_iter = s.iter_ancestors()
                              .map(|x| x.ancestor_hash())
                              .filter(|x| x.is_some())
                              .map(|x| x.unwrap());
@@ -194,80 +194,7 @@ impl AncestorHashes {
     }
 }
 
-/// The cores parts of a selector used for matching. This exists to make that
-/// information accessibly separately from the specificity and pseudo-element
-/// information that lives on |Selector| proper. We may want to refactor things
-/// and move that information elsewhere, at which point we could rename this
-/// to |Selector|.
-#[derive(PartialEq, Eq, Clone)]
-pub struct SelectorInner<Impl: SelectorImpl> {
-    /// The selector data.
-    pub complex: ComplexSelector<Impl>,
-}
-
-impl<Impl: SelectorImpl> SelectorInner<Impl> {
-    pub fn new(c: ComplexSelector<Impl>) -> Self {
-        SelectorInner {
-            complex: c,
-        }
-    }
-
-    /// Creates a SelectorInner from a Vec of Components. Used in tests.
-    pub fn from_vec(vec: Vec<Component<Impl>>, specificity_and_flags: u32) -> Self {
-        let complex = ComplexSelector::from_vec(vec, specificity_and_flags);
-        Self::new(complex)
-    }
-}
-
-#[derive(PartialEq, Eq, Clone)]
-pub struct Selector<Impl: SelectorImpl> {
-    pub inner: SelectorInner<Impl>,
-}
-
-impl<Impl: SelectorImpl> ::std::borrow::Borrow<SelectorInner<Impl>> for Selector<Impl> {
-    fn borrow(&self) -> &SelectorInner<Impl> {
-        &self.inner
-    }
-}
-
 const HAS_PSEUDO_BIT: u32 = 1 << 30;
-
-impl<Impl: SelectorImpl> Selector<Impl> {
-    pub fn specificity(&self) -> u32 {
-        self.inner.complex.specificity()
-    }
-
-    pub fn pseudo_element(&self) -> Option<&Impl::PseudoElement> {
-        if !self.has_pseudo_element() {
-            return None
-        }
-
-        for component in self.inner.complex.iter() {
-            if let Component::PseudoElement(ref pseudo) = *component {
-                return Some(pseudo)
-            }
-        }
-
-        debug_assert!(false, "has_pseudo_element lied!");
-        None
-    }
-
-    pub fn has_pseudo_element(&self) -> bool {
-        self.inner.complex.has_pseudo_element()
-    }
-
-    /// Whether this selector (pseudo-element part excluded) matches every element.
-    ///
-    /// Used for "pre-computed" pseudo-elements in components/style/stylist.rs
-    pub fn is_universal(&self) -> bool {
-        self.inner.complex.iter_raw().all(|c| matches!(*c,
-            Component::ExplicitUniversalType |
-            Component::ExplicitAnyNamespace |
-            Component::Combinator(Combinator::PseudoElement) |
-            Component::PseudoElement(..)
-        ))
-    }
-}
 
 pub trait SelectorMethods {
     type Impl: SelectorImpl;
@@ -277,16 +204,6 @@ pub trait SelectorMethods {
 }
 
 impl<Impl: SelectorImpl> SelectorMethods for Selector<Impl> {
-    type Impl = Impl;
-
-    fn visit<V>(&self, visitor: &mut V) -> bool
-        where V: SelectorVisitor<Impl = Impl>,
-    {
-        self.inner.complex.visit(visitor)
-    }
-}
-
-impl<Impl: SelectorImpl> SelectorMethods for ComplexSelector<Impl> {
     type Impl = Impl;
 
     fn visit<V>(&self, visitor: &mut V) -> bool
@@ -381,7 +298,7 @@ pub fn namespace_empty_string<Impl: SelectorImpl>() -> Impl::NamespaceUrl {
     Impl::NamespaceUrl::default()
 }
 
-/// A ComplexSelectors stores a sequence of simple selectors and combinators. The
+/// A Selector stores a sequence of simple selectors and combinators. The
 /// iterator classes allow callers to iterate at either the raw sequence level or
 /// at the level of sequences of simple selectors separated by combinators. Most
 /// callers want the higher-level iterator.
@@ -390,9 +307,9 @@ pub fn namespace_empty_string<Impl: SelectorImpl>() -> Impl::NamespaceUrl {
 /// canonical iteration order is right-to-left (selector matching order). The
 /// iterators abstract over these details.
 #[derive(Clone, Eq, PartialEq)]
-pub struct ComplexSelector<Impl: SelectorImpl>(ArcSlice<Component<Impl>>, u32);
+pub struct Selector<Impl: SelectorImpl>(ArcSlice<Component<Impl>>, u32);
 
-impl<Impl: SelectorImpl> ComplexSelector<Impl> {
+impl<Impl: SelectorImpl> Selector<Impl> {
     pub fn specificity(&self) -> u32 {
         self.1 & !HAS_PSEUDO_BIT
     }
@@ -400,6 +317,34 @@ impl<Impl: SelectorImpl> ComplexSelector<Impl> {
     pub fn has_pseudo_element(&self) -> bool {
         (self.1 & HAS_PSEUDO_BIT) != 0
     }
+
+    pub fn pseudo_element(&self) -> Option<&Impl::PseudoElement> {
+        if !self.has_pseudo_element() {
+            return None
+        }
+
+        for component in self.iter() {
+            if let Component::PseudoElement(ref pseudo) = *component {
+                return Some(pseudo)
+            }
+        }
+
+        debug_assert!(false, "has_pseudo_element lied!");
+        None
+    }
+
+    /// Whether this selector (pseudo-element part excluded) matches every element.
+    ///
+    /// Used for "pre-computed" pseudo-elements in components/style/stylist.rs
+    pub fn is_universal(&self) -> bool {
+        self.iter_raw().all(|c| matches!(*c,
+            Component::ExplicitUniversalType |
+            Component::ExplicitAnyNamespace |
+            Component::Combinator(Combinator::PseudoElement) |
+            Component::PseudoElement(..)
+        ))
+    }
+
 
     /// Returns an iterator over the next sequence of simple selectors. When
     /// a combinator is reached, the iterator will return None, and
@@ -429,25 +374,25 @@ impl<Impl: SelectorImpl> ComplexSelector<Impl> {
         AncestorIter::new(self.iter())
     }
 
-    /// Returns a ComplexSelector identical to |self| but with the rightmost |index|
-    /// entries removed.
+    /// Returns a Selector identical to |self| but with the rightmost |index| entries
+    /// removed.
     pub fn slice_from(&self, index: usize) -> Self {
         // Note that we convert the slice_from to slice_to because selectors are
         // stored left-to-right but logical order is right-to-left.
-        ComplexSelector(self.0.clone().slice_to(self.0.len() - index), self.1)
+        Selector(self.0.clone().slice_to(self.0.len() - index), self.1)
     }
 
-    /// Returns a ComplexSelector identical to |self| but with the leftmost
-    /// |len() - index| entries removed.
+    /// Returns a Selector identical to |self| but with the leftmost |len() - index|
+    /// entries removed.
     pub fn slice_to(&self, index: usize) -> Self {
         // Note that we convert the slice_to to slice_from because selectors are
         // stored left-to-right but logical order is right-to-left.
-        ComplexSelector(self.0.clone().slice_from(self.0.len() - index), self.1)
+        Selector(self.0.clone().slice_from(self.0.len() - index), self.1)
     }
 
-    /// Creates a ComplexSelector from a vec of Components. Used in tests.
+    /// Creates a Selector from a vec of Components. Used in tests.
     pub fn from_vec(vec: Vec<Component<Impl>>, specificity_and_flags: u32) -> Self {
-        ComplexSelector(ArcSlice::new(vec.into_boxed_slice()), specificity_and_flags)
+        Selector(ArcSlice::new(vec.into_boxed_slice()), specificity_and_flags)
     }
 }
 
@@ -671,12 +616,6 @@ impl<Impl: SelectorImpl> Debug for Selector<Impl> {
     }
 }
 
-impl<Impl: SelectorImpl> Debug for SelectorInner<Impl> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.complex.to_css(f) }
-}
-impl<Impl: SelectorImpl> Debug for ComplexSelector<Impl> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.to_css(f) }
-}
 impl<Impl: SelectorImpl> Debug for Component<Impl> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.to_css(f) }
 }
@@ -702,12 +641,6 @@ impl<Impl: SelectorImpl> ToCss for SelectorList<Impl> {
 }
 
 impl<Impl: SelectorImpl> ToCss for Selector<Impl> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        self.inner.complex.to_css(dest)
-    }
-}
-
-impl<Impl: SelectorImpl> ToCss for ComplexSelector<Impl> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
        for item in self.iter_raw_rev() {
            item.to_css(dest)?;
@@ -916,13 +849,13 @@ impl From<Specificity> for u32 {
     }
 }
 
-fn specificity<Impl>(complex_selector: &ComplexSelector<Impl>) -> u32
+fn specificity<Impl>(complex_selector: &Selector<Impl>) -> u32
     where Impl: SelectorImpl
 {
     complex_selector_specificity(complex_selector).into()
 }
 
-fn complex_selector_specificity<Impl>(selector: &ComplexSelector<Impl>)
+fn complex_selector_specificity<Impl>(selector: &Selector<Impl>)
                                       -> Specificity
     where Impl: SelectorImpl
 {
@@ -992,15 +925,13 @@ fn complex_selector_specificity<Impl>(selector: &ComplexSelector<Impl>)
 fn parse_selector<P, Impl>(parser: &P, input: &mut CssParser) -> Result<Selector<Impl>, ()>
     where P: Parser<Impl=Impl>, Impl: SelectorImpl
 {
-    let (mut complex, has_pseudo_element) = parse_complex_selector(parser, input)?;
-    let mut specificity = specificity(&complex);
+    let (mut selector, has_pseudo_element) = parse_complex_selector(parser, input)?;
+    let mut specificity = specificity(&selector);
     if has_pseudo_element {
         specificity |= HAS_PSEUDO_BIT;
     }
-    complex.1 = specificity;
-    Ok(Selector {
-        inner: SelectorInner::new(complex),
-    })
+    selector.1 = specificity;
+    Ok(selector)
 }
 
 /// We use a SmallVec for parsing to avoid extra reallocs compared to using a Vec
@@ -1021,7 +952,7 @@ type ParseVec<Impl> = SmallVec<[Component<Impl>; 8]>;
 fn parse_complex_selector<P, Impl>(
         parser: &P,
         input: &mut CssParser)
-        -> Result<(ComplexSelector<Impl>, bool), ()>
+        -> Result<(Selector<Impl>, bool), ()>
     where P: Parser<Impl=Impl>, Impl: SelectorImpl
 {
     let mut sequence = ParseVec::new();
@@ -1069,11 +1000,11 @@ fn parse_complex_selector<P, Impl>(
         sequence.push(Component::Combinator(combinator));
     }
 
-    let complex = ComplexSelector(ArcSlice::new(sequence.into_vec().into_boxed_slice()), 0);
+    let complex = Selector(ArcSlice::new(sequence.into_vec().into_boxed_slice()), 0);
     Ok((complex, parsed_pseudo_element))
 }
 
-impl<Impl: SelectorImpl> ComplexSelector<Impl> {
+impl<Impl: SelectorImpl> Selector<Impl> {
     /// Parse a complex selector, without any pseudo-element.
     pub fn parse<P>(parser: &P, input: &mut CssParser) -> Result<Self, ()>
         where P: Parser<Impl=Impl>
