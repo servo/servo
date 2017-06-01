@@ -186,8 +186,8 @@ impl<Impl: SelectorImpl> SelectorInner<Impl> {
     }
 
     /// Creates a SelectorInner from a Vec of Components. Used in tests.
-    pub fn from_vec(vec: Vec<Component<Impl>>) -> Self {
-        let complex = ComplexSelector::from_vec(vec);
+    pub fn from_vec(vec: Vec<Component<Impl>>, specificity_and_flags: u32) -> Self {
+        let complex = ComplexSelector::from_vec(vec, specificity_and_flags);
         Self::new(complex)
     }
 }
@@ -195,7 +195,6 @@ impl<Impl: SelectorImpl> SelectorInner<Impl> {
 #[derive(PartialEq, Eq, Clone)]
 pub struct Selector<Impl: SelectorImpl> {
     pub inner: SelectorInner<Impl>,
-    specificity_and_flags: u32,
 }
 
 impl<Impl: SelectorImpl> ::std::borrow::Borrow<SelectorInner<Impl>> for Selector<Impl> {
@@ -208,14 +207,7 @@ const HAS_PSEUDO_BIT: u32 = 1 << 30;
 
 impl<Impl: SelectorImpl> Selector<Impl> {
     pub fn specificity(&self) -> u32 {
-        self.specificity_and_flags & !HAS_PSEUDO_BIT
-    }
-
-    pub fn new_for_unit_testing(inner: SelectorInner<Impl>, specificity: u32) -> Self {
-        Self {
-            inner: inner,
-            specificity_and_flags: specificity,
-        }
+        self.inner.complex.specificity()
     }
 
     pub fn pseudo_element(&self) -> Option<&Impl::PseudoElement> {
@@ -234,7 +226,7 @@ impl<Impl: SelectorImpl> Selector<Impl> {
     }
 
     pub fn has_pseudo_element(&self) -> bool {
-        (self.specificity_and_flags & HAS_PSEUDO_BIT) != 0
+        self.inner.complex.has_pseudo_element()
     }
 
     /// Whether this selector (pseudo-element part excluded) matches every element.
@@ -371,9 +363,17 @@ pub fn namespace_empty_string<Impl: SelectorImpl>() -> Impl::NamespaceUrl {
 /// canonical iteration order is right-to-left (selector matching order). The
 /// iterators abstract over these details.
 #[derive(Clone, Eq, PartialEq)]
-pub struct ComplexSelector<Impl: SelectorImpl>(ArcSlice<Component<Impl>>);
+pub struct ComplexSelector<Impl: SelectorImpl>(ArcSlice<Component<Impl>>, u32);
 
 impl<Impl: SelectorImpl> ComplexSelector<Impl> {
+    pub fn specificity(&self) -> u32 {
+        self.1 & !HAS_PSEUDO_BIT
+    }
+
+    pub fn has_pseudo_element(&self) -> bool {
+        (self.1 & HAS_PSEUDO_BIT) != 0
+    }
+
     /// Returns an iterator over the next sequence of simple selectors. When
     /// a combinator is reached, the iterator will return None, and
     /// next_sequence() may be called to continue to the next sequence.
@@ -407,7 +407,7 @@ impl<Impl: SelectorImpl> ComplexSelector<Impl> {
     pub fn slice_from(&self, index: usize) -> Self {
         // Note that we convert the slice_from to slice_to because selectors are
         // stored left-to-right but logical order is right-to-left.
-        ComplexSelector(self.0.clone().slice_to(self.0.len() - index))
+        ComplexSelector(self.0.clone().slice_to(self.0.len() - index), self.1)
     }
 
     /// Returns a ComplexSelector identical to |self| but with the leftmost
@@ -415,12 +415,12 @@ impl<Impl: SelectorImpl> ComplexSelector<Impl> {
     pub fn slice_to(&self, index: usize) -> Self {
         // Note that we convert the slice_to to slice_from because selectors are
         // stored left-to-right but logical order is right-to-left.
-        ComplexSelector(self.0.clone().slice_from(self.0.len() - index))
+        ComplexSelector(self.0.clone().slice_from(self.0.len() - index), self.1)
     }
 
     /// Creates a ComplexSelector from a vec of Components. Used in tests.
-    pub fn from_vec(vec: Vec<Component<Impl>>) -> Self {
-        ComplexSelector(ArcSlice::new(vec.into_boxed_slice()))
+    pub fn from_vec(vec: Vec<Component<Impl>>, specificity_and_flags: u32) -> Self {
+        ComplexSelector(ArcSlice::new(vec.into_boxed_slice()), specificity_and_flags)
     }
 }
 
@@ -965,13 +965,13 @@ fn complex_selector_specificity<Impl>(selector: &ComplexSelector<Impl>)
 fn parse_selector<P, Impl>(parser: &P, input: &mut CssParser) -> Result<Selector<Impl>, ()>
     where P: Parser<Impl=Impl>, Impl: SelectorImpl
 {
-    let (complex, has_pseudo_element) = parse_complex_selector(parser, input)?;
+    let (mut complex, has_pseudo_element) = parse_complex_selector(parser, input)?;
     let mut specificity = specificity(&complex);
     if has_pseudo_element {
         specificity |= HAS_PSEUDO_BIT;
     }
+    complex.1 = specificity;
     Ok(Selector {
-        specificity_and_flags: specificity,
         inner: SelectorInner::new(complex),
     })
 }
@@ -1042,7 +1042,7 @@ fn parse_complex_selector<P, Impl>(
         sequence.push(Component::Combinator(combinator));
     }
 
-    let complex = ComplexSelector(ArcSlice::new(sequence.into_vec().into_boxed_slice()));
+    let complex = ComplexSelector(ArcSlice::new(sequence.into_vec().into_boxed_slice()), 0);
     Ok((complex, parsed_pseudo_element))
 }
 
