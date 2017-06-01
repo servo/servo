@@ -4403,10 +4403,10 @@ clip-path
                         }
                         ContentItem::Attr(ns, val) => {
                             self.gecko.mContents[i].mType = eStyleContentType_Attr;
-                            let s = if let Some(ns) = ns {
+                            let s = if let Some((_, ns)) = ns {
                                 format!("{}|{}", ns, val)
                             } else {
-                                val
+                                val.into()
                             };
                             unsafe {
                                 // NB: we share allocators, so doing this is fine.
