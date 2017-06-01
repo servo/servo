@@ -33,6 +33,7 @@ num = []
 [ignore]
 # Ignored packages with duplicated versions
 packages = [
+  "error-chain",
   "bitflags",
   "libloading", # Conflicting version is only used at build-time by geckolib.
 ]

@@ -11,6 +11,7 @@ extern crate backtrace;
 extern crate bluetooth_traits;
 extern crate canvas;
 extern crate canvas_traits;
+extern crate clipboard;
 extern crate compositing;
 extern crate debugger;
 extern crate devtools_traits;
