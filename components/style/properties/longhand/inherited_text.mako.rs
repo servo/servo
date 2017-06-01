@@ -635,7 +635,7 @@ ${helpers.single_keyword("text-align-last",
 <%helpers:single_keyword_computed name="white-space"
                                   values="normal pre nowrap pre-wrap pre-line"
                                   extra_gecko_values="-moz-pre-space"
-                                  gecko_constant_prefix="NS_STYLE_WHITESPACE"
+                                  gecko_enum_prefix="StyleWhiteSpace"
                                   needs_conversion="True"
                                   animation_value_type="none"
                                   spec="https://drafts.csswg.org/css-text/#propdef-white-space">
