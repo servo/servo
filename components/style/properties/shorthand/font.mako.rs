@@ -22,6 +22,7 @@
     use properties::longhands::{font_size, line_height, font_variant_caps};
     #[cfg(feature = "gecko")]
     use properties::longhands::system_font::SystemFont;
+
     <%
         gecko_sub_properties = "kerning language_override size_adjust \
                                 variant_alternates variant_east_asian \

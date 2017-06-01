@@ -715,12 +715,6 @@ pub mod root {
     pub const NS_STYLE_VISIBILITY_VISIBLE: ::std::os::raw::c_uint = 1;
     pub const NS_STYLE_VISIBILITY_COLLAPSE: ::std::os::raw::c_uint = 2;
     pub const NS_STYLE_TABSIZE_INITIAL: ::std::os::raw::c_uint = 8;
-    pub const NS_STYLE_WHITESPACE_NORMAL: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_WHITESPACE_PRE: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_WHITESPACE_NOWRAP: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_WHITESPACE_PRE_WRAP: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_WHITESPACE_PRE_LINE: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_WHITESPACE_PRE_SPACE: ::std::os::raw::c_uint = 5;
     pub const NS_STYLE_WORDBREAK_NORMAL: ::std::os::raw::c_uint = 0;
     pub const NS_STYLE_WORDBREAK_BREAK_ALL: ::std::os::raw::c_uint = 1;
     pub const NS_STYLE_WORDBREAK_KEEP_ALL: ::std::os::raw::c_uint = 2;
@@ -6200,6 +6194,16 @@ pub mod root {
         #[repr(u8)]
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
         pub enum StyleGridTrackBreadth { MaxContent = 1, MinContent = 2, }
+        #[repr(u8)]
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        pub enum StyleWhiteSpace {
+            Normal = 0,
+            Pre = 1,
+            Nowrap = 2,
+            PreWrap = 3,
+            PreLine = 4,
+            PreSpace = 5,
+        }
         #[repr(C)]
         #[derive(Debug, Copy, Clone)]
         pub struct WritingMode {
@@ -30352,7 +30356,7 @@ pub mod root {
         pub _bitfield_1: u8,
         pub mTextJustify: root::mozilla::StyleTextJustify,
         pub mTextTransform: u8,
-        pub mWhiteSpace: u8,
+        pub mWhiteSpace: root::mozilla::StyleWhiteSpace,
         pub mWordBreak: u8,
         pub mOverflowWrap: u8,
         pub mHyphens: root::mozilla::StyleHyphens,
