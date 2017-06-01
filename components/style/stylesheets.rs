@@ -51,6 +51,7 @@ use stylearc::Arc;
 use stylist::FnvHashMap;
 use supports::SupportsCondition;
 use values::{CustomIdent, KeyframesName};
+use values::specified::NamespaceId;
 use values::specified::url::SpecifiedUrl;
 use viewport::ViewportRule;
 
@@ -101,8 +102,8 @@ pub enum Origin {
 #[derive(Clone, Default, Debug)]
 #[allow(missing_docs)]
 pub struct Namespaces {
-    pub default: Option<(Namespace, u32)>,
-    pub prefixes: FnvHashMap<Prefix, (Namespace, u32)>,
+    pub default: Option<(Namespace, NamespaceId)>,
+    pub prefixes: FnvHashMap<Prefix, (Namespace, NamespaceId)>,
 }
 
 /// Like gecko_bindings::structs::MallocSizeOf, but without the Option<> wrapper. Note that
@@ -1529,18 +1530,18 @@ enum AtRulePrelude {
 
 
 #[cfg(feature = "gecko")]
-fn register_namespace(ns: &Namespace) -> Result<u32, ()> {
+fn register_namespace(ns: &Namespace) -> Result<i32, ()> {
     let id = unsafe { ::gecko_bindings::bindings::Gecko_RegisterNamespace(ns.0.as_ptr()) };
     if id == -1 {
         Err(())
     } else {
-        Ok(id as u32)
+        Ok(id)
     }
 }
 
 #[cfg(feature = "servo")]
-fn register_namespace(ns: &Namespace) -> Result<u32, ()> {
-    Ok(1) // servo doesn't use namespace ids
+fn register_namespace(_: &Namespace) -> Result<(), ()> {
+    Ok(()) // servo doesn't use namespace ids
 }
 
 impl<'a> AtRuleParser for TopLevelRuleParser<'a> {

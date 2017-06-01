@@ -15,7 +15,7 @@
     #[cfg(feature = "gecko")]
     use values::specified::url::SpecifiedUrl;
     #[cfg(feature = "gecko")]
-    use gecko_string_cache::namespace::Namespace;
+    use values::specified::Attr;
 
     #[cfg(feature = "servo")]
     use super::list_style_type;
@@ -37,8 +37,9 @@
         type CounterStyleType = super::super::list_style_type::computed_value::T;
         #[cfg(feature = "gecko")]
         type CounterStyleType = ::values::generics::CounterStyleOrNone;
+
         #[cfg(feature = "gecko")]
-        use gecko_string_cache::namespace::Namespace;
+        use values::specified::Attr;
 
         #[derive(Debug, PartialEq, Eq, Clone)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -60,7 +61,7 @@
 
             % if product == "gecko":
                 /// `attr([namespace? `|`]? ident)`
-                Attr(Option<(Namespace, u32)>, String),
+                Attr(Attr),
                 /// `url(url)`
                 Url(SpecifiedUrl),
             % endif
@@ -94,14 +95,8 @@
                     ContentItem::NoCloseQuote => dest.write_str("no-close-quote"),
 
                     % if product == "gecko":
-                        ContentItem::Attr(ref ns, ref attr) => {
-                            dest.write_str("attr(")?;
-                            if let Some(ref ns) = *ns {
-                                cssparser::Token::Ident(ns.0.to_string().into()).to_css(dest)?;
-                                dest.write_str("|")?;
-                            }
-                            cssparser::Token::Ident((&**attr).into()).to_css(dest)?;
-                            dest.write_str(")")
+                        ContentItem::Attr(ref attr) => {
+                            attr.to_css(dest)
                         }
                         ContentItem::Url(ref url) => url.to_css(dest),
                     % endif
@@ -207,46 +202,7 @@
                         }),
                         % if product == "gecko":
                             "attr" => input.parse_nested_block(|input| {
-                                // Syntax is `[namespace? `|`]? ident`
-                                // no spaces allowed
-                                // FIXME (bug 1346693) we should be checking that
-                                // this is a valid namespace and encoding it as a namespace
-                                // number from the map
-                                let first = input.try(|i| i.expect_ident()).ok();
-                                if let Ok(token) = input.try(|i| i.next_including_whitespace()) {
-                                    match token {
-                                        Token::Delim('|') => {
-                                            // must be followed by an ident
-                                            let tok2 = input.next_including_whitespace()?;
-                                            if let Token::Ident(second) = tok2 {
-                                                let first: Option<Namespace> = first.map(|i| i.into());
-                                                let first_with_id = match (first, context.namespaces) {
-                                                    (Some(prefix), Some(map)) => {
-                                                        let map = map.read();
-                                                        if let Some(ref entry) = map.prefixes.get(&prefix.0) {
-                                                            Some((prefix, entry.1))
-                                                        } else {
-                                                            return Err(())
-                                                        }
-                                                    }
-                                                    // if we don't have a namespace map (e.g. in CSSOM)
-                                                    // we can't parse namespaces
-                                                    (Some(_), None) => return Err(()),
-                                                    _ => None
-                                                };
-                                                return Ok(ContentItem::Attr(first_with_id, second.into_owned()))
-                                            } else {
-                                                return Err(())
-                                            }
-                                        }
-                                        _ => return Err(())
-                                    }
-                                }
-                                if let Some(first) = first {
-                                    Ok(ContentItem::Attr(None, first.into_owned()))
-                                } else {
-                                    Err(())
-                                }
+                                Ok(ContentItem::Attr(Attr::parse_function(context, input)?))
                             }),
                         % endif
                         _ => return Err(())
