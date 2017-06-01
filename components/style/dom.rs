@@ -18,7 +18,7 @@ use properties::{ComputedValues, PropertyDeclarationBlock};
 #[cfg(feature = "gecko")] use properties::animated_properties::TransitionProperty;
 use rule_tree::CascadeLevel;
 use selector_parser::{ElementExt, PreExistingComputedValues, PseudoElement};
-use selectors::matching::ElementSelectorFlags;
+use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
 use shared_lock::Locked;
 use sink::Push;
 use std::fmt;
@@ -270,7 +270,9 @@ pub unsafe fn raw_note_descendants<E, B>(element: E) -> bool
 pub trait PresentationalHintsSynthesizer {
     /// Generate the proper applicable declarations due to presentational hints,
     /// and insert them into `hints`.
-    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
+    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self,
+                                                                visited_handling: VisitedHandlingMode,
+                                                                hints: &mut V)
         where V: Push<ApplicableDeclarationBlock>;
 }
 

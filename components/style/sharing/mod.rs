@@ -14,7 +14,7 @@ use dom::{TElement, SendElement};
 use matching::{ChildCascadeRequirement, MatchMethods};
 use properties::ComputedValues;
 use selectors::bloom::BloomFilter;
-use selectors::matching::{ElementSelectorFlags, StyleRelations};
+use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode, StyleRelations};
 use smallvec::SmallVec;
 use std::mem;
 use std::ops::Deref;
@@ -66,7 +66,10 @@ impl ValidationData {
     {
         if self.pres_hints.is_none() {
             let mut pres_hints = SmallVec::new();
-            element.synthesize_presentational_hints_for_legacy_attributes(&mut pres_hints);
+            element.synthesize_presentational_hints_for_legacy_attributes(
+                VisitedHandlingMode::AllLinksUnvisited,
+                &mut pres_hints
+            );
             self.pres_hints = Some(pres_hints);
         }
         &*self.pres_hints.as_ref().unwrap()
