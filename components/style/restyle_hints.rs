@@ -22,7 +22,8 @@ use selectors::Element;
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint};
 use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode};
 use selectors::matching::{RelevantLinkStatus, VisitedHandlingMode, matches_selector};
-use selectors::parser::{Combinator, Component, Selector, SelectorInner, SelectorMethods};
+use selectors::parser::{AncestorHashes, Combinator, Component};
+use selectors::parser::{Selector, SelectorAndHashes, SelectorInner, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
 use smallvec::SmallVec;
 use std::cell::Cell;
@@ -867,7 +868,9 @@ impl Sensitivities {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Dependency {
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    selector: SelectorInner<SelectorImpl>,
+    selector: Selector<SelectorImpl>,
+    #[cfg_attr(feature = "servo", ignore_heap_size_of = "No heap data")]
+    hashes: AncestorHashes,
     /// The hint associated with this dependency.
     pub hint: RestyleHint,
     /// The sensitivities associated with this dependency.
@@ -875,8 +878,12 @@ pub struct Dependency {
 }
 
 impl SelectorMapEntry for Dependency {
-    fn selector(&self) -> &SelectorInner<SelectorImpl> {
+    fn selector(&self) -> &Selector<SelectorImpl> {
         &self.selector
+    }
+
+    fn hashes(&self) -> &AncestorHashes {
+        &self.hashes
     }
 }
 
@@ -940,9 +947,9 @@ pub enum HintComputationContext<'a, E: 'a>
 
 impl DependencySet {
     /// Adds a selector to this `DependencySet`.
-    pub fn note_selector(&mut self, selector: &Selector<SelectorImpl>) {
+    pub fn note_selector(&mut self, selector_and_hashes: &SelectorAndHashes<SelectorImpl>) {
         let mut combinator = None;
-        let mut iter = selector.inner.complex.iter();
+        let mut iter = selector_and_hashes.selector.inner.complex.iter();
         let mut index = 0;
         let mut child_combinators_seen = 0;
         let mut saw_descendant_combinator = false;
@@ -992,17 +999,25 @@ impl DependencySet {
                     None => RestyleHint::for_self(),
                 };
 
-                let dep_selector = if sequence_start == 0 {
+                let (dep_selector, hashes) = if sequence_start == 0 {
                     // Reuse the bloom hashes if this is the base selector.
-                    selector.inner.clone()
+                    (selector_and_hashes.selector.clone(),
+                     selector_and_hashes.hashes.clone())
+
                 } else {
-                    SelectorInner::new(selector.inner.complex.slice_from(sequence_start))
+                    let inner = SelectorInner::new(selector_and_hashes.selector
+                                                                      .inner
+                                                                      .complex.slice_from(sequence_start));
+                    let selector = Selector { inner: inner };
+                    let hashes = AncestorHashes::new(&selector);
+                    (selector, hashes)
                 };
 
                 self.dependencies.insert(Dependency {
                     sensitivities: visitor.sensitivities,
                     hint: hint,
                     selector: dep_selector,
+                    hashes: hashes,
                 });
             }
 
@@ -1130,14 +1145,18 @@ impl DependencySet {
                 MatchingContext::new_for_visited(MatchingMode::Normal, None,
                                                  VisitedHandlingMode::AllLinksUnvisited);
             let matched_then =
-                matches_selector(&dep.selector, &snapshot_el,
+                matches_selector(&dep.selector.inner,
+                                 &dep.hashes,
+                                 &snapshot_el,
                                  &mut then_context,
                                  &mut |_, _| {});
             let mut now_context =
                 MatchingContext::new_for_visited(MatchingMode::Normal, bloom_filter,
                                                  VisitedHandlingMode::AllLinksUnvisited);
             let matches_now =
-                matches_selector(&dep.selector, el,
+                matches_selector(&dep.selector.inner,
+                                 &dep.hashes,
+                                 el,
                                  &mut now_context,
                                  &mut |_, _| {});
 
@@ -1162,12 +1181,16 @@ impl DependencySet {
                dep.sensitivities.states.intersects(IN_VISITED_OR_UNVISITED_STATE) {
                 then_context.visited_handling = VisitedHandlingMode::RelevantLinkVisited;
                 let matched_then =
-                    matches_selector(&dep.selector, &snapshot_el,
+                    matches_selector(&dep.selector.inner,
+                                     &dep.hashes,
+                                     &snapshot_el,
                                      &mut then_context,
                                      &mut |_, _| {});
                 now_context.visited_handling = VisitedHandlingMode::RelevantLinkVisited;
                 let matches_now =
-                    matches_selector(&dep.selector, el,
+                    matches_selector(&dep.selector.inner,
+                                     &dep.hashes,
+                                     el,
                                      &mut now_context,
                                      &mut |_, _| {});
                 if matched_then != matches_now {

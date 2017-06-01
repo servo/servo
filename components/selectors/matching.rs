@@ -4,8 +4,8 @@
 
 use attr::{ParsedAttrSelectorOperation, AttrSelectorOperation, NamespaceConstraint};
 use bloom::BloomFilter;
-use parser::{Combinator, ComplexSelector, Component, LocalName};
-use parser::{Selector, SelectorInner, SelectorIter};
+use parser::{AncestorHashes, Combinator, ComplexSelector, Component, LocalName};
+use parser::{SelectorInner, SelectorIter, SelectorList};
 use std::borrow::Borrow;
 use tree::Element;
 
@@ -152,27 +152,29 @@ impl<'a> MatchingContext<'a> {
     }
 }
 
-pub fn matches_selector_list<E>(selector_list: &[Selector<E::Impl>],
+pub fn matches_selector_list<E>(selector_list: &SelectorList<E::Impl>,
                                 element: &E,
                                 context: &mut MatchingContext)
                                 -> bool
     where E: Element
 {
-    selector_list.iter().any(|selector| {
-        matches_selector(&selector.inner,
+    selector_list.0.iter().any(|selector_and_hashes| {
+        matches_selector(&selector_and_hashes.selector.inner,
+                         &selector_and_hashes.hashes,
                          element,
                          context,
                          &mut |_, _| {})
     })
 }
 
-fn may_match<E>(sel: &SelectorInner<E::Impl>,
+#[inline(always)]
+fn may_match<E>(hashes: &AncestorHashes,
                 bf: &BloomFilter)
                 -> bool
     where E: Element,
 {
     // Check against the list of precomputed hashes.
-    for hash in sel.ancestor_hashes.iter() {
+    for hash in hashes.0.iter() {
         // If we hit the 0 sentinel hash, that means the rest are zero as well.
         if *hash == 0 {
             break;
@@ -330,8 +332,10 @@ enum SelectorMatchingResult {
     NotMatchedGlobally,
 }
 
-/// Matches an inner selector.
+/// Matches a selector, fast-rejecting against a bloom filter.
+#[inline(always)]
 pub fn matches_selector<E, F>(selector: &SelectorInner<E::Impl>,
+                              hashes: &AncestorHashes,
                               element: &E,
                               context: &mut MatchingContext,
                               flags_setter: &mut F)
@@ -341,7 +345,7 @@ pub fn matches_selector<E, F>(selector: &SelectorInner<E::Impl>,
 {
     // Use the bloom filter to fast-reject.
     if let Some(filter) = context.bloom_filter {
-        if !may_match::<E>(&selector, filter) {
+        if !may_match::<E>(hashes, filter) {
             return false;
         }
     }

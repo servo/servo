@@ -2061,7 +2061,7 @@ impl ElementMethods for Element {
             Err(()) => Err(Error::Syntax),
             Ok(selectors) => {
                 let mut ctx = MatchingContext::new(MatchingMode::Normal, None);
-                Ok(matches_selector_list(&selectors.0, &Root::from_ref(self), &mut ctx))
+                Ok(matches_selector_list(&selectors, &Root::from_ref(self), &mut ctx))
             }
         }
     }
@@ -2080,7 +2080,7 @@ impl ElementMethods for Element {
                 for element in root.inclusive_ancestors() {
                     if let Some(element) = Root::downcast::<Element>(element) {
                         let mut ctx = MatchingContext::new(MatchingMode::Normal, None);
-                        if matches_selector_list(&selectors.0, &element, &mut ctx) {
+                        if matches_selector_list(&selectors, &element, &mut ctx) {
                             return Ok(Some(element));
                         }
                     }

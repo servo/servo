@@ -130,7 +130,27 @@ pub trait Parser {
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
-pub struct SelectorList<Impl: SelectorImpl>(pub Vec<Selector<Impl>>);
+pub struct SelectorAndHashes<Impl: SelectorImpl> {
+    pub selector: Selector<Impl>,
+    pub hashes: AncestorHashes,
+}
+
+impl<Impl: SelectorImpl> SelectorAndHashes<Impl> {
+    pub fn new(selector: Selector<Impl>) -> Self {
+        let hashes = AncestorHashes::new(&selector);
+        Self::new_with_hashes(selector, hashes)
+    }
+
+    pub fn new_with_hashes(selector: Selector<Impl>, hashes: AncestorHashes) -> Self {
+        SelectorAndHashes {
+            selector: selector,
+            hashes: hashes,
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub struct SelectorList<Impl: SelectorImpl>(pub Vec<SelectorAndHashes<Impl>>);
 
 impl<Impl: SelectorImpl> SelectorList<Impl> {
     /// Parse a comma-separated list of Selectors.
@@ -139,13 +159,40 @@ impl<Impl: SelectorImpl> SelectorList<Impl> {
     /// Return the Selectors or Err if there is an invalid selector.
     pub fn parse<P>(parser: &P, input: &mut CssParser) -> Result<Self, ()>
     where P: Parser<Impl=Impl> {
-        input.parse_comma_separated(|input| parse_selector(parser, input))
+        input.parse_comma_separated(|input| parse_selector(parser, input).map(SelectorAndHashes::new))
              .map(SelectorList)
     }
 }
 
-/// Copied from Gecko, where it was noted to be unmeasured.
+/// Copied from Gecko, who copied it from WebKit. Note that increasing the
+/// number of hashes here will adversely affect the cache hit when fast-
+/// rejecting long lists of Rules with inline hashes.
 const NUM_ANCESTOR_HASHES: usize = 4;
+
+/// Ancestor hashes for the bloom filter. We precompute these and store them
+/// inline with selectors to optimize cache performance during matching.
+/// This matters a lot.
+#[derive(Eq, PartialEq, Clone, Debug)]
+pub struct AncestorHashes(pub [u32; NUM_ANCESTOR_HASHES]);
+
+impl AncestorHashes {
+    pub fn new<Impl: SelectorImpl>(c: &Selector<Impl>) -> Self {
+        let mut hashes = [0; NUM_ANCESTOR_HASHES];
+        // Compute ancestor hashes for the bloom filter.
+        let mut hash_iter = c.inner.complex.iter_ancestors()
+                             .map(|x| x.ancestor_hash())
+                             .filter(|x| x.is_some())
+                             .map(|x| x.unwrap());
+        for i in 0..NUM_ANCESTOR_HASHES {
+            hashes[i] = match hash_iter.next() {
+                Some(x) => x,
+                None => break,
+            }
+        }
+
+        AncestorHashes(hashes)
+    }
+}
 
 /// The cores parts of a selector used for matching. This exists to make that
 /// information accessibly separately from the specificity and pseudo-element
@@ -156,32 +203,12 @@ const NUM_ANCESTOR_HASHES: usize = 4;
 pub struct SelectorInner<Impl: SelectorImpl> {
     /// The selector data.
     pub complex: ComplexSelector<Impl>,
-    /// Ancestor hashes for the bloom filter. We precompute these and store
-    /// them inline to optimize cache performance during selector matching.
-    /// This matters a lot.
-    pub ancestor_hashes: [u32; NUM_ANCESTOR_HASHES],
 }
 
 impl<Impl: SelectorImpl> SelectorInner<Impl> {
     pub fn new(c: ComplexSelector<Impl>) -> Self {
-        let mut hashes = [0; NUM_ANCESTOR_HASHES];
-        {
-            // Compute ancestor hashes for the bloom filter.
-            let mut hash_iter = c.iter_ancestors()
-                                 .map(|x| x.ancestor_hash())
-                                 .filter(|x| x.is_some())
-                                 .map(|x| x.unwrap());
-            for i in 0..NUM_ANCESTOR_HASHES {
-                hashes[i] = match hash_iter.next() {
-                    Some(x) => x,
-                    None => break,
-                }
-            }
-        }
-
         SelectorInner {
             complex: c,
-            ancestor_hashes: hashes,
         }
     }
 
@@ -590,7 +617,7 @@ pub enum Component<Impl: SelectorImpl> {
 
 impl<Impl: SelectorImpl> Component<Impl> {
     /// Compute the ancestor hash to check against the bloom filter.
-    fn ancestor_hash(&self) -> Option<u32> {
+    pub fn ancestor_hash(&self) -> Option<u32> {
         match *self {
             Component::LocalName(LocalName { ref name, ref lower_name }) => {
                 // Only insert the local-name into the filter if it's all lowercase.
@@ -665,10 +692,10 @@ impl<Impl: SelectorImpl> ToCss for SelectorList<Impl> {
         let mut iter = self.0.iter();
         let first = iter.next()
             .expect("Empty SelectorList, should contain at least one selector");
-        first.to_css(dest)?;
-        for selector in iter {
+        first.selector.to_css(dest)?;
+        for selector_and_hashes in iter {
             dest.write_str(", ")?;
-            selector.to_css(dest)?;
+            selector_and_hashes.selector.to_css(dest)?;
         }
         Ok(())
     }
