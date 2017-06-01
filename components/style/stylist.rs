@@ -1282,6 +1282,10 @@ impl SelectorVisitor for RevalidationVisitor {
             Component::AttributeInNoNamespace { .. } |
             Component::AttributeOther(_) |
             Component::Empty |
+            // FIXME(bz) We really only want to do this for some cases of id
+            // selectors.  See
+            // https://bugzilla.mozilla.org/show_bug.cgi?id=1369611
+            Component::ID(_) |
             Component::FirstChild |
             Component::LastChild |
             Component::OnlyChild |
