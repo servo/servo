@@ -21,13 +21,11 @@ bitflags! {
     /// This is used to implement efficient sharing.
     #[derive(Default)]
     pub flags StyleRelations: usize {
-        /// Whether this element is affected by an ID selector.
-        const AFFECTED_BY_ID_SELECTOR = 1 << 0,
         /// Whether this element is affected by presentational hints. This is
         /// computed externally (that is, in Servo).
-        const AFFECTED_BY_PRESENTATIONAL_HINTS = 1 << 1,
+        const AFFECTED_BY_PRESENTATIONAL_HINTS = 1 << 0,
         /// Whether this element has pseudo-element styles. Computed externally.
-        const AFFECTED_BY_PSEUDO_ELEMENTS = 1 << 2,
+        const AFFECTED_BY_PSEUDO_ELEMENTS = 1 << 1,
     }
 }
 
@@ -539,8 +537,7 @@ fn matches_simple_selector<E, F>(
         }
         // TODO: case-sensitivity depends on the document type and quirks mode
         Component::ID(ref id) => {
-            relation_if!(element.get_id().map_or(false, |attr| attr == *id),
-                         AFFECTED_BY_ID_SELECTOR)
+            element.get_id().map_or(false, |attr| attr == *id)
         }
         Component::Class(ref class) => {
             element.has_class(class)
