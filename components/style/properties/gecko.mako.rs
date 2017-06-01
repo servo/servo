@@ -998,17 +998,17 @@ fn static_assert() {
     }
 
     pub fn set_border_image_width(&mut self, v: longhands::border_image_width::computed_value::T) {
-        use values::generics::border::BorderImageWidthSide;
+        use values::generics::border::BorderImageSideWidth;
 
         % for side in SIDES:
         match v.${side.index} {
-            BorderImageWidthSide::Auto => {
+            BorderImageSideWidth::Auto => {
                 self.gecko.mBorderImageWidth.data_at_mut(${side.index}).set_value(CoordDataValue::Auto)
             },
-            BorderImageWidthSide::Length(l) => {
+            BorderImageSideWidth::Length(l) => {
                 l.to_gecko_style_coord(&mut self.gecko.mBorderImageWidth.data_at_mut(${side.index}))
             },
-            BorderImageWidthSide::Number(n) => {
+            BorderImageSideWidth::Number(n) => {
                 self.gecko.mBorderImageWidth.data_at_mut(${side.index}).set_value(CoordDataValue::Factor(n))
             },
         }

@@ -289,8 +289,8 @@ ${helpers.predefined_type("border-image-outset", "LengthOrNumberRect",
 </%helpers:longhand>
 
 ${helpers.predefined_type("border-image-width", "BorderImageWidth",
-    initial_value="computed::BorderImageWidthSide::one().into()",
-    initial_specified_value="specified::BorderImageWidthSide::one().into()",
+    initial_value="computed::BorderImageSideWidth::one().into()",
+    initial_specified_value="specified::BorderImageSideWidth::one().into()",
     spec="https://drafts.csswg.org/css-backgrounds/#border-image-width",
     animation_value_type="none",
     boxed=True)}

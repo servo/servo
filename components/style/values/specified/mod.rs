@@ -31,7 +31,7 @@ use values::specified::calc::CalcNode;
 pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
 pub use self::background::BackgroundSize;
 pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
-pub use self::border::{BorderImageWidthSide, BorderRadius, BorderSideWidth};
+pub use self::border::{BorderImageSideWidth, BorderRadius, BorderSideWidth};
 pub use self::color::Color;
 pub use self::rect::LengthOrNumberRect;
 pub use super::generics::grid::GridLine;
