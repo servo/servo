@@ -524,22 +524,20 @@ impl HTMLImageElement {
                         }
                         self.image_request.set(ImageRequestPhase::Pending);
                         self.init_image_request(&mut pending_request, &url, &src);
-                        self.fetch_image(&url);
                     },
                     (_, State::Broken) | (_, State::Unavailable) => {
                         // Step 12.5
                         self.init_image_request(&mut current_request, &url, &src);
-                        self.fetch_image(&url);
                     },
                     (_, _) => {
                         // step 12.6
                         self.image_request.set(ImageRequestPhase::Pending);
                         self.init_image_request(&mut pending_request, &url, &src);
-                        self.fetch_image(&url);
                     },
                 }
             }
         }
+        self.fetch_image(&url);
     }
 
     /// Step 8-12 of html.spec.whatwg.org/multipage/#update-the-image-data
