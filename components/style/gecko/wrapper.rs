@@ -1405,7 +1405,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozPlaceholder => false,
             NonTSPseudoClass::MozAny(ref sels) => {
                 sels.iter().any(|s| {
-                    matches_complex_selector(s, self, context, flags_setter)
+                    matches_complex_selector(s, 0, self, context, flags_setter)
                 })
             }
             NonTSPseudoClass::MozSystemMetric(ref s) |

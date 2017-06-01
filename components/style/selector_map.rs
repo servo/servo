@@ -12,7 +12,7 @@ use pdqsort::sort_by;
 use rule_tree::CascadeLevel;
 use selector_parser::SelectorImpl;
 use selectors::matching::{matches_selector, MatchingContext, ElementSelectorFlags};
-use selectors::parser::{AncestorHashes, Component, Combinator, Selector, SelectorAndHashes};
+use selectors::parser::{AncestorHashes, Component, Combinator, SelectorAndHashes, SelectorIter};
 use selectors::parser::LocalName as LocalNameSelector;
 use smallvec::VecLike;
 use std::borrow::Borrow;
@@ -23,15 +23,15 @@ use stylist::{ApplicableDeclarationBlock, Rule};
 /// A trait to abstract over a given selector map entry.
 pub trait SelectorMapEntry : Sized + Clone {
     /// Gets the selector we should use to index in the selector map.
-    fn selector(&self) -> &Selector<SelectorImpl>;
+    fn selector(&self) -> SelectorIter<SelectorImpl>;
 
     /// Gets the ancestor hashes associated with the selector.
     fn hashes(&self) -> &AncestorHashes;
 }
 
 impl SelectorMapEntry for SelectorAndHashes<SelectorImpl> {
-    fn selector(&self) -> &Selector<SelectorImpl> {
-        &self.selector
+    fn selector(&self) -> SelectorIter<SelectorImpl> {
+        self.selector.iter()
     }
 
     fn hashes(&self) -> &AncestorHashes {
@@ -232,6 +232,7 @@ impl SelectorMap<Rule> {
     {
         for rule in rules {
             if matches_selector(&rule.selector,
+                                0,
                                 &rule.hashes,
                                 element,
                                 context,
@@ -398,12 +399,12 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
 ///
 /// Effectively, pseudo-elements are ignored, given only state pseudo-classes
 /// may appear before them.
-fn find_from_right<F, R>(selector: &Selector<SelectorImpl>,
+#[inline(always)]
+fn find_from_right<F, R>(mut iter: SelectorIter<SelectorImpl>,
                          mut f: F)
                          -> Option<R>
     where F: FnMut(&Component<SelectorImpl>) -> Option<R>,
 {
-    let mut iter = selector.iter();
     for ss in &mut iter {
         if let Some(r) = f(ss) {
             return Some(r)
@@ -422,9 +423,10 @@ fn find_from_right<F, R>(selector: &Selector<SelectorImpl>,
 }
 
 /// Retrieve the first ID name in the selector, or None otherwise.
-pub fn get_id_name(selector: &Selector<SelectorImpl>)
-               -> Option<Atom> {
-    find_from_right(selector, |ss| {
+#[inline(always)]
+pub fn get_id_name(iter: SelectorIter<SelectorImpl>)
+                   -> Option<Atom> {
+    find_from_right(iter, |ss| {
         // TODO(pradeep): Implement case-sensitivity based on the
         // document type and quirks mode.
         if let Component::ID(ref id) = *ss {
@@ -435,9 +437,10 @@ pub fn get_id_name(selector: &Selector<SelectorImpl>)
 }
 
 /// Retrieve the FIRST class name in the selector, or None otherwise.
-pub fn get_class_name(selector: &Selector<SelectorImpl>)
-                  -> Option<Atom> {
-    find_from_right(selector, |ss| {
+#[inline(always)]
+pub fn get_class_name(iter: SelectorIter<SelectorImpl>)
+                      -> Option<Atom> {
+    find_from_right(iter, |ss| {
         // TODO(pradeep): Implement case-sensitivity based on the
         // document type and quirks mode.
         if let Component::Class(ref class) = *ss {
@@ -448,9 +451,10 @@ pub fn get_class_name(selector: &Selector<SelectorImpl>)
 }
 
 /// Retrieve the name if it is a type selector, or None otherwise.
-pub fn get_local_name(selector: &Selector<SelectorImpl>)
-                  -> Option<LocalNameSelector<SelectorImpl>> {
-    find_from_right(selector, |ss| {
+#[inline(always)]
+pub fn get_local_name(iter: SelectorIter<SelectorImpl>)
+                      -> Option<LocalNameSelector<SelectorImpl>> {
+    find_from_right(iter, |ss| {
         if let Component::LocalName(ref n) = *ss {
             return Some(LocalNameSelector {
                 name: n.name.clone(),

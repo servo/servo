@@ -1134,6 +1134,7 @@ impl Stylist {
         let mut results = BitVec::new();
         self.selectors_for_cache_revalidation.lookup(*element, &mut |selector_and_hashes| {
             results.push(matches_selector(&selector_and_hashes.selector,
+                                          0,
                                           &selector_and_hashes.hashes,
                                           element,
                                           &mut matching_context,
@@ -1424,8 +1425,8 @@ pub struct Rule {
 }
 
 impl SelectorMapEntry for Rule {
-    fn selector(&self) -> &Selector<SelectorImpl> {
-        &self.selector
+    fn selector(&self) -> SelectorIter<SelectorImpl> {
+        self.selector.iter()
     }
 
     fn hashes(&self) -> &AncestorHashes {

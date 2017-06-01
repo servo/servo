@@ -160,6 +160,7 @@ pub fn matches_selector_list<E>(selector_list: &SelectorList<E::Impl>,
 {
     selector_list.0.iter().any(|selector_and_hashes| {
         matches_selector(&selector_and_hashes.selector,
+                         0,
                          &selector_and_hashes.hashes,
                          element,
                          context,
@@ -333,8 +334,16 @@ enum SelectorMatchingResult {
 }
 
 /// Matches a selector, fast-rejecting against a bloom filter.
+///
+/// We accept an offset to allow consumers to represent and match against partial
+/// selectors (indexed from the right). We use this API design, rather than
+/// having the callers pass a SelectorIter, because creating a SelectorIter
+/// requires dereferencing the selector to get the length, which adds an
+/// unncessary cache miss for cases when we can fast-reject with AncestorHashes
+/// (which the caller can store inline with the selector pointer).
 #[inline(always)]
 pub fn matches_selector<E, F>(selector: &Selector<E::Impl>,
+                              offset: usize,
                               hashes: &AncestorHashes,
                               element: &E,
                               context: &mut MatchingContext,
@@ -350,11 +359,12 @@ pub fn matches_selector<E, F>(selector: &Selector<E::Impl>,
         }
     }
 
-    matches_complex_selector(selector, element, context, flags_setter)
+    matches_complex_selector(selector, offset, element, context, flags_setter)
 }
 
 /// Matches a complex selector.
 pub fn matches_complex_selector<E, F>(complex_selector: &Selector<E::Impl>,
+                                      offset: usize,
                                       element: &E,
                                       context: &mut MatchingContext,
                                       flags_setter: &mut F)
@@ -362,11 +372,15 @@ pub fn matches_complex_selector<E, F>(complex_selector: &Selector<E::Impl>,
     where E: Element,
           F: FnMut(&E, ElementSelectorFlags),
 {
-    let mut iter = complex_selector.iter();
+    let mut iter = if offset == 0 {
+        complex_selector.iter()
+    } else {
+        complex_selector.iter_from(offset)
+    };
 
     if cfg!(debug_assertions) {
         if context.matching_mode == MatchingMode::ForStatelessPseudoElement {
-            assert!(complex_selector.iter().any(|c| {
+            assert!(iter.clone().any(|c| {
                 matches!(*c, Component::PseudoElement(..))
             }));
         }

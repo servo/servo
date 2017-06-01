@@ -23,7 +23,7 @@ use selectors::attr::{AttrSelectorOperation, NamespaceConstraint};
 use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode};
 use selectors::matching::{RelevantLinkStatus, VisitedHandlingMode, matches_selector};
 use selectors::parser::{AncestorHashes, Combinator, Component};
-use selectors::parser::{Selector, SelectorAndHashes, SelectorMethods};
+use selectors::parser::{Selector, SelectorAndHashes, SelectorIter, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
 use smallvec::SmallVec;
 use std::cell::Cell;
@@ -643,7 +643,7 @@ impl<'a, E> Element for ElementWrapper<'a, E>
             use selectors::matching::matches_complex_selector;
             if let NonTSPseudoClass::MozAny(ref selectors) = *pseudo_class {
                 return selectors.iter().any(|s| {
-                    matches_complex_selector(s, self, context, _setter)
+                    matches_complex_selector(s, 0, self, context, _setter)
                 })
             }
         }
@@ -867,8 +867,13 @@ impl Sensitivities {
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Dependency {
+    /// The dependency selector.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     selector: Selector<SelectorImpl>,
+    /// The offset into the selector that we should match on.
+    selector_offset: usize,
+    /// The ancestor hashes associated with the above selector at the given
+    /// offset.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "No heap data")]
     hashes: AncestorHashes,
     /// The hint associated with this dependency.
@@ -878,8 +883,8 @@ pub struct Dependency {
 }
 
 impl SelectorMapEntry for Dependency {
-    fn selector(&self) -> &Selector<SelectorImpl> {
-        &self.selector
+    fn selector(&self) -> SelectorIter<SelectorImpl> {
+        self.selector.iter_from(self.selector_offset)
     }
 
     fn hashes(&self) -> &AncestorHashes {
@@ -999,19 +1004,20 @@ impl DependencySet {
                     None => RestyleHint::for_self(),
                 };
 
-                let (dep_selector, hashes) = if sequence_start == 0 {
-                    // Reuse the bloom hashes if this is the base selector.
-                    (selector_and_hashes.selector.clone(), selector_and_hashes.hashes.clone())
+                // Reuse the bloom hashes if this is the base selector. Otherwise,
+                // rebuild them.
+                let hashes = if sequence_start == 0 {
+                    selector_and_hashes.hashes.clone()
                 } else {
-                    let selector = selector_and_hashes.selector.slice_from(sequence_start);
-                    let hashes = AncestorHashes::new(&selector);
-                    (selector, hashes)
+                    let seq_iter = selector_and_hashes.selector.iter_from(sequence_start);
+                    AncestorHashes::from_iter(seq_iter)
                 };
 
                 self.dependencies.insert(Dependency {
                     sensitivities: visitor.sensitivities,
                     hint: hint,
-                    selector: dep_selector,
+                    selector: selector_and_hashes.selector.clone(),
+                    selector_offset: sequence_start,
                     hashes: hashes,
                 });
             }
@@ -1141,6 +1147,7 @@ impl DependencySet {
                                                  VisitedHandlingMode::AllLinksUnvisited);
             let matched_then =
                 matches_selector(&dep.selector,
+                                 dep.selector_offset,
                                  &dep.hashes,
                                  &snapshot_el,
                                  &mut then_context,
@@ -1150,6 +1157,7 @@ impl DependencySet {
                                                  VisitedHandlingMode::AllLinksUnvisited);
             let matches_now =
                 matches_selector(&dep.selector,
+                                 dep.selector_offset,
                                  &dep.hashes,
                                  el,
                                  &mut now_context,
@@ -1177,6 +1185,7 @@ impl DependencySet {
                 then_context.visited_handling = VisitedHandlingMode::RelevantLinkVisited;
                 let matched_then =
                     matches_selector(&dep.selector,
+                                     dep.selector_offset,
                                      &dep.hashes,
                                      &snapshot_el,
                                      &mut then_context,
@@ -1184,6 +1193,7 @@ impl DependencySet {
                 now_context.visited_handling = VisitedHandlingMode::RelevantLinkVisited;
                 let matches_now =
                     matches_selector(&dep.selector,
+                                     dep.selector_offset,
                                      &dep.hashes,
                                      el,
                                      &mut now_context,

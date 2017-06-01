@@ -177,9 +177,13 @@ pub struct AncestorHashes(pub [u32; NUM_ANCESTOR_HASHES]);
 
 impl AncestorHashes {
     pub fn new<Impl: SelectorImpl>(s: &Selector<Impl>) -> Self {
+        Self::from_iter(s.iter())
+    }
+
+    pub fn from_iter<Impl: SelectorImpl>(iter: SelectorIter<Impl>) -> Self {
         let mut hashes = [0; NUM_ANCESTOR_HASHES];
         // Compute ancestor hashes for the bloom filter.
-        let mut hash_iter = s.iter_ancestors()
+        let mut hash_iter = AncestorIter::new(iter)
                              .map(|x| x.ancestor_hash())
                              .filter(|x| x.is_some())
                              .map(|x| x.unwrap());
@@ -356,6 +360,16 @@ impl<Impl: SelectorImpl> Selector<Impl> {
         }
     }
 
+    pub fn iter_from(&self, offset: usize) -> SelectorIter<Impl> {
+        // Note: selectors are stored left-to-right but logical order is right-to-left.
+        let slice = self.0.as_ref();
+        let iter = slice[..(slice.len() - offset)].iter().rev();
+        SelectorIter {
+            iter: iter,
+            next_combinator: None,
+        }
+    }
+
     /// Returns an iterator over the entire sequence of simple selectors and combinators,
     /// from right to left.
     pub fn iter_raw(&self) -> Rev<slice::Iter<Component<Impl>>> {
@@ -366,28 +380,6 @@ impl<Impl: SelectorImpl> Selector<Impl> {
     /// from left to right.
     pub fn iter_raw_rev(&self) -> slice::Iter<Component<Impl>> {
         self.0.iter()
-    }
-
-    /// Returns an iterator over ancestor simple selectors. All combinators and
-    /// non-ancestor simple selectors will be skipped.
-    pub fn iter_ancestors(&self) -> AncestorIter<Impl> {
-        AncestorIter::new(self.iter())
-    }
-
-    /// Returns a Selector identical to |self| but with the rightmost |index| entries
-    /// removed.
-    pub fn slice_from(&self, index: usize) -> Self {
-        // Note that we convert the slice_from to slice_to because selectors are
-        // stored left-to-right but logical order is right-to-left.
-        Selector(self.0.clone().slice_to(self.0.len() - index), self.1)
-    }
-
-    /// Returns a Selector identical to |self| but with the leftmost |len() - index|
-    /// entries removed.
-    pub fn slice_to(&self, index: usize) -> Self {
-        // Note that we convert the slice_to to slice_from because selectors are
-        // stored left-to-right but logical order is right-to-left.
-        Selector(self.0.clone().slice_from(self.0.len() - index), self.1)
     }
 
     /// Creates a Selector from a vec of Components. Used in tests.
