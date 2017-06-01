@@ -4401,12 +4401,12 @@ clip-path
                                     as_utf16_and_forget(&value);
                             }
                         }
-                        ContentItem::Attr(ns, val) => {
+                        ContentItem::Attr(attr) => {
                             self.gecko.mContents[i].mType = eStyleContentType_Attr;
-                            let s = if let Some(ns) = ns {
-                                format!("{}|{}", ns, val)
+                            let s = if let Some((_, ns)) = attr.namespace {
+                                format!("{}|{}", ns, attr.attribute)
                             } else {
-                                val
+                                attr.attribute.into()
                             };
                             unsafe {
                                 // NB: we share allocators, so doing this is fine.

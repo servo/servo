@@ -14,6 +14,8 @@
     use values::generics::CounterStyleOrNone;
     #[cfg(feature = "gecko")]
     use values::specified::url::SpecifiedUrl;
+    #[cfg(feature = "gecko")]
+    use values::specified::Attr;
 
     #[cfg(feature = "servo")]
     use super::list_style_type;
@@ -36,6 +38,9 @@
         #[cfg(feature = "gecko")]
         type CounterStyleType = ::values::generics::CounterStyleOrNone;
 
+        #[cfg(feature = "gecko")]
+        use values::specified::Attr;
+
         #[derive(Debug, PartialEq, Eq, Clone)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum ContentItem {
@@ -56,7 +61,7 @@
 
             % if product == "gecko":
                 /// `attr([namespace? `|`]? ident)`
-                Attr(Option<String>, String),
+                Attr(Attr),
                 /// `url(url)`
                 Url(SpecifiedUrl),
             % endif
@@ -90,14 +95,8 @@
                     ContentItem::NoCloseQuote => dest.write_str("no-close-quote"),
 
                     % if product == "gecko":
-                        ContentItem::Attr(ref ns, ref attr) => {
-                            dest.write_str("attr(")?;
-                            if let Some(ref ns) = *ns {
-                                cssparser::Token::Ident((&**ns).into()).to_css(dest)?;
-                                dest.write_str("|")?;
-                            }
-                            cssparser::Token::Ident((&**attr).into()).to_css(dest)?;
-                            dest.write_str(")")
+                        ContentItem::Attr(ref attr) => {
+                            attr.to_css(dest)
                         }
                         ContentItem::Url(ref url) => url.to_css(dest),
                     % endif
@@ -203,31 +202,7 @@
                         }),
                         % if product == "gecko":
                             "attr" => input.parse_nested_block(|input| {
-                                // Syntax is `[namespace? `|`]? ident`
-                                // no spaces allowed
-                                // FIXME (bug 1346693) we should be checking that
-                                // this is a valid namespace and encoding it as a namespace
-                                // number from the map
-                                let first = input.try(|i| i.expect_ident()).ok().map(|i| i.into_owned());
-                                if let Ok(token) = input.try(|i| i.next_including_whitespace()) {
-                                    match token {
-                                        Token::Delim('|') => {
-                                            // must be followed by an ident
-                                            let tok2 = input.next_including_whitespace()?;
-                                            if let Token::Ident(second) = tok2 {
-                                                return Ok(ContentItem::Attr(first, second.into_owned()))
-                                            } else {
-                                                return Err(())
-                                            }
-                                        }
-                                        _ => return Err(())
-                                    }
-                                }
-                                if let Some(first) = first {
-                                    Ok(ContentItem::Attr(None, first))
-                                } else {
-                                    Err(())
-                                }
+                                Ok(ContentItem::Attr(Attr::parse_function(context, input)?))
                             }),
                         % endif
                         _ => return Err(())

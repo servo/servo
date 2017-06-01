@@ -7,8 +7,9 @@
 use context::QuirksMode;
 use cssparser::{Parser, SourcePosition, UnicodeRange};
 use error_reporting::ParseErrorReporter;
+use parking_lot::RwLock;
 use style_traits::OneOrMoreCommaSeparated;
-use stylesheets::{CssRuleType, Origin, UrlExtraData};
+use stylesheets::{CssRuleType, Origin, UrlExtraData, Namespaces};
 
 bitflags! {
     /// The mode to use when parsing values.
@@ -81,6 +82,8 @@ pub struct ParserContext<'a> {
     pub parsing_mode: ParsingMode,
     /// The quirks mode of this stylesheet.
     pub quirks_mode: QuirksMode,
+    /// The list of all namespaces active in the current stylesheet
+    pub namespaces: Option<&'a RwLock<Namespaces>>,
 }
 
 impl<'a> ParserContext<'a> {
@@ -100,6 +103,7 @@ impl<'a> ParserContext<'a> {
             line_number_offset: 0u64,
             parsing_mode: parsing_mode,
             quirks_mode: quirks_mode,
+            namespaces: None,
         }
     }
 
@@ -125,6 +129,7 @@ impl<'a> ParserContext<'a> {
             line_number_offset: context.line_number_offset,
             parsing_mode: context.parsing_mode,
             quirks_mode: context.quirks_mode,
+            namespaces: context.namespaces,
         }
     }
 
@@ -144,6 +149,7 @@ impl<'a> ParserContext<'a> {
             line_number_offset: line_number_offset,
             parsing_mode: parsing_mode,
             quirks_mode: quirks_mode,
+            namespaces: None,
         }
     }
 
