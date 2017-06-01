@@ -96,11 +96,13 @@ pub enum Origin {
 }
 
 /// A set of namespaces applying to a given stylesheet.
+///
+/// The u32 is the namespace id, used in gecko
 #[derive(Clone, Default, Debug)]
 #[allow(missing_docs)]
 pub struct Namespaces {
-    pub default: Option<Namespace>,
-    pub prefixes: FnvHashMap<Prefix , Namespace>,
+    pub default: Option<(Namespace, u32)>,
+    pub prefixes: FnvHashMap<Prefix, (Namespace, u32)>,
 }
 
 /// Like gecko_bindings::structs::MallocSizeOf, but without the Option<> wrapper. Note that
@@ -1526,6 +1528,21 @@ enum AtRulePrelude {
 }
 
 
+#[cfg(feature = "gecko")]
+fn register_namespace(ns: &Namespace) -> Result<u32, ()> {
+    let id = unsafe { ::gecko_bindings::bindings::Gecko_RegisterNamespace(ns.0.as_ptr()) };
+    if id == -1 {
+        Err(())
+    } else {
+        Ok(id as u32)
+    }
+}
+
+#[cfg(feature = "servo")]
+fn register_namespace(ns: &Namespace) -> Result<u32, ()> {
+    Ok(1) // servo doesn't use namespace ids
+}
+
 impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
     type Prelude = AtRulePrelude;
     type AtRule = CssRule;
@@ -1584,14 +1601,16 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                     let prefix_result = input.try(|input| input.expect_ident());
                     let url = Namespace::from(try!(input.expect_url_or_string()));
 
+                    let id = register_namespace(&url)?;
+
                     let opt_prefix = if let Ok(prefix) = prefix_result {
                         let prefix = Prefix::from(prefix);
                         self.context.namespaces.expect("namespaces must be set whilst parsing rules")
-                                               .write().prefixes.insert(prefix.clone(), url.clone());
+                                               .write().prefixes.insert(prefix.clone(), (url.clone(), id));
                         Some(prefix)
                     } else {
                         self.context.namespaces.expect("namespaces must be set whilst parsing rules")
-                                               .write().default = Some(url.clone());
+                                               .write().default = Some((url.clone(), id));
                         None
                     };
 

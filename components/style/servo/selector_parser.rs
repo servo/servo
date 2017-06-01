@@ -430,7 +430,7 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
     }
 
     fn default_namespace(&self) -> Option<Namespace> {
-        self.namespaces.default.clone()
+        self.namespaces.default.clone().map(|(ns, _)| ns)
     }
 
     fn namespace_for_prefix(&self, prefix: &Prefix) -> Option<Namespace> {

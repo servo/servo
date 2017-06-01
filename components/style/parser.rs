@@ -7,9 +7,9 @@
 use context::QuirksMode;
 use cssparser::{Parser, SourcePosition, UnicodeRange};
 use error_reporting::ParseErrorReporter;
+use parking_lot::RwLock;
 use style_traits::OneOrMoreCommaSeparated;
 use stylesheets::{CssRuleType, Origin, UrlExtraData, Namespaces};
-use parking_lot::RwLock;
 
 bitflags! {
     /// The mode to use when parsing values.

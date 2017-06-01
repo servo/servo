@@ -273,11 +273,11 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
     }
 
     fn default_namespace(&self) -> Option<Namespace> {
-        self.namespaces.default.clone()
+        self.namespaces.default.clone().map(|(ns, _)| ns)
     }
 
     fn namespace_for_prefix(&self, prefix: &Atom) -> Option<Namespace> {
-        self.namespaces.prefixes.get(prefix).cloned()
+        self.namespaces.prefixes.get(prefix).cloned().map(|(ns, _)| ns)
     }
 }
 
