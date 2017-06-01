@@ -4,6 +4,67 @@
 
 //! Code related to the style sharing cache, an optimization that allows similar
 //! nodes to share style without having to run selector matching twice.
+//!
+//! The basic setup is as follows.  We have an LRU cache of style sharing
+//! candidates.  When we try to style a target element, we first check whether
+//! we can quickly determine that styles match something in this cache, and if
+//! so we just use the cached style information.  This check is done with a
+//! StyleBloom filter set up for the target element, which may not be a correct
+//! state for the cached candidate element if they're cousins instead of
+//! siblings.
+//!
+//! The complicated part is determining that styles match.  This is subject to
+//! the following constraints:
+//!
+//! 1) The target and candidate must be inheriting the same styles.
+//! 2) The target and candidate must have exactly the same rules matching them.
+//! 3) The target and candidate must have exactly the same non-selector-based
+//!    style information (inline styles, presentation hints).
+//! 4) The target and candidate must have exactly the same rules matching their
+//!    pseudo-elements, because an element's style data points to the style
+//!    data for its pseudo-elements.
+//!
+//! These constraints are satisfied in the following ways:
+//!
+//! * We check that the parents of the target and the candidate have the same
+//!   computed style.  This addresses constraint 1.
+//!
+//! * We check that the target and candidate have the same inline style and
+//!   presentation hint declarations.  This addresses constraint 3.
+//!
+//! * We ensure that elements that have pseudo-element styles are not inserted
+//!   into the cache.  This partially addresses constraint 4.
+//!
+//! * We ensure that a target matches a candidate only if they have the same
+//!   matching result for all selectors that target either elements or the
+//!   originating elements of pseudo-elements.  This addresses the second half
+//!   of constraint 4 (because it prevents a target that has pseudo-element
+//!   styles from matching any candidate) as well as constraint 2.
+//!
+//! The actual checks that ensure that elements match the same rules are
+//! conceptually split up into two pieces.  First, we do various checks on
+//! elements that make sure that the set of possible rules in all selector maps
+//! in the stylist (for normal styling and for pseudo-elements) that might match
+//! the two elements is the same.  For example, we enforce that the target and
+//! candidate must have the same localname and namespace.  Second, we have a
+//! selector map of "revalidation selectors" that the stylist maintains that we
+//! actually match against the target and candidate and then check whether the
+//! two sets of results were the same.  Due to the up-front selector map checks,
+//! we know that the target and candidate will be matched against the same exact
+//! set of revalidation selectors, so the match result arrays can be compared
+//! directly.
+//!
+//! It's very important that a selector be added to the set of revalidation
+//! selectors any time there are two elements that could pass all the up-front
+//! checks but match differently against some ComplexSelector in the selector.
+//! If that happens, then they can have descendants that might themselves pass
+//! the up-front checks but would have different matching results for the
+//! selector in question.  In this case, "descendants" includes pseudo-elements,
+//! so there is a single selector map of revalidation selectors that includes
+//! both selectors targeting element and selectors targeting pseudo-elements.
+//! This relies on matching an element against a pseudo-element-targeting
+//! selector being a sensible operation that will effectively check whether that
+//! element is a matching originating element for the selector.
 
 use Atom;
 use bit_vec::BitVec;
