@@ -6,9 +6,10 @@
 //!
 //! TODO(emilio): Enhance docs.
 
+use Namespace;
 use app_units::Au;
 use context::QuirksMode;
-use cssparser::{self, Parser, Token};
+use cssparser::{self, Parser, Token, serialize_identifier};
 use itoa;
 use parser::{ParserContext, Parse};
 use self::grid::TrackSizeOrRepeat;
@@ -24,6 +25,7 @@ use super::computed::{self, Context};
 use super::computed::{Shadow as ComputedShadow, ToComputedValue};
 use super::generics::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
 use super::generics::grid::TrackList as GenericTrackList;
+use values::computed::ComputedValueAsSpecified;
 use values::specified::calc::CalcNode;
 
 #[cfg(feature = "gecko")]
@@ -1363,3 +1365,108 @@ impl AllowQuirks {
         self == AllowQuirks::Yes && quirks_mode == QuirksMode::Quirks
     }
 }
+
+#[cfg(feature = "gecko")]
+/// A namespace ID
+pub type NamespaceId = i32;
+
+
+#[cfg(feature = "servo")]
+/// A namespace ID (used by gecko only)
+pub type NamespaceId = ();
+
+/// An attr(...) rule
+///
+/// `[namespace? `|`]? ident`
+#[derive(Clone, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct Attr {
+    /// Optional namespace
+    pub namespace: Option<(Namespace, NamespaceId)>,
+    /// Attribute name
+    pub attribute: String,
+}
+
+impl Parse for Attr {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Attr, ()> {
+        input.expect_function_matching("attr")?;
+        input.parse_nested_block(|i| Attr::parse_function(context, i))
+    }
+}
+
+#[cfg(feature = "gecko")]
+/// Get the namespace id from the namespace map
+pub fn get_id_for_namespace(namespace: &Namespace, context: &ParserContext) -> Result<NamespaceId, ()> {
+    if let Some(map) = context.namespaces {
+        if let Some(ref entry) = map.read().prefixes.get(&namespace.0) {
+            Ok(entry.1)
+        } else {
+            Err(())
+        }
+    } else {
+        // if we don't have a namespace map (e.g. in inline styles)
+        // we can't parse namespaces
+        Err(())
+    }
+}
+
+#[cfg(feature = "servo")]
+/// Get the namespace id from the namespace map
+pub fn get_id_for_namespace(_: &Namespace, _: &ParserContext) -> Result<NamespaceId, ()> {
+    Ok(())
+}
+
+impl Attr {
+    /// Parse contents of attr() assuming we have already parsed `attr` and are
+    /// within a parse_nested_block()
+    pub fn parse_function(context: &ParserContext, input: &mut Parser) -> Result<Attr, ()> {
+        // Syntax is `[namespace? `|`]? ident`
+        // no spaces allowed
+        let first = input.try(|i| i.expect_ident()).ok();
+        if let Ok(token) = input.try(|i| i.next_including_whitespace()) {
+            match token {
+                Token::Delim('|') => {
+                    // must be followed by an ident
+                    let second_token = match input.next_including_whitespace()? {
+                        Token::Ident(second) => second,
+                        _ => return Err(()),
+                    };
+                    let ns_with_id = if let Some(ns) = first {
+                        let ns: Namespace = ns.into();
+                        let id = get_id_for_namespace(&ns, context)?;
+                        Some((ns, id))
+                    } else {
+                        None
+                    };
+                    return Ok(Attr {
+                        namespace: ns_with_id,
+                        attribute: second_token.into_owned(),
+                    })
+                }
+                _ => return Err(())
+            }
+        }
+        if let Some(first) = first {
+            Ok(Attr {
+                namespace: None,
+                attribute: first.into_owned(),
+            })
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl ToCss for Attr {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        dest.write_str("attr(")?;
+        if let Some(ref ns) = self.namespace {
+            serialize_identifier(&ns.0.to_string(), dest)?;
+            dest.write_str("|")?;
+        }
+        serialize_identifier(&self.attribute, dest)?;
+        dest.write_str(")")
+    }
+}
+
+impl ComputedValueAsSpecified for Attr {}
