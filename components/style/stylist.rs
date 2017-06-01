@@ -490,7 +490,8 @@ impl Stylist {
                     for selector in &style_rule.selectors.0 {
                         self.num_selectors += 1;
 
-                        let map = if let Some(pseudo) = selector.pseudo_element() {
+                        let pseudo_element = selector.pseudo_element();
+                        let map = if let Some(pseudo) = pseudo_element {
                             self.pseudos_map
                                 .entry(pseudo.canonical())
                                 .or_insert_with(PerPseudoElementSelectorMap::new)
@@ -504,7 +505,12 @@ impl Stylist {
                                              self.rules_source_order));
 
                         self.dependencies.note_selector(selector);
-                        if needs_revalidation(selector) {
+                        // We don't need to add pseudo-element selectors to our
+                        // revalidation selector list, because we don't share
+                        // pseudo-element styles at the moment.  If that ever
+                        // changes, we'll want per-pseudo revalidation
+                        // selectors.
+                        if pseudo_element.is_none() && needs_revalidation(selector) {
                             self.selectors_for_cache_revalidation.insert(selector.inner.clone());
                         }
                         selector.visit(&mut AttributeAndStateDependencyVisitor {
@@ -1274,6 +1280,10 @@ impl SelectorVisitor for RevalidationVisitor {
             Component::AttributeInNoNamespace { .. } |
             Component::AttributeOther(_) |
             Component::Empty |
+            // FIXME(bz) We really only want to do this for some cases of id
+            // selectors.  See
+            // https://bugzilla.mozilla.org/show_bug.cgi?id=1369611
+            Component::ID(_) |
             Component::FirstChild |
             Component::LastChild |
             Component::OnlyChild |

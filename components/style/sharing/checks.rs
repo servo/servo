@@ -20,6 +20,8 @@ use stylearc::Arc;
 #[inline]
 pub fn relations_are_shareable(relations: &StyleRelations) -> bool {
     use selectors::matching::*;
+    // If we start sharing things that are AFFECTED_BY_PSEUDO_ELEMENTS, we need
+    // to track revalidation selectors on a per-pseudo-element basis.
     !relations.intersects(AFFECTED_BY_ID_SELECTOR |
                           AFFECTED_BY_PSEUDO_ELEMENTS)
 }
