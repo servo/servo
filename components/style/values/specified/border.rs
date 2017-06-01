@@ -11,8 +11,8 @@ use std::fmt;
 use style_traits::ToCss;
 use values::computed::{Context, ToComputedValue};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
+use values::generics::border::BorderImageSideWidth as GenericBorderImageSideWidth;
 use values::generics::border::BorderImageSlice as GenericBorderImageSlice;
-use values::generics::border::BorderImageWidthSide as GenericBorderImageWidthSide;
 use values::generics::border::BorderRadius as GenericBorderRadius;
 use values::generics::rect::Rect;
 use values::specified::{AllowQuirks, Number, NumberOrPercentage};
@@ -33,10 +33,10 @@ pub enum BorderSideWidth {
 }
 
 /// A specified value for the `border-image-width` property.
-pub type BorderImageWidth = Rect<BorderImageWidthSide>;
+pub type BorderImageWidth = Rect<BorderImageSideWidth>;
 
 /// A specified value for a single side of a `border-image-width` property.
-pub type BorderImageWidthSide = GenericBorderImageWidthSide<LengthOrPercentage, Number>;
+pub type BorderImageSideWidth = GenericBorderImageSideWidth<LengthOrPercentage, Number>;
 
 /// A specified value for the `border-image-slice` property.
 pub type BorderImageSlice = GenericBorderImageSlice<NumberOrPercentage>;
@@ -106,26 +106,26 @@ impl ToComputedValue for BorderSideWidth {
     }
 }
 
-impl BorderImageWidthSide {
+impl BorderImageSideWidth {
     /// Returns `1`.
     #[inline]
     pub fn one() -> Self {
-        GenericBorderImageWidthSide::Number(Number::new(1.))
+        GenericBorderImageSideWidth::Number(Number::new(1.))
     }
 }
 
-impl Parse for BorderImageWidthSide {
+impl Parse for BorderImageSideWidth {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         if input.try(|i| i.expect_ident_matching("auto")).is_ok() {
-            return Ok(GenericBorderImageWidthSide::Auto);
+            return Ok(GenericBorderImageSideWidth::Auto);
         }
 
         if let Ok(len) = input.try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
-            return Ok(GenericBorderImageWidthSide::Length(len));
+            return Ok(GenericBorderImageSideWidth::Length(len));
         }
 
         let num = Number::parse_non_negative(context, input)?;
-        Ok(GenericBorderImageWidthSide::Number(num))
+        Ok(GenericBorderImageSideWidth::Number(num))
     }
 }
 
