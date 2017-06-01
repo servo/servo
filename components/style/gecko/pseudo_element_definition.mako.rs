@@ -11,7 +11,7 @@ pub enum PseudoElement {
     % endfor
 }
 
-<% EAGER_PSEUDOS = ["Before", "After"] %>
+<% EAGER_PSEUDOS = ["Before", "After", "FirstLine", "FirstLetter"] %>
 
 /// The number of eager pseudo-elements.
 pub const EAGER_PSEUDO_COUNT: usize = ${len(EAGER_PSEUDOS)};

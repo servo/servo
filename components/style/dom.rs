@@ -382,6 +382,20 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
                                              pseudo: Option<&PseudoElement>)
                                              -> Option<&'a PreExistingComputedValues>;
 
+    /// Whether a given element may generate a pseudo-element.
+    ///
+    /// This is useful to avoid computing, for example, pseudo styles for
+    /// `::-first-line` or `::-first-letter`, when we know it won't affect us.
+    ///
+    /// TODO(emilio, bz): actually implement the logic for it.
+    fn may_generate_pseudo(
+        &self,
+        _pseudo: &PseudoElement,
+        _primary_style: &ComputedValues,
+    ) -> bool {
+        true
+    }
+
     /// Returns true if this element may have a descendant needing style processing.
     ///
     /// Note that we cannot guarantee the existence of such an element, because
@@ -444,7 +458,8 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
         false
     }
 
-    /// Flag that this element has a descendant for animation-only restyle processing.
+    /// Flag that this element has a descendant for animation-only restyle
+    /// processing.
     ///
     /// Only safe to call with exclusive access to the element.
     unsafe fn set_animation_only_dirty_descendants(&self) {

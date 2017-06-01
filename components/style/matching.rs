@@ -357,6 +357,7 @@ trait PrivateMatchMethods: TElement {
             // below like a lazy pseudo.
             let only_default_rules = context.shared.traversal_flags.for_default_styles();
             if pseudo.is_eager() && !only_default_rules {
+                debug_assert!(pseudo.is_before_or_after());
                 let parent = self.parent_element().unwrap();
                 if !parent.may_have_animations() ||
                    primary_style.rules.get_animation_rules().is_empty() {
@@ -1104,6 +1105,10 @@ pub trait MatchMethods : TElement {
             if visited_handling == VisitedHandlingMode::RelevantLinkVisited &&
                !data.styles().pseudos.has(&pseudo) {
                 return
+            }
+
+            if !self.may_generate_pseudo(&pseudo, data.styles().primary.values()) {
+                return;
             }
 
             debug_assert!(applicable_declarations.is_empty());

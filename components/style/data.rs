@@ -4,6 +4,7 @@
 
 //! Per-node data used in style calculation.
 
+use arrayvec::ArrayVec;
 use context::SharedStyleContext;
 use dom::TElement;
 use properties::{AnimationRules, ComputedValues, PropertyDeclarationBlock};
@@ -193,8 +194,8 @@ impl EagerPseudoStyles {
     }
 
     /// Returns a list of the pseudo-elements.
-    pub fn keys(&self) -> Vec<PseudoElement> {
-        let mut v = Vec::new();
+    pub fn keys(&self) -> ArrayVec<[PseudoElement; EAGER_PSEUDO_COUNT]> {
+        let mut v = ArrayVec::new();
         if let Some(ref arr) = self.0 {
             for i in 0..EAGER_PSEUDO_COUNT {
                 if arr[i].is_some() {
