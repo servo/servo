@@ -2307,7 +2307,7 @@ fn static_assert() {
             bindings::Gecko_CSSValue_SetFunction(gecko_value, ${len(items) + 1});
             bindings::Gecko_CSSValue_SetKeyword(
                 bindings::Gecko_CSSValue_GetArrayItem(gecko_value, 0),
-                eCSSKeyword_${keyword}
+                structs::nsCSSKeyword::eCSSKeyword_${keyword}
             );
             % for index, item in enumerate(items):
                 ${css_value_setters[item] % (
@@ -2317,47 +2317,46 @@ fn static_assert() {
             % endfor
         }
     </%def>
-    pub fn convert_transform(input: &[longhands::transform::computed_value::ComputedOperation],
-                             output: &mut structs::root::RefPtr<structs::root::nsCSSValueSharedList>) {
-        use gecko_bindings::structs::nsCSSKeyword::*;
-        use gecko_bindings::sugar::refptr::RefPtr;
+    fn set_single_transform_function(servo_value: &longhands::transform::computed_value::ComputedOperation,
+                                     gecko_value: &mut structs::nsCSSValue /* output */) {
         use properties::longhands::transform::computed_value::ComputedMatrix;
         use properties::longhands::transform::computed_value::ComputedMatrixWithPercents;
+
+        unsafe {
+            match *servo_value {
+                ${transform_function_arm("Matrix", "matrix3d", ["number"] * 16)}
+                ${transform_function_arm("MatrixWithPercents", "matrix3d", ["number"] * 12 + ["lop"] * 2
+                                         + ["length"] + ["number"])}
+                ${transform_function_arm("Skew", "skew", ["angle"] * 2)}
+                ${transform_function_arm("Translate", "translate3d", ["lop", "lop", "length"])}
+                ${transform_function_arm("Scale", "scale3d", ["number"] * 3)}
+                ${transform_function_arm("Rotate", "rotate3d", ["number"] * 3 + ["angle"])}
+                ${transform_function_arm("Perspective", "perspective", ["length"])}
+                _ => {
+                    // TODO: Convert ComputedOperation::InterpolateMatrix into
+                    //       eCSSKeyword_interpolatematrix, and convert
+                    //       ComputedOperation::AccumulateMatrix into
+                    //       eCSSKeyword_accumulatematrix in the patch series.
+                    gecko_value.mUnit = structs::nsCSSUnit::eCSSUnit_None;
+                }
+            }
+        }
+    }
+    pub fn convert_transform(input: &[longhands::transform::computed_value::ComputedOperation],
+                             output: &mut structs::root::RefPtr<structs::root::nsCSSValueSharedList>) {
+        use gecko_bindings::sugar::refptr::RefPtr;
 
         unsafe { output.clear() };
 
         let list = unsafe {
             RefPtr::from_addrefed(bindings::Gecko_NewCSSValueSharedList(input.len() as u32))
         };
-
-        let mut cur = list.mHead;
-        let mut iter = input.into_iter();
-        while !cur.is_null() {
-            let gecko_value = unsafe { &mut (*cur).mValue };
-            let servo = iter.next().expect("Gecko_NewCSSValueSharedList should create a shared \
-                                            value list of the same length as the transform vector");
-            unsafe {
-                match *servo {
-                    ${transform_function_arm("Matrix", "matrix3d", ["number"] * 16)}
-                    ${transform_function_arm("MatrixWithPercents", "matrix3d", ["number"] * 12 + ["lop"] * 2
-                                             + ["length"] + ["number"])}
-                    ${transform_function_arm("Skew", "skew", ["angle"] * 2)}
-                    ${transform_function_arm("Translate", "translate3d", ["lop", "lop", "length"])}
-                    ${transform_function_arm("Scale", "scale3d", ["number"] * 3)}
-                    ${transform_function_arm("Rotate", "rotate3d", ["number"] * 3 + ["angle"])}
-                    ${transform_function_arm("Perspective", "perspective", ["length"])}
-                    _ => {
-                        // TODO: Convert ComputedOperation::InterpolateMatrix into
-                        //       eCSSKeyword_interpolatematrix, and convert
-                        //       ComputedOperation::AccumulateMatrix into
-                        //       eCSSKeyword_accumulatematrix in the patch series.
-                        gecko_value.mUnit = structs::nsCSSUnit::eCSSUnit_None;
-                    }
-                }
-                cur = (*cur).mNext;
+        let value_list = unsafe { list.mHead.as_mut() };
+        if let Some(value_list) = value_list {
+            for (gecko, servo) in value_list.into_iter().zip(input.into_iter()) {
+                Self::set_single_transform_function(servo, gecko);
             }
         }
-        debug_assert!(iter.next().is_none());
         unsafe { output.set_move(list) };
     }
 
@@ -2387,7 +2386,7 @@ fn static_assert() {
                 "number" : "bindings::Gecko_CSSValue_GetNumber(%s)",
             }
         %>
-        eCSSKeyword_${keyword} => {
+        structs::nsCSSKeyword::eCSSKeyword_${keyword} => {
             ComputedOperation::${name}(
             % if keyword == "matrix3d":
                 ComputedMatrix {
@@ -2406,39 +2405,40 @@ fn static_assert() {
             )
         },
     </%def>
-    pub fn clone_transform(&self) -> longhands::transform::computed_value::T {
-        use app_units::Au;
-        use gecko_bindings::structs::nsCSSKeyword::*;
-        use properties::longhands::transform::computed_value;
+    fn clone_single_transform_function(gecko_value: &structs::nsCSSValue)
+                                       -> longhands::transform::computed_value::ComputedOperation {
         use properties::longhands::transform::computed_value::ComputedMatrix;
         use properties::longhands::transform::computed_value::ComputedOperation;
+
+        let transform_function = unsafe {
+            bindings::Gecko_CSSValue_GetKeyword(bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, 0))
+        };
+
+        unsafe {
+            match transform_function {
+                ${computed_operation_arm("Matrix", "matrix3d", ["number"] * 16)}
+                ${computed_operation_arm("Skew", "skew", ["angle"] * 2)}
+                ${computed_operation_arm("Translate", "translate3d", ["lop", "lop", "length"])}
+                ${computed_operation_arm("Scale", "scale3d", ["number"] * 3)}
+                ${computed_operation_arm("Rotate", "rotate3d", ["number"] * 3 + ["angle"])}
+                ${computed_operation_arm("Perspective", "perspective", ["length"])}
+                _ => panic!("We shouldn't set any other transform function types"),
+            }
+        }
+    }
+    pub fn clone_transform(&self) -> longhands::transform::computed_value::T {
+        use properties::longhands::transform::computed_value;
 
         if self.gecko.mSpecifiedTransform.mRawPtr.is_null() {
             return computed_value::T(None);
         }
-
-        let mut result = vec![];
-        let mut cur = unsafe { (*self.gecko.mSpecifiedTransform.to_safe().get()).mHead };
-        while !cur.is_null() {
-            let gecko_value = unsafe { &(*cur).mValue };
-            let transform_function = unsafe {
-                bindings::Gecko_CSSValue_GetKeyword(bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, 0))
-            };
-            let servo = unsafe {
-                match transform_function {
-                    ${computed_operation_arm("Matrix", "matrix3d", ["number"] * 16)}
-                    ${computed_operation_arm("Skew", "skew", ["angle"] * 2)}
-                    ${computed_operation_arm("Translate", "translate3d", ["lop", "lop", "length"])}
-                    ${computed_operation_arm("Scale", "scale3d", ["number"] * 3)}
-                    ${computed_operation_arm("Rotate", "rotate3d", ["number"] * 3 + ["angle"])}
-                    ${computed_operation_arm("Perspective", "perspective", ["length"])}
-                    _ => panic!("We shouldn't set any other transform function types"),
-                }
-            };
-            result.push(servo);
-            unsafe { cur = (&*cur).mNext };
-        }
-        computed_value::T(Some(result))
+        let list = unsafe { (*self.gecko.mSpecifiedTransform.to_safe().get()).mHead.as_ref() };
+        let result = list.map(|list| {
+            list.into_iter()
+                .map(|value| Self::clone_single_transform_function(value))
+                .collect()
+        });
+        computed_value::T(result)
     }
 
     ${impl_transition_time_value('delay', 'Delay')}
