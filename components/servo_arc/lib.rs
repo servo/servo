@@ -13,6 +13,7 @@
 //! * We don't do extra RMU operations to handle the possibility of weak references.
 //! * We can experiment with arena allocation (todo).
 //! * We can add methods to support our custom use cases [1].
+//! * We have support for dynamically-sized types (see from_header_and_iter).
 //!
 //! [1] https://bugzilla.mozilla.org/show_bug.cgi?id=1360883
 
@@ -32,8 +33,11 @@ use std::cmp::Ordering;
 use std::convert::From;
 use std::fmt;
 use std::hash::{Hash, Hasher};
+use std::iter::{ExactSizeIterator, Iterator};
 use std::mem;
 use std::ops::{Deref, DerefMut};
+use std::ptr;
+use std::slice;
 use std::sync::atomic;
 use std::sync::atomic::Ordering::{Acquire, Relaxed, Release};
 
@@ -412,5 +416,98 @@ impl<T: Serialize> Serialize for Arc<T>
         S: ::serde::ser::Serializer,
     {
         (**self).serialize(serializer)
+    }
+}
+
+/// Structure to allow Arc-managing some fixed-sized data and a variably-sized
+/// slice in a single allocation.
+#[derive(Debug, Eq, PartialEq, PartialOrd)]
+pub struct HeaderSlice<H, T: ?Sized> {
+    /// The fixed-sized data.
+    pub header: H,
+
+    /// The dynamically-sized data.
+    pub slice: T,
+}
+
+#[inline(always)]
+fn divide_rounding_up(dividend: usize, divisor: usize) -> usize {
+    (dividend + divisor - 1) / divisor
+}
+
+impl<H, T> Arc<HeaderSlice<H, [T]>> {
+    /// Creates an Arc for a HeaderSlice using the given header struct and
+    /// iterator to generate the slice. The resulting Arc will be fat.
+    #[inline]
+    pub fn from_header_and_iter<I>(header: H, mut items: I) -> Self
+        where I: Iterator<Item=T> + ExactSizeIterator
+    {
+        use ::std::mem::size_of;
+        assert!(size_of::<T>() != 0, "Need to think about ZST");
+
+        // Compute the required size for the allocation.
+        let num_items = items.len();
+        let size = {
+            // First, determine the alignment of a hypothetical pointer to a
+            // HeaderSlice.
+            let fake_slice_ptr_align: usize = mem::align_of::<ArcInner<HeaderSlice<H, [T; 1]>>>();
+
+            // Next, synthesize a totally garbage (but properly aligned) pointer
+            // to a sequence of T.
+            let fake_slice_ptr = fake_slice_ptr_align as *const T;
+
+            // Convert that sequence to a fat pointer. The address component of
+            // the fat pointer will be garbage, but the length will be correct.
+            let fake_slice = unsafe { slice::from_raw_parts(fake_slice_ptr, num_items) };
+
+            // Pretend the garbage address points to our allocation target (with
+            // a trailing sequence of T), rather than just a sequence of T.
+            let fake_ptr = fake_slice as *const [T] as *const ArcInner<HeaderSlice<H, [T]>>;
+            let fake_ref: &ArcInner<HeaderSlice<H, [T]>> = unsafe { &*fake_ptr };
+
+            // Use size_of_val, which will combine static information about the
+            // type with the length from the fat pointer. The garbage address
+            // will not be used.
+            mem::size_of_val(fake_ref)
+        };
+
+        let ptr: *mut ArcInner<HeaderSlice<H, [T]>>;
+        unsafe {
+            // Allocate the buffer. We use Vec because the underlying allocation
+            // machinery isn't available in stable Rust.
+            //
+            // To avoid alignment issues, we allocate words rather than bytes,
+            // rounding up to the nearest word size.
+            let words_to_allocate = divide_rounding_up(size, size_of::<usize>());
+            let mut vec = Vec::<usize>::with_capacity(words_to_allocate);
+            vec.set_len(words_to_allocate);
+            let buffer = Box::into_raw(vec.into_boxed_slice()) as *mut usize as *mut u8;
+
+            // Synthesize the fat pointer. We do this by claiming we have a direct
+            // pointer to a [T], and then changing the type of the borrow. The key
+            // point here is that the length portion of the fat pointer applies
+            // only to the number of elements in the dynamically-sized portion of
+            // the type, so the value will be the same whether it points to a [T]
+            // or something else with a [T] as its last member.
+            let fake_slice: &mut [T] = slice::from_raw_parts_mut(buffer as *mut T, num_items);
+            ptr = fake_slice as *mut [T] as *mut ArcInner<HeaderSlice<H, [T]>>;
+
+            // Write the data.
+            ptr::write(&mut ((*ptr).count), atomic::AtomicUsize::new(1));
+            ptr::write(&mut ((*ptr).data.header), header);
+            let mut current: *mut T = &mut (*ptr).data.slice[0];
+            for _ in 0..num_items {
+                ptr::write(current, items.next().expect("ExactSizeIterator over-reported length"));
+                current = current.offset(1);
+            }
+            assert!(items.next().is_none(), "ExactSizeIterator under-reported length");
+
+            // We should have consumed the buffer exactly.
+            debug_assert!(current as *mut u8 == buffer.offset(size as isize));
+        }
+
+        // Return the fat Arc.
+        assert_eq!(size_of::<Self>(), size_of::<usize>() * 2, "The Arc will be fat");
+        Arc { ptr: ptr }
     }
 }
