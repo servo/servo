@@ -7,8 +7,8 @@
 #![deny(missing_docs)]
 
 extern crate arraydeque;
-use self::arraydeque::ArrayDeque;
 use self::arraydeque::Array;
+use self::arraydeque::ArrayDeque;
 
 /// A LRU cache used to store a set of at most `n` elements at the same time.
 ///
