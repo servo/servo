@@ -758,7 +758,15 @@ pub extern "C" fn Servo_StyleSet_MediumFeaturesChanged(
     // it's up to date.
     //
     // In case it isn't we would trigger a rebuild + restyle as needed too.
-    let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
+    //
+    // We need to ensure the default computed values are up to date though,
+    // because those can influence the result of media query evaluation.
+    //
+    // FIXME(emilio, bug 1369984): do the computation conditionally, to do it
+    // less often.
+    let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
+
+    data.stylist.device_mut().reset_computed_values();
     data.stylist.media_features_change_changed_style(
         data.stylesheets.iter(),
         &guard,
@@ -1428,7 +1436,9 @@ pub extern "C" fn Servo_StyleSet_RebuildData(raw_data: RawServoStyleSetBorrowed)
     let guard = global_style_data.shared_lock.read();
 
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    data.reset_device(&guard);
+    data.stylist.device_mut().reset();
+    data.stylesheets.force_dirty();
+    data.flush_stylesheets::<GeckoElement>(&guard, None);
 }
 
 #[no_mangle]
