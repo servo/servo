@@ -7,11 +7,7 @@ use SendableFrameTree;
 use compositor_thread::{CompositorProxy, CompositorReceiver};
 use compositor_thread::{InitialCompositorState, Msg, RenderListener};
 use delayed_composition::DelayedCompositionTimerProxy;
-use euclid::Point2D;
-use euclid::point::TypedPoint2D;
-use euclid::rect::TypedRect;
-use euclid::scale_factor::ScaleFactor;
-use euclid::size::TypedSize2D;
+use euclid::{Point2D, TypedPoint2D, TypedVector2D, TypedRect, ScaleFactor, TypedSize2D};
 use gfx_traits::Epoch;
 use gleam::gl;
 use image::{DynamicImage, ImageFormat, RgbImage};
@@ -39,7 +35,7 @@ use style_traits::viewport::ViewportConstraints;
 use time::{precise_time_ns, precise_time_s};
 use touch::{TouchHandler, TouchAction};
 use webrender;
-use webrender_traits::{self, ClipId, LayoutPoint, ScrollEventPhase, ScrollLocation, ScrollClamping};
+use webrender_traits::{self, ClipId, LayoutPoint, LayoutVector2D, ScrollEventPhase, ScrollLocation, ScrollClamping};
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
 #[derive(Debug, PartialEq)]
@@ -1009,10 +1005,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         match self.touch_handler.on_touch_move(identifier, point) {
             TouchAction::Scroll(delta) => {
                 match point.cast() {
-                    Some(point) => self.on_scroll_window_event(ScrollLocation::Delta(
-                                                               webrender_traits::LayerPoint::from_untyped(
-                                                               &delta.to_untyped())),
-                                                               point),
+                    Some(point) => self.on_scroll_window_event(
+                        ScrollLocation::Delta(
+                            LayoutVector2D::from_untyped(&delta.to_untyped())
+                        ),
+                        point
+                    ),
                     None => error!("Point cast failed."),
                 }
             }
@@ -1020,7 +1018,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 let cursor = TypedPoint2D::new(-1, -1);  // Make sure this hits the base layer.
                 self.pending_scroll_zoom_events.push(ScrollZoomEvent {
                     magnification: magnification,
-                    scroll_location: ScrollLocation::Delta(webrender_traits::LayerPoint::from_untyped(
+                    scroll_location: ScrollLocation::Delta(webrender_traits::LayoutVector2D::from_untyped(
                                                            &scroll_delta.to_untyped())),
                     cursor: cursor,
                     phase: ScrollEventPhase::Move(true),
@@ -1155,9 +1153,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                             break;
                         }
                     };
-                    let delta = (TypedPoint2D::from_untyped(&combined_delta.to_untyped()) / self.scale)
-                                 .to_untyped();
-                    let delta = webrender_traits::LayerPoint::from_untyped(&delta);
+                    // TODO: units don't match!
+                    let delta = combined_delta / self.scale.get();
+
                     let cursor =
                         (combined_event.cursor.to_f32() / self.scale).to_untyped();
                     let location = webrender_traits::ScrollLocation::Delta(delta);
@@ -1171,7 +1169,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 (last_combined_event @ &mut None, _) => {
                     *last_combined_event = Some(ScrollZoomEvent {
                         magnification: scroll_event.magnification,
-                        scroll_location: ScrollLocation::Delta(webrender_traits::LayerPoint::from_untyped(
+                        scroll_location: ScrollLocation::Delta(webrender_traits::LayoutVector2D::from_untyped(
                                                                &this_delta.to_untyped())),
                         cursor: this_cursor,
                         phase: scroll_event.phase,
@@ -1208,9 +1206,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         if let Some(combined_event) = last_combined_event {
             let scroll_location = match combined_event.scroll_location {
                 ScrollLocation::Delta(delta) => {
-                    let scaled_delta = (TypedPoint2D::from_untyped(&delta.to_untyped()) / self.scale)
+                    let scaled_delta = (TypedVector2D::from_untyped(&delta.to_untyped()) / self.scale)
                                        .to_untyped();
-                    let calculated_delta = webrender_traits::LayoutPoint::from_untyped(&scaled_delta);
+                    let calculated_delta = webrender_traits::LayoutVector2D::from_untyped(&scaled_delta);
                                            ScrollLocation::Delta(calculated_delta)
                 },
                 // Leave ScrollLocation unchanged if it is Start or End location.
@@ -1318,7 +1316,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn on_pinch_zoom_window_event(&mut self, magnification: f32) {
         self.pending_scroll_zoom_events.push(ScrollZoomEvent {
             magnification: magnification,
-            scroll_location: ScrollLocation::Delta(TypedPoint2D::zero()), // TODO: Scroll to keep the center in view?
+            scroll_location: ScrollLocation::Delta(TypedVector2D::zero()), // TODO: Scroll to keep the center in view?
             cursor:  TypedPoint2D::new(-1, -1), // Make sure this hits the base layer.
             phase: ScrollEventPhase::Move(true),
             event_count: 1,

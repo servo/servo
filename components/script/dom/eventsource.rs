@@ -16,7 +16,7 @@ use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::messageevent::MessageEvent;
 use dom_struct::dom_struct;
-use euclid::length::Length;
+use euclid::Length;
 use hyper::header::{Accept, qitem};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;

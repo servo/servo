@@ -12,7 +12,7 @@ use dom::eventsource::EventSourceTimeoutCallback;
 use dom::globalscope::GlobalScope;
 use dom::testbinding::TestBindingCallback;
 use dom::xmlhttprequest::XHRTimeoutCallback;
-use euclid::length::Length;
+use euclid::Length;
 use heapsize::HeapSizeOf;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::{HandleValue, Heap};

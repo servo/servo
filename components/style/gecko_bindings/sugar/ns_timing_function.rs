@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use euclid::point::{Point2D, TypedPoint2D};
+use euclid::{Point2D, TypedPoint2D};
 use gecko_bindings::structs::{nsTimingFunction, nsTimingFunction_Type};
 use std::mem;
 use values::computed::ToComputedValue;

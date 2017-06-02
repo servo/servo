@@ -6,7 +6,7 @@
 
 use Atom;
 use context::QuirksMode;
-use euclid::size::Size2D;
+use euclid::Size2D;
 use font_metrics::FontMetricsProvider;
 use media_queries::Device;
 use num_traits::Zero;

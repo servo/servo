@@ -11,7 +11,7 @@ path = "lib.rs"
 [dependencies]
 bitflags = "0.7"
 compositing = {path = "../../components/compositing"}
-euclid = "0.13"
+euclid = "0.14.4"
 gleam = "0.4"
 log = "0.3.5"
 msg = {path = "../../components/msg"}

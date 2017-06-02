@@ -15,5 +15,5 @@ servo = ["euclid/unstable"]
 
 [dependencies]
 app_units = "0.4.1"
-euclid = "0.13"
+euclid = "0.14"
 heapsize = "0.4"

@@ -12,8 +12,7 @@ use webrender_traits::ScrollLocation;
 use wrappers::CefWrap;
 
 use compositing::windowing::{WindowEvent, MouseWindowEvent};
-use euclid::point::TypedPoint2D;
-use euclid::size::TypedSize2D;
+use euclid::{TypedPoint2D, TypedSize2D};
 use libc::{c_double, c_int};
 use msg::constellation_msg::{self, KeyModifiers, KeyState};
 use script_traits::{MouseButton, TouchEventType};

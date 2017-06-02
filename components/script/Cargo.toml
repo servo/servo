@@ -41,7 +41,7 @@ devtools_traits = {path = "../devtools_traits"}
 dom_struct = {path = "../dom_struct"}
 domobject_derive = {path = "../domobject_derive"}
 encoding = "0.2"
-euclid = "0.13"
+euclid = "0.14.4"
 fnv = "1.0"
 gleam = "0.4"
 gfx_traits = {path = "../gfx_traits"}
@@ -63,7 +63,7 @@ mime_guess = "1.8.0"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 num-traits = "0.1.32"
-offscreen_gl_context = "0.8"
+offscreen_gl_context = { version = "0.9", features = ["serde"] }
 open = "1.1.1"
 parking_lot = "0.3"
 phf = "0.7.18"

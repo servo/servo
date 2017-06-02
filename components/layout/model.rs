@@ -7,7 +7,7 @@
 #![deny(unsafe_code)]
 
 use app_units::Au;
-use euclid::{Matrix4D, SideOffsets2D, Size2D};
+use euclid::{Transform3D, SideOffsets2D, Size2D};
 use fragment::Fragment;
 use std::cmp::{max, min};
 use std::fmt;
@@ -509,12 +509,12 @@ pub fn specified_margin_from_style(style: &ServoComputedValues,
 }
 
 pub trait ToGfxMatrix {
-    fn to_gfx_matrix(&self) -> Matrix4D<f32>;
+    fn to_gfx_matrix(&self) -> Transform3D<f32>;
 }
 
 impl ToGfxMatrix for ComputedMatrix {
-    fn to_gfx_matrix(&self) -> Matrix4D<f32> {
-        Matrix4D::row_major(
+    fn to_gfx_matrix(&self) -> Transform3D<f32> {
+        Transform3D::row_major(
             self.m11 as f32, self.m12 as f32, self.m13 as f32, self.m14 as f32,
             self.m21 as f32, self.m22 as f32, self.m23 as f32, self.m24 as f32,
             self.m31 as f32, self.m32 as f32, self.m33 as f32, self.m34 as f32,
