@@ -204,7 +204,7 @@ impl app::NestedEventLoopListener for BrowserWrapper {
 #[cfg(target_os = "android")]
 fn setup_logging() {
     // Piping logs from stdout/stderr to logcat happens in android_injected_glue.
-    ::std::env::set_var("RUST_LOG", "debug");
+    ::std::env::set_var("RUST_LOG", "error");
 
     unsafe { android_injected_glue::ffi::app_dummy() };
 }

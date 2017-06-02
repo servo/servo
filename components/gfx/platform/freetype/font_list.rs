@@ -141,20 +141,12 @@ pub fn last_resort_font_families() -> Vec<String> {
     )
 }
 
-#[cfg(target_os = "android")]
-pub fn last_resort_font_families() -> Vec<String> {
-    vec!("Roboto".to_owned())
-}
-
 #[cfg(target_os = "windows")]
 pub fn last_resort_font_families() -> Vec<String> {
     vec!(
         "Arial".to_owned()
     )
 }
-
-#[cfg(target_os = "android")]
-pub static SANS_SERIF_FONT_FAMILY: &'static str = "Roboto";
 
 #[cfg(target_os = "linux")]
 pub static SANS_SERIF_FONT_FAMILY: &'static str = "DejaVu Sans";

@@ -50,7 +50,12 @@ core-text = "4.0"
 
 [target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
 freetype = "0.2"
+
+[target.'cfg(target_os = "linux")'.dependencies]
 servo-fontconfig = "0.2.1"
+
+[target.'cfg(target_os = "android")'.dependencies]
+xml5ever = {version = "0.7", features = ["unstable"]}
 
 [target.'cfg(any(target_feature = "sse2", target_feature = "neon"))'.dependencies]
 simd = "0.2.0"
