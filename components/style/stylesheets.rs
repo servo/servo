@@ -40,7 +40,6 @@ use shared_lock::{SharedRwLock, Locked, ToCssWithGuard, SharedRwLockReadGuard};
 use smallvec::SmallVec;
 use std::{fmt, mem};
 use std::borrow::Borrow;
-use std::cell::Cell;
 use std::mem::align_of;
 use std::os::raw::c_void;
 use std::slice;
@@ -495,12 +494,12 @@ impl CssRule {
             context: context,
             shared_lock: &parent_stylesheet.shared_lock,
             loader: loader,
-            state: Cell::new(state),
+            state: state,
         };
         match parse_one_rule(&mut input, &mut rule_parser) {
-            Ok(result) => Ok((result, rule_parser.state.get())),
+            Ok(result) => Ok((result, rule_parser.state)),
             Err(_) => {
-                if let State::Invalid = rule_parser.state.get() {
+                if let State::Invalid = rule_parser.state {
                     Err(SingleRuleParseError::Hierarchy)
                 } else {
                     Err(SingleRuleParseError::Syntax)
@@ -1250,7 +1249,7 @@ impl Stylesheet {
             shared_lock: shared_lock,
             loader: stylesheet_loader,
             context: context,
-            state: Cell::new(State::Start),
+            state: State::Start,
         };
 
         input.look_for_viewport_percentages();
@@ -1477,7 +1476,7 @@ struct TopLevelRuleParser<'a> {
     shared_lock: &'a SharedRwLock,
     loader: Option<&'a StylesheetLoader>,
     context: ParserContext<'a>,
-    state: Cell<State>,
+    state: State,
 }
 
 impl<'b> TopLevelRuleParser<'b> {
@@ -1555,8 +1554,8 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                                                 self.context.line_number_offset);
         match_ignore_ascii_case! { name,
             "import" => {
-                if self.state.get() <= State::Imports {
-                    self.state.set(State::Imports);
+                if self.state <= State::Imports {
+                    self.state = State::Imports;
                     let url_string = input.expect_url_or_string()?;
                     let specified_url = SpecifiedUrl::parse_from_string(url_string, &self.context)?;
 
@@ -1592,13 +1591,13 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                     });
                     return Ok(AtRuleType::WithoutBlock(CssRule::Import(arc)))
                 } else {
-                    self.state.set(State::Invalid);
+                    self.state = State::Invalid;
                     return Err(())  // "@import must be before any rule but @charset"
                 }
             },
             "namespace" => {
-                if self.state.get() <= State::Namespaces {
-                    self.state.set(State::Namespaces);
+                if self.state <= State::Namespaces {
+                    self.state = State::Namespaces;
 
                     let prefix_result = input.try(|input| input.expect_ident());
                     let url = Namespace::from(try!(input.expect_url_or_string()));
@@ -1624,7 +1623,7 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                         })
                     ))))
                 } else {
-                    self.state.set(State::Invalid);
+                    self.state = State::Invalid;
                     return Err(())  // "@namespace must be before any rule but @charset and @import"
                 }
             },
@@ -1634,11 +1633,11 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
             _ => {}
         }
         // Don't allow starting with an invalid state
-        if self.state.get() > State::Body {
-            self.state.set(State::Invalid);
+        if self.state > State::Body {
+            self.state = State::Invalid;
             return Err(());
         }
-        self.state.set(State::Body);
+        self.state = State::Body;
         AtRuleParser::parse_prelude(&mut self.nested(), name, input)
     }
 
@@ -1655,7 +1654,7 @@ impl<'a> QualifiedRuleParser for TopLevelRuleParser<'a> {
 
     #[inline]
     fn parse_prelude(&mut self, input: &mut Parser) -> Result<SelectorList<SelectorImpl>, ()> {
-        self.state.set(State::Body);
+        self.state = State::Body;
         QualifiedRuleParser::parse_prelude(&mut self.nested(), input)
     }
 
