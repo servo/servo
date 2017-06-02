@@ -1425,27 +1425,28 @@ impl Attr {
         let first = input.try(|i| i.expect_ident()).ok();
         if let Ok(token) = input.try(|i| i.next_including_whitespace()) {
             match token {
-                Token::Delim('|') => {
-                    // must be followed by an ident
-                    let second_token = match input.next_including_whitespace()? {
-                        Token::Ident(second) => second,
-                        _ => return Err(()),
-                    };
-                    let ns_with_id = if let Some(ns) = first {
-                        let ns: Namespace = ns.into();
-                        let id = get_id_for_namespace(&ns, context)?;
-                        Some((ns, id))
-                    } else {
-                        None
-                    };
-                    return Ok(Attr {
-                        namespace: ns_with_id,
-                        attribute: second_token.into_owned(),
-                    })
-                }
-                _ => return Err(())
+                Token::Delim('|') => {}
+                _ => return Err(()),
             }
+            // must be followed by an ident
+            let second_token = match input.next_including_whitespace()? {
+                Token::Ident(second) => second,
+                _ => return Err(()),
+            };
+
+            let ns_with_id = if let Some(ns) = first {
+                let ns: Namespace = ns.into();
+                let id = get_id_for_namespace(&ns, context)?;
+                Some((ns, id))
+            } else {
+                None
+            };
+            return Ok(Attr {
+                namespace: ns_with_id,
+                attribute: second_token.into_owned(),
+            })
         }
+
         if let Some(first) = first {
             Ok(Attr {
                 namespace: None,
