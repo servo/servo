@@ -7,7 +7,6 @@
 //! TODO(emilio): Enhance docs.
 
 use Namespace;
-use app_units::Au;
 use context::QuirksMode;
 use cssparser::{self, Parser, Token, serialize_identifier};
 use itoa;
@@ -32,7 +31,7 @@ use values::specified::calc::CalcNode;
 pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
 pub use self::background::BackgroundSize;
 pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
-pub use self::border::{BorderImageWidthSide, BorderRadius};
+pub use self::border::{BorderImageSideWidth, BorderRadius, BorderSideWidth};
 pub use self::color::Color;
 pub use self::rect::LengthOrNumberRect;
 pub use super::generics::grid::GridLine;
@@ -44,6 +43,7 @@ pub use self::length::{Percentage, LengthOrNone, LengthOrNumber, LengthOrPercent
 pub use self::length::{LengthOrPercentageOrNone, LengthOrPercentageOrAutoOrContent, NoCalcLength};
 pub use self::length::{MaxLength, MozLength};
 pub use self::position::{Position, PositionComponent};
+pub use self::text::{LetterSpacing, LineHeight, WordSpacing};
 pub use self::transform::TransformOrigin;
 
 #[cfg(feature = "gecko")]
@@ -58,6 +58,7 @@ pub mod image;
 pub mod length;
 pub mod position;
 pub mod rect;
+pub mod text;
 pub mod transform;
 
 /// Common handling for the specified value CSS url() values.
@@ -429,92 +430,6 @@ impl Angle {
             }
             _ => Err(())
         }
-    }
-}
-
-#[allow(missing_docs)]
-pub fn parse_border_width(context: &ParserContext, input: &mut Parser) -> Result<Length, ()> {
-    input.try(|i| Length::parse_non_negative(context, i)).or_else(|()| {
-        match_ignore_ascii_case! { &try!(input.expect_ident()),
-            "thin" => Ok(Length::from_px(1.)),
-            "medium" => Ok(Length::from_px(3.)),
-            "thick" => Ok(Length::from_px(5.)),
-            _ => Err(())
-        }
-    })
-}
-
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub enum BorderWidth {
-    Thin,
-    Medium,
-    Thick,
-    Width(Length),
-}
-
-impl Parse for BorderWidth {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<BorderWidth, ()> {
-        Self::parse_quirky(context, input, AllowQuirks::No)
-    }
-}
-
-impl BorderWidth {
-    /// Parses a border width, allowing quirks.
-    pub fn parse_quirky(context: &ParserContext,
-                        input: &mut Parser,
-                        allow_quirks: AllowQuirks)
-                        -> Result<BorderWidth, ()> {
-        match input.try(|i| Length::parse_non_negative_quirky(context, i, allow_quirks)) {
-            Ok(length) => Ok(BorderWidth::Width(length)),
-            Err(_) => match_ignore_ascii_case! { &try!(input.expect_ident()),
-               "thin" => Ok(BorderWidth::Thin),
-               "medium" => Ok(BorderWidth::Medium),
-               "thick" => Ok(BorderWidth::Thick),
-               _ => Err(())
-            }
-        }
-    }
-}
-
-impl BorderWidth {
-    #[allow(missing_docs)]
-    pub fn from_length(length: Length) -> Self {
-        BorderWidth::Width(length)
-    }
-}
-
-impl ToCss for BorderWidth {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            BorderWidth::Thin => dest.write_str("thin"),
-            BorderWidth::Medium => dest.write_str("medium"),
-            BorderWidth::Thick => dest.write_str("thick"),
-            BorderWidth::Width(ref length) => length.to_css(dest)
-        }
-    }
-}
-
-impl ToComputedValue for BorderWidth {
-    type ComputedValue = Au;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        // We choose the pixel length of the keyword values the same as both spec and gecko.
-        // Spec: https://drafts.csswg.org/css-backgrounds-3/#line-width
-        // Gecko: https://bugzilla.mozilla.org/show_bug.cgi?id=1312155#c0
-        match *self {
-            BorderWidth::Thin => Length::from_px(1.).to_computed_value(context),
-            BorderWidth::Medium => Length::from_px(3.).to_computed_value(context),
-            BorderWidth::Thick => Length::from_px(5.).to_computed_value(context),
-            BorderWidth::Width(ref length) => length.to_computed_value(context)
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        BorderWidth::Width(ToComputedValue::from_computed_value(computed))
     }
 }
 

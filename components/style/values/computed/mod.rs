@@ -24,7 +24,7 @@ use super::specified;
 pub use app_units::Au;
 pub use cssparser::Color as CSSColor;
 pub use self::background::BackgroundSize;
-pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageWidthSide};
+pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderCornerRadius};
 pub use self::image::{Gradient, GradientItem, ImageLayer, LineDirection, Image, ImageRect};
 pub use self::rect::LengthOrNumberRect;
@@ -38,6 +38,7 @@ pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNumber, LengthOrP
 pub use self::length::{LengthOrPercentageOrAutoOrContent, LengthOrPercentageOrNone, LengthOrNone};
 pub use self::length::{MaxLength, MozLength};
 pub use self::position::Position;
+pub use self::text::{LetterSpacing, LineHeight, WordSpacing};
 pub use self::transform::TransformOrigin;
 
 pub mod background;
@@ -47,6 +48,7 @@ pub mod image;
 pub mod length;
 pub mod position;
 pub mod rect;
+pub mod text;
 pub mod transform;
 
 /// A `Context` is all the data a specified value could ever need to compute

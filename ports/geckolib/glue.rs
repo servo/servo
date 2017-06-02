@@ -1946,7 +1946,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetPixelValue(declarations:
     use style::properties::longhands::border_spacing::SpecifiedValue as BorderSpacing;
     use style::properties::longhands::height::SpecifiedValue as Height;
     use style::properties::longhands::width::SpecifiedValue as Width;
-    use style::values::specified::BorderWidth;
+    use style::values::specified::BorderSideWidth;
     use style::values::specified::MozLength;
     use style::values::specified::length::{NoCalcLength, LengthOrPercentage};
 
@@ -1956,10 +1956,10 @@ pub extern "C" fn Servo_DeclarationBlock_SetPixelValue(declarations:
     let prop = match_wrap_declared! { long,
         Height => Height(MozLength::LengthOrPercentageOrAuto(nocalc.into())),
         Width => Width(MozLength::LengthOrPercentageOrAuto(nocalc.into())),
-        BorderTopWidth => BorderWidth::Width(nocalc.into()),
-        BorderRightWidth => BorderWidth::Width(nocalc.into()),
-        BorderBottomWidth => BorderWidth::Width(nocalc.into()),
-        BorderLeftWidth => BorderWidth::Width(nocalc.into()),
+        BorderTopWidth => BorderSideWidth::Length(nocalc.into()),
+        BorderRightWidth => BorderSideWidth::Length(nocalc.into()),
+        BorderBottomWidth => BorderSideWidth::Length(nocalc.into()),
+        BorderLeftWidth => BorderSideWidth::Length(nocalc.into()),
         MarginTop => nocalc.into(),
         MarginRight => nocalc.into(),
         MarginBottom => nocalc.into(),

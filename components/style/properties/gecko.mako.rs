@@ -998,17 +998,17 @@ fn static_assert() {
     }
 
     pub fn set_border_image_width(&mut self, v: longhands::border_image_width::computed_value::T) {
-        use values::generics::border::BorderImageWidthSide;
+        use values::generics::border::BorderImageSideWidth;
 
         % for side in SIDES:
         match v.${side.index} {
-            BorderImageWidthSide::Auto => {
+            BorderImageSideWidth::Auto => {
                 self.gecko.mBorderImageWidth.data_at_mut(${side.index}).set_value(CoordDataValue::Auto)
             },
-            BorderImageWidthSide::Length(l) => {
+            BorderImageSideWidth::Length(l) => {
                 l.to_gecko_style_coord(&mut self.gecko.mBorderImageWidth.data_at_mut(${side.index}))
             },
-            BorderImageWidthSide::Number(n) => {
+            BorderImageSideWidth::Number(n) => {
                 self.gecko.mBorderImageWidth.data_at_mut(${side.index}).set_value(CoordDataValue::Factor(n))
             },
         }
@@ -3637,65 +3637,64 @@ fn static_assert() {
     }
 
     pub fn set_line_height(&mut self, v: longhands::line_height::computed_value::T) {
-        use properties::longhands::line_height::computed_value::T;
+        use values::generics::text::LineHeight;
         // FIXME: Align binary representations and ditch |match| for cast + static_asserts
         let en = match v {
-            T::Normal => CoordDataValue::Normal,
-            T::Length(val) => CoordDataValue::Coord(val.0),
-            T::Number(val) => CoordDataValue::Factor(val),
-            T::MozBlockHeight =>
+            LineHeight::Normal => CoordDataValue::Normal,
+            LineHeight::Length(val) => CoordDataValue::Coord(val.0),
+            LineHeight::Number(val) => CoordDataValue::Factor(val),
+            LineHeight::MozBlockHeight =>
                     CoordDataValue::Enumerated(structs::NS_STYLE_LINE_HEIGHT_BLOCK_HEIGHT),
         };
         self.gecko.mLineHeight.set_value(en);
     }
 
     pub fn clone_line_height(&self) -> longhands::line_height::computed_value::T {
-        use properties::longhands::line_height::computed_value::T;
+        use values::generics::text::LineHeight;
         return match self.gecko.mLineHeight.as_value() {
-            CoordDataValue::Normal => T::Normal,
-            CoordDataValue::Coord(coord) => T::Length(Au(coord)),
-            CoordDataValue::Factor(n) => T::Number(n),
+            CoordDataValue::Normal => LineHeight::Normal,
+            CoordDataValue::Coord(coord) => LineHeight::Length(Au(coord)),
+            CoordDataValue::Factor(n) => LineHeight::Number(n),
             CoordDataValue::Enumerated(val) if val == structs::NS_STYLE_LINE_HEIGHT_BLOCK_HEIGHT =>
-                T::MozBlockHeight,
-            _ => {
-                debug_assert!(false);
-                T::MozBlockHeight
-            }
+                LineHeight::MozBlockHeight,
+            _ => panic!("this should not happen"),
         }
     }
 
     <%call expr="impl_coord_copy('line_height', 'mLineHeight')"></%call>
 
     pub fn set_letter_spacing(&mut self, v: longhands::letter_spacing::computed_value::T) {
-        match v.0 {
-            Some(au) => self.gecko.mLetterSpacing.set(au),
-            None => self.gecko.mLetterSpacing.set_value(CoordDataValue::Normal)
+        use values::generics::text::Spacing;
+        match v {
+            Spacing::Value(value) => self.gecko.mLetterSpacing.set(value),
+            Spacing::Normal => self.gecko.mLetterSpacing.set_value(CoordDataValue::Normal)
         }
     }
 
     pub fn clone_letter_spacing(&self) -> longhands::letter_spacing::computed_value::T {
-        use properties::longhands::letter_spacing::computed_value::T;
+        use values::generics::text::Spacing;
         debug_assert!(
             matches!(self.gecko.mLetterSpacing.as_value(),
                      CoordDataValue::Normal |
                      CoordDataValue::Coord(_)),
             "Unexpected computed value for letter-spacing");
-        T(Au::from_gecko_style_coord(&self.gecko.mLetterSpacing))
+        Au::from_gecko_style_coord(&self.gecko.mLetterSpacing).map_or(Spacing::Normal, Spacing::Value)
     }
 
     <%call expr="impl_coord_copy('letter_spacing', 'mLetterSpacing')"></%call>
 
     pub fn set_word_spacing(&mut self, v: longhands::word_spacing::computed_value::T) {
-        match v.0 {
-            Some(lop) => self.gecko.mWordSpacing.set(lop),
+        use values::generics::text::Spacing;
+        match v {
+            Spacing::Value(lop) => self.gecko.mWordSpacing.set(lop),
             // https://drafts.csswg.org/css-text-3/#valdef-word-spacing-normal
-            None => self.gecko.mWordSpacing.set_value(CoordDataValue::Coord(0)),
+            Spacing::Normal => self.gecko.mWordSpacing.set_value(CoordDataValue::Coord(0)),
         }
     }
 
     pub fn clone_word_spacing(&self) -> longhands::word_spacing::computed_value::T {
-        use properties::longhands::word_spacing::computed_value::T;
         use values::computed::LengthOrPercentage;
+        use values::generics::text::Spacing;
         debug_assert!(
             matches!(self.gecko.mWordSpacing.as_value(),
                      CoordDataValue::Normal |
@@ -3703,7 +3702,7 @@ fn static_assert() {
                      CoordDataValue::Percent(_) |
                      CoordDataValue::Calc(_)),
             "Unexpected computed value for word-spacing");
-        T(LengthOrPercentage::from_gecko_style_coord(&self.gecko.mWordSpacing))
+        LengthOrPercentage::from_gecko_style_coord(&self.gecko.mWordSpacing).map_or(Spacing::Normal, Spacing::Value)
     }
 
     <%call expr="impl_coord_copy('word_spacing', 'mWordSpacing')"></%call>

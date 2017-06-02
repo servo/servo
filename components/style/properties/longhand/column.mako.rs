@@ -40,11 +40,15 @@ ${helpers.single_keyword("column-fill", "balance auto", extra_prefixes="moz",
                          products="gecko", animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-fill")}
 
-${helpers.predefined_type("column-rule-width", "BorderWidth", "Au::from_px(3)",
-                          initial_specified_value="specified::BorderWidth::Medium",
-                          products="gecko", computed_type="::app_units::Au",
+${helpers.predefined_type("column-rule-width",
+                          "BorderSideWidth",
+                          "Au::from_px(3)",
+                          initial_specified_value="specified::BorderSideWidth::Medium",
+                          computed_type="::app_units::Au",
+                          products="gecko",
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule-width",
-                          animation_value_type="ComputedValue", extra_prefixes="moz")}
+                          animation_value_type="ComputedValue",
+                          extra_prefixes="moz")}
 
 // https://drafts.csswg.org/css-multicol-1/#crc
 ${helpers.predefined_type("column-rule-color", "CSSColor",
