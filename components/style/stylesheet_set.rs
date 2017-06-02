@@ -5,7 +5,7 @@
 //! A centralized set of stylesheets for a document.
 
 use dom::TElement;
-use invalidation::StylesheetInvalidationSet;
+use invalidation::stylesheets::StylesheetInvalidationSet;
 use shared_lock::SharedRwLockReadGuard;
 use std::slice;
 use stylearc::Arc;
