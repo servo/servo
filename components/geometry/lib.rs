@@ -7,9 +7,7 @@ extern crate euclid;
 #[macro_use] extern crate heapsize;
 
 use app_units::{Au, MAX_AU, MIN_AU};
-use euclid::point::Point2D;
-use euclid::rect::Rect;
-use euclid::size::Size2D;
+use euclid::{Point2D, Rect, Size2D};
 
 // Units for use with euclid::length and euclid::scale_factor.
 

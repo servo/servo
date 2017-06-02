@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use euclid::point::TypedPoint2D;
-use euclid::scale_factor::ScaleFactor;
+use euclid::{TypedPoint2D, TypedVector2D};
+use euclid::ScaleFactor;
 use script_traits::{DevicePixel, EventResult, TouchId};
 use self::TouchState::*;
 
@@ -56,9 +56,9 @@ pub enum TouchAction {
     /// Simulate a mouse click.
     Click,
     /// Scroll by the provided offset.
-    Scroll(TypedPoint2D<f32, DevicePixel>),
+    Scroll(TypedVector2D<f32, DevicePixel>),
     /// Zoom by a magnification factor and scroll by the provided offset.
-    Zoom(f32, TypedPoint2D<f32, DevicePixel>),
+    Zoom(f32, TypedVector2D<f32, DevicePixel>),
     /// Send a JavaScript event to content.
     DispatchEvent,
     /// Don't do anything.
@@ -221,10 +221,8 @@ impl TouchHandler {
         debug_assert!(self.touch_count() == 2);
         let p0 = self.active_touch_points[0].point;
         let p1 = self.active_touch_points[1].point;
-        let center = (p0 + p1) / ScaleFactor::new(2.0);
-
-        let d = p0 - p1;
-        let distance = f32::sqrt(d.x * d.x + d.y * d.y);
+        let center = p0.lerp(p1, 0.5);
+        let distance = (p0 - p1).length();
 
         (distance, center)
     }
