@@ -959,7 +959,10 @@ impl Stylist {
         if pseudo_element.is_none() && !only_default_rules {
             // Step 2: Presentational hints.
             let length_before_preshints = applicable_declarations.len();
-            element.synthesize_presentational_hints_for_legacy_attributes(applicable_declarations);
+            element.synthesize_presentational_hints_for_legacy_attributes(
+                context.visited_handling,
+                applicable_declarations
+            );
             if applicable_declarations.len() != length_before_preshints {
                 if cfg!(debug_assertions) {
                     for declaration in &applicable_declarations[length_before_preshints..] {

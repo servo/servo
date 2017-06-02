@@ -51,7 +51,7 @@ use script_layout_interface::{OpaqueStyleAndLayoutData, StyleData};
 use script_layout_interface::wrapper_traits::{DangerousThreadSafeLayoutNode, GetLayoutData, LayoutNode};
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint};
-use selectors::matching::{ElementSelectorFlags, MatchingContext, RelevantLinkStatus};
+use selectors::matching::{ElementSelectorFlags, MatchingContext, RelevantLinkStatus, VisitedHandlingMode};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::fmt;
@@ -364,7 +364,9 @@ impl<'le> fmt::Debug for ServoLayoutElement<'le> {
 }
 
 impl<'le> PresentationalHintsSynthesizer for ServoLayoutElement<'le> {
-    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
+    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self,
+                                                                _visited_handling: VisitedHandlingMode,
+                                                                hints: &mut V)
         where V: Push<ApplicableDeclarationBlock>
     {
         unsafe {
@@ -1228,6 +1230,8 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
 }
 
 impl<'le> PresentationalHintsSynthesizer for ServoThreadSafeLayoutElement<'le> {
-    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, _hints: &mut V)
+    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self,
+                                                                _visited_handling: VisitedHandlingMode,
+                                                                _hints: &mut V)
         where V: Push<ApplicableDeclarationBlock> {}
 }

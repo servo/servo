@@ -35,12 +35,15 @@ use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_ElementHasAnimations;
 use gecko_bindings::bindings::Gecko_ElementHasCSSAnimations;
 use gecko_bindings::bindings::Gecko_ElementHasCSSTransitions;
+use gecko_bindings::bindings::Gecko_GetActiveLinkAttrDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetAnimationRule;
 use gecko_bindings::bindings::Gecko_GetExtraContentStyleDeclarations;
 use gecko_bindings::bindings::Gecko_GetHTMLPresentationAttrDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetSMILOverrideDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetStyleAttrDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetStyleContext;
+use gecko_bindings::bindings::Gecko_GetUnvisitedLinkAttrDeclarationBlock;
+use gecko_bindings::bindings::Gecko_GetVisitedLinkAttrDeclarationBlock;
 use gecko_bindings::bindings::Gecko_IsSignificantChild;
 use gecko_bindings::bindings::Gecko_MatchStringArgPseudo;
 use gecko_bindings::bindings::Gecko_UnsetDirtyStyleAttr;
@@ -66,7 +69,8 @@ use rule_tree::CascadeLevel as ServoCascadeLevel;
 use selector_parser::ElementExt;
 use selectors::Element;
 use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator, CaseSensitivity, NamespaceConstraint};
-use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode, RelevantLinkStatus};
+use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode};
+use selectors::matching::{RelevantLinkStatus, VisitedHandlingMode};
 use shared_lock::Locked;
 use sink::Push;
 use std::cell::RefCell;
@@ -1036,7 +1040,9 @@ impl<'le> Hash for GeckoElement<'le> {
 }
 
 impl<'le> PresentationalHintsSynthesizer for GeckoElement<'le> {
-    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
+    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self,
+                                                                visited_handling: VisitedHandlingMode,
+                                                                hints: &mut V)
         where V: Push<ApplicableDeclarationBlock>,
     {
         use properties::longhands::_x_lang::SpecifiedValue as SpecifiedLang;
@@ -1096,6 +1102,37 @@ impl<'le> PresentationalHintsSynthesizer for GeckoElement<'le> {
             hints.push(
                 ApplicableDeclarationBlock::from_declarations(Clone::clone(decl), ServoCascadeLevel::PresHints)
             );
+        }
+
+        // Support for link, vlink, and alink presentation hints on <body>
+        if self.is_link() {
+            // Unvisited vs. visited styles are computed up-front based on the
+            // visited mode (not the element's actual state).
+            let declarations = match visited_handling {
+                VisitedHandlingMode::AllLinksUnvisited => unsafe {
+                    Gecko_GetUnvisitedLinkAttrDeclarationBlock(self.0)
+                },
+                VisitedHandlingMode::RelevantLinkVisited => unsafe {
+                    Gecko_GetVisitedLinkAttrDeclarationBlock(self.0)
+                },
+            };
+            let declarations = declarations.and_then(|s| s.as_arc_opt());
+            if let Some(decl) = declarations {
+                hints.push(
+                    ApplicableDeclarationBlock::from_declarations(Clone::clone(decl), ServoCascadeLevel::PresHints)
+                );
+            }
+
+            let active = self.get_state().intersects(NonTSPseudoClass::Active.state_flag());
+            if active {
+                let declarations = unsafe { Gecko_GetActiveLinkAttrDeclarationBlock(self.0) };
+                let declarations = declarations.and_then(|s| s.as_arc_opt());
+                if let Some(decl) = declarations {
+                    hints.push(
+                        ApplicableDeclarationBlock::from_declarations(Clone::clone(decl), ServoCascadeLevel::PresHints)
+                    );
+                }
+            }
         }
 
         // xml:lang has precedence over lang, which can be
