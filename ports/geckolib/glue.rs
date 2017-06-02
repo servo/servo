@@ -2440,7 +2440,7 @@ fn simulate_compute_values_failure(_: &PropertyValuePair) -> bool {
 fn create_context<'a>(per_doc_data: &'a PerDocumentStyleDataImpl,
                       font_metrics_provider: &'a FontMetricsProvider,
                       style: &'a ComputedValues,
-                      parent_style: &'a Option<&ComputedValues>)
+                      parent_style: &'a Option<&Arc<ComputedValues>>)
                       -> Context<'a> {
     let default_values = per_doc_data.default_computed_values();
 
@@ -2459,8 +2459,8 @@ fn create_context<'a>(per_doc_data: &'a PerDocumentStyleDataImpl,
 
 #[no_mangle]
 pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeListBorrowed,
+                                                  element: RawGeckoElementBorrowed,
                                                   style: ServoComputedValuesBorrowed,
-                                                  parent_style: ServoComputedValuesBorrowedOrNull,
                                                   raw_data: RawServoStyleSetBorrowed,
                                                   computed_keyframes: RawGeckoComputedKeyframeValuesListBorrowedMut)
 {
@@ -2471,7 +2471,11 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     let metrics = get_metrics_provider_for_product();
     let style = ComputedValues::as_arc(&style);
-    let parent_style = parent_style.as_ref().map(|r| &**ComputedValues::as_arc(&r));
+
+    let element = GeckoElement(element);
+    let parent_element = element.inheritance_parent();
+    let parent_data = parent_element.as_ref().and_then(|e| e.borrow_data());
+    let parent_style = parent_data.as_ref().map(|d| d.styles().primary.values());
 
     let mut context = create_context(&data, &metrics, style, &parent_style);
 
@@ -2537,15 +2541,20 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_AnimationValue_Compute(declarations: RawServoDeclarationBlockBorrowed,
+pub extern "C" fn Servo_AnimationValue_Compute(element: RawGeckoElementBorrowed,
+                                               declarations: RawServoDeclarationBlockBorrowed,
                                                style: ServoComputedValuesBorrowed,
-                                               parent_style: ServoComputedValuesBorrowedOrNull,
                                                raw_data: RawServoStyleSetBorrowed)
                                                -> RawServoAnimationValueStrong {
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     let style = ComputedValues::as_arc(&style);
-    let parent_style = parent_style.as_ref().map(|r| &**ComputedValues::as_arc(&r));
     let metrics = get_metrics_provider_for_product();
+
+    let element = GeckoElement(element);
+    let parent_element = element.inheritance_parent();
+    let parent_data = parent_element.as_ref().and_then(|e| e.borrow_data());
+    let parent_style = parent_data.as_ref().map(|d| d.styles().primary.values());
+
     let mut context = create_context(&data, &metrics, style, &parent_style);
 
     let default_values = data.default_computed_values();
