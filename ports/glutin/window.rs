@@ -8,10 +8,7 @@ use NestedEventLoopListener;
 use compositing::compositor_thread::EventLoopWaker;
 use compositing::windowing::{MouseWindowEvent, WindowNavigateMsg};
 use compositing::windowing::{WindowEvent, WindowMethods};
-use euclid::{Point2D, Size2D, TypedPoint2D};
-use euclid::rect::TypedRect;
-use euclid::scale_factor::ScaleFactor;
-use euclid::size::TypedSize2D;
+use euclid::{Point2D, Size2D, TypedPoint2D, TypedVector2D, TypedRect, ScaleFactor, TypedSize2D};
 #[cfg(target_os = "windows")]
 use gdi32;
 use gleam::gl;
@@ -501,7 +498,7 @@ impl Window {
                     MouseScrollDelta::LineDelta(dx, dy) => (dx, dy * LINE_HEIGHT),
                     MouseScrollDelta::PixelDelta(dx, dy) => (dx, dy),
                 };
-                let scroll_location = ScrollLocation::Delta(TypedPoint2D::new(dx, dy));
+                let scroll_location = ScrollLocation::Delta(TypedVector2D::new(dx, dy));
                 if let Some((x, y)) = pos {
                     self.mouse_pos.set(Point2D::new(x, y));
                     self.event_queue.borrow_mut().push(
@@ -1232,7 +1229,7 @@ impl WindowMethods for Window {
             }
 
             (NONE, None, Key::PageDown) => {
-               let scroll_location = ScrollLocation::Delta(TypedPoint2D::new(0.0,
+               let scroll_location = ScrollLocation::Delta(TypedVector2D::new(0.0,
                                    -self.framebuffer_size()
                                         .to_f32()
                                         .to_untyped()
@@ -1241,7 +1238,7 @@ impl WindowMethods for Window {
                                    TouchEventType::Move);
             }
             (NONE, None, Key::PageUp) => {
-                let scroll_location = ScrollLocation::Delta(TypedPoint2D::new(0.0,
+                let scroll_location = ScrollLocation::Delta(TypedVector2D::new(0.0,
                                    self.framebuffer_size()
                                        .to_f32()
                                        .to_untyped()
@@ -1259,18 +1256,18 @@ impl WindowMethods for Window {
             }
 
             (NONE, None, Key::Up) => {
-                self.scroll_window(ScrollLocation::Delta(TypedPoint2D::new(0.0, 3.0 * LINE_HEIGHT)),
+                self.scroll_window(ScrollLocation::Delta(TypedVector2D::new(0.0, 3.0 * LINE_HEIGHT)),
                                    TouchEventType::Move);
             }
             (NONE, None, Key::Down) => {
-                self.scroll_window(ScrollLocation::Delta(TypedPoint2D::new(0.0, -3.0 * LINE_HEIGHT)),
+                self.scroll_window(ScrollLocation::Delta(TypedVector2D::new(0.0, -3.0 * LINE_HEIGHT)),
                                    TouchEventType::Move);
             }
             (NONE, None, Key::Left) => {
-                self.scroll_window(ScrollLocation::Delta(TypedPoint2D::new(LINE_HEIGHT, 0.0)), TouchEventType::Move);
+                self.scroll_window(ScrollLocation::Delta(TypedVector2D::new(LINE_HEIGHT, 0.0)), TouchEventType::Move);
             }
             (NONE, None, Key::Right) => {
-                self.scroll_window(ScrollLocation::Delta(TypedPoint2D::new(-LINE_HEIGHT, 0.0)), TouchEventType::Move);
+                self.scroll_window(ScrollLocation::Delta(TypedVector2D::new(-LINE_HEIGHT, 0.0)), TouchEventType::Move);
             }
             (CMD_OR_CONTROL, Some('r'), _) => {
                 if let Some(true) = PREFS.get("shell.builtin-key-shortcuts.enabled").as_boolean() {

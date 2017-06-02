@@ -11,7 +11,7 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::dommatrixreadonly::{dommatrixinit_to_matrix, DOMMatrixReadOnly, entries_to_matrix};
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use euclid::Matrix4D;
+use euclid::Transform3D;
 
 
 #[dom_struct]
@@ -21,12 +21,12 @@ pub struct DOMMatrix {
 
 impl DOMMatrix {
     #[allow(unrooted_must_root)]
-    pub fn new(global: &GlobalScope, is2D: bool, matrix: Matrix4D<f64>) -> Root<Self> {
+    pub fn new(global: &GlobalScope, is2D: bool, matrix: Transform3D<f64>) -> Root<Self> {
         let dommatrix = Self::new_inherited(is2D, matrix);
         reflect_dom_object(box dommatrix, global, Wrap)
     }
 
-    pub fn new_inherited(is2D: bool, matrix: Matrix4D<f64>) -> Self {
+    pub fn new_inherited(is2D: bool, matrix: Transform3D<f64>) -> Self {
         DOMMatrix {
             parent: DOMMatrixReadOnly::new_inherited(is2D, matrix)
         }

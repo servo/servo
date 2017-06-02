@@ -9,7 +9,7 @@ use Atom;
 use bezier::Bezier;
 use context::SharedStyleContext;
 use dom::OpaqueNode;
-use euclid::point::Point2D;
+use euclid::Point2D;
 use font_metrics::FontMetricsProvider;
 use properties::{self, CascadeFlags, ComputedValues, Importance};
 use properties::animated_properties::{AnimatedProperty, TransitionProperty};

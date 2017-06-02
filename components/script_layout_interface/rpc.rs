@@ -3,8 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use euclid::point::Point2D;
-use euclid::rect::Rect;
+use euclid::{Point2D, Rect};
 use script_traits::UntrustedNodeAddress;
 use style::properties::longhands::{margin_top, margin_right, margin_bottom, margin_left, overflow_x};
 use webrender_traits::ClipId;

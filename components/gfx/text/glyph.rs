@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use euclid::point::Point2D;
+use euclid::Point2D;
 use range::{self, EachIndex, Range, RangeIndex};
 #[cfg(any(target_feature = "sse2", target_feature = "neon"))]
 use simd::u32x4;

@@ -12,7 +12,7 @@ path = "lib.rs"
 [dependencies]
 base64 = "0.5.2"
 cookie = "0.6"
-euclid = "0.13"
+euclid = "0.14"
 hyper = "0.10"
 image = "0.12"
 ipc-channel = "0.7"

@@ -6,8 +6,7 @@
 
 use SendableFrameTree;
 use compositor::CompositingReason;
-use euclid::point::Point2D;
-use euclid::size::Size2D;
+use euclid::{Point2D, Size2D};
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, PipelineId};
 use net_traits::image::base::Image;
