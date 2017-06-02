@@ -2120,9 +2120,8 @@ extern "C" {
 extern "C" {
     pub fn Servo_GetComputedKeyframeValues(keyframes:
                                                RawGeckoKeyframeListBorrowed,
+                                           element: RawGeckoElementBorrowed,
                                            style: ServoComputedValuesBorrowed,
-                                           parent_style:
-                                               ServoComputedValuesBorrowedOrNull,
                                            set: RawServoStyleSetBorrowed,
                                            result:
                                                RawGeckoComputedKeyframeValuesListBorrowedMut);
@@ -2208,11 +2207,10 @@ extern "C" {
      -> RawServoDeclarationBlockStrong;
 }
 extern "C" {
-    pub fn Servo_AnimationValue_Compute(declarations:
+    pub fn Servo_AnimationValue_Compute(element: RawGeckoElementBorrowed,
+                                        declarations:
                                             RawServoDeclarationBlockBorrowed,
                                         style: ServoComputedValuesBorrowed,
-                                        parent_style:
-                                            ServoComputedValuesBorrowedOrNull,
                                         raw_data: RawServoStyleSetBorrowed)
      -> RawServoAnimationValueStrong;
 }
