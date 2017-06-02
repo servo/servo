@@ -9,7 +9,6 @@ interface CustomElementRegistry {
 
   any get(DOMString name);
 
-  [Throws]
   Promise<void> whenDefined(DOMString name);
 };
 

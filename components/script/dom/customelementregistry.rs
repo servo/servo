@@ -8,11 +8,12 @@ use dom::bindings::codegen::Bindings::CustomElementRegistryBinding;
 use dom::bindings::codegen::Bindings::CustomElementRegistryBinding::CustomElementRegistryMethods;
 use dom::bindings::codegen::Bindings::CustomElementRegistryBinding::ElementDefinitionOptions;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
+use dom::domexception::{DOMErrorName, DOMException};
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom::window::Window;
@@ -78,7 +79,7 @@ impl CustomElementRegistry {
 
             // Step 10.2
             if !prototype.is_object() {
-                return Err(Error::Type("constructor.protoype is not an object".to_owned()));
+                return Err(Error::Type("constructor.prototype is not an object".to_owned()));
             }
         }
         Ok(())
@@ -94,7 +95,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
 
         // Step 1
         if unsafe { !IsConstructor(constructor.get()) } {
-            return Err(Error::Type("Second argument of CustomElementRegistry.defin is not a constructor".to_owned()));
+            return Err(Error::Type("Second argument of CustomElementRegistry.define is not a constructor".to_owned()));
         }
 
         // Step 2
@@ -116,20 +117,19 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         let extends = &options.extends;
 
         // Steps 5, 7
-        let local_name = match *extends {
-            Some(ref extended_name) => {
-                // Step 7.1
-                if is_valid_custom_element_name(extended_name) {
-                    return Err(Error::NotSupported)
-                }
+        let local_name = if let Some(ref extended_name) = *extends {
+            // Step 7.1
+            if is_valid_custom_element_name(extended_name) {
+                return Err(Error::NotSupported)
+            }
 
-                // TODO: 7.2
-                // Check that the element interface for extends is not HTMLUnknownElement
+            // TODO: 7.2
+            // Check that the element interface for extends is not HTMLUnknownElement
 
-                extended_name.clone()
-            },
+            extended_name.clone()
+        } else {
             // Step 7.3
-            None => name.clone(),
+            name.clone()
         };
 
         // Step 8
@@ -151,9 +151,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         // 10.5 - 10.6 Get observed attributes from the constructor
 
         self.element_definition_is_running.set(false);
-        if let Err(error) = result {
-            return Err(error);
-        }
+        result?;
 
         // Step 11
         let definition = CustomElementDefinition::new(name.clone(), local_name, constructor_);
@@ -189,36 +187,35 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
 
     // https://html.spec.whatwg.org/multipage/#dom-customelementregistry-whendefined
     #[allow(unrooted_must_root)]
-    fn WhenDefined(&self, name: DOMString) -> Fallible<Rc<Promise>> {
+    fn WhenDefined(&self, name: DOMString) -> Rc<Promise> {
         let global_scope = self.window.upcast::<GlobalScope>();
 
         // Step 1
         if !is_valid_custom_element_name(&name) {
-            return Err(Error::Syntax);
+            let promise = Promise::new(global_scope);
+            promise.reject_native(global_scope.get_cx(), &DOMException::new(global_scope, DOMErrorName::SyntaxError));
+            return promise
         }
 
         // Step 2
         if self.definitions.borrow().contains_key(&name) {
             let promise = Promise::new(global_scope);
             promise.resolve_native(global_scope.get_cx(), &UndefinedValue());
-            return Ok(promise)
+            return promise
         }
 
         // Step 3
         let mut map = self.when_defined.borrow_mut();
 
         // Steps 4, 5
-        let promise = match map.get(&name).cloned() {
-            Some(promise) => promise,
-            None => {
-                let promise = Promise::new(global_scope);
-                map.insert(name, promise.clone());
-                promise
-            }
-        };
+        let promise = map.get(&name).cloned().unwrap_or_else(|| {
+            let promise = Promise::new(global_scope);
+            map.insert(name, promise.clone());
+            promise
+        });
 
         // Step 6
-        Ok(promise)
+        promise
     }
 }
 
@@ -247,37 +244,20 @@ fn is_valid_custom_element_name(name: &str) -> bool {
     // Custom elment names must match:
     // PotentialCustomElementName ::= [a-z] (PCENChar)* '-' (PCENChar)*
 
-    if let Some(c) = name.chars().nth(0) {
-        if c < 'a' || c > 'z' {
-            return false;
-        }
-    } else {
+    let mut chars = name.chars();
+    if !chars.next().map_or(false, |c| c >= 'a' && c <= 'z') {
         return false;
     }
 
     let mut has_dash = false;
 
-    for c in name.chars() {
+    for c in chars {
         if c == '-' {
             has_dash = true;
+            continue;
         }
 
-        // Check if this character is not a PCENChar
-        // https://html.spec.whatwg.org/multipage/#prod-pcenchar
-        if c != '-' && c != '.' && c != '_' && c != '\u{B7}' &&
-            (c < '0' || c > '9') &&
-            (c < 'a' || c > 'z') &&
-            (c < '\u{C0}' || c > '\u{D6}') &&
-            (c < '\u{D8}' || c > '\u{F6}') &&
-            (c < '\u{F8}' || c > '\u{37D}') &&
-            (c < '\u{37F}' || c > '\u{1FFF}') &&
-            (c < '\u{200C}' || c > '\u{200D}') &&
-            (c < '\u{203F}' || c > '\u{2040}') &&
-            (c < '\u{2070}' || c > '\u{2FEF}') &&
-            (c < '\u{3001}' || c > '\u{D7FF}') &&
-            (c < '\u{F900}' || c > '\u{FDCF}') &&
-            (c < '\u{FDF0}' || c > '\u{FFFD}') &&
-            (c < '\u{10000}' || c > '\u{EFFFF}')
+        if !is_potential_custom_element_char(c)
         {
             return false;
         }
@@ -300,4 +280,23 @@ fn is_valid_custom_element_name(name: &str) -> bool {
     }
 
     true
+}
+
+// Check if this character is a PCENChar
+// https://html.spec.whatwg.org/multipage/#prod-pcenchar
+fn is_potential_custom_element_char(c: char) -> bool {
+    c == '-' || c == '.' || c == '_' || c == '\u{B7}' ||
+    (c >= '0' && c <= '9') ||
+    (c >= 'a' && c <= 'z') ||
+    (c >= '\u{C0}' && c <= '\u{D6}') ||
+    (c >= '\u{D8}' && c <= '\u{F6}') ||
+    (c >= '\u{F8}' && c <= '\u{37D}') ||
+    (c >= '\u{37F}' && c <= '\u{1FFF}') ||
+    (c >= '\u{200C}' && c <= '\u{200D}') ||
+    (c >= '\u{203F}' && c <= '\u{2040}') ||
+    (c >= '\u{2070}' && c <= '\u{2FEF}') ||
+    (c >= '\u{3001}' && c <= '\u{D7FF}') ||
+    (c >= '\u{F900}' && c <= '\u{FDCF}') ||
+    (c >= '\u{FDF0}' && c <= '\u{FFFD}') ||
+    (c >= '\u{10000}' && c <= '\u{EFFFF}')
 }
