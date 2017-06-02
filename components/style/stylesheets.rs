@@ -1048,7 +1048,6 @@ impl NestedRuleIterationCondition for AllRules {
         true
     }
 
-    /// Whether we should process the nested rules in a given `@media` rule.
     fn process_media(
         _: &SharedRwLockReadGuard,
         _: &Device,
@@ -1059,7 +1058,6 @@ impl NestedRuleIterationCondition for AllRules {
         true
     }
 
-    /// Whether we should process the nested rules in a given `@-moz-document` rule.
     fn process_document(
         _: &SharedRwLockReadGuard,
         _: &Device,
@@ -1070,7 +1068,6 @@ impl NestedRuleIterationCondition for AllRules {
         true
     }
 
-    /// Whether we should process the nested rules in a given `@supports` rule.
     fn process_supports(
         _: &SharedRwLockReadGuard,
         _: &Device,
@@ -1158,36 +1155,31 @@ impl<'a, 'b, C> Iterator for RulesIterator<'a, 'b, C>
                 sub_iter = match *rule {
                     CssRule::Import(ref import_rule) => {
                         let import_rule = import_rule.read_with(self.guard);
-
-                        if C::process_import(self.guard, self.device, self.quirks_mode, import_rule) {
-                            Some(import_rule.stylesheet.rules.read_with(self.guard).0.iter())
-                        } else {
-                            None
+                        if !C::process_import(self.guard, self.device, self.quirks_mode, import_rule) {
+                            continue;
                         }
+                        Some(import_rule.stylesheet.rules.read_with(self.guard).0.iter())
                     }
                     CssRule::Document(ref doc_rule) => {
                         let doc_rule = doc_rule.read_with(self.guard);
-                        if C::process_document(self.guard, self.device, self.quirks_mode, doc_rule) {
-                            Some(doc_rule.rules.read_with(self.guard).0.iter())
-                        } else {
-                            None
+                        if !C::process_document(self.guard, self.device, self.quirks_mode, doc_rule) {
+                            continue;
                         }
+                        Some(doc_rule.rules.read_with(self.guard).0.iter())
                     }
                     CssRule::Media(ref lock) => {
                         let media_rule = lock.read_with(self.guard);
-                        if C::process_media(self.guard, self.device, self.quirks_mode, media_rule) {
-                            Some(media_rule.rules.read_with(self.guard).0.iter())
-                        } else {
-                            None
+                        if !C::process_media(self.guard, self.device, self.quirks_mode, media_rule) {
+                            continue;
                         }
+                        Some(media_rule.rules.read_with(self.guard).0.iter())
                     }
                     CssRule::Supports(ref lock) => {
                         let supports_rule = lock.read_with(self.guard);
-                        if C::process_supports(self.guard, self.device, self.quirks_mode, supports_rule) {
-                            Some(supports_rule.rules.read_with(self.guard).0.iter())
-                        } else {
-                            None
+                        if !C::process_supports(self.guard, self.device, self.quirks_mode, supports_rule) {
+                            continue;
                         }
+                        Some(supports_rule.rules.read_with(self.guard).0.iter())
                     }
                     CssRule::Namespace(_) |
                     CssRule::Style(_) |

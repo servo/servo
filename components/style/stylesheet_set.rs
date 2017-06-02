@@ -175,6 +175,11 @@ impl StylesheetSet {
         self.dirty = false;
         self.invalidations.flush(document_element);
 
+        self.iter()
+    }
+
+    /// Returns an iterator over the current list of stylesheets.
+    pub fn iter(&self) -> StylesheetIterator {
         StylesheetIterator(self.entries.iter())
     }
 

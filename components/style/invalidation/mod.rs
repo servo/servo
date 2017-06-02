@@ -4,4 +4,5 @@
 
 //! Different bits of code related to invalidating style.
 
+pub mod media_queries;
 pub mod stylesheets;
