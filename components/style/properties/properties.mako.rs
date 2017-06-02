@@ -22,7 +22,7 @@ use app_units::Au;
 use cssparser::{Parser, TokenSerializationType, serialize_identifier};
 use cssparser::ParserInput;
 use error_reporting::ParseErrorReporter;
-#[cfg(feature = "servo")] use euclid::side_offsets::SideOffsets2D;
+#[cfg(feature = "servo")] use euclid::SideOffsets2D;
 use computed_values;
 use context::QuirksMode;
 use font_metrics::FontMetricsProvider;

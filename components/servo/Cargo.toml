@@ -30,7 +30,7 @@ debugger = {path = "../debugger"}
 devtools = {path = "../devtools"}
 devtools_traits = {path = "../devtools_traits"}
 env_logger = "0.4"
-euclid = "0.13"
+euclid = "0.14.4"
 gfx = {path = "../gfx"}
 gleam = "0.4"
 ipc-channel = "0.7"

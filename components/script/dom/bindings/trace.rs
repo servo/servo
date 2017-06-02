@@ -43,10 +43,8 @@ use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::utils::WindowProxyHandler;
 use dom::document::PendingRestyle;
 use encoding::types::EncodingRef;
-use euclid::{Matrix2D, Matrix4D, Point2D};
-use euclid::length::Length as EuclidLength;
-use euclid::rect::Rect;
-use euclid::size::Size2D;
+use euclid::{Transform2D, Transform3D, Point2D, Vector2D, Rect, Size2D};
+use euclid::Length as EuclidLength;
 use html5ever::{Prefix, LocalName, Namespace, QualName};
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tendril::IncompleteUtf8;
@@ -457,14 +455,14 @@ unsafe impl<T: Send> JSTraceable for Sender<T> {
     }
 }
 
-unsafe impl JSTraceable for Matrix2D<f32> {
+unsafe impl JSTraceable for Transform2D<f32> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing
     }
 }
 
-unsafe impl JSTraceable for Matrix4D<f64> {
+unsafe impl JSTraceable for Transform3D<f64> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing
@@ -472,6 +470,13 @@ unsafe impl JSTraceable for Matrix4D<f64> {
 }
 
 unsafe impl JSTraceable for Point2D<f32> {
+    #[inline]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl JSTraceable for Vector2D<f32> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing

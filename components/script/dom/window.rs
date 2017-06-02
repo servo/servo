@@ -53,7 +53,7 @@ use dom::windowproxy::WindowProxy;
 use dom::worklet::Worklet;
 use dom::workletglobalscope::WorkletGlobalScopeType;
 use dom_struct::dom_struct;
-use euclid::{Point2D, Rect, Size2D};
+use euclid::{Point2D, Vector2D, Rect, Size2D};
 use fetch;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -255,7 +255,7 @@ pub struct Window {
     error_reporter: CSSErrorReporter,
 
     /// A list of scroll offsets for each scrollable element.
-    scroll_offsets: DOMRefCell<HashMap<UntrustedNodeAddress, Point2D<f32>>>,
+    scroll_offsets: DOMRefCell<HashMap<UntrustedNodeAddress, Vector2D<f32>>>,
 
     /// All the MediaQueryLists we need to update
     media_query_lists: WeakMediaQueryListVec,
@@ -365,7 +365,7 @@ impl Window {
     /// Sets a new list of scroll offsets.
     ///
     /// This is called when layout gives us new ones and WebRender is in use.
-    pub fn set_scroll_offsets(&self, offsets: HashMap<UntrustedNodeAddress, Point2D<f32>>) {
+    pub fn set_scroll_offsets(&self, offsets: HashMap<UntrustedNodeAddress, Vector2D<f32>>) {
         *self.scroll_offsets.borrow_mut() = offsets
     }
 
@@ -1155,7 +1155,7 @@ impl Window {
 
         self.layout_chan.send(Msg::UpdateScrollStateFromScript(ScrollState {
             scroll_root_id: scroll_root_id,
-            scroll_offset: Point2D::new(-x, -y),
+            scroll_offset: Vector2D::new(-x, -y),
         })).unwrap();
 
         // TODO (farodin91): Raise an event to stop the current_viewport
@@ -1449,7 +1449,7 @@ impl Window {
         self.layout_rpc.node_overflow().0.unwrap()
     }
 
-    pub fn scroll_offset_query(&self, node: &Node) -> Point2D<f32> {
+    pub fn scroll_offset_query(&self, node: &Node) -> Vector2D<f32> {
         let mut node = Root::from_ref(node);
         loop {
             if let Some(scroll_offset) = self.scroll_offsets
@@ -1462,8 +1462,8 @@ impl Window {
                 None => break,
             }
         }
-        let offset = self.current_viewport.get().origin;
-        Point2D::new(offset.x.to_f32_px(), offset.y.to_f32_px())
+        let vp_origin = self.current_viewport.get().origin;
+        Vector2D::new(vp_origin.x.to_f32_px(), vp_origin.y.to_f32_px())
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scroll

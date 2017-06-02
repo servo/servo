@@ -4,7 +4,7 @@
 
 use canvas_traits::{CanvasCommonMsg, CanvasData, CanvasMsg, CanvasImageData};
 use canvas_traits::{FromLayoutMsg, FromScriptMsg, byte_swap};
-use euclid::size::Size2D;
+use euclid::Size2D;
 use gleam::gl;
 use ipc_channel::ipc::{self, IpcSender};
 use offscreen_gl_context::{ColorAttachmentType, GLContext, GLLimits};

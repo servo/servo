@@ -58,8 +58,7 @@ use dom::windowproxy::WindowProxy;
 use dom::worker::TrustedWorkerAddress;
 use dom::worklet::WorkletThreadPool;
 use dom::workletglobalscope::WorkletGlobalScopeInit;
-use euclid::Rect;
-use euclid::point::Point2D;
+use euclid::{Point2D, Vector2D, Rect};
 use hyper::header::{ContentType, HttpDate, Headers, LastModified};
 use hyper::header::ReferrerPolicy as ReferrerPolicyHeader;
 use hyper::mime::{Mime, SubLevel, TopLevel};
@@ -1339,7 +1338,7 @@ impl ScriptThread {
 
     fn handle_set_scroll_state(&self,
                                id: PipelineId,
-                               scroll_states: &[(UntrustedNodeAddress, Point2D<f32>)]) {
+                               scroll_states: &[(UntrustedNodeAddress, Vector2D<f32>)]) {
         let window = match { self.documents.borrow().find_window(id) } {
             Some(window) => window,
             None => return warn!("Set scroll state message sent to nonexistent pipeline: {:?}", id),
@@ -1350,8 +1349,7 @@ impl ScriptThread {
             if node_address == UntrustedNodeAddress(ptr::null()) {
                 window.update_viewport_for_scroll(-scroll_offset.x, -scroll_offset.y);
             } else {
-                scroll_offsets.insert(node_address,
-                                      Point2D::new(-scroll_offset.x, -scroll_offset.y));
+                scroll_offsets.insert(node_address, -*scroll_offset);
             }
         }
         window.set_scroll_offsets(scroll_offsets)

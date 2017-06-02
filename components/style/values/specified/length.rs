@@ -8,7 +8,7 @@
 
 use app_units::Au;
 use cssparser::{Parser, Token, BasicParseError};
-use euclid::size::Size2D;
+use euclid::Size2D;
 use font_metrics::FontMetricsQueryResult;
 use parser::{Parse, ParserContext};
 use std::{cmp, fmt, mem};

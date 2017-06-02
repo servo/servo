@@ -7,7 +7,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use euclid::point::Point2D;
+use euclid::Point2D;
 use script::test::area::{Area, Shape};
 
 #[test]

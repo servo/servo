@@ -8,7 +8,7 @@
 //           completely converting layout to directly generate WebRender display lists, for example.
 
 use app_units::Au;
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
+use euclid::{Point2D, Vector2D, Rect, SideOffsets2D, Size2D};
 use gfx::display_list::{BorderDetails, BorderRadii, BoxShadowClipMode, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayList, DisplayListTraversal, StackingContextType};
 use msg::constellation_msg::PipelineId;
@@ -86,9 +86,19 @@ trait ToPointF {
     fn to_pointf(&self) -> webrender_traits::LayoutPoint;
 }
 
+trait ToVectorF {
+    fn to_vectorf(&self) -> webrender_traits::LayoutVector2D;
+}
+
 impl ToPointF for Point2D<Au> {
     fn to_pointf(&self) -> webrender_traits::LayoutPoint {
         webrender_traits::LayoutPoint::new(self.x.to_f32_px(), self.y.to_f32_px())
+    }
+}
+
+impl ToVectorF for Vector2D<Au> {
+    fn to_vectorf(&self) -> webrender_traits::LayoutVector2D {
+        webrender_traits::LayoutVector2D::new(self.x.to_f32_px(), self.y.to_f32_px())
     }
 }
 
@@ -450,7 +460,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 builder.push_box_shadow(rect,
                                         clip,
                                         box_bounds,
-                                        item.offset.to_pointf(),
+                                        item.offset.to_vectorf(),
                                         item.color,
                                         item.blur_radius.to_f32_px(),
                                         item.spread_radius.to_f32_px(),
