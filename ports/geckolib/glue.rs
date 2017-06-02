@@ -18,7 +18,7 @@ use style::dom::{AnimationOnlyDirtyDescendants, DirtyDescendants};
 use style::dom::{ShowSubtreeData, TElement, TNode};
 use style::element_state::ElementState;
 use style::error_reporting::RustLogReporter;
-use style::font_metrics::get_metrics_provider_for_product;
+use style::font_metrics::{FontMetricsProvider, get_metrics_provider_for_product};
 use style::gecko::data::{PerDocumentStyleData, PerDocumentStyleDataImpl};
 use style::gecko::global_style_data::{GLOBAL_STYLE_DATA, GlobalStyleData};
 use style::gecko::restyle_damage::GeckoRestyleDamage;
@@ -112,6 +112,7 @@ use style::traversal::{ANIMATION_ONLY, DomTraversal, FOR_CSS_RULE_CHANGES, FOR_R
 use style::traversal::{FOR_DEFAULT_STYLES, TraversalDriver, TraversalFlags, UNSTYLED_CHILDREN_ONLY};
 use style::traversal::{resolve_style, resolve_default_style};
 use style::values::{CustomIdent, KeyframesName};
+use style::values::computed::Context;
 use style_traits::ToCss;
 use super::stylesheet_loader::StylesheetLoader;
 
@@ -2436,41 +2437,51 @@ fn simulate_compute_values_failure(_: &PropertyValuePair) -> bool {
     false
 }
 
+fn create_context<'a>(per_doc_data: &'a PerDocumentStyleDataImpl,
+                      font_metrics_provider: &'a FontMetricsProvider,
+                      style: &'a ComputedValues,
+                      parent_style: &'a Option<&Arc<ComputedValues>>)
+                      -> Context<'a> {
+    let default_values = per_doc_data.default_computed_values();
+
+    Context {
+        is_root_element: false,
+        device: per_doc_data.stylist.device(),
+        inherited_style: parent_style.unwrap_or(default_values),
+        layout_parent_style: parent_style.unwrap_or(default_values),
+        style: StyleBuilder::for_derived_style(&style),
+        font_metrics_provider: font_metrics_provider,
+        cached_system_font: None,
+        in_media_query: false,
+        quirks_mode: per_doc_data.stylist.quirks_mode(),
+    }
+}
+
 #[no_mangle]
 pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeListBorrowed,
+                                                  element: RawGeckoElementBorrowed,
                                                   style: ServoComputedValuesBorrowed,
-                                                  parent_style: ServoComputedValuesBorrowedOrNull,
                                                   raw_data: RawServoStyleSetBorrowed,
                                                   computed_keyframes: RawGeckoComputedKeyframeValuesListBorrowedMut)
 {
     use std::mem;
     use style::properties::LonghandIdSet;
     use style::properties::declaration_block::Importance;
-    use style::values::computed::Context;
+
+    let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
+    let metrics = get_metrics_provider_for_product();
+    let style = ComputedValues::as_arc(&style);
+
+    let element = GeckoElement(element);
+    let parent_element = element.inheritance_parent();
+    let parent_data = parent_element.as_ref().and_then(|e| e.borrow_data());
+    let parent_style = parent_data.as_ref().map(|d| d.styles().primary.values());
+
+    let mut context = create_context(&data, &metrics, style, &parent_style);
 
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
-
-
-    let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
-
-    let style = ComputedValues::as_arc(&style);
-    let parent_style = parent_style.as_ref().map(|r| &**ComputedValues::as_arc(&r));
-
     let default_values = data.default_computed_values();
-    let metrics = get_metrics_provider_for_product();
-
-    let mut context = Context {
-        is_root_element: false,
-        device: data.stylist.device(),
-        inherited_style: parent_style.unwrap_or(default_values),
-        layout_parent_style: parent_style.unwrap_or(default_values),
-        style: StyleBuilder::for_derived_style(&style),
-        font_metrics_provider: &metrics,
-        cached_system_font: None,
-        in_media_query: false,
-        quirks_mode: data.stylist.quirks_mode(),
-    };
 
     for (index, keyframe) in keyframes.iter().enumerate() {
         let ref mut animation_values = computed_keyframes[index];
@@ -2530,30 +2541,23 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_AnimationValue_Compute(declarations: RawServoDeclarationBlockBorrowed,
+pub extern "C" fn Servo_AnimationValue_Compute(element: RawGeckoElementBorrowed,
+                                               declarations: RawServoDeclarationBlockBorrowed,
                                                style: ServoComputedValuesBorrowed,
-                                               parent_style: ServoComputedValuesBorrowedOrNull,
                                                raw_data: RawServoStyleSetBorrowed)
                                                -> RawServoAnimationValueStrong {
-    use style::values::computed::Context;
-
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     let style = ComputedValues::as_arc(&style);
-    let parent_style = parent_style.as_ref().map(|r| &**ComputedValues::as_arc(&r));
-    let default_values = data.default_computed_values();
     let metrics = get_metrics_provider_for_product();
-    let mut context = Context {
-        is_root_element: false,
-        device: data.stylist.device(),
-        inherited_style: parent_style.unwrap_or(default_values),
-        layout_parent_style: parent_style.unwrap_or(default_values),
-        style: StyleBuilder::for_derived_style(&style),
-        font_metrics_provider: &metrics,
-        cached_system_font: None,
-        in_media_query: false,
-        quirks_mode: data.stylist.quirks_mode(),
-    };
 
+    let element = GeckoElement(element);
+    let parent_element = element.inheritance_parent();
+    let parent_data = parent_element.as_ref().and_then(|e| e.borrow_data());
+    let parent_style = parent_data.as_ref().map(|d| d.styles().primary.values());
+
+    let mut context = create_context(&data, &metrics, style, &parent_style);
+
+    let default_values = data.default_computed_values();
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
     let declarations = Locked::<PropertyDeclarationBlock>::as_arc(&declarations);
