@@ -158,6 +158,14 @@ impl<E: TElement> StyleBloom<E> {
         }
     }
 
+    /// Get the element that represents the chain of things inserted
+    /// into the filter right now.  That chain is the given element
+    /// (if any) and its ancestors.
+    #[inline]
+    pub fn current_parent(&self) -> Option<E> {
+        self.elements.last().map(|el| **el)
+    }
+
     /// Insert the parents of an element in the bloom filter, trying to recover
     /// the filter if the last element inserted doesn't match.
     ///
@@ -185,7 +193,7 @@ impl<E: TElement> StyleBloom<E> {
             }
         };
 
-        if self.elements.last().map(|el| **el) == Some(parent_element) {
+        if self.current_parent() == Some(parent_element) {
             // Ta da, cache hit, we're all done.
             return;
         }

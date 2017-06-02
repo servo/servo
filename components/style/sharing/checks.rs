@@ -6,10 +6,10 @@
 //! quickly whether it's worth to share style, and whether two different
 //! elements can indeed share the same style.
 
+use bloom::StyleBloom;
 use context::{SelectorFlagsMap, SharedStyleContext};
 use dom::TElement;
 use element_state::*;
-use selectors::bloom::BloomFilter;
 use selectors::matching::StyleRelations;
 use sharing::{StyleSharingCandidate, StyleSharingTarget};
 use stylearc::Arc;
@@ -102,7 +102,7 @@ pub fn have_same_state_ignoring_visitedness<E>(element: E,
 pub fn revalidate<E>(target: &mut StyleSharingTarget<E>,
                      candidate: &mut StyleSharingCandidate<E>,
                      shared_context: &SharedStyleContext,
-                     bloom: &BloomFilter,
+                     bloom: &StyleBloom<E>,
                      selector_flags_map: &mut SelectorFlagsMap<E>)
                      -> bool
     where E: TElement,

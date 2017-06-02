@@ -7,13 +7,13 @@
 
 use Atom;
 use bit_vec::BitVec;
+use bloom::StyleBloom;
 use cache::{LRUCache, LRUCacheMutIterator};
 use context::{SelectorFlagsMap, SharedStyleContext, StyleContext};
 use data::{ComputedStyle, ElementData, ElementStyles};
 use dom::{TElement, SendElement};
 use matching::{ChildCascadeRequirement, MatchMethods};
 use properties::ComputedValues;
-use selectors::bloom::BloomFilter;
 use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode, StyleRelations};
 use smallvec::SmallVec;
 use std::mem;
@@ -95,19 +95,40 @@ impl ValidationData {
     }
 
     /// Computes the revalidation results if needed, and returns it.
+    /// Inline so we know at compile time what bloom_known_valid is.
+    #[inline]
     fn revalidation_match_results<E, F>(
         &mut self,
         element: E,
         stylist: &Stylist,
-        bloom: &BloomFilter,
+        bloom: &StyleBloom<E>,
+        bloom_known_valid: bool,
         flags_setter: &mut F
     ) -> &BitVec
         where E: TElement,
               F: FnMut(&E, ElementSelectorFlags),
     {
         if self.revalidation_match_results.is_none() {
+            // The bloom filter may already be set up for our element.
+            // If it is, use it.  If not, we must be in a candidate
+            // (i.e. something in the cache), and the element is one
+            // of our cousins, not a sibling.  In that case, we'll
+            // just do revalidation selector matching without a bloom
+            // filter, to avoid thrashing the filter.
+            let bloom_to_use = if bloom_known_valid {
+                debug_assert_eq!(bloom.current_parent(),
+                                 element.parent_element());
+                Some(bloom.filter())
+            } else {
+                if bloom.current_parent() == element.parent_element() {
+                    Some(bloom.filter())
+                } else {
+                    None
+                }
+            };
             self.revalidation_match_results =
-                Some(stylist.match_revalidation_selectors(&element, bloom,
+                Some(stylist.match_revalidation_selectors(&element,
+                                                          bloom_to_use,
                                                           flags_setter));
         }
 
@@ -149,16 +170,18 @@ impl<E: TElement> StyleSharingCandidate<E> {
         self.validation_data.pres_hints(*self.element)
     }
 
-    /// Get the classlist of this candidate.
+    /// Compute the bit vector of revalidation selector match results
+    /// for this candidate.
     fn revalidation_match_results(
         &mut self,
         stylist: &Stylist,
-        bloom: &BloomFilter,
+        bloom: &StyleBloom<E>,
     ) -> &BitVec {
         self.validation_data.revalidation_match_results(
             *self.element,
             stylist,
             bloom,
+            /* bloom_known_valid = */ false,
             &mut |_, _| {})
     }
 }
@@ -204,7 +227,7 @@ impl<E: TElement> StyleSharingTarget<E> {
     fn revalidation_match_results(
         &mut self,
         stylist: &Stylist,
-        bloom: &BloomFilter,
+        bloom: &StyleBloom<E>,
         selector_flags_map: &mut SelectorFlagsMap<E>
     ) -> &BitVec {
         // It's important to set the selector flags. Otherwise, if we succeed in
@@ -231,6 +254,7 @@ impl<E: TElement> StyleSharingTarget<E> {
             self.element,
             stylist,
             bloom,
+            /* bloom_known_valid = */ true,
             &mut set_selector_flags)
     }
 
@@ -243,7 +267,10 @@ impl<E: TElement> StyleSharingTarget<E> {
     {
         let shared_context = &context.shared;
         let selector_flags_map = &mut context.thread_local.selector_flags;
-        let bloom_filter = context.thread_local.bloom_filter.filter();
+        let bloom_filter = &context.thread_local.bloom_filter;
+
+        debug_assert_eq!(bloom_filter.current_parent(),
+                         self.element.parent_element());
 
         let result = context.thread_local
             .style_sharing_candidate_cache
@@ -400,7 +427,7 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
         &mut self,
         shared_context: &SharedStyleContext,
         selector_flags_map: &mut SelectorFlagsMap<E>,
-        bloom_filter: &BloomFilter,
+        bloom_filter: &StyleBloom<E>,
         target: &mut StyleSharingTarget<E>,
         data: &mut ElementData
     ) -> StyleSharingResult {
@@ -498,7 +525,7 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
     fn test_candidate(target: &mut StyleSharingTarget<E>,
                       candidate: &mut StyleSharingCandidate<E>,
                       shared: &SharedStyleContext,
-                      bloom: &BloomFilter,
+                      bloom: &StyleBloom<E>,
                       selector_flags_map: &mut SelectorFlagsMap<E>)
                       -> Result<ComputedStyle, CacheMiss> {
         macro_rules! miss {
