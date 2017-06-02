@@ -1396,23 +1396,25 @@ impl Parse for Attr {
 
 #[cfg(feature = "gecko")]
 /// Get the namespace id from the namespace map
-pub fn get_id_for_namespace(namespace: &Namespace, context: &ParserContext) -> Result<NamespaceId, ()> {
-    if let Some(map) = context.namespaces {
-        if let Some(ref entry) = map.read().prefixes.get(&namespace.0) {
-            Ok(entry.1)
-        } else {
-            Err(())
+fn get_id_for_namespace(namespace: &Namespace, context: &ParserContext) -> Result<NamespaceId, ()> {
+    let namespaces_map = match context.namespaces {
+        Some(map) => map,
+        None => {
+            // If we don't have a namespace map (e.g. in inline styles)
+            // we can't parse namespaces
+            return Err(());
         }
-    } else {
-        // if we don't have a namespace map (e.g. in inline styles)
-        // we can't parse namespaces
-        Err(())
+    };
+
+    match namespaces_map.prefixes.get(&namespace.0) {
+        Some(entry) => Ok(entry.1),
+        None => Err(()),
     }
 }
 
 #[cfg(feature = "servo")]
 /// Get the namespace id from the namespace map
-pub fn get_id_for_namespace(_: &Namespace, _: &ParserContext) -> Result<NamespaceId, ()> {
+fn get_id_for_namespace(_: &Namespace, _: &ParserContext) -> Result<NamespaceId, ()> {
     Ok(())
 }
 
