@@ -31,6 +31,7 @@ use html5ever::tree_builder::{NodeOrText, TreeSink, NextParserState, QuirksMode,
 use html5ever::tree_builder::{Tracer as HtmlTracer, TreeBuilder, TreeBuilderOpts};
 use js::jsapi::JSTracer;
 use servo_url::ServoUrl;
+use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::cell::Cell;
 use std::collections::HashMap;
@@ -147,6 +148,7 @@ struct ParseNodeData {
     target: Option<String>,
     data: Option<String>,
     contents: Option<ParseNode>,
+    is_integration_point: bool,
 }
 
 impl Default for ParseNodeData {
@@ -156,6 +158,7 @@ impl Default for ParseNodeData {
             target: None,
             data: None,
             contents: None,
+            is_integration_point: false,
         }
     }
 }
@@ -392,10 +395,7 @@ impl TreeSink for Sink {
 
     fn elem_name<'a>(&self, target: &'a Self::Handle) -> ExpandedName<'a> {
         match target.qual_name {
-            Some(ref qual_name) => ExpandedName {
-                                       ns: &qual_name.ns,
-                                       local: &qual_name.local,
-                                   },
+            Some(ref qual_name) => qual_name.expanded(),
             None => panic!("Expected qual name of node!"),
         }
     }
@@ -408,6 +408,16 @@ impl TreeSink for Sink {
         -> Self::Handle {
         let mut node = self.new_parse_node();
         node.qual_name = Some(name.clone());
+
+        let mut parse_node_data = self.parse_node_data.borrow_mut();
+        let mut node_data = parse_node_data.get_mut(&node.id).expect("Element does not exist!");
+        node_data.is_integration_point = attrs.iter()
+        .any(|attr| {
+            let attr_value = &String::from(attr.value.clone());
+            (attr.name.local == local_name!("encoding") && attr.name.ns == ns!()) &&
+            (attr_value.eq_ignore_ascii_case("text/html") ||
+            attr_value.eq_ignore_ascii_case("application/xhtml+xml"))
+        });
         self.enqueue(ParseOperation::CreateElement(node.id, name, attrs));
         node
     }
@@ -528,12 +538,9 @@ impl TreeSink for Sink {
     /// https://html.spec.whatwg.org/multipage/#html-integration-point
     /// Specifically, the <annotation-xml> cases.
     fn is_mathml_annotation_xml_integration_point(&self, handle: &Self::Handle) -> bool {
-        // let elem = handle.downcast::<Element>().unwrap();
-        // elem.get_attribute(&ns!(), &local_name!("encoding")).map_or(false, |attr| {
-        //     attr.value().eq_ignore_ascii_case("text/html")
-        //         || attr.value().eq_ignore_ascii_case("application/xhtml+xml")
-        // })
-        true
+        let parse_node_data = self.parse_node_data.borrow();
+        let node_data = parse_node_data.get(&handle.id).expect("Element does not exist!");
+        node_data.is_integration_point
     }
 
     fn set_current_line(&mut self, line_number: u64) {
