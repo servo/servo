@@ -91,9 +91,11 @@ use log::{Log, LogLevel, LogLevelFilter, LogMetadata, LogRecord};
 use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, FrameType, PipelineId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
-use net_traits::{self, IpcSend, ResourceThreads};
+use net_traits::{self, IpcSend, FetchResponseMsg, ResourceThreads};
 use net_traits::pub_domains::reg_host;
+use net_traits::request::RequestInit;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
+use network_listener::NetworkListener;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use pipeline::{InitialPipelineState, Pipeline};
 use profile_traits::mem;
@@ -158,6 +160,12 @@ pub struct Constellation<Message, LTF, STF> {
     /// A channel for the constellation to receive messages from layout threads.
     /// This is the constellation's view of `layout_sender`.
     layout_receiver: Receiver<Result<FromLayoutMsg, IpcError>>,
+
+    /// A channel for network listener to send messages to the constellation.
+    network_listener_sender: Sender<(PipelineId, FetchResponseMsg)>,
+
+    /// A channel for the constellation to receive messages from network listener.
+    network_listener_receiver: Receiver<(PipelineId, FetchResponseMsg)>,
 
     /// A channel for the constellation to receive messages from the compositor thread.
     compositor_receiver: Receiver<FromCompositorMsg>,
@@ -502,6 +510,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             let (ipc_layout_sender, ipc_layout_receiver) = ipc::channel().expect("ipc channel failure");
             let layout_receiver = route_ipc_receiver_to_new_mpsc_receiver_preserving_errors(ipc_layout_receiver);
 
+            let (network_listener_sender, network_listener_receiver) = channel();
+
             let swmanager_receiver = route_ipc_receiver_to_new_mpsc_receiver_preserving_errors(swmanager_receiver);
 
             PipelineNamespace::install(PipelineNamespaceId(0));
@@ -512,6 +522,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 script_receiver: script_receiver,
                 compositor_receiver: compositor_receiver,
                 layout_receiver: layout_receiver,
+                network_listener_sender: network_listener_sender,
+                network_listener_receiver: network_listener_receiver,
                 compositor_proxy: state.compositor_proxy,
                 debugger_chan: state.debugger_chan,
                 devtools_chan: state.devtools_chan,
@@ -797,6 +809,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             Script(FromScriptMsg),
             Compositor(FromCompositorMsg),
             Layout(FromLayoutMsg),
+            NetworkListener((PipelineId, FetchResponseMsg)),
             FromSWManager(SWManagerMsg),
         }
 
@@ -815,6 +828,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             let receiver_from_script = &self.script_receiver;
             let receiver_from_compositor = &self.compositor_receiver;
             let receiver_from_layout = &self.layout_receiver;
+            let receiver_from_network_listener = &self.network_listener_receiver;
             let receiver_from_swmanager = &self.swmanager_receiver;
             select! {
                 msg = receiver_from_script.recv() =>
@@ -823,6 +837,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     Ok(Request::Compositor(msg.expect("Unexpected compositor channel panic in constellation"))),
                 msg = receiver_from_layout.recv() =>
                     msg.expect("Unexpected layout channel panic in constellation").map(Request::Layout),
+                msg = receiver_from_network_listener.recv() =>
+                    Ok(Request::NetworkListener(
+                        msg.expect("Unexpected network listener channel panic in constellation")
+                    )),
                 msg = receiver_from_swmanager.recv() =>
                     msg.expect("Unexpected panic channel panic in constellation").map(Request::FromSWManager)
             }
@@ -849,9 +867,28 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             Request::Layout(message) => {
                 self.handle_request_from_layout(message);
             },
+            Request::NetworkListener(message) => {
+                self.handle_request_from_network_listener(message);
+            },
             Request::FromSWManager(message) => {
                 self.handle_request_from_swmanager(message);
             }
+        }
+    }
+
+    fn handle_request_from_network_listener(&mut self, message: (PipelineId, FetchResponseMsg)) {
+        let (id, message_) = message;
+        let result = match self.pipelines.get(&id) {
+            Some(pipeline) => {
+                let msg = ConstellationControlMsg::NavigationResponse(id, message_);
+                pipeline.event_loop.send(msg)
+            },
+            None => {
+                return warn!("Pipeline {:?} got fetch data after closure!", id);
+            },
+        };
+        if let Err(e) = result {
+            self.handle_send_error(id, e);
         }
     }
 
@@ -955,6 +992,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         match message {
             FromScriptMsg::PipelineExited(pipeline_id) => {
                 self.handle_pipeline_exited(pipeline_id);
+            }
+            FromScriptMsg::InitiateNavigateRequest(req_init, pipeline_id) => {
+                debug!("constellation got initiate navigate request message");
+                self.handle_navigate_request(req_init, pipeline_id);
             }
             FromScriptMsg::ScriptLoadedURLInIFrame(load_info) => {
                 debug!("constellation got iframe URL load message {:?} {:?} {:?}",
@@ -1482,6 +1523,18 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if let Err(e) = result {
             self.handle_send_error(parent_id, e);
         }
+    }
+
+    fn handle_navigate_request(&self,
+                              req_init: RequestInit,
+                              id: PipelineId) {
+        let listener = NetworkListener::new(
+                           req_init,
+                           id,
+                           self.public_resource_threads.clone(),
+                           self.network_listener_sender.clone());
+
+        listener.initiate_fetch();
     }
 
     // The script thread associated with pipeline_id has loaded a URL in an iframe via script. This

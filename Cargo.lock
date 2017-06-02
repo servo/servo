@@ -489,6 +489,7 @@ dependencies = [
  "gaol 0.0.1 (git+https://github.com/servo/gaol)",
  "gfx 0.0.1",
  "gfx_traits 0.0.1",
+ "hyper 0.10.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "itertools 0.5.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "layout_traits 0.0.1",

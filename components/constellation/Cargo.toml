@@ -21,6 +21,7 @@ devtools_traits = {path = "../devtools_traits"}
 euclid = "0.11"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
+hyper = "0.10"
 ipc-channel = "0.7"
 itertools = "0.5"
 layout_traits = {path = "../layout_traits"}

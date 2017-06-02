@@ -20,6 +20,7 @@ use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, FrameType, PipelineId, TraversalDirection};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use net_traits::CoreResourceMsg;
+use net_traits::request::RequestInit;
 use net_traits::storage_thread::StorageType;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use servo_url::ImmutableOrigin;
@@ -67,6 +68,9 @@ pub enum LogEntry {
 /// Messages from the script to the constellation.
 #[derive(Deserialize, Serialize)]
 pub enum ScriptMsg {
+    /// Requests are sent to constellation and fetches are checked manually
+    /// for cross-origin loads
+    InitiateNavigateRequest(RequestInit, PipelineId),
     /// Broadcast a storage event to every same-origin pipeline.
     /// The strings are key, old value and new value.
     BroadcastStorageEvent(PipelineId, StorageType, ServoUrl, Option<String>, Option<String>, Option<String>),
