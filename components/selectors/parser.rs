@@ -841,13 +841,13 @@ impl From<Specificity> for u32 {
     }
 }
 
-fn specificity<Impl>(complex_selector: &Selector<Impl>) -> u32
+fn specificity<Impl>(iter: SelectorIter<Impl>) -> u32
     where Impl: SelectorImpl
 {
-    complex_selector_specificity(complex_selector).into()
+    complex_selector_specificity(iter).into()
 }
 
-fn complex_selector_specificity<Impl>(selector: &Selector<Impl>)
+fn complex_selector_specificity<Impl>(mut iter: SelectorIter<Impl>)
                                       -> Specificity
     where Impl: SelectorImpl
 {
@@ -896,9 +896,7 @@ fn complex_selector_specificity<Impl>(selector: &Selector<Impl>)
         }
     }
 
-
     let mut specificity = Default::default();
-    let mut iter = selector.iter();
     loop {
         for simple_selector in &mut iter {
             simple_selector_specificity(&simple_selector, &mut specificity);
@@ -917,12 +915,7 @@ fn complex_selector_specificity<Impl>(selector: &Selector<Impl>)
 fn parse_selector<P, Impl>(parser: &P, input: &mut CssParser) -> Result<Selector<Impl>, ()>
     where P: Parser<Impl=Impl>, Impl: SelectorImpl
 {
-    let (mut selector, has_pseudo_element) = parse_complex_selector(parser, input)?;
-    let mut specificity = specificity(&selector);
-    if has_pseudo_element {
-        specificity |= HAS_PSEUDO_BIT;
-    }
-    selector.1 = specificity;
+    let selector = parse_complex_selector(parser, input)?;
     Ok(selector)
 }
 
@@ -944,7 +937,7 @@ type ParseVec<Impl> = SmallVec<[Component<Impl>; 8]>;
 fn parse_complex_selector<P, Impl>(
         parser: &P,
         input: &mut CssParser)
-        -> Result<(Selector<Impl>, bool), ()>
+        -> Result<Selector<Impl>, ()>
     where P: Parser<Impl=Impl>, Impl: SelectorImpl
 {
     let mut sequence = ParseVec::new();
@@ -992,21 +985,28 @@ fn parse_complex_selector<P, Impl>(
         sequence.push(Component::Combinator(combinator));
     }
 
-    let complex = Selector(ArcSlice::new(sequence.into_vec().into_boxed_slice()), 0);
-    Ok((complex, parsed_pseudo_element))
+    let mut specificity = specificity(SelectorIter {
+        iter: sequence.iter().rev(),
+        next_combinator: None,
+    });
+    if parsed_pseudo_element {
+        specificity |= HAS_PSEUDO_BIT;
+    }
+
+    let complex = Selector(ArcSlice::new(sequence.into_vec().into_boxed_slice()), specificity);
+    Ok(complex)
 }
 
 impl<Impl: SelectorImpl> Selector<Impl> {
-    /// Parse a complex selector, without any pseudo-element.
+    /// Parse a selector, without any pseudo-element.
     pub fn parse<P>(parser: &P, input: &mut CssParser) -> Result<Self, ()>
         where P: Parser<Impl=Impl>
     {
-        let (complex, has_pseudo_element) =
-            parse_complex_selector(parser, input)?;
-        if has_pseudo_element {
+        let selector = parse_complex_selector(parser, input)?;
+        if selector.has_pseudo_element() {
             return Err(())
         }
-        Ok(complex)
+        Ok(selector)
     }
 }
 
