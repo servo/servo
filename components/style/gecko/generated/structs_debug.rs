@@ -800,6 +800,11 @@ pub mod root {
         4;
     pub const NS_STYLE_CONTEXT_PROPERTY_FILL: ::std::os::raw::c_uint = 1;
     pub const NS_STYLE_CONTEXT_PROPERTY_STROKE: ::std::os::raw::c_uint = 2;
+    pub const NS_STYLE_CONTEXT_PROPERTY_FILL_OPACITY: ::std::os::raw::c_uint =
+        4;
+    pub const NS_STYLE_CONTEXT_PROPERTY_STROKE_OPACITY: ::std::os::raw::c_uint
+              =
+        8;
     pub const NS_STYLE_WINDOW_SHADOW_NONE: ::std::os::raw::c_uint = 0;
     pub const NS_STYLE_WINDOW_SHADOW_DEFAULT: ::std::os::raw::c_uint = 1;
     pub const NS_STYLE_WINDOW_SHADOW_MENU: ::std::os::raw::c_uint = 2;
@@ -3673,9 +3678,20 @@ pub mod root {
                 _unused: [u8; 0],
             }
             #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
+            #[derive(Debug)]
             pub struct EventHandlerNonNull {
-                _unused: [u8; 0],
+                pub _base: root::mozilla::dom::CallbackFunction,
+            }
+            #[test]
+            fn bindgen_test_layout_EventHandlerNonNull() {
+                assert_eq!(::std::mem::size_of::<EventHandlerNonNull>() ,
+                           56usize , concat ! (
+                           "Size of: " , stringify ! ( EventHandlerNonNull )
+                           ));
+                assert_eq! (::std::mem::align_of::<EventHandlerNonNull>() ,
+                            8usize , concat ! (
+                            "Alignment of " , stringify ! (
+                            EventHandlerNonNull ) ));
             }
             #[repr(C)]
             #[derive(Debug, Copy, Clone)]
@@ -14865,26 +14881,6 @@ pub mod root {
     #[derive(Debug, Copy, Clone)]
     pub struct nsIPrincipal_COMTypeInfo {
         pub _address: u8,
-    }
-    pub const nsIPrincipal_APP_STATUS_NOT_INSTALLED:
-              root::nsIPrincipal__bindgen_ty_1 =
-        nsIPrincipal__bindgen_ty_1::APP_STATUS_NOT_INSTALLED;
-    pub const nsIPrincipal_APP_STATUS_INSTALLED:
-              root::nsIPrincipal__bindgen_ty_1 =
-        nsIPrincipal__bindgen_ty_1::APP_STATUS_INSTALLED;
-    pub const nsIPrincipal_APP_STATUS_PRIVILEGED:
-              root::nsIPrincipal__bindgen_ty_1 =
-        nsIPrincipal__bindgen_ty_1::APP_STATUS_PRIVILEGED;
-    pub const nsIPrincipal_APP_STATUS_CERTIFIED:
-              root::nsIPrincipal__bindgen_ty_1 =
-        nsIPrincipal__bindgen_ty_1::APP_STATUS_CERTIFIED;
-    #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-    pub enum nsIPrincipal__bindgen_ty_1 {
-        APP_STATUS_NOT_INSTALLED = 0,
-        APP_STATUS_INSTALLED = 1,
-        APP_STATUS_PRIVILEGED = 2,
-        APP_STATUS_CERTIFIED = 3,
     }
     #[test]
     fn bindgen_test_layout_nsIPrincipal() {
@@ -33529,7 +33525,7 @@ pub mod root {
                    root::nsCharTraits ) ));
     }
     #[test]
-    fn __bindgen_test_layout__bindgen_ty_id_203478_instantiation_99() {
+    fn __bindgen_test_layout__bindgen_ty_id_211393_instantiation_99() {
         assert_eq!(::std::mem::size_of::<u8>() , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u8 )
                    ));
@@ -33538,7 +33534,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout__bindgen_ty_id_203514_instantiation_100() {
+    fn __bindgen_test_layout__bindgen_ty_id_211429_instantiation_100() {
         assert_eq!(::std::mem::size_of::<u8>() , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u8 )
                    ));
