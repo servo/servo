@@ -21,7 +21,7 @@ use app_units::Au;
 #[cfg(feature = "servo")] use cssparser::RGBA;
 use cssparser::{Parser, TokenSerializationType, serialize_identifier};
 use error_reporting::ParseErrorReporter;
-#[cfg(feature = "servo")] use euclid::side_offsets::SideOffsets2D;
+#[cfg(feature = "servo")] use euclid::SideOffsets2D;
 use computed_values;
 use context::QuirksMode;
 use font_metrics::FontMetricsProvider;

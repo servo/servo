@@ -10,7 +10,7 @@ name = "compositing"
 path = "lib.rs"
 
 [dependencies]
-euclid = "0.13"
+euclid = "0.14"
 gfx_traits = {path = "../gfx_traits"}
 gleam = "0.4"
 image = "0.12"

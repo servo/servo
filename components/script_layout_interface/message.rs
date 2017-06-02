@@ -4,8 +4,7 @@
 
 use {OpaqueStyleAndLayoutData, TrustedNodeAddress, PendingImage};
 use app_units::Au;
-use euclid::point::Point2D;
-use euclid::rect::Rect;
+use euclid::{Point2D, Rect};
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::PipelineId;

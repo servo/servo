@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::{Parser, SourcePosition};
-use euclid::size::TypedSize2D;
+use euclid::TypedSize2D;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use style::Atom;

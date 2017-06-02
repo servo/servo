@@ -92,7 +92,7 @@ use dom::windowproxy::WindowProxy;
 use dom_struct::dom_struct;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
-use euclid::point::Point2D;
+use euclid::Point2D;
 use html5ever::{LocalName, QualName};
 use hyper::header::{Header, SetCookie};
 use hyper_serde::Serde;
@@ -865,7 +865,7 @@ impl Document {
             if let Some(pipeline_id) = iframe.pipeline_id() {
                 let rect = iframe.upcast::<Element>().GetBoundingClientRect();
                 let child_origin = Point2D::new(rect.X() as f32, rect.Y() as f32);
-                let child_point = client_point - child_origin;
+                let child_point = client_point - child_origin.to_vector();
 
                 let event = CompositorEvent::MouseButtonEvent(mouse_event_type, button, child_point);
                 let event = ConstellationMsg::ForwardEvent(pipeline_id, event);
@@ -1020,7 +1020,7 @@ impl Document {
             if let Some(pipeline_id) = iframe.pipeline_id() {
                 let rect = iframe.upcast::<Element>().GetBoundingClientRect();
                 let child_origin = Point2D::new(rect.X() as f32, rect.Y() as f32);
-                let child_point = client_point - child_origin;
+                let child_point = client_point - child_origin.to_vector();
 
                 let event = CompositorEvent::TouchpadPressureEvent(child_point,
                                                                    pressure,
@@ -1124,7 +1124,7 @@ impl Document {
                 if let Some(pipeline_id) = iframe.pipeline_id() {
                     let rect = iframe.upcast::<Element>().GetBoundingClientRect();
                     let child_origin = Point2D::new(rect.X() as f32, rect.Y() as f32);
-                    let child_point = client_point - child_origin;
+                    let child_point = client_point - child_origin.to_vector();
 
                     let event = CompositorEvent::MouseMoveEvent(Some(child_point));
                     let event = ConstellationMsg::ForwardEvent(pipeline_id, event);
@@ -1231,7 +1231,7 @@ impl Document {
             if let Some(pipeline_id) = iframe.pipeline_id() {
                 let rect = iframe.upcast::<Element>().GetBoundingClientRect();
                 let child_origin = Point2D::new(rect.X() as f32, rect.Y() as f32);
-                let child_point = point - child_origin;
+                let child_point = point - child_origin.to_vector();
 
                 let event = CompositorEvent::TouchEvent(event_type, touch_id, child_point);
                 let event = ConstellationMsg::ForwardEvent(pipeline_id, event);

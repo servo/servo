@@ -40,7 +40,7 @@ use dom_struct::dom_struct;
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncoderTrap, Encoding, EncodingRef};
-use euclid::length::Length;
+use euclid::Length;
 use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
 use hyper::header::{ContentLength, ContentType, ContentEncoding};

@@ -56,9 +56,7 @@ use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::Window;
 use dom_struct::dom_struct;
-use euclid::point::Point2D;
-use euclid::rect::Rect;
-use euclid::size::Size2D;
+use euclid::{Point2D, Vector2D, Rect, Size2D};
 use heapsize::{HeapSizeOf, heap_size_of};
 use html5ever::{Prefix, Namespace, QualName};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
@@ -612,7 +610,7 @@ impl Node {
         }
     }
 
-    pub fn scroll_offset(&self) -> Point2D<f32> {
+    pub fn scroll_offset(&self) -> Vector2D<f32> {
         let document = self.owner_doc();
         let window = document.window();
         window.scroll_offset_query(self)

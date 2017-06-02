@@ -11,7 +11,7 @@ path = "lib.rs"
 
 [dependencies]
 cssparser = "0.13.7"
-euclid = "0.13"
+euclid = "0.14.2"
 heapsize = "0.4"
 heapsize_derive = "0.1"
 ipc-channel = "0.7"

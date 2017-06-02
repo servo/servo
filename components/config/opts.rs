@@ -5,7 +5,7 @@
 //! Configuration options for a single run of the servo application. Created
 //! from command line arguments.
 
-use euclid::size::TypedSize2D;
+use euclid::TypedSize2D;
 use getopts::Options;
 use num_cpus;
 use prefs::{self, PrefValue, PREFS};

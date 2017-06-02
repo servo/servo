@@ -5,7 +5,7 @@
 //! Tests for parsing and serialization of values/properties
 
 use cssparser::Parser;
-use euclid::size::TypedSize2D;
+use euclid::TypedSize2D;
 use media_queries::CSSErrorReporterTest;
 use style::context::QuirksMode;
 use style::font_metrics::ServoMetricsProvider;

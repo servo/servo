@@ -1600,7 +1600,7 @@ impl Flow for InlineFlow {
                         block_flow.base
                                   .late_absolute_position_info
                                   .stacking_relative_position_of_absolute_containing_block =
-                            stacking_relative_position + *padding_box_origin;
+                            stacking_relative_position + padding_box_origin.to_vector();
                     }
 
                     block_flow.base.stacking_relative_position =
@@ -1633,7 +1633,7 @@ impl Flow for InlineFlow {
                     block_flow.base
                               .late_absolute_position_info
                               .stacking_relative_position_of_absolute_containing_block =
-                        stacking_relative_position + *padding_box_origin;
+                        stacking_relative_position + padding_box_origin.to_vector();
 
                     block_flow.base.stacking_relative_position =
                         stacking_relative_border_box.origin;
@@ -1694,7 +1694,7 @@ impl Flow for InlineFlow {
                                                                     relative_containing_block_size,
                                                                     relative_containing_block_mode,
                                                                     CoordinateSystem::Own)
-                                      .translate(stacking_context_position))
+                                      .translate(&stacking_context_position.to_vector()))
         }
     }
 

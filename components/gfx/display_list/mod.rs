@@ -15,10 +15,8 @@
 //! low-level drawing primitives.
 
 use app_units::Au;
-use euclid::{Matrix4D, Point2D, Rect, Size2D};
+use euclid::{Transform3D, Point2D, Vector2D, Rect, Size2D, TypedRect, SideOffsets2D};
 use euclid::num::{One, Zero};
-use euclid::rect::TypedRect;
-use euclid::side_offsets::SideOffsets2D;
 use gfx_traits::StackingContextId;
 use gfx_traits::print_tree::PrintTree;
 use ipc_channel::ipc::IpcSharedMemory;
@@ -66,7 +64,7 @@ impl<'a> ScrollOffsetLookup<'a> {
 
     fn new_for_reference_frame(&mut self,
                                clip_id: ClipId,
-                               transform: &Matrix4D<f32>,
+                               transform: &Transform3D<f32>,
                                point: &mut Point2D<Au>)
                                -> Option<ScrollOffsetLookup> {
         // If a transform function causes the current transformation matrix of an object
@@ -79,8 +77,8 @@ impl<'a> ScrollOffsetLookup<'a> {
         let scroll_offset = self.full_offset_for_scroll_root(&clip_id);
         *point = Point2D::new(point.x - Au::from_f32_px(scroll_offset.x),
                               point.y - Au::from_f32_px(scroll_offset.y));
-        let frac_point = inv_transform.transform_point(&Point2D::new(point.x.to_f32_px(),
-                                                                     point.y.to_f32_px()));
+        let frac_point = inv_transform.transform_point2d(&Point2D::new(point.x.to_f32_px(),
+                                                                       point.y.to_f32_px()));
         *point = Point2D::new(Au::from_f32_px(frac_point.x), Au::from_f32_px(frac_point.y));
 
         let mut sublookup = ScrollOffsetLookup {
@@ -88,7 +86,7 @@ impl<'a> ScrollOffsetLookup<'a> {
             calculated_total_offsets: HashMap::new(),
             raw_offsets: self.raw_offsets,
         };
-        sublookup.calculated_total_offsets.insert(clip_id, Point2D::zero());
+        sublookup.calculated_total_offsets.insert(clip_id, Vector2D::zero());
         Some(sublookup)
     }
 
@@ -96,7 +94,7 @@ impl<'a> ScrollOffsetLookup<'a> {
         self.parents.insert(scroll_root.id, scroll_root.parent_id);
     }
 
-    fn full_offset_for_scroll_root(&mut self, id: &ClipId) -> Point2D<f32> {
+    fn full_offset_for_scroll_root(&mut self, id: &ClipId) -> Vector2D<f32> {
         if let Some(offset) = self.calculated_total_offsets.get(id) {
             return *offset;
         }
@@ -105,11 +103,11 @@ impl<'a> ScrollOffsetLookup<'a> {
             let parent_id = *self.parents.get(id).unwrap();
             self.full_offset_for_scroll_root(&parent_id)
         } else {
-            Point2D::zero()
+            Vector2D::zero()
         };
 
         let offset = parent_offset +
-                     self.raw_offsets.get(id).cloned().unwrap_or_else(Point2D::zero);
+                     self.raw_offsets.get(id).cloned().unwrap_or_else(Vector2D::zero);
         self.calculated_total_offsets.insert(*id, offset);
         offset
     }
@@ -184,10 +182,10 @@ impl DisplayList {
                                        point: &Point2D<Au>,
                                        offset_lookup: &mut ScrollOffsetLookup,
                                        result: &mut Vec<usize>) {
-        let mut point = *point - stacking_context.bounds.origin;
+        let mut point = *point - stacking_context.bounds.origin.to_vector();
         if stacking_context.scroll_policy == ScrollPolicy::Fixed {
             let old_offset = offset_lookup.calculated_total_offsets.get(&clip_id).cloned();
-            offset_lookup.calculated_total_offsets.insert(clip_id, Point2D::zero());
+            offset_lookup.calculated_total_offsets.insert(clip_id, Vector2D::zero());
 
             self.text_index_contents(node, traversal, &point, offset_lookup, result);
 
@@ -257,10 +255,10 @@ impl DisplayList {
                                      result: &mut Vec<DisplayItemMetadata>) {
         debug_assert!(stacking_context.context_type == StackingContextType::Real);
 
-        let mut point = *point - stacking_context.bounds.origin;
+        let mut point = *point - stacking_context.bounds.origin.to_vector();
         if stacking_context.scroll_policy == ScrollPolicy::Fixed {
             let old_offset = offset_lookup.calculated_total_offsets.get(&clip_id).cloned();
-            offset_lookup.calculated_total_offsets.insert(clip_id, Point2D::zero());
+            offset_lookup.calculated_total_offsets.insert(clip_id, Vector2D::zero());
 
             self.hit_test_contents(traversal, &point, offset_lookup, result);
 
@@ -427,13 +425,13 @@ pub struct StackingContext {
     pub mix_blend_mode: MixBlendMode,
 
     /// A transform to be applied to this stacking context.
-    pub transform: Option<Matrix4D<f32>>,
+    pub transform: Option<Transform3D<f32>>,
 
     /// The transform style of this stacking context.
     pub transform_style: TransformStyle,
 
     /// The perspective matrix to be applied to children.
-    pub perspective: Option<Matrix4D<f32>>,
+    pub perspective: Option<Transform3D<f32>>,
 
     /// The scroll policy of this layer.
     pub scroll_policy: ScrollPolicy,
@@ -452,9 +450,9 @@ impl StackingContext {
                z_index: i32,
                filters: filter::T,
                mix_blend_mode: MixBlendMode,
-               transform: Option<Matrix4D<f32>>,
+               transform: Option<Transform3D<f32>>,
                transform_style: TransformStyle,
-               perspective: Option<Matrix4D<f32>>,
+               perspective: Option<Transform3D<f32>>,
                scroll_policy: ScrollPolicy,
                parent_scroll_id: ClipId)
                -> StackingContext {
@@ -802,7 +800,7 @@ impl ClippingRegion {
 
     /// Translates this clipping region by the given vector.
     #[inline]
-    pub fn translate(&self, delta: &Point2D<Au>) -> ClippingRegion {
+    pub fn translate(&self, delta: &Vector2D<Au>) -> ClippingRegion {
         ClippingRegion {
             main: self.main.translate(delta),
             complex: self.complex.iter().map(|complex| {
@@ -1158,7 +1156,7 @@ pub struct BoxShadowDisplayItem {
     pub box_bounds: Rect<Au>,
 
     /// The offset of this shadow from the box.
-    pub offset: Point2D<Au>,
+    pub offset: Vector2D<Au>,
 
     /// The color of this shadow.
     pub color: ColorF,
@@ -1383,14 +1381,14 @@ impl WebRenderImageInfo {
 }
 
 /// The type of the scroll offset list. This is only populated if WebRender is in use.
-pub type ScrollOffsetMap = HashMap<ClipId, Point2D<f32>>;
+pub type ScrollOffsetMap = HashMap<ClipId, Vector2D<f32>>;
 
 
 pub trait SimpleMatrixDetection {
     fn is_identity_or_simple_translation(&self) -> bool;
 }
 
-impl SimpleMatrixDetection for Matrix4D<f32> {
+impl SimpleMatrixDetection for Transform3D<f32> {
     #[inline]
     fn is_identity_or_simple_translation(&self) -> bool {
         let (_0, _1) = (Zero::zero(), One::one());

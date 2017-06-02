@@ -6,7 +6,7 @@
 
 use {CSSPixel, PinchZoomFactor};
 use cssparser::{Parser, ToCss};
-use euclid::size::TypedSize2D;
+use euclid::TypedSize2D;
 use std::ascii::AsciiExt;
 use std::fmt;
 use values::specified::AllowedLengthType;

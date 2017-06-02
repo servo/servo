@@ -19,10 +19,7 @@ use wrappers::CefWrap;
 
 use compositing::compositor_thread::EventLoopWaker;
 use compositing::windowing::{WindowEvent, WindowMethods};
-use euclid::point::{Point2D, TypedPoint2D};
-use euclid::rect::TypedRect;
-use euclid::scale_factor::ScaleFactor;
-use euclid::size::{Size2D, TypedSize2D};
+use euclid::{Point2D, TypedPoint2D, TypedRect, Size2D, TypedSize2D, ScaleFactor};
 use gleam::gl;
 use msg::constellation_msg::{Key, KeyModifiers};
 use net_traits::net_error_list::NetError;
