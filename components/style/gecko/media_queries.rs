@@ -99,6 +99,13 @@ impl Device {
         self.root_font_size.store(size.0 as isize, Ordering::Relaxed)
     }
 
+    /// Recreates the default computed values.
+    pub fn reset_computed_values(&mut self) {
+        // NB: A following stylesheet flush will populate this if appropriate.
+        self.viewport_override = None;
+        self.default_values = ComputedValues::default_values(unsafe { &*self.pres_context });
+    }
+
     /// Recreates all the temporary state that the `Device` stores.
     ///
     /// This includes the viewport override from `@viewport` rules, and also the
@@ -106,7 +113,7 @@ impl Device {
     pub fn reset(&mut self) {
         // NB: A following stylesheet flush will populate this if appropriate.
         self.viewport_override = None;
-        self.default_values = ComputedValues::default_values(unsafe { &*self.pres_context });
+        self.reset_computed_values();
     }
 
     /// Returns the current media type of the device.
