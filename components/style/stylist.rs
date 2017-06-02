@@ -798,6 +798,8 @@ impl Stylist {
     {
         use invalidation::media_queries::PotentiallyEffectiveMediaRules;
 
+        debug!("Stylist::media_features_change_changed_style");
+
         for stylesheet in stylesheets {
             let effective_now =
                 stylesheet.media.read_with(guard)
@@ -807,6 +809,8 @@ impl Stylist {
                 self.effective_media_query_results.was_effective(&**stylesheet);
 
             if effective_now != effective_then {
+                debug!(" > Stylesheet changed -> {}, {}",
+                       effective_then, effective_now);
                 return true
             }
 
@@ -842,6 +846,8 @@ impl Stylist {
                         let effective_then =
                             self.effective_media_query_results.was_effective(import_rule);
                         if effective_now != effective_then {
+                            debug!(" > @import rule changed {} -> {}",
+                                   effective_then, effective_now);
                             return true;
                         }
 
@@ -857,6 +863,8 @@ impl Stylist {
                         let effective_then =
                             self.effective_media_query_results.was_effective(media_rule);
                         if effective_now != effective_then {
+                            debug!(" > @media rule changed {} -> {}",
+                                   effective_then, effective_now);
                             return true;
                         }
 
