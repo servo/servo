@@ -1087,7 +1087,7 @@ impl Stylist {
     /// revalidation selectors.
     pub fn match_revalidation_selectors<E, F>(&self,
                                               element: &E,
-                                              bloom: &BloomFilter,
+                                              bloom: Option<&BloomFilter>,
                                               flags_setter: &mut F)
                                               -> BitVec
         where E: TElement,
@@ -1096,7 +1096,7 @@ impl Stylist {
         // NB: `MatchingMode` doesn't really matter, given we don't share style
         // between pseudos.
         let mut matching_context =
-            MatchingContext::new(MatchingMode::Normal, Some(bloom));
+            MatchingContext::new(MatchingMode::Normal, bloom);
 
         // Note that, by the time we're revalidating, we're guaranteed that the
         // candidate and the entry have the same id, classes, and local name.
