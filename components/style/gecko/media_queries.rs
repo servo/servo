@@ -20,7 +20,7 @@ use parser::ParserContext;
 use properties::{ComputedValues, StyleBuilder};
 use properties::longhands::font_size;
 use std::fmt::{self, Write};
-use std::sync::atomic::{AtomicIsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
 use str::starts_with_ignore_ascii_case;
 use string_cache::Atom;
 use style_traits::ToCss;
@@ -47,6 +47,9 @@ pub struct Device {
     /// the parent to compute everything else. So it is correct to just use
     /// a relaxed atomic here.
     root_font_size: AtomicIsize,
+    /// Whether any styles computed in the document relied on the root font-size
+    /// by using rem units.
+    used_root_font_size: AtomicBool,
 }
 
 unsafe impl Sync for Device {}
@@ -61,6 +64,7 @@ impl Device {
             default_values: ComputedValues::default_values(unsafe { &*pres_context }),
             viewport_override: None,
             root_font_size: AtomicIsize::new(font_size::get_initial_value().0 as isize), // FIXME(bz): Seems dubious?
+            used_root_font_size: AtomicBool::new(false),
         }
     }
 
@@ -91,6 +95,7 @@ impl Device {
 
     /// Get the font size of the root element (for rem)
     pub fn root_font_size(&self) -> Au {
+        self.used_root_font_size.store(true, Ordering::Relaxed);
         Au::new(self.root_font_size.load(Ordering::Relaxed) as i32)
     }
 
@@ -104,6 +109,12 @@ impl Device {
         // NB: A following stylesheet flush will populate this if appropriate.
         self.viewport_override = None;
         self.default_values = ComputedValues::default_values(unsafe { &*self.pres_context });
+        self.used_root_font_size.store(false, Ordering::Relaxed);
+    }
+
+    /// Returns whether we ever looked up the root font size of the Device.
+    pub fn used_root_font_size(&self) -> bool {
+        self.used_root_font_size.load(Ordering::Relaxed)
     }
 
     /// Recreates all the temporary state that the `Device` stores.

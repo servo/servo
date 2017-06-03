@@ -446,6 +446,12 @@ impl RestyleHint {
         self.insert_from(&other)
     }
 
+    /// Inserts the specified `CascadeHint`.
+    #[inline]
+    pub fn insert_cascade_hint(&mut self, cascade_hint: CascadeHint) {
+        self.recascade.insert(cascade_hint);
+    }
+
     /// Returns whether this `RestyleHint` represents at least as much restyle
     /// work as the specified one.
     #[inline]

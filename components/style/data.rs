@@ -9,7 +9,7 @@ use context::SharedStyleContext;
 use dom::TElement;
 use properties::{AnimationRules, ComputedValues, PropertyDeclarationBlock};
 use properties::longhands::display::computed_value as display;
-use restyle_hints::{HintComputationContext, RestyleReplacements, RestyleHint};
+use restyle_hints::{CascadeHint, HintComputationContext, RestyleReplacements, RestyleHint};
 use rule_tree::StrongRuleNode;
 use selector_parser::{EAGER_PSEUDO_COUNT, PseudoElement, RestyleDamage};
 use selectors::matching::VisitedHandlingMode;
@@ -413,6 +413,11 @@ impl StoredRestyleHint {
     /// recascaded.
     pub fn has_recascade_self(&self) -> bool {
         self.0.has_recascade_self()
+    }
+
+    /// Insert the specified `CascadeHint`.
+    pub fn insert_cascade_hint(&mut self, cascade_hint: CascadeHint) {
+        self.0.insert_cascade_hint(cascade_hint);
     }
 }
 
