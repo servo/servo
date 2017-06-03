@@ -932,15 +932,11 @@ fn parse_selector<P, Impl>(parser: &P, input: &mut CssParser) -> Result<Selector
     Ok(selector)
 }
 
-/// We use a SmallVec for parsing to avoid extra reallocs compared to using a Vec
-/// directly. When parsing is done, we convert the SmallVec into a Vec (which is
-/// free if the vec has already spilled to the heap, and more cache-friendly if
-/// it hasn't), and then steal the buffer of that vec into a boxed slice.
-///
-/// If we parse N <= 4 entries, we save no reallocations.
-/// If we parse 4 < N <= 8 entries, we save one reallocation.
-/// If we parse N > 8 entries, we save two reallocations.
-type ParseVec<Impl> = SmallVec<[Component<Impl>; 8]>;
+/// We make this large because the result of parsing a selector is fed into a new
+/// Arc-ed allocation, so any spilled vec would be a wasted allocation. Also,
+/// Components are large enough that we don't have much cache locality benefit
+/// from reserving stack space for fewer of them.
+type ParseVec<Impl> = SmallVec<[Component<Impl>; 32]>;
 
 /// Parses a complex selector, including any pseudo-element.
 ///
