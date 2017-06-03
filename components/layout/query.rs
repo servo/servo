@@ -607,13 +607,13 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
             return;
         }
 
-        if fragment.node == self.node_address {
+        if fragment.inline_context.is_none() && fragment.node == self.node_address {
             // Found the fragment in the flow tree that matches the
             // DOM node being looked for.
 
             assert!(
                 self.node_offset_box.is_none(),
-                "Node was being treated as inline, but it has an associated fragment!"
+                "Node was being treated as inline, but it has an associated non-inline fragment!"
             );
 
             self.has_processed_node = true;
