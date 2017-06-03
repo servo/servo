@@ -37,7 +37,7 @@ bitflags = "0.7"
 bit-vec = "0.4.3"
 byteorder = "1.0"
 cfg-if = "0.1.0"
-cssparser = "0.13.5"
+cssparser = "0.13.7"
 encoding = {version = "0.2", optional = true}
 euclid = "0.11"
 fnv = "1.0"
