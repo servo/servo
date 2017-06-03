@@ -54,7 +54,7 @@ impl PaintWorkletGlobalScope {
         }
     }
 
-    pub fn draw_a_paint_image(&self,
+    fn draw_a_paint_image(&self,
                               name: Atom,
                               concrete_object_size: Size2D<Au>,
                               sender: Sender<Result<Image, PaintWorkletError>>)

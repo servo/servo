@@ -99,8 +99,11 @@ impl Parse for Image {
         if let Ok(gradient) = input.try(|i| Gradient::parse(context, i)) {
             return Ok(GenericImage::Gradient(gradient));
         }
-        if let Ok(paint_worklet) = input.try(|i| PaintWorklet::parse(context, i)) {
-            return Ok(GenericImage::PaintWorklet(paint_worklet));
+        #[cfg(feature = "servo")]
+        {
+            if let Ok(paint_worklet) = input.try(|i| PaintWorklet::parse(context, i)) {
+                return Ok(GenericImage::PaintWorklet(paint_worklet));
+            }
         }
         #[cfg(feature = "gecko")]
         {
@@ -679,7 +682,7 @@ impl Parse for ColorStop {
 
 impl Parse for PaintWorklet {
     fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        input.try(|i| i.expect_function_matching("paint"))?;
+        input.expect_function_matching("paint")?;
         input.parse_nested_block(|i| {
             let name = i.expect_ident()?;
             Ok(PaintWorklet {

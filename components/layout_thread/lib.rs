@@ -697,6 +697,7 @@ impl LayoutThread {
             },
             Msg::SetPaintWorkletExecutor(executor) => {
                 debug!("Setting the paint worklet executor");
+                debug_assert!(self.paint_worklet_executor.is_none());
                 self.paint_worklet_executor = Some(executor);
             },
             Msg::PrepareToExit(response_chan) => {

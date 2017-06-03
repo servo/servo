@@ -374,7 +374,7 @@ impl Window {
         self.webvr_thread.clone()
     }
 
-    pub fn new_paint_worklet(&self) -> Root<Worklet> {
+    fn new_paint_worklet(&self) -> Root<Worklet> {
         debug!("Creating new paint worklet.");
         let worklet = Worklet::new(self, WorkletGlobalScopeType::Paint);
         let executor = Arc::new(worklet.executor());
