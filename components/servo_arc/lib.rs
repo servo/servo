@@ -8,7 +8,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-//! Fork of Arc for the style system. This has the following advantages over std::Arc:
+//! Fork of Arc for Servo. This has the following advantages over std::Arc:
 //! * We don't waste storage on the weak reference count.
 //! * We don't do extra RMU operations to handle the possibility of weak references.
 //! * We can experiment with arena allocation (todo).
@@ -19,6 +19,8 @@
 // The semantics of Arc are alread documented in the Rust docs, so we don't
 // duplicate those here.
 #![allow(missing_docs)]
+
+#[cfg(feature = "servo")] extern crate serde;
 
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;

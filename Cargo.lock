@@ -2689,6 +2689,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "servo_arc"
+version = "0.0.1"
+dependencies = [
+ "heapsize 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 0.9.15 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "servo_atoms"
 version = "0.0.1"
 dependencies = [
@@ -2913,6 +2921,7 @@ dependencies = [
  "selectors 0.19.0",
  "serde 0.9.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 0.9.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo_arc 0.0.1",
  "servo_atoms 0.0.1",
  "servo_config 0.0.1",
  "servo_url 0.0.1",
