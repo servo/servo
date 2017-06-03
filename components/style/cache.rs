@@ -15,7 +15,6 @@ use self::arraydeque::ArrayDeque;
 /// The most-recently-used entry is at index zero.
 pub struct LRUCache <K: Array>{
     entries: ArrayDeque<K>,
-    cache_size: usize,
 }
 
 /// A iterator over the items of the LRU cache.
@@ -26,10 +25,9 @@ pub type LRUCacheMutIterator<'a, K> = arraydeque::IterMut<'a, K>;
 
 impl<K: Array> LRUCache<K> {
     /// Create a new LRU cache with `size` elements at most.
-    pub fn new(size: usize) -> Self {
+    pub fn new() -> Self {
         LRUCache {
           entries: ArrayDeque::new(),
-          cache_size: size,
         }
     }
 
@@ -61,11 +59,11 @@ impl<K: Array> LRUCache<K> {
 
     /// Insert a given key in the cache.
     pub fn insert(&mut self, key: K::Item) {
-        if self.entries.len() == self.cache_size {
+        if self.entries.len() == self.entries.capacity() {
             self.entries.pop_back();
         }
         self.entries.push_front(key);
-        debug_assert!(self.entries.len() <= self.cache_size);
+        debug_assert!(self.entries.len() <= self.entries.capacity());
     }
 
     /// Evict all elements from the cache.

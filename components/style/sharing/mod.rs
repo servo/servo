@@ -313,7 +313,7 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
     /// Create a new style sharing candidate cache.
     pub fn new() -> Self {
         StyleSharingCandidateCache {
-            cache: LRUCache::<[_;STYLE_SHARING_CANDIDATE_CACHE_SIZE]>::new(STYLE_SHARING_CANDIDATE_CACHE_SIZE),
+            cache: LRUCache::<[_;STYLE_SHARING_CANDIDATE_CACHE_SIZE]>::new(),
         }
     }
 
