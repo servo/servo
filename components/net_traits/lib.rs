@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(box_syntax)]
-#![feature(iterator_step_by)]
+#![feature(step_by)]
 
 #![deny(unsafe_code)]
 
