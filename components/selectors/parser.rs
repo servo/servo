@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use arcslice::ArcSlice;
 use attr::{AttrSelectorWithNamespace, ParsedAttrSelectorOperation, AttrSelectorOperator};
 use attr::{ParsedCaseSensitivity, SELECTOR_WHITESPACE, NamespaceConstraint};
 use cssparser::{Token, Parser as CssParser, parse_nth, ToCss, serialize_identifier, CssStringWriter};
 use precomputed_hash::PrecomputedHash;
+use servo_arc::{Arc, HeaderSlice};
 use smallvec::SmallVec;
 use std::ascii::AsciiExt;
 use std::borrow::{Borrow, Cow};
@@ -302,6 +302,19 @@ pub fn namespace_empty_string<Impl: SelectorImpl>() -> Impl::NamespaceUrl {
     Impl::NamespaceUrl::default()
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+struct SpecificityAndFlags(u32);
+
+impl SpecificityAndFlags {
+    fn specificity(&self) -> u32 {
+        self.0 & !HAS_PSEUDO_BIT
+    }
+
+    fn has_pseudo_element(&self) -> bool {
+        (self.0 & HAS_PSEUDO_BIT) != 0
+    }
+}
+
 /// A Selector stores a sequence of simple selectors and combinators. The
 /// iterator classes allow callers to iterate at either the raw sequence level or
 /// at the level of sequences of simple selectors separated by combinators. Most
@@ -311,15 +324,15 @@ pub fn namespace_empty_string<Impl: SelectorImpl>() -> Impl::NamespaceUrl {
 /// canonical iteration order is right-to-left (selector matching order). The
 /// iterators abstract over these details.
 #[derive(Clone, Eq, PartialEq)]
-pub struct Selector<Impl: SelectorImpl>(ArcSlice<Component<Impl>>, u32);
+pub struct Selector<Impl: SelectorImpl>(Arc<HeaderSlice<SpecificityAndFlags, [Component<Impl>]>>);
 
 impl<Impl: SelectorImpl> Selector<Impl> {
     pub fn specificity(&self) -> u32 {
-        self.1 & !HAS_PSEUDO_BIT
+        self.0.header.specificity()
     }
 
     pub fn has_pseudo_element(&self) -> bool {
-        (self.1 & HAS_PSEUDO_BIT) != 0
+        self.0.header.has_pseudo_element()
     }
 
     pub fn pseudo_element(&self) -> Option<&Impl::PseudoElement> {
@@ -362,8 +375,7 @@ impl<Impl: SelectorImpl> Selector<Impl> {
 
     pub fn iter_from(&self, offset: usize) -> SelectorIter<Impl> {
         // Note: selectors are stored left-to-right but logical order is right-to-left.
-        let slice = self.0.as_ref();
-        let iter = slice[..(slice.len() - offset)].iter().rev();
+        let iter = self.0.slice[..(self.0.slice.len() - offset)].iter().rev();
         SelectorIter {
             iter: iter,
             next_combinator: None,
@@ -379,12 +391,13 @@ impl<Impl: SelectorImpl> Selector<Impl> {
     /// Returns an iterator over the entire sequence of simple selectors and combinators,
     /// from left to right.
     pub fn iter_raw_rev(&self) -> slice::Iter<Component<Impl>> {
-        self.0.iter()
+        self.0.slice.iter()
     }
 
     /// Creates a Selector from a vec of Components. Used in tests.
     pub fn from_vec(vec: Vec<Component<Impl>>, specificity_and_flags: u32) -> Self {
-        Selector(ArcSlice::new(vec.into_boxed_slice()), specificity_and_flags)
+        let spec = SpecificityAndFlags(specificity_and_flags);
+        Selector(Arc::from_header_and_iter(spec, vec.into_iter()))
     }
 }
 
@@ -985,15 +998,15 @@ fn parse_complex_selector<P, Impl>(
         sequence.push(Component::Combinator(combinator));
     }
 
-    let mut specificity = specificity(SelectorIter {
+    let mut spec = SpecificityAndFlags(specificity(SelectorIter {
         iter: sequence.iter().rev(),
         next_combinator: None,
-    });
+    }));
     if parsed_pseudo_element {
-        specificity |= HAS_PSEUDO_BIT;
+        spec.0 |= HAS_PSEUDO_BIT;
     }
 
-    let complex = Selector(ArcSlice::new(sequence.into_vec().into_boxed_slice()), specificity);
+    let complex = Selector(Arc::from_header_and_iter(spec, sequence.into_iter()));
     Ok(complex)
 }
 
