@@ -579,8 +579,7 @@ impl WorkletThread {
         // TODO: Avoid re-parsing the origin as a URL.
         let resource_fetcher = self.global_init.resource_threads.sender();
         let origin_url = ServoUrl::parse(&*origin.unicode_serialization())
-            .or_else(|_| ServoUrl::parse("about:blank"))
-            .expect("Failed to parse origin as URL.");
+            .unwrap_or_else(|_| ServoUrl::parse("about:blank").unwrap());
         let request = RequestInit {
             url: script_url,
             type_: RequestType::Script,

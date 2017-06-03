@@ -55,9 +55,9 @@ impl PaintWorkletGlobalScope {
     }
 
     fn draw_a_paint_image(&self,
-                              name: Atom,
-                              concrete_object_size: Size2D<Au>,
-                              sender: Sender<Result<Image, PaintWorkletError>>)
+                          name: Atom,
+                          concrete_object_size: Size2D<Au>,
+                          sender: Sender<Result<Image, PaintWorkletError>>)
     {
         let width = concrete_object_size.width.to_px().abs() as u32;
         let height = concrete_object_size.height.to_px().abs() as u32;

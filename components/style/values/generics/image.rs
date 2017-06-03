@@ -143,7 +143,7 @@ pub struct PaintWorklet {
 impl ToCss for PaintWorklet {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         dest.write_str("paint(")?;
-        dest.write_str(&*self.name)?;
+        serialize_identifier(&*self.name, dest)?;
         dest.write_str(")")
     }
 }
