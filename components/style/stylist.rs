@@ -14,6 +14,7 @@ use error_reporting::RustLogReporter;
 use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs::{nsIAtom, StyleRuleInclusion};
+use invalidation::media_queries::EffectiveMediaQueryResults;
 use keyframes::KeyframesAnimation;
 use media_queries::Device;
 use properties::{self, CascadeFlags, ComputedValues};
@@ -39,9 +40,8 @@ use style_traits::viewport::ViewportConstraints;
 use stylearc::Arc;
 #[cfg(feature = "gecko")]
 use stylesheets::{CounterStyleRule, FontFaceRule};
-use stylesheets::{CssRule, DocumentRule, ImportRule, MediaRule, StyleRule, SupportsRule};
+use stylesheets::{CssRule, StyleRule};
 use stylesheets::{Stylesheet, Origin, UserAgentStylesheets};
-use stylesheets::NestedRuleIterationCondition;
 use thread_state;
 use viewport::{self, MaybeNew, ViewportRule};
 
@@ -82,6 +82,9 @@ pub struct Stylist {
 
     /// Viewport constraints based on the current device.
     viewport_constraints: Option<ViewportConstraints>,
+
+    /// Effective media query results cached from the last rebuild.
+    effective_media_query_results: EffectiveMediaQueryResults,
 
     /// If true, the quirks-mode stylesheet is applied.
     quirks_mode: QuirksMode,
@@ -222,57 +225,6 @@ impl From<StyleRuleInclusion> for RuleInclusion {
     }
 }
 
-/// A filter that filters over effective rules, but allowing all potentially
-/// effective `@media` rules.
-pub struct PotentiallyEffectiveMediaRules;
-
-impl NestedRuleIterationCondition for PotentiallyEffectiveMediaRules {
-    fn process_import(
-        _: &SharedRwLockReadGuard,
-        _: &Device,
-        _: QuirksMode,
-        _: &ImportRule)
-        -> bool
-    {
-        true
-    }
-
-    fn process_media(
-        _: &SharedRwLockReadGuard,
-        _: &Device,
-        _: QuirksMode,
-        _: &MediaRule)
-        -> bool
-    {
-        true
-    }
-
-    /// Whether we should process the nested rules in a given `@-moz-document` rule.
-    fn process_document(
-        guard: &SharedRwLockReadGuard,
-        device: &Device,
-        quirks_mode: QuirksMode,
-        rule: &DocumentRule)
-        -> bool
-    {
-        use stylesheets::EffectiveRules;
-        EffectiveRules::process_document(guard, device, quirks_mode, rule)
-    }
-
-    /// Whether we should process the nested rules in a given `@supports` rule.
-    fn process_supports(
-        guard: &SharedRwLockReadGuard,
-        device: &Device,
-        quirks_mode: QuirksMode,
-        rule: &SupportsRule)
-        -> bool
-    {
-        use stylesheets::EffectiveRules;
-        EffectiveRules::process_supports(guard, device, quirks_mode, rule)
-    }
-}
-
-
 impl Stylist {
     /// Construct a new `Stylist`, using given `Device` and `QuirksMode`.
     /// If more members are added here, think about whether they should
@@ -285,6 +237,7 @@ impl Stylist {
             is_device_dirty: true,
             is_cleared: true,
             quirks_mode: quirks_mode,
+            effective_media_query_results: EffectiveMediaQueryResults::new(),
 
             element_map: PerPseudoElementSelectorMap::new(),
             pseudos_map: Default::default(),
@@ -355,6 +308,7 @@ impl Stylist {
 
         self.is_cleared = true;
 
+        self.effective_media_query_results.clear();
         self.viewport_constraints = None;
         // preserve current device
         self.is_device_dirty = true;
@@ -482,6 +436,8 @@ impl Stylist {
             return;
         }
 
+        self.effective_media_query_results.saw_effective(stylesheet);
+
         for rule in stylesheet.effective_rules(&self.device, guard) {
             match *rule {
                 CssRule::Style(ref locked) => {
@@ -515,9 +471,16 @@ impl Stylist {
                     }
                     self.rules_source_order += 1;
                 }
-                CssRule::Import(..) => {
-                    // effective_rules visits the inner stylesheet if
+                CssRule::Import(ref lock) => {
+                    let import_rule = lock.read_with(guard);
+                    self.effective_media_query_results.saw_effective(import_rule);
+
+                    // NOTE: effective_rules visits the inner stylesheet if
                     // appropriate.
+                }
+                CssRule::Media(ref lock) => {
+                    let media_rule = lock.read_with(guard);
+                    self.effective_media_query_results.saw_effective(media_rule);
                 }
                 CssRule::Keyframes(ref keyframes_rule) => {
                     let keyframes_rule = keyframes_rule.read_with(guard);
@@ -816,16 +779,50 @@ impl Stylist {
             device.account_for_viewport_rule(constraints);
         }
 
-        self.is_device_dirty |= stylesheets.iter().any(|stylesheet| {
-            let mq = stylesheet.media.read_with(guard);
-            if mq.evaluate(&self.device, self.quirks_mode) != mq.evaluate(&device, self.quirks_mode) {
+        self.device = device;
+        let features_changed = self.media_features_change_changed_style(
+            stylesheets.iter(),
+            guard
+        );
+        self.is_device_dirty |= features_changed;
+    }
+
+    /// Returns whether, given a media feature change, any previously-applicable
+    /// style has become non-applicable, or vice-versa.
+    pub fn media_features_change_changed_style<'a, I>(
+        &self,
+        stylesheets: I,
+        guard: &SharedRwLockReadGuard,
+    ) -> bool
+        where I: Iterator<Item = &'a Arc<Stylesheet>>
+    {
+        use invalidation::media_queries::PotentiallyEffectiveMediaRules;
+
+        debug!("Stylist::media_features_change_changed_style");
+
+        for stylesheet in stylesheets {
+            let effective_now =
+                stylesheet.media.read_with(guard)
+                    .evaluate(&self.device, self.quirks_mode);
+
+            let effective_then =
+                self.effective_media_query_results.was_effective(&**stylesheet);
+
+            if effective_now != effective_then {
+                debug!(" > Stylesheet changed -> {}, {}",
+                       effective_then, effective_now);
                 return true
+            }
+
+            if !effective_now {
+                continue;
             }
 
             let mut iter =
                 stylesheet.iter_rules::<PotentiallyEffectiveMediaRules>(
                     &self.device,
-                    guard);
+                    guard
+                );
 
             while let Some(rule) = iter.next() {
                 match *rule {
@@ -844,8 +841,13 @@ impl Stylist {
                     CssRule::Import(ref lock) => {
                         let import_rule = lock.read_with(guard);
                         let mq = import_rule.stylesheet.media.read_with(guard);
-                        let effective_now = mq.evaluate(&self.device, self.quirks_mode);
-                        if effective_now != mq.evaluate(&device, self.quirks_mode) {
+                        let effective_now =
+                            mq.evaluate(&self.device, self.quirks_mode);
+                        let effective_then =
+                            self.effective_media_query_results.was_effective(import_rule);
+                        if effective_now != effective_then {
+                            debug!(" > @import rule changed {} -> {}",
+                                   effective_then, effective_now);
                             return true;
                         }
 
@@ -856,8 +858,13 @@ impl Stylist {
                     CssRule::Media(ref lock) => {
                         let media_rule = lock.read_with(guard);
                         let mq = media_rule.media_queries.read_with(guard);
-                        let effective_now = mq.evaluate(&self.device, self.quirks_mode);
-                        if effective_now != mq.evaluate(&device, self.quirks_mode) {
+                        let effective_now =
+                            mq.evaluate(&self.device, self.quirks_mode);
+                        let effective_then =
+                            self.effective_media_query_results.was_effective(media_rule);
+                        if effective_now != effective_then {
+                            debug!(" > @media rule changed {} -> {}",
+                                   effective_then, effective_now);
                             return true;
                         }
 
@@ -867,11 +874,9 @@ impl Stylist {
                     }
                 }
             }
+        }
 
-            return false;
-        });
-
-        self.device = device;
+        return false;
     }
 
     /// Returns the viewport constraints that apply to this document because of

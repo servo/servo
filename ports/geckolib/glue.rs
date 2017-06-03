@@ -748,6 +748,32 @@ pub extern "C" fn Servo_StyleSet_AppendStyleSheet(raw_data: RawServoStyleSetBorr
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_StyleSet_MediumFeaturesChanged(
+    raw_data: RawServoStyleSetBorrowed,
+) -> bool {
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+
+    // NOTE(emilio): We don't actually need to flush the stylist here and ensure
+    // it's up to date.
+    //
+    // In case it isn't we would trigger a rebuild + restyle as needed too.
+    //
+    // We need to ensure the default computed values are up to date though,
+    // because those can influence the result of media query evaluation.
+    //
+    // FIXME(emilio, bug 1369984): do the computation conditionally, to do it
+    // less often.
+    let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
+
+    data.stylist.device_mut().reset_computed_values();
+    data.stylist.media_features_change_changed_style(
+        data.stylesheets.iter(),
+        &guard,
+    )
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_StyleSet_PrependStyleSheet(raw_data: RawServoStyleSetBorrowed,
                                                    raw_sheet: RawServoStyleSheetBorrowed,
                                                    unique_id: u64) {
@@ -1408,8 +1434,11 @@ pub extern "C" fn Servo_StyleSet_Init(pres_context: RawGeckoPresContextOwned)
 pub extern "C" fn Servo_StyleSet_RebuildData(raw_data: RawServoStyleSetBorrowed) {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
+
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    data.reset_device(&guard);
+    data.stylist.device_mut().reset();
+    data.stylesheets.force_dirty();
+    data.flush_stylesheets::<GeckoElement>(&guard, None);
 }
 
 #[no_mangle]
