@@ -13,7 +13,7 @@ path = "lib.rs"
 app_units = "0.4.1"
 atomic_refcell = "0.1"
 canvas_traits = {path = "../canvas_traits"}
-cssparser = "0.13.3"
+cssparser = "0.13.7"
 euclid = "0.11"
 gfx_traits = {path = "../gfx_traits"}
 heapsize = "0.3.0"

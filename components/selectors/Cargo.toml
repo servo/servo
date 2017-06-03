@@ -24,7 +24,7 @@ gecko_like_types = []
 [dependencies]
 bitflags = "0.7"
 matches = "0.1"
-cssparser = "0.13.3"
+cssparser = "0.13.7"
 fnv = "1.0"
 phf = "0.7.18"
 precomputed-hash = "0.1"
