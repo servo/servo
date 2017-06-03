@@ -538,8 +538,7 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
             inline_context.nodes.iter().find(|node| node.address == self.node_address)
         }) {
             // TODO: Handle cases where the `offsetParent` is an inline
-            // element. This will likely be impossible until
-            // https://github.com/servo/servo/issues/13982 is fixed.
+            // element.
 
             // Found a fragment in the flow tree whose inline context
             // contains the DOM node we're looking for, i.e. the node
@@ -549,11 +548,8 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
                     *rectangle = rectangle.union(border_box);
                 },
                 None => {
-                    // https://github.com/servo/servo/issues/13982 will
-                    // cause this assertion to fail sometimes, so it's
-                    // commented out for now.
-                    /*assert!(node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT),
-                        "First fragment of inline node found wasn't its first fragment!");*/
+                    assert!(node.flags.contains(InlineFragmentNodeFlags::FIRST_FRAGMENT_OF_ELEMENT),
+                        "First fragment of inline node found wasn't its first fragment!");
 
                     self.node_offset_box = Some(NodeOffsetBoxInfo {
                         offset: border_box.origin,
