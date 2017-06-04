@@ -31,8 +31,8 @@ ${helpers.single_keyword("caption-side", "top bottom",
         use app_units::Au;
         use properties::animated_properties::Animatable;
 
-        #[derive(Clone, Copy, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        #[derive(Clone, Copy, Debug, PartialEq, ToCss)]
         pub struct T {
             pub horizontal: Au,
             pub vertical: Au,
@@ -89,14 +89,6 @@ ${helpers.single_keyword("caption-side", "top bottom",
                 vertical.to_css(dest)?;
             }
             Ok(())
-        }
-    }
-
-    impl ToCss for computed_value::T {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            try!(self.horizontal.to_css(dest));
-            try!(dest.write_str(" "));
-            self.vertical.to_css(dest)
         }
     }
 

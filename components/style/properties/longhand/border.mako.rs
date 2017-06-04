@@ -222,8 +222,8 @@ ${helpers.predefined_type("border-image-outset", "LengthOrNumberRect",
     pub mod computed_value {
         pub use super::RepeatKeyword;
 
-        #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        #[derive(Debug, Clone, PartialEq, ToCss)]
         pub struct T(pub RepeatKeyword, pub RepeatKeyword);
     }
 
@@ -238,14 +238,6 @@ ${helpers.predefined_type("border-image-outset", "LengthOrNumberRect",
                              "round" => Round,
                              "space" => Space);
 
-
-    impl ToCss for computed_value::T {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            try!(self.0.to_css(dest));
-            try!(dest.write_str(" "));
-            self.1.to_css(dest)
-        }
-    }
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             try!(self.0.to_css(dest));

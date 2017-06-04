@@ -481,9 +481,9 @@ pub struct Shadow {
 /// A `<number>` value.
 pub type Number = CSSFloat;
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, Debug, PartialEq, ToCss)]
 pub enum NumberOrPercentage {
     Percentage(Percentage),
     Number(Number),
@@ -508,15 +508,6 @@ impl ToComputedValue for specified::NumberOrPercentage {
                 specified::NumberOrPercentage::Percentage(ToComputedValue::from_computed_value(&percentage)),
             NumberOrPercentage::Number(number) =>
                 specified::NumberOrPercentage::Number(ToComputedValue::from_computed_value(&number)),
-        }
-    }
-}
-
-impl ToCss for NumberOrPercentage {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            NumberOrPercentage::Percentage(percentage) => percentage.to_css(dest),
-            NumberOrPercentage::Number(number) => number.to_css(dest),
         }
     }
 }

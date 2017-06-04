@@ -53,7 +53,7 @@ pub enum ShapeSource<BasicShape, ReferenceBox> {
 
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, PartialEq, ToComputedValue)]
+#[derive(Clone, Debug, PartialEq, ToComputedValue, ToCss)]
 pub enum BasicShape<H, V, LengthOrPercentage> {
     Inset(InsetRect<LengthOrPercentage>),
     Circle(Circle<H, V, LengthOrPercentage>),
@@ -149,23 +149,6 @@ impl ToCss for GeometryBox {
             GeometryBox::StrokeBox => dest.write_str("stroke-box"),
             GeometryBox::ViewBox => dest.write_str("view-box"),
             GeometryBox::ShapeBox(s) => s.to_css(dest),
-        }
-    }
-}
-
-impl<H, V, L> ToCss for BasicShape<H, V, L>
-    where H: ToCss,
-          V: ToCss,
-          L: PartialEq + ToCss,
-          Circle<H, V, L>: ToCss,
-          Ellipse<H, V, L>: ToCss,
-{
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            BasicShape::Inset(ref rect) => rect.to_css(dest),
-            BasicShape::Circle(ref circle) => circle.to_css(dest),
-            BasicShape::Ellipse(ref ellipse) => ellipse.to_css(dest),
-            BasicShape::Polygon(ref polygon) => polygon.to_css(dest),
         }
     }
 }

@@ -34,9 +34,9 @@ define_keyword_type!(None_, "none");
 define_keyword_type!(Auto, "auto");
 define_keyword_type!(Normal, "normal");
 
-#[derive(Clone, Copy, HasViewportPercentage, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// A struct representing one of two kinds of values.
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, HasViewportPercentage, PartialEq, ToCss)]
 pub enum Either<A, B> {
     /// The first value.
     First(A),
@@ -49,15 +49,6 @@ impl<A: Debug, B: Debug> Debug for Either<A, B> {
         match *self {
             Either::First(ref v) => v.fmt(f),
             Either::Second(ref v) => v.fmt(f),
-        }
-    }
-}
-
-impl<A: ToCss, B: ToCss> ToCss for Either<A, B> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            Either::First(ref v) => v.to_css(dest),
-            Either::Second(ref v) => v.to_css(dest),
         }
     }
 }

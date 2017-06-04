@@ -4,12 +4,9 @@
 
 //! Generic types for CSS values that are related to transformations.
 
-use std::fmt;
-use style_traits::ToCss;
-
 /// A generic transform origin.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue, ToCss)]
 pub struct TransformOrigin<H, V, Depth> {
     /// The horizontal origin.
     pub horizontal: H,
@@ -27,19 +24,5 @@ impl<H, V, D> TransformOrigin<H, V, D> {
             vertical: vertical,
             depth: depth,
         }
-    }
-}
-
-impl<H, V, D> ToCss for TransformOrigin<H, V, D>
-    where H: ToCss, V: ToCss, D: ToCss,
-{
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
-    {
-        self.horizontal.to_css(dest)?;
-        dest.write_str(" ")?;
-        self.vertical.to_css(dest)?;
-        dest.write_str(" ")?;
-        self.depth.to_css(dest)
     }
 }
