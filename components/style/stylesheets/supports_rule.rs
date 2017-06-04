@@ -4,17 +4,64 @@
 
 //! [@supports rules](https://drafts.csswg.org/css-conditional-3/#at-supports)
 
-use cssparser::{parse_important, Parser, Token};
+use cssparser::{parse_important, Parser, SourceLocation, Token};
 use parser::ParserContext;
 use properties::{PropertyId, PropertyDeclaration, SourcePropertyDeclaration};
+use shared_lock::{DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
 use style_traits::ToCss;
-use stylesheets::CssRuleType;
+use stylearc::Arc;
+use stylesheets::{CssRuleType, CssRules};
 
-#[derive(Clone, Debug)]
+/// An [`@supports`][supports] rule.
+///
+/// [supports]: https://drafts.csswg.org/css-conditional-3/#at-supports
+#[derive(Debug)]
+pub struct SupportsRule {
+    /// The parsed condition
+    pub condition: SupportsCondition,
+    /// Child rules
+    pub rules: Arc<Locked<CssRules>>,
+    /// The result of evaluating the condition
+    pub enabled: bool,
+    /// The line and column of the rule's source code.
+    pub source_location: SourceLocation,
+}
+
+impl ToCssWithGuard for SupportsRule {
+    fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
+    where W: fmt::Write {
+        dest.write_str("@supports ")?;
+        self.condition.to_css(dest)?;
+        dest.write_str(" {")?;
+        for rule in self.rules.read_with(guard).0.iter() {
+            dest.write_str(" ")?;
+            rule.to_css(guard, dest)?;
+        }
+        dest.write_str(" }")
+    }
+}
+
+impl DeepCloneWithLock for SupportsRule {
+    fn deep_clone_with_lock(
+        &self,
+        lock: &SharedRwLock,
+        guard: &SharedRwLockReadGuard
+    ) -> Self {
+        let rules = self.rules.read_with(guard);
+        SupportsRule {
+            condition: self.condition.clone(),
+            rules: Arc::new(lock.wrap(rules.deep_clone_with_lock(lock, guard))),
+            enabled: self.enabled,
+            source_location: self.source_location.clone(),
+        }
+    }
+}
+
 /// An @supports condition
 ///
 /// https://drafts.csswg.org/css-conditional-3/#at-supports
+#[derive(Clone, Debug)]
 pub enum SupportsCondition {
     /// `not (condition)`
     Not(Box<SupportsCondition>),
@@ -119,7 +166,8 @@ pub fn parse_condition_or_declaration(input: &mut Parser) -> Result<SupportsCond
 
 impl ToCss for SupportsCondition {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write {
+        where W: fmt::Write,
+    {
         match *self {
             SupportsCondition::Not(ref cond) => {
                 dest.write_str("not ")?;
@@ -173,7 +221,8 @@ pub struct Declaration {
 
 impl ToCss for Declaration {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write {
+        where W: fmt::Write
+    {
         dest.write_str(&self.prop)?;
         dest.write_str(":")?;
         // no space, the `val` already contains any possible spaces
@@ -188,7 +237,7 @@ fn parse_anything(input: &mut Parser) -> String {
     input.slice_from(pos).to_owned()
 }
 
-/// consume input till done
+/// Consume input till done
 fn consume_all(input: &mut Parser) {
     while let Ok(_) = input.next() {}
 }

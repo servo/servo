@@ -11,7 +11,6 @@ use context::SharedStyleContext;
 use dom::OpaqueNode;
 use euclid::point::Point2D;
 use font_metrics::FontMetricsProvider;
-use keyframes::{KeyframesStep, KeyframesStepValue};
 use properties::{self, CascadeFlags, ComputedValues, Importance};
 use properties::animated_properties::{AnimatedProperty, TransitionProperty};
 use properties::longhands::animation_direction::computed_value::single_value::T as AnimationDirection;
@@ -22,6 +21,7 @@ use properties::longhands::transition_timing_function::single_value::computed_va
 use rule_tree::CascadeLevel;
 use std::sync::mpsc::Sender;
 use stylearc::Arc;
+use stylesheets::keyframes_rule::{KeyframesStep, KeyframesStepValue};
 use timer::Timer;
 use values::computed::Time;
 

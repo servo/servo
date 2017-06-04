@@ -17,7 +17,7 @@ use style::parser::{PARSING_MODE_DEFAULT, ParserContext};
 use style::shared_lock::{Locked, ToCssWithGuard};
 use style::stylearc::Arc;
 use style::stylesheets::{CssRuleType, SupportsRule};
-use style::supports::SupportsCondition;
+use style::stylesheets::supports_rule::SupportsCondition;
 use style_traits::ToCss;
 
 #[dom_struct]

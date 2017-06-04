@@ -226,6 +226,17 @@ pub trait ToCssWithGuard {
     }
 }
 
+/// A trait to do a deep clone of a given CSS type. Gets a lock and a read
+/// guard, in order to be able to read and clone nested structures.
+pub trait DeepCloneWithLock : Sized {
+    /// Deep clones this object.
+    fn deep_clone_with_lock(
+        &self,
+        lock: &SharedRwLock,
+        guard: &SharedRwLockReadGuard
+    ) -> Self;
+}
+
 /// Guards for a document
 #[derive(Clone)]
 pub struct StylesheetGuards<'a> {

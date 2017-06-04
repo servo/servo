@@ -16,10 +16,9 @@ use dom::cssrulelist::{CSSRuleList, RulesSource};
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use style::keyframes::{Keyframe, KeyframeSelector};
 use style::shared_lock::{Locked, ToCssWithGuard};
 use style::stylearc::Arc;
-use style::stylesheets::KeyframesRule;
+use style::stylesheets::keyframes_rule::{KeyframesRule, Keyframe, KeyframeSelector};
 use style::values::KeyframesName;
 
 #[dom_struct]

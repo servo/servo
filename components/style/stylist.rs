@@ -15,7 +15,6 @@ use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs::{nsIAtom, StyleRuleInclusion};
 use invalidation::media_queries::EffectiveMediaQueryResults;
-use keyframes::KeyframesAnimation;
 use media_queries::Device;
 use properties::{self, CascadeFlags, ComputedValues};
 use properties::{AnimationRules, PropertyDeclarationBlock};
@@ -42,8 +41,9 @@ use stylearc::Arc;
 use stylesheets::{CounterStyleRule, FontFaceRule};
 use stylesheets::{CssRule, StyleRule};
 use stylesheets::{Stylesheet, Origin, UserAgentStylesheets};
+use stylesheets::keyframes_rule::KeyframesAnimation;
+use stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
 use thread_state;
-use viewport::{self, MaybeNew, ViewportRule};
 
 pub use ::fnv::FnvHashMap;
 
@@ -356,7 +356,7 @@ impl Stylist {
         self.num_rebuilds += 1;
 
         let cascaded_rule = ViewportRule {
-            declarations: viewport::Cascade::from_stylesheets(
+            declarations: viewport_rule::Cascade::from_stylesheets(
                 doc_stylesheets.clone(), guards.author, &self.device
             ).finish(),
         };
@@ -769,7 +769,7 @@ impl Stylist {
                       guard: &SharedRwLockReadGuard,
                       stylesheets: &[Arc<Stylesheet>]) {
         let cascaded_rule = ViewportRule {
-            declarations: viewport::Cascade::from_stylesheets(stylesheets.iter(), guard, &device).finish(),
+            declarations: viewport_rule::Cascade::from_stylesheets(stylesheets.iter(), guard, &device).finish(),
         };
 
         self.viewport_constraints =

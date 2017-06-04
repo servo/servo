@@ -12,7 +12,7 @@ use dom_struct::dom_struct;
 use style::context::QuirksMode;
 use style::parser::{PARSING_MODE_DEFAULT, ParserContext};
 use style::stylesheets::CssRuleType;
-use style::supports::{Declaration, parse_condition_or_declaration};
+use style::stylesheets::supports_rule::{Declaration, parse_condition_or_declaration};
 
 #[dom_struct]
 pub struct CSS {

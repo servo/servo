@@ -6,18 +6,56 @@
 //! initially in CSS Conditional Rules Module Level 3, @document has been postponed to the level 4.
 //! We implement the prefixed `@-moz-document`.
 
-use cssparser::{Parser, Token, serialize_string};
-#[cfg(feature = "gecko")]
-use gecko_bindings::bindings::Gecko_DocumentRule_UseForPresentation;
-#[cfg(feature = "gecko")]
-use gecko_bindings::structs::URLMatchingFunction as GeckoUrlMatchingFunction;
+use cssparser::{Parser, Token, SourceLocation, serialize_string};
 use media_queries::Device;
-#[cfg(feature = "gecko")]
-use nsstring::nsCString;
 use parser::{Parse, ParserContext};
+use shared_lock::{DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
 use style_traits::ToCss;
+use stylearc::Arc;
+use stylesheets::CssRules;
 use values::specified::url::SpecifiedUrl;
+
+#[derive(Debug)]
+/// A @-moz-document rule
+pub struct DocumentRule {
+    /// The parsed condition
+    pub condition: DocumentCondition,
+    /// Child rules
+    pub rules: Arc<Locked<CssRules>>,
+    /// The line and column of the rule's source code.
+    pub source_location: SourceLocation,
+}
+
+impl ToCssWithGuard for DocumentRule {
+    fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
+    where W: fmt::Write {
+        try!(dest.write_str("@-moz-document "));
+        try!(self.condition.to_css(dest));
+        try!(dest.write_str(" {"));
+        for rule in self.rules.read_with(guard).0.iter() {
+            try!(dest.write_str(" "));
+            try!(rule.to_css(guard, dest));
+        }
+        dest.write_str(" }")
+    }
+}
+
+impl DeepCloneWithLock for DocumentRule {
+    /// Deep clones this DocumentRule.
+    fn deep_clone_with_lock(
+        &self,
+        lock: &SharedRwLock,
+        guard: &SharedRwLockReadGuard,
+    ) -> Self {
+        let rules = self.rules.read_with(guard);
+        DocumentRule {
+            condition: self.condition.clone(),
+            rules: Arc::new(lock.wrap(rules.deep_clone_with_lock(lock, guard))),
+            source_location: self.source_location.clone(),
+        }
+    }
+}
 
 /// A URL matching function for a `@document` rule's condition.
 #[derive(Clone, Debug)]
@@ -84,12 +122,17 @@ impl UrlMatchingFunction {
     #[cfg(feature = "gecko")]
     /// Evaluate a URL matching function.
     pub fn evaluate(&self, device: &Device) -> bool {
+        use gecko_bindings::bindings::Gecko_DocumentRule_UseForPresentation;
+        use gecko_bindings::structs::URLMatchingFunction as GeckoUrlMatchingFunction;
+        use nsstring::nsCString;
+
         let func = match *self {
             UrlMatchingFunction::Url(_) => GeckoUrlMatchingFunction::eURL,
             UrlMatchingFunction::UrlPrefix(_) => GeckoUrlMatchingFunction::eURLPrefix,
             UrlMatchingFunction::Domain(_) => GeckoUrlMatchingFunction::eDomain,
             UrlMatchingFunction::RegExp(_) => GeckoUrlMatchingFunction::eRegExp,
         };
+
         let pattern = nsCString::from(match *self {
             UrlMatchingFunction::Url(ref url) => url.as_str(),
             UrlMatchingFunction::UrlPrefix(ref pat) |
