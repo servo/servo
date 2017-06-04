@@ -2829,6 +2829,8 @@ impl Fragment {
     pub fn can_fully_meld_with_next_inline_fragment(&self, next_fragment: &Fragment) -> bool {
         if let Some(ref inline_context_of_next_fragment) = next_fragment.inline_context {
             if let Some(ref inline_context_of_this_fragment) = self.inline_context {
+                inline_context_of_this_fragment.nodes.len() ==
+                    inline_context_of_next_fragment.nodes.len() &&
                 inline_context_of_this_fragment.nodes.iter().rev()
                     .zip(inline_context_of_next_fragment.nodes.iter().rev())
                     .all(|(inline_context_node_from_this_fragment,
@@ -2850,6 +2852,8 @@ impl Fragment {
     pub fn can_fully_meld_with_prev_inline_fragment(&self, prev_fragment: &Fragment) -> bool {
         if let Some(ref inline_context_of_prev_fragment) = prev_fragment.inline_context {
             if let Some(ref inline_context_of_this_fragment) = self.inline_context {
+                inline_context_of_this_fragment.nodes.len() ==
+                    inline_context_of_prev_fragment.nodes.len() &&
                 inline_context_of_this_fragment.nodes.iter().rev()
                     .zip(inline_context_of_prev_fragment.nodes.iter().rev())
                     .all(|(inline_context_node_from_this_fragment,
