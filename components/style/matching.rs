@@ -78,17 +78,21 @@ pub enum ChildCascadeRequirement {
     ///
     /// FIXME(heycam) Although this is "must" cascade, in the future we should
     /// track whether child elements rely specifically on inheriting particular
-    /// property values.  When we do that, we can treat `MustCascade` as "must
-    /// cascade unless we know that changes to these properties can be
+    /// property values.  When we do that, we can treat `MustCascadeChildren` as
+    /// "must cascade unless we know that changes to these properties can be
     /// ignored".
-    MustCascade,
+    MustCascadeChildren,
+    /// The same as `MustCascadeChildren`, but for the entire subtree.  This is
+    /// used to handle root font-size updates needing to recascade the whole
+    /// document.
+    MustCascadeDescendants,
 }
 
 impl From<StyleChange> for ChildCascadeRequirement {
     fn from(change: StyleChange) -> ChildCascadeRequirement {
         match change {
             StyleChange::Unchanged => ChildCascadeRequirement::CanSkipCascade,
-            StyleChange::Changed => ChildCascadeRequirement::MustCascade,
+            StyleChange::Changed => ChildCascadeRequirement::MustCascadeChildren,
         }
     }
 }
@@ -447,6 +451,22 @@ trait PrivateMatchMethods: TElement {
                                        old_values.as_ref().map(|v| v.as_ref()),
                                        &new_values,
                                        None);
+
+            // Handle root font-size changes.
+            if self.is_root() && !self.is_native_anonymous() {
+                // The new root font-size has already been updated on the Device
+                // in properties::apply_declarations.
+                let device = context.shared.stylist.device();
+                let new_font_size = new_values.get_font().clone_font_size();
+
+                // If the root font-size changed since last time, and something
+                // in the document did use rem units, ensure we recascade the
+                // entire tree.
+                if old_values.map_or(false, |v| v.get_font().clone_font_size() != new_font_size) &&
+                   device.used_root_font_size() {
+                    child_cascade_requirement = ChildCascadeRequirement::MustCascadeDescendants;
+                }
+            }
         }
 
         // Set the new computed values.
@@ -664,7 +684,7 @@ trait PrivateMatchMethods: TElement {
                              -> ChildCascadeRequirement {
         // Don't accumulate damage if we're in a restyle for reconstruction.
         if shared_context.traversal_flags.for_reconstruct() {
-            return ChildCascadeRequirement::MustCascade;
+            return ChildCascadeRequirement::MustCascadeChildren;
         }
 
         // If an ancestor is already getting reconstructed by Gecko's top-down
@@ -1220,12 +1240,12 @@ pub trait MatchMethods : TElement {
                          -> ChildCascadeRequirement {
         let restyle = match restyle {
             Some(r) => r,
-            None => return ChildCascadeRequirement::MustCascade,
+            None => return ChildCascadeRequirement::MustCascadeChildren,
         };
 
         let old_values = match old_values {
             Some(v) => v,
-            None => return ChildCascadeRequirement::MustCascade,
+            None => return ChildCascadeRequirement::MustCascadeChildren,
         };
 
         // ::before and ::after are element-backed in Gecko, so they do the

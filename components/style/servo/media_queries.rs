@@ -14,7 +14,7 @@ use parser::ParserContext;
 use properties::{ComputedValues, StyleBuilder};
 use properties::longhands::font_size;
 use std::fmt;
-use std::sync::atomic::{AtomicIsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
 use style_traits::{CSSPixel, ToCss};
 use style_traits::viewport::ViewportConstraints;
 use values::computed::{self, ToComputedValue};
@@ -41,6 +41,10 @@ pub struct Device {
     /// a relaxed atomic here.
     #[ignore_heap_size_of = "Pure stack type"]
     root_font_size: AtomicIsize,
+    /// Whether any styles computed in the document relied on the root font-size
+    /// by using rem units.
+    #[ignore_heap_size_of = "Pure stack type"]
+    used_root_font_size: AtomicBool,
 }
 
 impl Device {
@@ -52,6 +56,7 @@ impl Device {
             media_type: media_type,
             viewport_size: viewport_size,
             root_font_size: AtomicIsize::new(font_size::get_initial_value().0 as isize), // FIXME(bz): Seems dubious?
+            used_root_font_size: AtomicBool::new(false),
         }
     }
 
@@ -65,12 +70,18 @@ impl Device {
 
     /// Get the font size of the root element (for rem)
     pub fn root_font_size(&self) -> Au {
+        self.used_root_font_size.store(true, Ordering::Relaxed);
         Au::new(self.root_font_size.load(Ordering::Relaxed) as i32)
     }
 
     /// Set the font size of the root element (for rem)
     pub fn set_root_font_size(&self, size: Au) {
         self.root_font_size.store(size.0 as isize, Ordering::Relaxed)
+    }
+
+    /// Returns whether we ever looked up the root font size of the Device.
+    pub fn used_root_font_size(&self) -> bool {
+        self.used_root_font_size.load(Ordering::Relaxed)
     }
 
     /// Returns the viewport size of the current device in app units, needed,
