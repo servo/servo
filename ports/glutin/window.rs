@@ -33,7 +33,7 @@ use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_config::resource_files;
 use servo_geometry::DeviceIndependentPixel;
-use servo_url::ServoUrl;
+use servo_url::{ParseError, ServoUrl};
 use std::cell::{Cell, RefCell};
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use std::ffi::CString;
@@ -1424,8 +1424,8 @@ fn is_printable(key_code: VirtualKeyCode) -> bool {
     }
 }
 
-fn sanitize_and_parse_url(url: String) -> Result<ServoUrl, ()> {
-    ServoUrl::parse(url.trim()).map_err(|_| ())
+fn sanitize_and_parse_url(url: String) -> Result<ServoUrl, ParseError> {
+    ServoUrl::parse(url.trim())
 }
 
 #[cfg(not(target_os = "windows"))]

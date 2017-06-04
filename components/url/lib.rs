@@ -28,6 +28,7 @@ use std::sync::Arc;
 use url::{Url, Position};
 
 pub use url::Host;
+pub use url::ParseError;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, HeapSizeOf)]
 pub struct ServoUrl(Arc<Url>);
