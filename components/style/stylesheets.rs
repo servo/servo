@@ -1759,7 +1759,7 @@ fn is_viewport_enabled() -> bool {
 
 #[cfg(not(feature = "servo"))]
 fn is_viewport_enabled() -> bool {
-    true
+    false // Gecko doesn't support @viewport
 }
 
 impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
