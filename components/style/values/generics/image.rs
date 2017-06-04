@@ -108,8 +108,8 @@ impl ComputedValueAsSpecified for ShapeExtent {}
 
 /// A gradient item.
 /// https://drafts.csswg.org/css-images-4/#color-stop-syntax
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue, ToCss)]
 pub enum GradientItem<Color, LengthOrPercentage> {
     /// A color stop.
     ColorStop(ColorStop<Color, LengthOrPercentage>),
@@ -284,17 +284,6 @@ impl<L, LoP> ToCss for EndingShape<L, LoP>
                 dest.write_str(" ")?;
                 y.to_css(dest)
             },
-        }
-    }
-}
-
-impl<C, L> ToCss for GradientItem<C, L>
-    where C: ToCss, L: ToCss,
-{
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            GradientItem::ColorStop(ref stop) => stop.to_css(dest),
-            GradientItem::InterpolationHint(ref hint) => hint.to_css(dest),
         }
     }
 }

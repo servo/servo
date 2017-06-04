@@ -443,8 +443,8 @@ ${helpers.predefined_type("word-spacing",
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub SmallVec<[TextShadow; 1]>);
 
-        #[derive(Clone, PartialEq, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        #[derive(Clone, PartialEq, Debug, ToCss)]
         pub struct TextShadow {
             pub offset_x: Au,
             pub offset_y: Au,
@@ -465,18 +465,6 @@ ${helpers.predefined_type("word-spacing",
                 shadow.to_css(dest)?;
             }
             Ok(())
-        }
-    }
-
-    impl ToCss for computed_value::TextShadow {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            self.offset_x.to_css(dest)?;
-            dest.write_str(" ")?;
-            self.offset_y.to_css(dest)?;
-            dest.write_str(" ")?;
-            self.blur_radius.to_css(dest)?;
-            dest.write_str(" ")?;
-            self.color.to_css(dest)
         }
     }
 
@@ -767,7 +755,6 @@ ${helpers.predefined_type("word-spacing",
 
 <%helpers:longhand name="text-emphasis-position" animation_value_type="none" products="gecko"
                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-position">
-    use std::fmt;
     use values::computed::ComputedValueAsSpecified;
     use style_traits::ToCss;
 
@@ -778,8 +765,8 @@ ${helpers.predefined_type("word-spacing",
                              "right" => Right,
                              "left" => Left);
 
-    #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[derive(Debug, Clone, PartialEq, ToCss)]
     pub struct SpecifiedValue(pub HorizontalWritingModeValue, pub VerticalWritingModeValue);
 
     pub mod computed_value {
@@ -801,15 +788,6 @@ ${helpers.predefined_type("word-spacing",
             let vertical = try!(VerticalWritingModeValue::parse(input));
             let horizontal = try!(HorizontalWritingModeValue::parse(input));
             Ok(SpecifiedValue(horizontal, vertical))
-        }
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let SpecifiedValue(horizontal, vertical) = *self;
-            try!(horizontal.to_css(dest));
-            try!(dest.write_char(' '));
-            vertical.to_css(dest)
         }
     }
 
