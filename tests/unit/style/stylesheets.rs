@@ -15,7 +15,6 @@ use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
 use style::context::QuirksMode;
 use style::error_reporting::ParseErrorReporter;
-use style::keyframes::{Keyframe, KeyframeSelector, KeyframePercentage};
 use style::media_queries::MediaList;
 use style::properties::Importance;
 use style::properties::{CSSWideKeyword, DeclaredValueOwned, PropertyDeclaration, PropertyDeclarationBlock};
@@ -25,6 +24,7 @@ use style::shared_lock::SharedRwLock;
 use style::stylearc::Arc;
 use style::stylesheets::{Origin, Namespaces};
 use style::stylesheets::{Stylesheet, NamespaceRule, CssRule, CssRules, StyleRule, KeyframesRule};
+use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframePercentage};
 use style::values::{KeyframesName, CustomIdent};
 use style::values::specified::{LengthOrPercentageOrAuto, Percentage, PositionComponent};
 

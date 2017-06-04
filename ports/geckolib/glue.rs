@@ -83,7 +83,6 @@ use style::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasFFI, HasArcFFI, 
 use style::gecko_bindings::sugar::ownership::{HasSimpleFFI, Strong};
 use style::gecko_bindings::sugar::refptr::RefPtr;
 use style::gecko_properties::{self, style_structs};
-use style::keyframes::{Keyframe, KeyframeSelector, KeyframesStepValue};
 use style::media_queries::{MediaList, parse_media_query_list};
 use style::parallel;
 use style::parser::{PARSING_MODE_DEFAULT, ParserContext};
@@ -104,8 +103,9 @@ use style::stylesheets::{CssRule, CssRules, CssRuleType, CssRulesHelpers, Docume
 use style::stylesheets::{ImportRule, KeyframesRule, MallocSizeOfWithGuard, MediaRule};
 use style::stylesheets::{NamespaceRule, Origin, PageRule, Stylesheet, StyleRule, SupportsRule};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
+use style::stylesheets::keyframes_rule::{Keyframe, KeyframeSelector, KeyframesStepValue};
+use style::stylesheets::supports_rule::parse_condition_or_declaration;
 use style::stylist::RuleInclusion;
-use style::supports::parse_condition_or_declaration;
 use style::thread_state;
 use style::timer::Timer;
 use style::traversal::{ANIMATION_ONLY, DomTraversal, FOR_CSS_RULE_CHANGES, FOR_RECONSTRUCT};

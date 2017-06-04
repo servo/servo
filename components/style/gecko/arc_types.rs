@@ -17,7 +17,6 @@ use gecko_bindings::bindings::{ServoComputedValues, ServoCssRules};
 use gecko_bindings::structs::{RawServoDeclarationBlock, RawServoStyleRule};
 use gecko_bindings::structs::RawServoAnimationValue;
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI};
-use keyframes::Keyframe;
 use media_queries::MediaList;
 use properties::{ComputedValues, PropertyDeclarationBlock};
 use properties::animated_properties::AnimationValue;
@@ -26,6 +25,7 @@ use shared_lock::Locked;
 use std::{mem, ptr};
 use stylesheets::{CssRules, Stylesheet, StyleRule, ImportRule, KeyframesRule, MediaRule};
 use stylesheets::{NamespaceRule, PageRule, SupportsRule, DocumentRule};
+use stylesheets::keyframes_rule::Keyframe;
 
 macro_rules! impl_arc_ffi {
     ($servo_type:ty => $gecko_type:ty [$addref:ident, $release:ident]) => {

@@ -7,8 +7,6 @@
 //! [at]: https://drafts.csswg.org/css-device-adapt/#atviewport-rule
 //! [meta]: https://drafts.csswg.org/css-device-adapt/#viewport-meta
 
-#![deny(missing_docs)]
-
 use app_units::Au;
 use context::QuirksMode;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, parse_important};

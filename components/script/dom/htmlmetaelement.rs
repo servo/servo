@@ -26,8 +26,7 @@ use style::attr::AttrValue;
 use style::media_queries::MediaList;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylearc::Arc;
-use style::stylesheets::{Stylesheet, CssRule, CssRules, Origin};
-use style::viewport::ViewportRule;
+use style::stylesheets::{Stylesheet, CssRule, CssRules, Origin, ViewportRule};
 
 #[dom_struct]
 pub struct HTMLMetaElement {

@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use style::keyframes::{Keyframe, KeyframesAnimation, KeyframePercentage,  KeyframeSelector};
-use style::keyframes::{KeyframesStep, KeyframesStepValue};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, Importance};
 use style::properties::animated_properties::TransitionProperty;
 use style::shared_lock::SharedRwLock;
 use style::stylearc::Arc;
+use style::stylesheets::keyframes_rule::{Keyframe, KeyframesAnimation, KeyframePercentage,  KeyframeSelector};
+use style::stylesheets::keyframes_rule::{KeyframesStep, KeyframesStepValue};
 use style::values::specified::{LengthOrPercentageOrAuto, NoCalcLength};
 
 #[test]
