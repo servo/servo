@@ -309,14 +309,14 @@ pub enum StyleSharingResult {
 /// Note that this cache is flushed every time we steal work from the queue, so
 /// storing nodes here temporarily is safe.
 pub struct StyleSharingCandidateCache<E: TElement> {
-    cache: LRUCache<StyleSharingCandidate<E>>,
+    cache: LRUCache<[StyleSharingCandidate<E>; STYLE_SHARING_CANDIDATE_CACHE_SIZE + 1]>,
 }
 
 impl<E: TElement> StyleSharingCandidateCache<E> {
     /// Create a new style sharing candidate cache.
     pub fn new() -> Self {
         StyleSharingCandidateCache {
-            cache: LRUCache::new(STYLE_SHARING_CANDIDATE_CACHE_SIZE),
+            cache: LRUCache::new(),
         }
     }
 

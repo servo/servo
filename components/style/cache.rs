@@ -6,29 +6,28 @@
 
 #![deny(missing_docs)]
 
-use std::collections::VecDeque;
-use std::collections::vec_deque;
+extern crate arraydeque;
+use self::arraydeque::Array;
+use self::arraydeque::ArrayDeque;
 
 /// A LRU cache used to store a set of at most `n` elements at the same time.
 ///
 /// The most-recently-used entry is at index zero.
-pub struct LRUCache<K> {
-    entries: VecDeque<K>,
-    cache_size: usize,
+pub struct LRUCache <K: Array>{
+    entries: ArrayDeque<K>,
 }
 
 /// A iterator over the items of the LRU cache.
-pub type LRUCacheIterator<'a, K> = vec_deque::Iter<'a, K>;
+pub type LRUCacheIterator<'a, K> = arraydeque::Iter<'a, K>;
 
 /// A iterator over the mutable items of the LRU cache.
-pub type LRUCacheMutIterator<'a, K> = vec_deque::IterMut<'a, K>;
+pub type LRUCacheMutIterator<'a, K> = arraydeque::IterMut<'a, K>;
 
-impl<K: PartialEq> LRUCache<K> {
+impl<K: Array> LRUCache<K> {
     /// Create a new LRU cache with `size` elements at most.
-    pub fn new(size: usize) -> Self {
+    pub fn new() -> Self {
         LRUCache {
-          entries: VecDeque::with_capacity(size),
-          cache_size: size,
+          entries: ArrayDeque::new(),
         }
     }
 
@@ -49,22 +48,22 @@ impl<K: PartialEq> LRUCache<K> {
 
     /// Iterate over the contents of this cache, from more to less recently
     /// used.
-    pub fn iter(&self) -> vec_deque::Iter<K> {
+    pub fn iter(&self) -> arraydeque::Iter<K::Item> {
         self.entries.iter()
     }
 
     /// Iterate mutably over the contents of this cache.
-    pub fn iter_mut(&mut self) -> vec_deque::IterMut<K> {
+    pub fn iter_mut(&mut self) -> arraydeque::IterMut<K::Item> {
         self.entries.iter_mut()
     }
 
     /// Insert a given key in the cache.
-    pub fn insert(&mut self, key: K) {
-        if self.entries.len() == self.cache_size {
+    pub fn insert(&mut self, key: K::Item) {
+        if self.entries.len() == self.entries.capacity() {
             self.entries.pop_back();
         }
         self.entries.push_front(key);
-        debug_assert!(self.entries.len() <= self.cache_size);
+        debug_assert!(self.entries.len() <= self.entries.capacity());
     }
 
     /// Evict all elements from the cache.

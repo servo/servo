@@ -349,7 +349,7 @@ pub struct SelectorFlagsMap<E: TElement> {
     map: FnvHashMap<SendElement<E>, ElementSelectorFlags>,
     /// An LRU cache to avoid hashmap lookups, which can be slow if the map
     /// gets big.
-    cache: LRUCache<(SendElement<E>, ElementSelectorFlags)>,
+    cache: LRUCache<[(SendElement<E>, ElementSelectorFlags); 4 + 1]>,
 }
 
 #[cfg(debug_assertions)]
@@ -364,7 +364,7 @@ impl<E: TElement> SelectorFlagsMap<E> {
     pub fn new() -> Self {
         SelectorFlagsMap {
             map: FnvHashMap::default(),
-            cache: LRUCache::new(4),
+            cache: LRUCache::new(),
         }
     }
 
