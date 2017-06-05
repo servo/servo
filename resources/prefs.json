@@ -1,6 +1,7 @@
 {
   "dom.bluetooth.enabled": false,
   "dom.bluetooth.testing.enabled": false,
+  "dom.customelements.enabled": false,
   "dom.forcetouch.enabled": false,
   "dom.gamepad.enabled": false,
   "dom.mouseevent.which.enabled": false,

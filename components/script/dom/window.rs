@@ -32,6 +32,7 @@ use dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
 use dom::bluetooth::BluetoothExtraPermissionData;
 use dom::crypto::Crypto;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
+use dom::customelementregistry::CustomElementRegistry;
 use dom::document::{AnimationFrameCallback, Document};
 use dom::element::Element;
 use dom::event::Event;
@@ -179,6 +180,7 @@ pub struct Window {
     window_proxy: MutNullableJS<WindowProxy>,
     document: MutNullableJS<Document>,
     history: MutNullableJS<History>,
+    custom_element_registry: MutNullableJS<CustomElementRegistry>,
     performance: MutNullableJS<Performance>,
     navigation_start: u64,
     navigation_start_precise: f64,
@@ -531,6 +533,11 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-history
     fn History(&self) -> Root<History> {
         self.history.or_init(|| History::new(self))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-window-customelements
+    fn CustomElements(&self) -> Root<CustomElementRegistry> {
+        self.custom_element_registry.or_init(|| CustomElementRegistry::new(self))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location
@@ -1030,6 +1037,12 @@ impl Window {
         // nodes to dispose of their layout data. This messages the layout
         // thread, informing it that it can safely free the memory.
         self.Document().upcast::<Node>().teardown();
+
+        // Clean up any active promises
+        // https://github.com/servo/servo/issues/15318
+        if let Some(custom_elements) = self.custom_element_registry.get() {
+            custom_elements.teardown();
+        }
 
         // The above code may not catch all DOM objects (e.g. DOM
         // objects removed from the tree that haven't been collected
@@ -1805,6 +1818,7 @@ impl Window {
             image_cache: image_cache.clone(),
             navigator: Default::default(),
             history: Default::default(),
+            custom_element_registry: Default::default(),
             window_proxy: Default::default(),
             document: Default::default(),
             performance: Default::default(),
