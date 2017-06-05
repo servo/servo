@@ -122,6 +122,12 @@ impl<E: TElement> StyleBloom<E> {
         self.elements.is_empty()
     }
 
+    /// Returns the DOM depth of elements that can be correctly
+    /// matched against the bloom filter (that is, the number of
+    /// elements in our list).
+    pub fn matching_depth(&self) -> usize {
+        self.elements.len()
+    }
 
     /// Clears the bloom filter.
     pub fn clear(&mut self) {

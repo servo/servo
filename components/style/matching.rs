@@ -883,12 +883,14 @@ pub trait MatchMethods : TElement {
                     .validation_data
                     .take();
 
+            let dom_depth = context.thread_local.bloom_filter.matching_depth();
             context.thread_local
                    .style_sharing_candidate_cache
                    .insert_if_possible(self,
                                        data.styles().primary.values(),
                                        primary_results.relations,
-                                       validation_data);
+                                       validation_data,
+                                       dom_depth);
         }
 
         child_cascade_requirement
