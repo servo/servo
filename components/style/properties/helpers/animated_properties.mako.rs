@@ -641,6 +641,24 @@ impl Animatable for AnimationValue {
         }
     }
 
+    fn get_zero_value(&self) -> Option<Self> {
+        match self {
+            % for prop in data.longhands:
+                % if prop.animatable:
+                    % if prop.animation_value_type == "discrete":
+                        &AnimationValue::${prop.camel_case}(_) => {
+                            None
+                        }
+                    % else:
+                        &AnimationValue::${prop.camel_case}(ref base) => {
+                            base.get_zero_value().map(AnimationValue::${prop.camel_case})
+                        }
+                    % endif
+                % endif
+            % endfor
+        }
+    }
+
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         match (self, other) {
             % for prop in data.longhands:
@@ -697,6 +715,17 @@ pub trait Animatable: Sized {
         self.add_weighted(other, count as f64, 1.0)
     }
 
+    /// Returns a value that, when added with an underlying value, will produce the underlying
+    /// value. This is used for SMIL animation's "by-animation" where SMIL first interpolates from
+    /// the zero value to the 'by' value, and then adds the result to the underlying value.
+    ///
+    /// This is not the necessarily the same as the initial value of a property. For example, the
+    /// initial value of 'stroke-width' is 1, but the zero value is 0, since adding 1 to the
+    /// underlying value will not produce the underlying value.
+    fn get_zero_value(&self) -> Option<Self> {
+        None
+    }
+
     /// Compute distance between a value and another for a given property.
     fn compute_distance(&self, _other: &Self) -> Result<f64, ()>  { Err(()) }
 
@@ -745,6 +774,9 @@ impl Animatable for Au {
     fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
         Ok(Au((self.0 as f64 * self_portion + other.0 as f64 * other_portion).round() as i32))
     }
+
+    #[inline]
+    fn get_zero_value(&self) -> Option<Self> { Some(Au(0)) }
 
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
@@ -796,6 +828,9 @@ impl Animatable for f32 {
     }
 
     #[inline]
+    fn get_zero_value(&self) -> Option<Self> { Some(0.) }
+
+    #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         Ok((*self - *other).abs() as f64)
     }
@@ -809,6 +844,9 @@ impl Animatable for f64 {
     }
 
     #[inline]
+    fn get_zero_value(&self) -> Option<Self> { Some(0.) }
+
+    #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         Ok((*self - *other).abs())
     }
@@ -820,6 +858,9 @@ impl Animatable for i32 {
     fn add_weighted(&self, other: &i32, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
         Ok((*self as f64 * self_portion + *other as f64 * other_portion).round() as i32)
     }
+
+    #[inline]
+    fn get_zero_value(&self) -> Option<Self> { Some(0) }
 
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
@@ -999,6 +1040,13 @@ impl Animatable for LengthOrPercentage {
                     .map(LengthOrPercentage::Percentage)
             }
             (this, other) => {
+                // Special handling for zero values since these should not require calc().
+                if this.is_definitely_zero() {
+                    return other.add_weighted(&other, 0., other_portion)
+                } else if other.is_definitely_zero() {
+                    return this.add_weighted(self, self_portion, 0.)
+                }
+
                 let this: CalcLengthOrPercentage = From::from(this);
                 let other: CalcLengthOrPercentage = From::from(other);
                 this.add_weighted(&other, self_portion, other_portion)
@@ -1006,6 +1054,9 @@ impl Animatable for LengthOrPercentage {
             }
         }
     }
+
+    #[inline]
+    fn get_zero_value(&self) -> Option<Self> { Some(LengthOrPercentage::zero()) }
 
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
@@ -1080,6 +1131,18 @@ impl Animatable for LengthOrPercentageOrAuto {
     }
 
     #[inline]
+    fn get_zero_value(&self) -> Option<Self> {
+        match *self {
+            LengthOrPercentageOrAuto::Length(_) |
+            LengthOrPercentageOrAuto::Percentage(_) |
+            LengthOrPercentageOrAuto::Calc(_) => {
+                Some(LengthOrPercentageOrAuto::Length(Au(0)))
+            },
+            LengthOrPercentageOrAuto::Auto => { None },
+        }
+    }
+
+    #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         match (*self, *other) {
             (LengthOrPercentageOrAuto::Length(ref this),
@@ -1146,6 +1209,18 @@ impl Animatable for LengthOrPercentageOrNone {
                 Ok(LengthOrPercentageOrNone::None)
             }
             _ => Err(())
+        }
+    }
+
+    #[inline]
+    fn get_zero_value(&self) -> Option<Self> {
+        match *self {
+            LengthOrPercentageOrNone::Length(_) |
+            LengthOrPercentageOrNone::Percentage(_) |
+            LengthOrPercentageOrNone::Calc(_) => {
+                Some(LengthOrPercentageOrNone::Length(Au(0)))
+            },
+            LengthOrPercentageOrNone::None => { None },
         }
     }
 
@@ -1223,7 +1298,8 @@ impl Animatable for FontWeight {
     fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
         let a = (*self as u32) as f64;
         let b = (*other as u32) as f64;
-        let weight = a * self_portion + b * other_portion;
+        const NORMAL: f64 = 400.;
+        let weight = (a - NORMAL) * self_portion + (b - NORMAL) * other_portion + NORMAL;
         Ok(if weight < 150. {
             FontWeight::Weight100
         } else if weight < 250. {
@@ -1244,6 +1320,9 @@ impl Animatable for FontWeight {
             FontWeight::Weight900
         })
     }
+
+    #[inline]
+    fn get_zero_value(&self) -> Option<Self> { Some(FontWeight::Weight400) }
 
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
@@ -1306,6 +1385,11 @@ impl Into<FontStretch> for f64 {
     }
 }
 
+// Like std::macros::try!, but for Option<>.
+macro_rules! option_try {
+    ($e:expr) => (match $e { Some(e) => e, None => return None })
+}
+
 /// https://drafts.csswg.org/css-transitions/#animtype-simple-list
 impl<H: Animatable, V: Animatable> Animatable for generic_position::Position<H, V> {
     #[inline]
@@ -1315,6 +1399,14 @@ impl<H: Animatable, V: Animatable> Animatable for generic_position::Position<H, 
                                                           self_portion, other_portion)),
             vertical: try!(self.vertical.add_weighted(&other.vertical,
                                                       self_portion, other_portion)),
+        })
+    }
+
+    #[inline]
+    fn get_zero_value(&self) -> Option<Self> {
+        Some(generic_position::Position {
+            horizontal: option_try!(self.horizontal.get_zero_value()),
+            vertical: option_try!(self.vertical.get_zero_value()),
         })
     }
 
@@ -2493,6 +2585,9 @@ impl Animatable for TransformList {
             }
         }
     }
+
+    #[inline]
+    fn get_zero_value(&self) -> Option<Self> { Some(TransformList(None)) }
 }
 
 impl<T, U> Animatable for Either<T, U>
@@ -2511,6 +2606,14 @@ impl<T, U> Animatable for Either<T, U>
                 let result = if self_portion > other_portion {*self} else {*other};
                 Ok(result)
             }
+        }
+    }
+
+    #[inline]
+    fn get_zero_value(&self) -> Option<Self> {
+        match *self {
+            Either::First(ref this) => { this.get_zero_value().map(Either::First) },
+            Either::Second(ref this) => { this.get_zero_value().map(Either::Second) },
         }
     }
 
@@ -2614,6 +2717,11 @@ impl Animatable for IntermediateRGBA {
                              * 1. / alpha;
             Ok(IntermediateRGBA::new(red, green, blue, alpha))
         }
+    }
+
+    #[inline]
+    fn get_zero_value(&self) -> Option<Self> {
+        Some(IntermediateRGBA::new(0., 0., 0., 1.))
     }
 
     #[inline]
