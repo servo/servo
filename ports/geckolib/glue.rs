@@ -314,6 +314,35 @@ pub extern "C" fn Servo_AnimationValues_IsInterpolable(from: RawServoAnimationVa
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_AnimationValues_Add(a: RawServoAnimationValueBorrowed,
+                                            b: RawServoAnimationValueBorrowed)
+     -> RawServoAnimationValueStrong
+{
+    let a_value = AnimationValue::as_arc(&a);
+    let b_value = AnimationValue::as_arc(&b);
+    if let Ok(value) = a_value.add(b_value) {
+        Arc::new(value).into_strong()
+    } else {
+        RawServoAnimationValueStrong::null()
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_AnimationValues_Accumulate(a: RawServoAnimationValueBorrowed,
+                                                   b: RawServoAnimationValueBorrowed,
+                                                   count: u64)
+     -> RawServoAnimationValueStrong
+{
+    let a_value = AnimationValue::as_arc(&a);
+    let b_value = AnimationValue::as_arc(&b);
+    if let Ok(value) = a_value.accumulate(b_value, count) {
+        Arc::new(value).into_strong()
+    } else {
+        RawServoAnimationValueStrong::null()
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_AnimationValues_GetZeroValue(
     value_to_match: RawServoAnimationValueBorrowed)
     -> RawServoAnimationValueStrong
