@@ -2186,6 +2186,11 @@ extern "C" {
      -> bool;
 }
 extern "C" {
+    pub fn Servo_AnimationValues_GetZeroValue(value_to_match:
+                                                  RawServoAnimationValueBorrowed)
+     -> RawServoAnimationValueStrong;
+}
+extern "C" {
     pub fn Servo_AnimationValues_ComputeDistance(from:
                                                      RawServoAnimationValueBorrowed,
                                                  to:
