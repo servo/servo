@@ -53,7 +53,7 @@ use unicase::UniCase;
 use uuid;
 
 fn read_block<R: Read>(reader: &mut R) -> Result<Data, ()> {
-    let mut buf = vec![0; 1024];
+    let mut buf = vec![0; 32768];
 
     match reader.read(&mut buf) {
         Ok(len) if len > 0 => {
