@@ -461,6 +461,35 @@ fn color_to_nscolor_zero_currentcolor(color: Color) -> structs::nscolor {
             );
         }
     }
+
+    #[allow(non_snake_case)]
+    pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+        use values::generics::{SVGPaint, SVGPaintKind};
+        use self::structs::nsStyleSVGPaintType;
+        use self::structs::nsStyleSVGFallbackType;
+        let ref paint = ${get_gecko_property(gecko_ffi_name)};
+        let fallback = if let nsStyleSVGFallbackType::eStyleSVGFallbackType_Color = paint.mFallbackType {
+            Some(Color::RGBA(convert_nscolor_to_rgba(paint.mFallbackColor)))
+        } else {
+            None
+        };
+        let kind = match paint.mType {
+            nsStyleSVGPaintType::eStyleSVGPaintType_None => SVGPaintKind::None,
+            nsStyleSVGPaintType::eStyleSVGPaintType_ContextFill => SVGPaintKind::ContextFill,
+            nsStyleSVGPaintType::eStyleSVGPaintType_ContextStroke => SVGPaintKind::ContextStroke,
+            nsStyleSVGPaintType::eStyleSVGPaintType_Server => {
+                // FIXME (bug 1353966) this should animate
+                SVGPaintKind::None
+            }
+            nsStyleSVGPaintType::eStyleSVGPaintType_Color => {
+                unsafe { SVGPaintKind::Color(Color::RGBA(convert_nscolor_to_rgba(*paint.mPaint.mColor.as_ref()))) }
+            }
+        };
+        SVGPaint {
+            kind: kind,
+            fallback: fallback,
+        }
+    }
 </%def>
 
 <%def name="impl_app_units(ident, gecko_ffi_name, need_clone, inherit_from=None, round_to_pixels=False)">
