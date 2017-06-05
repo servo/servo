@@ -13,6 +13,7 @@ use dom::testworkletglobalscope::TestWorkletTask;
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use ipc_channel::ipc::IpcSender;
+use js::jsapi::JSContext;
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use microtask::Microtask;
@@ -59,6 +60,11 @@ impl WorkletGlobalScope {
             base_url: base_url,
             microtask_queue: MicrotaskQueue::default(),
         }
+    }
+
+    /// Get the JS context.
+    pub fn get_cx(&self) -> *mut JSContext {
+        self.globalscope.get_cx()
     }
 
     /// Evaluate a JS script in this global.

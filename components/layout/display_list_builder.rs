@@ -1172,6 +1172,7 @@ impl FragmentDisplayListBuilding for Fragment {
         };
 
         // TODO: add a one-place cache to avoid drawing the paint image every time.
+        // https://github.com/servo/servo/issues/17369
         debug!("Drawing a paint image {}({},{}).", name, size.width.to_px(), size.height.to_px());
         let mut image = match executor.draw_a_paint_image(name, size) {
             Ok(image) => image,
