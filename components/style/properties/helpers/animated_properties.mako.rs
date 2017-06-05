@@ -294,9 +294,14 @@ impl<'a> From<TransitionProperty> for PropertyDeclarationId<'a> {
 pub enum AnimatedProperty {
     % for prop in data.longhands:
         % if prop.animatable:
+            <%
+                if prop.is_animatable_with_computed_value:
+                    value_type = "longhands::{}::computed_value::T".format(prop.ident)
+                else:
+                    value_type = prop.animation_value_type
+            %>
             /// ${prop.name}
-            ${prop.camel_case}(longhands::${prop.ident}::computed_value::T,
-                               longhands::${prop.ident}::computed_value::T),
+            ${prop.camel_case}(${value_type}, ${value_type}),
         % endif
     % endfor
 }
@@ -356,6 +361,9 @@ impl AnimatedProperty {
                                 Err(()) => return,
                             };
                         % endif
+                        % if not prop.is_animatable_with_computed_value:
+                            let value: longhands::${prop.ident}::computed_value::T = value.into();
+                        % endif
                         style.mutate_${prop.style_struct.ident.strip("_")}().set_${prop.ident}(value);
                     }
                 % endif
@@ -375,8 +383,8 @@ impl AnimatedProperty {
                 % if prop.animatable:
                     TransitionProperty::${prop.camel_case} => {
                         AnimatedProperty::${prop.camel_case}(
-                            old_style.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}(),
-                            new_style.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}())
+                            old_style.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}().into(),
+                            new_style.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}().into())
                     }
                 % endif
             % endfor
@@ -440,7 +448,7 @@ impl AnimationValue {
                                 % if prop.is_animatable_with_computed_value:
                                     from
                                 % else:
-                                    &from.into()
+                                    &from.clone().into()
                                 % endif
                                 ))
                             % if prop.boxed:
@@ -472,7 +480,7 @@ impl AnimationValue {
                 % if prop.is_animatable_with_computed_value:
                     val.to_computed_value(context)
                 % else:
-                    From::from(&val.to_computed_value(context))
+                    From::from(val.to_computed_value(context))
                 % endif
                 ))
             },
@@ -503,7 +511,7 @@ impl AnimationValue {
                             },
                         };
                         % if not prop.is_animatable_with_computed_value:
-                            let computed = From::from(&computed);
+                            let computed = From::from(computed);
                         % endif
                         Some(AnimationValue::${prop.camel_case}(computed))
                     },
@@ -570,8 +578,8 @@ impl AnimationValue {
                         % if prop.is_animatable_with_computed_value:
                             computed_values.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}())
                         % else:
-                            From::from(&computed_values.get_${prop.style_struct.ident.strip("_")}()
-                                                                  .clone_${prop.ident}()))
+                            From::from(computed_values.get_${prop.style_struct.ident.strip("_")}()
+                                                                 .clone_${prop.ident}()))
                         % endif
                     }
                 % endif
@@ -933,96 +941,6 @@ impl Animatable for BackgroundSizeList {
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
         self.0.compute_squared_distance(&other.0)
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-color
-impl Animatable for RGBA {
-    #[inline]
-    fn add_weighted(&self, other: &RGBA, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        fn clamp(val: f32) -> f32 {
-            val.max(0.).min(1.)
-        }
-
-        let alpha = clamp(try!(self.alpha_f32().add_weighted(&other.alpha_f32(),
-                                                             self_portion, other_portion)));
-        if alpha == 0. {
-            Ok(RGBA::transparent())
-        } else {
-            // NB: We rely on RGBA::from_floats clamping already.
-            let red = try!((self.red_f32() * self.alpha_f32())
-                            .add_weighted(&(other.red_f32() * other.alpha_f32()),
-                                          self_portion, other_portion))
-                            * 1. / alpha;
-            let green = try!((self.green_f32() * self.alpha_f32())
-                             .add_weighted(&(other.green_f32() * other.alpha_f32()),
-                                           self_portion, other_portion))
-                             * 1. / alpha;
-            let blue = try!((self.blue_f32() * self.alpha_f32())
-                             .add_weighted(&(other.blue_f32() * other.alpha_f32()),
-                                           self_portion, other_portion))
-                             * 1. / alpha;
-            Ok(RGBA::from_floats(red, green, blue, alpha))
-        }
-    }
-
-    /// https://www.w3.org/TR/smil-animation/#animateColorElement says we should use Euclidean
-    /// RGB-cube distance.
-    #[inline]
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.compute_squared_distance(other).map(|sd| sd.sqrt())
-    }
-
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-        fn clamp(val: f32) -> f32 {
-            val.max(0.).min(1.)
-        }
-
-        let start_a = clamp(self.alpha_f32());
-        let end_a = clamp(other.alpha_f32());
-        let start = [ start_a,
-                      self.red_f32() * start_a,
-                      self.green_f32() * start_a,
-                      self.blue_f32() * start_a ];
-        let end = [ end_a,
-                    other.red_f32() * end_a,
-                    other.green_f32() * end_a,
-                    other.blue_f32() * end_a ];
-        let diff = start.iter().zip(&end)
-                               .fold(0.0f64, |n, (&a, &b)| {
-                                   let diff = (a - b) as f64;
-                                   n + diff * diff
-                               });
-        Ok(diff)
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-color
-impl Animatable for CSSParserColor {
-    #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        match (*self, *other) {
-            (CSSParserColor::RGBA(ref this), CSSParserColor::RGBA(ref other)) => {
-                this.add_weighted(other, self_portion, other_portion).map(CSSParserColor::RGBA)
-            }
-            _ => Err(()),
-        }
-    }
-
-    #[inline]
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.compute_squared_distance(other).map(|sq| sq.sqrt())
-    }
-
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-        match (*self, *other) {
-            (CSSParserColor::RGBA(ref this), CSSParserColor::RGBA(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            _ => Ok(0.0),
-        }
     }
 }
 
@@ -1568,9 +1486,6 @@ impl Animatable for ClipRect {
         }
     }
 </%def>
-
-${impl_animatable_for_shadow('BoxShadow', 'CSSParserColor::RGBA(RGBA::transparent())',)}
-${impl_animatable_for_shadow('TextShadow', 'CSSParserColor::RGBA(RGBA::transparent())',)}
 
 /// Check if it's possible to do a direct numerical interpolation
 /// between these two transform lists.
@@ -2626,8 +2541,8 @@ impl<T, U> Animatable for Either<T, U>
     }
 }
 
-impl <'a> From<<&'a IntermediateRGBA> for RGBA {
-    fn from(extended_rgba: &IntermediateRGBA) -> RGBA {
+impl From<IntermediateRGBA> for RGBA {
+    fn from(extended_rgba: IntermediateRGBA) -> RGBA {
         // RGBA::from_floats clamps each component values.
         RGBA::from_floats(extended_rgba.red,
                           extended_rgba.green,
@@ -2636,8 +2551,8 @@ impl <'a> From<<&'a IntermediateRGBA> for RGBA {
     }
 }
 
-impl <'a> From<<&'a RGBA> for IntermediateRGBA {
-    fn from(rgba: &RGBA) -> IntermediateRGBA {
+impl From<RGBA> for IntermediateRGBA {
+    fn from(rgba: RGBA) -> IntermediateRGBA {
         IntermediateRGBA::new(rgba.red_f32(),
                               rgba.green_f32(),
                               rgba.blue_f32(),
@@ -2725,12 +2640,12 @@ impl Animatable for IntermediateRGBA {
     }
 }
 
-impl<'a> From<<&'a Either<CSSParserColor, Auto>> for Either<IntermediateColor, Auto> {
-    fn from(from: &Either<CSSParserColor, Auto>) -> Either<IntermediateColor, Auto> {
-        match *from {
-            Either::First(ref from) =>
-                match *from {
-                    CSSParserColor::RGBA(ref color) =>
+impl From<Either<CSSParserColor, Auto>> for Either<IntermediateColor, Auto> {
+    fn from(from: Either<CSSParserColor, Auto>) -> Either<IntermediateColor, Auto> {
+        match from {
+            Either::First(from) =>
+                match from {
+                    CSSParserColor::RGBA(color) =>
                         Either::First(IntermediateColor::IntermediateRGBA(
                             IntermediateRGBA::new(color.red_f32(),
                                                   color.green_f32(),
@@ -2744,12 +2659,12 @@ impl<'a> From<<&'a Either<CSSParserColor, Auto>> for Either<IntermediateColor, A
     }
 }
 
-impl<'a> From<<&'a Either<IntermediateColor, Auto>> for Either<CSSParserColor, Auto> {
-    fn from(from: &Either<IntermediateColor, Auto>) -> Either<CSSParserColor, Auto> {
-        match *from {
-            Either::First(ref from) =>
-                match *from {
-                    IntermediateColor::IntermediateRGBA(ref color) =>
+impl From<Either<IntermediateColor, Auto>> for Either<CSSParserColor, Auto> {
+    fn from(from: Either<IntermediateColor, Auto>) -> Either<CSSParserColor, Auto> {
+        match from {
+            Either::First(from) =>
+                match from {
+                    IntermediateColor::IntermediateRGBA(color) =>
                         Either::First(CSSParserColor::RGBA(RGBA::from_floats(color.red,
                                                                              color.green,
                                                                              color.blue,
@@ -2800,10 +2715,10 @@ impl Animatable for IntermediateColor {
     }
 }
 
-impl <'a> From<<&'a CSSParserColor> for IntermediateColor {
-    fn from(color: &CSSParserColor) -> IntermediateColor {
-        match *color {
-            CSSParserColor::RGBA(ref color) =>
+impl From<CSSParserColor> for IntermediateColor {
+    fn from(color: CSSParserColor) -> IntermediateColor {
+        match color {
+            CSSParserColor::RGBA(color) =>
                 IntermediateColor::IntermediateRGBA(IntermediateRGBA::new(color.red_f32(),
                                                                           color.green_f32(),
                                                                           color.blue_f32(),
@@ -2813,10 +2728,10 @@ impl <'a> From<<&'a CSSParserColor> for IntermediateColor {
     }
 }
 
-impl <'a> From<<&'a IntermediateColor> for CSSParserColor {
-    fn from(color: &IntermediateColor) -> CSSParserColor {
-        match *color {
-            IntermediateColor::IntermediateRGBA(ref color) =>
+impl From<IntermediateColor> for CSSParserColor {
+    fn from(color: IntermediateColor) -> CSSParserColor {
+        match color {
+            IntermediateColor::IntermediateRGBA(color) =>
                 CSSParserColor::RGBA(RGBA::from_floats(color.red,
                                                        color.green,
                                                        color.blue,
@@ -2850,25 +2765,25 @@ impl <'a> From<<&'a IntermediateColor> for CSSParserColor {
     /// Intermediate type for box-shadow list and text-shadow list.
     pub struct Intermediate${type}ShadowList(pub SmallVec<[Intermediate${type}Shadow; 1]>);
 
-    impl <'a> From<<&'a Intermediate${type}ShadowList> for ${type}ShadowList {
-        fn from(shadow_list: &Intermediate${type}ShadowList) -> ${type}ShadowList {
-            ${type}ShadowList(shadow_list.0.iter().map(|s| s.into()).collect())
+    impl From<Intermediate${type}ShadowList> for ${type}ShadowList {
+        fn from(shadow_list: Intermediate${type}ShadowList) -> ${type}ShadowList {
+            ${type}ShadowList(shadow_list.0.into_iter().map(|s| s.into()).collect())
         }
     }
 
-    impl <'a> From<<&'a ${type}ShadowList> for Intermediate${type}ShadowList {
-        fn from(shadow_list: &${type}ShadowList) -> Intermediate${type}ShadowList {
-            Intermediate${type}ShadowList(shadow_list.0.iter().map(|s| s.into()).collect())
+    impl From<${type}ShadowList> for Intermediate${type}ShadowList {
+        fn from(shadow_list: ${type}ShadowList) -> Intermediate${type}ShadowList {
+            Intermediate${type}ShadowList(shadow_list.0.into_iter().map(|s| s.into()).collect())
         }
     }
 
-    impl <'a> From<<&'a Intermediate${type}Shadow> for ${type}Shadow {
-        fn from(shadow: &Intermediate${type}Shadow) -> ${type}Shadow {
+    impl From<Intermediate${type}Shadow> for ${type}Shadow {
+        fn from(shadow: Intermediate${type}Shadow) -> ${type}Shadow {
             ${type}Shadow {
                 offset_x: shadow.offset_x,
                 offset_y: shadow.offset_y,
                 blur_radius: shadow.blur_radius,
-                color: (&shadow.color).into(),
+                color: shadow.color.into(),
                 % if type == "Box":
                 spread_radius: shadow.spread_radius,
                 inset: shadow.inset,
@@ -2877,13 +2792,13 @@ impl <'a> From<<&'a IntermediateColor> for CSSParserColor {
         }
     }
 
-    impl <'a> From<<&'a ${type}Shadow> for Intermediate${type}Shadow {
-        fn from(shadow: &${type}Shadow) -> Intermediate${type}Shadow {
+    impl From<${type}Shadow> for Intermediate${type}Shadow {
+        fn from(shadow: ${type}Shadow) -> Intermediate${type}Shadow {
             Intermediate${type}Shadow {
                 offset_x: shadow.offset_x,
                 offset_y: shadow.offset_y,
                 blur_radius: shadow.blur_radius,
-                color: (&shadow.color).into(),
+                color: shadow.color.into(),
                 % if type == "Box":
                 spread_radius: shadow.spread_radius,
                 inset: shadow.inset,
