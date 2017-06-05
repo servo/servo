@@ -14,6 +14,7 @@
 //! * We can experiment with arena allocation (todo).
 //! * We can add methods to support our custom use cases [1].
 //! * We have support for dynamically-sized types (see from_header_and_iter).
+//! * We have support for thin arcs to unsized types (see ThinArc).
 //!
 //! [1] https://bugzilla.mozilla.org/show_bug.cgi?id=1360883
 
@@ -22,9 +23,11 @@
 #![allow(missing_docs)]
 
 #[cfg(feature = "servo")] extern crate serde;
+extern crate nodrop;
 
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
+use nodrop::NoDrop;
 #[cfg(feature = "servo")]
 use serde::{Deserialize, Serialize};
 use std::{isize, usize};
@@ -509,5 +512,166 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
         // Return the fat Arc.
         assert_eq!(size_of::<Self>(), size_of::<usize>() * 2, "The Arc will be fat");
         Arc { ptr: ptr }
+    }
+}
+
+/// Header data with an inline length. Consumers that use HeaderWithLength as the
+/// Header type in HeaderSlice can take advantage of ThinArc.
+#[derive(Debug, Eq, PartialEq, PartialOrd)]
+pub struct HeaderWithLength<H> {
+    /// The fixed-sized data.
+    pub header: H,
+
+    /// The slice length.
+    length: usize,
+}
+
+impl<H> HeaderWithLength<H> {
+    /// Creates a new HeaderWithLength.
+    pub fn new(header: H, length: usize) -> Self {
+        HeaderWithLength {
+            header: header,
+            length: length,
+        }
+    }
+}
+
+pub struct ThinArc<H, T> {
+    ptr: *mut ArcInner<HeaderSlice<HeaderWithLength<H>, [T; 1]>>,
+}
+
+unsafe impl<H: Sync + Send, T: Sync + Send> Send for ThinArc<H, T> {}
+unsafe impl<H: Sync + Send, T: Sync + Send> Sync for ThinArc<H, T> {}
+
+// Synthesize a fat pointer from a thin pointer.
+//
+// See the comment around the analogous operation in from_header_and_iter.
+fn thin_to_thick<H, T>(thin: *mut ArcInner<HeaderSlice<HeaderWithLength<H>, [T; 1]>>)
+    -> *mut ArcInner<HeaderSlice<HeaderWithLength<H>, [T]>>
+{
+    let len = unsafe { (*thin).data.header.length };
+    let fake_slice: *mut [T] = unsafe {
+        slice::from_raw_parts_mut(thin as *mut T, len)
+    };
+
+    fake_slice as *mut ArcInner<HeaderSlice<HeaderWithLength<H>, [T]>>
+}
+
+impl<H, T> ThinArc<H, T> {
+    /// Temporarily converts |self| into a bonafide Arc and exposes it to the
+    /// provided callback. The refcount is not modified.
+    #[inline(always)]
+    pub fn with_arc<F, U>(&self, f: F) -> U
+        where F: FnOnce(&Arc<HeaderSlice<HeaderWithLength<H>, [T]>>) -> U
+    {
+        // Synthesize transient Arc, which never touches the refcount of the ArcInner.
+        let transient = NoDrop::new(Arc {
+            ptr: thin_to_thick(self.ptr)
+        });
+
+        // Expose the transient Arc to the callback, which may clone it if it wants.
+        let result = f(&transient);
+
+        // Forget the transient Arc to leave the refcount untouched.
+        mem::forget(transient);
+
+        // Forward the result.
+        result
+    }
+}
+
+impl<H, T> Deref for ThinArc<H, T> {
+    type Target = HeaderSlice<HeaderWithLength<H>, [T]>;
+    fn deref(&self) -> &Self::Target {
+        unsafe { &(*thin_to_thick(self.ptr)).data }
+    }
+}
+
+impl<H, T> Clone for ThinArc<H, T> {
+    fn clone(&self) -> Self {
+        ThinArc::with_arc(self, |a| Arc::into_thin(a.clone()))
+    }
+}
+
+impl<H, T> Drop for ThinArc<H, T> {
+    fn drop(&mut self) {
+        let _ = Arc::from_thin(ThinArc { ptr: self.ptr });
+    }
+}
+
+impl<H, T> Arc<HeaderSlice<HeaderWithLength<H>, [T]>> {
+    /// Converts an Arc into a ThinArc. This consumes the Arc, so the refcount
+    /// is not modified.
+    pub fn into_thin(a: Self) -> ThinArc<H, T> {
+        assert!(a.header.length == a.slice.len(),
+                "Length needs to be correct for ThinArc to work");
+        let fat_ptr: *mut ArcInner<HeaderSlice<HeaderWithLength<H>, [T]>> = a.ptr;
+        mem::forget(a);
+        let thin_ptr = fat_ptr as *mut [usize] as *mut usize;
+        ThinArc {
+            ptr: thin_ptr as *mut ArcInner<HeaderSlice<HeaderWithLength<H>, [T; 1]>>
+        }
+    }
+
+    /// Converts a ThinArc into an Arc. This consumes the ThinArc, so the refcount
+    /// is not modified.
+    pub fn from_thin(a: ThinArc<H, T>) -> Self {
+        let ptr = thin_to_thick(a.ptr);
+        mem::forget(a);
+        Arc {
+            ptr: ptr
+        }
+    }
+}
+
+impl<H: PartialEq, T: PartialEq> PartialEq for ThinArc<H, T> {
+    fn eq(&self, other: &ThinArc<H, T>) -> bool {
+        ThinArc::with_arc(self, |a| {
+            ThinArc::with_arc(other, |b| {
+                *a == *b
+            })
+        })
+    }
+}
+
+impl<H: Eq, T: Eq> Eq for ThinArc<H, T> {}
+
+#[cfg(test)]
+mod tests {
+    use std::clone::Clone;
+    use std::ops::Drop;
+    use std::sync::atomic;
+    use std::sync::atomic::Ordering::{Acquire, SeqCst};
+    use super::{Arc, HeaderWithLength, ThinArc};
+
+    #[derive(PartialEq)]
+    struct Canary(*mut atomic::AtomicUsize);
+
+    impl Drop for Canary {
+        fn drop(&mut self) {
+            unsafe {
+                match *self {
+                    Canary(c) => {
+                        (*c).fetch_add(1, SeqCst);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn slices_and_thin() {
+        let mut canary = atomic::AtomicUsize::new(0);
+        let c = Canary(&mut canary as *mut atomic::AtomicUsize);
+        let v = vec![5, 6];
+        let header = HeaderWithLength::new(c, v.len());
+        {
+            let x = Arc::into_thin(Arc::from_header_and_iter(header, v.into_iter()));
+            let y = ThinArc::with_arc(&x, |q| q.clone());
+            let _ = y.clone();
+            let _ = x == x;
+            Arc::from_thin(x.clone());
+        }
+        assert!(canary.load(Acquire) == 1);
     }
 }
