@@ -921,29 +921,17 @@ fn complex_selector_specificity<Impl>(mut iter: SelectorIter<Impl>)
     specificity
 }
 
-/// Build up a Selector.
-/// selector : simple_selector_sequence [ combinator simple_selector_sequence ]* ;
-///
-/// `Err` means invalid selector.
-fn parse_selector<P, Impl>(parser: &P, input: &mut CssParser) -> Result<Selector<Impl>, ()>
-    where P: Parser<Impl=Impl>, Impl: SelectorImpl
-{
-    let selector = parse_complex_selector(parser, input)?;
-    Ok(selector)
-}
-
 /// We make this large because the result of parsing a selector is fed into a new
 /// Arc-ed allocation, so any spilled vec would be a wasted allocation. Also,
 /// Components are large enough that we don't have much cache locality benefit
 /// from reserving stack space for fewer of them.
 type ParseVec<Impl> = SmallVec<[Component<Impl>; 32]>;
 
-/// Parses a complex selector, including any pseudo-element.
+/// Build up a Selector.
+/// selector : simple_selector_sequence [ combinator simple_selector_sequence ]* ;
 ///
-/// For now, it always forces the pseudo-element to be at the end of the
-/// selector, and the boolean represents whether the last thing parsed was a
-/// pseudo-element.
-fn parse_complex_selector<P, Impl>(
+/// `Err` means invalid selector.
+fn parse_selector<P, Impl>(
         parser: &P,
         input: &mut CssParser)
         -> Result<Selector<Impl>, ()>
@@ -1012,7 +1000,7 @@ impl<Impl: SelectorImpl> Selector<Impl> {
     pub fn parse<P>(parser: &P, input: &mut CssParser) -> Result<Self, ()>
         where P: Parser<Impl=Impl>
     {
-        let selector = parse_complex_selector(parser, input)?;
+        let selector = parse_selector(parser, input)?;
         if selector.has_pseudo_element() {
             return Err(())
         }
