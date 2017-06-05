@@ -146,6 +146,15 @@ pub struct Stylist {
     /// when an irrelevant element state bit changes.
     state_dependencies: ElementState,
 
+    /// The ids that appear in the rightmost complex selector of selectors (and
+    /// hence in our selector maps).  Used to determine when sharing styles is
+    /// safe: we disallow style sharing for elements whose id matches this
+    /// filter, and hence might be in one of our selector maps.
+    ///
+    /// FIXME(bz): This doesn't really need to be a counting Blooom filter.
+    #[cfg_attr(feature = "servo", ignore_heap_size_of = "just an array")]
+    mapped_ids: BloomFilter,
+
     /// Selectors that require explicit cache revalidation (i.e. which depend
     /// on state that is not otherwise visible to the cache, like attributes or
     /// tree-structural state like child index and pseudos).
@@ -249,6 +258,7 @@ impl Stylist {
             attribute_dependencies: BloomFilter::new(),
             style_attribute_dependency: false,
             state_dependencies: ElementState::empty(),
+            mapped_ids: BloomFilter::new(),
             selectors_for_cache_revalidation: SelectorMap::new(),
             num_selectors: 0,
             num_declarations: 0,
@@ -323,6 +333,7 @@ impl Stylist {
         self.attribute_dependencies.clear();
         self.style_attribute_dependency = false;
         self.state_dependencies = ElementState::empty();
+        self.mapped_ids.clear();
         self.selectors_for_cache_revalidation = SelectorMap::new();
         self.num_selectors = 0;
         self.num_declarations = 0;
@@ -467,6 +478,9 @@ impl Stylist {
                             attribute_dependencies: &mut self.attribute_dependencies,
                             style_attribute_dependency: &mut self.style_attribute_dependency,
                             state_dependencies: &mut self.state_dependencies,
+                        });
+                        selector.visit(&mut MappedIdVisitor {
+                            mapped_ids: &mut self.mapped_ids,
                         });
                     }
                     self.rules_source_order += 1;
@@ -1069,6 +1083,13 @@ impl Stylist {
         debug!("push_applicable_declarations: shareable: {:?}", context.relations);
     }
 
+    /// Given an id, returns whether there might be any rules for that id in any
+    /// of our rule maps.
+    #[inline]
+    pub fn may_have_rules_for_id(&self, id: &Atom) -> bool {
+        self.mapped_ids.might_contain(id)
+    }
+
     /// Return whether the device is dirty, that is, whether the screen size or
     /// media type have changed (for now).
     #[inline]
@@ -1092,7 +1113,7 @@ impl Stylist {
     /// revalidation selectors.
     pub fn match_revalidation_selectors<E, F>(&self,
                                               element: &E,
-                                              bloom: &BloomFilter,
+                                              bloom: Option<&BloomFilter>,
                                               flags_setter: &mut F)
                                               -> BitVec
         where E: TElement,
@@ -1101,7 +1122,7 @@ impl Stylist {
         // NB: `MatchingMode` doesn't really matter, given we don't share style
         // between pseudos.
         let mut matching_context =
-            MatchingContext::new(MatchingMode::Normal, Some(bloom));
+            MatchingContext::new(MatchingMode::Normal, bloom);
 
         // Note that, by the time we're revalidating, we're guaranteed that the
         // candidate and the entry have the same id, classes, and local name.
@@ -1232,6 +1253,37 @@ impl<'a> SelectorVisitor for AttributeAndStateDependencyVisitor<'a> {
     }
 }
 
+/// Visitor to collect ids that appear in the rightmost portion of selectors.
+struct MappedIdVisitor<'a> {
+    mapped_ids: &'a mut BloomFilter,
+}
+
+impl<'a> SelectorVisitor for MappedIdVisitor<'a> {
+    type Impl = SelectorImpl;
+
+    /// We just want to insert all the ids we find into mapped_ids.
+    fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) -> bool {
+        if let Component::ID(ref id) = *s {
+            self.mapped_ids.insert(id);
+        }
+        true
+    }
+
+    /// We want to stop as soon as we've moved off the rightmost ComplexSelector
+    /// that is not a psedo-element.  That can be detected by a
+    /// visit_complex_selector call with a combinator other than None and
+    /// PseudoElement.  Importantly, this call happens before we visit any of
+    /// the simple selectors in that ComplexSelector.
+    fn visit_complex_selector(&mut self,
+                              _: SelectorIter<SelectorImpl>,
+                              combinator: Option<Combinator>) -> bool {
+        match combinator {
+            None | Some(Combinator::PseudoElement) => true,
+            _ => false,
+        }
+    }
+}
+
 /// Visitor determine whether a selector requires cache revalidation.
 ///
 /// Note that we just check simple selectors and eagerly return when the first
@@ -1282,6 +1334,10 @@ impl SelectorVisitor for RevalidationVisitor {
             Component::AttributeInNoNamespace { .. } |
             Component::AttributeOther(_) |
             Component::Empty |
+            // FIXME(bz) We really only want to do this for some cases of id
+            // selectors.  See
+            // https://bugzilla.mozilla.org/show_bug.cgi?id=1369611
+            Component::ID(_) |
             Component::FirstChild |
             Component::LastChild |
             Component::OnlyChild |

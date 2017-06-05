@@ -77,10 +77,18 @@ fn test_revalidation_selectors() {
     let test = parse_selectors(&[
         // Not revalidation selectors.
         "div",
-        "#bar",
         "div:not(.foo)",
         "div span",
         "div > span",
+
+        // ID selectors.
+        "#foo1", // FIXME(bz) This one should not be a revalidation
+                // selector once we fix
+                // https://bugzilla.mozilla.org/show_bug.cgi?id=1369611
+        "#foo2::before",
+        "#foo3 > span",
+        "#foo1 > span", // FIXME(bz) This one should not be a
+                        // revalidation selector either.
 
         // Attribute selectors.
         "div[foo]",
@@ -122,6 +130,12 @@ fn test_revalidation_selectors() {
       .collect::<Vec<_>>();
 
     let reference = parse_selectors(&[
+        // ID selectors.
+        "#foo1",
+        "#foo2::before",
+        "#foo3 > span",
+        "#foo1 > span",
+
         // Attribute selectors.
         "div[foo]",
         "div:not([foo])",

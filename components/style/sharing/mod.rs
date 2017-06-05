@@ -4,16 +4,77 @@
 
 //! Code related to the style sharing cache, an optimization that allows similar
 //! nodes to share style without having to run selector matching twice.
+//!
+//! The basic setup is as follows.  We have an LRU cache of style sharing
+//! candidates.  When we try to style a target element, we first check whether
+//! we can quickly determine that styles match something in this cache, and if
+//! so we just use the cached style information.  This check is done with a
+//! StyleBloom filter set up for the target element, which may not be a correct
+//! state for the cached candidate element if they're cousins instead of
+//! siblings.
+//!
+//! The complicated part is determining that styles match.  This is subject to
+//! the following constraints:
+//!
+//! 1) The target and candidate must be inheriting the same styles.
+//! 2) The target and candidate must have exactly the same rules matching them.
+//! 3) The target and candidate must have exactly the same non-selector-based
+//!    style information (inline styles, presentation hints).
+//! 4) The target and candidate must have exactly the same rules matching their
+//!    pseudo-elements, because an element's style data points to the style
+//!    data for its pseudo-elements.
+//!
+//! These constraints are satisfied in the following ways:
+//!
+//! * We check that the parents of the target and the candidate have the same
+//!   computed style.  This addresses constraint 1.
+//!
+//! * We check that the target and candidate have the same inline style and
+//!   presentation hint declarations.  This addresses constraint 3.
+//!
+//! * We ensure that elements that have pseudo-element styles are not inserted
+//!   into the cache.  This partially addresses constraint 4.
+//!
+//! * We ensure that a target matches a candidate only if they have the same
+//!   matching result for all selectors that target either elements or the
+//!   originating elements of pseudo-elements.  This addresses the second half
+//!   of constraint 4 (because it prevents a target that has pseudo-element
+//!   styles from matching any candidate) as well as constraint 2.
+//!
+//! The actual checks that ensure that elements match the same rules are
+//! conceptually split up into two pieces.  First, we do various checks on
+//! elements that make sure that the set of possible rules in all selector maps
+//! in the stylist (for normal styling and for pseudo-elements) that might match
+//! the two elements is the same.  For example, we enforce that the target and
+//! candidate must have the same localname and namespace.  Second, we have a
+//! selector map of "revalidation selectors" that the stylist maintains that we
+//! actually match against the target and candidate and then check whether the
+//! two sets of results were the same.  Due to the up-front selector map checks,
+//! we know that the target and candidate will be matched against the same exact
+//! set of revalidation selectors, so the match result arrays can be compared
+//! directly.
+//!
+//! It's very important that a selector be added to the set of revalidation
+//! selectors any time there are two elements that could pass all the up-front
+//! checks but match differently against some ComplexSelector in the selector.
+//! If that happens, then they can have descendants that might themselves pass
+//! the up-front checks but would have different matching results for the
+//! selector in question.  In this case, "descendants" includes pseudo-elements,
+//! so there is a single selector map of revalidation selectors that includes
+//! both selectors targeting element and selectors targeting pseudo-elements.
+//! This relies on matching an element against a pseudo-element-targeting
+//! selector being a sensible operation that will effectively check whether that
+//! element is a matching originating element for the selector.
 
 use Atom;
 use bit_vec::BitVec;
+use bloom::StyleBloom;
 use cache::{LRUCache, LRUCacheMutIterator};
 use context::{SelectorFlagsMap, SharedStyleContext, StyleContext};
 use data::{ComputedStyle, ElementData, ElementStyles};
 use dom::{TElement, SendElement};
 use matching::{ChildCascadeRequirement, MatchMethods};
 use properties::ComputedValues;
-use selectors::bloom::BloomFilter;
 use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode, StyleRelations};
 use smallvec::SmallVec;
 use std::mem;
@@ -95,19 +156,40 @@ impl ValidationData {
     }
 
     /// Computes the revalidation results if needed, and returns it.
+    /// Inline so we know at compile time what bloom_known_valid is.
+    #[inline]
     fn revalidation_match_results<E, F>(
         &mut self,
         element: E,
         stylist: &Stylist,
-        bloom: &BloomFilter,
+        bloom: &StyleBloom<E>,
+        bloom_known_valid: bool,
         flags_setter: &mut F
     ) -> &BitVec
         where E: TElement,
               F: FnMut(&E, ElementSelectorFlags),
     {
         if self.revalidation_match_results.is_none() {
+            // The bloom filter may already be set up for our element.
+            // If it is, use it.  If not, we must be in a candidate
+            // (i.e. something in the cache), and the element is one
+            // of our cousins, not a sibling.  In that case, we'll
+            // just do revalidation selector matching without a bloom
+            // filter, to avoid thrashing the filter.
+            let bloom_to_use = if bloom_known_valid {
+                debug_assert_eq!(bloom.current_parent(),
+                                 element.parent_element());
+                Some(bloom.filter())
+            } else {
+                if bloom.current_parent() == element.parent_element() {
+                    Some(bloom.filter())
+                } else {
+                    None
+                }
+            };
             self.revalidation_match_results =
-                Some(stylist.match_revalidation_selectors(&element, bloom,
+                Some(stylist.match_revalidation_selectors(&element,
+                                                          bloom_to_use,
                                                           flags_setter));
         }
 
@@ -149,16 +231,18 @@ impl<E: TElement> StyleSharingCandidate<E> {
         self.validation_data.pres_hints(*self.element)
     }
 
-    /// Get the classlist of this candidate.
+    /// Compute the bit vector of revalidation selector match results
+    /// for this candidate.
     fn revalidation_match_results(
         &mut self,
         stylist: &Stylist,
-        bloom: &BloomFilter,
+        bloom: &StyleBloom<E>,
     ) -> &BitVec {
         self.validation_data.revalidation_match_results(
             *self.element,
             stylist,
             bloom,
+            /* bloom_known_valid = */ false,
             &mut |_, _| {})
     }
 }
@@ -204,7 +288,7 @@ impl<E: TElement> StyleSharingTarget<E> {
     fn revalidation_match_results(
         &mut self,
         stylist: &Stylist,
-        bloom: &BloomFilter,
+        bloom: &StyleBloom<E>,
         selector_flags_map: &mut SelectorFlagsMap<E>
     ) -> &BitVec {
         // It's important to set the selector flags. Otherwise, if we succeed in
@@ -231,6 +315,7 @@ impl<E: TElement> StyleSharingTarget<E> {
             self.element,
             stylist,
             bloom,
+            /* bloom_known_valid = */ true,
             &mut set_selector_flags)
     }
 
@@ -243,7 +328,10 @@ impl<E: TElement> StyleSharingTarget<E> {
     {
         let shared_context = &context.shared;
         let selector_flags_map = &mut context.thread_local.selector_flags;
-        let bloom_filter = context.thread_local.bloom_filter.filter();
+        let bloom_filter = &context.thread_local.bloom_filter;
+
+        debug_assert_eq!(bloom_filter.current_parent(),
+                         self.element.parent_element());
 
         let result = context.thread_local
             .style_sharing_candidate_cache
@@ -400,7 +488,7 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
         &mut self,
         shared_context: &SharedStyleContext,
         selector_flags_map: &mut SelectorFlagsMap<E>,
-        bloom_filter: &BloomFilter,
+        bloom_filter: &StyleBloom<E>,
         target: &mut StyleSharingTarget<E>,
         data: &mut ElementData
     ) -> StyleSharingResult {
@@ -419,11 +507,6 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
         if target.is_native_anonymous() {
             debug!("{:?} Cannot share style: NAC", target.element);
             return StyleSharingResult::CannotShare;
-        }
-
-        if target.get_id().is_some() {
-            debug!("{:?} Cannot share style: element has id", target.element);
-            return StyleSharingResult::CannotShare
         }
 
         let mut should_clear_cache = false;
@@ -498,7 +581,7 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
     fn test_candidate(target: &mut StyleSharingTarget<E>,
                       candidate: &mut StyleSharingCandidate<E>,
                       shared: &SharedStyleContext,
-                      bloom: &BloomFilter,
+                      bloom: &StyleBloom<E>,
                       selector_flags_map: &mut SelectorFlagsMap<E>)
                       -> Result<ComputedStyle, CacheMiss> {
         macro_rules! miss {
@@ -544,8 +627,14 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
             miss!(State)
         }
 
-        if target.get_id() != candidate.element.get_id() {
-            miss!(IdAttr)
+        let element_id = target.element.get_id();
+        let candidate_id = candidate.element.get_id();
+        if element_id != candidate_id {
+            // It's possible that there are no styles for either id.
+            if checks::may_have_rules_for_ids(shared, element_id.as_ref(),
+                                              candidate_id.as_ref()) {
+                miss!(IdAttr)
+            }
         }
 
         if !checks::have_same_style_attribute(target, candidate) {
