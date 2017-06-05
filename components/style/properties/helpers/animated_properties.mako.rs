@@ -294,9 +294,14 @@ impl<'a> From<TransitionProperty> for PropertyDeclarationId<'a> {
 pub enum AnimatedProperty {
     % for prop in data.longhands:
         % if prop.animatable:
+            <%
+                if prop.is_animatable_with_computed_value:
+                    value_type = "longhands::{}::computed_value::T".format(prop.ident)
+                else:
+                    value_type = prop.animation_value_type
+            %>
             /// ${prop.name}
-            ${prop.camel_case}(longhands::${prop.ident}::computed_value::T,
-                               longhands::${prop.ident}::computed_value::T),
+            ${prop.camel_case}(${value_type}, ${value_type}),
         % endif
     % endfor
 }
@@ -356,6 +361,9 @@ impl AnimatedProperty {
                                 Err(()) => return,
                             };
                         % endif
+                        % if not prop.is_animatable_with_computed_value:
+                            let value: longhands::${prop.ident}::computed_value::T = value.into();
+                        % endif
                         style.mutate_${prop.style_struct.ident.strip("_")}().set_${prop.ident}(value);
                     }
                 % endif
@@ -375,8 +383,8 @@ impl AnimatedProperty {
                 % if prop.animatable:
                     TransitionProperty::${prop.camel_case} => {
                         AnimatedProperty::${prop.camel_case}(
-                            old_style.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}(),
-                            new_style.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}())
+                            old_style.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}().into(),
+                            new_style.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}().into())
                     }
                 % endif
             % endfor
@@ -936,96 +944,6 @@ impl Animatable for BackgroundSizeList {
     }
 }
 
-/// https://drafts.csswg.org/css-transitions/#animtype-color
-impl Animatable for RGBA {
-    #[inline]
-    fn add_weighted(&self, other: &RGBA, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        fn clamp(val: f32) -> f32 {
-            val.max(0.).min(1.)
-        }
-
-        let alpha = clamp(try!(self.alpha_f32().add_weighted(&other.alpha_f32(),
-                                                             self_portion, other_portion)));
-        if alpha == 0. {
-            Ok(RGBA::transparent())
-        } else {
-            // NB: We rely on RGBA::from_floats clamping already.
-            let red = try!((self.red_f32() * self.alpha_f32())
-                            .add_weighted(&(other.red_f32() * other.alpha_f32()),
-                                          self_portion, other_portion))
-                            * 1. / alpha;
-            let green = try!((self.green_f32() * self.alpha_f32())
-                             .add_weighted(&(other.green_f32() * other.alpha_f32()),
-                                           self_portion, other_portion))
-                             * 1. / alpha;
-            let blue = try!((self.blue_f32() * self.alpha_f32())
-                             .add_weighted(&(other.blue_f32() * other.alpha_f32()),
-                                           self_portion, other_portion))
-                             * 1. / alpha;
-            Ok(RGBA::from_floats(red, green, blue, alpha))
-        }
-    }
-
-    /// https://www.w3.org/TR/smil-animation/#animateColorElement says we should use Euclidean
-    /// RGB-cube distance.
-    #[inline]
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.compute_squared_distance(other).map(|sd| sd.sqrt())
-    }
-
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-        fn clamp(val: f32) -> f32 {
-            val.max(0.).min(1.)
-        }
-
-        let start_a = clamp(self.alpha_f32());
-        let end_a = clamp(other.alpha_f32());
-        let start = [ start_a,
-                      self.red_f32() * start_a,
-                      self.green_f32() * start_a,
-                      self.blue_f32() * start_a ];
-        let end = [ end_a,
-                    other.red_f32() * end_a,
-                    other.green_f32() * end_a,
-                    other.blue_f32() * end_a ];
-        let diff = start.iter().zip(&end)
-                               .fold(0.0f64, |n, (&a, &b)| {
-                                   let diff = (a - b) as f64;
-                                   n + diff * diff
-                               });
-        Ok(diff)
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-color
-impl Animatable for CSSParserColor {
-    #[inline]
-    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        match (*self, *other) {
-            (CSSParserColor::RGBA(ref this), CSSParserColor::RGBA(ref other)) => {
-                this.add_weighted(other, self_portion, other_portion).map(CSSParserColor::RGBA)
-            }
-            _ => Err(()),
-        }
-    }
-
-    #[inline]
-    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        self.compute_squared_distance(other).map(|sq| sq.sqrt())
-    }
-
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-        match (*self, *other) {
-            (CSSParserColor::RGBA(ref this), CSSParserColor::RGBA(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            _ => Ok(0.0),
-        }
-    }
-}
-
 /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
 impl Animatable for CalcLengthOrPercentage {
     #[inline]
@@ -1568,9 +1486,6 @@ impl Animatable for ClipRect {
         }
     }
 </%def>
-
-${impl_animatable_for_shadow('BoxShadow', 'CSSParserColor::RGBA(RGBA::transparent())',)}
-${impl_animatable_for_shadow('TextShadow', 'CSSParserColor::RGBA(RGBA::transparent())',)}
 
 /// Check if it's possible to do a direct numerical interpolation
 /// between these two transform lists.
