@@ -210,12 +210,12 @@ class CheckTidiness(unittest.TestCase):
 
     def test_non_list_mapped_buildbot_steps(self):
         errors = tidy.collect_errors_for_files(iterFile('non_list_mapping_buildbot_steps.yml'), [tidy.check_yaml], [], print_text=False)
-        self.assertEqual("Key 'non-list-key' maps to type 'str', but list expected", errors.next()[2])
+        self.assertEqual("expected a list for dictionary value @ data['non-list-key']", errors.next()[2])
         self.assertNoMoreErrors(errors)
 
     def test_non_string_list_mapping_buildbot_steps(self):
         errors = tidy.collect_errors_for_files(iterFile('non_string_list_buildbot_steps.yml'), [tidy.check_yaml], [], print_text=False)
-        self.assertEqual("List mapped to 'mapping_key' contains non-string element", errors.next()[2])
+        self.assertEqual("expected str @ data['mapping_key'][0]", errors.next()[2])
         self.assertNoMoreErrors(errors)
 
     def test_lock(self):

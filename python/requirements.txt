@@ -15,6 +15,7 @@ pep8 == 1.5.7
 pyflakes == 0.8.1
 
 # For buildbot checking
+voluptuous == 0.10.5
 PyYAML == 3.12
 
 # For test-webidl
