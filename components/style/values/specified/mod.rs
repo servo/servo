@@ -27,6 +27,7 @@ use super::generics::grid::TrackList as GenericTrackList;
 use values::computed::ComputedValueAsSpecified;
 use values::specified::calc::CalcNode;
 
+pub use properties::animated_properties::TransitionProperty;
 #[cfg(feature = "gecko")]
 pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
 pub use self::background::BackgroundSize;

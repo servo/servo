@@ -39,9 +39,8 @@ use values::CSSFloat;
 use values::{Auto, Either};
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{BorderCornerRadius, ClipRect};
-use values::computed::{CalcLengthOrPercentage, Context, LengthOrPercentage};
-use values::computed::{MaxLength, MozLength};
-use values::computed::ToComputedValue;
+use values::computed::{CalcLengthOrPercentage, Context, ComputedValueAsSpecified};
+use values::computed::{LengthOrPercentage, MaxLength, MozLength, ToComputedValue};
 use values::generics::{SVGPaint, SVGPaintKind};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::position as generic_position;
@@ -72,6 +71,10 @@ pub enum TransitionProperty {
     /// unknown property.
     Unsupported(Atom)
 }
+
+no_viewport_percentage!(TransitionProperty);
+
+impl ComputedValueAsSpecified for TransitionProperty {}
 
 impl TransitionProperty {
     /// Iterates over each longhand property.

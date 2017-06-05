@@ -424,36 +424,17 @@ ${helpers.predefined_type("transition-timing-function",
                           extra_prefixes="moz webkit",
                           spec="https://drafts.csswg.org/css-transitions/#propdef-transition-timing-function")}
 
-<%helpers:vector_longhand name="transition-property"
-                          allow_empty="True"
-                          need_index="True"
-                          animation_value_type="none"
-                          extra_prefixes="moz webkit"
-                          spec="https://drafts.csswg.org/css-transitions/#propdef-transition-property">
-
-    use values::computed::ComputedValueAsSpecified;
-
-    pub use properties::animated_properties::TransitionProperty;
-    pub use properties::animated_properties::TransitionProperty as SpecifiedValue;
-
-    pub mod computed_value {
-        // NB: Can't generate the type here because it needs all the longhands
-        // generated beforehand.
-        pub use super::SpecifiedValue as T;
-    }
-
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-        SpecifiedValue::parse(input)
-    }
-
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        TransitionProperty::All
-    }
-
-    no_viewport_percentage!(SpecifiedValue);
-
-    impl ComputedValueAsSpecified for SpecifiedValue { }
-</%helpers:vector_longhand>
+${helpers.predefined_type("transition-property",
+                          "TransitionProperty",
+                          "computed::TransitionProperty::All",
+                          initial_specified_value="specified::TransitionProperty::All",
+                          vector=True,
+                          allow_empty=True,
+                          need_index=True,
+                          needs_context=False,
+                          animation_value_type="none",
+                          extra_prefixes="moz webkit",
+                          spec="https://drafts.csswg.org/css-transitions/#propdef-transition-property")}
 
 ${helpers.predefined_type("transition-delay",
                           "Time",

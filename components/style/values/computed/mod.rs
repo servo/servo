@@ -23,6 +23,7 @@ use super::specified;
 
 pub use app_units::Au;
 pub use cssparser::Color as CSSColor;
+pub use properties::animated_properties::TransitionProperty;
 pub use self::background::BackgroundSize;
 pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderCornerRadius};
