@@ -416,7 +416,7 @@ fn color_to_nscolor_zero_currentcolor(color: Color) -> structs::nscolor {
 <%def name="impl_svg_paint(ident, gecko_ffi_name, need_clone=False, complex_color=True)">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, mut v: longhands::${ident}::computed_value::T) {
-        use values::computed::SVGPaintKind;
+        use values::generics::SVGPaintKind;
         use self::structs::nsStyleSVGPaintType;
         use self::structs::nsStyleSVGFallbackType;
 
