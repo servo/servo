@@ -1653,6 +1653,10 @@ macro_rules! exclusive_value {
     pub fn get_initial_specified_value() -> SpecifiedValue {
         SpecifiedValue::Value(VariantLigatures::empty())
     }
+    #[inline]
+    pub fn get_none_specified_value() -> SpecifiedValue {
+        SpecifiedValue::Value(NONE)
+    }
 
     /// normal | none |
     /// [ <common-lig-values> ||

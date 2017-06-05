@@ -232,66 +232,105 @@
                                     ${'font-variant-numeric' if product == 'gecko' or data.testing else ''}
                                     ${'font-variant-position' if product == 'gecko' or data.testing else ''}"
                     spec="https://drafts.csswg.org/css-fonts-3/#propdef-font-variant">
-    use properties::longhands::font_variant_caps;
     <% gecko_sub_properties = "alternates east_asian ligatures numeric position".split() %>
-    % if product == "gecko" or data.testing:
-        % for prop in gecko_sub_properties:
-            use properties::longhands::font_variant_${prop};
-        % endfor
-    % endif
+    <%
+        sub_properties = ["caps"]
+        if product == "gecko" or data.testing:
+            sub_properties += gecko_sub_properties
+    %>
+
+% for prop in sub_properties:
+    use properties::longhands::font_variant_${prop};
+% endfor
 
     pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                -> Result<Longhands, ParseError<'i>> {
-        let mut nb_normals = 0;
-        let mut caps = None;
-        loop {
-            // Special-case 'normal' because it is valid in each of
-            // all sub properties.
-            // Leaves the values to None, 'normal' is the initial value for each of them.
-            if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
-                nb_normals += 1;
-                continue;
-            }
-            if caps.is_none() {
-                if let Ok(value) = input.try(|input| font_variant_caps::parse(context, input)) {
-                    caps = Some(value);
-                    continue
+    % for prop in sub_properties:
+        let mut ${prop} = None;
+    % endfor
+
+        if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
+            // Leave the values to None, 'normal' is the initial value for all the sub properties.
+        } else if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+            // The 'none' value sets 'font-variant-ligatures' to 'none' and resets all other sub properties
+            // to their initial value.
+        % if product == "gecko" or data.testing:
+            ligatures = Some(font_variant_ligatures::get_none_specified_value());
+        % endif
+        } else {
+            let mut has_custom_value: bool = false;
+            loop {
+                if input.try(|input| input.expect_ident_matching("normal")).is_ok() ||
+                   input.try(|input| input.expect_ident_matching("none")).is_ok() {
+                    return Err(StyleParseError::UnspecifiedError.into())
                 }
+            % for prop in sub_properties:
+                if ${prop}.is_none() {
+                    if let Ok(value) = input.try(|i| font_variant_${prop}::parse(context, i)) {
+                        has_custom_value = true;
+                        ${prop} = Some(value);
+                        continue
+                    }
+                }
+            % endfor
+
+                break
             }
-            break
+
+            if !has_custom_value {
+                return Err(StyleParseError::UnspecifiedError.into())
+            }
         }
-        #[inline]
-        fn count<T>(opt: &Option<T>) -> u8 {
-            if opt.is_some() { 1 } else { 0 }
-        }
-        let count = count(&caps) + nb_normals;
-        if count == 0 || count > 1 {
-            return Err(StyleParseError::UnspecifiedError.into())
-        }
+
         Ok(expanded! {
-            font_variant_caps: unwrap_or_initial!(font_variant_caps, caps),
-            // FIXME: Bug 1356134 - parse all sub properties.
-            % if product == "gecko" or data.testing:
-                % for name in gecko_sub_properties:
-                    font_variant_${name}: font_variant_${name}::get_initial_specified_value(),
-                % endfor
-            % endif
+        % for prop in sub_properties:
+            font_variant_${prop}: unwrap_or_initial!(font_variant_${prop}, ${prop}),
+        % endfor
         })
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        #[allow(unused_assignments)]
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
 
-    % if product == "gecko" or data.testing:
-        % for name in gecko_sub_properties:
-            // FIXME: Bug 1356134 - handle all sub properties.
-            if self.font_variant_${name} != &font_variant_${name}::get_initial_specified_value() {
-                return Ok(());
+            let has_none_ligatures =
+            % if product == "gecko" or data.testing:
+                self.font_variant_ligatures == &font_variant_ligatures::get_none_specified_value();
+            % else:
+                false;
+            % endif
+
+            const TOTAL_SUBPROPS: usize = ${len(sub_properties)};
+            let mut nb_normals = 0;
+        % for prop in sub_properties:
+            if self.font_variant_${prop} == &font_variant_${prop}::get_initial_specified_value() {
+                nb_normals += 1;
             }
         % endfor
-    % endif
 
-            self.font_variant_caps.to_css(dest)?;
+
+            if nb_normals > 0 && nb_normals == TOTAL_SUBPROPS {
+                dest.write_str("normal")?;
+            } else if has_none_ligatures {
+                if nb_normals == TOTAL_SUBPROPS - 1 {
+                    // Serialize to 'none' if 'font-variant-ligatures' is set to 'none' and all other
+                    // font feature properties are reset to their initial value.
+                    dest.write_str("none")?;
+                } else {
+                    return Ok(())
+                }
+            } else {
+                let mut has_any = false;
+            % for prop in sub_properties:
+                if self.font_variant_${prop} != &font_variant_${prop}::get_initial_specified_value() {
+                    if has_any {
+                        dest.write_str(" ")?;
+                    }
+                    has_any = true;
+                    self.font_variant_${prop}.to_css(dest)?;
+                }
+            % endfor
+            }
 
             Ok(())
         }
