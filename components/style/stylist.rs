@@ -917,6 +917,26 @@ impl Stylist {
         self.quirks_mode = quirks_mode;
     }
 
+    /// Returns the applicable CSS declarations for the given element by
+    /// treating us as an XBL stylesheet-only stylist.
+    pub fn push_applicable_declarations_as_xbl_only_stylist<E, V>(&self,
+                                                                  element: &E,
+                                                                  applicable_declarations: &mut V)
+        where E: TElement,
+              V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock>,
+    {
+        let mut matching_context =
+            MatchingContext::new(MatchingMode::Normal, None);
+        let mut dummy_flag_setter = |_: &E, _: ElementSelectorFlags| {};
+
+        self.element_map.author.get_all_matching_rules(element,
+                                                       element,
+                                                       applicable_declarations,
+                                                       &mut matching_context,
+                                                       &mut dummy_flag_setter,
+                                                       CascadeLevel::XBL);
+    }
+
     /// Returns the applicable CSS declarations for the given element.
     ///
     /// This corresponds to `ElementRuleCollector` in WebKit.
@@ -1019,15 +1039,26 @@ impl Stylist {
             debug!("skipping user rules");
         }
 
+        // Step 3b: XBL rules.
+        let cut_off_inheritance =
+            rule_hash_target.get_declarations_from_xbl_bindings(applicable_declarations);
+        debug!("XBL: {:?}", context.relations);
+
         if rule_hash_target.matches_user_and_author_rules() && !only_default_rules {
-            // Step 3b: Author normal rules.
-            map.author.get_all_matching_rules(element,
-                                              &rule_hash_target,
-                                              applicable_declarations,
-                                              context,
-                                              flags_setter,
-                                              CascadeLevel::AuthorNormal);
-            debug!("author normal: {:?}", context.relations);
+            // Gecko skips author normal rules if cutting off inheritance.
+            // See nsStyleSet::FileRules().
+            if !cut_off_inheritance {
+                // Step 3c: Author normal rules.
+                map.author.get_all_matching_rules(element,
+                                                  &rule_hash_target,
+                                                  applicable_declarations,
+                                                  context,
+                                                  flags_setter,
+                                                  CascadeLevel::AuthorNormal);
+                debug!("author normal: {:?}", context.relations);
+            } else {
+                debug!("Skipping author normal rules due to cut off inheritance");
+            }
 
             // Step 4: Normal style attributes.
             if let Some(sa) = style_attribute {
