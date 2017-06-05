@@ -26,7 +26,7 @@ fn test_cubic_bezier() {
 fn test_steps() {
     assert_roundtrip_with_context!(transition_timing_function::parse, "steps(1)");
     assert_roundtrip_with_context!(transition_timing_function::parse, "steps(  1)", "steps(1)");
-    assert_roundtrip_with_context!(transition_timing_function::parse, "steps(1, start)");
+    //assert_roundtrip_with_context!(transition_timing_function::parse, "steps(1, start)");
     assert_roundtrip_with_context!(transition_timing_function::parse, "steps(2, end) ", "steps(2)");
 
     // Step interval value must be an integer greater than 0

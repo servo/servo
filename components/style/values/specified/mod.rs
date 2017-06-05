@@ -44,7 +44,7 @@ pub use self::length::{LengthOrPercentageOrNone, LengthOrPercentageOrAutoOrConte
 pub use self::length::{MaxLength, MozLength};
 pub use self::position::{Position, PositionComponent};
 pub use self::text::{LetterSpacing, LineHeight, WordSpacing};
-pub use self::transform::TransformOrigin;
+pub use self::transform::{TimingFunction, TransformOrigin};
 
 #[cfg(feature = "gecko")]
 pub mod align;
