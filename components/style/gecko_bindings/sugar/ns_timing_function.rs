@@ -4,12 +4,11 @@
 
 use euclid::point::{Point2D, TypedPoint2D};
 use gecko_bindings::structs::{nsTimingFunction, nsTimingFunction_Type};
-use properties::longhands::transition_timing_function::single_value::FunctionKeyword;
-use properties::longhands::transition_timing_function::single_value::SpecifiedValue as SpecifiedTimingFunction;
-use properties::longhands::transition_timing_function::single_value::computed_value::StartEnd;
-use properties::longhands::transition_timing_function::single_value::computed_value::T as ComputedTimingFunction;
 use std::mem;
 use values::computed::ToComputedValue;
+use values::computed::transform::TimingFunction as ComputedTimingFunction;
+use values::generics::transform::{StepPosition, TimingFunction as GenericTimingFunction, TimingKeyword};
+use values::specified::transform::TimingFunction;
 
 impl nsTimingFunction {
     fn set_as_step(&mut self, function_type: nsTimingFunction_Type, steps: u32) {
@@ -47,69 +46,35 @@ impl nsTimingFunction {
 
 impl From<ComputedTimingFunction> for nsTimingFunction {
     fn from(function: ComputedTimingFunction) -> nsTimingFunction {
-        SpecifiedTimingFunction::from_computed_value(&function).into()
+        TimingFunction::from_computed_value(&function).into()
     }
 }
 
-impl From<SpecifiedTimingFunction> for nsTimingFunction {
-    fn from(function: SpecifiedTimingFunction) -> nsTimingFunction {
+impl From<TimingFunction> for nsTimingFunction {
+    fn from(function: TimingFunction) -> nsTimingFunction {
         let mut tf: nsTimingFunction = unsafe { mem::zeroed() };
 
         match function {
-            SpecifiedTimingFunction::Steps(steps, StartEnd::Start) => {
+            GenericTimingFunction::Steps(steps, StepPosition::Start) => {
                 debug_assert!(steps.value() >= 0);
                 tf.set_as_step(nsTimingFunction_Type::StepStart, steps.value() as u32);
             },
-            SpecifiedTimingFunction::Steps(steps, StartEnd::End) => {
+            GenericTimingFunction::Steps(steps, StepPosition::End) => {
                 debug_assert!(steps.value() >= 0);
                 tf.set_as_step(nsTimingFunction_Type::StepEnd, steps.value() as u32);
             },
-            SpecifiedTimingFunction::Frames(frames) => {
+            GenericTimingFunction::Frames(frames) => {
                 debug_assert!(frames.value() >= 2);
                 tf.set_as_frames(frames.value() as u32);
             },
-            SpecifiedTimingFunction::CubicBezier(p1, p2) => {
+            GenericTimingFunction::CubicBezier(p1, p2) => {
                 tf.set_as_bezier(nsTimingFunction_Type::CubicBezier,
                                  Point2D::new(p1.x.get(), p1.y.get()),
                                  Point2D::new(p2.x.get(), p2.y.get()));
             },
-            SpecifiedTimingFunction::Keyword(keyword) => {
-                match keyword.to_non_keyword_value() {
-                    ComputedTimingFunction::CubicBezier(p1, p2) => {
-                        match keyword {
-                            FunctionKeyword::Ease => {
-                                tf.set_as_bezier(nsTimingFunction_Type::Ease, p1, p2);
-                            },
-                            FunctionKeyword::Linear => {
-                                tf.set_as_bezier(nsTimingFunction_Type::Linear, p1, p2);
-                            },
-                            FunctionKeyword::EaseIn => {
-                                tf.set_as_bezier(nsTimingFunction_Type::EaseIn, p1, p2);
-                            },
-                            FunctionKeyword::EaseOut => {
-                                tf.set_as_bezier(nsTimingFunction_Type::EaseOut, p1, p2);
-                            },
-                            FunctionKeyword::EaseInOut => {
-                                tf.set_as_bezier(nsTimingFunction_Type::EaseInOut, p1, p2);
-                            },
-                            _ => unreachable!("Unexpected bezier function type"),
-                        }
-                    },
-                    ComputedTimingFunction::Steps(steps, StartEnd::Start) => {
-                        debug_assert!(keyword == FunctionKeyword::StepStart && steps == 1);
-                        tf.set_as_step(nsTimingFunction_Type::StepStart, steps);
-                    },
-                    ComputedTimingFunction::Steps(steps, StartEnd::End) => {
-                        debug_assert!(keyword == FunctionKeyword::StepEnd && steps == 1);
-                        tf.set_as_step(nsTimingFunction_Type::StepEnd, steps);
-                    },
-                    ComputedTimingFunction::Frames(frames) => {
-                        tf.set_as_frames(frames)
-                    },
-                    ComputedTimingFunction::Keyword(_) => {
-                        panic!("Keyword function should not appear")
-                    },
-                }
+            GenericTimingFunction::Keyword(keyword) => {
+                let (p1, p2) = keyword.to_bezier_points();
+                tf.set_as_bezier(keyword.into(), p1, p2)
             },
         }
         tf
@@ -120,41 +85,53 @@ impl From<nsTimingFunction> for ComputedTimingFunction {
     fn from(function: nsTimingFunction) -> ComputedTimingFunction {
         match function.mType {
             nsTimingFunction_Type::StepStart => {
-                ComputedTimingFunction::Steps(
+                GenericTimingFunction::Steps(
                     unsafe { function.__bindgen_anon_1.__bindgen_anon_1.as_ref().mStepsOrFrames },
-                    StartEnd::Start)
+                    StepPosition::Start)
             },
             nsTimingFunction_Type::StepEnd => {
-                ComputedTimingFunction::Steps(
+                GenericTimingFunction::Steps(
                     unsafe { function.__bindgen_anon_1.__bindgen_anon_1.as_ref().mStepsOrFrames },
-                    StartEnd::End)
+                    StepPosition::End)
             },
             nsTimingFunction_Type::Frames => {
-                ComputedTimingFunction::Frames(
+                GenericTimingFunction::Frames(
                     unsafe { function.__bindgen_anon_1.__bindgen_anon_1.as_ref().mStepsOrFrames })
             }
             nsTimingFunction_Type::Ease => {
-                ComputedTimingFunction::Keyword(FunctionKeyword::Ease)
+                GenericTimingFunction::Keyword(TimingKeyword::Ease)
             },
             nsTimingFunction_Type::Linear => {
-                ComputedTimingFunction::Keyword(FunctionKeyword::Linear)
+                GenericTimingFunction::Keyword(TimingKeyword::Linear)
             },
             nsTimingFunction_Type::EaseIn => {
-                ComputedTimingFunction::Keyword(FunctionKeyword::EaseIn)
+                GenericTimingFunction::Keyword(TimingKeyword::EaseIn)
             },
             nsTimingFunction_Type::EaseOut => {
-                ComputedTimingFunction::Keyword(FunctionKeyword::EaseOut)
+                GenericTimingFunction::Keyword(TimingKeyword::EaseOut)
             },
             nsTimingFunction_Type::EaseInOut => {
-                ComputedTimingFunction::Keyword(FunctionKeyword::EaseInOut)
+                GenericTimingFunction::Keyword(TimingKeyword::EaseInOut)
             },
             nsTimingFunction_Type::CubicBezier => {
-                ComputedTimingFunction::CubicBezier(
+                GenericTimingFunction::CubicBezier(
                     TypedPoint2D::new(unsafe { function.__bindgen_anon_1.mFunc.as_ref().mX1 },
                                       unsafe { function.__bindgen_anon_1.mFunc.as_ref().mY1 }),
                     TypedPoint2D::new(unsafe { function.__bindgen_anon_1.mFunc.as_ref().mX2 },
                                       unsafe { function.__bindgen_anon_1.mFunc.as_ref().mY2 }))
             },
+        }
+    }
+}
+
+impl From<TimingKeyword> for nsTimingFunction_Type {
+    fn from(keyword: TimingKeyword) -> Self {
+        match keyword {
+            TimingKeyword::Linear => nsTimingFunction_Type::Linear,
+            TimingKeyword::Ease => nsTimingFunction_Type::Ease,
+            TimingKeyword::EaseIn => nsTimingFunction_Type::EaseIn,
+            TimingKeyword::EaseOut => nsTimingFunction_Type::EaseOut,
+            TimingKeyword::EaseInOut => nsTimingFunction_Type::EaseInOut,
         }
     }
 }

@@ -5,11 +5,15 @@
 //! Computed types for CSS values that are related to transformations.
 
 use properties::animated_properties::Animatable;
-use values::computed::{Length, LengthOrPercentage};
+use values::computed::{Length, LengthOrPercentage, Number};
+use values::generics::transform::TimingFunction as GenericTimingFunction;
 use values::generics::transform::TransformOrigin as GenericTransformOrigin;
 
 /// The computed value of a CSS `<transform-origin>`
 pub type TransformOrigin = GenericTransformOrigin<LengthOrPercentage, LengthOrPercentage, Length>;
+
+/// A computed timing function.
+pub type TimingFunction = GenericTimingFunction<u32, Number>;
 
 impl TransformOrigin {
     /// Returns the initial computed value for `transform-origin`.
