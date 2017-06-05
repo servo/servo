@@ -6,7 +6,7 @@ use attr::{AttrSelectorWithNamespace, ParsedAttrSelectorOperation, AttrSelectorO
 use attr::{ParsedCaseSensitivity, SELECTOR_WHITESPACE, NamespaceConstraint};
 use cssparser::{Token, Parser as CssParser, parse_nth, ToCss, serialize_identifier, CssStringWriter};
 use precomputed_hash::PrecomputedHash;
-use servo_arc::{Arc, HeaderSlice};
+use servo_arc::{Arc, HeaderWithLength, ThinArc};
 use smallvec::SmallVec;
 use std::ascii::AsciiExt;
 use std::borrow::{Borrow, Cow};
@@ -324,15 +324,15 @@ impl SpecificityAndFlags {
 /// canonical iteration order is right-to-left (selector matching order). The
 /// iterators abstract over these details.
 #[derive(Clone, Eq, PartialEq)]
-pub struct Selector<Impl: SelectorImpl>(Arc<HeaderSlice<SpecificityAndFlags, [Component<Impl>]>>);
+pub struct Selector<Impl: SelectorImpl>(ThinArc<SpecificityAndFlags, Component<Impl>>);
 
 impl<Impl: SelectorImpl> Selector<Impl> {
     pub fn specificity(&self) -> u32 {
-        self.0.header.specificity()
+        self.0.header.header.specificity()
     }
 
     pub fn has_pseudo_element(&self) -> bool {
-        self.0.header.has_pseudo_element()
+        self.0.header.header.has_pseudo_element()
     }
 
     pub fn pseudo_element(&self) -> Option<&Impl::PseudoElement> {
@@ -396,8 +396,8 @@ impl<Impl: SelectorImpl> Selector<Impl> {
 
     /// Creates a Selector from a vec of Components. Used in tests.
     pub fn from_vec(vec: Vec<Component<Impl>>, specificity_and_flags: u32) -> Self {
-        let spec = SpecificityAndFlags(specificity_and_flags);
-        Selector(Arc::from_header_and_iter(spec, vec.into_iter()))
+        let header = HeaderWithLength::new(SpecificityAndFlags(specificity_and_flags), vec.len());
+        Selector(Arc::into_thin(Arc::from_header_and_iter(header, vec.into_iter())))
     }
 }
 
@@ -1002,7 +1002,8 @@ fn parse_complex_selector<P, Impl>(
         spec.0 |= HAS_PSEUDO_BIT;
     }
 
-    let complex = Selector(Arc::from_header_and_iter(spec, sequence.into_iter()));
+    let header = HeaderWithLength::new(spec, sequence.len());
+    let complex = Selector(Arc::into_thin(Arc::from_header_and_iter(header, sequence.into_iter())));
     Ok(complex)
 }
 
