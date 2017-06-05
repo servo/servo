@@ -391,6 +391,8 @@ pub mod node;
 pub mod nodeiterator;
 pub mod nodelist;
 pub mod pagetransitionevent;
+pub mod paintrenderingcontext2d;
+pub mod paintsize;
 pub mod paintworkletglobalscope;
 pub mod performance;
 pub mod performancetiming;

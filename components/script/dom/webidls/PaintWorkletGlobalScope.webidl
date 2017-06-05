@@ -5,5 +5,5 @@
 // https://drafts.css-houdini.org/css-paint-api/#paintworkletglobalscope
 [Global=(Worklet,PaintWorklet), Exposed=PaintWorklet]
 interface PaintWorkletGlobalScope : WorkletGlobalScope {
-    void registerPaint(DOMString name, VoidFunction paintCtor);
+    [Throws] void registerPaint(DOMString name, VoidFunction paintCtor);
 };
