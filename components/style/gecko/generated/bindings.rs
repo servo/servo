@@ -201,6 +201,7 @@ use gecko_bindings::structs::nscolor;
 use gecko_bindings::structs::nscoord;
 use gecko_bindings::structs::nsresult;
 use gecko_bindings::structs::Loader;
+use gecko_bindings::structs::LoaderReusableStyleSheets;
 use gecko_bindings::structs::ServoStyleSheet;
 use gecko_bindings::structs::EffectCompositor_CascadeLevel;
 use gecko_bindings::structs::UpdateAnimationsTasks;
@@ -540,6 +541,8 @@ extern "C" {
 extern "C" {
     pub fn Gecko_LoadStyleSheet(loader: *mut Loader,
                                 parent: *mut ServoStyleSheet,
+                                reusable_sheets:
+                                    *mut LoaderReusableStyleSheets,
                                 child_sheet: RawServoStyleSheetBorrowed,
                                 base_url_data: *mut RawGeckoURLExtraData,
                                 url_bytes: *const u8, url_length: u32,
@@ -1769,7 +1772,9 @@ extern "C" {
                                            data: *const nsACString,
                                            extra_data:
                                                *mut RawGeckoURLExtraData,
-                                           line_number_offset: u32);
+                                           line_number_offset: u32,
+                                           reusable_sheets:
+                                               *mut LoaderReusableStyleSheets);
 }
 extern "C" {
     pub fn Servo_StyleSheet_HasRules(sheet: RawServoStyleSheetBorrowed)
@@ -1798,6 +1803,10 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_StyleSet_RebuildData(set: RawServoStyleSetBorrowed);
+}
+extern "C" {
+    pub fn Servo_StyleSet_MediumFeaturesChanged(set: RawServoStyleSetBorrowed)
+     -> bool;
 }
 extern "C" {
     pub fn Servo_StyleSet_AppendStyleSheet(set: RawServoStyleSetBorrowed,
