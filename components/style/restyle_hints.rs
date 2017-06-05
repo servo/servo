@@ -679,6 +679,24 @@ impl<'a, E> Element for ElementWrapper<'a, E>
                 return relevant_link.is_visited(self, context);
             }
 
+            #[cfg(feature = "gecko")]
+            NonTSPseudoClass::MozTableBorderNonzero => {
+                if let Some(snapshot) = self.snapshot() {
+                    if snapshot.has_other_pseudo_class_state() {
+                        return snapshot.mIsTableBorderNonzero();
+                    }
+                }
+            }
+
+            #[cfg(feature = "gecko")]
+            NonTSPseudoClass::MozBrowserFrame => {
+                if let Some(snapshot) = self.snapshot() {
+                    if snapshot.has_other_pseudo_class_state() {
+                        return snapshot.mIsMozBrowserFrame();
+                    }
+                }
+            }
+
             _ => {}
         }
 
@@ -807,13 +825,14 @@ fn selector_to_state(sel: &Component<SelectorImpl>) -> ElementState {
     }
 }
 
-fn is_attr_selector(sel: &Component<SelectorImpl>) -> bool {
+fn is_attr_based_selector(sel: &Component<SelectorImpl>) -> bool {
     match *sel {
         Component::ID(_) |
         Component::Class(_) |
         Component::AttributeInNoNamespaceExists { .. } |
         Component::AttributeInNoNamespace { .. } |
         Component::AttributeOther(_) => true,
+        Component::NonTSPseudoClass(ref pc) => pc.is_attr_based(),
         _ => false,
     }
 }
@@ -902,7 +921,7 @@ impl SelectorVisitor for SensitivitiesVisitor {
     type Impl = SelectorImpl;
     fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) -> bool {
         self.sensitivities.states.insert(selector_to_state(s));
-        self.sensitivities.attrs |= is_attr_selector(s);
+        self.sensitivities.attrs |= is_attr_based_selector(s);
         true
     }
 }
