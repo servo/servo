@@ -26,7 +26,8 @@ bitflags! {
 
 macro_rules! pseudo_class_name {
     (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
-     string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
+     string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*],
+     keyword: [$(($k_css:expr, $k_name:ident, $k_gecko_type:tt, $k_state:tt, $k_flags:tt),)*]) => {
         #[doc = "Our representation of a non tree-structural pseudo-class."]
         #[derive(Clone, Debug, PartialEq, Eq)]
         pub enum NonTSPseudoClass {
@@ -37,6 +38,10 @@ macro_rules! pseudo_class_name {
             $(
                 #[doc = $s_css]
                 $s_name(Box<[u16]>),
+            )*
+            $(
+                #[doc = $k_css]
+                $k_name(Box<[u16]>),
             )*
             /// The non-standard `:-moz-any` pseudo-class.
             ///
@@ -54,7 +59,8 @@ impl ToCss for NonTSPseudoClass {
         use fmt::Write;
         macro_rules! pseudo_class_serialize {
             (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
-             string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
+             string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*],
+             keyword: [$(($k_css:expr, $k_name:ident, $k_gecko_type:tt, $k_state:tt, $k_flags:tt),)*]) => {
                 match *self {
                     $(NonTSPseudoClass::$name => concat!(":", $css),)*
                     $(NonTSPseudoClass::$s_name(ref s) => {
@@ -68,6 +74,11 @@ impl ToCss for NonTSPseudoClass {
                             css.write_str(&String::from_utf16(&s[..s.len() - 1]).unwrap())?;
                         }
                         return dest.write_str(")")
+                    }, )*
+                    $(NonTSPseudoClass::$k_name(ref s) => {
+                        // Don't include the terminating nul.
+                        let value = String::from_utf16(&s[..s.len() - 1]).unwrap();
+                        return write!(dest, ":{}({})", $k_css, value)
                     }, )*
                     NonTSPseudoClass::MozAny(ref selectors) => {
                         dest.write_str(":-moz-any(")?;
@@ -117,10 +128,12 @@ impl NonTSPseudoClass {
         }
         macro_rules! pseudo_class_check_internal {
             (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
-            string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
+            string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*],
+            keyword: [$(($k_css:expr, $k_name:ident, $k_gecko_type:tt, $k_state:tt, $k_flags:tt),)*]) => {
                 match *self {
                     $(NonTSPseudoClass::$name => check_flag!($flags),)*
                     $(NonTSPseudoClass::$s_name(..) => check_flag!($s_flags),)*
+                    $(NonTSPseudoClass::$k_name(..) => check_flag!($k_flags),)*
                     NonTSPseudoClass::MozAny(_) => false,
                 }
             }
@@ -145,10 +158,12 @@ impl NonTSPseudoClass {
         }
         macro_rules! pseudo_class_state {
             (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
-            string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
+             string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*],
+             keyword: [$(($k_css:expr, $k_name:ident, $k_gecko_type:tt, $k_state:tt, $k_flags:tt),)*]) => {
                 match *self {
                     $(NonTSPseudoClass::$name => flag!($state),)*
                     $(NonTSPseudoClass::$s_name(..) => flag!($s_state),)*
+                    $(NonTSPseudoClass::$k_name(..) => flag!($k_state),)*
                     NonTSPseudoClass::MozAny(..) => ElementState::empty(),
                 }
             }
@@ -179,10 +194,12 @@ impl NonTSPseudoClass {
         }
         macro_rules! pseudo_class_geckotype {
             (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
-            string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
+             string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*],
+             keyword: [$(($k_css:expr, $k_name:ident, $k_gecko_type:tt, $k_state:tt, $k_flags:tt),)*]) => {
                 match *self {
                     $(NonTSPseudoClass::$name => gecko_type!($gecko_type),)*
                     $(NonTSPseudoClass::$s_name(..) => gecko_type!($s_gecko_type),)*
+                    $(NonTSPseudoClass::$k_name(..) => gecko_type!($k_gecko_type),)*
                     NonTSPseudoClass::MozAny(_) => gecko_type!(any),
                 }
             }
@@ -215,7 +232,8 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
     fn parse_non_ts_pseudo_class(&self, name: Cow<str>) -> Result<NonTSPseudoClass, ()> {
         macro_rules! pseudo_class_parse {
             (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
-             string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
+             string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*],
+             keyword: [$(($k_css:expr, $k_name:ident, $k_gecko_type:tt, $k_state:tt, $k_flags:tt),)*]) => {
                 match_ignore_ascii_case! { &name,
                     $($css => NonTSPseudoClass::$name,)*
                     _ => return Err(())
@@ -236,7 +254,8 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
                                             -> Result<NonTSPseudoClass, ()> {
         macro_rules! pseudo_class_string_parse {
             (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
-             string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
+             string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*],
+             keyword: [$(($k_css:expr, $k_name:ident, $k_gecko_type:tt, $k_state:tt, $k_flags:tt),)*]) => {
                 match_ignore_ascii_case! { &name,
                     $($s_css => {
                         let name = parser.expect_ident_or_string()?;
@@ -244,6 +263,13 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
                         // since that's what Gecko deals with
                         let utf16: Vec<u16> = name.encode_utf16().chain(Some(0u16)).collect();
                         NonTSPseudoClass::$s_name(utf16.into_boxed_slice())
+                    }, )*
+                    $($k_css => {
+                        let name = parser.expect_ident()?;
+                        // Convert to ASCII-lowercase nul-terminated UTF-16 string.
+                        let utf16: Vec<u16> = name.encode_utf16().map(utf16_to_ascii_lowercase)
+                            .chain(Some(0u16)).collect();
+                        NonTSPseudoClass::$k_name(utf16.into_boxed_slice())
                     }, )*
                     "-moz-any" => {
                         let selectors = parser.parse_comma_separated(|input| {
@@ -313,5 +339,12 @@ impl SelectorImpl {
     /// pseudo-class.
     pub fn pseudo_class_state_flag(pc: &NonTSPseudoClass) -> ElementState {
         pc.state_flag()
+    }
+}
+
+fn utf16_to_ascii_lowercase(unit: u16) -> u16 {
+    match unit {
+        65...90 => unit + 32, // A-Z => a-z
+        _ => unit
     }
 }

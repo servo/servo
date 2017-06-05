@@ -14,14 +14,15 @@
  * macro_rules! pseudo_class_macro{
  *     (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
  *      string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
+ *      keyword: [$(($k_css:expr, $k_name:ident, $k_gecko_type:tt, $k_state:tt, $k_flags:tt),)*]) => {
  *         // do stuff
  *     }
  * }
  * apply_non_ts_list!(pseudo_class_macro)
  * ```
  *
- * The string variables will be applied to pseudoclasses that are of the form
- * of a function with a string argument.
+ * The `string` and `keyword` variables will be applied to pseudoclasses that are of the form of
+ * functions with string or keyword arguments.
  *
  * Pending pseudo-classes:
  *
@@ -111,11 +112,13 @@ macro_rules! apply_non_ts_list {
             ],
             string: [
                 ("-moz-system-metric", MozSystemMetric, mozSystemMetric, _, PSEUDO_CLASS_INTERNAL),
-                ("-moz-locale-dir", MozLocaleDir, mozLocaleDir, _, PSEUDO_CLASS_INTERNAL),
                 ("-moz-empty-except-children-with-localname", MozEmptyExceptChildrenWithLocalname,
                  mozEmptyExceptChildrenWithLocalname, _, PSEUDO_CLASS_INTERNAL),
-                ("dir", Dir, dir, _, _),
                 ("lang", Lang, lang, _, _),
+            ],
+            keyword: [
+                ("-moz-locale-dir", MozLocaleDir, mozLocaleDir, _, PSEUDO_CLASS_INTERNAL),
+                ("dir", Dir, dir, _, _),
             ]
         }
     }
