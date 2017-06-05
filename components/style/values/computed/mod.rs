@@ -39,7 +39,7 @@ pub use self::length::{LengthOrPercentageOrAutoOrContent, LengthOrPercentageOrNo
 pub use self::length::{MaxLength, MozLength};
 pub use self::position::Position;
 pub use self::text::{LetterSpacing, LineHeight, WordSpacing};
-pub use self::transform::TransformOrigin;
+pub use self::transform::{TimingFunction, TransformOrigin};
 
 pub mod background;
 pub mod basic_shape;
