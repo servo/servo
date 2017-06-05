@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Bug 1273706 - (CSS Properties &amp; Values)</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api/#the-registerproperty-function" />
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=common.js></script>
+
+<script>
+let invalidNameTests = [
+  // https://drafts.csswg.org/css-syntax-3/#typedef-ident-token
+  { name: "-" },
+  { name: " " },
+  { name: "--!" },
+];
+
+let validNameTests = [
+  { name: "--" },
+  { name: "--5" },
+  { name: "--a" },
+  { name: "--A" },
+  { name: "--ç" },
+  { name: "--\\n" },
+];
+
+expectFail("invalid name", invalidNameTests, "SyntaxError",
+  "Attempting to register properties with a name that doesn’t correspond " +
+  "to the <custom-property-name> production must cause registerProperty() " +
+  "to throw a SyntaxError.");
+
+expectSucceed("valid name", validNameTests, "Allow valid custom property names.");
+</script>

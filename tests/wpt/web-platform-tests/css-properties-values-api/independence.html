@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Bug 1273706 - Computational Independence (CSS Properties &amp; Values)</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api/#computationally-independent" />
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=common.js></script>
+<script>
+let independencePassTests = [
+  // https://github.com/w3c/css-houdini-drafts/issues/247
+  { syntax: "<color>", initialValue: "currentColor" },
+  { syntax: "<length>", initialValue: "5px" },
+  { syntax: "<length>", initialValue: "calc(5px + 7px)" },
+  { syntax: "<transform-list>", initialValue: "translateX(5px)" },
+  { syntax: "<transform-list>+", initialValue: "translateX(5px) translateX(-10px)" },
+  { syntax: "<custom-ident>+", initialValue: "does the code inherit the legacy of Netscape" },
+  // <percentage>s just compute to <percentage>s, not pixels.
+  { syntax: "<percentage>", initialValue: "0%" },
+];
+
+let independenceFailTests = [
+  { syntax: "<color>", initialValue: "inherit" },
+  { syntax: "<length>", initialValue: "5em" },
+  { syntax: "<length>", initialValue: "calc(5px + 5em)" },
+  { syntax: "<transform-list>", initialValue: "translateX(5em)" },
+  { syntax: "<integer> | <length>+", initialValue: "5px 0 -5em 0 12px" },
+  { syntax: "<color> | <transform-list>+", initialValue: "translateX(-10em)" },
+  { syntax: "<number>+", initialValue: "1 2 3 4 initial" },
+  { syntax: "*", initialValue: "inherit" },
+];
+
+expectFail("independence fail", independenceFailTests, "SyntaxError",
+  "Initial values that are not computationally independent must trigger a " +
+  "SyntaxError.");
+
+expectSucceed("independence pass", independencePassTests,
+  "Initial values that are computationally independent must not trigger a " +
+  "SyntaxError.");
+</script>

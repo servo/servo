@@ -1,0 +1,392 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Bug 1273706 - Computed Values (CSS Properties &amp; Values)</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api/#calculation-of-computed-values" />
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<style type="text/css">
+div#container {
+  font-size: 16px;
+}
+</style>
+
+<div id="container">
+  <div id="sandbox"></div>
+</div>
+<a id="link" href="/"></a>
+
+<script>
+let baseURL = document.getElementById("link").href;
+let sandbox = document.getElementById("sandbox");
+
+// https://drafts.csswg.org/cssom/#serialize-a-css-value
+
+// The initial values aren't relevant, but unfortunately they are required by
+// the spec... Try to choose something distinct from the expected value.
+let computedValueTests = [
+  // Parsing & computing (incl. serializing) lists of idents.
+  {
+    syntax: "a+ | <custom-ident>+",
+    initial: "a",
+    declared: "a a a a b c d",
+    expected: "a a a a b c d",
+  },
+  // Angle units by themselves and in transform functions.
+  {
+    syntax: "<angle>",
+    initial: "10deg",
+    declared: "0deg",
+    expected: "0deg",
+  },
+  {
+    syntax: "<angle>",
+    initial: "10grad",
+    declared: "0grad",
+    expected: "0grad",
+  },
+  {
+    syntax: "<angle>",
+    initial: "10rad",
+    declared: "0rad",
+    expected: "0rad",
+  },
+  {
+    syntax: "<angle>",
+    initial: "10turn",
+    declared: "0turn",
+    expected: "0turn",
+  },
+  {
+    syntax: "<transform-list>",
+    initial: "rotate(10deg)",
+    declared: "rotate(0deg)",
+    expected: "rotate(0deg)",
+  },
+  {
+    syntax: "<transform-list>",
+    initial: "rotate(10grad)",
+    declared: "rotate(0grad)",
+    expected: "rotate(0grad)",
+  },
+  {
+    syntax: "<transform-list>",
+    initial: "rotate(10rad)",
+    declared: "rotate(0rad)",
+    expected: "rotate(0rad)",
+  },
+  {
+    syntax: "<transform-list>",
+    initial: "rotate(10turn)",
+    declared: "rotate(0turn)",
+    expected: "rotate(0turn)",
+  },
+  // Correctly serializing unitless 0 in '<length> | <percentage>'.
+  { syntax: "<length> | <percentage>",
+    initial: "10px",
+    declared: "0",
+    expected: "0px",
+  },
+
+  // Normalization of <length-percentage> values [1].
+  // Note also that (at time of writing) there's a pending change [2] to the
+  // spec for serializing calc()s [3]: we should output the percentage first,
+  // then the number.
+  // [1]: https://drafts.css-houdini.org/css-properties-values-api/#calculation-of-computed-values
+  // [2]: https://github.com/w3c/csswg-drafts/issues/1731
+  // [3]: https://drafts.csswg.org/css-values/#calc-serialize
+
+  { syntax: "<length-percentage>",
+    initial: "10px",
+    declared: "calc(70% - 70% + 20px)",
+    expected: "calc(0% + 30px)",
+  },
+  {
+    syntax: "<length-percentage>",
+    initial: "10px",
+    declared: "calc(20px - 20px - 30%)",
+    expected: "calc(-30% + 0px)",
+  },
+  // Should simplify calc(Xpx) to Xpx
+  { syntax: "<length-percentage>",
+    initial: "10px",
+    declared: "calc(20px - 17px)",
+    expected: "3px",
+  },
+  // Should simplify calc(X%) to X%
+  { syntax: "<length-percentage>",
+    initial: "10px",
+    declared: "calc(15% + 5%)",
+    expected: "20%",
+  },
+  { syntax: "<percentage> | <length>",
+    initial: "10%",
+    declared: "calc(15px)",
+    expected: "15px",
+  },
+  { syntax: "<length> | <percentage>",
+    initial: "10px",
+    declared: "calc(15%)",
+    expected: "15%",
+  },
+
+  // Test basic computation of each of the basic syntax strings.
+
+  { syntax: "<length>",
+    initial: "10px",
+    declared: "10px",
+    expected: "10px",
+  },
+
+  { syntax: "<number>",
+    initial: "10",
+    declared: "3.1415",
+    expected: "3.1415",
+  },
+  { syntax: "<number>",
+    initial: "10",
+    declared: "calc(1 * 2 + 3 / 4)",
+    expected: "2.75",
+  },
+  { syntax: "<number>",
+    initial: "10",
+    declared: "calc(1 / 0)",
+    expected: "10",
+  },
+
+  { syntax: "<percentage>",
+    initial: "10%",
+    declared: "2.7%",
+    expected: "2.7%",
+  },
+
+  { syntax: "<length-percentage>",
+    initial: "10px",
+    declared: "calc(27% + 13px)",
+    expected: "calc(27% + 13px)",
+  },
+
+  { syntax: "<color>",
+    initial: "red",
+    declared: "#abcdef01",
+    expected: "rgb(171, 205, 239, 0.004)",
+  },
+  { syntax: "<color>",
+    initial: "green",
+    declared: "red",
+    expected: "red",
+  },
+  { syntax: "<color>",
+    initial: "red",
+    declared: "currentcolor",
+    expected: "currentcolor",
+  },
+
+  { syntax: "<image>",
+    initial: "url(\"http://example.com/loss.jpg\")",
+    declared: "url(\"http://example.com/some_image.jpg\")",
+    expected: "url(\"http://example.com/some_image.jpg\")",
+  },
+
+  { syntax: "<image>",
+    initial: "url(\"http://example.com/loss.jpg\")",
+    declared: "linear-gradient(45deg, white, black)",
+    expected: "linear-gradient(45deg, rgb(255, 255, 255), rgb(0, 0, 0))",
+  },
+
+  { syntax: "<image>",
+    initial: "url(\"http://example.com/loss.jpg\")",
+    testProperty: "background-image",
+    declared: "radial-gradient(2em at 60px 50% , #000000 0%, #000000 14px, rgba(0, 0, 0, 0.3) 18px, rgba(0, 0, 0, 0) 4em)",
+    expected: "radial-gradient(32px at 60px 50%, rgb(0, 0, 0) 0%, rgb(0, 0, 0) 14px, rgba(0, 0, 0, 0.3) 18px, transparent 64px)",
+    // This is the serialization result we get in Gecko from calling
+    // getComputedStyle and getPropertyValue on a background-image property set
+    // to this value.
+    // But because this doesn't seem to be fully specified, we set
+    // 'background-image' to 'expected' and compare with the computed style off
+    // of that. The browser should at the least be consistent.
+  },
+
+  { syntax: "<url>",
+    initial: "url(\"http://example.com/loss.jpg\")",
+    declared: "url(\"http://example.com/\")",
+    expected: "url(\"http://example.com/\")",
+  },
+
+  { syntax: "<url>",
+    initial: "url(\"http://example.com/loss.jpg\")",
+    declared: "url(\"/some_link\")",
+    expected: "url(\"" + baseURL + "some_link\")",
+  },
+
+  { syntax: "<integer>",
+    initial: "10",
+    declared: "42",
+    expected: "42",
+  },
+  { syntax: "<integer>",
+    initial: "10",
+    declared: "calc(1 + 2 * 3 / 6)",
+    // Any divisions in <integer> calc()s cause the whole thing to be invalid.
+    expected: "10",
+  },
+  { syntax: "<integer>",
+    initial: "10",
+    declared: "calc(1 + 2 * 3)",
+    expected: "7",
+  },
+  { syntax: "<integer>",
+    initial: "10",
+    declared: "calc(1 + 2 + 3)",
+    expected: "6",
+  },
+  { syntax: "<integer>",
+    initial: "10",
+    declared: "calc(1 * 2 * 3)",
+    expected: "6",
+  },
+  { syntax: "<integer>",
+    initial: "10",
+    declared: "calc(0.5 * 2 * 3)",
+    expected: "10",
+  },
+  // Additive coefficients should be resolved.
+  { syntax: "<integer>",
+    initial: "10",
+    declared: "calc((1 + 2) * 3)",
+    expected: "9",
+  },
+  { syntax: "<integer>",
+    initial: "10",
+    declared: "calc((1 * 2) * 3)",
+    expected: "6",
+  },
+  { syntax: "<integer>",
+    initial: "10",
+    declared: "calc(1 * (2 * 3))",
+    expected: "6",
+  },
+  // This isn't unitless zero -- this is an integral zero!
+  { syntax: "<integer>",
+    initial: "10",
+    declared: "calc(0)",
+    expected: "0",
+  },
+  { syntax: "<integer>",
+    initial: "10",
+    declared: "calc(((0) * 3) + 7)",
+    expected: "7",
+  },
+
+  { syntax: "<angle>",
+    initial: "10deg",
+    declared: "37deg",
+    expected: "37deg",
+  },
+
+  { syntax: "<time>",
+    initial: "10s",
+    declared: "5s",
+    expected: "5s",
+  },
+
+  { syntax: "<resolution>",
+    initial: "10dppx",
+    declared: "50dppx",
+    expected: "50dppx",
+  },
+
+  { syntax: "<transform-list>",
+    initial: "scale(10)",
+    declared: "matrix(1, 0, 1, 0, 1, 1)",
+    expected: "matrix(1, 0, 1, 0, 1, 1)",
+  },
+
+  { syntax: "Mozilla | Firefox",
+    initial: "Firefox",
+    declared: "Mozilla",
+    expected: "Mozilla",
+  },
+
+  { syntax: "<custom-ident>",
+    initial: "Netscape",
+    declared: "Mozilla",
+    expected: "Mozilla",
+  },
+
+  { syntax: "*",
+    initial: "begining",
+    declared: " ",
+    expected: " ",
+  },
+
+  { syntax: "*",
+    initial: "end",
+    declared: "i was the shadow of the waxwing slain",
+    expected: "i was the shadow of the waxwing slain",
+  },
+
+  // https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-getpropertyvalue
+  // We should return the empty string when there is no declaration (in this
+  // case, beacuse couldn't compute.)
+
+  { syntax: "<length>",
+    initial: "10px",
+    declared: "calc(5px + 7%)",
+    expected: "10px",
+  },
+
+  { syntax: "<percentage>",
+    initial: "10%",
+    declared: "calc(7% + 5px)",
+    expected: "10%",
+  },
+
+  { syntax: "<length>",
+    initial: "10px",
+    declared: "Mozilla",
+    expected: "10px",
+  },
+
+  { syntax: "<length>+",
+    initial: "10px",
+    declared: "5px calc(5px + 7%) 1em",
+    // This should be invalid at parse time.
+    expected: "10px",
+  },
+];
+
+
+// This also tests setting styles with custom properties through the 'style'
+// attribute, which takes a different path to the parser (this isn't CSSOM!)
+
+for (let spec of computedValueTests) {
+  let { syntax, initial, declared, expected } = spec;
+  test(function () {
+    try {
+      CSS.registerProperty({ name: "--computed", syntax: syntax, initialValue: initial });
+      sandbox.setAttribute("style", `--computed:${declared};`);
+
+      let computedValue = window.getComputedStyle(sandbox)
+                                .getPropertyValue("--computed");
+
+      // If 'test-property' is supplied, compare with the serialization we get
+      // from setting the same value on test-property.
+      let expectedNormalized = expected;
+      if (spec.testProperty) {
+        sandbox.setAttribute("style", `${spec.testProperty}:${expected};`);
+        expectedNormalized = window.getComputedStyle(sandbox)
+                                   .getPropertyValue(spec.testProperty);
+      }
+
+      assert_equals(computedValue, expectedNormalized,
+                    "computed value equals expected value");
+
+    } finally {
+      sandbox.removeAttribute("style");
+      CSS.unregisterProperty("--computed");
+    }
+  }, "computed value: " + JSON.stringify(spec));
+}
+
+</script>

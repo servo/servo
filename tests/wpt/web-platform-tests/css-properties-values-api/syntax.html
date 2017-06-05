@@ -1,0 +1,95 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Bug 1273706 - Syntax (CSS Properties &amp; Values)</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api/#supported-syntax-strings" />
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=common.js></script>
+<script>
+let invalidSyntaxTests = [
+  // Unfortunately, an invalid syntax and an invalid initialValue both lead to
+  // SyntaxErrors. We try to pick an initialValue that would pass with the
+  // syntax we think the syntax we give might erroneously parse as, but we can't
+  // be sure that the error is coming from the right place.
+  { syntax: "<number>+ <color>", initialValue: "1" },
+  { syntax: "<i-do-not-exist>+", initialValue: "i-do-not-exist" },
+  { syntax: "", initialValue: "" },
+  { syntax: "<number> || <color>", initialValue: "1" },
+  { syntax: "|", initialValue: "something" },
+  { syntax: "+", initialValue: "calc(5 + 7)" },
+  { syntax: "   ", initialValue: "calc(5 + 7)" },
+  { syntax: "initial", initialValue: "initial" },
+  { syntax: "inherit", iniitialValue: "inherit" },
+  { syntax: "unset", initialValue: "unset"  },
+  { syntax: "revert", initialValue: "revert" },
+  { syntax: "* worn out places", initialValue: "worn" },
+  { syntax: "* | worn | out | faces", initialValue: "worn" },
+  { syntax: "*+", initialValue: "token stream" },
+  // https://github.com/w3c/css-houdini-drafts/issues/112#issuecomment-246874717
+  { syntax: "<color>  +", initialValue: "green" },
+  { syntax: "a | | b", initialValue: "a" },
+];
+
+let validSyntaxTests = [
+  { syntax: "*", initialValue: "hi there" },
+  { syntax: "<color>", initialValue: "green" },
+  { syntax: " <color> ", initialValue: "green" },
+
+  // Allow some CSS keywords, just not the CSS-wide keywords or revert.
+  { syntax: "center", initialValue: "center" },
+];
+
+let syntaxFailTests = [
+  { syntax: "<color>", initialValue: "5px" },
+  { syntax: "<transform-function>", initialValue: "red" },
+  { syntax: "<transform-function>+", initialValue: " " },
+  { syntax: "<resolution>", initialValue: "calc(0)" },
+  { syntax: "<custom-ident>", initialValue: "5px" },
+  { syntax: "to-me", initialValue: "who-are-you" },
+  { syntax: "case-sensitive", initialValue: "CaSe-SeNsITiVe" },
+  { syntax: "<number>+", initialValue: "1 2 initial 3" },
+  { syntax: "*", initialValue: "initial" },
+  // https://drafts.csswg.org/css-variables/#syntax
+  // "While <declaration-value> must represent at least one token, that one
+  //  token may be whitespace. This implies that --foo: ; is valid, and the
+  //  corresponding var(--foo) call would have a single space as its
+  //  substitution value, but --foo:; is invalid."
+  { syntax: "*", initialValue: "" },
+];
+
+let syntaxPassTests = [
+  { syntax: "*", initialValue: "all around me are familiar faces" },
+  { syntax: "*", initialValue: "translateX(5px) 5em 73" },
+  { syntax: "<number>", initialValue: "5" },
+  { syntax: "<number> | <color>", initialValue: "red" },
+  { syntax: "<number>+", initialValue: "4 8 15 16 23 42" },
+  { syntax: "<number>+ | <url>", initialValue: "url(http://mozilla.org)" },
+  { syntax: "<transform-function>", initialValue: "translateX(5px)" },
+  { syntax: "<resolution>", initialValue: "5dpi" },
+  { syntax: "<custom-ident>", initialValue: "doesnt-really-matter" },
+  { syntax: "to-me", initialValue: "to-me" },
+  { syntax: "to-me | just-a-poor-boy", initialValue: "just-a-poor-boy" },
+  // https://drafts.csswg.org/css-variables/#syntax
+  // "While <declaration-value> must represent at least one token, that one
+  //  token may be whitespace. This implies that --foo: ; is valid, and the
+  //  corresponding var(--foo) call would have a single space as its
+  //  substitution value, but --foo:; is invalid."
+  { syntax: "*", initialValue: " " },
+];
+
+// Testing functions.
+
+expectFail("invalid syntax", invalidSyntaxTests, "SyntaxError",
+  "Invalid syntaxes must trigger a SyntaxError.");
+
+expectSucceed("valid syntax", validSyntaxTests,
+  "Valid syntaxes must not trigger a SyntaxError.");
+
+expectFail("syntax fail", syntaxFailTests, "SyntaxError",
+  "Initial values that are syntactically invalid must trigger a " +
+  "SyntaxError.");
+
+expectSucceed("syntax pass", syntaxPassTests,
+  "Initial values that are syntactically valid must not trigger a " +
+  "SyntaxError.");
+</script>
