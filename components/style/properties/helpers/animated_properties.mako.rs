@@ -1040,6 +1040,13 @@ impl Animatable for LengthOrPercentage {
                     .map(LengthOrPercentage::Percentage)
             }
             (this, other) => {
+                // Special handling for zero values since these should not require calc().
+                if this.is_definitely_zero() {
+                    return other.add_weighted(&other, 0., other_portion)
+                } else if other.is_definitely_zero() {
+                    return this.add_weighted(self, self_portion, 0.)
+                }
+
                 let this: CalcLengthOrPercentage = From::from(this);
                 let other: CalcLengthOrPercentage = From::from(other);
                 this.add_weighted(&other, self_portion, other_portion)
