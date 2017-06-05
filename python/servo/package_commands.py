@@ -276,7 +276,7 @@ class PackageCommands(CommandBase):
             try:
                 subprocess.check_call(['hdiutil', 'create',
                                        '-volname', 'Servo',
-                                       '-megabytes', '100',
+                                       '-megabytes', '150',
                                        dmg_path,
                                        '-srcfolder', dir_to_dmg])
             except subprocess.CalledProcessError as e:
