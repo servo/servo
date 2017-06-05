@@ -595,6 +595,9 @@ impl WorkletThread {
         // Step 4.
         // NOTE: the spec parses and executes the script in separate steps,
         // but our JS API doesn't separate these, so we do the steps out of order.
+        // Also, the spec currently doesn't allow exceptions to be propagated
+        // to the main script thread.
+        // https://github.com/w3c/css-houdini-drafts/issues/407
         let ok = script.map(|script| global_scope.evaluate_js(&*script)).unwrap_or(false);
 
         if !ok {
