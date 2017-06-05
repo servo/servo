@@ -528,18 +528,16 @@ ${helpers.predefined_type("animation-duration",
                           extra_prefixes="moz webkit",
                           spec="https://drafts.csswg.org/css-transitions/#propdef-transition-duration")}
 
-<%helpers:vector_longhand name="animation-timing-function"
-                          need_index="True"
+${helpers.predefined_type("animation-timing-function",
+                          "TimingFunction",
+                          "computed::TimingFunction::ease()",
+                          initial_specified_value="specified::TimingFunction::ease()",
+                          vector=True,
+                          need_index=True,
                           animation_value_type="none",
-                          extra_prefixes="moz webkit"
-                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-timing-function",
-                          allowed_in_keyframe_block="True">
-    pub use properties::longhands::transition_timing_function::single_value::computed_value;
-    pub use properties::longhands::transition_timing_function::single_value::get_initial_value;
-    pub use properties::longhands::transition_timing_function::single_value::get_initial_specified_value;
-    pub use properties::longhands::transition_timing_function::single_value::parse;
-    pub use properties::longhands::transition_timing_function::single_value::SpecifiedValue;
-</%helpers:vector_longhand>
+                          extra_prefixes="moz webkit",
+                          allowed_in_keyframe_block=True,
+                          spec="https://drafts.csswg.org/css-transitions/#propdef-animation-timing-function")}
 
 <%helpers:vector_longhand name="animation-iteration-count"
                           need_index="True"
