@@ -41,12 +41,12 @@ devtools_traits = {path = "../devtools_traits"}
 dom_struct = {path = "../dom_struct"}
 domobject_derive = {path = "../domobject_derive"}
 encoding = "0.2"
-euclid = "0.11"
+euclid = "0.13"
 fnv = "1.0"
 gleam = "0.4"
 gfx_traits = {path = "../gfx_traits"}
 half = "1.0"
-heapsize = "0.3.6"
+heapsize = "0.4"
 heapsize_derive = "0.1"
 html5ever = {version = "0.17", features = ["heap_size", "unstable"]}
 hyper = "0.10"
@@ -82,7 +82,7 @@ servo_config = {path = "../config"}
 servo_geometry = {path = "../geometry" }
 servo_rand = {path = "../rand"}
 servo_url = {path = "../url"}
-smallvec = "0.3"
+smallvec = "0.4"
 style = {path = "../style"}
 style_traits = {path = "../style_traits"}
 swapper = "0.0.4"

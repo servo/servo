@@ -10,7 +10,7 @@ path = "lib.rs"
 doctest = false
 
 [dependencies]
-euclid = "0.11"
+euclid = "0.13"
 msg = {path = "../../../components/msg"}
 script = {path = "../../../components/script"}
 servo_url = {path = "../../../components/url"}

@@ -13,12 +13,12 @@ path = "lib.rs"
 [dependencies]
 app_units = "0.4.1"
 bitflags = "0.7"
-euclid = "0.11"
+euclid = "0.13"
 fnv = "1.0"
 fontsan = {git = "https://github.com/servo/fontsan"}
 gfx_traits = {path = "../gfx_traits"}
 harfbuzz-sys = "0.1"
-heapsize = "0.3.0"
+heapsize = "0.4"
 heapsize_derive = "0.1"
 ipc-channel = "0.7"
 lazy_static = "0.2"
@@ -33,7 +33,7 @@ serde_derive = "0.9"
 servo_atoms = {path = "../atoms"}
 servo_geometry = {path = "../geometry"}
 servo_url = {path = "../url"}
-smallvec = "0.3"
+smallvec = "0.4"
 style = {path = "../style"}
 style_traits = {path = "../style_traits"}
 time = "0.1.12"

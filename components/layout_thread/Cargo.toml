@@ -11,11 +11,11 @@ path = "lib.rs"
 
 [dependencies]
 app_units = "0.4.1"
-euclid = "0.11"
+euclid = "0.13"
 fnv = "1.0"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
-heapsize = "0.3.0"
+heapsize = "0.4"
 ipc-channel = "0.7"
 layout = {path = "../layout"}
 layout_traits = {path = "../layout_traits"}

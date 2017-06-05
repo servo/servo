@@ -222,7 +222,7 @@ impl Window {
                parent: Option<glutin::WindowID>) -> Rc<Window> {
         let win_size: TypedSize2D<u32, DevicePixel> =
             (window_size.to_f32() * window_creation_scale_factor())
-                .to_uint().cast().expect("Window size should fit in u32");
+                .to_usize().cast().expect("Window size should fit in u32");
         let width = win_size.to_untyped().width;
         let height = win_size.to_untyped().height;
 

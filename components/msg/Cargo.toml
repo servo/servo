@@ -11,7 +11,8 @@ path = "lib.rs"
 
 [dependencies]
 bitflags = "0.7"
-heapsize = "0.3.0"
+cssparser = "0.13.3"
+heapsize = "0.4"
 heapsize_derive = "0.1"
 serde = "0.9"
 serde_derive = "0.9"

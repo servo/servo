@@ -10,7 +10,7 @@ name = "gfx_traits"
 path = "lib.rs"
 
 [dependencies]
-heapsize = "0.3.0"
+heapsize = "0.4"
 heapsize_derive = "0.1"
 range = {path = "../range"}
 serde = "0.9"
