@@ -444,7 +444,7 @@ ${helpers.predefined_type("transition-delay",
                           need_index=True,
                           animation_value_type="none",
                           extra_prefixes="moz webkit",
-                          spec="https://drafts.csswg.org/css-transitions/#propdef-transition-duration")}
+                          spec="https://drafts.csswg.org/css-transitions/#propdef-transition-delay")}
 
 <%helpers:vector_longhand name="animation-name"
                           need_index="True"
@@ -639,17 +639,16 @@ ${helpers.single_keyword("animation-fill-mode",
                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-fill-mode",
                          allowed_in_keyframe_block=False)}
 
-<%helpers:vector_longhand name="animation-delay"
-                          need_index="True"
+${helpers.predefined_type("animation-delay",
+                          "Time",
+                          "computed::Time::zero()",
+                          initial_specified_value="specified::Time::zero()",
+                          vector=True,
+                          need_index=True,
                           animation_value_type="none",
                           extra_prefixes="moz webkit",
                           spec="https://drafts.csswg.org/css-animations/#propdef-animation-delay",
-                          allowed_in_keyframe_block="False">
-    pub use properties::longhands::transition_delay::single_value::computed_value;
-    pub use properties::longhands::transition_delay::single_value::get_initial_specified_value;
-    pub use properties::longhands::transition_delay::single_value::{get_initial_value, parse};
-    pub use properties::longhands::transition_delay::single_value::SpecifiedValue;
-</%helpers:vector_longhand>
+                          allowed_in_keyframe_block=False)}
 
 <%helpers:longhand products="gecko" name="scroll-snap-points-y" animation_value_type="none"
                    spec="Nonstandard (https://www.w3.org/TR/2015/WD-css-snappoints-1-20150326/#scroll-snap-points)">
