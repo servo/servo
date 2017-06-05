@@ -42,6 +42,7 @@ use values::computed::{BorderCornerRadius, ClipRect};
 use values::computed::{CalcLengthOrPercentage, Context, LengthOrPercentage};
 use values::computed::{MaxLength, MozLength};
 use values::computed::ToComputedValue;
+use values::generics::{SVGPaint, SVGPaintKind};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::position as generic_position;
 
@@ -2845,6 +2846,75 @@ impl From<IntermediateColor> for CSSParserColor {
                                                        color.blue,
                                                        color.alpha)),
             IntermediateColor::CurrentColor => CSSParserColor::CurrentColor,
+        }
+    }
+}
+
+/// Animatable SVGPaint
+pub type IntermediateSVGPaint = SVGPaint<IntermediateColor>;
+/// Animatable SVGPaintKind
+pub type IntermediateSVGPaintKind = SVGPaintKind<IntermediateColor>;
+
+impl From<::values::computed::SVGPaint> for IntermediateSVGPaint {
+    fn from(paint: ::values::computed::SVGPaint) -> IntermediateSVGPaint {
+        paint.convert(|color| (*color).into())
+    }
+}
+
+impl From<IntermediateSVGPaint> for ::values::computed::SVGPaint {
+    fn from(paint: IntermediateSVGPaint) -> ::values::computed::SVGPaint {
+        paint.convert(|color| (*color).into())
+    }
+}
+
+
+impl Animatable for IntermediateSVGPaint {
+    #[inline]
+    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+        Ok(IntermediateSVGPaint {
+            kind: self.kind.add_weighted(&other.kind, self_portion, other_portion)?,
+            fallback: self.fallback.add_weighted(&other.fallback, self_portion, other_portion)?,
+        })
+    }
+
+    #[inline]
+    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+        self.compute_squared_distance(other).map(|sq| sq.sqrt())
+    }
+
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+        Ok(self.kind.compute_squared_distance(&other.kind)? +
+            self.fallback.compute_squared_distance(&other.fallback)?)
+    }
+}
+
+impl Animatable for IntermediateSVGPaintKind {
+    #[inline]
+    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+        match (self, other) {
+            (&SVGPaintKind::Color(ref self_color), &SVGPaintKind::Color(ref other_color)) => {
+                Ok(SVGPaintKind::Color(self_color.add_weighted(other_color, self_portion, other_portion)?))
+            }
+            // FIXME context values should be interpolable with colors
+            // Gecko doesn't implement this behavior either.
+            (&SVGPaintKind::None, &SVGPaintKind::None) => Ok(SVGPaintKind::None),
+            (&SVGPaintKind::ContextFill, &SVGPaintKind::ContextFill) => Ok(SVGPaintKind::ContextFill),
+            (&SVGPaintKind::ContextStroke, &SVGPaintKind::ContextStroke) => Ok(SVGPaintKind::ContextStroke),
+            _ => Err(())
+        }
+    }
+
+    #[inline]
+    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+        match (self, other) {
+            (&SVGPaintKind::Color(ref self_color), &SVGPaintKind::Color(ref other_color)) => {
+                self_color.compute_distance(other_color)
+            }
+            (&SVGPaintKind::None, &SVGPaintKind::None) |
+            (&SVGPaintKind::ContextFill, &SVGPaintKind::ContextFill) |
+            (&SVGPaintKind::ContextStroke, &SVGPaintKind::ContextStroke)=> Ok(0.0),
+            _ => Err(())
         }
     }
 }
