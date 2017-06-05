@@ -326,15 +326,20 @@ impl<E: TElement> StyleSharingTarget<E> {
         data: &mut ElementData)
         -> StyleSharingResult
     {
+        let cache = &mut context.thread_local.style_sharing_candidate_cache;
         let shared_context = &context.shared;
         let selector_flags_map = &mut context.thread_local.selector_flags;
         let bloom_filter = &context.thread_local.bloom_filter;
 
+        if cache.dom_depth != bloom_filter.matching_depth() {
+            debug!("Can't share style, because DOM depth changed from {:?} to {:?}, element: {:?}",
+                   cache.dom_depth, bloom_filter.matching_depth(), self.element);
+            return StyleSharingResult::CannotShare;
+        }
         debug_assert_eq!(bloom_filter.current_parent(),
                          self.element.parent_element());
 
-        let result = context.thread_local
-            .style_sharing_candidate_cache
+        let result = cache
             .share_style_if_possible(shared_context,
                                      selector_flags_map,
                                      bloom_filter,
@@ -398,6 +403,10 @@ pub enum StyleSharingResult {
 /// storing nodes here temporarily is safe.
 pub struct StyleSharingCandidateCache<E: TElement> {
     cache: LRUCache<[StyleSharingCandidate<E>; STYLE_SHARING_CANDIDATE_CACHE_SIZE + 1]>,
+    /// The DOM depth we're currently at.  This is used as an optimization to
+    /// clear the cache when we change depths, since we know at that point
+    /// nothing in the cache will match.
+    dom_depth: usize,
 }
 
 impl<E: TElement> StyleSharingCandidateCache<E> {
@@ -405,6 +414,7 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
     pub fn new() -> Self {
         StyleSharingCandidateCache {
             cache: LRUCache::new(),
+            dom_depth: 0,
         }
     }
 
@@ -424,7 +434,8 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
                               element: &E,
                               style: &ComputedValues,
                               relations: StyleRelations,
-                              mut validation_data: ValidationData) {
+                              mut validation_data: ValidationData,
+                              dom_depth: usize) {
         use selectors::matching::AFFECTED_BY_PRESENTATIONAL_HINTS;
 
         let parent = match element.parent_element() {
@@ -467,6 +478,12 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
 
         debug!("Inserting into cache: {:?} with parent {:?}", element, parent);
 
+        if self.dom_depth != dom_depth {
+            debug!("Clearing cache because depth changed from {:?} to {:?}, element: {:?}",
+                   self.dom_depth, dom_depth, element);
+            self.clear();
+            self.dom_depth = dom_depth;
+        }
         self.cache.insert(StyleSharingCandidate {
             element: unsafe { SendElement::new(*element) },
             validation_data: validation_data,
@@ -509,7 +526,6 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
             return StyleSharingResult::CannotShare;
         }
 
-        let mut should_clear_cache = false;
         for (i, candidate) in self.iter_mut().enumerate() {
             let sharing_result =
                 Self::test_candidate(
@@ -553,11 +569,6 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
                     // Cache miss, let's see what kind of failure to decide
                     // whether we keep trying or not.
                     match miss {
-                        // Cache miss because of parent, clear the candidate cache.
-                        CacheMiss::Parent => {
-                            should_clear_cache = true;
-                            break;
-                        },
                         // Too expensive failure, give up, we don't want another
                         // one of these.
                         CacheMiss::PresHints |
@@ -570,10 +581,6 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
 
         debug!("{:?} Cannot share style: {} cache entries", target.element,
                self.cache.num_entries());
-
-        if should_clear_cache {
-            self.clear();
-        }
 
         StyleSharingResult::CannotShare
     }
