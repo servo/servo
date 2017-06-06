@@ -66,5 +66,6 @@
   "shell.homepage": "https://servo.org",
   "shell.keep_screen_on.enabled": false,
   "shell.native-orientation": "both",
-  "shell.native-titlebar.enabled": true
+  "shell.native-titlebar.enabled": true,
+  "webgl.testing.context_creation_error": false
 }

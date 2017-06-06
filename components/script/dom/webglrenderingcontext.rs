@@ -51,6 +51,7 @@ use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageResponse;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use script_traits::ScriptMsg as ConstellationMsg;
+use servo_config::prefs::PREFS;
 use std::cell::Cell;
 use std::collections::HashMap;
 use webrender_traits;
@@ -200,6 +201,18 @@ impl WebGLRenderingContext {
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, canvas: &HTMLCanvasElement, size: Size2D<i32>, attrs: GLContextAttributes)
                -> Option<Root<WebGLRenderingContext>> {
+        if let Some(true) = PREFS.get("webgl.testing.context_creation_error").as_boolean() {
+            error!("WebGLRenderingContext creation error forced by pref `webgl.testing.context_creation_error`");
+            let msg = "WebGL context creation error forced by pref `webgl.testing.context_creation_error`";
+            let event = WebGLContextEvent::new(window,
+                                               atom!("webglcontextcreationerror"),
+                                               EventBubbles::DoesNotBubble,
+                                               EventCancelable::Cancelable,
+                                               DOMString::from(msg));
+            event.upcast::<Event>().fire(canvas.upcast());
+            return None;
+        }
+
         match WebGLRenderingContext::new_inherited(window, canvas, size, attrs) {
             Ok(ctx) => Some(reflect_dom_object(box ctx, window, WebGLRenderingContextBinding::Wrap)),
             Err(msg) => {
