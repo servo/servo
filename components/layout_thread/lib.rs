@@ -1063,7 +1063,7 @@ impl LayoutThread {
 
         debug!("layout: processing reflow request for: {:?} ({}) (query={:?})",
                element, self.url, data.query_type);
-        debug!("{:?}", ShowSubtree(element.as_node()));
+        trace!("{:?}", ShowSubtree(element.as_node()));
 
         let initial_viewport = data.window_size.initial_viewport;
         let old_viewport_size = self.viewport_size;
