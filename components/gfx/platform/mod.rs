@@ -29,8 +29,14 @@ mod freetype {
     pub mod font;
     pub mod font_context;
 
-    #[cfg(any(target_os = "linux", target_os = "android"))]
+    #[cfg(target_os = "linux")]
     pub mod font_list;
+    #[cfg(target_os = "android")]
+    mod android {
+        pub mod font_list;
+    }
+    #[cfg(target_os = "android")]
+    pub use self::android::font_list;
 
     #[cfg(any(target_os = "linux", target_os = "android"))]
     pub mod font_template;

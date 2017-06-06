@@ -33,7 +33,7 @@ extern crate bitflags;
 extern crate euclid;
 extern crate fnv;
 
-#[cfg(any(target_os = "linux", target_os = "android"))]
+#[cfg(target_os = "linux")]
 extern crate fontconfig;
 extern crate fontsan;
 #[cfg(any(target_os = "linux", target_os = "android"))]
@@ -73,6 +73,8 @@ extern crate unicode_bidi;
 extern crate unicode_script;
 extern crate webrender_traits;
 extern crate xi_unicode;
+#[cfg(target_os = "android")]
+extern crate xml5ever;
 
 #[deny(unsafe_code)]
 pub mod display_list;
