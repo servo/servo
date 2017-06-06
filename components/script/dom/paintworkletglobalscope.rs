@@ -25,10 +25,11 @@ use std::rc::Rc;
 use std::sync::mpsc::Sender;
 
 #[dom_struct]
+/// https://drafts.css-houdini.org/css-paint-api/#paintworkletglobalscope
 pub struct PaintWorkletGlobalScope {
-    // The worklet global for this object
+    /// The worklet global for this object
     worklet_global: WorkletGlobalScope,
-    // A buffer to draw into
+    /// A buffer to draw into
     buffer: DOMRefCell<Vec<u8>>,
 }
 
@@ -38,12 +39,11 @@ impl PaintWorkletGlobalScope {
                pipeline_id: PipelineId,
                base_url: ServoUrl,
                init: &WorkletGlobalScopeInit)
-               -> Root<PaintWorkletGlobalScope>
-    {
+               -> Root<PaintWorkletGlobalScope> {
         debug!("Creating paint worklet global scope for pipeline {}.", pipeline_id);
         let global = box PaintWorkletGlobalScope {
             worklet_global: WorkletGlobalScope::new_inherited(pipeline_id, base_url, init),
-            buffer: DOMRefCell::new(Vec::new()),
+            buffer: Default::default(),
         };
         unsafe { PaintWorkletGlobalScopeBinding::Wrap(runtime.cx(), global) }
     }
@@ -57,8 +57,7 @@ impl PaintWorkletGlobalScope {
     fn draw_a_paint_image(&self,
                           name: Atom,
                           concrete_object_size: Size2D<Au>,
-                          sender: Sender<Result<Image, PaintWorkletError>>)
-    {
+                          sender: Sender<Result<Image, PaintWorkletError>>) {
         let width = concrete_object_size.width.to_px().abs() as u32;
         let height = concrete_object_size.height.to_px().abs() as u32;
         let area = (width as usize) * (height as usize);
