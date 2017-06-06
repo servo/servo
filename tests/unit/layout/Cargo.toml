@@ -10,7 +10,5 @@ path = "lib.rs"
 doctest = false
 
 [dependencies]
-atomic_refcell = "0.1"
 layout = {path = "../../../components/layout"}
-script_layout_interface = {path = "../../../components/script_layout_interface"}
 size_of_test = {path = "../../../components/size_of_test"}

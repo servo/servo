@@ -34,7 +34,7 @@ extern crate url;
 
 use devtools_traits::DevtoolsControlMsg;
 use hyper::server::{Handler, Listening, Server};
-use net::connector::{create_http_connector, create_ssl_client};
+use net::connector::create_ssl_client;
 use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, FetchContext};
 use net::filemanager_thread::FileManager;
