@@ -14,7 +14,7 @@ use smallvec::SmallVec;
 use std::io::{self, Write};
 use std::ptr;
 use std::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
-use stylearc::Arc;
+use stylearc::{Arc, NonZeroPtrMut};
 use stylesheets::StyleRule;
 use stylist::ApplicableDeclarationList;
 use thread_state;
@@ -637,7 +637,7 @@ impl RuleNode {
             current: if first_child.is_null() {
                 None
             } else {
-                Some(WeakRuleNode { ptr: first_child })
+                Some(WeakRuleNode::from_ptr(first_child))
             }
         }
     }
@@ -645,15 +645,13 @@ impl RuleNode {
 
 #[derive(Clone)]
 struct WeakRuleNode {
-    ptr: *mut RuleNode,
+    p: NonZeroPtrMut<RuleNode>,
 }
 
 /// A strong reference to a rule node.
 #[derive(Debug, PartialEq)]
 pub struct StrongRuleNode {
-    // TODO: Mark this as NonZero once stable to save space inside Option.
-    // https://github.com/rust-lang/rust/issues/27730
-    ptr: *mut RuleNode,
+    p: NonZeroPtrMut<RuleNode>,
 }
 
 #[cfg(feature = "servo")]
@@ -670,15 +668,17 @@ impl StrongRuleNode {
 
         debug!("Creating rule node: {:p}", ptr);
 
+        StrongRuleNode::from_ptr(ptr)
+    }
+
+    fn from_ptr(ptr: *mut RuleNode) -> Self {
         StrongRuleNode {
-            ptr: ptr,
+            p: NonZeroPtrMut::new(ptr)
         }
     }
 
     fn downgrade(&self) -> WeakRuleNode {
-        WeakRuleNode {
-            ptr: self.ptr,
-        }
+        WeakRuleNode::from_ptr(self.ptr())
     }
 
     fn next_sibling(&self) -> Option<WeakRuleNode> {
@@ -688,9 +688,7 @@ impl StrongRuleNode {
         if ptr.is_null() {
             None
         } else {
-            Some(WeakRuleNode {
-                ptr: ptr
-            })
+            Some(WeakRuleNode::from_ptr(ptr))
         }
     }
 
@@ -748,7 +746,7 @@ impl StrongRuleNode {
 
                 // Existing is not null: some thread inserted a child node since
                 // we accessed `last`.
-                strong = WeakRuleNode { ptr: existing }.upgrade();
+                strong = WeakRuleNode::from_ptr(existing).upgrade();
 
                 if strong.get().source.as_ref().unwrap().ptr_equals(&source) {
                     // That node happens to be for the same style source, use
@@ -764,15 +762,15 @@ impl StrongRuleNode {
 
     /// Raw pointer to the RuleNode
     pub fn ptr(&self) -> *mut RuleNode {
-        self.ptr
+        self.p.ptr()
     }
 
     fn get(&self) -> &RuleNode {
         if cfg!(debug_assertions) {
-            let node = unsafe { &*self.ptr };
+            let node = unsafe { &*self.ptr() };
             assert!(node.refcount.load(Ordering::Relaxed) > 0);
         }
-        unsafe { &*self.ptr }
+        unsafe { &*self.ptr() }
     }
 
     /// Get the style source corresponding to this rule node. May return `None`
@@ -808,7 +806,7 @@ impl StrongRuleNode {
     unsafe fn pop_from_free_list(&self) -> Option<WeakRuleNode> {
         // NB: This can run from the root node destructor, so we can't use
         // `get()`, since it asserts the refcount is bigger than zero.
-        let me = &*self.ptr;
+        let me = &*self.ptr();
 
         debug_assert!(me.is_root());
 
@@ -831,7 +829,7 @@ impl StrongRuleNode {
         debug_assert!(!current.is_null(),
                       "Multiple threads are operating on the free list at the \
                        same time?");
-        debug_assert!(current != self.ptr,
+        debug_assert!(current != self.ptr(),
                       "How did the root end up in the free list?");
 
         let next = (*current).next_free.swap(ptr::null_mut(), Ordering::Relaxed);
@@ -843,17 +841,17 @@ impl StrongRuleNode {
 
         debug!("Popping from free list: cur: {:?}, next: {:?}", current, next);
 
-        Some(WeakRuleNode { ptr: current })
+        Some(WeakRuleNode::from_ptr(current))
     }
 
     unsafe fn assert_free_list_has_no_duplicates_or_null(&self) {
         assert!(cfg!(debug_assertions), "This is an expensive check!");
         use std::collections::HashSet;
 
-        let me = &*self.ptr;
+        let me = &*self.ptr();
         assert!(me.is_root());
 
-        let mut current = self.ptr;
+        let mut current = self.ptr();
         let mut seen = HashSet::new();
         while current != FREE_LIST_SENTINEL {
             let next = (*current).next_free.load(Ordering::Relaxed);
@@ -872,7 +870,7 @@ impl StrongRuleNode {
 
         // NB: This can run from the root node destructor, so we can't use
         // `get()`, since it asserts the refcount is bigger than zero.
-        let me = &*self.ptr;
+        let me = &*self.ptr();
 
         debug_assert!(me.is_root(), "Can't call GC on a non-root node!");
 
@@ -1237,19 +1235,17 @@ impl Clone for StrongRuleNode {
         debug!("{:?}: {:?}+", self.ptr(), self.get().refcount.load(Ordering::Relaxed));
         debug_assert!(self.get().refcount.load(Ordering::Relaxed) > 0);
         self.get().refcount.fetch_add(1, Ordering::Relaxed);
-        StrongRuleNode {
-            ptr: self.ptr,
-        }
+        StrongRuleNode::from_ptr(self.ptr())
     }
 }
 
 impl Drop for StrongRuleNode {
     fn drop(&mut self) {
-        let node = unsafe { &*self.ptr };
+        let node = unsafe { &*self.ptr() };
 
         debug!("{:?}: {:?}-", self.ptr(), node.refcount.load(Ordering::Relaxed));
         debug!("Dropping node: {:?}, root: {:?}, parent: {:?}",
-               self.ptr,
+               self.ptr(),
                node.root.as_ref().map(|r| r.ptr()),
                node.parent.as_ref().map(|p| p.ptr()));
         let should_drop = {
@@ -1330,9 +1326,7 @@ impl Drop for StrongRuleNode {
 
 impl<'a> From<&'a StrongRuleNode> for WeakRuleNode {
     fn from(node: &'a StrongRuleNode) -> Self {
-        WeakRuleNode {
-            ptr: node.ptr(),
-        }
+        WeakRuleNode::from_ptr(node.ptr())
     }
 }
 
@@ -1340,15 +1334,19 @@ impl WeakRuleNode {
     fn upgrade(&self) -> StrongRuleNode {
         debug!("Upgrading weak node: {:p}", self.ptr());
 
-        let node = unsafe { &*self.ptr };
+        let node = unsafe { &*self.ptr() };
         node.refcount.fetch_add(1, Ordering::Relaxed);
-        StrongRuleNode {
-            ptr: self.ptr,
+        StrongRuleNode::from_ptr(self.ptr())
+    }
+
+    fn from_ptr(ptr: *mut RuleNode) -> Self {
+        WeakRuleNode {
+            p: NonZeroPtrMut::new(ptr)
         }
     }
 
     fn ptr(&self) -> *mut RuleNode {
-        self.ptr
+        self.p.ptr()
     }
 }
 

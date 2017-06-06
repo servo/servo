@@ -29,10 +29,10 @@ fn size_of_selectors_dummy_types() {
 size_of_test!(test_size_of_rule, style::stylist::Rule, 40);
 
 size_of_test!(test_size_of_option_arc_cv, Option<Arc<ComputedValues>>, 8);
-size_of_test!(test_size_of_option_rule_node, Option<StrongRuleNode>, 16);
-size_of_test!(test_size_of_computed_style, ComputedStyle, 40);
-size_of_test!(test_size_of_element_styles, ElementStyles, 56);
-size_of_test!(test_size_of_element_data, ElementData, 72);
+size_of_test!(test_size_of_option_rule_node, Option<StrongRuleNode>, 8);
+size_of_test!(test_size_of_computed_style, ComputedStyle, 32);
+size_of_test!(test_size_of_element_styles, ElementStyles, 48);
+size_of_test!(test_size_of_element_data, ElementData, 56);
 
 size_of_test!(test_size_of_property_declaration, style::properties::PropertyDeclaration, 32);
 
