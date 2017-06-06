@@ -45,7 +45,7 @@ fn get_mock_rules(css_selectors: &[&str]) -> (Vec<Vec<Rule>>, SharedRwLock) {
         let guard = shared_lock.read();
         let rule = locked.read_with(&guard);
         rule.selectors.0.iter().map(|s| {
-            Rule::new(s.clone(), locked.clone(), i)
+            Rule::new(s.selector.clone(), s.hashes.clone(), locked.clone(), i)
         }).collect()
     }).collect(), shared_lock)
 }
@@ -68,7 +68,7 @@ fn parse_selectors(selectors: &[&str]) -> Vec<Selector<SelectorImpl>> {
              .map(|x| SelectorParser::parse_author_origin_no_namespace(x).unwrap().0
                                                                          .into_iter()
                                                                          .nth(0)
-                                                                         .unwrap())
+                                                                         .unwrap().selector)
              .collect()
 }
 
@@ -126,7 +126,6 @@ fn test_revalidation_selectors() {
         "p:first-child span",
     ]).into_iter()
       .filter(|s| needs_revalidation(&s))
-      .map(|s| s.inner.complex)
       .collect::<Vec<_>>();
 
     let reference = parse_selectors(&[
@@ -167,7 +166,6 @@ fn test_revalidation_selectors() {
         // Selectors in the ancestor chain (needed for cousin sharing).
         "p:first-child span",
     ]).into_iter()
-      .map(|s| s.inner.complex)
       .collect::<Vec<_>>();
 
     assert_eq!(test.len(), reference.len());
@@ -189,22 +187,22 @@ fn test_rule_ordering_same_specificity() {
 #[test]
 fn test_get_id_name() {
     let (rules_list, _) = get_mock_rules(&[".intro", "#top"]);
-    assert_eq!(selector_map::get_id_name(&rules_list[0][0].selector.inner), None);
-    assert_eq!(selector_map::get_id_name(&rules_list[1][0].selector.inner), Some(Atom::from("top")));
+    assert_eq!(selector_map::get_id_name(rules_list[0][0].selector.iter()), None);
+    assert_eq!(selector_map::get_id_name(rules_list[1][0].selector.iter()), Some(Atom::from("top")));
 }
 
 #[test]
 fn test_get_class_name() {
     let (rules_list, _) = get_mock_rules(&[".intro.foo", "#top"]);
-    assert_eq!(selector_map::get_class_name(&rules_list[0][0].selector.inner), Some(Atom::from("foo")));
-    assert_eq!(selector_map::get_class_name(&rules_list[1][0].selector.inner), None);
+    assert_eq!(selector_map::get_class_name(rules_list[0][0].selector.iter()), Some(Atom::from("foo")));
+    assert_eq!(selector_map::get_class_name(rules_list[1][0].selector.iter()), None);
 }
 
 #[test]
 fn test_get_local_name() {
     let (rules_list, _) = get_mock_rules(&["img.foo", "#top", "IMG", "ImG"]);
     let check = |i: usize, names: Option<(&str, &str)>| {
-        assert!(selector_map::get_local_name(&rules_list[i][0].selector.inner)
+        assert!(selector_map::get_local_name(rules_list[i][0].selector.iter())
                 == names.map(|(name, lower_name)| LocalNameSelector {
                         name: LocalName::from(name),
                         lower_name: LocalName::from(lower_name) }))
