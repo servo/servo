@@ -306,7 +306,7 @@ pub enum SVGPaintKind<ColorType> {
 impl<ColorType> SVGPaintKind<ColorType> {
     /// Convert to a value with a different kind of color
     pub fn convert<F, OtherColor>(&self, f: F) -> SVGPaintKind<OtherColor>
-        where F : Fn(&ColorType) -> OtherColor{
+        where F: Fn(&ColorType) -> OtherColor {
             match *self {
                 SVGPaintKind::None => SVGPaintKind::None,
                 SVGPaintKind::ContextStroke => SVGPaintKind::ContextStroke,
@@ -324,7 +324,7 @@ impl<ColorType> SVGPaintKind<ColorType> {
 impl<ColorType> SVGPaint<ColorType> {
     /// Convert to a value with a different kind of color
     pub fn convert<F, OtherColor>(&self, f: F) -> SVGPaint<OtherColor>
-        where F : Fn(&ColorType) -> OtherColor {
+        where F: Fn(&ColorType) -> OtherColor {
         SVGPaint {
             kind: self.kind.convert(&f),
             fallback: self.fallback.as_ref().map(|color| f(color))
