@@ -2422,7 +2422,7 @@ impl Fragment {
     /// This is the method you should use for display list construction as well as
     /// `getBoundingClientRect()` and so forth.
     pub fn stacking_relative_border_box(&self,
-                                        stacking_relative_flow_origin: &Point2D<Au>,
+                                        stacking_relative_flow_origin: &Vector2D<Au>,
                                         relative_containing_block_size: &LogicalSize<Au>,
                                         relative_containing_block_mode: WritingMode,
                                         coordinate_system: CoordinateSystem)
@@ -2440,7 +2440,7 @@ impl Fragment {
         // this.
         let relative_position = self.relative_position(relative_containing_block_size);
         border_box.translate_by_size(&relative_position.to_physical(self.style.writing_mode))
-                  .translate(&stacking_relative_flow_origin.to_vector())
+                  .translate(&stacking_relative_flow_origin)
     }
 
     /// Given the stacking-context-relative border box, returns the stacking-context-relative
