@@ -206,6 +206,14 @@ impl NonTSPseudoClass {
         }
         apply_non_ts_list!(pseudo_class_geckotype)
     }
+
+    /// Returns true if the evaluation of the pseudo-class depends on the
+    /// element's attributes.
+    pub fn is_attr_based(&self) -> bool {
+        matches!(*self,
+                 NonTSPseudoClass::MozTableBorderNonzero |
+                 NonTSPseudoClass::MozBrowserFrame)
+    }
 }
 
 /// The dummy struct we use to implement our selector parsing.

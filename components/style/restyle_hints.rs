@@ -636,30 +636,27 @@ impl<'a, E> Element for ElementWrapper<'a, E>
                                     -> bool
         where F: FnMut(&Self, ElementSelectorFlags),
     {
-        // :moz-any is quite special, because we need to keep matching as a
-        // snapshot.
-        #[cfg(feature = "gecko")]
-        {
-            use selectors::matching::matches_complex_selector;
-            if let NonTSPseudoClass::MozAny(ref selectors) = *pseudo_class {
+        // Some pseudo-classes need special handling to evaluate them against
+        // the snapshot.
+        match *pseudo_class {
+            #[cfg(feature = "gecko")]
+            NonTSPseudoClass::MozAny(ref selectors) => {
+                use selectors::matching::matches_complex_selector;
                 return selectors.iter().any(|s| {
                     matches_complex_selector(s, 0, self, context, _setter)
                 })
             }
-        }
 
-        // :dir needs special handling.  It's implemented in terms of state
-        // flags, but which state flag it maps to depends on the argument to
-        // :dir.  That means we can't just add its state flags to the
-        // NonTSPseudoClass, because if we added all of them there, and tested
-        // via intersects() here, we'd get incorrect behavior for :not(:dir())
-        // cases.
-        //
-        // FIXME(bz): How can I set this up so once Servo adds :dir() support we
-        // don't forget to update this code?
-        #[cfg(feature = "gecko")]
-        {
-            if let NonTSPseudoClass::Dir(ref s) = *pseudo_class {
+            // :dir is implemented in terms of state flags, but which state flag
+            // it maps to depends on the argument to :dir.  That means we can't
+            // just add its state flags to the NonTSPseudoClass, because if we
+            // added all of them there, and tested via intersects() here, we'd
+            // get incorrect behavior for :not(:dir()) cases.
+            //
+            // FIXME(bz): How can I set this up so once Servo adds :dir()
+            // support we don't forget to update this code?
+            #[cfg(feature = "gecko")]
+            NonTSPseudoClass::Dir(ref s) => {
                 let selector_flag = dir_selector_to_state(s);
                 if selector_flag.is_empty() {
                     // :dir() with some random argument; does not match.
@@ -671,16 +668,36 @@ impl<'a, E> Element for ElementWrapper<'a, E>
                 };
                 return state.contains(selector_flag);
             }
-        }
 
-        // For :link and :visited, we don't actually want to test the element
-        // state directly.  Instead, we use the `relevant_link` to determine if
-        // they match.
-        if *pseudo_class == NonTSPseudoClass::Link {
-            return relevant_link.is_unvisited(self, context)
-        }
-        if *pseudo_class == NonTSPseudoClass::Visited {
-            return relevant_link.is_visited(self, context)
+            // For :link and :visited, we don't actually want to test the element
+            // state directly.  Instead, we use the `relevant_link` to determine if
+            // they match.
+            NonTSPseudoClass::Link => {
+                return relevant_link.is_unvisited(self, context);
+            }
+            NonTSPseudoClass::Visited => {
+                return relevant_link.is_visited(self, context);
+            }
+
+            #[cfg(feature = "gecko")]
+            NonTSPseudoClass::MozTableBorderNonzero => {
+                if let Some(snapshot) = self.snapshot() {
+                    if snapshot.has_other_pseudo_class_state() {
+                        return snapshot.mIsTableBorderNonzero();
+                    }
+                }
+            }
+
+            #[cfg(feature = "gecko")]
+            NonTSPseudoClass::MozBrowserFrame => {
+                if let Some(snapshot) = self.snapshot() {
+                    if snapshot.has_other_pseudo_class_state() {
+                        return snapshot.mIsMozBrowserFrame();
+                    }
+                }
+            }
+
+            _ => {}
         }
 
         let flag = pseudo_class.state_flag();
@@ -808,24 +825,25 @@ fn selector_to_state(sel: &Component<SelectorImpl>) -> ElementState {
     }
 }
 
-fn is_attr_selector(sel: &Component<SelectorImpl>) -> bool {
+fn is_attr_based_selector(sel: &Component<SelectorImpl>) -> bool {
     match *sel {
         Component::ID(_) |
         Component::Class(_) |
         Component::AttributeInNoNamespaceExists { .. } |
         Component::AttributeInNoNamespace { .. } |
         Component::AttributeOther(_) => true,
+        Component::NonTSPseudoClass(ref pc) => pc.is_attr_based(),
         _ => false,
     }
 }
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-/// The aspects of an selector which are sensitive.
+/// The characteristics that a selector is sensitive to.
 pub struct Sensitivities {
-    /// The states which are sensitive.
+    /// The states which the selector is sensitive to.
     pub states: ElementState,
-    /// Whether attributes are sensitive.
+    /// Whether the selector is sensitive to attributes.
     pub attrs: bool,
 }
 
@@ -903,7 +921,7 @@ impl SelectorVisitor for SensitivitiesVisitor {
     type Impl = SelectorImpl;
     fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) -> bool {
         self.sensitivities.states.insert(selector_to_state(s));
-        self.sensitivities.attrs |= is_attr_selector(s);
+        self.sensitivities.attrs |= is_attr_based_selector(s);
         true
     }
 }

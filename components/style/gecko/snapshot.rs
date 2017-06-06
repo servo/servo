@@ -55,6 +55,13 @@ impl GeckoElementSnapshot {
         self
     }
 
+    /// Returns true if the snapshot has stored state for pseudo-classes
+    /// that depend on things other than `ElementState`.
+    #[inline]
+    pub fn has_other_pseudo_class_state(&self) -> bool {
+        self.has_any(Flags::OtherPseudoClassState)
+    }
+
     /// selectors::Element::attr_matches
     pub fn attr_matches(&self,
                         ns: &NamespaceConstraint<&Namespace>,
