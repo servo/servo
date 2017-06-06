@@ -15,7 +15,6 @@ use dom::bindings::trace::trace_object;
 use dom::windowproxy;
 use heapsize::HeapSizeOf;
 use js;
-use js::JS_CALLEE;
 use js::glue::{CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper};
 use js::glue::{GetCrossCompartmentWrapper, WrapperNew};
 use js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT, RUST_JSID_IS_STRING};
@@ -26,7 +25,6 @@ use js::jsval::UndefinedValue;
 use js::rust::{GCMethods, ToString, get_object_class, is_dom_class};
 use libc;
 use std::ffi::CString;
-use std::mem;
 use std::os::raw::{c_char, c_void};
 use std::ptr;
 use std::slice;
@@ -73,7 +71,7 @@ pub const JSCLASS_DOM_GLOBAL: u32 = js::jsapi::JSCLASS_USERBIT1;
 
 
 /// The struct that holds inheritance information for DOM object reflectors.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct DOMClass {
     /// A list of interfaces that this object implements, in order of decreasing
     /// derivedness.
@@ -414,10 +412,10 @@ unsafe fn generic_call(cx: *mut jsapi::JSContext,
     let obj = if thisobj.get().is_object() {
         thisobj.get().to_object()
     } else {
-        jsapi::js::GetGlobalForObjectCrossCompartment(JS_CALLEE(cx, vp).to_object_or_null())
+        jsapi::js::GetGlobalForObjectCrossCompartment(args.calleev().to_object_or_null())
     };
     rooted!(in(cx) let obj = obj);
-    let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));
+    let info = RUST_FUNCTION_VALUE_TO_JITINFO(args.calleev().get());
     let proto_id = (*info).__bindgen_anon_2.protoID;
     let depth = (*info).__bindgen_anon_3.depth;
     let proto_check = |class: &'static DOMClass| {
@@ -530,8 +528,7 @@ impl AsCCharPtrPtr for [u8] {
 
 pub fn leak_as_static<T>(t: T) -> &'static T {
     let boxed = Box::new(t);
-    let ptr = &*boxed as *const T;
-    mem::forget(boxed);
+    let ptr = Box::into_raw(boxed) as *const T;
     unsafe {
         ptr.as_ref().unwrap()
     }
