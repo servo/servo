@@ -907,7 +907,7 @@ impl LayoutThread {
                 || {
             flow::mut_base(layout_root).stacking_relative_position =
                 LogicalPoint::zero(writing_mode).to_physical(writing_mode,
-                                                             self.viewport_size);
+                                                             self.viewport_size).to_vector();
 
             flow::mut_base(layout_root).clip = data.page_clip_rect;
 
