@@ -3368,6 +3368,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         self.tex_parameter(target, name, TexParameterValue::Int(value))
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn CheckFramebufferStatus(&self, target: u32) -> u32 {
         // From the GLES 2.0.25 spec, 4.4 ("Framebuffer Objects"):
         //
@@ -3385,6 +3386,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
     fn RenderbufferStorage(&self, target: u32, internal_format: u32,
                            width: i32, height: i32) {
         // From the GLES 2.0.25 spec:
@@ -3423,6 +3425,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         // accessed.  See https://github.com/servo/servo/issues/13710
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn FramebufferRenderbuffer(&self, target: u32, attachment: u32,
                                renderbuffertarget: u32,
                                rb: Option<&WebGLRenderbuffer>) {
@@ -3436,6 +3439,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         };
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn FramebufferTexture2D(&self, target: u32, attachment: u32,
                             textarget: u32, texture: Option<&WebGLTexture>,
                             level: i32) {
