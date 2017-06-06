@@ -23,10 +23,13 @@ use super::specified;
 
 pub use app_units::Au;
 pub use cssparser::Color as CSSColor;
+pub use properties::animated_properties::TransitionProperty;
 pub use self::background::BackgroundSize;
 pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderCornerRadius};
 pub use self::image::{Gradient, GradientItem, ImageLayer, LineDirection, Image, ImageRect};
+#[cfg(feature = "gecko")]
+pub use self::gecko::ScrollSnapPoint;
 pub use self::rect::LengthOrNumberRect;
 pub use super::{Auto, Either, None_};
 #[cfg(feature = "gecko")]
@@ -45,6 +48,8 @@ pub mod background;
 pub mod basic_shape;
 pub mod border;
 pub mod image;
+#[cfg(feature = "gecko")]
+pub mod gecko;
 pub mod length;
 pub mod position;
 pub mod rect;
