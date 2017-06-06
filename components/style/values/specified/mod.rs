@@ -35,7 +35,8 @@ pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
 pub use self::border::{BorderImageSideWidth, BorderRadius, BorderSideWidth};
 pub use self::color::Color;
 pub use self::rect::LengthOrNumberRect;
-pub use super::generics::grid::GridLine;
+#[cfg(feature = "gecko")]
+pub use self::gecko::ScrollSnapPoint;
 pub use self::image::{ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use self::image::{GradientItem, GradientKind, Image, ImageRect, ImageLayer};
 pub use self::length::AbsoluteLength;
@@ -46,6 +47,7 @@ pub use self::length::{MaxLength, MozLength};
 pub use self::position::{Position, PositionComponent};
 pub use self::text::{LetterSpacing, LineHeight, WordSpacing};
 pub use self::transform::{TimingFunction, TransformOrigin};
+pub use super::generics::grid::GridLine;
 
 #[cfg(feature = "gecko")]
 pub mod align;
@@ -54,6 +56,8 @@ pub mod basic_shape;
 pub mod border;
 pub mod calc;
 pub mod color;
+#[cfg(feature = "gecko")]
+pub mod gecko;
 pub mod grid;
 pub mod image;
 pub mod length;

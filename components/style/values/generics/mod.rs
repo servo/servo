@@ -16,6 +16,8 @@ use values::specified::url::SpecifiedUrl;
 pub mod background;
 pub mod basic_shape;
 pub mod border;
+#[cfg(feature = "gecko")]
+pub mod gecko;
 pub mod grid;
 pub mod image;
 pub mod position;
