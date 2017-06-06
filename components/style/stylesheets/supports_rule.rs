@@ -4,7 +4,7 @@
 
 //! [@supports rules](https://drafts.csswg.org/css-conditional-3/#at-supports)
 
-use cssparser::{parse_important, Parser, SourceLocation, Token};
+use cssparser::{Delimiter, parse_important, Parser, SourceLocation, Token};
 use parser::ParserContext;
 use properties::{PropertyId, PropertyDeclaration, SourcePropertyDeclaration};
 use shared_lock::{DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
@@ -263,7 +263,10 @@ impl Declaration {
         let mut input = Parser::new(&self.val);
         let context = ParserContext::new_with_rule_type(cx, Some(CssRuleType::Style));
         let mut declarations = SourcePropertyDeclaration::new();
-        let res = PropertyDeclaration::parse_into(&mut declarations, id, &context, &mut input);
+        let res = input.parse_until_before(Delimiter::Bang, |input| {
+            PropertyDeclaration::parse_into(&mut declarations, id, &context, input)
+                .map_err(|_| ())
+        });
         let _ = input.try(parse_important);
         res.is_ok() && input.is_exhausted()
     }

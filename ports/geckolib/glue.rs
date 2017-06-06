@@ -2298,7 +2298,7 @@ pub extern "C" fn Servo_CSSSupports2(property: *const nsACString,
 pub extern "C" fn Servo_CSSSupports(cond: *const nsACString) -> bool {
     let condition = unsafe { cond.as_ref().unwrap().as_str_unchecked() };
     let mut input = Parser::new(&condition);
-    let cond = parse_condition_or_declaration(&mut input);
+    let cond = input.parse_entirely(|i| parse_condition_or_declaration(i));
     if let Ok(cond) = cond {
         let url_data = unsafe { dummy_url_data() };
         let reporter = RustLogReporter;
