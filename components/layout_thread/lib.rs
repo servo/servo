@@ -439,7 +439,11 @@ impl LayoutThread {
 
         let configuration =
             rayon::Configuration::new().num_threads(layout_threads);
-        let parallel_traversal = rayon::ThreadPool::new(configuration).ok();
+        let parallel_traversal = if layout_threads > 1 {
+            Some(rayon::ThreadPool::new(configuration).expect("ThreadPool creation failed"))
+        } else {
+            None
+        };
         debug!("Possible layout Threads: {}", layout_threads);
 
         // Create the channel on which new animations can be sent.
