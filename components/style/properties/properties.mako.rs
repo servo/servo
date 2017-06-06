@@ -2193,7 +2193,7 @@ pub fn get_writing_mode(inheritedbox_style: &style_structs::InheritedBox) -> Wri
 }
 
 /// A reference to a style struct of the parent, or our own style struct.
-pub enum StyleStructRef<'a, T: 'a> {
+pub enum StyleStructRef<'a, T: 'static> {
     /// A borrowed struct from the parent, for example, for inheriting style.
     Borrowed(&'a Arc<T>),
     /// An owned struct, that we've already mutated.

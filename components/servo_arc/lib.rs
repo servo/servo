@@ -69,7 +69,7 @@ macro_rules! offset_of {
 /// necessarily) at _exactly_ `MAX_REFCOUNT + 1` references.
 const MAX_REFCOUNT: usize = (isize::MAX) as usize;
 
-pub struct Arc<T: ?Sized> {
+pub struct Arc<T: ?Sized + 'static> {
     // FIXME(bholley): When NonZero/Shared/Unique are stabilized, we should use
     // Shared here to get the NonZero optimization. Gankro is working on this.
     //
@@ -84,7 +84,7 @@ pub struct Arc<T: ?Sized> {
 ///
 /// This lets us build arcs that we can mutate before
 /// freezing, without needing to change the allocation
-pub struct UniqueArc<T: ?Sized>(Arc<T>);
+pub struct UniqueArc<T: ?Sized + 'static>(Arc<T>);
 
 impl<T> UniqueArc<T> {
     #[inline]
@@ -542,7 +542,7 @@ impl<H> HeaderWithLength<H> {
 }
 
 type HeaderSliceWithLength<H, T> = HeaderSlice<HeaderWithLength<H>, T>;
-pub struct ThinArc<H, T> {
+pub struct ThinArc<H: 'static, T: 'static> {
     ptr: *mut ArcInner<HeaderSliceWithLength<H, [T; 1]>>,
 }
 
@@ -563,7 +563,7 @@ fn thin_to_thick<H, T>(thin: *mut ArcInner<HeaderSliceWithLength<H, [T; 1]>>)
     fake_slice as *mut ArcInner<HeaderSliceWithLength<H, [T]>>
 }
 
-impl<H, T> ThinArc<H, T> {
+impl<H: 'static, T: 'static> ThinArc<H, T> {
     /// Temporarily converts |self| into a bonafide Arc and exposes it to the
     /// provided callback. The refcount is not modified.
     #[inline(always)]
@@ -593,19 +593,19 @@ impl<H, T> Deref for ThinArc<H, T> {
     }
 }
 
-impl<H, T> Clone for ThinArc<H, T> {
+impl<H: 'static, T: 'static> Clone for ThinArc<H, T> {
     fn clone(&self) -> Self {
         ThinArc::with_arc(self, |a| Arc::into_thin(a.clone()))
     }
 }
 
-impl<H, T> Drop for ThinArc<H, T> {
+impl<H: 'static, T: 'static> Drop for ThinArc<H, T> {
     fn drop(&mut self) {
         let _ = Arc::from_thin(ThinArc { ptr: self.ptr });
     }
 }
 
-impl<H, T> Arc<HeaderSliceWithLength<H, [T]>> {
+impl<H: 'static, T: 'static> Arc<HeaderSliceWithLength<H, [T]>> {
     /// Converts an Arc into a ThinArc. This consumes the Arc, so the refcount
     /// is not modified.
     pub fn into_thin(a: Self) -> ThinArc<H, T> {
@@ -630,7 +630,7 @@ impl<H, T> Arc<HeaderSliceWithLength<H, [T]>> {
     }
 }
 
-impl<H: PartialEq, T: PartialEq> PartialEq for ThinArc<H, T> {
+impl<H: PartialEq + 'static, T: PartialEq + 'static> PartialEq for ThinArc<H, T> {
     fn eq(&self, other: &ThinArc<H, T>) -> bool {
         ThinArc::with_arc(self, |a| {
             ThinArc::with_arc(other, |b| {
@@ -640,7 +640,7 @@ impl<H: PartialEq, T: PartialEq> PartialEq for ThinArc<H, T> {
     }
 }
 
-impl<H: Eq, T: Eq> Eq for ThinArc<H, T> {}
+impl<H: Eq + 'static, T: Eq + 'static> Eq for ThinArc<H, T> {}
 
 #[cfg(test)]
 mod tests {
