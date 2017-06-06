@@ -51,6 +51,7 @@ use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageResponse;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use script_traits::ScriptMsg as ConstellationMsg;
+use servo_config::prefs::PREFS;
 use std::cell::Cell;
 use std::collections::HashMap;
 use webrender_traits;
@@ -166,6 +167,10 @@ impl WebGLRenderingContext {
                      size: Size2D<i32>,
                      attrs: GLContextAttributes)
                      -> Result<WebGLRenderingContext, String> {
+        if let Some(true) = PREFS.get("webgl.testing.context_creation_error").as_boolean() {
+            return Err("WebGL context creation error forced by pref `webgl.testing.context_creation_error`".into());
+        }
+
         let (sender, receiver) = ipc::channel().unwrap();
         let constellation_chan = window.upcast::<GlobalScope>().constellation_chan();
         constellation_chan.send(ConstellationMsg::CreateWebGLPaintThread(size, attrs, sender))
