@@ -786,6 +786,8 @@ cfg_if! {
             pub static nsGkAtoms_field: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms8fieldsetE"]
             pub static nsGkAtoms_fieldset: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms4fileE"]
+            pub static nsGkAtoms_file: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms10figcaptionE"]
             pub static nsGkAtoms_figcaption: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms6figureE"]
@@ -3938,6 +3940,14 @@ cfg_if! {
             pub static nsGkAtoms_ondevicechange: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms33mozinputrangeignorepreventdefaultE"]
             pub static nsGkAtoms_mozinputrangeignorepreventdefault: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms13moz_extensionE"]
+            pub static nsGkAtoms_moz_extension: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms18all_urlsPermissionE"]
+            pub static nsGkAtoms_all_urlsPermission: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms4httpE"]
+            pub static nsGkAtoms_http: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms5httpsE"]
+            pub static nsGkAtoms_https: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms12cdataTagNameE"]
             pub static nsGkAtoms_cdataTagName: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms14commentTagNameE"]
@@ -5809,6 +5819,8 @@ cfg_if! {
             pub static nsGkAtoms_field: *mut nsIAtom;
             #[link_name = "?fieldset@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_fieldset: *mut nsIAtom;
+            #[link_name = "?file@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_file: *mut nsIAtom;
             #[link_name = "?figcaption@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_figcaption: *mut nsIAtom;
             #[link_name = "?figure@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -8961,6 +8973,14 @@ cfg_if! {
             pub static nsGkAtoms_ondevicechange: *mut nsIAtom;
             #[link_name = "?mozinputrangeignorepreventdefault@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_mozinputrangeignorepreventdefault: *mut nsIAtom;
+            #[link_name = "?moz_extension@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_moz_extension: *mut nsIAtom;
+            #[link_name = "?all_urlsPermission@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_all_urlsPermission: *mut nsIAtom;
+            #[link_name = "?http@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_http: *mut nsIAtom;
+            #[link_name = "?https@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_https: *mut nsIAtom;
             #[link_name = "?cdataTagName@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_cdataTagName: *mut nsIAtom;
             #[link_name = "?commentTagName@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -10832,6 +10852,8 @@ cfg_if! {
             pub static nsGkAtoms_field: *mut nsIAtom;
             #[link_name = "\x01?fieldset@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_fieldset: *mut nsIAtom;
+            #[link_name = "\x01?file@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_file: *mut nsIAtom;
             #[link_name = "\x01?figcaption@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_figcaption: *mut nsIAtom;
             #[link_name = "\x01?figure@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -13984,6 +14006,14 @@ cfg_if! {
             pub static nsGkAtoms_ondevicechange: *mut nsIAtom;
             #[link_name = "\x01?mozinputrangeignorepreventdefault@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_mozinputrangeignorepreventdefault: *mut nsIAtom;
+            #[link_name = "\x01?moz_extension@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_moz_extension: *mut nsIAtom;
+            #[link_name = "\x01?all_urlsPermission@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_all_urlsPermission: *mut nsIAtom;
+            #[link_name = "\x01?http@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_http: *mut nsIAtom;
+            #[link_name = "\x01?https@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_https: *mut nsIAtom;
             #[link_name = "\x01?cdataTagName@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_cdataTagName: *mut nsIAtom;
             #[link_name = "\x01?commentTagName@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -15858,6 +15888,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_field as *mut _) } };
 ("fieldset") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fieldset as *mut _) } };
+("file") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_file as *mut _) } };
 ("figcaption") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_figcaption as *mut _) } };
 ("figure") =>
@@ -19010,6 +19042,14 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondevicechange as *mut _) } };
 ("mozinputrangeignorepreventdefault") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozinputrangeignorepreventdefault as *mut _) } };
+("moz-extension") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_moz_extension as *mut _) } };
+("<all_urls>") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_all_urlsPermission as *mut _) } };
+("http") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_http as *mut _) } };
+("https") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_https as *mut _) } };
 ("#cdata-section") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cdataTagName as *mut _) } };
 ("#comment") =>
