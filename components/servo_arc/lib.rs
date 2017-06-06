@@ -69,15 +69,57 @@ macro_rules! offset_of {
 /// necessarily) at _exactly_ `MAX_REFCOUNT + 1` references.
 const MAX_REFCOUNT: usize = (isize::MAX) as usize;
 
+/// Wrapper type for pointers to get the non-zero optimization. When
+/// NonZero/Shared/Unique are stabilized, we should just use Shared
+/// here to get the same effect. Gankro is working on this in [1].
+///
+/// It's unfortunate that this needs to infect all the caller types
+/// with 'static. It would be nice to just use a &() and a PhantomData<T>
+/// instead, but then the compiler can't determine whether the &() should
+/// be thin or fat (which depends on whether or not T is sized). Given
+/// that this is all a temporary hack, this restriction is fine for now.
+///
+/// [1] https://github.com/rust-lang/rust/issues/27730
+pub struct NonZeroPtrMut<T: ?Sized + 'static>(&'static mut T);
+impl<T: ?Sized> NonZeroPtrMut<T> {
+    pub fn new(ptr: *mut T) -> Self {
+        assert!(!(ptr as *mut u8).is_null());
+        NonZeroPtrMut(unsafe { mem::transmute(ptr) })
+    }
+
+    pub fn ptr(&self) -> *mut T {
+        self.0 as *const T as *mut T
+    }
+}
+
+impl<T: ?Sized + 'static> Clone for NonZeroPtrMut<T> {
+    fn clone(&self) -> Self {
+        NonZeroPtrMut::new(self.ptr())
+    }
+}
+
+impl<T: ?Sized + 'static> fmt::Pointer for NonZeroPtrMut<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Pointer::fmt(&self.ptr(), f)
+    }
+}
+
+impl<T: ?Sized + 'static> fmt::Debug for NonZeroPtrMut<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        <Self as fmt::Pointer>::fmt(self, f)
+    }
+}
+
+impl<T: ?Sized + 'static> PartialEq for NonZeroPtrMut<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.ptr() == other.ptr()
+    }
+}
+
+impl<T: ?Sized + 'static> Eq for NonZeroPtrMut<T> {}
+
 pub struct Arc<T: ?Sized + 'static> {
-    // FIXME(bholley): When NonZero/Shared/Unique are stabilized, we should use
-    // Shared here to get the NonZero optimization. Gankro is working on this.
-    //
-    // If we need a compact Option<Arc<T>> beforehand, we can make a helper
-    // class that wraps the result of Arc::into_raw.
-    //
-    // https://github.com/rust-lang/rust/issues/27730
-    ptr: *mut ArcInner<T>,
+    p: NonZeroPtrMut<ArcInner<T>>,
 }
 
 /// An Arc that is known to be uniquely owned
@@ -110,7 +152,7 @@ impl<T> Deref for UniqueArc<T> {
 impl<T> DerefMut for UniqueArc<T> {
     fn deref_mut(&mut self) -> &mut T {
         // We know this to be uniquely owned
-        unsafe { &mut (*self.0.ptr).data }
+        unsafe { &mut (*self.0.ptr()).data }
     }
 }
 
@@ -132,11 +174,11 @@ impl<T> Arc<T> {
             count: atomic::AtomicUsize::new(1),
             data: data,
         });
-        Arc { ptr: Box::into_raw(x) }
+        Arc { p: NonZeroPtrMut::new(Box::into_raw(x)) }
     }
 
     pub fn into_raw(this: Self) -> *const T {
-        let ptr = unsafe { &((*this.ptr).data) as *const _ };
+        let ptr = unsafe { &((*this.ptr()).data) as *const _ };
         mem::forget(this);
         ptr
     }
@@ -146,7 +188,7 @@ impl<T> Arc<T> {
         // to subtract the offset of the `data` field from the pointer.
         let ptr = (ptr as *const u8).offset(-offset_of!(ArcInner<T>, data));
         Arc {
-            ptr: ptr as *mut ArcInner<T>,
+            p: NonZeroPtrMut::new(ptr as *mut ArcInner<T>),
         }
     }
 }
@@ -159,19 +201,23 @@ impl<T: ?Sized> Arc<T> {
         // `ArcInner` structure itself is `Sync` because the inner data is
         // `Sync` as well, so we're ok loaning out an immutable pointer to these
         // contents.
-        unsafe { &*self.ptr }
+        unsafe { &*self.ptr() }
     }
 
     // Non-inlined part of `drop`. Just invokes the destructor.
     #[inline(never)]
     unsafe fn drop_slow(&mut self) {
-        let _ = Box::from_raw(self.ptr);
+        let _ = Box::from_raw(self.ptr());
     }
 
 
     #[inline]
     pub fn ptr_eq(this: &Self, other: &Self) -> bool {
-        this.ptr == other.ptr
+        this.ptr() == other.ptr()
+    }
+
+    fn ptr(&self) -> *mut ArcInner<T> {
+        self.p.ptr()
     }
 }
 
@@ -210,7 +256,7 @@ impl<T: ?Sized> Clone for Arc<T> {
             panic!();
         }
 
-        Arc { ptr: self.ptr }
+        Arc { p: NonZeroPtrMut::new(self.ptr()) }
     }
 }
 
@@ -237,7 +283,7 @@ impl<T: Clone> Arc<T> {
             // reference count is guaranteed to be 1 at this point, and we required
             // the Arc itself to be `mut`, so we're returning the only possible
             // reference to the inner data.
-            &mut (*this.ptr).data
+            &mut (*this.ptr()).data
         }
     }
 }
@@ -248,7 +294,7 @@ impl<T: ?Sized> Arc<T> {
         if this.is_unique() {
             unsafe {
                 // See make_mut() for documentation of the threadsafety here.
-                Some(&mut (*this.ptr).data)
+                Some(&mut (*this.ptr()).data)
             }
         } else {
             None
@@ -357,7 +403,7 @@ impl<T: ?Sized + fmt::Debug> fmt::Debug for Arc<T> {
 
 impl<T: ?Sized> fmt::Pointer for Arc<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Pointer::fmt(&self.ptr, f)
+        fmt::Pointer::fmt(&self.ptr(), f)
     }
 }
 
@@ -516,7 +562,7 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
 
         // Return the fat Arc.
         assert_eq!(size_of::<Self>(), size_of::<usize>() * 2, "The Arc will be fat");
-        Arc { ptr: ptr }
+        Arc { p: NonZeroPtrMut::new(ptr) }
     }
 }
 
@@ -572,7 +618,7 @@ impl<H: 'static, T: 'static> ThinArc<H, T> {
     {
         // Synthesize transient Arc, which never touches the refcount of the ArcInner.
         let transient = NoDrop::new(Arc {
-            ptr: thin_to_thick(self.ptr)
+            p: NonZeroPtrMut::new(thin_to_thick(self.ptr))
         });
 
         // Expose the transient Arc to the callback, which may clone it if it wants.
@@ -611,7 +657,7 @@ impl<H: 'static, T: 'static> Arc<HeaderSliceWithLength<H, [T]>> {
     pub fn into_thin(a: Self) -> ThinArc<H, T> {
         assert!(a.header.length == a.slice.len(),
                 "Length needs to be correct for ThinArc to work");
-        let fat_ptr: *mut ArcInner<HeaderSliceWithLength<H, [T]>> = a.ptr;
+        let fat_ptr: *mut ArcInner<HeaderSliceWithLength<H, [T]>> = a.ptr();
         mem::forget(a);
         let thin_ptr = fat_ptr as *mut [usize] as *mut usize;
         ThinArc {
@@ -625,7 +671,7 @@ impl<H: 'static, T: 'static> Arc<HeaderSliceWithLength<H, [T]>> {
         let ptr = thin_to_thick(a.ptr);
         mem::forget(a);
         Arc {
-            ptr: ptr
+            p: NonZeroPtrMut::new(ptr)
         }
     }
 }
