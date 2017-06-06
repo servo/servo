@@ -23,10 +23,7 @@ use traversal::AssignBSizes;
 pub use style::parallel::traverse_dom;
 
 /// Traversal chunk size.
-///
-/// FIXME(bholley): This is all likely very inefficient and should probably be
-/// reworked to mirror the style system's parallel.rs.
-pub const CHUNK_SIZE: usize = 64;
+const CHUNK_SIZE: usize = 16;
 
 #[allow(dead_code)]
 fn static_assertion(node: UnsafeNode) {
