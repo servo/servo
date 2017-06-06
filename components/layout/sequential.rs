@@ -108,7 +108,7 @@ pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut Flow, iterator
             let mut stacking_context_position = *stacking_context_position;
             if kid.is_block_flow() && kid.as_block().fragment.establishes_stacking_context() {
                 stacking_context_position = Point2D::new(kid.as_block().fragment.margin.inline_start, Au(0)) +
-                                            flow::base(kid).stacking_relative_position.to_vector() +
+                                            flow::base(kid).stacking_relative_position +
                                             stacking_context_position.to_vector();
                 let relative_position = kid.as_block()
                     .stacking_relative_position(CoordinateSystem::Own);

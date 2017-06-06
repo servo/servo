@@ -772,7 +772,7 @@ fn process_resolved_style_request_internal<'a, N>(requested_node: N,
         let position = maybe_data.map_or(Point2D::zero(), |data| {
             match (*data).flow_construction_result {
                 ConstructionResult::Flow(ref flow_ref, _) =>
-                    flow::base(flow_ref.deref()).stacking_relative_position,
+                    flow::base(flow_ref.deref()).stacking_relative_position.to_point(),
                 // TODO(dzbarsky) search parents until we find node with a flow ref.
                 // https://github.com/servo/servo/issues/8307
                 _ => Point2D::zero()

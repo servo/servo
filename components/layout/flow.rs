@@ -29,7 +29,7 @@ use app_units::Au;
 use block::{BlockFlow, FormattingContextType};
 use context::LayoutContext;
 use display_list_builder::DisplayListBuildState;
-use euclid::{Transform3D, Point2D, Rect, Size2D};
+use euclid::{Transform3D, Point2D, Vector2D, Rect, Size2D};
 use flex::FlexFlow;
 use floats::{Floats, SpeculatedFloatPlacement};
 use flow_list::{FlowList, MutFlowListIterator};
@@ -917,7 +917,7 @@ pub struct BaseFlow {
 
     /// The position of this flow relative to the start of the nearest ancestor stacking context.
     /// This is computed during the top-down pass of display list construction.
-    pub stacking_relative_position: Point2D<Au>, // TODO: this should be a Vector2D<Au>
+    pub stacking_relative_position: Vector2D<Au>,
 
     /// Details about descendants with position 'absolute' or 'fixed' for which we are the
     /// containing block. This is in tree order. This includes any direct children.
@@ -1098,7 +1098,7 @@ impl BaseFlow {
             parallel: FlowParallelInfo::new(),
             floats: Floats::new(writing_mode),
             collapsible_margins: CollapsibleMargins::new(),
-            stacking_relative_position: Point2D::zero(),
+            stacking_relative_position: Vector2D::zero(),
             abs_descendants: AbsoluteDescendants::new(),
             speculated_float_placement_in: SpeculatedFloatPlacement::zero(),
             speculated_float_placement_out: SpeculatedFloatPlacement::zero(),
