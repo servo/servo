@@ -198,7 +198,7 @@ fn may_match<E>(hashes: &AncestorHashes,
 /// and `is_unvisited` are based on relevant link state of only the current
 /// complex selector being matched (not the global relevant link status for all
 /// selectors in `MatchingContext`).
-#[derive(PartialEq, Eq, Copy, Clone)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum RelevantLinkStatus {
     /// Looking for a possible relevant link.  This is the initial mode when
     /// matching a selector.
@@ -428,6 +428,9 @@ fn matches_complex_selector_internal<E, F>(mut selector_iter: SelectorIter<E::Im
     let matches_all_simple_selectors = selector_iter.all(|simple| {
         matches_simple_selector(simple, element, context, &relevant_link, flags_setter)
     });
+
+    debug!("Matching for {:?}, simple selector {:?}, relevant link {:?}",
+           element, selector_iter, relevant_link);
 
     let combinator = selector_iter.next_sequence();
     let siblings = combinator.map_or(false, |c| c.is_sibling());
