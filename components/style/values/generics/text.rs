@@ -11,7 +11,48 @@ use properties::animated_properties::Animatable;
 use std::fmt;
 use style_traits::ToCss;
 
-/// A generic spacing value for the `letter-spacing` and `word-spacing` properties.alloc
+/// A generic value for the `initial-letter` property.
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
+pub enum InitialLetter<Number, Integer> {
+    /// `normal`
+    Normal,
+    /// `<number> <integer>?`
+    Specified(Number, Option<Integer>),
+}
+
+impl<N, I> InitialLetter<N, I> {
+    /// Returns `normal`.
+    #[inline]
+    pub fn normal() -> Self {
+        InitialLetter::Normal
+    }
+}
+
+impl<N, I> ToCss for InitialLetter<N, I>
+where
+    N: ToCss,
+    I: ToCss,
+{
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
+        match *self {
+            InitialLetter::Normal => dest.write_str("normal"),
+            InitialLetter::Specified(ref size, ref sink) => {
+                size.to_css(dest)?;
+                if let Some(ref sink) = *sink {
+                    dest.write_str(" ")?;
+                    sink.to_css(dest)?;
+                }
+                Ok(())
+            },
+        }
+    }
+}
+
+/// A generic spacing value for the `letter-spacing` and `word-spacing` properties.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
 pub enum Spacing<Value> {
