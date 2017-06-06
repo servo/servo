@@ -481,6 +481,8 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
             //
             // To avoid alignment issues, we allocate words rather than bytes,
             // rounding up to the nearest word size.
+            assert!(mem::align_of::<T>() <= mem::align_of::<usize>(),
+                    "We don't handle over-aligned types");
             let words_to_allocate = divide_rounding_up(size, size_of::<usize>());
             let mut vec = Vec::<usize>::with_capacity(words_to_allocate);
             vec.set_len(words_to_allocate);
@@ -496,6 +498,9 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
             ptr = fake_slice as *mut [T] as *mut ArcInner<HeaderSlice<H, [T]>>;
 
             // Write the data.
+            //
+            // Note that any panics here (i.e. from the iterator) are safe, since
+            // we'll just leak the uninitialized memory.
             ptr::write(&mut ((*ptr).count), atomic::AtomicUsize::new(1));
             ptr::write(&mut ((*ptr).data.header), header);
             let mut current: *mut T = &mut (*ptr).data.slice[0];
@@ -536,8 +541,9 @@ impl<H> HeaderWithLength<H> {
     }
 }
 
+type HeaderSliceWithLength<H, T> = HeaderSlice<HeaderWithLength<H>, T>;
 pub struct ThinArc<H, T> {
-    ptr: *mut ArcInner<HeaderSlice<HeaderWithLength<H>, [T; 1]>>,
+    ptr: *mut ArcInner<HeaderSliceWithLength<H, [T; 1]>>,
 }
 
 unsafe impl<H: Sync + Send, T: Sync + Send> Send for ThinArc<H, T> {}
@@ -546,15 +552,15 @@ unsafe impl<H: Sync + Send, T: Sync + Send> Sync for ThinArc<H, T> {}
 // Synthesize a fat pointer from a thin pointer.
 //
 // See the comment around the analogous operation in from_header_and_iter.
-fn thin_to_thick<H, T>(thin: *mut ArcInner<HeaderSlice<HeaderWithLength<H>, [T; 1]>>)
-    -> *mut ArcInner<HeaderSlice<HeaderWithLength<H>, [T]>>
+fn thin_to_thick<H, T>(thin: *mut ArcInner<HeaderSliceWithLength<H, [T; 1]>>)
+    -> *mut ArcInner<HeaderSliceWithLength<H, [T]>>
 {
     let len = unsafe { (*thin).data.header.length };
     let fake_slice: *mut [T] = unsafe {
         slice::from_raw_parts_mut(thin as *mut T, len)
     };
 
-    fake_slice as *mut ArcInner<HeaderSlice<HeaderWithLength<H>, [T]>>
+    fake_slice as *mut ArcInner<HeaderSliceWithLength<H, [T]>>
 }
 
 impl<H, T> ThinArc<H, T> {
@@ -562,7 +568,7 @@ impl<H, T> ThinArc<H, T> {
     /// provided callback. The refcount is not modified.
     #[inline(always)]
     pub fn with_arc<F, U>(&self, f: F) -> U
-        where F: FnOnce(&Arc<HeaderSlice<HeaderWithLength<H>, [T]>>) -> U
+        where F: FnOnce(&Arc<HeaderSliceWithLength<H, [T]>>) -> U
     {
         // Synthesize transient Arc, which never touches the refcount of the ArcInner.
         let transient = NoDrop::new(Arc {
@@ -581,7 +587,7 @@ impl<H, T> ThinArc<H, T> {
 }
 
 impl<H, T> Deref for ThinArc<H, T> {
-    type Target = HeaderSlice<HeaderWithLength<H>, [T]>;
+    type Target = HeaderSliceWithLength<H, [T]>;
     fn deref(&self) -> &Self::Target {
         unsafe { &(*thin_to_thick(self.ptr)).data }
     }
@@ -599,17 +605,17 @@ impl<H, T> Drop for ThinArc<H, T> {
     }
 }
 
-impl<H, T> Arc<HeaderSlice<HeaderWithLength<H>, [T]>> {
+impl<H, T> Arc<HeaderSliceWithLength<H, [T]>> {
     /// Converts an Arc into a ThinArc. This consumes the Arc, so the refcount
     /// is not modified.
     pub fn into_thin(a: Self) -> ThinArc<H, T> {
         assert!(a.header.length == a.slice.len(),
                 "Length needs to be correct for ThinArc to work");
-        let fat_ptr: *mut ArcInner<HeaderSlice<HeaderWithLength<H>, [T]>> = a.ptr;
+        let fat_ptr: *mut ArcInner<HeaderSliceWithLength<H, [T]>> = a.ptr;
         mem::forget(a);
         let thin_ptr = fat_ptr as *mut [usize] as *mut usize;
         ThinArc {
-            ptr: thin_ptr as *mut ArcInner<HeaderSlice<HeaderWithLength<H>, [T; 1]>>
+            ptr: thin_ptr as *mut ArcInner<HeaderSliceWithLength<H, [T; 1]>>
         }
     }
 
@@ -649,13 +655,7 @@ mod tests {
 
     impl Drop for Canary {
         fn drop(&mut self) {
-            unsafe {
-                match *self {
-                    Canary(c) => {
-                        (*c).fetch_add(1, SeqCst);
-                    }
-                }
-            }
+            unsafe { (*self.0).fetch_add(1, SeqCst); }
         }
     }
 
