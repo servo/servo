@@ -2232,23 +2232,16 @@ fn static_assert() {
     }
     % endfor
 
-    pub fn set_scroll_snap_points_x(&mut self, v: longhands::scroll_snap_points_x::computed_value::T) {
-        match v.0 {
-            None => self.gecko.mScrollSnapPointsX.set_value(CoordDataValue::None),
-            Some(l) => l.to_gecko_style_coord(&mut self.gecko.mScrollSnapPointsX),
-        };
-    }
+    % for axis in ["x", "y"]:
+        pub fn set_scroll_snap_points_${axis}(&mut self, v: longhands::scroll_snap_points_${axis}::computed_value::T) {
+            match v.repeated() {
+                None => self.gecko.mScrollSnapPoints${axis.upper()}.set_value(CoordDataValue::None),
+                Some(l) => l.to_gecko_style_coord(&mut self.gecko.mScrollSnapPoints${axis.upper()}),
+            };
+        }
 
-    ${impl_coord_copy('scroll_snap_points_x', 'mScrollSnapPointsX')}
-
-    pub fn set_scroll_snap_points_y(&mut self, v: longhands::scroll_snap_points_y::computed_value::T) {
-        match v.0 {
-            None => self.gecko.mScrollSnapPointsY.set_value(CoordDataValue::None),
-            Some(l) => l.to_gecko_style_coord(&mut self.gecko.mScrollSnapPointsY),
-        };
-    }
-
-    ${impl_coord_copy('scroll_snap_points_y', 'mScrollSnapPointsY')}
+        ${impl_coord_copy('scroll_snap_points_' + axis, 'mScrollSnapPoints' + axis.upper())}
+    % endfor
 
     pub fn set_scroll_snap_coordinate<I>(&mut self, v: I)
         where I: IntoIterator<Item = longhands::scroll_snap_coordinate::computed_value::single_value::T>,
