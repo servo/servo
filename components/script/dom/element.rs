@@ -26,7 +26,7 @@ use dom::bindings::js::{JS, LayoutJS, MutNullableJS};
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::DomObject;
-use dom::bindings::str::{DOMString, extended_filtering};
+use dom::bindings::str::DOMString;
 use dom::bindings::xmlname::{namespace_from_domstring, validate_and_extract, xml_name_type};
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
 use dom::characterdata::CharacterData;
@@ -106,6 +106,7 @@ use style::properties::longhands::{self, background_image, border_spacing, font_
 use style::restyle_hints::RestyleHint;
 use style::rule_tree::CascadeLevel;
 use style::selector_parser::{NonTSPseudoClass, PseudoElement, RestyleDamage, SelectorImpl, SelectorParser};
+use style::selector_parser::extended_filtering;
 use style::shared_lock::{SharedRwLock, Locked};
 use style::sink::Push;
 use style::stylearc::Arc;
@@ -2464,8 +2465,10 @@ impl<'a> ::selectors::Element for Root<Element> {
                     .map_or(false, |attr| attr.value().eq(expected_value))
             }
 
-            // FIXME(#15746): This is wrong, we need to instead use extended filtering as per RFC4647
-            //                https://tools.ietf.org/html/rfc4647#section-3.3.2
+            // FIXME(heycam): This is wrong, since extended_filtering accepts
+            // a string containing commas (separating each language tag in
+            // a list) but the pseudo-class instead should be parsing and
+            // storing separate <ident> or <string>s for each language tag.
             NonTSPseudoClass::Lang(ref lang) => extended_filtering(&*self.get_lang(), &*lang),
 
             NonTSPseudoClass::ReadOnly =>

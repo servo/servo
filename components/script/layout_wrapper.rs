@@ -34,7 +34,6 @@ use atomic_refcell::{AtomicRef, AtomicRefCell};
 use dom::bindings::inheritance::{CharacterDataTypeId, ElementTypeId};
 use dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::LayoutJS;
-use dom::bindings::str::extended_filtering;
 use dom::characterdata::LayoutCharacterDataHelpers;
 use dom::document::{Document, LayoutDocumentHelpers, PendingRestyle};
 use dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
@@ -70,7 +69,7 @@ use style::dom::{PresentationalHintsSynthesizer, TElement, TNode, UnsafeNode};
 use style::element_state::*;
 use style::font_metrics::ServoMetricsProvider;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
-use style::selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl};
+use style::selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl, extended_filtering};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
 use style::sink::Push;
 use style::str::is_whitespace;
@@ -691,8 +690,10 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
             NonTSPseudoClass::AnyLink => self.is_link(),
             NonTSPseudoClass::Visited => false,
 
-            // FIXME(#15746): This is wrong, we need to instead use extended filtering as per RFC4647
-            //                https://tools.ietf.org/html/rfc4647#section-3.3.2
+            // FIXME(heycam): This is wrong, since extended_filtering accepts
+            // a string containing commas (separating each language tag in
+            // a list) but the pseudo-class instead should be parsing and
+            // storing separate <ident> or <string>s for each language tag.
             NonTSPseudoClass::Lang(ref lang) => extended_filtering(&*self.element.get_lang_for_layout(), &*lang),
 
             NonTSPseudoClass::ServoNonZeroBorder => unsafe {
