@@ -19,6 +19,11 @@ fn size_of_selectors_dummy_types() {
     assert_eq!(align_of::<dummies::Atom>(), align_of::<style::Atom>());
 }
 
+// The size of this is critical to performance on the bloom-basic microbenchmark.
+// When iterating over a large Rule array, we want to be able to fast-reject
+// selectors (with the inline hashes) with as few cache misses as possible.
+size_of_test!(test_size_of_rule, style::stylist::Rule, 40);
+
 size_of_test!(test_size_of_property_declaration, style::properties::PropertyDeclaration, 32);
 
 // This is huge, but we allocate it on the stack and then never move it,

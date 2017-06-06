@@ -9,9 +9,9 @@ extern crate fnv;
 extern crate phf;
 extern crate precomputed_hash;
 #[cfg(test)] #[macro_use] extern crate size_of_test;
+extern crate servo_arc;
 extern crate smallvec;
 
-pub mod arcslice;
 pub mod attr;
 pub mod bloom;
 pub mod matching;

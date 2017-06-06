@@ -2523,6 +2523,7 @@ dependencies = [
  "phf 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf_codegen 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "precomputed-hash 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo_arc 0.0.1",
  "size_of_test 0.0.1",
  "smallvec 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -2686,6 +2687,15 @@ dependencies = [
  "rustc-serialize 0.3.24 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicase 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "servo_arc"
+version = "0.0.1"
+dependencies = [
+ "heapsize 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "nodrop 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 0.9.15 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2913,6 +2923,7 @@ dependencies = [
  "selectors 0.19.0",
  "serde 0.9.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 0.9.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo_arc 0.0.1",
  "servo_atoms 0.0.1",
  "servo_config 0.0.1",
  "servo_url 0.0.1",

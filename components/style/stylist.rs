@@ -28,7 +28,8 @@ use selectors::attr::NamespaceConstraint;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{ElementSelectorFlags, matches_selector, MatchingContext, MatchingMode};
 use selectors::matching::AFFECTED_BY_PRESENTATIONAL_HINTS;
-use selectors::parser::{Combinator, Component, Selector, SelectorInner, SelectorIter, SelectorMethods};
+use selectors::parser::{AncestorHashes, Combinator, Component, Selector, SelectorAndHashes};
+use selectors::parser::{SelectorIter, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
 use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use sink::Push;
@@ -159,7 +160,7 @@ pub struct Stylist {
     /// on state that is not otherwise visible to the cache, like attributes or
     /// tree-structural state like child index and pseudos).
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    selectors_for_cache_revalidation: SelectorMap<SelectorInner<SelectorImpl>>,
+    selectors_for_cache_revalidation: SelectorMap<SelectorAndHashes<SelectorImpl>>,
 
     /// The total number of selectors.
     num_selectors: usize,
@@ -454,10 +455,10 @@ impl Stylist {
                 CssRule::Style(ref locked) => {
                     let style_rule = locked.read_with(&guard);
                     self.num_declarations += style_rule.block.read_with(&guard).len();
-                    for selector in &style_rule.selectors.0 {
+                    for selector_and_hashes in &style_rule.selectors.0 {
                         self.num_selectors += 1;
 
-                        let map = if let Some(pseudo) = selector.pseudo_element() {
+                        let map = if let Some(pseudo) = selector_and_hashes.selector.pseudo_element() {
                             self.pseudos_map
                                 .entry(pseudo.canonical())
                                 .or_insert_with(PerPseudoElementSelectorMap::new)
@@ -466,20 +467,21 @@ impl Stylist {
                             self.element_map.borrow_for_origin(&stylesheet.origin)
                         };
 
-                        map.insert(Rule::new(selector.clone(),
+                        map.insert(Rule::new(selector_and_hashes.selector.clone(),
+                                             selector_and_hashes.hashes.clone(),
                                              locked.clone(),
                                              self.rules_source_order));
 
-                        self.dependencies.note_selector(selector);
-                        if needs_revalidation(selector) {
-                            self.selectors_for_cache_revalidation.insert(selector.inner.clone());
+                        self.dependencies.note_selector(selector_and_hashes);
+                        if needs_revalidation(&selector_and_hashes.selector) {
+                            self.selectors_for_cache_revalidation.insert(selector_and_hashes.clone());
                         }
-                        selector.visit(&mut AttributeAndStateDependencyVisitor {
+                        selector_and_hashes.selector.visit(&mut AttributeAndStateDependencyVisitor {
                             attribute_dependencies: &mut self.attribute_dependencies,
                             style_attribute_dependency: &mut self.style_attribute_dependency,
                             state_dependencies: &mut self.state_dependencies,
                         });
-                        selector.visit(&mut MappedIdVisitor {
+                        selector_and_hashes.selector.visit(&mut MappedIdVisitor {
                             mapped_ids: &mut self.mapped_ids,
                         });
                     }
@@ -1130,8 +1132,10 @@ impl Stylist {
         // the lookups, which means that the bitvecs are comparable. We verify
         // this in the caller by asserting that the bitvecs are same-length.
         let mut results = BitVec::new();
-        self.selectors_for_cache_revalidation.lookup(*element, &mut |selector| {
-            results.push(matches_selector(selector,
+        self.selectors_for_cache_revalidation.lookup(*element, &mut |selector_and_hashes| {
+            results.push(matches_selector(&selector_and_hashes.selector,
+                                          0,
+                                          &selector_and_hashes.hashes,
                                           element,
                                           &mut matching_context,
                                           flags_setter));
@@ -1410,6 +1414,9 @@ pub struct Rule {
     /// can ruin performance when there are a lot of rules.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     pub selector: Selector<SelectorImpl>,
+    /// The ancestor hashes associated with the selector.
+    #[cfg_attr(feature = "servo", ignore_heap_size_of = "No heap data")]
+    pub hashes: AncestorHashes,
     /// The actual style rule.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     pub style_rule: Arc<Locked<StyleRule>>,
@@ -1418,8 +1425,12 @@ pub struct Rule {
 }
 
 impl SelectorMapEntry for Rule {
-    fn selector(&self) -> &SelectorInner<SelectorImpl> {
-        &self.selector.inner
+    fn selector(&self) -> SelectorIter<SelectorImpl> {
+        self.selector.iter()
+    }
+
+    fn hashes(&self) -> &AncestorHashes {
+        &self.hashes
     }
 }
 
@@ -1444,12 +1455,14 @@ impl Rule {
 
     /// Creates a new Rule.
     pub fn new(selector: Selector<SelectorImpl>,
+               hashes: AncestorHashes,
                style_rule: Arc<Locked<StyleRule>>,
                source_order: usize)
                -> Self
     {
         Rule {
             selector: selector,
+            hashes: hashes,
             style_rule: style_rule,
             source_order: source_order,
         }

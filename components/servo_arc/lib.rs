@@ -8,11 +8,13 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-//! Fork of Arc for the style system. This has the following advantages over std::Arc:
+//! Fork of Arc for Servo. This has the following advantages over std::Arc:
 //! * We don't waste storage on the weak reference count.
 //! * We don't do extra RMU operations to handle the possibility of weak references.
 //! * We can experiment with arena allocation (todo).
 //! * We can add methods to support our custom use cases [1].
+//! * We have support for dynamically-sized types (see from_header_and_iter).
+//! * We have support for thin arcs to unsized types (see ThinArc).
 //!
 //! [1] https://bugzilla.mozilla.org/show_bug.cgi?id=1360883
 
@@ -20,8 +22,12 @@
 // duplicate those here.
 #![allow(missing_docs)]
 
+#[cfg(feature = "servo")] extern crate serde;
+extern crate nodrop;
+
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
+use nodrop::NoDrop;
 #[cfg(feature = "servo")]
 use serde::{Deserialize, Serialize};
 use std::{isize, usize};
@@ -30,8 +36,11 @@ use std::cmp::Ordering;
 use std::convert::From;
 use std::fmt;
 use std::hash::{Hash, Hasher};
+use std::iter::{ExactSizeIterator, Iterator};
 use std::mem;
 use std::ops::{Deref, DerefMut};
+use std::ptr;
+use std::slice;
 use std::sync::atomic;
 use std::sync::atomic::Ordering::{Acquire, Relaxed, Release};
 
@@ -410,5 +419,259 @@ impl<T: Serialize> Serialize for Arc<T>
         S: ::serde::ser::Serializer,
     {
         (**self).serialize(serializer)
+    }
+}
+
+/// Structure to allow Arc-managing some fixed-sized data and a variably-sized
+/// slice in a single allocation.
+#[derive(Debug, Eq, PartialEq, PartialOrd)]
+pub struct HeaderSlice<H, T: ?Sized> {
+    /// The fixed-sized data.
+    pub header: H,
+
+    /// The dynamically-sized data.
+    pub slice: T,
+}
+
+#[inline(always)]
+fn divide_rounding_up(dividend: usize, divisor: usize) -> usize {
+    (dividend + divisor - 1) / divisor
+}
+
+impl<H, T> Arc<HeaderSlice<H, [T]>> {
+    /// Creates an Arc for a HeaderSlice using the given header struct and
+    /// iterator to generate the slice. The resulting Arc will be fat.
+    #[inline]
+    pub fn from_header_and_iter<I>(header: H, mut items: I) -> Self
+        where I: Iterator<Item=T> + ExactSizeIterator
+    {
+        use ::std::mem::size_of;
+        assert!(size_of::<T>() != 0, "Need to think about ZST");
+
+        // Compute the required size for the allocation.
+        let num_items = items.len();
+        let size = {
+            // First, determine the alignment of a hypothetical pointer to a
+            // HeaderSlice.
+            let fake_slice_ptr_align: usize = mem::align_of::<ArcInner<HeaderSlice<H, [T; 1]>>>();
+
+            // Next, synthesize a totally garbage (but properly aligned) pointer
+            // to a sequence of T.
+            let fake_slice_ptr = fake_slice_ptr_align as *const T;
+
+            // Convert that sequence to a fat pointer. The address component of
+            // the fat pointer will be garbage, but the length will be correct.
+            let fake_slice = unsafe { slice::from_raw_parts(fake_slice_ptr, num_items) };
+
+            // Pretend the garbage address points to our allocation target (with
+            // a trailing sequence of T), rather than just a sequence of T.
+            let fake_ptr = fake_slice as *const [T] as *const ArcInner<HeaderSlice<H, [T]>>;
+            let fake_ref: &ArcInner<HeaderSlice<H, [T]>> = unsafe { &*fake_ptr };
+
+            // Use size_of_val, which will combine static information about the
+            // type with the length from the fat pointer. The garbage address
+            // will not be used.
+            mem::size_of_val(fake_ref)
+        };
+
+        let ptr: *mut ArcInner<HeaderSlice<H, [T]>>;
+        unsafe {
+            // Allocate the buffer. We use Vec because the underlying allocation
+            // machinery isn't available in stable Rust.
+            //
+            // To avoid alignment issues, we allocate words rather than bytes,
+            // rounding up to the nearest word size.
+            let words_to_allocate = divide_rounding_up(size, size_of::<usize>());
+            let mut vec = Vec::<usize>::with_capacity(words_to_allocate);
+            vec.set_len(words_to_allocate);
+            let buffer = Box::into_raw(vec.into_boxed_slice()) as *mut usize as *mut u8;
+
+            // Synthesize the fat pointer. We do this by claiming we have a direct
+            // pointer to a [T], and then changing the type of the borrow. The key
+            // point here is that the length portion of the fat pointer applies
+            // only to the number of elements in the dynamically-sized portion of
+            // the type, so the value will be the same whether it points to a [T]
+            // or something else with a [T] as its last member.
+            let fake_slice: &mut [T] = slice::from_raw_parts_mut(buffer as *mut T, num_items);
+            ptr = fake_slice as *mut [T] as *mut ArcInner<HeaderSlice<H, [T]>>;
+
+            // Write the data.
+            ptr::write(&mut ((*ptr).count), atomic::AtomicUsize::new(1));
+            ptr::write(&mut ((*ptr).data.header), header);
+            let mut current: *mut T = &mut (*ptr).data.slice[0];
+            for _ in 0..num_items {
+                ptr::write(current, items.next().expect("ExactSizeIterator over-reported length"));
+                current = current.offset(1);
+            }
+            assert!(items.next().is_none(), "ExactSizeIterator under-reported length");
+
+            // We should have consumed the buffer exactly.
+            debug_assert!(current as *mut u8 == buffer.offset(size as isize));
+        }
+
+        // Return the fat Arc.
+        assert_eq!(size_of::<Self>(), size_of::<usize>() * 2, "The Arc will be fat");
+        Arc { ptr: ptr }
+    }
+}
+
+/// Header data with an inline length. Consumers that use HeaderWithLength as the
+/// Header type in HeaderSlice can take advantage of ThinArc.
+#[derive(Debug, Eq, PartialEq, PartialOrd)]
+pub struct HeaderWithLength<H> {
+    /// The fixed-sized data.
+    pub header: H,
+
+    /// The slice length.
+    length: usize,
+}
+
+impl<H> HeaderWithLength<H> {
+    /// Creates a new HeaderWithLength.
+    pub fn new(header: H, length: usize) -> Self {
+        HeaderWithLength {
+            header: header,
+            length: length,
+        }
+    }
+}
+
+pub struct ThinArc<H, T> {
+    ptr: *mut ArcInner<HeaderSlice<HeaderWithLength<H>, [T; 1]>>,
+}
+
+unsafe impl<H: Sync + Send, T: Sync + Send> Send for ThinArc<H, T> {}
+unsafe impl<H: Sync + Send, T: Sync + Send> Sync for ThinArc<H, T> {}
+
+// Synthesize a fat pointer from a thin pointer.
+//
+// See the comment around the analogous operation in from_header_and_iter.
+fn thin_to_thick<H, T>(thin: *mut ArcInner<HeaderSlice<HeaderWithLength<H>, [T; 1]>>)
+    -> *mut ArcInner<HeaderSlice<HeaderWithLength<H>, [T]>>
+{
+    let len = unsafe { (*thin).data.header.length };
+    let fake_slice: *mut [T] = unsafe {
+        slice::from_raw_parts_mut(thin as *mut T, len)
+    };
+
+    fake_slice as *mut ArcInner<HeaderSlice<HeaderWithLength<H>, [T]>>
+}
+
+impl<H, T> ThinArc<H, T> {
+    /// Temporarily converts |self| into a bonafide Arc and exposes it to the
+    /// provided callback. The refcount is not modified.
+    #[inline(always)]
+    pub fn with_arc<F, U>(&self, f: F) -> U
+        where F: FnOnce(&Arc<HeaderSlice<HeaderWithLength<H>, [T]>>) -> U
+    {
+        // Synthesize transient Arc, which never touches the refcount of the ArcInner.
+        let transient = NoDrop::new(Arc {
+            ptr: thin_to_thick(self.ptr)
+        });
+
+        // Expose the transient Arc to the callback, which may clone it if it wants.
+        let result = f(&transient);
+
+        // Forget the transient Arc to leave the refcount untouched.
+        mem::forget(transient);
+
+        // Forward the result.
+        result
+    }
+}
+
+impl<H, T> Deref for ThinArc<H, T> {
+    type Target = HeaderSlice<HeaderWithLength<H>, [T]>;
+    fn deref(&self) -> &Self::Target {
+        unsafe { &(*thin_to_thick(self.ptr)).data }
+    }
+}
+
+impl<H, T> Clone for ThinArc<H, T> {
+    fn clone(&self) -> Self {
+        ThinArc::with_arc(self, |a| Arc::into_thin(a.clone()))
+    }
+}
+
+impl<H, T> Drop for ThinArc<H, T> {
+    fn drop(&mut self) {
+        let _ = Arc::from_thin(ThinArc { ptr: self.ptr });
+    }
+}
+
+impl<H, T> Arc<HeaderSlice<HeaderWithLength<H>, [T]>> {
+    /// Converts an Arc into a ThinArc. This consumes the Arc, so the refcount
+    /// is not modified.
+    pub fn into_thin(a: Self) -> ThinArc<H, T> {
+        assert!(a.header.length == a.slice.len(),
+                "Length needs to be correct for ThinArc to work");
+        let fat_ptr: *mut ArcInner<HeaderSlice<HeaderWithLength<H>, [T]>> = a.ptr;
+        mem::forget(a);
+        let thin_ptr = fat_ptr as *mut [usize] as *mut usize;
+        ThinArc {
+            ptr: thin_ptr as *mut ArcInner<HeaderSlice<HeaderWithLength<H>, [T; 1]>>
+        }
+    }
+
+    /// Converts a ThinArc into an Arc. This consumes the ThinArc, so the refcount
+    /// is not modified.
+    pub fn from_thin(a: ThinArc<H, T>) -> Self {
+        let ptr = thin_to_thick(a.ptr);
+        mem::forget(a);
+        Arc {
+            ptr: ptr
+        }
+    }
+}
+
+impl<H: PartialEq, T: PartialEq> PartialEq for ThinArc<H, T> {
+    fn eq(&self, other: &ThinArc<H, T>) -> bool {
+        ThinArc::with_arc(self, |a| {
+            ThinArc::with_arc(other, |b| {
+                *a == *b
+            })
+        })
+    }
+}
+
+impl<H: Eq, T: Eq> Eq for ThinArc<H, T> {}
+
+#[cfg(test)]
+mod tests {
+    use std::clone::Clone;
+    use std::ops::Drop;
+    use std::sync::atomic;
+    use std::sync::atomic::Ordering::{Acquire, SeqCst};
+    use super::{Arc, HeaderWithLength, ThinArc};
+
+    #[derive(PartialEq)]
+    struct Canary(*mut atomic::AtomicUsize);
+
+    impl Drop for Canary {
+        fn drop(&mut self) {
+            unsafe {
+                match *self {
+                    Canary(c) => {
+                        (*c).fetch_add(1, SeqCst);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn slices_and_thin() {
+        let mut canary = atomic::AtomicUsize::new(0);
+        let c = Canary(&mut canary as *mut atomic::AtomicUsize);
+        let v = vec![5, 6];
+        let header = HeaderWithLength::new(c, v.len());
+        {
+            let x = Arc::into_thin(Arc::from_header_and_iter(header, v.into_iter()));
+            let y = ThinArc::with_arc(&x, |q| q.clone());
+            let _ = y.clone();
+            let _ = x == x;
+            Arc::from_thin(x.clone());
+        }
+        assert!(canary.load(Acquire) == 1);
     }
 }

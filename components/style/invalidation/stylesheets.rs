@@ -218,7 +218,7 @@ impl StylesheetInvalidationSet {
         let mut scope: Option<InvalidationScope> = None;
 
         let mut scan = true;
-        let mut iter = selector.inner.complex.iter();
+        let mut iter = selector.iter();
 
         loop {
             for component in &mut iter {
@@ -262,8 +262,8 @@ impl StylesheetInvalidationSet {
         match *rule {
             Style(ref lock) => {
                 let style_rule = lock.read_with(guard);
-                for selector in &style_rule.selectors.0 {
-                    self.collect_scopes(selector);
+                for selector_and_hashes in &style_rule.selectors.0 {
+                    self.collect_scopes(&selector_and_hashes.selector);
                     if self.fully_invalid {
                         return;
                     }
