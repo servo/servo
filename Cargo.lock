@@ -1456,9 +1456,7 @@ dependencies = [
 name = "layout_tests"
 version = "0.0.1"
 dependencies = [
- "atomic_refcell 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "layout 0.0.1",
- "script_layout_interface 0.0.1",
  "size_of_test 0.0.1",
 ]
 

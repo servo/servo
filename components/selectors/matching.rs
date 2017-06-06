@@ -519,17 +519,6 @@ fn matches_simple_selector<E, F>(
     where E: Element,
           F: FnMut(&E, ElementSelectorFlags),
 {
-    macro_rules! relation_if {
-        ($ex:expr, $flag:ident) => {
-            if $ex {
-                context.relations |= $flag;
-                true
-            } else {
-                false
-            }
-        }
-    }
-
     match *selector {
         Component::Combinator(_) => unreachable!(),
         Component::PseudoElement(ref pseudo) => {
