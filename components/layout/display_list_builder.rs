@@ -501,7 +501,7 @@ pub trait FragmentDisplayListBuilding {
     /// * `clip`: The region to clip the display items to.
     fn build_display_list(&mut self,
                           state: &mut DisplayListBuildState,
-                          stacking_relative_flow_origin: &Point2D<Au>,
+                          stacking_relative_flow_origin: &Vector2D<Au>,
                           relative_containing_block_size: &LogicalSize<Au>,
                           relative_containing_block_mode: WritingMode,
                           border_painting_mode: BorderPaintingMode,
@@ -1707,7 +1707,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
     fn build_display_list(&mut self,
                           state: &mut DisplayListBuildState,
-                          stacking_relative_flow_origin: &Point2D<Au>,
+                          stacking_relative_flow_origin: &Vector2D<Au>,
                           relative_containing_block_size: &LogicalSize<Au>,
                           relative_containing_block_mode: WritingMode,
                           border_painting_mode: BorderPaintingMode,
@@ -1999,7 +1999,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // First, compute the offset of our border box (including relative positioning)
         // from our flow origin, since that is what `BaseFlow::overflow` is relative to.
         let border_box_offset =
-            border_box.translate(&-base_flow.stacking_relative_position.to_vector()).origin;
+            border_box.translate(&-base_flow.stacking_relative_position).origin;
         // Then, using that, compute our overflow region relative to our border box.
         let overflow = base_flow.overflow.paint.translate(&-border_box_offset.to_vector());
 
@@ -2818,7 +2818,7 @@ impl BaseFlowDisplayListBuilding for BaseFlow {
 
         let thread_id = self.thread_id;
         let stacking_context_relative_bounds =
-            Rect::new(self.stacking_relative_position,
+            Rect::new(self.stacking_relative_position.to_point(),
                       self.position.size.to_physical(self.writing_mode));
 
         let mut color = THREAD_TINT_COLORS[thread_id as usize % THREAD_TINT_COLORS.len()];
