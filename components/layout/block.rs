@@ -2000,7 +2000,7 @@ impl Flow for BlockFlow {
             self.base
                 .late_absolute_position_info
                 .stacking_relative_position_of_absolute_containing_block =
-                    self.base.stacking_relative_position +
+                    self.base.stacking_relative_position.to_point() +
                      (border_box_origin + relative_offset).to_physical(self.base.writing_mode,
                                                                        container_size).to_vector()
         }
@@ -2021,7 +2021,7 @@ impl Flow for BlockFlow {
                     // `transform` set.) In this case, absolutely-positioned children will not be
                     // positioned relative to us but will instead be positioned relative to our
                     // containing block.
-                    position - self.base.stacking_relative_position.to_vector()
+                    position - self.base.stacking_relative_position
                 }
             } else {
                 self.base
@@ -2036,7 +2036,7 @@ impl Flow for BlockFlow {
             self.base.position.size.to_physical(self.base.writing_mode);
 
         // Compute the origin and clipping rectangle for children.
-        let relative_offset = relative_offset.to_physical(self.base.writing_mode);
+        let relative_offset = relative_offset.to_physical(self.base.writing_mode).to_vector();
         let is_stacking_context = self.fragment.establishes_stacking_context();
         let origin_for_children = if is_stacking_context {
             // We establish a stacking context, so the position of our children is vertically
@@ -2048,7 +2048,7 @@ impl Flow for BlockFlow {
             let margin = self.fragment.margin.to_physical(self.base.writing_mode);
             Point2D::new(-margin.left, Au(0))
         } else {
-            self.base.stacking_relative_position + relative_offset
+            self.base.stacking_relative_position.to_point() + relative_offset
         };
 
         // Process children.
