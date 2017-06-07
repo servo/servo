@@ -5,10 +5,13 @@
 //! Helper types and traits for the handling of CSS values.
 
 use app_units::Au;
-use cssparser::UnicodeRange;
+use cssparser::{UnicodeRange, serialize_string};
 use std::fmt;
 
 /// Serialises a value according to its CSS representation.
+///
+/// This trait is implemented for `str` and its friends, serialising the string
+/// contents as a CSS quoted string.
 ///
 /// This trait is derivable with `#[derive(ToCss)]`, with the following behaviour:
 /// * unit variants get serialised as the `snake-case` representation
@@ -38,6 +41,20 @@ impl<'a, T> ToCss for &'a T where T: ToCss + ?Sized {
     }
 }
 
+impl ToCss for str {
+    #[inline]
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        serialize_string(self, dest)
+    }
+}
+
+impl ToCss for String {
+    #[inline]
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        serialize_string(self, dest)
+    }
+}
+
 /// Marker trait to automatically implement ToCss for Vec<T>.
 pub trait OneOrMoreCommaSeparated {}
 
@@ -55,7 +72,7 @@ impl<T> ToCss for Vec<T> where T: ToCss + OneOrMoreCommaSeparated {
     }
 }
 
-impl<T: ToCss> ToCss for Box<T> {
+impl<T> ToCss for Box<T> where T: ?Sized + ToCss {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
         where W: fmt::Write,
     {

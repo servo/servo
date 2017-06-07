@@ -9,7 +9,7 @@
 #![deny(missing_docs)]
 
 use Atom;
-pub use cssparser::{RGBA, Token, Parser, serialize_identifier, serialize_string};
+pub use cssparser::{RGBA, Token, Parser, serialize_identifier};
 use parser::{Parse, ParserContext};
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
@@ -166,7 +166,7 @@ impl ToCss for KeyframesName {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
             KeyframesName::Ident(ref ident) => ident.to_css(dest),
-            KeyframesName::QuotedString(ref atom) => serialize_string(&atom.to_string(), dest),
+            KeyframesName::QuotedString(ref atom) => atom.to_string().to_css(dest),
         }
     }
 }

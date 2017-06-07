@@ -7,8 +7,8 @@
 //! [counter-style]: https://drafts.csswg.org/css-counter-styles/
 
 use Atom;
-use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, Token};
-use cssparser::{serialize_string, serialize_identifier};
+use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser};
+use cssparser::{Parser, Token, serialize_identifier};
 #[cfg(feature = "gecko")] use gecko::rules::CounterStyleDescriptors;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSCounterDesc;
 use parser::{ParserContext, log_css_error, Parse};
@@ -361,7 +361,7 @@ impl Parse for Symbol {
 impl ToCss for Symbol {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            Symbol::String(ref s) => serialize_string(s, dest),
+            Symbol::String(ref s) => s.to_css(dest),
             Symbol::Ident(ref s) => serialize_identifier(s, dest),
         }
     }
