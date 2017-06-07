@@ -329,8 +329,8 @@ pub fn concat_serialize_idents<W>(prefix: &str, suffix: &str,
 /// The initial argument of the `repeat` function.
 ///
 /// https://drafts.csswg.org/css-grid/#typedef-track-repeat
-#[derive(Clone, Copy, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, Debug, PartialEq, ToCss)]
 pub enum RepeatCount {
     /// A positive integer. This is allowed only for `<track-repeat>` and `<fixed-repeat>`
     Number(Integer),
@@ -338,16 +338,6 @@ pub enum RepeatCount {
     AutoFill,
     /// An `<auto-fit>` keyword allowed only for `<auto-repeat>`
     AutoFit,
-}
-
-impl ToCss for RepeatCount {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            RepeatCount::Number(ref c) => c.to_css(dest),
-            RepeatCount::AutoFill => dest.write_str("auto-fill"),
-            RepeatCount::AutoFit => dest.write_str("auto-fit"),
-        }
-    }
 }
 
 impl Parse for RepeatCount {

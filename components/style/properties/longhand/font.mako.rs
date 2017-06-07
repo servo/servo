@@ -1039,26 +1039,13 @@ ${helpers.single_keyword_system("font-variant-caps",
 
     pub mod computed_value {
         use properties::animated_properties::Animatable;
-        use std::fmt;
-        use style_traits::ToCss;
         use values::CSSFloat;
 
-        #[derive(Copy, Clone, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        #[derive(Copy, Clone, Debug, PartialEq, ToCss)]
         pub enum T {
             None,
             Number(CSSFloat),
-        }
-
-        impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-                where W: fmt::Write,
-            {
-                match *self {
-                    T::None => dest.write_str("none"),
-                    T::Number(number) => number.to_css(dest),
-                }
-            }
         }
 
         impl T {
@@ -2214,9 +2201,7 @@ ${helpers.single_keyword("-moz-math-variant",
         use app_units::Au;
         use cssparser::Parser;
         use properties::longhands;
-        use std::fmt;
         use std::hash::{Hash, Hasher};
-        use style_traits::ToCss;
         use values::computed::{ToComputedValue, Context};
         <%
             system_fonts = """caption icon menu message-box small-caption status-bar
@@ -2230,21 +2215,11 @@ ${helpers.single_keyword("-moz-math-variant",
             kw_cast = """font_style font_variant_caps font_stretch
                          font_kerning font_variant_position""".split()
         %>
-        #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, ToCss)]
         pub enum SystemFont {
             % for font in system_fonts:
                 ${to_camel_case(font)},
             % endfor
-        }
-
-        impl ToCss for SystemFont {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                dest.write_str(match *self {
-                    % for font in system_fonts:
-                        SystemFont::${to_camel_case(font)} => "${font}",
-                    % endfor
-                })
-            }
         }
 
         // ComputedValues are compared at times

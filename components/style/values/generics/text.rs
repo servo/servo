@@ -54,7 +54,7 @@ where
 
 /// A generic spacing value for the `letter-spacing` and `word-spacing` properties.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue, ToCss)]
 pub enum Spacing<Value> {
     /// `normal`
     Normal,
@@ -117,22 +117,9 @@ impl<Value> Animatable for Spacing<Value>
     }
 }
 
-impl<Value> ToCss for Spacing<Value>
-    where Value: ToCss,
-{
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write
-    {
-        match *self {
-            Spacing::Normal => dest.write_str("normal"),
-            Spacing::Value(ref value) => value.to_css(dest),
-        }
-    }
-}
-
 /// A generic value for the `line-height` property.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToCss)]
 pub enum LineHeight<Number, LengthOrPercentage> {
     /// `normal`
     Normal,
@@ -150,21 +137,5 @@ impl<N, L> LineHeight<N, L> {
     #[inline]
     pub fn normal() -> Self {
         LineHeight::Normal
-    }
-}
-
-impl<N, L> ToCss for LineHeight<N, L>
-    where N: ToCss, L: ToCss,
-{
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
-    {
-        match *self {
-            LineHeight::Normal => dest.write_str("normal"),
-            #[cfg(feature = "gecko")]
-            LineHeight::MozBlockHeight => dest.write_str("-moz-block-height"),
-            LineHeight::Number(ref number) => number.to_css(dest),
-            LineHeight::Length(ref value) => value.to_css(dest),
-        }
     }
 }

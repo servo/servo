@@ -450,8 +450,8 @@ impl PropertyDeclarationIdSet {
 % endfor
 
 /// An enum to represent a CSS Wide keyword.
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, ToCss)]
 pub enum CSSWideKeyword {
     /// The `initial` keyword.
     Initial,
@@ -480,12 +480,6 @@ impl CSSWideKeyword {
             "unset" => Some(CSSWideKeyword::Unset),
             _ => None
         }
-    }
-}
-
-impl ToCss for CSSWideKeyword {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        dest.write_str(self.to_str())
     }
 }
 
@@ -628,21 +622,13 @@ impl LonghandId {
 }
 
 /// An identifier for a given shorthand property.
-#[derive(Clone, Copy, Eq, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss)]
 pub enum ShorthandId {
     % for property in data.shorthands:
         /// ${property.name}
         ${property.camel_case},
     % endfor
-}
-
-impl ToCss for ShorthandId {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
-    {
-        dest.write_str(self.name())
-    }
 }
 
 impl ShorthandId {

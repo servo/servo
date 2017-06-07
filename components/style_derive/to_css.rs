@@ -15,9 +15,12 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
     }
 
     let style = synstructure::BindStyle::Ref.into();
-    let match_body = synstructure::each_variant(&input, &style, |bindings, _| {
+    let match_body = synstructure::each_variant(&input, &style, |bindings, variant| {
         if bindings.is_empty() {
-            panic!("unit variants are not yet supported");
+            let identifier = to_css_identifier(variant.ident.as_ref());
+            return Some(quote! {
+                ::std::fmt::Write::write_str(dest, #identifier)
+            });
         }
         let (first, rest) = bindings.split_first().expect("unit variants are not yet supported");
         where_clause.predicates.push(where_predicate(first.field.ty.clone()));
@@ -28,7 +31,7 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
             where_clause.predicates.push(where_predicate(binding.field.ty.clone()));
             expr = quote! {
                 #expr?;
-                dest.write_str(" ")?;
+                ::std::fmt::Write::write_str(dest, " ")?;
                 ::style_traits::ToCss::to_css(#binding, dest)
             };
         }
@@ -67,4 +70,41 @@ fn where_predicate(ty: syn::Ty) -> syn::WherePredicate {
             syn::TraitBoundModifier::None
         )],
     })
+}
+
+/// Transforms "FooBar" to "foo-bar".
+///
+/// If the first Camel segment is "Moz"" or "Webkit", the result string
+/// is prepended with "-".
+fn to_css_identifier(mut camel_case: &str) -> String {
+    let mut first = true;
+    let mut result = String::with_capacity(camel_case.len());
+    while let Some(segment) = split_camel_segment(&mut camel_case) {
+        if first {
+            match segment {
+                "Moz" | "Webkit" => first = false,
+                _ => {},
+            }
+        }
+        if !first {
+            result.push_str("-");
+        }
+        first = false;
+        result.push_str(&segment.to_lowercase());
+    }
+    result
+}
+
+/// Given "FooBar", returns "Foo" and sets `camel_case` to "Bar".
+fn split_camel_segment<'input>(camel_case: &mut &'input str) -> Option<&'input str> {
+    let index = match camel_case.chars().next() {
+        None => return None,
+        Some(ch) => ch.len_utf8(),
+    };
+    let end_position = camel_case[index..]
+        .find(char::is_uppercase)
+        .map_or(camel_case.len(), |pos| index + pos);
+    let result = &camel_case[..end_position];
+    *camel_case = &camel_case[end_position..];
+    Some(result)
 }
