@@ -215,7 +215,8 @@ impl NonTSPseudoClass {
     pub fn is_attr_based(&self) -> bool {
         matches!(*self,
                  NonTSPseudoClass::MozTableBorderNonzero |
-                 NonTSPseudoClass::MozBrowserFrame)
+                 NonTSPseudoClass::MozBrowserFrame |
+                 NonTSPseudoClass::Lang(..))
     }
 }
 
