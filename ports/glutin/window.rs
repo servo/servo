@@ -5,7 +5,7 @@
 //! A windowing implementation using glutin.
 
 use NestedEventLoopListener;
-use compositing::compositor_thread::{self, CompositorProxy, CompositorReceiver};
+use compositing::compositor_thread::EventLoopWaker;
 use compositing::windowing::{MouseWindowEvent, WindowNavigateMsg};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use euclid::{Point2D, Size2D, TypedPoint2D};
@@ -41,7 +41,6 @@ use std::mem;
 use std::os::raw::c_void;
 use std::ptr;
 use std::rc::Rc;
-use std::sync::mpsc::{Sender, channel};
 use style_traits::cursor::Cursor;
 #[cfg(target_os = "windows")]
 use user32;
@@ -1047,17 +1046,27 @@ impl WindowMethods for Window {
         }
     }
 
-    fn create_compositor_channel(&self)
-                                 -> (Box<CompositorProxy + Send>, Box<CompositorReceiver>) {
-        let (sender, receiver) = channel();
-
+    fn create_event_loop_waker(&self) -> Box<EventLoopWaker> {
+        struct GlutinEventLoopWaker {
+            window_proxy: Option<glutin::WindowProxy>,
+        }
+        impl EventLoopWaker for GlutinEventLoopWaker {
+            fn wake(&self) {
+                // kick the OS event loop awake.
+                if let Some(ref window_proxy) = self.window_proxy {
+                    window_proxy.wakeup_event_loop()
+                }
+            }
+            fn clone(&self) -> Box<EventLoopWaker + Send> {
+                box GlutinEventLoopWaker {
+                    window_proxy: self.window_proxy.clone(),
+                }
+            }
+        }
         let window_proxy = create_window_proxy(self);
-
-        (box GlutinCompositorProxy {
-             sender: sender,
-             window_proxy: window_proxy,
-         } as Box<CompositorProxy + Send>,
-         box receiver as Box<CompositorReceiver>)
+        box GlutinEventLoopWaker {
+            window_proxy: window_proxy,
+        }
     }
 
     #[cfg(not(target_os = "windows"))]
@@ -1286,29 +1295,6 @@ impl WindowMethods for Window {
 
     fn supports_clipboard(&self) -> bool {
         true
-    }
-}
-
-struct GlutinCompositorProxy {
-    sender: Sender<compositor_thread::Msg>,
-    window_proxy: Option<glutin::WindowProxy>,
-}
-
-impl CompositorProxy for GlutinCompositorProxy {
-    fn send(&self, msg: compositor_thread::Msg) {
-        // Send a message and kick the OS event loop awake.
-        if let Err(err) = self.sender.send(msg) {
-            warn!("Failed to send response ({}).", err);
-        }
-        if let Some(ref window_proxy) = self.window_proxy {
-            window_proxy.wakeup_event_loop()
-        }
-    }
-    fn clone_compositor_proxy(&self) -> Box<CompositorProxy + Send> {
-        box GlutinCompositorProxy {
-            sender: self.sender.clone(),
-            window_proxy: self.window_proxy.clone(),
-        } as Box<CompositorProxy + Send>
     }
 }
 
