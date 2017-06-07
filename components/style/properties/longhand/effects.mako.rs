@@ -210,15 +210,9 @@ ${helpers.predefined_type("clip",
                 computed_value::Filter::Sepia(value) => try!(write!(dest, "sepia({})", value)),
                 % if product == "gecko":
                 computed_value::Filter::DropShadow(shadow) => {
-                    try!(dest.write_str("drop-shadow("));
-                    try!(shadow.offset_x.to_css(dest));
-                    try!(dest.write_str(" "));
-                    try!(shadow.offset_y.to_css(dest));
-                    try!(dest.write_str(" "));
-                    try!(shadow.blur_radius.to_css(dest));
-                    try!(dest.write_str(" "));
-                    try!(shadow.color.to_css(dest));
-                    try!(dest.write_str(")"));
+                    dest.write_str("drop-shadow(")?;
+                    shadow.to_css(dest)?;
+                    dest.write_str(")")?;
                 }
                 computed_value::Filter::Url(ref url) => {
                     url.to_css(dest)?;
@@ -251,17 +245,9 @@ ${helpers.predefined_type("clip",
                 SpecifiedFilter::Sepia(value) => try!(write!(dest, "sepia({})", value)),
                 % if product == "gecko":
                 SpecifiedFilter::DropShadow(ref shadow) => {
-                    try!(dest.write_str("drop-shadow("));
-                    try!(shadow.offset_x.to_css(dest));
-                    try!(dest.write_str(" "));
-                    try!(shadow.offset_y.to_css(dest));
-                    try!(dest.write_str(" "));
-                    try!(shadow.blur_radius.to_css(dest));
-                    if let Some(ref color) = shadow.color {
-                        try!(dest.write_str(" "));
-                        try!(color.to_css(dest));
-                    }
-                    try!(dest.write_str(")"));
+                    dest.write_str("drop-shadow(")?;
+                    shadow.to_css(dest)?;
+                    dest.write_str(")")?;
                 }
                 SpecifiedFilter::Url(ref url) => {
                     url.to_css(dest)?;
