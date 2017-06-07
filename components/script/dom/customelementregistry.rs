@@ -63,6 +63,12 @@ impl CustomElementRegistry {
         self.when_defined.borrow_mut().clear()
     }
 
+    pub fn lookup_definition_by_constructor(&self, constructor: HandleObject) -> Option<CustomElementDefinition> {
+        self.definitions.borrow().values().find(|definition| {
+            definition.constructor.callback() == constructor.get()
+        }).cloned()
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define
     // Steps 10.1, 10.2
     #[allow(unsafe_code)]
@@ -222,14 +228,14 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
-struct CustomElementDefinition {
-    name: DOMString,
+#[derive(HeapSizeOf, JSTraceable, Clone)]
+pub struct CustomElementDefinition {
+    pub name: DOMString,
 
-    local_name: DOMString,
+    pub local_name: DOMString,
 
     #[ignore_heap_size_of = "Rc"]
-    constructor: Rc<Function>,
+    pub constructor: Rc<Function>,
 }
 
 impl CustomElementDefinition {
