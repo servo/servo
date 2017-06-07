@@ -2196,8 +2196,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // frame tree is modified below.
         let update_focus_pipeline = self.focused_pipeline_is_descendant_of(entry.browsing_context_id);
 
-        let url = entry.load_data.url.clone();
-
         let (old_pipeline_id, replaced_pipeline_id, top_level_id) =
             match self.browsing_contexts.get_mut(&browsing_context_id)
         {
@@ -2274,7 +2272,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             // If this is a mozbrowser iframe, send a mozbrowser location change event.
             // This is the result of a back/forward traversal.
             if frame_type == FrameType::MozBrowserIFrame {
-                self.trigger_mozbrowserlocationchange(top_level_id, url);
+                self.trigger_mozbrowserlocationchange(top_level_id);
             }
         }
     }
@@ -2362,8 +2360,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.focus_pipeline_id = Some(change.new_pipeline_id);
         }
 
-        let url = change.load_data.url.clone();
-
         let (evicted_id, new_context, navigated) = if let Some(instant) = change.replace_instant {
             debug!("Replacing pipeline in existing browsing context with timestamp {:?}.", instant);
             let entry = SessionHistoryEntry {
@@ -2408,10 +2404,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             // Clear the joint session future
             self.clear_joint_session_future(change.top_level_browsing_context_id);
             self.notify_history_changed(change.top_level_browsing_context_id);
-            // If the navigation is for a top-level browsing context, inform mozbrowser
-            if change.browsing_context_id == change.top_level_browsing_context_id {
-                self.trigger_mozbrowserlocationchange(change.top_level_browsing_context_id, url);
-            }
+        }
+
+        // If the navigation is for a top-level browsing context, inform mozbrowser
+        if change.browsing_context_id == change.top_level_browsing_context_id {
+            self.trigger_mozbrowserlocationchange(change.top_level_browsing_context_id);
         }
 
         // Build frame tree
@@ -2886,13 +2883,17 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserlocationchange
     // Note that this is a no-op if the pipeline is not a mozbrowser iframe
     fn trigger_mozbrowserlocationchange(&self,
-                                        top_level_browsing_context_id: TopLevelBrowsingContextId,
-                                        url: ServoUrl)
+                                        top_level_browsing_context_id: TopLevelBrowsingContextId)
     {
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
-        let parent_info = self.browsing_contexts.get(&browsing_context_id)
-            .and_then(|browsing_context| self.pipelines.get(&browsing_context.pipeline_id))
-            .and_then(|pipeline| pipeline.parent_info);
+        let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
+            Some(browsing_context) => browsing_context.pipeline_id,
+            None => return warn!("triggered mozbrowser location change on closed browsing context {}.", browsing_context_id),
+        };
+        let (url, parent_info) = match self.pipelines.get(&pipeline_id) {
+            Some(pipeline) => (pipeline.url.clone(), pipeline.parent_info),
+            None => return warn!("triggered mozbrowser location change on closed pipeline {}.", pipeline_id),
+        };
         let parent_id = match parent_info {
             Some((parent_id, FrameType::MozBrowserIFrame)) => parent_id,
             _ => return debug!("triggered mozbrowser location change on a regular iframe {}", browsing_context_id),
