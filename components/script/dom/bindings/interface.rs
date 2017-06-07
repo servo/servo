@@ -4,15 +4,24 @@
 
 //! Machinery to initialise interface prototype objects and interface objects.
 
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InterfaceObjectMap::Globals;
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::constant::{ConstantSpec, define_constants};
 use dom::bindings::conversions::{DOM_OBJECT_SLOT, get_dom_class};
+use dom::bindings::error::{Error, Fallible};
 use dom::bindings::guard::Guard;
+use dom::bindings::js::Root;
 use dom::bindings::utils::{DOM_PROTOTYPE_SLOT, ProtoOrIfaceArray, get_proto_or_iface_array};
+use dom::create::create_noncustom_html_element;
+use dom::element::ElementCreator;
+use dom::htmlelement::HTMLElement;
+use dom::window::Window;
+use html5ever::LocalName;
+use html5ever::interface::QualName;
 use js::error::throw_type_error;
 use js::glue::{RUST_SYMBOL_TO_JSID, UncheckedUnwrapObject};
-use js::jsapi::{Class, ClassOps, CompartmentOptions, GetGlobalForObjectCrossCompartment};
+use js::jsapi::{CallArgs, Class, ClassOps, CompartmentOptions, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{GetWellKnownSymbol, HandleObject, HandleValue, JSAutoCompartment};
 use js::jsapi::{JSClass, JSContext, JSFUN_CONSTRUCTOR, JSFunctionSpec, JSObject};
 use js::jsapi::{JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_RESOLVING};
@@ -156,6 +165,26 @@ pub unsafe fn create_global_object(
 
     let _ac = JSAutoCompartment::new(cx, rval.get());
     JS_FireOnNewGlobalObject(cx, rval.handle());
+}
+
+// https://html.spec.whatwg.org/multipage/dom.html#htmlconstructor
+pub fn create_html_element(window: &Window, call_args: CallArgs) -> Fallible<Root<HTMLElement>> {
+    // Step 1
+    let registry = window.CustomElements();
+    let document = window.Document();
+
+    // Step 2 in codegen
+
+    rooted!(in(window.get_cx()) let new_target = call_args.new_target().to_object());
+    let definition = match registry.lookup_definition_by_constructor(new_target.handle()) {
+        Some(definition) => definition,
+        None => return Err(Error::Type("No custom element definition found for new.target".to_owned())),
+    };
+
+    let name = QualName::new(None, ns!(html), LocalName::from(definition.local_name));
+
+    let element = create_noncustom_html_element(name, None, &*document, ElementCreator::ScriptCreated);
+    Root::downcast(element).ok_or(Error::InvalidState)
 }
 
 /// Create and define the interface object of a callback interface.

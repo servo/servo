@@ -13,7 +13,7 @@ def WebIDLTest(parser, harness):
     def checkMethod(method, QName, name, signatures,
                     static=True, getter=False, setter=False, creator=False,
                     deleter=False, legacycaller=False, stringifier=False,
-                    chromeOnly=False):
+                    chromeOnly=False, htmlConstructor=False):
         harness.ok(isinstance(method, WebIDL.IDLMethod),
                    "Should be an IDLMethod")
         harness.ok(method.isMethod(), "Method is a method")
@@ -29,6 +29,7 @@ def WebIDLTest(parser, harness):
         harness.check(method.isLegacycaller(), legacycaller, "Method has the correct legacycaller value")
         harness.check(method.isStringifier(), stringifier, "Method has the correct stringifier value")
         harness.check(method.getExtendedAttribute("ChromeOnly") is not None, chromeOnly, "Method has the correct value for ChromeOnly")
+        harness.check(method.isHTMLConstructor(), htmlConstructor, "Method has the correct htmlConstructor value")
         harness.check(len(method.signatures()), len(signatures), "Method has the correct number of signatures")
 
         sigpairs = zip(method.signatures(), signatures)

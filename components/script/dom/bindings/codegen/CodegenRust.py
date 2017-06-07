@@ -5288,11 +5288,51 @@ class CGClassConstructHook(CGAbstractExternMethod):
             preamble += "let global = Root::downcast::<dom::types::%s>(global).unwrap();\n" % list(self.exposureSet)[0]
         preamble += """let args = CallArgs::from_vp(vp, argc);\n"""
         preamble = CGGeneric(preamble)
-        name = self.constructor.identifier.name
-        nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
-        callGenerator = CGMethodCall(["&global"], nativeName, True,
-                                     self.descriptor, self.constructor)
-        return CGList([preamble, callGenerator])
+        if self.constructor.isHTMLConstructor():
+            signatures = self.constructor.signatures()
+            assert len(signatures) == 1
+            parentName = self.descriptor.getParentName()
+            if parentName:
+                parentName = toBindingNamespace(parentName)
+            constructorCall = CGGeneric("""
+// Step 2 https://html.spec.whatwg.org/multipage/#htmlconstructor
+// The custom element definition cannot use an element interface as its constructor
+
+rooted!(in(cx) let new_target = UnwrapObject(args.new_target().to_object(), 1));
+if new_target.is_null() {
+    throw_dom_exception(cx, global.upcast::<GlobalScope>(), Error::Type("new.target is null".to_owned()));
+}
+
+{
+    let _ac = JSAutoCompartment::new(cx, new_target.get());
+
+    rooted!(in(cx) let mut constructor = ptr::null_mut());
+    rooted!(in(cx) let global_object = CurrentGlobalOrNull(cx));
+    %s::GetConstructorObject(cx, global_object.handle(), constructor.handle_mut());
+    if constructor.get() == new_target.get() {
+        throw_dom_exception(cx, global.upcast::<GlobalScope>(), Error::Type("new.target the active function object".to_owned()));
+        return false;
+    }
+}
+
+let result: Result<Root<HTMLElement>, Error> = create_html_element(&global, args);
+let result = match result {
+    Ok(result) => result,
+    Err(e) => {
+        throw_dom_exception(cx, global.upcast::<GlobalScope>(), e);
+        return false;
+    },
+};
+
+(result).to_jsval(cx, args.rval());
+return true;
+""" % parentName)
+        else:
+            name = self.constructor.identifier.name
+            nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
+            constructorCall = CGMethodCall(["&global"], nativeName, True,
+                                         self.descriptor, self.constructor)
+        return CGList([preamble, constructorCall])
 
 
 class CGClassFinalizeHook(CGAbstractClassHook):
@@ -5534,6 +5574,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::glue::RUST_JSID_IS_STRING',
         'js::glue::RUST_SYMBOL_TO_JSID',
         'js::glue::int_to_jsid',
+        'js::glue::UnwrapObject',
         'js::panic::maybe_resume_unwind',
         'js::panic::wrap_panic',
         'js::rust::GCMethods',
@@ -5548,8 +5589,9 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::interface::ConstructorClassHook',
         'dom::bindings::interface::InterfaceConstructorBehavior',
         'dom::bindings::interface::NonCallbackInterfaceObjectClass',
-        'dom::bindings::interface::create_callback_interface_object',
+        'dom::bindings::interface::create_html_element',
         'dom::bindings::interface::create_global_object',
+        'dom::bindings::interface::create_callback_interface_object',
         'dom::bindings::interface::create_interface_prototype_object',
         'dom::bindings::interface::create_named_constructors',
         'dom::bindings::interface::create_noncallback_interface_object',
