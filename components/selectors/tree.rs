@@ -8,8 +8,9 @@
 use attr::{AttrSelectorOperation, NamespaceConstraint};
 use matching::{ElementSelectorFlags, MatchingContext, RelevantLinkStatus};
 use parser::SelectorImpl;
+use std::fmt::Debug;
 
-pub trait Element: Sized {
+pub trait Element: Sized + Debug {
     type Impl: SelectorImpl;
 
     fn parent_element(&self) -> Option<Self>;

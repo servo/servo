@@ -25,6 +25,7 @@ gecko_like_types = []
 bitflags = "0.7"
 matches = "0.1"
 cssparser = "0.13.7"
+log = "0.3"
 fnv = "1.0"
 phf = "0.7.18"
 precomputed-hash = "0.1"

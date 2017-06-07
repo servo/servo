@@ -453,6 +453,16 @@ impl<'a, Impl: SelectorImpl> Iterator for SelectorIter<'a, Impl> {
     }
 }
 
+impl<'a, Impl: SelectorImpl> fmt::Debug for SelectorIter<'a, Impl> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let iter = self.iter.clone().rev();
+        for component in iter {
+            component.to_css(f)?
+        }
+        Ok(())
+    }
+}
+
 /// An iterator over all simple selectors belonging to ancestors.
 pub struct AncestorIter<'a, Impl: 'a + SelectorImpl>(SelectorIter<'a, Impl>);
 impl<'a, Impl: 'a + SelectorImpl> AncestorIter<'a, Impl> {

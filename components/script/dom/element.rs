@@ -151,6 +151,12 @@ impl fmt::Debug for Element {
     }
 }
 
+impl fmt::Debug for Root<Element> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        (**self).fmt(f)
+    }
+}
+
 #[derive(PartialEq, HeapSizeOf)]
 pub enum ElementCreator {
     ParserCreated(u64),
