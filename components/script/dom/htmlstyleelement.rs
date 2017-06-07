@@ -111,6 +111,7 @@ impl HTMLStyleElement {
 
         win.layout_chan().send(Msg::AddStylesheet(sheet.clone())).unwrap();
         *self.stylesheet.borrow_mut() = Some(sheet);
+        self.cssom_stylesheet.set(None);
         doc.invalidate_stylesheets();
     }
 
