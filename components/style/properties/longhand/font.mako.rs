@@ -1894,11 +1894,9 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            use cssparser;
             match *self {
                 SpecifiedValue::Normal => dest.write_str("normal"),
-                SpecifiedValue::Override(ref lang) =>
-                    cssparser::serialize_string(lang, dest),
+                SpecifiedValue::Override(ref lang) => lang.to_css(dest),
                 SpecifiedValue::System(_) => Ok(())
             }
         }
@@ -1921,7 +1919,6 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
         use std::{fmt, str};
         use style_traits::ToCss;
         use byteorder::{BigEndian, ByteOrder};
-        use cssparser;
 
         impl ToCss for T {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -1936,7 +1933,7 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
                 } else {
                     unsafe { str::from_utf8_unchecked(&buf) }
                 };
-                cssparser::serialize_string(slice.trim_right(), dest)
+                slice.trim_right().to_css(dest)
             }
         }
 

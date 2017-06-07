@@ -354,7 +354,6 @@ ${helpers.predefined_type("object-position",
         animation_value_type="none"
         disable_when_testing="True"
         boxed="True">
-    use cssparser::serialize_string;
     use std::collections::HashMap;
     use std::fmt;
     use std::ops::Range;
@@ -486,7 +485,7 @@ ${helpers.predefined_type("object-position",
                 if i != 0 {
                     dest.write_str(" ")?;
                 }
-                serialize_string(string, dest)?;
+                string.to_css(dest)?;
             }
             Ok(())
         }

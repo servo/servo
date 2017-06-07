@@ -6,7 +6,7 @@
 //! initially in CSS Conditional Rules Module Level 3, @document has been postponed to the level 4.
 //! We implement the prefixed `@-moz-document`.
 
-use cssparser::{Parser, Token, SourceLocation, serialize_string};
+use cssparser::{Parser, Token, SourceLocation};
 use media_queries::Device;
 use parser::{Parse, ParserContext};
 use shared_lock::{DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
@@ -160,17 +160,17 @@ impl ToCss for UrlMatchingFunction {
             },
             UrlMatchingFunction::UrlPrefix(ref url_prefix) => {
                 dest.write_str("url-prefix(")?;
-                serialize_string(url_prefix, dest)?;
+                url_prefix.to_css(dest)?;
                 dest.write_str(")")
             },
             UrlMatchingFunction::Domain(ref domain) => {
                 dest.write_str("domain(")?;
-                serialize_string(domain, dest)?;
+                domain.to_css(dest)?;
                 dest.write_str(")")
             },
             UrlMatchingFunction::RegExp(ref regex) => {
                 dest.write_str("regexp(")?;
-                serialize_string(regex, dest)?;
+                regex.to_css(dest)?;
                 dest.write_str(")")
             },
         }

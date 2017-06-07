@@ -70,9 +70,7 @@
         impl ToCss for ContentItem {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 match *self {
-                    ContentItem::String(ref s) => {
-                        cssparser::serialize_string(&**s, dest)
-                    }
+                    ContentItem::String(ref s) => s.to_css(dest),
                     ContentItem::Counter(ref s, ref counter_style) => {
                         try!(dest.write_str("counter("));
                         try!(cssparser::serialize_identifier(&**s, dest));
@@ -84,9 +82,9 @@
                         try!(dest.write_str("counters("));
                         try!(cssparser::serialize_identifier(&**s, dest));
                         try!(dest.write_str(", "));
-                        try!(cssparser::serialize_string(&**separator, dest));
+                        separator.to_css(dest)?;
                         try!(dest.write_str(", "));
-                        try!(counter_style.to_css(dest));
+                        counter_style.to_css(dest)?;
                         dest.write_str(")")
                     }
                     ContentItem::OpenQuote => dest.write_str("open-quote"),

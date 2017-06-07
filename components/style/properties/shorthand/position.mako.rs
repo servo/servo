@@ -250,7 +250,6 @@
                     spec="https://drafts.csswg.org/css-grid/#propdef-grid-template"
                     disable_when_testing="True"
                     products="gecko">
-    use cssparser::serialize_string;
     use parser::Parse;
     use properties::longhands::grid_template_rows;
     use properties::longhands::grid_template_areas::TemplateAreas;
@@ -370,7 +369,7 @@
                         concat_serialize_idents("[", "] ", names, " ", dest)?;
                     }
 
-                    serialize_string(string, dest)?;
+                    string.to_css(dest)?;
                     dest.write_str(" ")?;
                     size.to_css(dest)?;
                 }
