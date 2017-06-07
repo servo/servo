@@ -3,3 +3,6 @@ platforms:
     charade:
       tests:
         unmaintained: skip
+    Template-Python:
+      tests:
+        unlicensed: skip
