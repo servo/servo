@@ -956,7 +956,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
 
         let mut result = Vec::new();
         loop {
-            let name = match input.expect_function() {
+            let name = match input.try(|i| i.expect_function()) {
                 Ok(name) => name,
                 Err(_) => break,
             };

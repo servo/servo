@@ -31,3 +31,10 @@ fn test_transform_translate() {
     assert!(parse(transform::parse, "translate(2px foo)").is_err());
     assert!(parse(transform::parse, "perspective(-10px)").is_err());
 }
+
+#[test]
+fn test_unexhausted_transform() {
+    use style::properties::longhands::transform;
+    assert_parser_exhausted!(transform::parse, "rotate(70deg)foo", false);
+    assert_parser_exhausted!(transform::parse, "rotate(70deg) foo", false);
+}
