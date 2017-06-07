@@ -279,6 +279,7 @@ impl ChildrenList {
                     self.last_index.set(middle as u32);
                 }
             },
+            ChildrenMutation::ChangeText => {},
         }
     }
 
