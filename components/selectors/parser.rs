@@ -1956,7 +1956,7 @@ pub mod tests {
                 ].into_boxed_slice())
             ), specificity(0, 0, 1))
         ))));
-        assert_eq!(parse("[attr |= \"foo\"]"), Ok(SelectorList::from_vec(vec!(
+        assert_eq!(parse("[attr|=\"foo\"]"), Ok(SelectorList::from_vec(vec!(
             Selector::from_vec(vec!(
                 Component::AttributeInNoNamespace {
                     local_name: DummyAtom::from("attr"),
@@ -2015,7 +2015,7 @@ pub mod tests {
         parser.default_ns = None;
         assert_eq!(parse(":not(#provel.old)"), Err(()));
         assert_eq!(parse(":not(#provel > old)"), Err(()));
-        assert!(parse("table[rules]:not([rules = \"none\"]):not([rules = \"\"])").is_ok());
+        assert!(parse("table[rules]:not([rules=\"none\"]):not([rules=\"\"])").is_ok());
         assert_eq!(parse(":not(#provel)"), Ok(SelectorList::from_vec(vec!(
             Selector::from_vec(vec!(Component::Negation(vec!(
                     Component::ID(DummyAtom::from("provel")),

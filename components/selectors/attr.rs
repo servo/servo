@@ -78,13 +78,15 @@ pub enum AttrSelectorOperator {
 
 impl ToCss for AttrSelectorOperator {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        // https://drafts.csswg.org/cssom/#serializing-selectors
+        // See "attribute selector".
         dest.write_str(match *self {
-            AttrSelectorOperator::Equal => " = ",
-            AttrSelectorOperator::Includes => " ~= ",
-            AttrSelectorOperator::DashMatch => " |= ",
-            AttrSelectorOperator::Prefix => " ^= ",
-            AttrSelectorOperator::Substring => " *= ",
-            AttrSelectorOperator::Suffix => " $= ",
+            AttrSelectorOperator::Equal => "=",
+            AttrSelectorOperator::Includes => "~=",
+            AttrSelectorOperator::DashMatch => "|=",
+            AttrSelectorOperator::Prefix => "^=",
+            AttrSelectorOperator::Substring => "*=",
+            AttrSelectorOperator::Suffix => "$=",
         })
     }
 }
