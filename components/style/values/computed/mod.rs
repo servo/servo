@@ -483,6 +483,24 @@ pub struct Shadow {
     pub inset: bool,
 }
 
+impl ToCss for Shadow {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        if self.inset {
+            dest.write_str("inset ")?;
+        }
+        self.blur_radius.to_css(dest)?;
+        dest.write_str(" ")?;
+        self.spread_radius.to_css(dest)?;
+        dest.write_str(" ")?;
+        self.offset_x.to_css(dest)?;
+        dest.write_str(" ")?;
+        self.offset_y.to_css(dest)?;
+        dest.write_str(" ")?;
+        self.color.to_css(dest)?;
+        Ok(())
+    }
+}
+
 /// A `<number>` value.
 pub type Number = CSSFloat;
 
