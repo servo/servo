@@ -1126,7 +1126,7 @@ dependencies = [
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "net_traits 0.0.1",
- "osmesa-src 13.0.1-devel (git+https://github.com/emilio/osmesa-src?branch=osmesaup)",
+ "osmesa-src 17.2.0-devel (git+https://github.com/emilio/osmesa-src?branch=osmesaup)",
  "osmesa-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "script_traits 0.0.1",
  "servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2011,8 +2011,8 @@ dependencies = [
 
 [[package]]
 name = "osmesa-src"
-version = "13.0.1-devel"
-source = "git+https://github.com/emilio/osmesa-src?branch=osmesaup#205cfe62bfba476861e751532ee3f99a4f3906c9"
+version = "17.2.0-devel"
+source = "git+https://github.com/emilio/osmesa-src?branch=osmesaup#e25bc4dfc593cc6c9f4432fed150764cbec08a62"
 
 [[package]]
 name = "osmesa-sys"
@@ -3678,7 +3678,7 @@ dependencies = [
 "checksum openssl 0.9.12 (registry+https://github.com/rust-lang/crates.io-index)" = "bb5d1663b73d10c6a3eda53e2e9d0346f822394e7b858d7257718f65f61dfbe2"
 "checksum openssl-sys 0.9.12 (registry+https://github.com/rust-lang/crates.io-index)" = "3a5886d87d3e2a0d890bf62dc8944f5e3769a405f7e1e9ef6e517e47fd7a0897"
 "checksum ordered-float 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "da12c96037889ae0be29dd2bdd260e5a62a7df24e6466d5a15bb8131c1c200a8"
-"checksum osmesa-src 13.0.1-devel (git+https://github.com/emilio/osmesa-src?branch=osmesaup)" = "<none>"
+"checksum osmesa-src 17.2.0-devel (git+https://github.com/emilio/osmesa-src?branch=osmesaup)" = "<none>"
 "checksum osmesa-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "88cfece6e95d2e717e0872a7f53a8684712ad13822a7979bc760b9c77ec0013b"
 "checksum owning_ref 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)" = "9d52571ddcb42e9c900c901a18d8d67e393df723fcd51dd59c5b1a85d0acb6cc"
 "checksum parking_lot 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)" = "fa12d706797d42551663426a45e2db2e0364bd1dbf6aeada87e89c5f981f43e9"
