@@ -37,11 +37,9 @@ use traversal::{DomTraversal, PerLevelTraversalData, PreTraverseToken};
 ///
 /// Larger values will increase style sharing cache hits and general DOM locality
 /// at the expense of decreased opportunities for parallelism. The style sharing
-/// cache can hold 31 entries, but not all styles are shareable, so we set this
-/// value to 16. The size of the cache has been measured to provide pretty good
-/// sharing on a few pages, but could probably use more measurement and tuning.
-/// The work unit size is a bit of a guess at the moment; again could use
-/// measurement and tuning.
+/// cache can hold 8 entries, but not all styles are shareable, so we set this
+/// value to 16. These values have not been measured and could potentially be
+/// tuned.
 pub const WORK_UNIT_MAX: usize = 16;
 
 /// Verify that the style sharing cache size doesn't change. If it does, we should
@@ -50,7 +48,7 @@ pub const WORK_UNIT_MAX: usize = 16;
 /// have surprising effects on the parallelism characteristics of the style system.
 #[allow(dead_code)]
 fn static_assert() {
-    unsafe { mem::transmute::<_, [u32; STYLE_SHARING_CANDIDATE_CACHE_SIZE]>([1; 31]); }
+    unsafe { mem::transmute::<_, [u32; STYLE_SHARING_CANDIDATE_CACHE_SIZE]>([1; 8]); }
 }
 
 /// A list of node pointers.
