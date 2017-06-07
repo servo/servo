@@ -10,6 +10,7 @@ use app_units::Au;
 use cssparser::{Color as CSSParserColor, Parser, RGBA, serialize_identifier};
 use euclid::{Point2D, Size2D};
 #[cfg(feature = "gecko")] use gecko_bindings::bindings::RawServoAnimationValueMap;
+#[cfg(feature = "gecko")] use gecko_bindings::structs::RawGeckoGfxMatrix4x4;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSPropertyID;
 #[cfg(feature = "gecko")] use gecko_bindings::sugar::ownership::{HasFFI, HasSimpleFFI};
 #[cfg(feature = "gecko")] use gecko_string_cache::Atom;
@@ -2056,6 +2057,28 @@ impl From<MatrixDecomposed2D> for ComputedMatrix {
     }
 }
 
+#[cfg(feature = "gecko")]
+impl<'a> From< &'a RawGeckoGfxMatrix4x4> for ComputedMatrix {
+    fn from(m: &'a RawGeckoGfxMatrix4x4) -> ComputedMatrix {
+        ComputedMatrix {
+            m11: m[0],  m12: m[1],  m13: m[2],  m14: m[3],
+            m21: m[4],  m22: m[5],  m23: m[6],  m24: m[7],
+            m31: m[8],  m32: m[9],  m33: m[10], m34: m[11],
+            m41: m[12], m42: m[13], m43: m[14], m44: m[15],
+        }
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl From<ComputedMatrix> for RawGeckoGfxMatrix4x4 {
+    fn from(matrix: ComputedMatrix) -> RawGeckoGfxMatrix4x4 {
+        [ matrix.m11, matrix.m12, matrix.m13, matrix.m14,
+          matrix.m21, matrix.m22, matrix.m23, matrix.m24,
+          matrix.m31, matrix.m32, matrix.m33, matrix.m34,
+          matrix.m41, matrix.m42, matrix.m43, matrix.m44 ]
+    }
+}
+
 /// A 3d translation.
 #[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -2640,11 +2663,7 @@ impl Animatable for TransformList {
                     let result = vec![TransformOperation::AccumulateMatrix {
                         from_list: self.clone(),
                         to_list: other.clone(),
-                        // For accumulation, we need to increase accumulation count for |other| if
-                        // we do matrix decomposition/interpolation/recomposition on Gecko. After
-                        // changing to Servo matrix decomposition/interpolation/recomposition, we
-                        // don't need to increase one. I will remove this in the patch series.
-                        count: cmp::min(count + 1, i32::MAX as u64) as i32
+                        count: cmp::min(count, i32::MAX as u64) as i32
                     }];
                     Ok(TransformList(Some(result)))
                 }
