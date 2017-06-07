@@ -888,9 +888,10 @@ impl ToCss for Shadow {
         self.offset_y.to_css(dest)?;
         dest.write_str(" ")?;
         self.blur_radius.to_css(dest)?;
-        dest.write_str(" ")?;
-        self.spread_radius.to_css(dest)?;
-
+        if self.spread_radius != Length::zero() {
+            dest.write_str(" ")?;
+            self.spread_radius.to_css(dest)?;
+        }
         if let Some(ref color) = self.color {
             dest.write_str(" ")?;
             color.to_css(dest)?;

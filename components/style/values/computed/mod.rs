@@ -9,6 +9,7 @@ use context::QuirksMode;
 use euclid::size::Size2D;
 use font_metrics::FontMetricsProvider;
 use media_queries::Device;
+use num_traits::Zero;
 #[cfg(feature = "gecko")]
 use properties;
 use properties::{ComputedValues, StyleBuilder};
@@ -494,8 +495,10 @@ impl ToCss for Shadow {
         dest.write_str(" ")?;
         self.blur_radius.to_css(dest)?;
         dest.write_str(" ")?;
-        self.spread_radius.to_css(dest)?;
-        dest.write_str(" ")?;
+        if self.spread_radius != Au::zero() {
+            self.spread_radius.to_css(dest)?;
+            dest.write_str(" ")?;
+        }
         self.color.to_css(dest)?;
         Ok(())
     }
