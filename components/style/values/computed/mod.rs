@@ -9,6 +9,7 @@ use context::QuirksMode;
 use euclid::size::Size2D;
 use font_metrics::FontMetricsProvider;
 use media_queries::Device;
+use num_traits::Zero;
 #[cfg(feature = "gecko")]
 use properties;
 use properties::{ComputedValues, StyleBuilder};
@@ -481,6 +482,26 @@ pub struct Shadow {
     pub spread_radius: Au,
     pub color: CSSColor,
     pub inset: bool,
+}
+
+impl ToCss for Shadow {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        if self.inset {
+            dest.write_str("inset ")?;
+        }
+        self.offset_x.to_css(dest)?;
+        dest.write_str(" ")?;
+        self.offset_y.to_css(dest)?;
+        dest.write_str(" ")?;
+        self.blur_radius.to_css(dest)?;
+        dest.write_str(" ")?;
+        if self.spread_radius != Au::zero() {
+            self.spread_radius.to_css(dest)?;
+            dest.write_str(" ")?;
+        }
+        self.color.to_css(dest)?;
+        Ok(())
+    }
 }
 
 /// A `<number>` value.

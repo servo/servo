@@ -878,6 +878,28 @@ impl ToComputedValue for Shadow {
     }
 }
 
+impl ToCss for Shadow {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        if self.inset {
+            dest.write_str("inset ")?;
+        }
+        self.offset_x.to_css(dest)?;
+        dest.write_str(" ")?;
+        self.offset_y.to_css(dest)?;
+        dest.write_str(" ")?;
+        self.blur_radius.to_css(dest)?;
+        if self.spread_radius != Length::zero() {
+            dest.write_str(" ")?;
+            self.spread_radius.to_css(dest)?;
+        }
+        if let Some(ref color) = self.color {
+            dest.write_str(" ")?;
+            color.to_css(dest)?;
+        }
+        Ok(())
+    }
+}
+
 impl Shadow {
     // disable_spread_and_inset is for filter: drop-shadow(...)
     #[allow(missing_docs)]

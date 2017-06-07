@@ -15,58 +15,16 @@ ${helpers.predefined_type("opacity",
                           spec="https://drafts.csswg.org/css-color/#opacity")}
 
 <%helpers:vector_longhand name="box-shadow" allow_empty="True"
-                          animation_value_type="IntermediateBoxShadowList"
+                          animation_value_type="IntermediateShadowList"
                           extra_prefixes="webkit"
                           ignored_when_colors_disabled="True"
                           spec="https://drafts.csswg.org/css-backgrounds/#box-shadow">
-    use std::fmt;
-    use style_traits::ToCss;
-
     pub type SpecifiedValue = specified::Shadow;
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            if self.inset {
-                try!(dest.write_str("inset "));
-            }
-            try!(self.offset_x.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(self.offset_y.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(self.blur_radius.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(self.spread_radius.to_css(dest));
-
-            if let Some(ref color) = self.color {
-                try!(dest.write_str(" "));
-                try!(color.to_css(dest));
-            }
-            Ok(())
-        }
-    }
 
     pub mod computed_value {
         use values::computed::Shadow;
 
         pub type T = Shadow;
-    }
-
-    impl ToCss for computed_value::T {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            if self.inset {
-                try!(dest.write_str("inset "));
-            }
-            try!(self.blur_radius.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(self.spread_radius.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(self.offset_x.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(self.offset_y.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(self.color.to_css(dest));
-            Ok(())
-        }
     }
 
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<specified::Shadow, ()> {
@@ -252,15 +210,9 @@ ${helpers.predefined_type("clip",
                 computed_value::Filter::Sepia(value) => try!(write!(dest, "sepia({})", value)),
                 % if product == "gecko":
                 computed_value::Filter::DropShadow(shadow) => {
-                    try!(dest.write_str("drop-shadow("));
-                    try!(shadow.offset_x.to_css(dest));
-                    try!(dest.write_str(" "));
-                    try!(shadow.offset_y.to_css(dest));
-                    try!(dest.write_str(" "));
-                    try!(shadow.blur_radius.to_css(dest));
-                    try!(dest.write_str(" "));
-                    try!(shadow.color.to_css(dest));
-                    try!(dest.write_str(")"));
+                    dest.write_str("drop-shadow(")?;
+                    shadow.to_css(dest)?;
+                    dest.write_str(")")?;
                 }
                 computed_value::Filter::Url(ref url) => {
                     url.to_css(dest)?;
@@ -293,17 +245,9 @@ ${helpers.predefined_type("clip",
                 SpecifiedFilter::Sepia(value) => try!(write!(dest, "sepia({})", value)),
                 % if product == "gecko":
                 SpecifiedFilter::DropShadow(ref shadow) => {
-                    try!(dest.write_str("drop-shadow("));
-                    try!(shadow.offset_x.to_css(dest));
-                    try!(dest.write_str(" "));
-                    try!(shadow.offset_y.to_css(dest));
-                    try!(dest.write_str(" "));
-                    try!(shadow.blur_radius.to_css(dest));
-                    if let Some(ref color) = shadow.color {
-                        try!(dest.write_str(" "));
-                        try!(color.to_css(dest));
-                    }
-                    try!(dest.write_str(")"));
+                    dest.write_str("drop-shadow(")?;
+                    shadow.to_css(dest)?;
+                    dest.write_str(")")?;
                 }
                 SpecifiedFilter::Url(ref url) => {
                     url.to_css(dest)?;
