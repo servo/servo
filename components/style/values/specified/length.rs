@@ -894,9 +894,9 @@ impl LengthOrPercentage {
 }
 
 /// Either a `<length>`, a `<percentage>`, or the `auto` keyword.
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
 pub enum LengthOrPercentageOrAuto {
     Length(NoCalcLength),
     Percentage(Percentage),
@@ -915,17 +915,6 @@ impl From<Percentage> for LengthOrPercentageOrAuto {
     #[inline]
     fn from(pc: Percentage) -> Self {
         LengthOrPercentageOrAuto::Percentage(pc)
-    }
-}
-
-impl ToCss for LengthOrPercentageOrAuto {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            LengthOrPercentageOrAuto::Length(ref length) => length.to_css(dest),
-            LengthOrPercentageOrAuto::Percentage(percentage) => percentage.to_css(dest),
-            LengthOrPercentageOrAuto::Auto => dest.write_str("auto"),
-            LengthOrPercentageOrAuto::Calc(ref calc) => calc.to_css(dest),
-        }
     }
 }
 
@@ -1012,8 +1001,8 @@ impl LengthOrPercentageOrAuto {
 }
 
 /// Either a `<length>`, a `<percentage>`, or the `none` keyword.
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
 #[allow(missing_docs)]
 pub enum LengthOrPercentageOrNone {
     Length(NoCalcLength),
@@ -1022,16 +1011,6 @@ pub enum LengthOrPercentageOrNone {
     None,
 }
 
-impl ToCss for LengthOrPercentageOrNone {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            LengthOrPercentageOrNone::Length(ref length) => length.to_css(dest),
-            LengthOrPercentageOrNone::Percentage(ref percentage) => percentage.to_css(dest),
-            LengthOrPercentageOrNone::Calc(ref calc) => calc.to_css(dest),
-            LengthOrPercentageOrNone::None => dest.write_str("none"),
-        }
-    }
-}
 impl LengthOrPercentageOrNone {
     fn parse_internal(context: &ParserContext,
                       input: &mut Parser,
@@ -1099,8 +1078,8 @@ pub type LengthOrAuto = Either<Length, Auto>;
 
 /// Either a `<length>` or a `<percentage>` or the `auto` keyword or the
 /// `content` keyword.
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
 pub enum LengthOrPercentageOrAutoOrContent {
     /// A `<length>`.
     Length(NoCalcLength),
@@ -1153,18 +1132,6 @@ impl LengthOrPercentageOrAutoOrContent {
     /// Returns a value representing `0%`.
     pub fn zero_percent() -> Self {
         LengthOrPercentageOrAutoOrContent::Percentage(Percentage::zero())
-    }
-}
-
-impl ToCss for LengthOrPercentageOrAutoOrContent {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            LengthOrPercentageOrAutoOrContent::Length(ref len) => len.to_css(dest),
-            LengthOrPercentageOrAutoOrContent::Percentage(perc) => perc.to_css(dest),
-            LengthOrPercentageOrAutoOrContent::Auto => dest.write_str("auto"),
-            LengthOrPercentageOrAutoOrContent::Content => dest.write_str("content"),
-            LengthOrPercentageOrAutoOrContent::Calc(ref calc) => calc.to_css(dest),
-        }
     }
 }
 

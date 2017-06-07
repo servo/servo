@@ -7,8 +7,6 @@
 use cssparser::Parser;
 use euclid::Point2D;
 use parser::{Parse, ParserContext};
-use std::fmt;
-use style_traits::ToCss;
 use values::computed::{LengthOrPercentage as ComputedLengthOrPercentage, Context, ToComputedValue};
 use values::computed::transform::TimingFunction as ComputedTimingFunction;
 use values::generics::transform::{StepPosition, TimingFunction as GenericTimingFunction};
@@ -22,7 +20,7 @@ pub type TransformOrigin = GenericTransformOrigin<OriginComponent<X>, OriginComp
 
 /// The specified value of a component of a CSS `<transform-origin>`.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
+#[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
 pub enum OriginComponent<S> {
     /// `center`
     Center,
@@ -96,20 +94,6 @@ impl<S> Parse for OriginComponent<S>
         }
         let keyword = S::parse(context, input)?;
         Ok(OriginComponent::Side(keyword))
-    }
-}
-
-impl<S: ToCss> ToCss for OriginComponent<S>
-    where S: ToCss,
-{
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
-    {
-        match *self {
-            OriginComponent::Center => dest.write_str("center"),
-            OriginComponent::Length(ref lop) => lop.to_css(dest),
-            OriginComponent::Side(ref keyword) => keyword.to_css(dest),
-        }
     }
 }
 

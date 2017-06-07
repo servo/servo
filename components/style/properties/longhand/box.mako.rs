@@ -30,7 +30,6 @@
                 -moz-popup -moz-groupbox""".split()
     %>
     use values::computed::ComputedValueAsSpecified;
-    use style_traits::ToCss;
     no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
@@ -86,24 +85,12 @@
     }
 
     #[allow(non_camel_case_types)]
-    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, ToCss)]
     pub enum SpecifiedValue {
         % for value in values:
             ${to_rust_ident(value)},
         % endfor
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
-            where W: ::std::fmt::Write,
-        {
-            match *self {
-                % for value in values:
-                    SpecifiedValue::${to_rust_ident(value)} => dest.write_str("${value}"),
-                % endfor
-            }
-        }
     }
 
     /// The initial display value.
@@ -545,8 +532,6 @@ ${helpers.predefined_type("animation-timing-function",
                           extra_prefixes="moz webkit"
                           spec="https://drafts.csswg.org/css-animations/#propdef-animation-iteration-count",
                           allowed_in_keyframe_block="False">
-    use std::fmt;
-    use style_traits::ToCss;
     use values::computed::ComputedValueAsSpecified;
 
     pub mod computed_value {
@@ -554,8 +539,8 @@ ${helpers.predefined_type("animation-timing-function",
     }
 
     // https://drafts.csswg.org/css-animations/#animation-iteration-count
-    #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[derive(Debug, Clone, PartialEq, ToCss)]
     pub enum SpecifiedValue {
         Number(f32),
         Infinite,
@@ -573,15 +558,6 @@ ${helpers.predefined_type("animation-timing-function",
             }
 
             Ok(SpecifiedValue::Number(number))
-        }
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                SpecifiedValue::Number(n) => write!(dest, "{}", n),
-                SpecifiedValue::Infinite => dest.write_str("infinite"),
-            }
         }
     }
 
