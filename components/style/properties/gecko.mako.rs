@@ -2286,30 +2286,44 @@ fn static_assert() {
                 single_patterns = ["m%s: %s" % (str(a / 4 + 1) + str(a % 4 + 1), b + str(a + 1)) for (a, b)
                                    in enumerate(items)]
                 if name == "Matrix":
-                    pattern = "ComputedMatrix { %s }" % ", ".join(single_patterns)
+                    pattern = "(ComputedMatrix { %s })" % ", ".join(single_patterns)
                 else:
-                    pattern = "ComputedMatrixWithPercents { %s }" % ", ".join(single_patterns)
+                    pattern = "(ComputedMatrixWithPercents { %s })" % ", ".join(single_patterns)
+            elif keyword == "interpolatematrix":
+                pattern = " { from_list: ref list1, to_list: ref list2, progress: percentage3 }"
+            elif keyword == "accumulatematrix":
+                pattern = " { from_list: ref list1, to_list: ref list2, count: integer_to_percentage3 }"
             else:
                 # Generate contents of pattern from items
-                pattern = ", ".join([b + str(a+1) for (a,b) in enumerate(items)])
+                pattern = "(%s)" % ", ".join([b + str(a+1) for (a,b) in enumerate(items)])
 
             # First %s substituted with the call to GetArrayItem, the second
             # %s substituted with the corresponding variable
             css_value_setters = {
                 "length" : "bindings::Gecko_CSSValue_SetAbsoluteLength(%s, %s.0)",
-                "percentage" : "bindings::Gecko_CSSValue_SetPercentage(%s, %s)",
+                "percentage" : "bindings::Gecko_CSSValue_SetPercentage(%s, %s.0)",
+                # Note: This is an integer type, but we use it as a percentage value in Gecko, so
+                #       need to cast it to f32.
+                "integer_to_percentage" : "bindings::Gecko_CSSValue_SetPercentage(%s, %s as f32)",
                 "lop" : "%s.set_lop(%s)",
                 "angle" : "%s.set_angle(%s)",
                 "number" : "bindings::Gecko_CSSValue_SetNumber(%s, %s)",
+                # Note: We use nsCSSValueSharedList here, instead of nsCSSValueList_heap
+                #       because this function is not called on the main thread and
+                #       nsCSSValueList_heap is not thread safe.
+                "list" : "%s.set_shared_list(%s.0.as_ref().unwrap().into_iter().map(&convert_to_ns_css_value));",
             }
         %>
-        longhands::transform::computed_value::ComputedOperation::${name}(${pattern}) => {
+        longhands::transform::computed_value::ComputedOperation::${name}${pattern} => {
             bindings::Gecko_CSSValue_SetFunction(gecko_value, ${len(items) + 1});
             bindings::Gecko_CSSValue_SetKeyword(
                 bindings::Gecko_CSSValue_GetArrayItem(gecko_value, 0),
                 structs::nsCSSKeyword::eCSSKeyword_${keyword}
             );
             % for index, item in enumerate(items):
+                % if item == "list":
+                    debug_assert!(${item}${index + 1}.0.is_some());
+                % endif
                 ${css_value_setters[item] % (
                     "bindings::Gecko_CSSValue_GetArrayItem(gecko_value, %d)" % (index + 1),
                     item + str(index + 1)
@@ -2321,6 +2335,13 @@ fn static_assert() {
                                      gecko_value: &mut structs::nsCSSValue /* output */) {
         use properties::longhands::transform::computed_value::ComputedMatrix;
         use properties::longhands::transform::computed_value::ComputedMatrixWithPercents;
+        use properties::longhands::transform::computed_value::ComputedOperation;
+
+        let convert_to_ns_css_value = |item: &ComputedOperation| -> structs::nsCSSValue {
+            let mut value = structs::nsCSSValue::null();
+            Self::set_single_transform_function(item, &mut value);
+            value
+        };
 
         unsafe {
             match *servo_value {
@@ -2332,13 +2353,10 @@ fn static_assert() {
                 ${transform_function_arm("Scale", "scale3d", ["number"] * 3)}
                 ${transform_function_arm("Rotate", "rotate3d", ["number"] * 3 + ["angle"])}
                 ${transform_function_arm("Perspective", "perspective", ["length"])}
-                _ => {
-                    // TODO: Convert ComputedOperation::InterpolateMatrix into
-                    //       eCSSKeyword_interpolatematrix, and convert
-                    //       ComputedOperation::AccumulateMatrix into
-                    //       eCSSKeyword_accumulatematrix in the patch series.
-                    gecko_value.mUnit = structs::nsCSSUnit::eCSSUnit_None;
-                }
+                ${transform_function_arm("InterpolateMatrix", "interpolatematrix",
+                                         ["list"] * 2 + ["percentage"])}
+                ${transform_function_arm("AccumulateMatrix", "accumulatematrix",
+                                         ["list"] * 2 + ["integer_to_percentage"])}
             }
         }
     }
@@ -2384,31 +2402,60 @@ fn static_assert() {
                 "lop" : "%s.get_lop()",
                 "angle" : "%s.get_angle()",
                 "number" : "bindings::Gecko_CSSValue_GetNumber(%s)",
+                "percentage" : "Percentage(bindings::Gecko_CSSValue_GetPercentage(%s))",
+                "percentage_to_integer" : "bindings::Gecko_CSSValue_GetPercentage(%s) as i32",
+                "list" : "TransformList(Some(convert_shared_list_to_operations(%s)))",
             }
+            pre_symbols = "("
+            post_symbols = ")"
+            if keyword == "interpolatematrix" or keyword == "accumulatematrix":
+                # We generate this like: "ComputedOperation::InterpolateMatrix {", so the space is
+                # between "InterpolateMatrix"/"AccumulateMatrix" and '{'
+                pre_symbols = " {"
+                post_symbols = "}"
+            elif keyword == "matrix3d":
+                pre_symbols = "(ComputedMatrix {"
+                post_symbols = "})"
+            field_names = None
+            if keyword == "interpolatematrix":
+                field_names = ["from_list", "to_list", "progress"]
+            elif keyword == "accumulatematrix":
+                field_names = ["from_list", "to_list", "count"]
         %>
         structs::nsCSSKeyword::eCSSKeyword_${keyword} => {
-            ComputedOperation::${name}(
-            % if keyword == "matrix3d":
-                ComputedMatrix {
-            % endif
+            ComputedOperation::${name}${pre_symbols}
             % for index, item in enumerate(items):
                 % if keyword == "matrix3d":
                     m${index / 4 + 1}${index % 4 + 1}:
+                % elif keyword == "interpolatematrix" or keyword == "accumulatematrix":
+                    ${field_names[index]}:
                 % endif
                 ${css_value_getters[item] % (
                     "bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, %d)" % (index + 1)
                 )},
             % endfor
-            % if keyword == "matrix3d":
-                }
-            % endif
-            )
+            ${post_symbols}
         },
     </%def>
     fn clone_single_transform_function(gecko_value: &structs::nsCSSValue)
                                        -> longhands::transform::computed_value::ComputedOperation {
         use properties::longhands::transform::computed_value::ComputedMatrix;
         use properties::longhands::transform::computed_value::ComputedOperation;
+        use properties::longhands::transform::computed_value::T as TransformList;
+        use values::computed::Percentage;
+
+        let convert_shared_list_to_operations = |value: &structs::nsCSSValue|
+                                                -> Vec<ComputedOperation> {
+            debug_assert!(value.mUnit == structs::nsCSSUnit::eCSSUnit_SharedList);
+            let value_list = unsafe {
+                value.mValue.mSharedList.as_ref()
+                     .as_mut().expect("List pointer should be non-null").mHead.as_ref()
+            };
+            debug_assert!(value_list.is_some(), "An empty shared list is not allowed");
+            value_list.unwrap().into_iter()
+                               .map(|item| Self::clone_single_transform_function(item))
+                               .collect()
+        };
 
         let transform_function = unsafe {
             bindings::Gecko_CSSValue_GetKeyword(bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, 0))
@@ -2422,6 +2469,10 @@ fn static_assert() {
                 ${computed_operation_arm("Scale", "scale3d", ["number"] * 3)}
                 ${computed_operation_arm("Rotate", "rotate3d", ["number"] * 3 + ["angle"])}
                 ${computed_operation_arm("Perspective", "perspective", ["length"])}
+                ${computed_operation_arm("InterpolateMatrix", "interpolatematrix",
+                                         ["list"] * 2 + ["percentage"])}
+                ${computed_operation_arm("AccumulateMatrix", "accumulatematrix",
+                                         ["list"] * 2 + ["percentage_to_integer"])}
                 _ => panic!("We shouldn't set any other transform function types"),
             }
         }

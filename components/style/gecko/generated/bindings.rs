@@ -1311,6 +1311,10 @@ extern "C" {
                                       len: u32);
 }
 extern "C" {
+    pub fn Gecko_CSSValue_InitSharedList(css_value: nsCSSValueBorrowedMut,
+                                         len: u32);
+}
+extern "C" {
     pub fn Gecko_CSSValue_Drop(css_value: nsCSSValueBorrowedMut);
 }
 extern "C" {
