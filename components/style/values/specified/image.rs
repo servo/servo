@@ -22,6 +22,7 @@ use values::generics::image::{EndingShape as GenericEndingShape, Gradient as Gen
 use values::generics::image::{GradientItem as GenericGradientItem, GradientKind as GenericGradientKind};
 use values::generics::image::{Image as GenericImage, ImageRect as GenericImageRect};
 use values::generics::image::{LineDirection as GenericsLineDirection, ShapeExtent};
+use values::generics::image::PaintWorklet;
 use values::generics::position::Position as GenericPosition;
 use values::specified::{Angle, CSSColor, Color, Length, LengthOrPercentage};
 use values::specified::{Number, NumberOrPercentage, Percentage};
@@ -97,6 +98,12 @@ impl Parse for Image {
         }
         if let Ok(gradient) = input.try(|i| Gradient::parse(context, i)) {
             return Ok(GenericImage::Gradient(gradient));
+        }
+        #[cfg(feature = "servo")]
+        {
+            if let Ok(paint_worklet) = input.try(|i| PaintWorklet::parse(context, i)) {
+                return Ok(GenericImage::PaintWorklet(paint_worklet));
+            }
         }
         #[cfg(feature = "gecko")]
         {
@@ -669,6 +676,18 @@ impl Parse for ColorStop {
         Ok(ColorStop {
             color: try!(CSSColor::parse(context, input)),
             position: input.try(|i| LengthOrPercentage::parse(context, i)).ok(),
+        })
+    }
+}
+
+impl Parse for PaintWorklet {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        input.expect_function_matching("paint")?;
+        input.parse_nested_block(|i| {
+            let name = i.expect_ident()?;
+            Ok(PaintWorklet {
+                name: Atom::from(name),
+            })
         })
     }
 }

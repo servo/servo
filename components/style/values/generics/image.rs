@@ -27,6 +27,10 @@ pub enum Image<Gradient, ImageRect> {
     Rect(ImageRect),
     /// A `-moz-element(# <element-id>)`
     Element(Atom),
+    /// A paint worklet image.
+    /// https://drafts.css-houdini.org/css-paint-api/
+    #[cfg(feature = "servo")]
+    PaintWorklet(PaintWorklet),
 }
 
 /// A CSS gradient.
@@ -128,6 +132,23 @@ pub struct ColorStop<Color, LengthOrPercentage> {
     pub position: Option<LengthOrPercentage>,
 }
 
+/// Specified values for a paint worklet.
+/// https://drafts.css-houdini.org/css-paint-api/
+#[derive(Clone, Debug, PartialEq, ToComputedValue)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct PaintWorklet {
+    /// The name the worklet was registered with.
+    pub name: Atom,
+}
+
+impl ToCss for PaintWorklet {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        dest.write_str("paint(")?;
+        serialize_identifier(&*self.name.to_string(), dest)?;
+        dest.write_str(")")
+    }
+}
+
 /// Values for `moz-image-rect`.
 ///
 /// `-moz-image-rect(<uri>, top, right, bottom, left);`
@@ -150,6 +171,8 @@ impl<G, R> fmt::Debug for Image<G, R>
             Image::Url(ref url) => url.to_css(f),
             Image::Gradient(ref grad) => grad.fmt(f),
             Image::Rect(ref rect) => rect.fmt(f),
+            #[cfg(feature = "servo")]
+            Image::PaintWorklet(ref paint_worklet) => paint_worklet.fmt(f),
             Image::Element(ref selector) => {
                 f.write_str("-moz-element(#")?;
                 serialize_identifier(&selector.to_string(), f)?;
@@ -167,6 +190,8 @@ impl<G, R> ToCss for Image<G, R>
             Image::Url(ref url) => url.to_css(dest),
             Image::Gradient(ref gradient) => gradient.to_css(dest),
             Image::Rect(ref rect) => rect.to_css(dest),
+            #[cfg(feature = "servo")]
+            Image::PaintWorklet(ref paint_worklet) => paint_worklet.to_css(dest),
             Image::Element(ref selector) => {
                 dest.write_str("-moz-element(#")?;
                 serialize_identifier(&selector.to_string(), dest)?;

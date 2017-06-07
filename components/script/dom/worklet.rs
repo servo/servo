@@ -10,6 +10,7 @@
 //! thread pool implementation, which only performs GC or code loading on
 //! a backup thread, not on the primary worklet thread.
 
+use app_units::Au;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestCredentials;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use dom::bindings::codegen::Bindings::WorkletBinding::WorkletMethods;
@@ -27,6 +28,7 @@ use dom::bindings::str::USVString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::RootedTraceableBox;
 use dom::globalscope::GlobalScope;
+use dom::paintworkletglobalscope::PaintWorkletTask;
 use dom::promise::Promise;
 use dom::testworkletglobalscope::TestWorkletTask;
 use dom::window::Window;
@@ -35,6 +37,7 @@ use dom::workletglobalscope::WorkletGlobalScopeInit;
 use dom::workletglobalscope::WorkletGlobalScopeType;
 use dom::workletglobalscope::WorkletTask;
 use dom_struct::dom_struct;
+use euclid::Size2D;
 use js::jsapi::JSGCParamKey;
 use js::jsapi::JSTracer;
 use js::jsapi::JS_GC;
@@ -42,6 +45,7 @@ use js::jsapi::JS_GetGCParameter;
 use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
 use net_traits::IpcSend;
+use net_traits::image::base::Image;
 use net_traits::load_whole_resource;
 use net_traits::request::Destination;
 use net_traits::request::RequestInit;
@@ -54,6 +58,9 @@ use script_runtime::new_rt_and_cx;
 use script_thread::MainThreadScriptMsg;
 use script_thread::Runnable;
 use script_thread::ScriptThread;
+use script_traits::PaintWorkletError;
+use script_traits::PaintWorkletExecutor;
+use servo_atoms::Atom;
 use servo_rand;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
@@ -62,12 +69,14 @@ use std::collections::HashMap;
 use std::collections::hash_map;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::sync::Mutex;
 use std::sync::atomic::AtomicIsize;
 use std::sync::atomic::Ordering;
 use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
 use std::thread;
+use std::time::Duration;
 use style::thread_state;
 use swapper::Swapper;
 use swapper::swapper;
@@ -76,6 +85,7 @@ use uuid::Uuid;
 // Magic numbers
 const WORKLET_THREAD_POOL_SIZE: u32 = 3;
 const MIN_GC_THRESHOLD: u32 = 1_000_000;
+const PAINT_TIMEOUT_MILLISECONDS: u64 = 10;
 
 #[dom_struct]
 /// https://drafts.css-houdini.org/worklets/#worklet
@@ -108,6 +118,13 @@ impl Worklet {
     #[allow(dead_code)]
     pub fn worklet_global_scope_type(&self) -> WorkletGlobalScopeType {
         self.global_type
+    }
+
+    pub fn executor(&self) -> WorkletExecutor {
+        WorkletExecutor {
+            worklet_id: self.worklet_id,
+            primary_sender: Mutex::new(ScriptThread::worklet_thread_pool().primary_sender.clone()),
+        }
     }
 }
 
@@ -561,7 +578,8 @@ impl WorkletThread {
         // TODO: Caching.
         // TODO: Avoid re-parsing the origin as a URL.
         let resource_fetcher = self.global_init.resource_threads.sender();
-        let origin_url = ServoUrl::parse(&*origin.unicode_serialization()).expect("Failed to parse origin as URL.");
+        let origin_url = ServoUrl::parse(&*origin.unicode_serialization())
+            .unwrap_or_else(|_| ServoUrl::parse("about:blank").unwrap());
         let request = RequestInit {
             url: script_url,
             type_: RequestType::Script,
@@ -633,5 +651,37 @@ impl WorkletThread {
         let msg = CommonScriptMsg::RunnableMsg(ScriptThreadEventCategory::WorkletEvent, box runnable);
         let msg = MainThreadScriptMsg::Common(msg);
         self.script_sender.send(msg).expect("Worklet thread outlived script thread.");
+    }
+}
+
+/// An executor of worklet tasks
+pub struct WorkletExecutor {
+    worklet_id: WorkletId,
+    // Rather annoyingly, we have to use a mutex here because
+    // layout threads share their context rather than cloning it.
+    primary_sender: Mutex<Sender<WorkletData>>,
+}
+
+impl WorkletExecutor {
+    /// Schedule a worklet task to be peformed by the worklet thread pool.
+    fn schedule_a_worklet_task(&self, task: WorkletTask) {
+        let _ = self.primary_sender.lock()
+            .expect("Locking the worklet channel.")
+            .send(WorkletData::Task(self.worklet_id, task));
+    }
+}
+
+impl PaintWorkletExecutor for WorkletExecutor {
+    /// https://drafts.css-houdini.org/css-paint-api/#draw-a-paint-image
+    fn draw_a_paint_image(&self,
+                          name: Atom,
+                          concrete_object_size: Size2D<Au>)
+                          -> Result<Image, PaintWorkletError>
+    {
+        let (sender, receiver) = mpsc::channel();
+        let task = WorkletTask::Paint(PaintWorkletTask::DrawAPaintImage(name, concrete_object_size, sender));
+        let timeout = Duration::from_millis(PAINT_TIMEOUT_MILLISECONDS);
+        self.schedule_a_worklet_task(task);
+        receiver.recv_timeout(timeout)?
     }
 }

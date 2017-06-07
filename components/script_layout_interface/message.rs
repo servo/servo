@@ -14,6 +14,7 @@ use profile_traits::mem::ReportsChan;
 use rpc::LayoutRPC;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{ScrollState, UntrustedNodeAddress, WindowSizeData};
+use script_traits::PaintWorkletExecutor;
 use servo_url::ServoUrl;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender};
@@ -84,6 +85,9 @@ pub enum Msg {
     /// Tells layout about a single new scrolling offset from the script. The rest will
     /// remain untouched and layout won't forward this back to script.
     UpdateScrollStateFromScript(ScrollState),
+
+    /// Tells layout that script has added some paint worklet modules.
+    SetPaintWorkletExecutor(Arc<PaintWorkletExecutor>),
 }
 
 

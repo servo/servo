@@ -10,6 +10,7 @@ name = "script_traits"
 path = "lib.rs"
 
 [dependencies]
+app_units = "0.4"
 bluetooth_traits = {path = "../bluetooth_traits"}
 canvas_traits = {path = "../canvas_traits"}
 cookie = "0.6"
@@ -29,6 +30,7 @@ profile_traits = {path = "../profile_traits"}
 rustc-serialize = "0.3.4"
 serde = "0.9"
 serde_derive = "0.9"
+servo_atoms = {path = "../atoms"}
 servo_url = {path = "../url"}
 style_traits = {path = "../style_traits", features = ["servo"]}
 time = "0.1.12"
