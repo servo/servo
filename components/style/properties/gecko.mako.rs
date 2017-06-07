@@ -3314,27 +3314,9 @@ fn static_assert() {
               I::IntoIter: ExactSizeIterator
     {
         let v = v.into_iter();
-
         self.gecko.mBoxShadow.replace_with_new(v.len() as u32);
-
         for (servo, gecko_shadow) in v.zip(self.gecko.mBoxShadow.iter_mut()) {
-
-            gecko_shadow.mXOffset = servo.offset_x.0;
-            gecko_shadow.mYOffset = servo.offset_y.0;
-            gecko_shadow.mRadius = servo.blur_radius.0;
-            gecko_shadow.mSpread = servo.spread_radius.0;
-            gecko_shadow.mSpread = servo.spread_radius.0;
-            gecko_shadow.mInset = servo.inset;
-            gecko_shadow.mColor = match servo.color {
-                Color::RGBA(rgba) => {
-                    gecko_shadow.mHasColor = true;
-                    convert_rgba_to_nscolor(&rgba)
-                },
-                // TODO handle currentColor
-                // https://bugzilla.mozilla.org/show_bug.cgi?id=760345
-                Color::CurrentColor => 0,
-            }
-
+            gecko_shadow.set_from_shadow(servo);
         }
     }
 
@@ -3343,16 +3325,7 @@ fn static_assert() {
     }
 
     pub fn clone_box_shadow(&self) -> longhands::box_shadow::computed_value::T {
-        let buf = self.gecko.mBoxShadow.iter().map(|shadow| {
-            Shadow {
-                offset_x: Au(shadow.mXOffset),
-                offset_y: Au(shadow.mYOffset),
-                blur_radius: Au(shadow.mRadius),
-                spread_radius: Au(shadow.mSpread),
-                inset: shadow.mInset,
-                color: Color::RGBA(convert_nscolor_to_rgba(shadow.mColor)),
-            }
-        }).collect();
+        let buf = self.gecko.mBoxShadow.iter().map(|v| v.to_shadow()).collect();
         longhands::box_shadow::computed_value::T(buf)
     }
 
@@ -3524,21 +3497,7 @@ fn static_assert() {
                     }
 
                     let mut gecko_shadow = init_shadow(gecko_filter);
-                    gecko_shadow.mArray[0].mXOffset = shadow.offset_x.0;
-                    gecko_shadow.mArray[0].mYOffset = shadow.offset_y.0;
-                    gecko_shadow.mArray[0].mRadius = shadow.blur_radius.0;
-                    // mSpread is not supported in the spec, so we leave it as 0
-                    gecko_shadow.mArray[0].mInset = false; // Not supported in spec level 1
-
-                    gecko_shadow.mArray[0].mColor = match shadow.color {
-                        Color::RGBA(rgba) => {
-                            gecko_shadow.mArray[0].mHasColor = true;
-                            convert_rgba_to_nscolor(&rgba)
-                        },
-                        // TODO handle currentColor
-                        // https://bugzilla.mozilla.org/show_bug.cgi?id=760345
-                        Color::CurrentColor => 0,
-                    };
+                    gecko_shadow.mArray[0].set_from_shadow(shadow);
                 }
                 Url(ref url) => {
                     unsafe {
@@ -3622,24 +3581,9 @@ fn static_assert() {
               I::IntoIter: ExactSizeIterator
     {
         let v = v.into_iter();
-
         self.gecko.mTextShadow.replace_with_new(v.len() as u32);
-
         for (servo, gecko_shadow) in v.zip(self.gecko.mTextShadow.iter_mut()) {
-            gecko_shadow.mXOffset = servo.offset_x.0;
-            gecko_shadow.mYOffset = servo.offset_y.0;
-            gecko_shadow.mRadius = servo.blur_radius.0;
-            gecko_shadow.mHasColor = false;
-            gecko_shadow.mColor = match servo.color {
-                Color::RGBA(rgba) => {
-                    gecko_shadow.mHasColor = true;
-                    convert_rgba_to_nscolor(&rgba)
-                },
-                // TODO handle currentColor
-                // https://bugzilla.mozilla.org/show_bug.cgi?id=760345
-                Color::CurrentColor => 0,
-            }
-
+            gecko_shadow.set_from_shadow(servo);
         }
     }
 
@@ -3648,16 +3592,7 @@ fn static_assert() {
     }
 
     pub fn clone_text_shadow(&self) -> longhands::text_shadow::computed_value::T {
-        let buf = self.gecko.mTextShadow.iter().map(|shadow| {
-            Shadow {
-                offset_x: Au(shadow.mXOffset),
-                offset_y: Au(shadow.mYOffset),
-                blur_radius: Au(shadow.mRadius),
-                spread_radius: Au(0),
-                color: Color::RGBA(convert_nscolor_to_rgba(shadow.mColor)),
-                inset: false,
-            }
-        }).collect();
+        let buf = self.gecko.mTextShadow.iter().map(|v| v.to_shadow()).collect();
         longhands::text_shadow::computed_value::T(buf)
     }
 
