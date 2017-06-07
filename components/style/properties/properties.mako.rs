@@ -2732,6 +2732,52 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
             let writing_mode = get_writing_mode(context.style.get_inheritedbox());
             context.style.writing_mode = writing_mode;
 
+            let mut _skip_font_family = false;
+
+            % if product == "gecko":
+                // Whenever a single generic value is specified, gecko will do a bunch of
+                // recalculation walking up the rule tree, including handling the font-size stuff.
+                // It basically repopulates the font struct with the default font for a given
+                // generic and language. We handle the font-size stuff separately, so this boils
+                // down to just copying over the font-family lists (no other aspect of the default
+                // font can be configured).
+
+                if seen.contains(LonghandId::XLang) || font_family.is_some() {
+                    // if just the language changed, the inherited generic is all we need
+                    let mut generic = inherited_style.get_font().gecko().mGenericID;
+                    if let Some(declaration) = font_family {
+                        if let PropertyDeclaration::FontFamily(ref fam) = *declaration {
+                            if let Some(id) = fam.single_generic() {
+                                generic = id;
+                                // In case of a specified font family with a single generic, we will
+                                // end up setting font family below, but its value would get
+                                // overwritten later in the pipeline when cascading.
+                                //
+                                // We instead skip cascading font-family in that case.
+                                //
+                                // In case of the language changing, we wish for a specified font-
+                                // family to override this, so we do not skip cascading then.
+                                _skip_font_family = true;
+                            }
+                        }
+                    }
+
+                    // In case of just the language changing, the parent could have had no generic,
+                    // which Gecko just does regular cascading with. Do the same.
+                    // This can only happen in the case where the language changed but the family did not
+                    if generic != structs::kGenericFont_NONE {
+                        let pres_context = context.device.pres_context;
+                        let gecko_font = context.mutate_style().mutate_font().gecko_mut();
+                        gecko_font.mGenericID = generic;
+                        unsafe {
+                            bindings::Gecko_nsStyleFont_PrefillDefaultForGeneric(gecko_font,
+                                                                                 &*pres_context,
+                                                                                 generic);
+                        }
+                    }
+                }
+            % endif
+
             // It is important that font_size is computed before
             // the late properties (for em units), but after font-family
             // (for the base-font-size dependence for default and keyword font-sizes)
@@ -2743,18 +2789,21 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
             // To avoid an extra iteration, we just pull out the property
             // during the early iteration and cascade them in order
             // after it.
-            if let Some(declaration) = font_family {
-                let discriminant = LonghandId::FontFamily as usize;
-                (CASCADE_PROPERTY[discriminant])(declaration,
-                                                 inherited_style,
-                                                 default_style,
-                                                 &mut context,
-                                                 &mut cacheable,
-                                                 &mut cascade_info,
-                                                 error_reporter);
-                % if product == "gecko":
-                    context.style.mutate_font().fixup_none_generic(context.device);
-                % endif
+            if !_skip_font_family {
+                if let Some(declaration) = font_family {
+
+                    let discriminant = LonghandId::FontFamily as usize;
+                    (CASCADE_PROPERTY[discriminant])(declaration,
+                                                     inherited_style,
+                                                     default_style,
+                                                     &mut context,
+                                                     &mut cacheable,
+                                                     &mut cascade_info,
+                                                     error_reporter);
+                    % if product == "gecko":
+                        context.style.mutate_font().fixup_none_generic(context.device);
+                    % endif
+                }
             }
 
             if let Some(declaration) = font_size {
