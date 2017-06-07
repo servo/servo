@@ -5291,31 +5291,24 @@ class CGClassConstructHook(CGAbstractExternMethod):
         if self.constructor.isHTMLConstructor():
             signatures = self.constructor.signatures()
             assert len(signatures) == 1
-            parentName = self.descriptor.getParentName()
-            if parentName:
-                parentName = toBindingNamespace(parentName)
-            constructorCall = CGGeneric("""
+            constructorCall = CGGeneric("""\
 // Step 2 https://html.spec.whatwg.org/multipage/#htmlconstructor
 // The custom element definition cannot use an element interface as its constructor
 
 rooted!(in(cx) let new_target = UnwrapObject(args.new_target().to_object(), 1));
 if new_target.is_null() {
     throw_dom_exception(cx, global.upcast::<GlobalScope>(), Error::Type("new.target is null".to_owned()));
+    return false;
 }
 
-{
-    let _ac = JSAutoCompartment::new(cx, new_target.get());
-
-    rooted!(in(cx) let mut constructor = ptr::null_mut());
-    rooted!(in(cx) let global_object = CurrentGlobalOrNull(cx));
-    %s::GetConstructorObject(cx, global_object.handle(), constructor.handle_mut());
-    if constructor.get() == new_target.get() {
-        throw_dom_exception(cx, global.upcast::<GlobalScope>(), Error::Type("new.target the active function object".to_owned()));
-        return false;
-    }
+rooted!(in(cx) let mut constructor = args.callee());
+if constructor.get() == new_target.get() {
+    throw_dom_exception(cx, global.upcast::<GlobalScope>(),
+        Error::Type("new.target must not be the active function object".to_owned()));
+    return false;
 }
 
-let result: Result<Root<HTMLElement>, Error> = create_html_element(&global, args);
+let result: Result<Root<HTMLElement>, Error> = html_constructor(&global, args);
 let result = match result {
     Ok(result) => result,
     Err(e) => {
@@ -5326,12 +5319,12 @@ let result = match result {
 
 (result).to_jsval(cx, args.rval());
 return true;
-""" % parentName)
+""")
         else:
             name = self.constructor.identifier.name
             nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
             constructorCall = CGMethodCall(["&global"], nativeName, True,
-                                         self.descriptor, self.constructor)
+                                           self.descriptor, self.constructor)
         return CGList([preamble, constructorCall])
 
 
@@ -5589,7 +5582,6 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::interface::ConstructorClassHook',
         'dom::bindings::interface::InterfaceConstructorBehavior',
         'dom::bindings::interface::NonCallbackInterfaceObjectClass',
-        'dom::bindings::interface::create_html_element',
         'dom::bindings::interface::create_global_object',
         'dom::bindings::interface::create_callback_interface_object',
         'dom::bindings::interface::create_interface_prototype_object',
@@ -5598,6 +5590,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::interface::define_guarded_constants',
         'dom::bindings::interface::define_guarded_methods',
         'dom::bindings::interface::define_guarded_properties',
+        'dom::bindings::interface::html_constructor',
         'dom::bindings::interface::is_exposed_in',
         'dom::bindings::iterable::Iterable',
         'dom::bindings::iterable::IteratorType',
