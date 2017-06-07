@@ -56,7 +56,7 @@ fn get_mock_map(selectors: &[&str]) -> (SelectorMap<Rule>, SharedRwLock) {
 
     for rules in selector_rules.into_iter() {
         for rule in rules.into_iter() {
-            map.insert(rule)
+            map.insert(rule, QuirksMode::NoQuirks)
         }
     }
 
@@ -217,11 +217,11 @@ fn test_get_local_name() {
 fn test_insert() {
     let (rules_list, _) = get_mock_rules(&[".intro.foo", "#top"]);
     let mut selector_map = SelectorMap::new();
-    selector_map.insert(rules_list[1][0].clone());
-    assert_eq!(1, selector_map.id_hash.get(&Atom::from("top")).unwrap()[0].source_order);
-    selector_map.insert(rules_list[0][0].clone());
-    assert_eq!(0, selector_map.class_hash.get(&Atom::from("foo")).unwrap()[0].source_order);
-    assert!(selector_map.class_hash.get(&Atom::from("intro")).is_none());
+    selector_map.insert(rules_list[1][0].clone(), QuirksMode::NoQuirks);
+    assert_eq!(1, selector_map.id_hash.get(&Atom::from("top"), QuirksMode::NoQuirks).unwrap()[0].source_order);
+    selector_map.insert(rules_list[0][0].clone(), QuirksMode::NoQuirks);
+    assert_eq!(0, selector_map.class_hash.get(&Atom::from("foo"), QuirksMode::NoQuirks).unwrap()[0].source_order);
+    assert!(selector_map.class_hash.get(&Atom::from("intro"), QuirksMode::NoQuirks).is_none());
 }
 
 #[test]

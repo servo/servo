@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use style::context::QuirksMode;
+
 #[test]
 fn smoke_restyle_hints() {
     use cssparser::{Parser, ParserInput};
@@ -23,6 +25,6 @@ fn smoke_restyle_hints() {
     assert_eq!((selectors.0).len(), 1);
 
     let selector = (selectors.0).first().unwrap();
-    dependencies.note_selector(selector);
+    dependencies.note_selector(selector, QuirksMode::NoQuirks);
     assert_eq!(dependencies.len(), 1);
 }

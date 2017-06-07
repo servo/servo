@@ -164,13 +164,14 @@ impl ElementSnapshot for GeckoElementSnapshot {
     }
 
     #[inline]
-    fn has_class(&self, name: &Atom) -> bool {
+    fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         if !self.has_any(Flags::MaybeClass) {
             return false;
         }
 
         snapshot_helpers::has_class(self.as_ptr(),
                                     name,
+                                    case_sensitivity,
                                     bindings::Gecko_SnapshotClassOrClassList)
     }
 
