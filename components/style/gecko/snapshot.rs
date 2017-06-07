@@ -181,4 +181,14 @@ impl ElementSnapshot for GeckoElementSnapshot {
                                      callback,
                                      bindings::Gecko_SnapshotClassOrClassList)
     }
+
+    #[inline]
+    fn lang_attr(&self) -> Option<Atom> {
+        let ptr = unsafe { bindings::Gecko_SnapshotLangValue(self) };
+        if ptr.is_null() {
+            None
+        } else {
+            Some(unsafe { Atom::from_addrefed(ptr) })
+        }
+    }
 }

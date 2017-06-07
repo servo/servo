@@ -13,7 +13,7 @@ use dom::{OpaqueNode, TElement, TNode};
 use element_state::ElementState;
 use fnv::FnvHashMap;
 use restyle_hints::ElementSnapshot;
-use selector_parser::{ElementExt, PseudoElementCascadeType, SelectorParser};
+use selector_parser::{AttrValue as SelectorAttrValue, ElementExt, PseudoElementCascadeType, SelectorParser};
 use selectors::Element;
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint};
 use selectors::parser::SelectorMethods;
@@ -587,6 +587,12 @@ impl ElementSnapshot for ServoElementSnapshot {
                 callback(class);
             }
         }
+    }
+
+    fn lang_attr(&self) -> Option<SelectorAttrValue> {
+        self.get_attr(&ns!(xml), &local_name!("lang"))
+            .or_else(|| self.get_attr(&ns!(), &local_name!("lang")))
+            .map(|v| String::from(v as &str))
     }
 }
 

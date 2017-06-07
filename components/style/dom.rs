@@ -17,7 +17,8 @@ use properties::{ComputedValues, PropertyDeclarationBlock};
 #[cfg(feature = "gecko")] use properties::animated_properties::AnimationValue;
 #[cfg(feature = "gecko")] use properties::animated_properties::TransitionProperty;
 use rule_tree::CascadeLevel;
-use selector_parser::{ElementExt, PreExistingComputedValues, PseudoElement};
+use selector_parser::{AttrValue, ElementExt, PreExistingComputedValues};
+use selector_parser::{PseudoClassStringArg, PseudoElement};
 use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
 use shared_lock::Locked;
 use sink::Push;
@@ -597,6 +598,20 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
                                              existing_transitions: &HashMap<TransitionProperty,
                                                                             Arc<AnimationValue>>)
                                              -> bool;
+
+    /// Returns the value of the `xml:lang=""` attribute (or, if appropriate,
+    /// the `lang=""` attribute) on this element.
+    fn lang_attr(&self) -> Option<AttrValue>;
+
+    /// Returns whether this element's language matches the language tag
+    /// `value`.  If `override_lang` is not `None`, it specifies the value
+    /// of the `xml:lang=""` or `lang=""` attribute to use in place of
+    /// looking at the element and its ancestors.  (This argument is used
+    /// to implement matching of `:lang()` against snapshots.)
+    fn match_element_lang(&self,
+                          override_lang: Option<Option<AttrValue>>,
+                          value: &PseudoClassStringArg)
+                          -> bool;
 }
 
 /// Trait abstracting over different kinds of dirty-descendants bits.
