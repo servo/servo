@@ -70,18 +70,26 @@ use dom::bindings::codegen::Bindings::HTMLTitleElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTrackElementBinding;
 use dom::bindings::codegen::Bindings::HTMLUListElementBinding;
 use dom::bindings::codegen::Bindings::HTMLVideoElementBinding;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InterfaceObjectMap::Globals;
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::constant::{ConstantSpec, define_constants};
-use dom::bindings::conversions::{DOM_OBJECT_SLOT, get_dom_class};
+use dom::bindings::conversions::{DOM_OBJECT_SLOT, DerivedFrom, get_dom_class};
+use dom::bindings::error::{Error, Fallible};
 use dom::bindings::guard::Guard;
+use dom::bindings::js::Root;
 use dom::bindings::utils::{DOM_PROTOTYPE_SLOT, ProtoOrIfaceArray, get_proto_or_iface_array};
+use dom::create::create_native_html_element;
+use dom::element::{Element, ElementCreator};
+use dom::htmlelement::HTMLElement;
+use dom::window::Window;
 use html5ever::LocalName;
+use html5ever::interface::QualName;
 use js::error::throw_type_error;
-use js::glue::{RUST_SYMBOL_TO_JSID, UncheckedUnwrapObject};
-use js::jsapi::{Class, ClassOps, CompartmentOptions, GetGlobalForObjectCrossCompartment};
-use js::jsapi::{GetWellKnownSymbol, HandleObject, HandleValue, JSAutoCompartment};
-use js::jsapi::{JSClass, JSContext, JSFUN_CONSTRUCTOR, JSFunctionSpec, JSObject};
+use js::glue::{RUST_SYMBOL_TO_JSID, UncheckedUnwrapObject, UnwrapObject};
+use js::jsapi::{CallArgs, Class, ClassOps, CompartmentOptions, CurrentGlobalOrNull};
+use js::jsapi::{GetGlobalForObjectCrossCompartment, GetWellKnownSymbol, HandleObject, HandleValue};
+use js::jsapi::{JSAutoCompartment, JSClass, JSContext, JSFUN_CONSTRUCTOR, JSFunctionSpec, JSObject};
 use js::jsapi::{JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_RESOLVING};
 use js::jsapi::{JSPropertySpec, JSString, JSTracer, JSVersion, JS_AtomizeAndPinString};
 use js::jsapi::{JS_DefineProperty, JS_DefineProperty1, JS_DefineProperty2};
@@ -223,6 +231,69 @@ pub unsafe fn create_global_object(
 
     let _ac = JSAutoCompartment::new(cx, rval.get());
     JS_FireOnNewGlobalObject(cx, rval.handle());
+}
+
+// https://html.spec.whatwg.org/multipage/#htmlconstructor
+pub unsafe fn html_constructor<T>(window: &Window, call_args: &CallArgs) -> Fallible<Root<T>>
+                                  where T: DerivedFrom<Element> {
+    let document = window.Document();
+
+    // Step 1
+    let registry = window.CustomElements();
+
+    // Step 2 is checked in the generated caller code
+
+    // Step 3
+    rooted!(in(window.get_cx()) let new_target = call_args.new_target().to_object());
+    let definition = match registry.lookup_definition_by_constructor(new_target.handle()) {
+        Some(definition) => definition,
+        None => return Err(Error::Type("No custom element definition found for new.target".to_owned())),
+    };
+
+    rooted!(in(window.get_cx()) let callee = UnwrapObject(call_args.callee(), 1));
+    if callee.is_null() {
+        return Err(Error::Security);
+    }
+
+    {
+        let _ac = JSAutoCompartment::new(window.get_cx(), callee.get());
+
+        if definition.is_autonomous() {
+            // Step 4
+            // Since this element is autonomous, its active function object must be the HTMLElement
+
+            // Retrieve the constructor object for HTMLElement
+            rooted!(in(window.get_cx()) let mut constructor = ptr::null_mut());
+            rooted!(in(window.get_cx()) let global_object = CurrentGlobalOrNull(window.get_cx()));
+            HTMLElementBinding::GetConstructorObject(window.get_cx(), global_object.handle(), constructor.handle_mut());
+
+            // Callee must be the same constructor object as HTMLElement
+            if constructor.get() != callee.get() {
+                return Err(Error::Type("Active function object is not HTMLElement".to_owned()));
+            }
+        } else {
+            // TODO: Step 5
+        }
+    }
+
+    // Step 8.1
+    let name = QualName::new(None, ns!(html), definition.local_name.clone());
+    let element = if definition.is_autonomous() {
+        Root::upcast(HTMLElement::new(name.local, None, &*document))
+    } else {
+        create_native_html_element(name, None, &*document, ElementCreator::ScriptCreated)
+    };
+
+    // Step 8.2 is performed in the generated caller code.
+
+    // TODO: Step 8.3 - 8.4
+    // Set the element's custom element state and definition.
+
+    // Step 8.5
+    Root::downcast(element).ok_or(Error::InvalidState)
+
+    // TODO: Steps 9-13
+    // Custom element upgrades are not implemented yet, so these steps are unnecessary.
 }
 
 /// Create and define the interface object of a callback interface.
