@@ -207,6 +207,8 @@ impl Sink {
                 qual_name: None,
             }
         };
+        let data: ParseNodeData = Default::default();
+        assert!(sink.parse_node_data.borrow_mut().insert(0, data).is_none());
         sink.nodes.borrow_mut().insert(0, JS::from_ref(document.upcast()));
         sink
     }
@@ -375,18 +377,21 @@ impl TreeSink for Sink {
     }
 
     fn get_template_contents(&mut self, target: &Self::Handle) -> Self::Handle {
+        let data;
+        {
+            let parse_node_data = self.parse_node_data.borrow();
+            data = parse_node_data.get(&target.id).expect("Expected data of parse node").contents.clone();
+        }
+        if data.is_some() {
+            return data.clone().unwrap();
+        }
+
+        let node = self.new_parse_node();
         let mut parse_node_data = self.parse_node_data.borrow_mut();
         let mut data = parse_node_data.get_mut(&target.id).expect("Expected data of parse node");
-        let contents = match data.contents {
-            Some(ref node) => node.clone(),
-            None => {
-                let node = self.new_parse_node();
-                data.contents = Some(node.clone());
-                self.enqueue(ParseOperation::GetTemplateContents(target.id, node.id));
-                node
-            }
-        };
-        contents
+        data.contents = Some(node.clone());
+        self.enqueue(ParseOperation::GetTemplateContents(target.id, node.id));
+        node
     }
 
     fn same_node(&self, x: &Self::Handle, y: &Self::Handle) -> bool {
