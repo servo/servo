@@ -221,6 +221,9 @@ impl ${style_struct.gecko_struct_name} {
     pub fn gecko(&self) -> &${style_struct.gecko_ffi_name} {
         &self.gecko
     }
+    pub fn gecko_mut(&mut self) -> &mut ${style_struct.gecko_ffi_name} {
+        &mut self.gecko
+    }
 }
 </%def>
 
@@ -1587,7 +1590,6 @@ fn static_assert() {
 
     pub fn set_font_family(&mut self, v: longhands::font_family::computed_value::T) {
         use properties::longhands::font_family::computed_value::FontFamily;
-        use gecko_bindings::structs::FontFamilyType;
 
         let list = &mut self.gecko.mFont.fontlist;
         unsafe { Gecko_FontFamilyList_Clear(list); }
@@ -1600,28 +1602,7 @@ fn static_assert() {
                     unsafe { Gecko_FontFamilyList_AppendNamed(list, f.name.as_ptr(), f.quoted); }
                 }
                 FontFamily::Generic(ref name) => {
-                    let (family_type, generic) =
-                        if name == &atom!("serif") {
-                            (FontFamilyType::eFamily_serif,
-                             structs::kGenericFont_serif)
-                        } else if name == &atom!("sans-serif") {
-                            (FontFamilyType::eFamily_sans_serif,
-                             structs::kGenericFont_sans_serif)
-                        } else if name == &atom!("cursive") {
-                            (FontFamilyType::eFamily_cursive,
-                             structs::kGenericFont_cursive)
-                        } else if name == &atom!("fantasy") {
-                            (FontFamilyType::eFamily_fantasy,
-                             structs::kGenericFont_fantasy)
-                        } else if name == &atom!("monospace") {
-                            (FontFamilyType::eFamily_monospace,
-                             structs::kGenericFont_monospace)
-                        } else if name == &atom!("-moz-fixed") {
-                            (FontFamilyType::eFamily_moz_fixed,
-                             structs::kGenericFont_moz_fixed)
-                        } else {
-                            panic!("Unknown generic font family")
-                        };
+                    let (family_type, generic) = FontFamily::generic(name);
                     if v.0.len() == 1 {
                         self.gecko.mGenericID = generic;
                     }

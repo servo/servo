@@ -191,6 +191,33 @@
                     quoted: false,
                 }))
             }
+
+            #[cfg(feature = "gecko")]
+            /// Return the generic ID for a given generic font name
+            pub fn generic(name: &Atom) -> (::gecko_bindings::structs::FontFamilyType, u8) {
+                use gecko_bindings::structs::{self, FontFamilyType};
+                if *name == atom!("serif") {
+                    (FontFamilyType::eFamily_serif,
+                     structs::kGenericFont_serif)
+                } else if *name == atom!("sans-serif") {
+                    (FontFamilyType::eFamily_sans_serif,
+                     structs::kGenericFont_sans_serif)
+                } else if *name == atom!("cursive") {
+                    (FontFamilyType::eFamily_cursive,
+                     structs::kGenericFont_cursive)
+                } else if *name == atom!("fantasy") {
+                    (FontFamilyType::eFamily_fantasy,
+                     structs::kGenericFont_fantasy)
+                } else if *name == atom!("monospace") {
+                    (FontFamilyType::eFamily_monospace,
+                     structs::kGenericFont_monospace)
+                } else if *name == atom!("-moz-fixed") {
+                    (FontFamilyType::eFamily_moz_fixed,
+                     structs::kGenericFont_moz_fixed)
+                } else {
+                    panic!("Unknown generic {}", name);
+                }
+            }
         }
 
         impl ToCss for FamilyName {
@@ -258,6 +285,21 @@
     pub enum SpecifiedValue {
         Values(Vec<FontFamily>),
         System(SystemFont),
+    }
+
+    #[cfg(feature = "gecko")]
+    impl SpecifiedValue {
+        /// Return the generic ID if it is a single generic font
+        pub fn single_generic(&self) -> Option<u8> {
+            if let SpecifiedValue::Values(ref values) = *self {
+                if values.len() == 1 {
+                    if let FontFamily::Generic(ref name) = values[0] {
+                        return Some(FontFamily::generic(name).1);
+                    }
+                }
+            }
+            None
+        }
     }
 
     impl ToComputedValue for SpecifiedValue {
