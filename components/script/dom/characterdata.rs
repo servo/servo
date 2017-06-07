@@ -6,6 +6,7 @@
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
 use dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
@@ -16,9 +17,10 @@ use dom::bindings::str::DOMString;
 use dom::comment::Comment;
 use dom::document::Document;
 use dom::element::Element;
-use dom::node::{Node, NodeDamage};
+use dom::node::{ChildrenMutation, Node, NodeDamage};
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
+use dom::virtualmethods::vtable_for;
 use dom_struct::dom_struct;
 use servo_config::opts;
 use std::cell::Ref;
@@ -85,6 +87,16 @@ impl CharacterDataMethods for CharacterData {
         self.content_changed();
         let node = self.upcast::<Node>();
         node.ranges().replace_code_units(node, 0, old_length, new_length);
+
+        // If this is a Text node, we might need to re-parse (say, if our parent
+        // is a <style> element.) We don't need to if this is a Comment or
+        // ProcessingInstruction.
+        if let Some(_) = self.downcast::<Text>() {
+            if let Some(parent_node) = node.GetParentNode() {
+                let mutation = ChildrenMutation::ChangeText;
+                vtable_for(&parent_node).children_changed(&mutation);
+            }
+        }
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-length
