@@ -24,6 +24,9 @@ bitflags! {
     }
 }
 
+/// The type used for storing pseudo-class string arguments.
+pub type PseudoClassStringArg = Box<[u16]>;
+
 macro_rules! pseudo_class_name {
     (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
      string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*],
@@ -37,7 +40,7 @@ macro_rules! pseudo_class_name {
             )*
             $(
                 #[doc = $s_css]
-                $s_name(Box<[u16]>),
+                $s_name(PseudoClassStringArg),
             )*
             $(
                 #[doc = $k_css]

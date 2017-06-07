@@ -160,6 +160,9 @@ impl PseudoElement {
     }
 }
 
+/// The type used for storing pseudo-class string arguments.
+pub type PseudoClassStringArg = Box<str>;
+
 /// A non tree-structural pseudo-class.
 /// See https://drafts.csswg.org/selectors-4/#structural-pseudos
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -175,7 +178,7 @@ pub enum NonTSPseudoClass {
     Fullscreen,
     Hover,
     Indeterminate,
-    Lang(Box<str>),
+    Lang(PseudoClassStringArg),
     Link,
     PlaceholderShown,
     ReadWrite,
