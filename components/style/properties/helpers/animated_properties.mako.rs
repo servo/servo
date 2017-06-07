@@ -10,6 +10,7 @@ use app_units::Au;
 use cssparser::{Color as CSSParserColor, Parser, RGBA, serialize_identifier};
 use euclid::{Point2D, Size2D};
 #[cfg(feature = "gecko")] use gecko_bindings::bindings::RawServoAnimationValueMap;
+#[cfg(feature = "gecko")] use gecko_bindings::structs::RawGeckoGfxMatrix4x4;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSPropertyID;
 #[cfg(feature = "gecko")] use gecko_bindings::sugar::ownership::{HasFFI, HasSimpleFFI};
 #[cfg(feature = "gecko")] use gecko_string_cache::Atom;
@@ -637,7 +638,31 @@ impl Animatable for AnimationValue {
                 % endif
             % endfor
             _ => {
-                panic!("Expected weighted addition of computed values of the same \
+                panic!("Expected addition of computed values of the same \
+                        property, got: {:?}, {:?}", self, other);
+            }
+        }
+    }
+
+    fn accumulate(&self, other: &Self, count: u64) -> Result<Self, ()> {
+        match (self, other) {
+            % for prop in data.longhands:
+                % if prop.animatable:
+                    % if prop.animation_value_type == "discrete":
+                        (&AnimationValue::${prop.camel_case}(_),
+                         &AnimationValue::${prop.camel_case}(_)) => {
+                            Err(())
+                        }
+                    % else:
+                        (&AnimationValue::${prop.camel_case}(ref from),
+                         &AnimationValue::${prop.camel_case}(ref to)) => {
+                            from.accumulate(to, count).map(AnimationValue::${prop.camel_case})
+                        }
+                    % endif
+                % endif
+            % endfor
+            _ => {
+                panic!("Expected accumulation of computed values of the same \
                         property, got: {:?}, {:?}", self, other);
             }
         }
@@ -1510,10 +1535,20 @@ fn build_identity_transform_list(list: &[TransformOperation]) -> Vec<TransformOp
             TransformOperation::Rotate(..) => {
                 result.push(TransformOperation::Rotate(0.0, 0.0, 1.0, Angle::zero()));
             }
-            TransformOperation::Perspective(..) => {
+            TransformOperation::Perspective(..) |
+            TransformOperation::AccumulateMatrix { .. } => {
+                // Perspective: We convert a perspective function into an equivalent
+                //     ComputedMatrix, and then decompose/interpolate/recompose these matrices.
+                // AccumulateMatrix: We do interpolation on AccumulateMatrix by reading it as a
+                //     ComputedMatrix (with layout information), and then do matrix interpolation.
+                //
+                // Therefore, we use an identity matrix to represent the identity transform list.
                 // http://dev.w3.org/csswg/css-transforms/#identity-transform-function
                 let identity = ComputedMatrix::identity();
                 result.push(TransformOperation::Matrix(identity));
+            }
+            TransformOperation::InterpolateMatrix { .. } => {
+                panic!("Building the identity matrix for InterpolateMatrix is not supported");
             }
         }
     }
@@ -1616,8 +1651,13 @@ fn add_weighted_transform_lists(from_list: &[TransformOperation],
             }
         }
     } else {
-        // TODO(gw): Implement matrix decomposition and interpolation
-        result.extend_from_slice(from_list);
+        use values::specified::Percentage;
+        let from_transform_list = TransformList(Some(from_list.to_vec()));
+        let to_transform_list = TransformList(Some(to_list.to_vec()));
+        result.push(
+            TransformOperation::InterpolateMatrix { from_list: from_transform_list,
+                                                    to_list: to_transform_list,
+                                                    progress: Percentage(other_portion as f32) });
     }
 
     TransformList(Some(result))
@@ -1886,6 +1926,28 @@ impl From<MatrixDecomposed2D> for ComputedMatrix {
         computed_matrix.m21 *= decomposed.scale.1;
         computed_matrix.m22 *= decomposed.scale.1;
         computed_matrix
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl<'a> From< &'a RawGeckoGfxMatrix4x4> for ComputedMatrix {
+    fn from(m: &'a RawGeckoGfxMatrix4x4) -> ComputedMatrix {
+        ComputedMatrix {
+            m11: m[0],  m12: m[1],  m13: m[2],  m14: m[3],
+            m21: m[4],  m22: m[5],  m23: m[6],  m24: m[7],
+            m31: m[8],  m32: m[9],  m33: m[10], m34: m[11],
+            m41: m[12], m42: m[13], m43: m[14], m44: m[15],
+        }
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl From<ComputedMatrix> for RawGeckoGfxMatrix4x4 {
+    fn from(matrix: ComputedMatrix) -> RawGeckoGfxMatrix4x4 {
+        [ matrix.m11, matrix.m12, matrix.m13, matrix.m14,
+          matrix.m21, matrix.m22, matrix.m23, matrix.m24,
+          matrix.m31, matrix.m32, matrix.m33, matrix.m34,
+          matrix.m41, matrix.m42, matrix.m43, matrix.m44 ]
     }
 }
 
@@ -2454,6 +2516,41 @@ impl Animatable for TransformList {
                 Ok(self.clone())
             }
             (&None, &Some(_)) => {
+                Ok(other.clone())
+            }
+            _ => {
+                Ok(TransformList(None))
+            }
+        }
+    }
+
+    #[inline]
+    fn accumulate(&self, other: &Self, count: u64) -> Result<Self, ()> {
+        match (&self.0, &other.0) {
+            (&Some(ref from_list), &Some(ref to_list)) => {
+                if can_interpolate_list(from_list, to_list) {
+                    Ok(add_weighted_transform_lists(from_list, &to_list, count as f64, 1.0))
+                } else {
+                    use std::i32;
+                    let result = vec![TransformOperation::AccumulateMatrix {
+                        from_list: self.clone(),
+                        to_list: other.clone(),
+                        count: cmp::min(count, i32::MAX as u64) as i32
+                    }];
+                    Ok(TransformList(Some(result)))
+                }
+            }
+            (&Some(ref from_list), &None) => {
+                Ok(add_weighted_transform_lists(from_list, from_list, count as f64, 0.0))
+            }
+            (&None, &Some(_)) => {
+                // If |self| is 'none' then we are calculating:
+                //
+                //    none * |count| + |other|
+                //    = none + |other|
+                //    = |other|
+                //
+                // Hence the result is just |other|.
                 Ok(other.clone())
             }
             _ => {

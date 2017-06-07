@@ -8,8 +8,9 @@ use app_units::Au;
 use gecko_bindings::bindings;
 use gecko_bindings::structs;
 use gecko_bindings::structs::{nsCSSValue, nsCSSUnit};
-use gecko_bindings::structs::{nsCSSValue_Array, nscolor};
+use gecko_bindings::structs::{nsCSSValue_Array, nsCSSValueList, nscolor};
 use gecko_string_cache::Atom;
+use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Index, IndexMut};
 use std::slice;
@@ -225,19 +226,17 @@ impl nsCSSValue {
     /// Set to a list value
     ///
     /// This is only supported on the main thread.
-    pub fn set_list<I>(&mut self, mut values: I) where I: ExactSizeIterator<Item=nsCSSValue> {
+    pub fn set_list<I>(&mut self, values: I) where I: ExactSizeIterator<Item=nsCSSValue> {
         debug_assert!(values.len() > 0, "Empty list is not supported");
         unsafe { bindings::Gecko_CSSValue_SetList(self, values.len() as u32); }
         debug_assert_eq!(self.mUnit, nsCSSUnit::eCSSUnit_List);
-        let mut item_ptr = &mut unsafe {
+        let list: &mut structs::nsCSSValueList = &mut unsafe {
             self.mValue.mList.as_ref() // &*nsCSSValueList_heap
                 .as_mut().expect("List pointer should be non-null")
-        }._base as *mut structs::nsCSSValueList;
-        while let Some(item) = unsafe { item_ptr.as_mut() } {
-            item.mValue = values.next().expect("Values shouldn't have been exhausted");
-            item_ptr = item.mNext;
+        }._base;
+        for (item, new_value) in list.into_iter().zip(values) {
+            *item = new_value;
         }
-        debug_assert!(values.next().is_none(), "Values should have been exhausted");
     }
 
     /// Set to a pair list value
@@ -260,11 +259,84 @@ impl nsCSSValue {
         }
         debug_assert!(values.next().is_none(), "Values should have been exhausted");
     }
+
+    /// Set a shared list
+    pub fn set_shared_list<I>(&mut self, values: I) where I: ExactSizeIterator<Item=nsCSSValue> {
+        debug_assert!(values.len() > 0, "Empty list is not supported");
+        unsafe { bindings::Gecko_CSSValue_InitSharedList(self, values.len() as u32) };
+        debug_assert_eq!(self.mUnit, nsCSSUnit::eCSSUnit_SharedList);
+        let list = unsafe {
+            self.mValue.mSharedList.as_ref()
+                .as_mut().expect("List pointer should be non-null").mHead.as_mut()
+        };
+        debug_assert!(list.is_some(), "New created shared list shouldn't be null");
+        for (item, new_value) in list.unwrap().into_iter().zip(values) {
+            *item = new_value;
+        }
+    }
 }
 
 impl Drop for nsCSSValue {
     fn drop(&mut self) {
         unsafe { bindings::Gecko_CSSValue_Drop(self) };
+    }
+}
+
+/// Iterator of nsCSSValueList.
+#[allow(non_camel_case_types)]
+pub struct nsCSSValueListIterator<'a> {
+    current: Option<&'a nsCSSValueList>,
+}
+
+impl<'a> Iterator for nsCSSValueListIterator<'a> {
+    type Item = &'a nsCSSValue;
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.current {
+            Some(item) => {
+                self.current = unsafe { item.mNext.as_ref() };
+                Some(&item.mValue)
+            },
+            None => None
+        }
+    }
+}
+
+impl<'a> IntoIterator for &'a nsCSSValueList {
+    type Item = &'a nsCSSValue;
+    type IntoIter = nsCSSValueListIterator<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        nsCSSValueListIterator { current: Some(self) }
+    }
+}
+
+/// Mutable Iterator of nsCSSValueList.
+#[allow(non_camel_case_types)]
+pub struct nsCSSValueListMutIterator<'a> {
+    current: *mut nsCSSValueList,
+    phantom: PhantomData<&'a mut nsCSSValue>,
+}
+
+impl<'a> Iterator for nsCSSValueListMutIterator<'a> {
+    type Item = &'a mut nsCSSValue;
+    fn next(&mut self) -> Option<Self::Item> {
+        match unsafe { self.current.as_mut() } {
+            Some(item) => {
+                self.current = item.mNext;
+                Some(&mut item.mValue)
+            },
+            None => None
+        }
+    }
+}
+
+impl<'a> IntoIterator for &'a mut nsCSSValueList {
+    type Item = &'a mut nsCSSValue;
+    type IntoIter = nsCSSValueListMutIterator<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        nsCSSValueListMutIterator { current: self as *mut nsCSSValueList,
+                                    phantom: PhantomData }
     }
 }
 

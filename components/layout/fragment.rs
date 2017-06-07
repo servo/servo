@@ -2896,6 +2896,12 @@ impl Fragment {
                     Matrix4D::create_skew(Radians::new(theta_x.radians()),
                                           Radians::new(theta_y.radians()))
                 }
+                transform::ComputedOperation::InterpolateMatrix { .. } |
+                transform::ComputedOperation::AccumulateMatrix { .. } => {
+                    // TODO: Convert InterpolateMatrix/AccmulateMatrix into a valid Matrix4D by
+                    // the reference box.
+                    Matrix4D::identity()
+                }
             };
 
             transform = transform.pre_mul(&matrix);

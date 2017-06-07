@@ -72,12 +72,14 @@ use style::gecko_bindings::structs::{nsCSSFontFaceRule, nsCSSCounterStyleRule};
 use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint, PropertyValuePair};
 use style::gecko_bindings::structs::IterationCompositeOperation;
 use style::gecko_bindings::structs::MallocSizeOf;
+use style::gecko_bindings::structs::RawGeckoGfxMatrix4x4;
 use style::gecko_bindings::structs::RawGeckoPresContextOwned;
 use style::gecko_bindings::structs::ServoElementSnapshotTable;
 use style::gecko_bindings::structs::StyleRuleInclusion;
 use style::gecko_bindings::structs::URLExtraData;
 use style::gecko_bindings::structs::nsCSSValueSharedList;
 use style::gecko_bindings::structs::nsCompatibility;
+use style::gecko_bindings::structs::nsStyleTransformMatrix::MatrixTransformOperator;
 use style::gecko_bindings::structs::nsresult;
 use style::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasFFI, HasArcFFI, HasBoxFFI};
 use style::gecko_bindings::sugar::ownership::{HasSimpleFFI, Strong};
@@ -1592,6 +1594,28 @@ pub extern "C" fn Servo_GetProperties_Overriding_Animation(element: RawGeckoElem
             }
         }
     }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_MatrixTransform_Operate(matrix_operator: MatrixTransformOperator,
+                                                from: *const RawGeckoGfxMatrix4x4,
+                                                to: *const RawGeckoGfxMatrix4x4,
+                                                progress: f64,
+                                                output: *mut RawGeckoGfxMatrix4x4) {
+    use self::MatrixTransformOperator::{Accumulate, Interpolate};
+    use style::properties::longhands::transform::computed_value::ComputedMatrix;
+
+    let from = ComputedMatrix::from(unsafe { from.as_ref() }.expect("not a valid 'from' matrix"));
+    let to = ComputedMatrix::from(unsafe { to.as_ref() }.expect("not a valid 'to' matrix"));
+    let result = match matrix_operator {
+        Interpolate => from.interpolate(&to, progress),
+        Accumulate => from.accumulate(&to, progress as u64),
+    };
+
+    let output = unsafe { output.as_mut() }.expect("not a valid 'output' matrix");
+    if let Ok(result) =  result {
+        *output = result.into();
+    };
 }
 
 #[no_mangle]
