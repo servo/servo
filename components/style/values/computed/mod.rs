@@ -488,13 +488,13 @@ impl ToCss for Shadow {
         if self.inset {
             dest.write_str("inset ")?;
         }
-        self.blur_radius.to_css(dest)?;
-        dest.write_str(" ")?;
-        self.spread_radius.to_css(dest)?;
-        dest.write_str(" ")?;
         self.offset_x.to_css(dest)?;
         dest.write_str(" ")?;
         self.offset_y.to_css(dest)?;
+        dest.write_str(" ")?;
+        self.blur_radius.to_css(dest)?;
+        dest.write_str(" ")?;
+        self.spread_radius.to_css(dest)?;
         dest.write_str(" ")?;
         self.color.to_css(dest)?;
         Ok(())
