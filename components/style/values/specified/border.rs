@@ -7,8 +7,6 @@
 use app_units::Au;
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
-use std::fmt;
-use style_traits::ToCss;
 use values::computed::{Context, ToComputedValue};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::border::BorderImageSideWidth as GenericBorderImageSideWidth;
@@ -20,7 +18,7 @@ use values::specified::length::{Length, LengthOrPercentage};
 
 /// A specified value for a single side of the `border-width` property.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
+#[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
 pub enum BorderSideWidth {
     /// `thin`
     Thin,
@@ -70,17 +68,6 @@ impl BorderSideWidth {
 impl Parse for BorderSideWidth {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         Self::parse_quirky(context, input, AllowQuirks::No)
-    }
-}
-
-impl ToCss for BorderSideWidth {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            BorderSideWidth::Thin => dest.write_str("thin"),
-            BorderSideWidth::Medium => dest.write_str("medium"),
-            BorderSideWidth::Thick => dest.write_str("thick"),
-            BorderSideWidth::Length(ref length) => length.to_css(dest)
-        }
     }
 }
 

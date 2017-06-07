@@ -287,72 +287,11 @@ ${helpers.predefined_type(
     ignored_when_colors_disabled=True,
     spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-color")}
 
-<%helpers:longhand name="initial-letter"
-                   animation_value_type="none"
-                   products="gecko"
-                   spec="https://drafts.csswg.org/css-inline/#sizing-drop-initials">
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::computed::ComputedValueAsSpecified;
-    use values::specified::{Number, Integer};
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
-    no_viewport_percentage!(SpecifiedValue);
-
-    #[derive(PartialEq, Clone, Debug)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub enum SpecifiedValue {
-        Normal,
-        Specified(Number, Option<Integer>)
-    }
-
-    pub mod computed_value {
-        pub use super::SpecifiedValue as T;
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                SpecifiedValue::Normal => try!(dest.write_str("normal")),
-                SpecifiedValue::Specified(size, sink) => {
-                    try!(size.to_css(dest));
-                    if let Some(sink) = sink {
-                        try!(dest.write_str(" "));
-                        try!(sink.to_css(dest));
-                    }
-                }
-            };
-
-            Ok(())
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::Normal
-    }
-
-    #[inline]
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue::Normal
-    }
-
-    /// normal | <number> <integer>?
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
-            return Ok(SpecifiedValue::Normal);
-        }
-
-        let size = try!(Number::parse_at_least_one(context, input));
-
-        match input.try(|input| Integer::parse(context, input)) {
-            Ok(number) => {
-                if number.value() < 1 {
-                    return Err(());
-                }
-                Ok(SpecifiedValue::Specified(size, Some(number)))
-            }
-            Err(()) => Ok(SpecifiedValue::Specified(size, None)),
-        }
-    }
-</%helpers:longhand>
+${helpers.predefined_type(
+    "initial-letter",
+    "InitialLetter",
+    "computed::InitialLetter::normal()",
+    initial_specified_value="specified::InitialLetter::normal()",
+    animation_value_type="none",
+    products="gecko",
+    spec="https://drafts.csswg.org/css-inline/#sizing-drop-initials")}

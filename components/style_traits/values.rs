@@ -8,8 +8,15 @@ use app_units::Au;
 use cssparser::UnicodeRange;
 use std::fmt;
 
-/// The real `ToCss` trait can't be implemented for types in crates that don't
-/// depend on each other.
+/// Serialises a value according to its CSS representation.
+///
+/// This trait is derivable with `#[derive(ToCss)]`, with the following behaviour:
+/// * unit variants get serialised as the `snake-case` representation
+///   of their name;
+/// * unit variants whose name starts with "Moz" or "Webkit" are prepended
+///   with a "-";
+/// * variants with fields get serialised as the space-separated serialisations
+///   of their fields.
 pub trait ToCss {
     /// Serialize `self` in CSS syntax, writing to `dest`.
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write;

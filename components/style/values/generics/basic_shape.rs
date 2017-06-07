@@ -19,7 +19,7 @@ pub type ClippingShape<BasicShape> = ShapeSource<BasicShape, GeometryBox>;
 /// https://drafts.fxtf.org/css-masking-1/#typedef-geometry-box
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, ToCss)]
 pub enum GeometryBox {
     FillBox,
     StrokeBox,
@@ -138,17 +138,6 @@ impl<B: ToCss, T: ToCss> ToCss for ShapeSource<B, T> {
             ShapeSource::Shape(ref shape, None) => shape.to_css(dest),
             ShapeSource::Box(ref val) => val.to_css(dest),
             ShapeSource::None => dest.write_str("none"),
-        }
-    }
-}
-
-impl ToCss for GeometryBox {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            GeometryBox::FillBox => dest.write_str("fill-box"),
-            GeometryBox::StrokeBox => dest.write_str("stroke-box"),
-            GeometryBox::ViewBox => dest.write_str("view-box"),
-            GeometryBox::ShapeBox(s) => s.to_css(dest),
         }
     }
 }

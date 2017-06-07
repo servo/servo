@@ -182,22 +182,13 @@ impl<T: Parse> Parse for FontSettingTag<T> {
 
 
 /// A font settings value for font-variation-settings or font-feature-settings
-#[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, Eq, PartialEq, ToCss)]
 pub enum FontSettings<T> {
     /// No settings (default)
     Normal,
     /// Set of settings
     Tag(Vec<FontSettingTag<T>>)
-}
-
-impl<T: ToCss> ToCss for FontSettings<T> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            FontSettings::Normal => dest.write_str("normal"),
-            FontSettings::Tag(ref ftvs) => ftvs.to_css(dest)
-        }
-    }
 }
 
 impl<T: Parse> Parse for FontSettings<T> {
@@ -290,8 +281,8 @@ pub struct SVGPaint<ColorType> {
 /// Whereas the spec only allows PaintServer
 /// to have a fallback, Gecko lets the context
 /// properties have a fallback as well.
-#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, PartialEq, ToCss)]
 pub enum SVGPaintKind<ColorType> {
     /// `none`
     None,
@@ -374,18 +365,6 @@ impl<ColorType: Parse> Parse for SVGPaint<ColorType> {
             })
         } else {
             Err(())
-        }
-    }
-}
-
-impl<ColorType: ToCss> ToCss for SVGPaintKind<ColorType> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            SVGPaintKind::None => dest.write_str("none"),
-            SVGPaintKind::ContextStroke => dest.write_str("context-stroke"),
-            SVGPaintKind::ContextFill => dest.write_str("context-fill"),
-            SVGPaintKind::Color(ref color) => color.to_css(dest),
-            SVGPaintKind::PaintServer(ref server) => server.to_css(dest),
         }
     }
 }

@@ -45,7 +45,7 @@ pub use self::length::{Percentage, LengthOrNone, LengthOrNumber, LengthOrPercent
 pub use self::length::{LengthOrPercentageOrNone, LengthOrPercentageOrAutoOrContent, NoCalcLength};
 pub use self::length::{MaxLength, MozLength};
 pub use self::position::{Position, PositionComponent};
-pub use self::text::{LetterSpacing, LineHeight, WordSpacing};
+pub use self::text::{InitialLetter, LetterSpacing, LineHeight, WordSpacing};
 pub use self::transform::{TimingFunction, TransformOrigin};
 pub use super::generics::grid::GridLine;
 

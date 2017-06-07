@@ -9,9 +9,14 @@ use parser::{Parse, ParserContext};
 use std::ascii::AsciiExt;
 use values::computed::{Context, ToComputedValue};
 use values::computed::text::LineHeight as ComputedLineHeight;
-use values::generics::text::{LineHeight as GenericLineHeight, Spacing};
-use values::specified::{AllowQuirks, Number};
+use values::generics::text::InitialLetter as GenericInitialLetter;
+use values::generics::text::LineHeight as GenericLineHeight;
+use values::generics::text::Spacing;
+use values::specified::{AllowQuirks, Integer, Number};
 use values::specified::length::{FontRelativeLength, Length, LengthOrPercentage, NoCalcLength};
+
+/// A specified type for the `initial-letter` property.
+pub type InitialLetter = GenericInitialLetter<Number, Integer>;
 
 /// A specified value for the `letter-spacing` property.
 pub type LetterSpacing = Spacing<Length>;
@@ -21,6 +26,17 @@ pub type WordSpacing = Spacing<LengthOrPercentage>;
 
 /// A specified value for the `line-height` property.
 pub type LineHeight = GenericLineHeight<Number, LengthOrPercentage>;
+
+impl Parse for InitialLetter {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        if input.try(|i| i.expect_ident_matching("normal")).is_ok() {
+            return Ok(GenericInitialLetter::Normal);
+        }
+        let size = Number::parse_at_least_one(context, input)?;
+        let sink = input.try(|i| Integer::parse_positive(context, i)).ok();
+        Ok(GenericInitialLetter::Specified(size, sink))
+    }
+}
 
 impl Parse for LetterSpacing {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {

@@ -3894,18 +3894,18 @@ fn static_assert() {
     }
 
     pub fn set_initial_letter(&mut self, v: longhands::initial_letter::computed_value::T) {
-        use properties::longhands::initial_letter::computed_value::T;
+        use values::generics::text::InitialLetter;
         match v {
-            T::Normal => {
+            InitialLetter::Normal => {
                 self.gecko.mInitialLetterSize = 0.;
                 self.gecko.mInitialLetterSink = 0;
             },
-            T::Specified(size, sink) => {
-                self.gecko.mInitialLetterSize = size.get();
+            InitialLetter::Specified(size, sink) => {
+                self.gecko.mInitialLetterSize = size;
                 if let Some(sink) = sink {
-                    self.gecko.mInitialLetterSink = sink.value();
+                    self.gecko.mInitialLetterSink = sink;
                 } else {
-                    self.gecko.mInitialLetterSink = size.get().floor() as i32;
+                    self.gecko.mInitialLetterSink = size.floor() as i32;
                 }
             }
         }
