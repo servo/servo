@@ -382,10 +382,10 @@ impl TreeSink for Sink {
             None => {
                 let node = self.new_parse_node();
                 data.contents = Some(node.clone());
+                self.enqueue(ParseOperation::GetTemplateContents(target.id, node.id));
                 node
             }
         };
-        self.enqueue(ParseOperation::GetTemplateContents(target.id, contents.id));
         contents
     }
 
@@ -449,29 +449,29 @@ impl TreeSink for Sink {
     }
 
     fn append_before_sibling(&mut self,
-            sibling: &Self::Handle,
-            new_node: NodeOrText<Self::Handle>) {
-        match self.parse_node_data.borrow().get(&sibling.id) {
-            Some(ref data) => {
-                match data.parent {
-                    Some(ref parent_id) => {
-                        // Get sibling's parent and set new_node's parent
-                        if let NodeOrText::AppendNode(ref n) = new_node {
-                            self.parse_node_data.borrow_mut().get_mut(&n.id).unwrap().parent = Some(parent_id.clone());
-                        }
-
-                        let new_node = match new_node {
-                            NodeOrText::AppendNode(node) => ParserNodeOrText::Node(node.id),
-                            NodeOrText::AppendText(text) => ParserNodeOrText::Text(text.into()),
-                        };
-
-                        self.enqueue(ParseOperation::Insert(*parent_id, Some(sibling.id), new_node));
-                    },
-                    None => panic!("append_before_sibling called on node without parent!"),
-                }
-            },
-            None => panic!("Element does not exist!"),
+                             sibling: &Self::Handle,
+                             new_node: NodeOrText<Self::Handle>) {
+        let mut parse_node_data = self.parse_node_data.borrow_mut();
+        let parent_id;
+        {
+            let data = parse_node_data.get(&sibling.id).expect("Element does not exist!");
+            if !data.parent.is_some() {
+                panic!("append_before_sibling called on node without parent!");
+            }
+            parent_id = data.parent.unwrap();
         }
+
+        // Get sibling's parent and set new_node's parent
+        if let NodeOrText::AppendNode(ref n) = new_node {
+            parse_node_data.get_mut(&n.id).unwrap().parent = Some(parent_id);
+        }
+
+        let new_node = match new_node {
+            NodeOrText::AppendNode(node) => ParserNodeOrText::Node(node.id),
+            NodeOrText::AppendText(text) => ParserNodeOrText::Text(text.into()),
+        };
+
+        self.enqueue(ParseOperation::Insert(parent_id, Some(sibling.id), new_node));
     }
 
     fn parse_error(&mut self, msg: Cow<'static, str>) {
@@ -489,7 +489,12 @@ impl TreeSink for Sink {
 
     fn append(&mut self, parent: &Self::Handle, child: NodeOrText<Self::Handle>) {
         let new_node = match child {
-            NodeOrText::AppendNode(node) => ParserNodeOrText::Node(node.id),
+            NodeOrText::AppendNode(node) => {
+                let mut parse_node_data = self.parse_node_data.borrow_mut();
+                let data = parse_node_data.get_mut(&node.id).expect("Element does not exist!");
+                data.parent = Some(parent.id);
+                ParserNodeOrText::Node(node.id)
+            },
             NodeOrText::AppendText(text) => ParserNodeOrText::Text(text.into()),
         };
         self.enqueue(ParseOperation::Insert(parent.id, None, new_node));
@@ -526,13 +531,13 @@ impl TreeSink for Sink {
         NextParserState::Suspend
     }
 
-    fn reparent_children(&mut self, node: &Self::Handle, new_parent: &Self::Handle) {
+    fn reparent_children(&mut self, parent: &Self::Handle, new_parent: &Self::Handle) {
         for data in self.parse_node_data.borrow_mut().values_mut() {
-            if data.parent == Some(node.id) {
+            if data.parent == Some(parent.id) {
                 data.parent = Some(new_parent.id);
             }
         }
-        self.enqueue(ParseOperation::ReparentChildren(node.id, new_parent.id));
+        self.enqueue(ParseOperation::ReparentChildren(parent.id, new_parent.id));
     }
 
     /// https://html.spec.whatwg.org/multipage/#html-integration-point
