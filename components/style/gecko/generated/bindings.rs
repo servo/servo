@@ -2051,6 +2051,16 @@ extern "C" {
                                            result: *mut nsAString);
 }
 extern "C" {
+    pub fn Servo_StyleRule_GetSelectorTextFromIndex(rule:
+                                                        RawServoStyleRuleBorrowed,
+                                                    index: u32,
+                                                    result: *mut nsAString);
+}
+extern "C" {
+    pub fn Servo_StyleRule_GetSelectorCount(rule: RawServoStyleRuleBorrowed,
+                                            count: *mut u32);
+}
+extern "C" {
     pub fn Servo_ImportRule_GetHref(rule: RawServoImportRuleBorrowed,
                                     result: *mut nsAString);
 }
