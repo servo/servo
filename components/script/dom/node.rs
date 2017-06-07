@@ -2523,6 +2523,11 @@ pub enum ChildrenMutation<'a> {
         next: Option<&'a Node>,
     },
     ReplaceAll { removed: &'a [&'a Node], added: &'a [&'a Node] },
+    /// Mutation for when a CharacterData node's data is modified.
+    /// This doesn't change the structure of the list, which is what the other
+    /// variants' fields are stored for at the moment, so this can just have no
+    /// arguments.
+    CharacterData,
 }
 
 impl<'a> ChildrenMutation<'a> {
@@ -2574,6 +2579,9 @@ impl<'a> ChildrenMutation<'a> {
     }
 
     /// Get the child that follows the added or removed children.
+    /// Currently only used when this mutation might force us to
+    /// restyle later children (see HAS_SLOW_SELECTOR_LATER_SIBLINGS and
+    /// Element's implementation of VirtualMethods::children_changed).
     pub fn next_child(&self) -> Option<&Node> {
         match *self {
             ChildrenMutation::Append { .. } => None,
@@ -2581,6 +2589,7 @@ impl<'a> ChildrenMutation<'a> {
             ChildrenMutation::Prepend { next, .. } => Some(next),
             ChildrenMutation::Replace { next, .. } => next,
             ChildrenMutation::ReplaceAll { .. } => None,
+            ChildrenMutation::CharacterData => None,
         }
     }
 
@@ -2618,6 +2627,7 @@ impl<'a> ChildrenMutation<'a> {
 
             ChildrenMutation::Replace { prev: None, next: None, .. } => unreachable!(),
             ChildrenMutation::ReplaceAll { .. } => None,
+            ChildrenMutation::CharacterData => None,
         }
     }
 }
