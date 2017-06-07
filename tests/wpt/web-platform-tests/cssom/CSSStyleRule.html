@@ -67,8 +67,27 @@
             assert_idl_attribute(rule, "selectorText");
             assert_equals(typeof rule.selectorText, "string");
             assert_idl_attribute(rule, "style");
-            assert_readonly(rule, "style");
-        }, "Existence, writability and type of CSSStyleRule attributes");
+        }, "Existence and type of CSSStyleRule attributes");
+
+        test(function() {
+            var initial = rule.style.cssText;
+            var style = rule.style;
+
+            rule.style = "";
+            assert_equals(rule.style.cssText, "");
+            assert_true(rule.style === style);
+
+            rule.style = "margin: 42px;";
+            assert_equals(rule.style.margin, "42px");
+            assert_true(rule.style === style);
+
+            rule.style = "border: 1px solid;";
+            assert_equals(rule.style.border, "1px solid");
+            assert_true(rule.style === style);
+
+            rule.style = initial;
+            assert_true(rule.style === style);
+        }, "Assigning to CSSStyleRule.style assigns to cssText");
 
         test(function() {
             assert_equals(rule.selectorText, "div");
