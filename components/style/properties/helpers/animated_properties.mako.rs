@@ -19,9 +19,7 @@ use properties::longhands::background_size::computed_value::T as BackgroundSizeL
 use properties::longhands::font_weight::computed_value::T as FontWeight;
 use properties::longhands::font_stretch::computed_value::T as FontStretch;
 use properties::longhands::text_shadow::computed_value::T as TextShadowList;
-use properties::longhands::text_shadow::computed_value::TextShadow;
 use properties::longhands::box_shadow::computed_value::T as BoxShadowList;
-use properties::longhands::box_shadow::single_value::computed_value::T as BoxShadow;
 use properties::longhands::transform::computed_value::ComputedMatrix;
 use properties::longhands::transform::computed_value::ComputedOperation as TransformOperation;
 use properties::longhands::transform::computed_value::T as TransformList;
@@ -40,7 +38,7 @@ use values::{Auto, Either};
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{BorderCornerRadius, ClipRect};
 use values::computed::{CalcLengthOrPercentage, Context, ComputedValueAsSpecified};
-use values::computed::{LengthOrPercentage, MaxLength, MozLength, ToComputedValue};
+use values::computed::{LengthOrPercentage, MaxLength, MozLength, Shadow, ToComputedValue};
 use values::generics::{SVGPaint, SVGPaintKind};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::position as generic_position;
@@ -1457,132 +1455,6 @@ impl Animatable for ClipRect {
     }
 }
 
-<%def name="impl_animatable_for_shadow(item, transparent_color)">
-    impl Animatable for ${item} {
-        #[inline]
-        fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-            % if "Box" in item:
-            // It can't be interpolated if inset does not match.
-            if self.inset != other.inset {
-                return Err(());
-            }
-            % endif
-
-            let x = try!(self.offset_x.add_weighted(&other.offset_x, self_portion, other_portion));
-            let y = try!(self.offset_y.add_weighted(&other.offset_y, self_portion, other_portion));
-            let color = try!(self.color.add_weighted(&other.color, self_portion, other_portion));
-            let blur = try!(self.blur_radius.add_weighted(&other.blur_radius,
-                                                          self_portion, other_portion));
-            % if "Box" in item:
-            let spread = try!(self.spread_radius.add_weighted(&other.spread_radius,
-                                                              self_portion, other_portion));
-            % endif
-
-            Ok(${item} {
-                offset_x: x,
-                offset_y: y,
-                blur_radius: blur,
-                color: color,
-                % if "Box" in item:
-                spread_radius: spread,
-                inset: self.inset,
-                % endif
-            })
-        }
-
-        #[inline]
-        fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-            self.compute_squared_distance(other).map(|sd| sd.sqrt())
-        }
-
-        #[inline]
-        fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-            % if "Box" in item:
-            if self.inset != other.inset {
-                return Err(());
-            }
-            % endif
-            let list = [ try!(self.offset_x.compute_distance(&other.offset_x)),
-                         try!(self.offset_y.compute_distance(&other.offset_y)),
-                         try!(self.blur_radius.compute_distance(&other.blur_radius)),
-                         try!(self.color.compute_distance(&other.color)),
-                         % if "Box" in item:
-                         try!(self.spread_radius.compute_distance(&other.spread_radius)),
-                         % endif
-                       ];
-            Ok(list.iter().fold(0.0f64, |sum, diff| sum + diff * diff))
-        }
-    }
-
-    /// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
-    impl Animatable for ${item}List {
-        #[inline]
-        fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-            // The inset value must change
-            % if "Box" in item:
-            let mut zero = ${item} {
-            % else:
-            let zero = ${item} {
-            % endif
-                offset_x: Au(0),
-                offset_y: Au(0),
-                blur_radius: Au(0),
-                color: ${transparent_color},
-                % if "Box" in item:
-                spread_radius: Au(0),
-                inset: false,
-                % endif
-            };
-
-            let max_len = cmp::max(self.0.len(), other.0.len());
-
-            let mut result = if max_len > 1 {
-                SmallVec::from_vec(Vec::with_capacity(max_len))
-            } else {
-                SmallVec::new()
-            };
-
-            for i in 0..max_len {
-                let shadow = match (self.0.get(i), other.0.get(i)) {
-                    (Some(shadow), Some(other))
-                        => try!(shadow.add_weighted(other, self_portion, other_portion)),
-                    (Some(shadow), None) => {
-                        % if "Box" in item:
-                        zero.inset = shadow.inset;
-                        % endif
-                        shadow.add_weighted(&zero, self_portion, other_portion).unwrap()
-                    }
-                    (None, Some(shadow)) => {
-                        % if "Box" in item:
-                        zero.inset = shadow.inset;
-                        % endif
-                        zero.add_weighted(&shadow, self_portion, other_portion).unwrap()
-                    }
-                    (None, None) => unreachable!(),
-                };
-                result.push(shadow);
-            }
-
-            Ok(${item}List(result))
-        }
-
-        fn add(&self, other: &Self) -> Result<Self, ()> {
-            let len = self.0.len() + other.0.len();
-
-            let mut result = if len > 1 {
-                SmallVec::from_vec(Vec::with_capacity(len))
-            } else {
-                SmallVec::new()
-            };
-
-            result.extend(self.0.iter().cloned());
-            result.extend(other.0.iter().cloned());
-
-            Ok(${item}List(result))
-        }
-    }
-</%def>
-
 /// Check if it's possible to do a direct numerical interpolation
 /// between these two transform lists.
 /// http://dev.w3.org/csswg/css-transforms/#transform-transform-animation
@@ -2922,74 +2794,183 @@ impl Animatable for IntermediateSVGPaintKind {
     }
 }
 
-<%def name="impl_intermediate_type_for_shadow(type)">
-    #[derive(Copy, Clone, Debug, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    #[allow(missing_docs)]
-    /// Intermediate type for box-shadow and text-shadow.
-    /// The difference between normal shadow type is that this type uses
-    /// IntermediateColor instead of ParserColor.
-    pub struct Intermediate${type}Shadow {
-        pub offset_x: Au,
-        pub offset_y: Au,
-        pub blur_radius: Au,
-        pub color: IntermediateColor,
-        % if type == "Box":
-        pub spread_radius: Au,
-        pub inset: bool,
-        % endif
+#[derive(Copy, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
+/// Intermediate type for box-shadow and text-shadow.
+/// The difference between normal shadow type is that this type uses
+/// IntermediateColor instead of ParserColor.
+pub struct IntermediateShadow {
+    pub offset_x: Au,
+    pub offset_y: Au,
+    pub blur_radius: Au,
+    pub spread_radius: Au,
+    pub color: IntermediateColor,
+    pub inset: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
+/// Intermediate type for box-shadow list and text-shadow list.
+pub struct IntermediateShadowList(pub SmallVec<[IntermediateShadow; 1]>);
+
+type ShadowList = SmallVec<[Shadow; 1]>;
+
+impl From<IntermediateShadowList> for ShadowList {
+    fn from(shadow_list: IntermediateShadowList) -> Self {
+        shadow_list.0.into_iter().map(|s| s.into()).collect()
     }
+}
 
-    #[derive(Clone, Debug, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    #[allow(missing_docs)]
-    /// Intermediate type for box-shadow list and text-shadow list.
-    pub struct Intermediate${type}ShadowList(pub SmallVec<[Intermediate${type}Shadow; 1]>);
+impl From<ShadowList> for IntermediateShadowList {
+    fn from(shadow_list: ShadowList) -> IntermediateShadowList {
+        IntermediateShadowList(shadow_list.into_iter().map(|s| s.into()).collect())
+    }
+}
 
-    impl From<Intermediate${type}ShadowList> for ${type}ShadowList {
-        fn from(shadow_list: Intermediate${type}ShadowList) -> ${type}ShadowList {
-            ${type}ShadowList(shadow_list.0.into_iter().map(|s| s.into()).collect())
+% for ty in "Box Text".split():
+impl From<IntermediateShadowList> for ${ty}ShadowList {
+    #[inline]
+    fn from(shadow_list: IntermediateShadowList) -> Self {
+        ${ty}ShadowList(shadow_list.into())
+    }
+}
+
+impl From<${ty}ShadowList> for IntermediateShadowList {
+    #[inline]
+    fn from(shadow_list: ${ty}ShadowList) -> IntermediateShadowList {
+        shadow_list.0.into()
+    }
+}
+% endfor
+
+impl From<IntermediateShadow> for Shadow {
+    fn from(shadow: IntermediateShadow) -> Shadow {
+        Shadow {
+            offset_x: shadow.offset_x,
+            offset_y: shadow.offset_y,
+            blur_radius: shadow.blur_radius,
+            spread_radius: shadow.spread_radius,
+            color: shadow.color.into(),
+            inset: shadow.inset,
         }
     }
+}
 
-    impl From<${type}ShadowList> for Intermediate${type}ShadowList {
-        fn from(shadow_list: ${type}ShadowList) -> Intermediate${type}ShadowList {
-            Intermediate${type}ShadowList(shadow_list.0.into_iter().map(|s| s.into()).collect())
+impl From<Shadow> for IntermediateShadow {
+    fn from(shadow: Shadow) -> IntermediateShadow {
+        IntermediateShadow {
+            offset_x: shadow.offset_x,
+            offset_y: shadow.offset_y,
+            blur_radius: shadow.blur_radius,
+            spread_radius: shadow.spread_radius,
+            color: shadow.color.into(),
+            inset: shadow.inset,
         }
     }
+}
 
-    impl From<Intermediate${type}Shadow> for ${type}Shadow {
-        fn from(shadow: Intermediate${type}Shadow) -> ${type}Shadow {
-            ${type}Shadow {
-                offset_x: shadow.offset_x,
-                offset_y: shadow.offset_y,
-                blur_radius: shadow.blur_radius,
-                color: shadow.color.into(),
-                % if type == "Box":
-                spread_radius: shadow.spread_radius,
-                inset: shadow.inset,
-                % endif
-            }
+impl Animatable for IntermediateShadow {
+    #[inline]
+    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+        // It can't be interpolated if inset does not match.
+        if self.inset != other.inset {
+            return Err(());
         }
+
+        let x = try!(self.offset_x.add_weighted(&other.offset_x, self_portion, other_portion));
+        let y = try!(self.offset_y.add_weighted(&other.offset_y, self_portion, other_portion));
+        let color = try!(self.color.add_weighted(&other.color, self_portion, other_portion));
+        let blur = try!(self.blur_radius.add_weighted(&other.blur_radius,
+                                                      self_portion, other_portion));
+        let spread = try!(self.spread_radius.add_weighted(&other.spread_radius,
+                                                          self_portion, other_portion));
+
+        Ok(IntermediateShadow {
+            offset_x: x,
+            offset_y: y,
+            blur_radius: blur,
+            spread_radius: spread,
+            color: color,
+            inset: self.inset,
+        })
     }
 
-    impl From<${type}Shadow> for Intermediate${type}Shadow {
-        fn from(shadow: ${type}Shadow) -> Intermediate${type}Shadow {
-            Intermediate${type}Shadow {
-                offset_x: shadow.offset_x,
-                offset_y: shadow.offset_y,
-                blur_radius: shadow.blur_radius,
-                color: shadow.color.into(),
-                % if type == "Box":
-                spread_radius: shadow.spread_radius,
-                inset: shadow.inset,
-                % endif
-            }
-        }
+    #[inline]
+    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+        self.compute_squared_distance(other).map(|sd| sd.sqrt())
     }
-    ${impl_animatable_for_shadow('Intermediate%sShadow' % type,
-                                 'IntermediateColor::IntermediateRGBA(IntermediateRGBA::transparent())')}
-</%def>
 
-${impl_intermediate_type_for_shadow('Box')}
-${impl_intermediate_type_for_shadow('Text')}
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+        if self.inset != other.inset {
+            return Err(());
+        }
+        let list = [ try!(self.offset_x.compute_distance(&other.offset_x)),
+                     try!(self.offset_y.compute_distance(&other.offset_y)),
+                     try!(self.blur_radius.compute_distance(&other.blur_radius)),
+                     try!(self.color.compute_distance(&other.color)),
+                     try!(self.spread_radius.compute_distance(&other.spread_radius)),
+        ];
+        Ok(list.iter().fold(0.0f64, |sum, diff| sum + diff * diff))
+    }
+}
+
+/// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
+impl Animatable for IntermediateShadowList {
+    #[inline]
+    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+        // The inset value must change
+        let mut zero = IntermediateShadow {
+            offset_x: Au(0),
+            offset_y: Au(0),
+            blur_radius: Au(0),
+            spread_radius: Au(0),
+            color: IntermediateColor::IntermediateRGBA(IntermediateRGBA::transparent()),
+            inset: false,
+        };
+
+        let max_len = cmp::max(self.0.len(), other.0.len());
+
+        let mut result = if max_len > 1 {
+            SmallVec::from_vec(Vec::with_capacity(max_len))
+        } else {
+            SmallVec::new()
+        };
+
+        for i in 0..max_len {
+            let shadow = match (self.0.get(i), other.0.get(i)) {
+                (Some(shadow), Some(other)) =>
+                    try!(shadow.add_weighted(other, self_portion, other_portion)),
+                (Some(shadow), None) => {
+                        zero.inset = shadow.inset;
+                        shadow.add_weighted(&zero, self_portion, other_portion).unwrap()
+                }
+                (None, Some(shadow)) => {
+                    zero.inset = shadow.inset;
+                    zero.add_weighted(&shadow, self_portion, other_portion).unwrap()
+                }
+                (None, None) => unreachable!(),
+            };
+            result.push(shadow);
+        }
+
+        Ok(IntermediateShadowList(result))
+    }
+
+    fn add(&self, other: &Self) -> Result<Self, ()> {
+        let len = self.0.len() + other.0.len();
+
+        let mut result = if len > 1 {
+            SmallVec::from_vec(Vec::with_capacity(len))
+        } else {
+            SmallVec::new()
+        };
+
+        result.extend(self.0.iter().cloned());
+        result.extend(other.0.iter().cloned());
+
+        Ok(IntermediateShadowList(result))
+    }
+}

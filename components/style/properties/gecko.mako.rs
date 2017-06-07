@@ -64,7 +64,7 @@ use std::mem::{forget, transmute, zeroed};
 use std::ptr;
 use stylearc::Arc;
 use std::cmp;
-use values::computed::ToComputedValue;
+use values::computed::{Shadow, ToComputedValue};
 use values::{Either, Auto, KeyframesName};
 use computed_values::border_style;
 
@@ -3310,7 +3310,7 @@ fn static_assert() {
 <%self:impl_trait style_struct_name="Effects"
                   skip_longhands="box-shadow clip filter">
     pub fn set_box_shadow<I>(&mut self, v: I)
-        where I: IntoIterator<Item = longhands::box_shadow::computed_value::single_value::T>,
+        where I: IntoIterator<Item = Shadow>,
               I::IntoIter: ExactSizeIterator
     {
         let v = v.into_iter();
@@ -3344,7 +3344,7 @@ fn static_assert() {
 
     pub fn clone_box_shadow(&self) -> longhands::box_shadow::computed_value::T {
         let buf = self.gecko.mBoxShadow.iter().map(|shadow| {
-            longhands::box_shadow::single_value::computed_value::T {
+            Shadow {
                 offset_x: Au(shadow.mXOffset),
                 offset_y: Au(shadow.mYOffset),
                 blur_radius: Au(shadow.mRadius),
@@ -3617,12 +3617,15 @@ fn static_assert() {
     ${impl_keyword('text_align', 'mTextAlign', text_align_keyword, need_clone=False)}
     ${impl_keyword_clone('text_align', 'mTextAlign', text_align_keyword)}
 
-    pub fn set_text_shadow(&mut self, v: longhands::text_shadow::computed_value::T) {
-        self.gecko.mTextShadow.replace_with_new(v.0.len() as u32);
+    pub fn set_text_shadow<I>(&mut self, v: I)
+        where I: IntoIterator<Item = Shadow>,
+              I::IntoIter: ExactSizeIterator
+    {
+        let v = v.into_iter();
 
-        for (servo, gecko_shadow) in v.0.into_iter()
-                                      .zip(self.gecko.mTextShadow.iter_mut()) {
+        self.gecko.mTextShadow.replace_with_new(v.len() as u32);
 
+        for (servo, gecko_shadow) in v.zip(self.gecko.mTextShadow.iter_mut()) {
             gecko_shadow.mXOffset = servo.offset_x.0;
             gecko_shadow.mYOffset = servo.offset_y.0;
             gecko_shadow.mRadius = servo.blur_radius.0;
@@ -3645,15 +3648,15 @@ fn static_assert() {
     }
 
     pub fn clone_text_shadow(&self) -> longhands::text_shadow::computed_value::T {
-
         let buf = self.gecko.mTextShadow.iter().map(|shadow| {
-            longhands::text_shadow::computed_value::TextShadow {
+            Shadow {
                 offset_x: Au(shadow.mXOffset),
                 offset_y: Au(shadow.mYOffset),
                 blur_radius: Au(shadow.mRadius),
+                spread_radius: Au(0),
                 color: Color::RGBA(convert_nscolor_to_rgba(shadow.mColor)),
+                inset: false,
             }
-
         }).collect();
         longhands::text_shadow::computed_value::T(buf)
     }

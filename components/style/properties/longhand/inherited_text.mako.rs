@@ -401,149 +401,20 @@ ${helpers.predefined_type("word-spacing",
     % endif
 </%helpers:single_keyword_computed>
 
-<%helpers:longhand name="text-shadow"
-                   animation_value_type="IntermediateTextShadowList",
-                   ignored_when_colors_disabled="True",
-                   spec="https://drafts.csswg.org/css-text-decor/#propdef-text-shadow">
-    use cssparser;
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::specified::Shadow;
-
-    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedValue(Vec<SpecifiedTextShadow>);
-
-    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedTextShadow {
-        pub offset_x: specified::Length,
-        pub offset_y: specified::Length,
-        pub blur_radius: specified::Length,
-        pub color: Option<specified::CSSColor>,
-    }
-
-    impl From<Shadow> for SpecifiedTextShadow {
-        fn from(shadow: Shadow) -> SpecifiedTextShadow {
-            SpecifiedTextShadow {
-                offset_x: shadow.offset_x,
-                offset_y: shadow.offset_y,
-                blur_radius: shadow.blur_radius,
-                color: shadow.color,
-            }
-        }
-    }
-
+<%helpers:vector_longhand name="text-shadow" allow_empty="True"
+                          animation_value_type="IntermediateShadowList"
+                          ignored_when_colors_disabled="True"
+                          spec="https://drafts.csswg.org/css-backgrounds/#box-shadow">
+    pub type SpecifiedValue = specified::Shadow;
     pub mod computed_value {
-        use app_units::Au;
-        use cssparser::Color;
-        use smallvec::SmallVec;
-
-        #[derive(Clone, PartialEq, Debug)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub SmallVec<[TextShadow; 1]>);
-
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        #[derive(Clone, PartialEq, Debug, ToCss)]
-        pub struct TextShadow {
-            pub offset_x: Au,
-            pub offset_y: Au,
-            pub blur_radius: Au,
-            pub color: Color,
-        }
+        use values::computed::Shadow;
+        pub type T = Shadow;
     }
 
-    impl ToCss for computed_value::T {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let mut iter = self.0.iter();
-            match iter.next() {
-                Some(shadow) => shadow.to_css(dest)?,
-                None => return dest.write_str("none"),
-            }
-            for shadow in iter {
-                dest.write_str(", ")?;
-                shadow.to_css(dest)?;
-            }
-            Ok(())
-        }
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<specified::Shadow, ()> {
+        specified::Shadow::parse(context, input, true)
     }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let mut iter = self.0.iter();
-            match iter.next() {
-                Some(shadow) => shadow.to_css(dest)?,
-                None => return dest.write_str("none"),
-            }
-            for shadow in iter {
-                dest.write_str(", ")?;
-                shadow.to_css(dest)?;
-            }
-            Ok(())
-        }
-    }
-
-    impl ToCss for SpecifiedTextShadow {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            self.offset_x.to_css(dest)?;
-            dest.write_str(" ")?;
-            self.offset_y.to_css(dest)?;
-            dest.write_str(" ")?;
-            self.blur_radius.to_css(dest)?;
-
-            if let Some(ref color) = self.color {
-                dest.write_str(" ")?;
-                color.to_css(dest)?;
-            }
-            Ok(())
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        use smallvec::SmallVec;
-        computed_value::T(SmallVec::new())
-    }
-
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            Ok(SpecifiedValue(Vec::new()))
-        } else {
-            input.parse_comma_separated(|i| {
-                Ok(SpecifiedTextShadow::from(Shadow::parse(context, i, true)?))
-            }).map(SpecifiedValue)
-        }
-    }
-
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            computed_value::T(self.0.iter().map(|value| {
-                computed_value::TextShadow {
-                    offset_x: value.offset_x.to_computed_value(context),
-                    offset_y: value.offset_y.to_computed_value(context),
-                    blur_radius: value.blur_radius.to_computed_value(context),
-                    color: value.color
-                                .as_ref()
-                                .map(|color| color.to_computed_value(context))
-                                .unwrap_or(cssparser::Color::CurrentColor),
-                }
-            }).collect())
-        }
-
-        fn from_computed_value(computed: &computed_value::T) -> Self {
-            SpecifiedValue(computed.0.iter().map(|value| {
-                SpecifiedTextShadow {
-                    offset_x: ToComputedValue::from_computed_value(&value.offset_x),
-                    offset_y: ToComputedValue::from_computed_value(&value.offset_y),
-                    blur_radius: ToComputedValue::from_computed_value(&value.blur_radius),
-                    color: Some(ToComputedValue::from_computed_value(&value.color)),
-                }
-            }).collect())
-        }
-    }
-</%helpers:longhand>
+</%helpers:vector_longhand>
 
 <%helpers:longhand name="text-emphasis-style" products="gecko" need_clone="True" boxed="True"
                    animation_value_type="none"

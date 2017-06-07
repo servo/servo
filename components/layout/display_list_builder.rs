@@ -51,7 +51,6 @@ use style::computed_values::{background_attachment, background_clip, background_
 use style::computed_values::{background_repeat, border_style, cursor};
 use style::computed_values::{image_rendering, overflow_x, pointer_events, position, visibility};
 use style::computed_values::filter::Filter;
-use style::computed_values::text_shadow::TextShadow;
 use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use style::properties::{self, ServoComputedValues};
 use style::properties::longhands::border_image_repeat::computed_value::RepeatKeyword;
@@ -59,7 +58,7 @@ use style::properties::style_structs;
 use style::servo::restyle_damage::REPAINT;
 use style::values::{Either, RGBA};
 use style::values::computed::{Gradient, GradientItem, LengthOrPercentage};
-use style::values::computed::{LengthOrPercentageOrAuto, NumberOrPercentage, Position};
+use style::values::computed::{LengthOrPercentageOrAuto, NumberOrPercentage, Position, Shadow};
 use style::values::computed::image::{EndingShape, LineDirection};
 use style::values::generics::background::BackgroundSize;
 use style::values::generics::image::{Circle, Ellipse, EndingShape as GenericEndingShape};
@@ -504,7 +503,7 @@ pub trait FragmentDisplayListBuilding {
                                             state: &mut DisplayListBuildState,
                                             text_fragment: &ScannedTextFragmentInfo,
                                             stacking_relative_content_box: &Rect<Au>,
-                                            text_shadow: Option<&TextShadow>,
+                                            text_shadow: Option<&Shadow>,
                                             clip: &Rect<Au>);
 
     /// Creates the display item for a text decoration: underline, overline, or line-through.
@@ -1949,7 +1948,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                             state: &mut DisplayListBuildState,
                                             text_fragment: &ScannedTextFragmentInfo,
                                             stacking_relative_content_box: &Rect<Au>,
-                                            text_shadow: Option<&TextShadow>,
+                                            text_shadow: Option<&Shadow>,
                                             clip: &Rect<Au>) {
         // TODO(emilio): Allow changing more properties by ::selection
         let text_color = if let Some(shadow) = text_shadow {
