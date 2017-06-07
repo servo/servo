@@ -690,6 +690,12 @@ pub fn recalc_style_at<E, D>(traversal: &D,
             ChildCascadeRequirement::CanSkipCascade => {}
         };
 
+        // We must always cascade native anonymous subtrees, since they inherit styles
+        // from their first non-NAC ancestor.
+        if element.is_native_anonymous() {
+            cascade_hint |= RECASCADE_SELF;
+        }
+
         // If we're restyling this element to display:none, throw away all style
         // data in the subtree, notify the caller to early-return.
         if data.styles().is_display_none() {
