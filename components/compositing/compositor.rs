@@ -9,9 +9,7 @@ use compositor_thread::{InitialCompositorState, Msg, RenderListener};
 use delayed_composition::DelayedCompositionTimerProxy;
 use euclid::Point2D;
 use euclid::point::TypedPoint2D;
-use euclid::rect::TypedRect;
 use euclid::scale_factor::ScaleFactor;
-use euclid::size::TypedSize2D;
 use gfx_traits::Epoch;
 use gleam::gl;
 use image::{DynamicImage, ImageFormat, RgbImage};
@@ -40,7 +38,7 @@ use time::{precise_time_ns, precise_time_s};
 use touch::{TouchHandler, TouchAction};
 use webrender;
 use webrender_traits::{self, ClipId, LayoutPoint, ScrollEventPhase, ScrollLocation, ScrollClamping};
-use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
+use windowing::{self, ViewGeometry, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -114,11 +112,7 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// The scene scale, to allow for zooming and high-resolution painting.
     scale: ScaleFactor<f32, LayerPixel, DevicePixel>,
 
-    /// The size of the rendering area.
-    frame_size: TypedSize2D<u32, DevicePixel>,
-
-    /// The position and size of the window within the rendering area.
-    window_rect: TypedRect<u32, DevicePixel>,
+    geometry: ViewGeometry,
 
     /// "Mobile-style" zoom that does not reflow the page.
     viewport_zoom: PinchZoomFactor,
@@ -129,9 +123,6 @@ pub struct IOCompositor<Window: WindowMethods> {
 
     /// "Desktop-style" zoom that resizes the viewport to fit the window.
     page_zoom: ScaleFactor<f32, CSSPixel, DeviceIndependentPixel>,
-
-    /// The device pixel ratio for this window.
-    scale_factor: ScaleFactor<f32, DeviceIndependentPixel, DevicePixel>,
 
     channel_to_self: Box<CompositorProxy + Send>,
 
@@ -348,13 +339,13 @@ impl webrender_traits::RenderDispatcher for CompositorThreadDispatcher {
 impl<Window: WindowMethods> IOCompositor<Window> {
     fn new(window: Rc<Window>, state: InitialCompositorState)
            -> IOCompositor<Window> {
-        let frame_size = window.framebuffer_size();
-        let window_rect = window.window_rect();
-        let scale_factor = window.hidpi_factor();
+
         let composite_target = match opts::get().output_file {
             Some(_) => CompositeTarget::PngFile,
             None => CompositeTarget::Window
         };
+
+        let geometry = window.get_geometry();
 
         IOCompositor {
             gl: window.gl(),
@@ -362,10 +353,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             port: state.receiver,
             root_pipeline: None,
             pipeline_details: HashMap::new(),
-            frame_size: frame_size,
-            window_rect: window_rect,
+            geometry: geometry,
             scale: ScaleFactor::new(1.0),
-            scale_factor: scale_factor,
             channel_to_self: state.sender.clone_compositor_proxy(),
             delayed_composition_timer: DelayedCompositionTimerProxy::new(state.sender),
             composition_request: CompositionRequest::NoCompositingNecessary,
@@ -495,7 +484,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::GetClientWindow(send),
              ShutdownState::NotShuttingDown) => {
-                let rect = self.window.client_window();
+                let rect = self.geometry.window_rect;
                 if let Err(e) = send.send(rect) {
                     warn!("Sending response to get client window failed ({}).", e);
                 }
@@ -731,16 +720,24 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn send_window_size(&self, size_type: WindowSizeType) {
         let dppx = self.page_zoom * self.hidpi_factor();
 
-        let window_rect = {
-            let offset = webrender_traits::DeviceUintPoint::new(self.window_rect.origin.x, self.window_rect.origin.y);
-            let size = webrender_traits::DeviceUintSize::new(self.window_rect.size.width, self.window_rect.size.height);
+        let viewport_rect = &self.geometry.viewport_rect;
+        let rendering_rect = &self.geometry.rendering_rect;
+
+        let wr_viewport_rect = {
+            let offset = webrender_traits::DeviceUintPoint::new(viewport_rect.origin.x, viewport_rect.origin.y);
+            let size = webrender_traits::DeviceUintSize::new(viewport_rect.size.width, viewport_rect.size.height);
             webrender_traits::DeviceUintRect::new(offset, size)
         };
 
-        let frame_size = webrender_traits::DeviceUintSize::new(self.frame_size.width, self.frame_size.height);
-        self.webrender_api.set_window_parameters(frame_size, window_rect);
+        let wr_rendering_rect = {
+            let offset = webrender_traits::DeviceUintPoint::new(rendering_rect.origin.x, rendering_rect.origin.y);
+            let size = webrender_traits::DeviceUintSize::new(rendering_rect.size.width, rendering_rect.size.height);
+            webrender_traits::DeviceUintRect::new(offset, size)
+        };
 
-        let initial_viewport = self.window_rect.size.to_f32() / dppx;
+        self.webrender_api.set_view_geometry(wr_rendering_rect, wr_viewport_rect);
+
+        let initial_viewport = viewport_rect.size.to_f32() / dppx;
 
         let data = WindowSizeData {
             device_pixel_ratio: dppx,
@@ -786,8 +783,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.initialize_compositing();
             }
 
-            WindowEvent::Resize(size) => {
-                self.on_resize_window_event(size);
+            WindowEvent::Resize => {
+                self.on_resize_window_event();
             }
 
             WindowEvent::LoadUrl(url_string) => {
@@ -867,28 +864,19 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn on_resize_window_event(&mut self, new_size: TypedSize2D<u32, DevicePixel>) {
-        debug!("compositor resizing to {:?}", new_size.to_untyped());
+    fn on_resize_window_event(&mut self) {
+        let old_geometry = self.geometry;
 
-        // A size change could also mean a resolution change.
-        let new_scale_factor = self.window.hidpi_factor();
-        if self.scale_factor != new_scale_factor {
-            self.scale_factor = new_scale_factor;
+        self.geometry = self.window.get_geometry();
+
+        if self.geometry.hidpi_factor != old_geometry.hidpi_factor {
             self.update_zoom_transform();
         }
 
-        let new_window_rect = self.window.window_rect();
-        let new_frame_size = self.window.framebuffer_size();
-
-        if self.window_rect == new_window_rect &&
-           self.frame_size == new_frame_size {
-            return;
+        if self.geometry.rendering_rect != old_geometry.rendering_rect ||
+           self.geometry.viewport_rect != old_geometry.viewport_rect {
+            self.send_window_size(WindowSizeType::Resize);
         }
-
-        self.frame_size = new_size;
-        self.window_rect = new_window_rect;
-
-        self.send_window_size(WindowSizeType::Resize);
     }
 
     fn on_load_url_window_event(&mut self, url_string: String) {
@@ -1280,7 +1268,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             Some(device_pixels_per_px) => ScaleFactor::new(device_pixels_per_px),
             None => match opts::get().output_file {
                 Some(_) => ScaleFactor::new(1.0),
-                None => self.scale_factor
+                None => self.geometry.hidpi_factor,
             }
         }
     }
@@ -1480,7 +1468,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                  target: CompositeTarget)
                                  -> Result<Option<Image>, UnableToComposite> {
         let (width, height) =
-            (self.frame_size.width as usize, self.frame_size.height as usize);
+            (self.geometry.rendering_rect.size.width as usize,
+             self.geometry.rendering_rect.size.height as usize);
         if !self.window.prepare_for_composite(width, height) {
             return Err(UnableToComposite::WindowUnprepared)
         }
@@ -1518,7 +1507,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             debug!("compositor: compositing");
 
             // Paint the scene.
-            let size = webrender_traits::DeviceUintSize::from_untyped(&self.frame_size.to_untyped());
+            let size = webrender_traits::DeviceUintSize::from_untyped(&self.geometry.rendering_rect.size.to_untyped());
             self.webrender.render(size);
         });
 

@@ -9,7 +9,6 @@ use euclid::{Point2D, Size2D};
 use euclid::point::TypedPoint2D;
 use euclid::rect::TypedRect;
 use euclid::scale_factor::ScaleFactor;
-use euclid::size::TypedSize2D;
 use gleam::gl;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use net_traits::net_error_list::NetError;
@@ -26,6 +25,28 @@ pub enum MouseWindowEvent {
     Click(MouseButton, TypedPoint2D<f32, DevicePixel>),
     MouseDown(MouseButton, TypedPoint2D<f32, DevicePixel>),
     MouseUp(MouseButton, TypedPoint2D<f32, DevicePixel>),
+}
+
+/// The geometry of a view.
+///
+/// The viewport top left corner is the 0x0 CSS pixel (before scroll).
+/// 
+/// The rendering area is where content gets clipped. The rendering area
+/// is equal or larger than the viewport area. This makes it possible to
+/// draw content outside of the viewport.
+///
+/// The window rect is the outer coordinates of the window. It is equal or
+/// larger than the rendering area.
+#[derive(Copy, Clone)]
+pub struct ViewGeometry {
+    /// The window outer size and position.
+    pub window_rect: (Size2D<u32>, Point2D<i32>),
+    /// The rendering area.
+    pub rendering_rect: TypedRect<u32, DevicePixel>,
+    /// The viewport area.
+    pub viewport_rect: TypedRect<u32, DevicePixel>,
+    /// The device pixel ratio for this window.
+    pub hidpi_factor: ScaleFactor<f32, DeviceIndependentPixel, DevicePixel>,
 }
 
 #[derive(Clone)]
@@ -50,8 +71,8 @@ pub enum WindowEvent {
     /// Sent to initialize the GL context. The windowing system must have a valid, current GL
     /// context when this message is sent.
     InitializeCompositing,
-    /// Sent when the window is resized.
-    Resize(TypedSize2D<u32, DevicePixel>),
+    /// Sent when the geometry of the view changed.
+    Resize,
     /// Touchpad Pressure
     TouchpadPressure(TypedPoint2D<f32, DevicePixel>, f32, TouchpadPressurePhase),
     /// Sent when a new URL is to be loaded.
@@ -87,7 +108,7 @@ impl Debug for WindowEvent {
             WindowEvent::Idle => write!(f, "Idle"),
             WindowEvent::Refresh => write!(f, "Refresh"),
             WindowEvent::InitializeCompositing => write!(f, "InitializeCompositing"),
-            WindowEvent::Resize(..) => write!(f, "Resize"),
+            WindowEvent::Resize => write!(f, "Resize"),
             WindowEvent::TouchpadPressure(..) => write!(f, "TouchpadPressure"),
             WindowEvent::KeyEvent(..) => write!(f, "Key"),
             WindowEvent::LoadUrl(..) => write!(f, "LoadUrl"),
@@ -106,17 +127,10 @@ impl Debug for WindowEvent {
 }
 
 pub trait WindowMethods {
-    /// Returns the rendering area size in hardware pixels.
-    fn framebuffer_size(&self) -> TypedSize2D<u32, DevicePixel>;
-    /// Returns the position and size of the window within the rendering area.
-    fn window_rect(&self) -> TypedRect<u32, DevicePixel>;
-    /// Returns the size of the window in density-independent "px" units.
-    fn size(&self) -> TypedSize2D<f32, DeviceIndependentPixel>;
     /// Presents the window to the screen (perhaps by page flipping).
     fn present(&self);
-
-    /// Return the size of the window with head and borders and position of the window values
-    fn client_window(&self) -> (Size2D<u32>, Point2D<i32>);
+    /// Get the geometry of the view and the window
+    fn get_geometry(&self) -> ViewGeometry;
     /// Set the size inside of borders and head
     fn set_inner_size(&self, size: Size2D<u32>);
     /// Set the window position
@@ -140,9 +154,6 @@ pub trait WindowMethods {
     fn head_parsed(&self);
     /// Called when the history state has changed.
     fn history_changed(&self, Vec<LoadData>, usize);
-
-    /// Returns the scale factor of the system (device pixels / device independent pixels).
-    fn hidpi_factor(&self) -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel>;
 
     /// Creates a channel to the compositor. The dummy parameter is needed because we don't have
     /// UFCS in Rust yet.

@@ -151,12 +151,14 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
 
         let (webrender, webrender_api_sender) = {
             // TODO(gw): Duplicates device_pixels_per_screen_px from compositor. Tidy up!
-            let scale_factor = window.hidpi_factor().get();
+
+            let geometry = window.get_geometry();
+
             let device_pixel_ratio = match opts.device_pixels_per_px {
                 Some(device_pixels_per_px) => device_pixels_per_px,
                 None => match opts.output_file {
                     Some(_) => 1.0,
-                    None => scale_factor,
+                    None => geometry.hidpi_factor.get(),
                 }
             };
 
@@ -174,9 +176,20 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 None
             };
 
-            let framebuffer_size = window.framebuffer_size();
-            let framebuffer_size = webrender_traits::DeviceUintSize::new(framebuffer_size.width,
-                                                                         framebuffer_size.height);
+            let rendering_rect = geometry.rendering_rect;
+            let viewport_rect = geometry.viewport_rect;
+
+            let wr_rendering_rect = {
+                let offset = webrender_traits::DeviceUintPoint::new(rendering_rect.origin.x, rendering_rect.origin.y);
+                let size = webrender_traits::DeviceUintSize::new(rendering_rect.size.width, rendering_rect.size.height);
+                webrender_traits::DeviceUintRect::new(offset, size)
+            };
+
+            let wr_viewport_rect = {
+                let offset = webrender_traits::DeviceUintPoint::new(viewport_rect.origin.x, viewport_rect.origin.y);
+                let size = webrender_traits::DeviceUintSize::new(viewport_rect.size.width, viewport_rect.size.height);
+                webrender_traits::DeviceUintRect::new(offset, size)
+            };
 
             webrender::Renderer::new(window.gl(), webrender::RendererOptions {
                 device_pixel_ratio: device_pixel_ratio,
@@ -191,7 +204,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 renderer_kind: renderer_kind,
                 enable_subpixel_aa: opts.enable_subpixel_text_antialiasing,
                 ..Default::default()
-            }, framebuffer_size).expect("Unable to initialize webrender!")
+            }, wr_rendering_rect, wr_viewport_rect).expect("Unable to initialize webrender!")
         };
 
         // Important that this call is done in a single-threaded fashion, we

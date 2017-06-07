@@ -6,7 +6,7 @@
 
 use NestedEventLoopListener;
 use compositing::compositor_thread::{self, CompositorProxy, CompositorReceiver};
-use compositing::windowing::{MouseWindowEvent, WindowNavigateMsg};
+use compositing::windowing::{ViewGeometry, MouseWindowEvent, WindowNavigateMsg};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use euclid::{Point2D, Size2D, TypedPoint2D};
 use euclid::rect::TypedRect;
@@ -338,11 +338,10 @@ impl Window {
         }
     }
 
-    fn nested_window_resize(width: u32, height: u32) {
+    fn nested_window_resize(_width: u32, _height: u32) {
         unsafe {
             if let Some(listener) = G_NESTED_EVENT_LOOP_LISTENER {
-                (*listener).handle_event_from_nested_event_loop(
-                    WindowEvent::Resize(TypedSize2D::new(width, height)));
+                (*listener).handle_event_from_nested_event_loop(WindowEvent::Resize);
             }
         }
     }
@@ -472,8 +471,8 @@ impl Window {
             Event::KeyboardInput(_, _, None) => {
                 debug!("Keyboard input without virtual key.");
             }
-            Event::Resized(width, height) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Resize(TypedSize2D::new(width, height)));
+            Event::Resized(_width, _height) => {
+                self.event_queue.borrow_mut().push(WindowEvent::Resize)
             }
             Event::MouseInput(element_state, mouse_button, pos) => {
                 if mouse_button == MouseButton::Left ||
@@ -939,6 +938,25 @@ impl Window {
     #[cfg(target_os = "win")]
     fn platform_handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
     }
+
+    #[cfg(not(target_os = "windows"))]
+    fn hidpi_factor(&self) -> f32 {
+        match self.kind {
+            WindowKind::Window(ref window) => {
+                window.hidpi_factor()
+            }
+            WindowKind::Headless(..) => {
+                1.0
+            }
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    fn hidpi_factor(&self) -> f32 {
+        let hdc = unsafe { user32::GetDC(::std::ptr::null_mut()) };
+        let ppi = unsafe { gdi32::GetDeviceCaps(hdc, winapi::wingdi::LOGPIXELSY) };
+        ppi as f32 / 96.0
+    }
 }
 
 fn create_window_proxy(window: &Window) -> Option<glutin::WindowProxy> {
@@ -957,56 +975,46 @@ impl WindowMethods for Window {
         self.gl.clone()
     }
 
-    fn framebuffer_size(&self) -> TypedSize2D<u32, DevicePixel> {
-        match self.kind {
-            WindowKind::Window(ref window) => {
-                let scale_factor = window.hidpi_factor() as u32;
-                // TODO(ajeffrey): can this fail?
-                let (width, height) = window.get_inner_size().expect("Failed to get window inner size.");
-                TypedSize2D::new(width * scale_factor, height * scale_factor)
-            }
-            WindowKind::Headless(ref context) => {
-                TypedSize2D::new(context.width, context.height)
-            }
-        }
-    }
+    fn get_geometry(&self) -> ViewGeometry {
 
-    fn window_rect(&self) -> TypedRect<u32, DevicePixel> {
-        let size = self.framebuffer_size();
-        let origin = TypedPoint2D::zero();
-        TypedRect::new(origin, size)
-    }
+        let hidpi_factor = self.hidpi_factor();
 
-    fn size(&self) -> TypedSize2D<f32, DeviceIndependentPixel> {
-        match self.kind {
+        let (gl_buffer_rect, client_window_rect) = match self.kind {
             WindowKind::Window(ref window) => {
                 // TODO(ajeffrey): can this fail?
                 let (width, height) = window.get_inner_size().expect("Failed to get window inner size.");
-                TypedSize2D::new(width as f32, height as f32)
-            }
-            WindowKind::Headless(ref context) => {
-                TypedSize2D::new(context.width as f32, context.height as f32)
-            }
-        }
-    }
+                let origin = TypedPoint2D::zero();
+                let size = TypedSize2D::new(width * hidpi_factor as u32, height * hidpi_factor as u32);
+                let gl_buffer_rect = TypedRect::new(origin, size);
 
-    fn client_window(&self) -> (Size2D<u32>, Point2D<i32>) {
-        match self.kind {
-            WindowKind::Window(ref window) => {
-                // TODO(ajeffrey): can this fail?
                 let (width, height) = window.get_outer_size().expect("Failed to get window outer size.");
+                // TODO(ajeffrey): can this fail?
                 let size = Size2D::new(width, height);
                 // TODO(ajeffrey): can this fail?
                 let (x, y) = window.get_position().expect("Failed to get window position.");
-                let origin = Point2D::new(x as i32, y as i32);
-                (size, origin)
+                let origin = Point2D::new(x, y);
+                let client_window_rect = (size, origin);
+
+                (gl_buffer_rect, client_window_rect)
             }
             WindowKind::Headless(ref context) => {
+                let origin = TypedPoint2D::zero();
                 let size = TypedSize2D::new(context.width, context.height);
-                (size, Point2D::zero())
-            }
-        }
+                let gl_buffer_rect = TypedRect::new(origin, size);
 
+                let size = TypedSize2D::new(context.width, context.height);
+                let client_window_rect = (size, Point2D::zero());
+
+                (gl_buffer_rect, client_window_rect)
+            }
+        };
+
+        ViewGeometry {
+            rendering_rect: gl_buffer_rect,
+            viewport_rect: gl_buffer_rect,
+            hidpi_factor: ScaleFactor::new(hidpi_factor),
+            window_rect: client_window_rect,
+        }
     }
 
     fn set_inner_size(&self, size: Size2D<u32>) {
@@ -1058,25 +1066,6 @@ impl WindowMethods for Window {
              window_proxy: window_proxy,
          } as Box<CompositorProxy + Send>,
          box receiver as Box<CompositorReceiver>)
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    fn hidpi_factor(&self) -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel> {
-        match self.kind {
-            WindowKind::Window(ref window) => {
-                ScaleFactor::new(window.hidpi_factor())
-            }
-            WindowKind::Headless(..) => {
-                ScaleFactor::new(1.0)
-            }
-        }
-    }
-
-    #[cfg(target_os = "windows")]
-    fn hidpi_factor(&self) -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel> {
-        let hdc = unsafe { user32::GetDC(::std::ptr::null_mut()) };
-        let ppi = unsafe { gdi32::GetDeviceCaps(hdc, winapi::wingdi::LOGPIXELSY) };
-        ScaleFactor::new(ppi as f32 / 96.0)
     }
 
     fn set_page_title(&self, title: Option<String>) {
@@ -1224,7 +1213,7 @@ impl WindowMethods for Window {
 
             (NONE, None, Key::PageDown) => {
                let scroll_location = ScrollLocation::Delta(TypedPoint2D::new(0.0,
-                                   -self.framebuffer_size()
+                                   -self.get_geometry().viewport_rect.size
                                         .to_f32()
                                         .to_untyped()
                                         .height + 2.0 * LINE_HEIGHT));
@@ -1233,7 +1222,7 @@ impl WindowMethods for Window {
             }
             (NONE, None, Key::PageUp) => {
                 let scroll_location = ScrollLocation::Delta(TypedPoint2D::new(0.0,
-                                   self.framebuffer_size()
+                                   self.get_geometry().viewport_rect.size
                                        .to_f32()
                                        .to_untyped()
                                        .height - 2.0 * LINE_HEIGHT));

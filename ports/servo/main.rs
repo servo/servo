@@ -188,7 +188,7 @@ struct BrowserWrapper {
 impl app::NestedEventLoopListener for BrowserWrapper {
     fn handle_event_from_nested_event_loop(&mut self, event: WindowEvent) -> bool {
         let is_resize = match event {
-            WindowEvent::Resize(..) => true,
+            WindowEvent::Resize => true,
             _ => false,
         };
         if !self.browser.handle_events(vec![event]) {
