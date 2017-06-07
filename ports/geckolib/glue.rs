@@ -1157,6 +1157,25 @@ pub extern "C" fn Servo_StyleRule_GetSelectorText(rule: RawServoStyleRuleBorrowe
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_StyleRule_GetSelectorTextFromIndex(rule: RawServoStyleRuleBorrowed,
+                                                           aSelectorIndex: u32,
+                                                           result: *mut nsAString) {
+    read_locked_arc(rule, |rule: &StyleRule| {
+        rule.selectors.to_css_from_index(
+            aSelectorIndex as usize,
+            unsafe { result.as_mut().unwrap() }
+        ).unwrap();
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleRule_GetSelectorCount(rule: RawServoStyleRuleBorrowed, count: *mut u32) {
+    read_locked_arc(rule, |rule: &StyleRule| {
+        *unsafe { count.as_mut().unwrap() } = rule.selectors.0.len() as u32;
+    })
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_ImportRule_GetHref(rule: RawServoImportRuleBorrowed, result: *mut nsAString) {
     read_locked_arc(rule, |rule: &ImportRule| {
         write!(unsafe { &mut *result }, "{}", rule.url.as_str()).unwrap();
