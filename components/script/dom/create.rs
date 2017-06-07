@@ -111,14 +111,14 @@ fn create_html_element(name: QualName,
                        document: &Document,
                        creator: ElementCreator)
                        -> Root<Element> {
-    create_noncustom_html_element(name, prefix, document, creator)
+    create_native_html_element(name, prefix, document, creator)
 }
 
-pub fn create_noncustom_html_element(name: QualName,
-                                 prefix: Option<Prefix>,
-                                 document: &Document,
-                                 creator: ElementCreator)
-                                 -> Root<Element> {
+pub fn create_native_html_element(name: QualName,
+                                  prefix: Option<Prefix>,
+                                  document: &Document,
+                                  creator: ElementCreator)
+                                  -> Root<Element> {
     assert!(name.ns == ns!(html));
 
     macro_rules! make(

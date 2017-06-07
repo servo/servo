@@ -4,6 +4,7 @@
 
 //! Machinery to initialise interface prototype objects and interface objects.
 
+use dom::bindings::codegen::Bindings::HTMLElementBinding;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InterfaceObjectMap::Globals;
 use dom::bindings::codegen::PrototypeList;
@@ -13,17 +14,16 @@ use dom::bindings::error::{Error, Fallible};
 use dom::bindings::guard::Guard;
 use dom::bindings::js::Root;
 use dom::bindings::utils::{DOM_PROTOTYPE_SLOT, ProtoOrIfaceArray, get_proto_or_iface_array};
-use dom::create::create_noncustom_html_element;
+use dom::create::create_native_html_element;
 use dom::element::ElementCreator;
 use dom::htmlelement::HTMLElement;
 use dom::window::Window;
-use html5ever::LocalName;
 use html5ever::interface::QualName;
 use js::error::throw_type_error;
-use js::glue::{RUST_SYMBOL_TO_JSID, UncheckedUnwrapObject};
-use js::jsapi::{CallArgs, Class, ClassOps, CompartmentOptions, GetGlobalForObjectCrossCompartment};
-use js::jsapi::{GetWellKnownSymbol, HandleObject, HandleValue, JSAutoCompartment};
-use js::jsapi::{JSClass, JSContext, JSFUN_CONSTRUCTOR, JSFunctionSpec, JSObject};
+use js::glue::{RUST_SYMBOL_TO_JSID, UncheckedUnwrapObject, UnwrapObject};
+use js::jsapi::{CallArgs, Class, ClassOps, CompartmentOptions, CurrentGlobalOrNull};
+use js::jsapi::{GetGlobalForObjectCrossCompartment, GetWellKnownSymbol, HandleObject, HandleValue};
+use js::jsapi::{JSAutoCompartment, JSClass, JSContext, JSFUN_CONSTRUCTOR, JSFunctionSpec, JSObject};
 use js::jsapi::{JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_RESOLVING};
 use js::jsapi::{JSPropertySpec, JSString, JSTracer, JSVersion, JS_AtomizeAndPinString};
 use js::jsapi::{JS_DefineProperty, JS_DefineProperty1, JS_DefineProperty2};
@@ -167,24 +167,59 @@ pub unsafe fn create_global_object(
     JS_FireOnNewGlobalObject(cx, rval.handle());
 }
 
-// https://html.spec.whatwg.org/multipage/dom.html#htmlconstructor
-pub fn create_html_element(window: &Window, call_args: CallArgs) -> Fallible<Root<HTMLElement>> {
+// https://html.spec.whatwg.org/multipage/#htmlconstructor
+pub unsafe fn html_constructor(window: &Window, call_args: CallArgs) -> Fallible<Root<HTMLElement>> {
+    let document = window.Document();
+
     // Step 1
     let registry = window.CustomElements();
-    let document = window.Document();
 
     // Step 2 in codegen
 
+    // Step 3
     rooted!(in(window.get_cx()) let new_target = call_args.new_target().to_object());
     let definition = match registry.lookup_definition_by_constructor(new_target.handle()) {
         Some(definition) => definition,
         None => return Err(Error::Type("No custom element definition found for new.target".to_owned())),
     };
 
-    let name = QualName::new(None, ns!(html), LocalName::from(definition.local_name));
+    rooted!(in(window.get_cx()) let callee = UnwrapObject(call_args.callee(), 1));
+    if callee.is_null() {
+        return Err(Error::Security);
+    }
 
-    let element = create_noncustom_html_element(name, None, &*document, ElementCreator::ScriptCreated);
-    Root::downcast(element).ok_or(Error::InvalidState)
+    {
+        let _ac = JSAutoCompartment::new(window.get_cx(), callee.get());
+
+        if definition.is_autonomous() {
+            // Step 4
+            // Since this element is autonomous, its active function object must be the HTMLElement
+
+            // Retreive the constructor object for HTMLElement
+            rooted!(in(window.get_cx()) let mut constructor = ptr::null_mut());
+            rooted!(in(window.get_cx()) let global_object = CurrentGlobalOrNull(window.get_cx()));
+            HTMLElementBinding::GetConstructorObject(window.get_cx(), global_object.handle(), constructor.handle_mut());
+            if constructor.is_null() {
+                return Err(Error::JSFailed);
+            }
+
+            // Callee must be the same constructor object as HTMLElement
+            if constructor.get() != callee.get() {
+                return Err(Error::Type("Active function object is not HTMLElement".to_owned()));
+            }
+        } else {
+            // TODO: Step 5
+        }
+    }
+
+    if definition.construction_stack.borrow().is_empty() {
+        let name = QualName::new(None, ns!(html), definition.local_name.clone());
+
+        let element = create_native_html_element(name, None, &*document, ElementCreator::ScriptCreated);
+        return Root::downcast(element).ok_or(Error::InvalidState)
+    }
+
+    Err(Error::InvalidState)
 }
 
 /// Create and define the interface object of a callback interface.
