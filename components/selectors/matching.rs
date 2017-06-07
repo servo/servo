@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use attr::{ParsedAttrSelectorOperation, AttrSelectorOperation, NamespaceConstraint};
+use attr::{ParsedAttrSelectorOperation, AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
 use bloom::{BLOOM_HASH_MASK, BloomFilter};
 use parser::{AncestorHashes, Combinator, Component, LocalName};
 use parser::{Selector, SelectorImpl, SelectorIter, SelectorList};
@@ -666,12 +666,21 @@ fn matches_simple_selector<E, F>(
             let ns = ::parser::namespace_empty_string::<E::Impl>();
             element.get_namespace() == ns.borrow()
         }
-        // TODO: case-sensitivity depends on the document type and quirks mode
         Component::ID(ref id) => {
-            element.get_id().map_or(false, |attr| attr == *id)
+            let case_sensitivity = if element.in_quirks_mode_document() {
+                CaseSensitivity::AsciiCaseInsensitive
+            } else {
+                CaseSensitivity::CaseSensitive
+            };
+            element.has_id(id, case_sensitivity)
         }
         Component::Class(ref class) => {
-            element.has_class(class)
+            let case_sensitivity = if element.in_quirks_mode_document() {
+                CaseSensitivity::AsciiCaseInsensitive
+            } else {
+                CaseSensitivity::CaseSensitive
+            };
+            element.has_class(class, case_sensitivity)
         }
         Component::AttributeInNoNamespaceExists { ref local_name, ref local_name_lower } => {
             let is_html = element.is_html_element_in_html_document();

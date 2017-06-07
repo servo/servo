@@ -201,6 +201,29 @@ impl WeakAtom {
             }
         }
     }
+
+    /// Return whether two atoms are ASCII-case-insensitive matches
+    pub fn eq_ignore_ascii_case(&self, other: &Self) -> bool {
+        if self == other {
+            return true;
+        }
+
+        let a = self.as_slice();
+        let b = other.as_slice();
+        a.len() == b.len() && a.iter().zip(b).all(|(&a16, &b16)| {
+            if a16 <= 0x7F && b16 <= 0x7F {
+                (a16 as u8).eq_ignore_ascii_case(&(b16 as u8))
+            } else {
+                a16 == b16
+            }
+        })
+    }
+
+    /// Return whether this atom is an ASCII-case-insensitive match for the given string
+    pub fn eq_str_ignore_ascii_case(&self, other: &str) -> bool {
+        self.chars().map(|r| r.map(|c: char| c.to_ascii_lowercase()))
+        .eq(other.chars().map(|c: char| Ok(c.to_ascii_lowercase())))
+    }
 }
 
 impl fmt::Debug for WeakAtom {
@@ -257,29 +280,6 @@ impl Atom {
         let ptr = self.as_ptr();
         mem::forget(self);
         ptr
-    }
-
-    /// Return whether two atoms are ASCII-case-insensitive matches
-    pub fn eq_ignore_ascii_case(&self, other: &Self) -> bool {
-        if self == other {
-            return true;
-        }
-
-        let a = self.as_slice();
-        let b = other.as_slice();
-        a.len() == b.len() && a.iter().zip(b).all(|(&a16, &b16)| {
-            if a16 <= 0x7F && b16 <= 0x7F {
-                (a16 as u8).eq_ignore_ascii_case(&(b16 as u8))
-            } else {
-                a16 == b16
-            }
-        })
-    }
-
-    /// Return whether this atom is an ASCII-case-insensitive match for the given string
-    pub fn eq_str_ignore_ascii_case(&self, other: &str) -> bool {
-        self.chars().map(|r| r.map(|c: char| c.to_ascii_lowercase()))
-        .eq(other.chars().map(|c: char| Ok(c.to_ascii_lowercase())))
     }
 }
 
