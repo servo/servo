@@ -685,9 +685,9 @@ ${helpers.predefined_type("word-spacing",
     % endif
 </%helpers:longhand>
 
-${helpers.predefined_type("text-emphasis-color", "CSSColor",
+${helpers.predefined_type("text-emphasis-color", "Color",
                           "::cssparser::Color::CurrentColor",
-                          initial_specified_value="specified::CSSColor::currentcolor()",
+                          initial_specified_value="specified::Color::currentcolor()",
                           products="gecko", animation_value_type="IntermediateColor",
                           complex_color=True, need_clone=True,
                           ignored_when_colors_disabled=True,
@@ -705,7 +705,7 @@ ${helpers.predefined_type(
 // CSS Compatibility
 // https://compat.spec.whatwg.org
 ${helpers.predefined_type(
-    "-webkit-text-fill-color", "CSSColor",
+    "-webkit-text-fill-color", "Color",
     "CSSParserColor::CurrentColor",
     products="gecko", animation_value_type="IntermediateColor",
     complex_color=True, need_clone=True,
@@ -713,9 +713,9 @@ ${helpers.predefined_type(
     spec="https://compat.spec.whatwg.org/#the-webkit-text-fill-color")}
 
 ${helpers.predefined_type(
-    "-webkit-text-stroke-color", "CSSColor",
+    "-webkit-text-stroke-color", "Color",
     "CSSParserColor::CurrentColor",
-    initial_specified_value="specified::CSSColor::currentcolor()",
+    initial_specified_value="specified::Color::currentcolor()",
     products="gecko", animation_value_type="IntermediateColor",
     complex_color=True, need_clone=True,
     ignored_when_colors_disabled=True,

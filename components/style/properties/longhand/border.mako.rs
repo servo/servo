@@ -16,7 +16,7 @@
             return "https://drafts.csswg.org/css-backgrounds/#border-%s-%s" % (side[0], kind)
 %>
 % for side in ALL_SIDES:
-    ${helpers.predefined_type("border-%s-color" % side[0], "CSSColor",
+    ${helpers.predefined_type("border-%s-color" % side[0], "Color",
                               "::cssparser::Color::CurrentColor",
                               alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-color"),
                               spec=maybe_logical_spec(side, "color"),

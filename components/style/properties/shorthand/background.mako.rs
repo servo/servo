@@ -15,7 +15,7 @@
     use properties::longhands::background_clip;
     use properties::longhands::background_clip::single_value::computed_value::T as Clip;
     use properties::longhands::background_origin::single_value::computed_value::T as Origin;
-    use values::specified::{CSSColor, Position, PositionComponent};
+    use values::specified::{Color, Position, PositionComponent};
     use parser::Parse;
 
     impl From<background_origin::single_value::SpecifiedValue> for background_clip::single_value::SpecifiedValue {
@@ -50,7 +50,7 @@
             % endfor
             loop {
                 if background_color.is_none() {
-                    if let Ok(value) = input.try(|i| CSSColor::parse(context, i)) {
+                    if let Ok(value) = input.try(|i| Color::parse(context, i)) {
                         background_color = Some(value);
                         continue
                     }
@@ -112,7 +112,7 @@
         }));
 
         Ok(expanded! {
-             background_color: background_color.unwrap_or(CSSColor::transparent()),
+             background_color: background_color.unwrap_or(Color::transparent()),
              background_image: background_image,
              background_position_x: background_position_x,
              background_position_y: background_position_y,

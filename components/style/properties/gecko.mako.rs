@@ -319,16 +319,7 @@ def set_gecko_property(ffi_name, expr):
     #[allow(unreachable_code)]
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        % if complex_color:
-            let result = v.into();
-        % else:
-            let result = match color {
-                Color::RGBA(rgba) => convert_rgba_to_nscolor(&rgba),
-                // FIXME handle currentcolor
-                Color::CurrentColor => 0,
-            };
-        % endif
-        ${set_gecko_property(gecko_ffi_name, "result")}
+        ${set_gecko_property(gecko_ffi_name, "v.into()")}
     }
 </%def>
 
@@ -343,11 +334,7 @@ def set_gecko_property(ffi_name, expr):
 <%def name="impl_color_clone(ident, gecko_ffi_name, complex_color=True)">
     #[allow(non_snake_case)]
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        % if complex_color:
-            ${get_gecko_property(gecko_ffi_name)}.into()
-        % else:
-            Color::RGBA(convert_nscolor_to_rgba(${get_gecko_property(gecko_ffi_name)}))
-        % endif
+        ${get_gecko_property(gecko_ffi_name)}.into()
     }
 </%def>
 
@@ -721,7 +708,7 @@ impl Debug for ${style_struct.gecko_struct_name} {
         "Number": impl_simple,
         "Integer": impl_simple,
         "Opacity": impl_simple,
-        "CSSColor": impl_color,
+        "Color": impl_color,
         "RGBAColor": impl_rgba_color,
         "SVGPaint": impl_svg_paint,
         "UrlOrNone": impl_css_url,
@@ -742,8 +729,6 @@ impl Debug for ${style_struct.gecko_struct_name} {
                 args.update(cast_type=longhand.cast_type)
         else:
             method = predefined_types[longhand.predefined_type]
-            if longhand.predefined_type in ["CSSColor"]:
-                args.update(complex_color=longhand.complex_color)
 
         method(**args)
 

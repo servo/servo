@@ -4,7 +4,9 @@
 
 //! Specified color values.
 
-use cssparser::{self, Color as CSSParserColor, Parser, RGBA, Token};
+use cssparser::{Color as CSSParserColor, Parser, RGBA, Token};
+#[cfg(feature = "gecko")]
+use gecko_bindings::structs::nscolor;
 use itoa;
 use parser::{ParserContext, Parse};
 #[cfg(feature = "gecko")]
@@ -16,13 +18,18 @@ use super::AllowQuirks;
 use values::computed::{Context, ToComputedValue};
 
 /// Specified color value
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Color {
     /// The 'currentColor' keyword
     CurrentColor,
     /// A specific RGBA color
-    RGBA(RGBA),
+    Numeric {
+        /// Parsed RGBA color
+        parsed: RGBA,
+        /// Authored representation
+        authored: Option<Box<str>>,
+    },
 
     /// A system color
     #[cfg(feature = "gecko")]
@@ -50,25 +57,31 @@ mod gecko {
     }
 }
 
-impl From<CSSParserColor> for Color {
-    fn from(value: CSSParserColor) -> Self {
-        match value {
-            CSSParserColor::CurrentColor => Color::CurrentColor,
-            CSSParserColor::RGBA(x) => Color::RGBA(x),
-        }
-    }
-}
-
 impl From<RGBA> for Color {
     fn from(value: RGBA) -> Self {
-        Color::RGBA(value)
+        Color::rgba(value)
     }
 }
 
 impl Parse for Color {
     fn parse(_: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        // Currently we only store authored value for color keywords,
+        // because all browsers serialize those values as keywords for
+        // specified value.
+        let start_position = input.position();
+        let authored = match input.next() {
+            Ok(Token::Ident(s)) => Some(s.to_lowercase().into_boxed_str()),
+            _ => None,
+        };
+        input.reset(start_position);
         if let Ok(value) = input.try(CSSParserColor::parse) {
-            Ok(value.into())
+            Ok(match value {
+                CSSParserColor::CurrentColor => Color::CurrentColor,
+                CSSParserColor::RGBA(rgba) => Color::Numeric {
+                    parsed: rgba,
+                    authored: authored,
+                },
+            })
         } else {
             #[cfg(feature = "gecko")] {
                 if let Ok(system) = input.try(SystemColor::parse) {
@@ -88,7 +101,8 @@ impl ToCss for Color {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
             Color::CurrentColor => CSSParserColor::CurrentColor.to_css(dest),
-            Color::RGBA(rgba) => rgba.to_css(dest),
+            Color::Numeric { authored: Some(ref authored), .. } => dest.write_str(authored),
+            Color::Numeric { parsed: ref rgba, .. } => rgba.to_css(dest),
             #[cfg(feature = "gecko")]
             Color::System(system) => system.to_css(dest),
             #[cfg(feature = "gecko")]
@@ -99,21 +113,44 @@ impl ToCss for Color {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct CSSColor {
-    pub parsed: Color,
-    pub authored: Option<Box<str>>,
+/// A wrapper of cssparser::Color::parse_hash.
+///
+/// That function should never return CurrentColor, so it makes no sense
+/// to handle a cssparser::Color here. This should really be done in
+/// cssparser directly rather than here.
+fn parse_hash_color(value: &[u8]) -> Result<RGBA, ()> {
+    CSSParserColor::parse_hash(value).map(|color| {
+        match color {
+            CSSParserColor::RGBA(rgba) => rgba,
+            CSSParserColor::CurrentColor =>
+                unreachable!("parse_hash should never return currentcolor"),
+        }
+    })
 }
 
-impl Parse for CSSColor {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_quirky(context, input, AllowQuirks::No)
+impl Color {
+    /// Returns currentcolor value.
+    #[inline]
+    pub fn currentcolor() -> Color {
+        Color::CurrentColor
     }
-}
 
-impl CSSColor {
+    /// Returns transparent value.
+    #[inline]
+    pub fn transparent() -> Color {
+        // We should probably set authored to "transparent", but maybe it doesn't matter.
+        Color::rgba(RGBA::transparent())
+    }
+
+    /// Returns a numeric RGBA color value.
+    #[inline]
+    pub fn rgba(rgba: RGBA) -> Self {
+        Color::Numeric {
+            parsed: rgba,
+            authored: None,
+        }
+    }
+
     /// Parse a color, with quirks.
     ///
     /// https://quirks.spec.whatwg.org/#the-hashless-hex-color-quirk
@@ -121,21 +158,18 @@ impl CSSColor {
                         input: &mut Parser,
                         allow_quirks: AllowQuirks)
                         -> Result<Self, ()> {
-        let start_position = input.position();
-        let authored = match input.next() {
-            Ok(Token::Ident(s)) => Some(s.into_owned().into_boxed_str()),
-            _ => None,
-        };
-        input.reset(start_position);
-        if let Ok(parsed) = input.try(|i| Parse::parse(context, i)) {
-            return Ok(CSSColor {
-                parsed: parsed,
-                authored: authored,
-            });
-        }
-        if !allow_quirks.allowed(context.quirks_mode) {
-            return Err(());
-        }
+        input.try(|i| Self::parse(context, i)).or_else(|_| {
+            if !allow_quirks.allowed(context.quirks_mode) {
+                return Err(());
+            }
+            Color::parse_quirky_color(input).map(|rgba| Color::rgba(rgba))
+        })
+    }
+
+    /// Parse a <quirky-color> value.
+    ///
+    /// https://quirks.spec.whatwg.org/#the-hashless-hex-color-quirk
+    fn parse_quirky_color(input: &mut Parser) -> Result<RGBA, ()> {
         let (number, dimension) = match input.next()? {
             Token::Number(number) => {
                 (number, None)
@@ -147,12 +181,7 @@ impl CSSColor {
                 if ident.len() != 3 && ident.len() != 6 {
                     return Err(());
                 }
-                return cssparser::Color::parse_hash(ident.as_bytes()).map(|color| {
-                    Self {
-                        parsed: color.into(),
-                        authored: None
-                    }
-                });
+                return parse_hash_color(ident.as_bytes());
             }
             _ => {
                 return Err(());
@@ -189,72 +218,38 @@ impl CSSColor {
             written += (&mut serialization[written..]).write(dimension.as_bytes()).unwrap();
         }
         debug_assert!(written == 6);
-        Ok(CSSColor {
-            parsed: cssparser::Color::parse_hash(&serialization).map(From::from)?,
-            authored: None,
-        })
+        parse_hash_color(&serialization)
     }
 
     /// Returns false if the color is completely transparent, and
     /// true otherwise.
     pub fn is_non_transparent(&self) -> bool {
-        match self.parsed {
-            Color::RGBA(rgba) if rgba.alpha == 0 => false,
+        match *self {
+            Color::Numeric { ref parsed, .. } => parsed.alpha != 0,
             _ => true,
         }
     }
 }
 
-no_viewport_percentage!(CSSColor);
-
-impl ToCss for CSSColor {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match self.authored {
-            Some(ref s) => dest.write_str(s),
-            None => self.parsed.to_css(dest),
-        }
-    }
-}
-
-impl From<Color> for CSSColor {
-    fn from(color: Color) -> Self {
-        CSSColor {
-            parsed: color,
-            authored: None,
-        }
-    }
-}
-
-impl CSSColor {
-    #[inline]
-    /// Returns currentcolor value.
-    pub fn currentcolor() -> CSSColor {
-        Color::CurrentColor.into()
-    }
-
-    #[inline]
-    /// Returns transparent value.
-    pub fn transparent() -> CSSColor {
-        // We should probably set authored to "transparent", but maybe it doesn't matter.
-        Color::RGBA(cssparser::RGBA::transparent()).into()
-    }
+#[cfg(feature = "gecko")]
+fn to_rgba(color: nscolor) -> CSSParserColor {
+    use gecko::values::convert_nscolor_to_rgba;
+    CSSParserColor::RGBA(convert_nscolor_to_rgba(color))
 }
 
 impl ToComputedValue for Color {
-    type ComputedValue = RGBA;
+    type ComputedValue = CSSParserColor;
 
-    fn to_computed_value(&self, context: &Context) -> RGBA {
-        #[cfg(feature = "gecko")]
-        use gecko::values::convert_nscolor_to_rgba as to_rgba;
+    fn to_computed_value(&self, _context: &Context) -> CSSParserColor {
         match *self {
-            Color::RGBA(rgba) => rgba,
-            Color::CurrentColor => context.inherited_style.get_color().clone_color(),
+            Color::CurrentColor => CSSParserColor::CurrentColor,
+            Color::Numeric { ref parsed, .. } => CSSParserColor::RGBA(*parsed),
             #[cfg(feature = "gecko")]
-            Color::System(system) => to_rgba(system.to_computed_value(context)),
+            Color::System(system) => to_rgba(system.to_computed_value(_context)),
             #[cfg(feature = "gecko")]
             Color::Special(special) => {
                 use self::gecko::SpecialColorKeyword as Keyword;
-                let pres_context = unsafe { &*context.device.pres_context };
+                let pres_context = unsafe { &*_context.device.pres_context };
                 to_rgba(match special {
                     Keyword::MozDefaultColor => pres_context.mDefaultColor,
                     Keyword::MozDefaultBackgroundColor => pres_context.mBackgroundColor,
@@ -268,17 +263,17 @@ impl ToComputedValue for Color {
                 use dom::TElement;
                 use gecko::wrapper::GeckoElement;
                 use gecko_bindings::bindings::Gecko_GetBody;
-                let pres_context = unsafe { &*context.device.pres_context };
+                let pres_context = unsafe { &*_context.device.pres_context };
                 let body = unsafe {
                     Gecko_GetBody(pres_context)
                 };
                 if let Some(body) = body {
                     let wrap = GeckoElement(body);
                     let borrow = wrap.borrow_data();
-                    borrow.as_ref().unwrap()
-                          .styles().primary.values()
-                          .get_color()
-                          .clone_color()
+                    CSSParserColor::RGBA(borrow.as_ref().unwrap()
+                                               .styles().primary.values()
+                                               .get_color()
+                                               .clone_color())
                 } else {
                     to_rgba(pres_context.mDefaultColor)
                 }
@@ -286,31 +281,11 @@ impl ToComputedValue for Color {
         }
     }
 
-    fn from_computed_value(computed: &RGBA) -> Self {
-        Color::RGBA(*computed)
-    }
-}
-
-impl ToComputedValue for CSSColor {
-    type ComputedValue = CSSParserColor;
-
-    #[inline]
-    fn to_computed_value(&self, _context: &Context) -> CSSParserColor {
-        match self.parsed {
-            Color::RGBA(rgba) => CSSParserColor::RGBA(rgba),
-            Color::CurrentColor => CSSParserColor::CurrentColor,
-            // Resolve non-standard -moz keywords to RGBA:
-            #[cfg(feature = "gecko")]
-            non_standard => CSSParserColor::RGBA(non_standard.to_computed_value(_context)),
-        }
-    }
-
-    #[inline]
     fn from_computed_value(computed: &CSSParserColor) -> Self {
-        (match *computed {
-            CSSParserColor::RGBA(rgba) => Color::RGBA(rgba),
-            CSSParserColor::CurrentColor => Color::CurrentColor,
-        }).into()
+        match *computed {
+            CSSParserColor::RGBA(rgba) => Color::rgba(rgba),
+            CSSParserColor::CurrentColor => Color::currentcolor(),
+        }
     }
 }
 
@@ -318,13 +293,13 @@ impl ToComputedValue for CSSColor {
 /// with value from color property at the same context.
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct RGBAColor(pub CSSColor);
+pub struct RGBAColor(pub Color);
 
 no_viewport_percentage!(RGBAColor);
 
 impl Parse for RGBAColor {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        CSSColor::parse(context, input).map(RGBAColor)
+        Color::parse(context, input).map(RGBAColor)
     }
 }
 
@@ -345,24 +320,12 @@ impl ToComputedValue for RGBAColor {
     }
 
     fn from_computed_value(computed: &RGBA) -> Self {
-        RGBAColor(CSSColor {
-            parsed: Color::RGBA(*computed),
-            authored: None,
-        })
+        RGBAColor(Color::rgba(*computed))
     }
 }
 
 impl From<Color> for RGBAColor {
     fn from(color: Color) -> RGBAColor {
-        RGBAColor(CSSColor {
-            parsed: color,
-            authored: None,
-        })
-    }
-}
-
-impl From<CSSColor> for RGBAColor {
-    fn from(color: CSSColor) -> RGBAColor {
         RGBAColor(color)
     }
 }

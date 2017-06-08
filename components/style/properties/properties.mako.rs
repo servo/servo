@@ -40,7 +40,6 @@ use stylesheets::{CssRuleType, MallocSizeOf, MallocSizeOfFn, Origin, UrlExtraDat
 #[cfg(feature = "servo")] use values::Either;
 use values::generics::text::LineHeight;
 use values::computed;
-use values::specified::Color;
 use cascade_info::CascadeInfo;
 use rule_tree::{CascadeLevel, StrongRuleNode};
 use style_adjuster::StyleAdjuster;
@@ -2626,7 +2625,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
     let ignore_colors = !device.use_document_colors();
     let default_background_color_decl = if ignore_colors {
         let color = device.default_background_color();
-        Some(PropertyDeclaration::BackgroundColor(Color::RGBA(color).into()))
+        Some(PropertyDeclaration::BackgroundColor(color.into()))
     } else {
         None
     };

@@ -278,9 +278,9 @@ ${helpers.single_keyword("text-decoration-style",
                          spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-style")}
 
 ${helpers.predefined_type(
-    "text-decoration-color", "CSSColor",
-    "computed::CSSColor::CurrentColor",
-    initial_specified_value="specified::CSSColor::currentcolor()",
+    "text-decoration-color", "Color",
+    "computed::Color::CurrentColor",
+    initial_specified_value="specified::Color::currentcolor()",
     complex_color=True,
     products="gecko",
     animation_value_type="IntermediateColor",

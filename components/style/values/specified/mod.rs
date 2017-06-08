@@ -31,7 +31,7 @@ pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, Justify
 pub use self::background::BackgroundSize;
 pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
 pub use self::border::{BorderImageSideWidth, BorderRadius, BorderSideWidth};
-pub use self::color::{CSSColor, Color, RGBAColor};
+pub use self::color::{Color, RGBAColor};
 pub use self::rect::LengthOrNumberRect;
 #[cfg(feature = "gecko")]
 pub use self::gecko::ScrollSnapPoint;
@@ -681,7 +681,7 @@ pub struct Shadow {
     pub offset_y: Length,
     pub blur_radius: Length,
     pub spread_radius: Length,
-    pub color: Option<CSSColor>,
+    pub color: Option<Color>,
     pub inset: bool,
 }
 
@@ -771,7 +771,7 @@ impl Shadow {
                 }
             }
             if color.is_none() {
-                if let Ok(value) = input.try(|i| CSSColor::parse(context, i)) {
+                if let Ok(value) = input.try(|i| Color::parse(context, i)) {
                     color = Some(value);
                     continue
                 }
@@ -997,7 +997,7 @@ impl ClipRectOrAuto {
 }
 
 /// <color> | auto
-pub type ColorOrAuto = Either<CSSColor, Auto>;
+pub type ColorOrAuto = Either<Color, Auto>;
 
 /// Whether quirks are allowed in this context.
 #[derive(Clone, Copy, PartialEq)]

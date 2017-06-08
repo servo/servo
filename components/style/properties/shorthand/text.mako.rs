@@ -70,7 +70,7 @@
                     self.text_decoration_style.to_css(dest)?;
                 }
 
-                if self.text_decoration_color.parsed != specified::Color::CurrentColor {
+                if *self.text_decoration_color != specified::Color::CurrentColor {
                     dest.write_str(" ")?;
                     self.text_decoration_color.to_css(dest)?;
                 }

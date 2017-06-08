@@ -5,7 +5,7 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 <% from data import to_rust_ident, ALL_SIDES, PHYSICAL_SIDES, maybe_moz_logical_alias %>
 
-${helpers.four_sides_shorthand("border-color", "border-%s-color", "specified::CSSColor::parse",
+${helpers.four_sides_shorthand("border-color", "border-%s-color", "specified::Color::parse",
                                spec="https://drafts.csswg.org/css-backgrounds/#border-color",
                                allow_quirks=True)}
 
@@ -44,10 +44,10 @@ ${helpers.four_sides_shorthand("border-style", "border-%s-style",
 
 
 pub fn parse_border(context: &ParserContext, input: &mut Parser)
-                 -> Result<(specified::CSSColor,
+                 -> Result<(specified::Color,
                             specified::BorderStyle,
                             specified::BorderSideWidth), ()> {
-    use values::specified::{CSSColor, BorderStyle, BorderSideWidth};
+    use values::specified::{Color, BorderStyle, BorderSideWidth};
     let _unused = context;
     let mut color = None;
     let mut style = None;
@@ -55,7 +55,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
     let mut any = false;
     loop {
         if color.is_none() {
-            if let Ok(value) = input.try(|i| CSSColor::parse(context, i)) {
+            if let Ok(value) = input.try(|i| Color::parse(context, i)) {
                 color = Some(value);
                 any = true;
                 continue
@@ -78,7 +78,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
         break
     }
     if any {
-        Ok((color.unwrap_or_else(|| CSSColor::currentcolor()),
+        Ok((color.unwrap_or_else(|| Color::currentcolor()),
             style.unwrap_or(BorderStyle::none),
             width.unwrap_or(BorderSideWidth::Medium)))
     } else {

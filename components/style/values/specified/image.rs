@@ -24,7 +24,7 @@ use values::generics::image::{Image as GenericImage, ImageRect as GenericImageRe
 use values::generics::image::{LineDirection as GenericsLineDirection, ShapeExtent};
 use values::generics::image::PaintWorklet;
 use values::generics::position::Position as GenericPosition;
-use values::specified::{Angle, CSSColor, Color, Length, LengthOrPercentage};
+use values::specified::{Angle, Color, Length, LengthOrPercentage};
 use values::specified::{Number, NumberOrPercentage, Percentage, RGBAColor};
 use values::specified::position::{Position, PositionComponent, Side, X, Y};
 use values::specified::url::SpecifiedUrl;
@@ -386,8 +386,8 @@ impl Gradient {
                         "to" => 1.,
                         _ => return Err(()),
                     };
-                    let color = CSSColor::parse(context, i)?;
-                    if color.parsed == Color::CurrentColor {
+                    let color = Color::parse(context, i)?;
+                    if color == Color::CurrentColor {
                         return Err(());
                     }
                     Ok((color.into(), p))
@@ -405,11 +405,11 @@ impl Gradient {
         if items.is_empty() {
             items = vec![
                 GenericGradientItem::ColorStop(GenericColorStop {
-                    color: CSSColor::transparent().into(),
+                    color: Color::transparent().into(),
                     position: Some(Percentage(0.).into()),
                 }),
                 GenericGradientItem::ColorStop(GenericColorStop {
-                    color: CSSColor::transparent().into(),
+                    color: Color::transparent().into(),
                     position: Some(Percentage(1.).into()),
                 }),
             ];

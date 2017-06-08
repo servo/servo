@@ -23,7 +23,7 @@ use super::generics::grid::TrackList as GenericTrackList;
 use super::specified;
 
 pub use app_units::Au;
-pub use cssparser::Color as CSSColor;
+pub use cssparser::Color;
 pub use properties::animated_properties::TransitionProperty;
 pub use self::background::BackgroundSize;
 pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
@@ -402,7 +402,7 @@ pub struct Shadow {
     pub offset_y: Au,
     pub blur_radius: Au,
     pub spread_radius: Au,
-    pub color: CSSColor,
+    pub color: Color,
     pub inset: bool,
 }
 
@@ -584,4 +584,4 @@ impl ClipRectOrAuto {
 }
 
 /// <color> | auto
-pub type ColorOrAuto = Either<CSSColor, Auto>;
+pub type ColorOrAuto = Either<Color, Auto>;
