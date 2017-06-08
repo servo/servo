@@ -23,11 +23,11 @@ use super::generics::grid::TrackList as GenericTrackList;
 use super::specified;
 
 pub use app_units::Au;
-pub use cssparser::Color as CSSColor;
 pub use properties::animated_properties::TransitionProperty;
 pub use self::background::BackgroundSize;
 pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderCornerRadius};
+pub use self::color::{Color, RGBAColor};
 pub use self::image::{Gradient, GradientItem, ImageLayer, LineDirection, Image, ImageRect};
 #[cfg(feature = "gecko")]
 pub use self::gecko::ScrollSnapPoint;
@@ -48,6 +48,7 @@ pub use self::transform::{TimingFunction, TransformOrigin};
 pub mod background;
 pub mod basic_shape;
 pub mod border;
+pub mod color;
 pub mod image;
 #[cfg(feature = "gecko")]
 pub mod gecko;
@@ -360,86 +361,6 @@ impl ToCss for Time {
     }
 }
 
-impl ToComputedValue for specified::Color {
-    type ComputedValue = RGBA;
-
-    #[cfg(not(feature = "gecko"))]
-    fn to_computed_value(&self, context: &Context) -> RGBA {
-        match *self {
-            specified::Color::RGBA(rgba) => rgba,
-            specified::Color::CurrentColor => context.inherited_style.get_color().clone_color(),
-        }
-    }
-
-    #[cfg(feature = "gecko")]
-    fn to_computed_value(&self, context: &Context) -> RGBA {
-        use gecko::values::convert_nscolor_to_rgba as to_rgba;
-        // It's safe to access the nsPresContext immutably during style computation.
-        let pres_context = unsafe { &*context.device.pres_context };
-        match *self {
-            specified::Color::RGBA(rgba) => rgba,
-            specified::Color::System(system) => to_rgba(system.to_computed_value(context)),
-            specified::Color::CurrentColor => context.inherited_style.get_color().clone_color(),
-            specified::Color::MozDefaultColor => to_rgba(pres_context.mDefaultColor),
-            specified::Color::MozDefaultBackgroundColor => to_rgba(pres_context.mBackgroundColor),
-            specified::Color::MozHyperlinktext => to_rgba(pres_context.mLinkColor),
-            specified::Color::MozActiveHyperlinktext => to_rgba(pres_context.mActiveLinkColor),
-            specified::Color::MozVisitedHyperlinktext => to_rgba(pres_context.mVisitedLinkColor),
-            specified::Color::InheritFromBodyQuirk => {
-                use dom::TElement;
-                use gecko::wrapper::GeckoElement;
-                use gecko_bindings::bindings::Gecko_GetBody;
-                let body = unsafe {
-                    Gecko_GetBody(pres_context)
-                };
-                if let Some(body) = body {
-                    let wrap = GeckoElement(body);
-                    let borrow = wrap.borrow_data();
-                    borrow.as_ref().unwrap()
-                          .styles().primary.values()
-                          .get_color()
-                          .clone_color()
-                } else {
-                    to_rgba(pres_context.mDefaultColor)
-                }
-            },
-        }
-    }
-
-    fn from_computed_value(computed: &RGBA) -> Self {
-        specified::Color::RGBA(*computed)
-    }
-}
-
-impl ToComputedValue for specified::CSSColor {
-    type ComputedValue = CSSColor;
-
-    #[cfg(not(feature = "gecko"))]
-    #[inline]
-    fn to_computed_value(&self, _context: &Context) -> CSSColor {
-        self.parsed
-    }
-
-    #[cfg(feature = "gecko")]
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> CSSColor {
-        match self.parsed {
-            specified::Color::RGBA(rgba) => CSSColor::RGBA(rgba),
-            specified::Color::CurrentColor => CSSColor::CurrentColor,
-            // Resolve non-standard -moz keywords to RGBA:
-            non_standard => CSSColor::RGBA(non_standard.to_computed_value(context)),
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &CSSColor) -> Self {
-        (match *computed {
-            CSSColor::RGBA(rgba) => specified::Color::RGBA(rgba),
-            CSSColor::CurrentColor => specified::Color::CurrentColor,
-        }).into()
-    }
-}
-
 #[cfg(feature = "gecko")]
 impl ToComputedValue for specified::JustifyItems {
     type ComputedValue = JustifyItems;
@@ -480,7 +401,7 @@ pub struct Shadow {
     pub offset_y: Au,
     pub blur_radius: Au,
     pub spread_radius: Au,
-    pub color: CSSColor,
+    pub color: Color,
     pub inset: bool,
 }
 
@@ -559,9 +480,9 @@ impl IntegerOrAuto {
 }
 
 /// Computed SVG Paint value
-pub type SVGPaint = ::values::generics::SVGPaint<CSSColor>;
+pub type SVGPaint = ::values::generics::SVGPaint<RGBA>;
 /// Computed SVG Paint Kind value
-pub type SVGPaintKind = ::values::generics::SVGPaintKind<CSSColor>;
+pub type SVGPaintKind = ::values::generics::SVGPaintKind<RGBA>;
 
 impl Default for SVGPaint {
     fn default() -> Self {
@@ -577,7 +498,7 @@ impl SVGPaint {
     pub fn black() -> Self {
         let rgba = RGBA::from_floats(0., 0., 0., 1.);
         SVGPaint {
-            kind: ::values::generics::SVGPaintKind::Color(CSSColor::RGBA(rgba)),
+            kind: ::values::generics::SVGPaintKind::Color(rgba),
             fallback: None,
         }
     }
@@ -662,4 +583,4 @@ impl ClipRectOrAuto {
 }
 
 /// <color> | auto
-pub type ColorOrAuto = Either<CSSColor, Auto>;
+pub type ColorOrAuto = Either<Color, Auto>;

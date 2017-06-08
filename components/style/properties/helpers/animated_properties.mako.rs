@@ -7,7 +7,7 @@
 <% from data import SYSTEM_FONT_LONGHANDS %>
 
 use app_units::Au;
-use cssparser::{Color as CSSParserColor, Parser, RGBA, serialize_identifier};
+use cssparser::{Parser, RGBA, serialize_identifier};
 use euclid::{Point2D, Size2D};
 #[cfg(feature = "gecko")] use gecko_bindings::bindings::RawServoAnimationValueMap;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::RawGeckoGfxMatrix4x4;
@@ -38,7 +38,7 @@ use values::CSSFloat;
 use values::{Auto, Either};
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{BorderCornerRadius, ClipRect};
-use values::computed::{CalcLengthOrPercentage, Context, ComputedValueAsSpecified};
+use values::computed::{CalcLengthOrPercentage, Color, Context, ComputedValueAsSpecified};
 use values::computed::{LengthOrPercentage, MaxLength, MozLength, Shadow, ToComputedValue};
 use values::generics::{SVGPaint, SVGPaintKind};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
@@ -2721,38 +2721,19 @@ impl Animatable for IntermediateRGBA {
     }
 }
 
-impl From<Either<CSSParserColor, Auto>> for Either<IntermediateColor, Auto> {
-    fn from(from: Either<CSSParserColor, Auto>) -> Either<IntermediateColor, Auto> {
+impl From<Either<Color, Auto>> for Either<IntermediateColor, Auto> {
+    fn from(from: Either<Color, Auto>) -> Either<IntermediateColor, Auto> {
         match from {
-            Either::First(from) =>
-                match from {
-                    CSSParserColor::RGBA(color) =>
-                        Either::First(IntermediateColor::IntermediateRGBA(
-                            IntermediateRGBA::new(color.red_f32(),
-                                                  color.green_f32(),
-                                                  color.blue_f32(),
-                                                  color.alpha_f32()))),
-                    CSSParserColor::CurrentColor =>
-                        Either::First(IntermediateColor::CurrentColor),
-                },
+            Either::First(from) => Either::First(from.into()),
             Either::Second(Auto) => Either::Second(Auto),
         }
     }
 }
 
-impl From<Either<IntermediateColor, Auto>> for Either<CSSParserColor, Auto> {
-    fn from(from: Either<IntermediateColor, Auto>) -> Either<CSSParserColor, Auto> {
+impl From<Either<IntermediateColor, Auto>> for Either<Color, Auto> {
+    fn from(from: Either<IntermediateColor, Auto>) -> Either<Color, Auto> {
         match from {
-            Either::First(from) =>
-                match from {
-                    IntermediateColor::IntermediateRGBA(color) =>
-                        Either::First(CSSParserColor::RGBA(RGBA::from_floats(color.red,
-                                                                             color.green,
-                                                                             color.blue,
-                                                                             color.alpha))),
-                    IntermediateColor::CurrentColor =>
-                        Either::First(CSSParserColor::CurrentColor),
-                },
+            Either::First(from) => Either::First(from.into()),
             Either::Second(Auto) => Either::Second(Auto),
         }
     }
@@ -2761,22 +2742,89 @@ impl From<Either<IntermediateColor, Auto>> for Either<CSSParserColor, Auto> {
 #[derive(Copy, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
-pub enum IntermediateColor {
-    CurrentColor,
-    IntermediateRGBA(IntermediateRGBA),
+pub struct IntermediateColor {
+    color: IntermediateRGBA,
+    foreground_ratio: f32,
+}
+
+impl IntermediateColor {
+    fn currentcolor() -> Self {
+        IntermediateColor {
+            color: IntermediateRGBA::transparent(),
+            foreground_ratio: 1.,
+        }
+    }
+
+    fn transparent() -> Self {
+        IntermediateColor {
+            color: IntermediateRGBA::transparent(),
+            foreground_ratio: 0.,
+        }
+    }
+
+    fn is_currentcolor(&self) -> bool {
+        self.foreground_ratio >= 1.
+    }
+
+    fn is_numeric(&self) -> bool {
+        self.foreground_ratio <= 0.
+    }
+
+    fn effective_intermediate_rgba(&self) -> IntermediateRGBA {
+        IntermediateRGBA {
+            alpha: self.color.alpha * (1. - self.foreground_ratio),
+            .. self.color
+        }
+    }
 }
 
 impl Animatable for IntermediateColor {
     #[inline]
     fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        match (*self, *other) {
-            (IntermediateColor::IntermediateRGBA(ref this),
-             IntermediateColor::IntermediateRGBA(ref other)) => {
-                this.add_weighted(other, self_portion, other_portion)
-                    .map(IntermediateColor::IntermediateRGBA)
+        // Common cases are interpolating between two numeric colors,
+        // two currentcolors, and a numeric color and a currentcolor.
+        //
+        // Note: this algorithm assumes self_portion + other_portion
+        // equals to one, so it may be broken for additive operation.
+        // To properly support additive color interpolation, we would
+        // need two ratio fields in computed color types.
+        if self.foreground_ratio == other.foreground_ratio {
+            if self.is_currentcolor() {
+                Ok(IntermediateColor::currentcolor())
+            } else {
+                Ok(IntermediateColor {
+                    color: self.color.add_weighted(&other.color, self_portion, other_portion)?,
+                    foreground_ratio: self.foreground_ratio,
+                })
             }
-            // FIXME: Bug 1345709: Implement currentColor animations.
-            _ => Err(()),
+        } else if self.is_currentcolor() && other.is_numeric() {
+            Ok(IntermediateColor {
+                color: other.color,
+                foreground_ratio: self_portion as f32,
+            })
+        } else if self.is_numeric() && other.is_currentcolor() {
+            Ok(IntermediateColor {
+                color: self.color,
+                foreground_ratio: other_portion as f32,
+            })
+        } else {
+            // For interpolating between two complex colors, we need to
+            // generate colors with effective alpha value.
+            let self_color = self.effective_intermediate_rgba();
+            let other_color = other.effective_intermediate_rgba();
+            let color = self_color.add_weighted(&other_color, self_portion, other_portion)?;
+            // Then we compute the final foreground ratio, and derive
+            // the final alpha value from the effective alpha value.
+            let foreground_ratio = self.foreground_ratio
+                .add_weighted(&other.foreground_ratio, self_portion, other_portion)?;
+            let alpha = color.alpha / (1. - foreground_ratio);
+            Ok(IntermediateColor {
+                color: IntermediateRGBA {
+                    alpha: alpha,
+                    .. color
+                },
+                foreground_ratio: foreground_ratio,
+            })
         }
     }
 
@@ -2787,45 +2835,49 @@ impl Animatable for IntermediateColor {
 
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-        match (*self, *other) {
-            (IntermediateColor::IntermediateRGBA(ref this), IntermediateColor::IntermediateRGBA(ref other)) => {
-                this.compute_squared_distance(other)
-            },
-            _ => Ok(0.0),
+        // All comments in add_weighted also applies here.
+        if self.foreground_ratio == other.foreground_ratio {
+            if self.is_currentcolor() {
+                Ok(0.)
+            } else {
+                self.color.compute_squared_distance(&other.color)
+            }
+        } else if self.is_currentcolor() && other.is_numeric() {
+            Ok(IntermediateRGBA::transparent().compute_squared_distance(&other.color)? + 1.)
+        } else if self.is_numeric() && other.is_currentcolor() {
+            Ok(self.color.compute_squared_distance(&IntermediateRGBA::transparent())? + 1.)
+        } else {
+            let self_color = self.effective_intermediate_rgba();
+            let other_color = other.effective_intermediate_rgba();
+            let dist = self_color.compute_squared_distance(&other_color)?;
+            let ratio_diff = (self.foreground_ratio - other.foreground_ratio) as f64;
+            Ok(dist + ratio_diff * ratio_diff)
         }
     }
 }
 
-impl From<CSSParserColor> for IntermediateColor {
-    fn from(color: CSSParserColor) -> IntermediateColor {
-        match color {
-            CSSParserColor::RGBA(color) =>
-                IntermediateColor::IntermediateRGBA(IntermediateRGBA::new(color.red_f32(),
-                                                                          color.green_f32(),
-                                                                          color.blue_f32(),
-                                                                          color.alpha_f32())),
-            CSSParserColor::CurrentColor => IntermediateColor::CurrentColor,
+impl From<Color> for IntermediateColor {
+    fn from(color: Color) -> IntermediateColor {
+        IntermediateColor {
+            color: color.color.into(),
+            foreground_ratio: color.foreground_ratio as f32 * (1. / 255.),
         }
     }
 }
 
-impl From<IntermediateColor> for CSSParserColor {
-    fn from(color: IntermediateColor) -> CSSParserColor {
-        match color {
-            IntermediateColor::IntermediateRGBA(color) =>
-                CSSParserColor::RGBA(RGBA::from_floats(color.red,
-                                                       color.green,
-                                                       color.blue,
-                                                       color.alpha)),
-            IntermediateColor::CurrentColor => CSSParserColor::CurrentColor,
+impl From<IntermediateColor> for Color {
+    fn from(color: IntermediateColor) -> Color {
+        Color {
+            color: color.color.into(),
+            foreground_ratio: (color.foreground_ratio * 255.).round() as u8,
         }
     }
 }
 
 /// Animatable SVGPaint
-pub type IntermediateSVGPaint = SVGPaint<IntermediateColor>;
+pub type IntermediateSVGPaint = SVGPaint<IntermediateRGBA>;
 /// Animatable SVGPaintKind
-pub type IntermediateSVGPaintKind = SVGPaintKind<IntermediateColor>;
+pub type IntermediateSVGPaintKind = SVGPaintKind<IntermediateRGBA>;
 
 impl From<::values::computed::SVGPaint> for IntermediateSVGPaint {
     fn from(paint: ::values::computed::SVGPaint) -> IntermediateSVGPaint {
@@ -3024,7 +3076,7 @@ impl Animatable for IntermediateShadowList {
             offset_y: Au(0),
             blur_radius: Au(0),
             spread_radius: Au(0),
-            color: IntermediateColor::IntermediateRGBA(IntermediateRGBA::transparent()),
+            color: IntermediateColor::transparent(),
             inset: false,
         };
 

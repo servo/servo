@@ -422,8 +422,7 @@ pub trait FragmentDisplayListBuilding {
                                bounds: &Rect<Au>,
                                stops: &[GradientItem],
                                direction: &LineDirection,
-                               repeating: bool,
-                               style: &ServoComputedValues)
+                               repeating: bool)
                                -> display_list::Gradient;
 
     fn convert_radial_gradient(&self,
@@ -431,8 +430,7 @@ pub trait FragmentDisplayListBuilding {
                                stops: &[GradientItem],
                                shape: &EndingShape,
                                center: &Position,
-                               repeating: bool,
-                               style: &ServoComputedValues)
+                               repeating: bool)
                                -> display_list::RadialGradient;
 
     /// Adds the display items necessary to paint the background linear gradient of this fragment
@@ -634,8 +632,7 @@ fn build_border_radius_for_inner_rect(outer_rect: &Rect<Au>,
 }
 
 fn convert_gradient_stops(gradient_items: &[GradientItem],
-                          total_length: Au,
-                          style: &ServoComputedValues) -> Vec<GradientStop> {
+                          total_length: Au) -> Vec<GradientStop> {
     // Determine the position of each stop per CSS-IMAGES § 3.4.
 
     // Only keep the color stops, discard the color interpolation hints.
@@ -722,7 +719,7 @@ fn convert_gradient_stops(gradient_items: &[GradientItem],
         };
         stops.push(GradientStop {
             offset: offset,
-            color: style.resolve_color(stop.color).to_gfx_color()
+            color: stop.color.to_gfx_color()
         })
     }
     stops
@@ -1192,8 +1189,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                bounds: &Rect<Au>,
                                stops: &[GradientItem],
                                direction: &LineDirection,
-                               repeating: bool,
-                               style: &ServoComputedValues)
+                               repeating: bool)
                                -> display_list::Gradient {
         let angle = match *direction {
             LineDirection::Angle(angle) => angle.radians(),
@@ -1234,7 +1230,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let length = Au::from_f32_px(
             (delta.x.to_f32_px() * 2.0).hypot(delta.y.to_f32_px() * 2.0));
 
-        let mut stops = convert_gradient_stops(stops, length, style);
+        let mut stops = convert_gradient_stops(stops, length);
 
         // Only clamped gradients need to be fixed because in repeating gradients
         // there is no "first" or "last" stop because they repeat infinitly in
@@ -1258,8 +1254,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                stops: &[GradientItem],
                                shape: &EndingShape,
                                center: &Position,
-                               repeating: bool,
-                               style: &ServoComputedValues)
+                               repeating: bool)
                                -> display_list::RadialGradient {
         let center = Point2D::new(center.horizontal.to_used_value(bounds.size.width),
                                   center.vertical.to_used_value(bounds.size.height));
@@ -1278,7 +1273,7 @@ impl FragmentDisplayListBuilding for Fragment {
             },
         };
 
-        let mut stops = convert_gradient_stops(stops, radius.width, style);
+        let mut stops = convert_gradient_stops(stops, radius.width);
         // Repeating gradients have no last stops that can be ignored. So
         // fixup is not necessary but may actually break the gradient.
         if !repeating {
@@ -1322,8 +1317,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 let gradient = self.convert_linear_gradient(&bounds,
                                                             &gradient.items[..],
                                                             angle_or_corner,
-                                                            gradient.repeating,
-                                                            style);
+                                                            gradient.repeating);
                 DisplayItem::Gradient(box GradientDisplayItem {
                     base: base,
                     gradient: gradient,
@@ -1334,8 +1328,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                             &gradient.items[..],
                                                             shape,
                                                             center,
-                                                            gradient.repeating,
-                                                            style);
+                                                            gradient.repeating);
                 DisplayItem::RadialGradient(box RadialGradientDisplayItem {
                     base: base,
                     gradient: gradient,
@@ -1459,8 +1452,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         let grad = self.convert_linear_gradient(&bounds,
                                                                 &gradient.items[..],
                                                                 &angle_or_corner,
-                                                                gradient.repeating,
-                                                                style);
+                                                                gradient.repeating);
 
                         state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
                             base: base,
@@ -1478,8 +1470,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                 &gradient.items[..],
                                                                 shape,
                                                                 center,
-                                                                gradient.repeating,
-                                                                style);
+                                                                gradient.repeating);
                         state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
                             base: base,
                             border_widths: border.to_physical(style.writing_mode),

@@ -2216,10 +2216,10 @@ pub extern "C" fn Servo_DeclarationBlock_SetCurrentColor(declarations:
                                                          RawServoDeclarationBlockBorrowed,
                                                          property: nsCSSPropertyID) {
     use style::properties::{PropertyDeclaration, LonghandId};
-    use style::values::specified::{Color, CSSColor};
+    use style::values::specified::Color;
 
     let long = get_longhand_from_id!(property);
-    let cc = CSSColor { parsed: Color::CurrentColor, authored: None };
+    let cc = Color::currentcolor();
 
     let prop = match_wrap_declared! { long,
         BorderTopColor => cc,
@@ -2240,11 +2240,11 @@ pub extern "C" fn Servo_DeclarationBlock_SetColorValue(declarations:
     use style::gecko::values::convert_nscolor_to_rgba;
     use style::properties::{PropertyDeclaration, LonghandId};
     use style::properties::longhands;
-    use style::values::specified::{Color, CSSColor};
+    use style::values::specified::Color;
 
     let long = get_longhand_from_id!(property);
     let rgba = convert_nscolor_to_rgba(value);
-    let color = CSSColor { parsed: Color::RGBA(rgba), authored: None };
+    let color = Color::rgba(rgba);
 
     let prop = match_wrap_declared! { long,
         BorderTopColor => color,

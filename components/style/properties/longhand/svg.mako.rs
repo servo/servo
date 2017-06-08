@@ -20,8 +20,8 @@ ${helpers.single_keyword("vector-effect", "none non-scaling-stroke",
 // Section 13 - Gradients and Patterns
 
 ${helpers.predefined_type(
-    "stop-color", "CSSColor",
-    "CSSParserColor::RGBA(RGBA::new(0, 0, 0, 255))",
+    "stop-color", "RGBAColor",
+    "RGBA::new(0, 0, 0, 255)",
     products="gecko",
     animation_value_type="none",
     spec="https://www.w3.org/TR/SVGTiny12/painting.html#StopColorProperty")}
@@ -34,8 +34,8 @@ ${helpers.predefined_type("stop-opacity", "Opacity", "1.0",
 // Section 15 - Filter Effects
 
 ${helpers.predefined_type(
-    "flood-color", "CSSColor",
-    "CSSParserColor::RGBA(RGBA::new(0, 0, 0, 255))",
+    "flood-color", "RGBAColor",
+    "RGBA::new(0, 0, 0, 255)",
     products="gecko",
     animation_value_type="none",
     spec="https://www.w3.org/TR/SVG/filters.html#FloodColorProperty")}
@@ -45,8 +45,8 @@ ${helpers.predefined_type("flood-opacity", "Opacity",
                           spec="https://www.w3.org/TR/SVG/filters.html#FloodOpacityProperty")}
 
 ${helpers.predefined_type(
-    "lighting-color", "CSSColor",
-    "CSSParserColor::RGBA(RGBA::new(255, 255, 255, 255))",
+    "lighting-color", "RGBAColor",
+    "RGBA::new(255, 255, 255, 255)",
     products="gecko",
     animation_value_type="none",
     spec="https://www.w3.org/TR/SVG/filters.html#LightingColorProperty")}

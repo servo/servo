@@ -18,7 +18,7 @@
         let mut any = false;
         loop {
             if color.is_none() {
-                if let Ok(value) = input.try(|i| specified::CSSColor::parse(context, i)) {
+                if let Ok(value) = input.try(|i| specified::Color::parse(context, i)) {
                     color = Some(value);
                     any = true;
                     continue

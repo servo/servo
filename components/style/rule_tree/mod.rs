@@ -912,7 +912,6 @@ impl StrongRuleNode {
         -> bool
         where E: ::dom::TElement
     {
-        use cssparser::RGBA;
         use gecko_bindings::structs::{NS_AUTHOR_SPECIFIED_BACKGROUND, NS_AUTHOR_SPECIFIED_BORDER};
         use gecko_bindings::structs::{NS_AUTHOR_SPECIFIED_PADDING, NS_AUTHOR_SPECIFIED_TEXT_SHADOW};
         use properties::{CSSWideKeyword, LonghandId, LonghandIdSet};
@@ -1083,7 +1082,7 @@ impl StrongRuleNode {
                             if properties.contains(id) {
                                 if !author_colors_allowed {
                                     if let PropertyDeclaration::BackgroundColor(ref color) = *declaration {
-                                        return color.parsed == Color::RGBA(RGBA::transparent())
+                                        return *color == Color::transparent()
                                     }
                                 }
                                 return true

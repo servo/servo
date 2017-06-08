@@ -51,12 +51,11 @@ ${helpers.predefined_type("column-rule-width",
                           extra_prefixes="moz")}
 
 // https://drafts.csswg.org/css-multicol-1/#crc
-${helpers.predefined_type("column-rule-color", "CSSColor",
-                          "::cssparser::Color::CurrentColor",
-                          initial_specified_value="specified::CSSColor::currentcolor()",
+${helpers.predefined_type("column-rule-color", "Color",
+                          "computed_value::T::currentcolor()",
+                          initial_specified_value="specified::Color::currentcolor()",
                           products="gecko", animation_value_type="IntermediateColor", extra_prefixes="moz",
-                          complex_color=True, need_clone=True,
-                          ignored_when_colors_disabled=True,
+                          need_clone=True, ignored_when_colors_disabled=True,
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule-color")}
 
 ${helpers.single_keyword("column-span", "none all",

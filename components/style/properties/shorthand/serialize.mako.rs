@@ -3,18 +3,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use style_traits::ToCss;
-use values::specified::{BorderStyle, Color, CSSColor};
+use values::specified::{BorderStyle, Color};
 use std::fmt;
 
 fn serialize_directional_border<W, I,>(dest: &mut W,
                                        width: &I,
                                        style: &BorderStyle,
-                                       color: &CSSColor)
+                                       color: &Color)
     -> fmt::Result where W: fmt::Write, I: ToCss {
     width.to_css(dest)?;
     dest.write_str(" ")?;
     style.to_css(dest)?;
-    if color.parsed != Color::CurrentColor {
+    if *color != Color::CurrentColor {
         dest.write_str(" ")?;
         color.to_css(dest)?;
     }

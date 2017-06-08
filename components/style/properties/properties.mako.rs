@@ -18,7 +18,7 @@ use std::ops::Deref;
 use stylearc::{Arc, UniqueArc};
 
 use app_units::Au;
-#[cfg(feature = "servo")] use cssparser::{Color as CSSParserColor, RGBA};
+#[cfg(feature = "servo")] use cssparser::RGBA;
 use cssparser::{Parser, TokenSerializationType, serialize_identifier};
 use error_reporting::ParseErrorReporter;
 #[cfg(feature = "servo")] use euclid::side_offsets::SideOffsets2D;
@@ -40,7 +40,6 @@ use stylesheets::{CssRuleType, MallocSizeOf, MallocSizeOfFn, Origin, UrlExtraDat
 #[cfg(feature = "servo")] use values::Either;
 use values::generics::text::LineHeight;
 use values::computed;
-use values::specified::Color;
 use cascade_info::CascadeInfo;
 use rule_tree::{CascadeLevel, StrongRuleNode};
 use style_adjuster::StyleAdjuster;
@@ -1938,11 +1937,8 @@ impl ComputedValues {
     /// Usage example:
     /// let top_color = style.resolve_color(style.Border.border_top_color);
     #[inline]
-    pub fn resolve_color(&self, color: CSSParserColor) -> RGBA {
-        match color {
-            CSSParserColor::RGBA(rgba) => rgba,
-            CSSParserColor::CurrentColor => self.get_color().color,
-        }
+    pub fn resolve_color(&self, color: computed::Color) -> RGBA {
+        color.to_rgba(self.get_color().color)
     }
 
     /// Get the logical computed inline size.
@@ -2626,7 +2622,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
     let ignore_colors = !device.use_document_colors();
     let default_background_color_decl = if ignore_colors {
         let color = device.default_background_color();
-        Some(PropertyDeclaration::BackgroundColor(Color::RGBA(color).into()))
+        Some(PropertyDeclaration::BackgroundColor(color.into()))
     } else {
         None
     };

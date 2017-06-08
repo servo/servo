@@ -4,7 +4,6 @@
 
 //! Element nodes.
 
-use cssparser::Color;
 use devtools_traits::AttrInfo;
 use dom::activation::Activatable;
 use dom::attr::{Attr, AttrHelpersForLayout};
@@ -113,7 +112,7 @@ use style::stylearc::Arc;
 use style::stylist::ApplicableDeclarationBlock;
 use style::thread_state;
 use style::values::{CSSFloat, Either};
-use style::values::specified::{self, CSSColor};
+use style::values::specified;
 use stylesheet_loader::StylesheetOwner;
 
 // TODO: Update focus state when the top-level browsing context gains or loses system focus,
@@ -422,8 +421,8 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         if let Some(color) = bgcolor {
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::BackgroundColor(
-                    CSSColor { parsed: Color::RGBA(color), authored: None })));
+                PropertyDeclaration::BackgroundColor(color.into())
+            ));
         }
 
         let background = if let Some(this) = self.downcast::<HTMLBodyElement>() {
@@ -457,10 +456,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             hints.push(from_declaration(
                 shared_lock,
                 PropertyDeclaration::Color(
-                    longhands::color::SpecifiedValue(CSSColor {
-                        parsed: Color::RGBA(color),
-                        authored: None,
-                    })
+                    longhands::color::SpecifiedValue(color.into())
                 )
             ));
         }

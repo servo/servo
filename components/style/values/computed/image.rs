@@ -7,7 +7,7 @@
 //!
 //! [image]: https://drafts.csswg.org/css-images/#image-values
 
-use cssparser::Color as CSSColor;
+use cssparser::RGBA;
 use std::f32::consts::PI;
 use std::fmt;
 use style_traits::ToCss;
@@ -35,7 +35,7 @@ pub type Gradient = GenericGradient<
     Length,
     LengthOrPercentage,
     Position,
-    CSSColor,
+    RGBA,
 >;
 
 /// A computed gradient kind.
@@ -60,10 +60,10 @@ pub enum LineDirection {
 pub type EndingShape = GenericEndingShape<Length, LengthOrPercentage>;
 
 /// A computed gradient item.
-pub type GradientItem = GenericGradientItem<CSSColor, LengthOrPercentage>;
+pub type GradientItem = GenericGradientItem<RGBA, LengthOrPercentage>;
 
 /// A computed color stop.
-pub type ColorStop = GenericColorStop<CSSColor, LengthOrPercentage>;
+pub type ColorStop = GenericColorStop<RGBA, LengthOrPercentage>;
 
 /// Computed values for ImageRect.
 pub type ImageRect = GenericImageRect<NumberOrPercentage>;

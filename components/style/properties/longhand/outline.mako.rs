@@ -10,9 +10,9 @@
                          additional_methods=[Method("outline_has_nonzero_width", "bool")]) %>
 
 // TODO(pcwalton): `invert`
-${helpers.predefined_type("outline-color", "CSSColor", "computed::CSSColor::CurrentColor",
-                          initial_specified_value="specified::CSSColor::currentcolor()",
-                          animation_value_type="IntermediateColor", complex_color=True, need_clone=True,
+${helpers.predefined_type("outline-color", "Color", "computed_value::T::currentcolor()",
+                          initial_specified_value="specified::Color::currentcolor()",
+                          animation_value_type="IntermediateColor", need_clone=True,
                           ignored_when_colors_disabled=True,
                           spec="https://drafts.csswg.org/css-ui/#propdef-outline-color")}
 

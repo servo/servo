@@ -13,25 +13,26 @@
                    ignored_when_colors_disabled="True"
                    spec="https://drafts.csswg.org/css-color/#color">
     use cssparser::RGBA;
-    use values::specified::{AllowQuirks, Color, CSSColor};
+    use values::specified::{AllowQuirks, Color};
 
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
         #[inline]
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            self.0.parsed.to_computed_value(context)
+            self.0.to_computed_value(context)
+                .to_rgba(context.inherited_style.get_color().clone_color())
         }
 
         #[inline]
         fn from_computed_value(computed: &computed_value::T) -> Self {
-            SpecifiedValue(Color::RGBA(*computed).into())
+            SpecifiedValue(Color::rgba(*computed).into())
         }
     }
 
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     #[derive(Clone, Debug, PartialEq, ToCss)]
-    pub struct SpecifiedValue(pub CSSColor);
+    pub struct SpecifiedValue(pub Color);
     no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
@@ -43,7 +44,7 @@
         RGBA::new(0, 0, 0, 255) // black
     }
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        CSSColor::parse_quirky(context, input, AllowQuirks::Yes).map(SpecifiedValue)
+        Color::parse_quirky(context, input, AllowQuirks::Yes).map(SpecifiedValue)
     }
 
     // FIXME(#15973): Add servo support for system colors

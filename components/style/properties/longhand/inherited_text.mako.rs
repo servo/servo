@@ -685,12 +685,11 @@ ${helpers.predefined_type("word-spacing",
     % endif
 </%helpers:longhand>
 
-${helpers.predefined_type("text-emphasis-color", "CSSColor",
-                          "::cssparser::Color::CurrentColor",
-                          initial_specified_value="specified::CSSColor::currentcolor()",
+${helpers.predefined_type("text-emphasis-color", "Color",
+                          "computed_value::T::currentcolor()",
+                          initial_specified_value="specified::Color::currentcolor()",
                           products="gecko", animation_value_type="IntermediateColor",
-                          complex_color=True, need_clone=True,
-                          ignored_when_colors_disabled=True,
+                          need_clone=True, ignored_when_colors_disabled=True,
                           spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-color")}
 
 
@@ -705,20 +704,18 @@ ${helpers.predefined_type(
 // CSS Compatibility
 // https://compat.spec.whatwg.org
 ${helpers.predefined_type(
-    "-webkit-text-fill-color", "CSSColor",
-    "CSSParserColor::CurrentColor",
+    "-webkit-text-fill-color", "Color",
+    "computed_value::T::currentcolor()",
     products="gecko", animation_value_type="IntermediateColor",
-    complex_color=True, need_clone=True,
-    ignored_when_colors_disabled=True,
+    need_clone=True, ignored_when_colors_disabled=True,
     spec="https://compat.spec.whatwg.org/#the-webkit-text-fill-color")}
 
 ${helpers.predefined_type(
-    "-webkit-text-stroke-color", "CSSColor",
-    "CSSParserColor::CurrentColor",
-    initial_specified_value="specified::CSSColor::currentcolor()",
+    "-webkit-text-stroke-color", "Color",
+    "computed_value::T::currentcolor()",
+    initial_specified_value="specified::Color::currentcolor()",
     products="gecko", animation_value_type="IntermediateColor",
-    complex_color=True, need_clone=True,
-    ignored_when_colors_disabled=True,
+    need_clone=True, ignored_when_colors_disabled=True,
     spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-color")}
 
 ${helpers.predefined_type("-webkit-text-stroke-width",

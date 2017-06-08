@@ -5,11 +5,11 @@
 use properties::parse;
 use style::computed_values::display::T::inline_block;
 use style::properties::{PropertyDeclaration, Importance, PropertyId};
-use style::properties::longhands::outline_color::computed_value::T as ComputedColor;
 use style::properties::parse_property_declaration_list;
 use style::values::{RGBA, Auto};
 use style::values::CustomIdent;
-use style::values::specified::{BorderStyle, BorderSideWidth, CSSColor, Length, LengthOrPercentage};
+use style::values::specified::{BorderStyle, BorderSideWidth, Color};
+use style::values::specified::{Length, LengthOrPercentage};
 use style::values::specified::{LengthOrPercentageOrAuto, LengthOrPercentageOrAutoOrContent};
 use style::values::specified::{NoCalcLength, PositionComponent};
 use style::values::specified::position::Y;
@@ -110,10 +110,7 @@ mod shorthand_serialization {
 
             let line = TextDecorationLine::OVERLINE;
             let style = TextDecorationStyle::dotted;
-            let color = CSSColor {
-                parsed: ComputedColor::RGBA(RGBA::new(128, 0, 128, 255)),
-                authored: None
-            };
+            let color = RGBA::new(128, 0, 128, 255).into();
 
             properties.push(PropertyDeclaration::TextDecorationLine(line));
             properties.push(PropertyDeclaration::TextDecorationStyle(style));
@@ -129,7 +126,7 @@ mod shorthand_serialization {
 
             let line = TextDecorationLine::UNDERLINE;
             let style = TextDecorationStyle::solid;
-            let color = CSSColor::currentcolor();
+            let color = Color::currentcolor();
 
             properties.push(PropertyDeclaration::TextDecorationLine(line));
             properties.push(PropertyDeclaration::TextDecorationStyle(style));
@@ -229,10 +226,7 @@ mod shorthand_serialization {
           properties.push(PropertyDeclaration::BorderBottomWidth(px_30.clone()));
           properties.push(PropertyDeclaration::BorderLeftWidth(px_10.clone()));
 
-          let blue = CSSColor {
-              parsed: ComputedColor::RGBA(RGBA::new(0, 0, 255, 255)),
-              authored: None
-          };
+          let blue = Color::rgba(RGBA::new(0, 0, 255, 255));
 
           properties.push(PropertyDeclaration::BorderTopColor(blue.clone()));
           properties.push(PropertyDeclaration::BorderRightColor(blue.clone()));
@@ -262,10 +256,7 @@ mod shorthand_serialization {
           properties.push(PropertyDeclaration::BorderBottomWidth(px_30.clone()));
           properties.push(PropertyDeclaration::BorderLeftWidth(px_30.clone()));
 
-          let blue = CSSColor {
-              parsed: ComputedColor::RGBA(RGBA::new(0, 0, 255, 255)),
-              authored: None
-          };
+          let blue = Color::rgba(RGBA::new(0, 0, 255, 255));
 
           properties.push(PropertyDeclaration::BorderTopColor(blue.clone()));
           properties.push(PropertyDeclaration::BorderRightColor(blue.clone()));
@@ -332,15 +323,8 @@ mod shorthand_serialization {
         fn border_color_should_serialize_correctly() {
             let mut properties = Vec::new();
 
-            let red = CSSColor {
-                parsed: ComputedColor::RGBA(RGBA::new(255, 0, 0, 255)),
-                authored: None
-            };
-
-            let blue = CSSColor {
-                parsed: ComputedColor::RGBA(RGBA::new(0, 0, 255, 255)),
-                authored: None
-            };
+            let red = Color::rgba(RGBA::new(255, 0, 0, 255));
+            let blue = Color::rgba(RGBA::new(0, 0, 255, 255));
 
             properties.push(PropertyDeclaration::BorderTopColor(blue.clone()));
             properties.push(PropertyDeclaration::BorderRightColor(red.clone()));
@@ -405,10 +389,7 @@ mod shorthand_serialization {
 
             let width = BorderSideWidth::Length(Length::from_px(4f32));
             let style = BorderStyle::solid;
-            let color = CSSColor {
-                parsed: ComputedColor::RGBA(RGBA::new(255, 0, 0, 255)),
-                authored: None
-            };
+            let color = RGBA::new(255, 0, 0, 255).into();
 
             properties.push(PropertyDeclaration::BorderTopWidth(width));
             properties.push(PropertyDeclaration::BorderTopStyle(style));
@@ -418,10 +399,10 @@ mod shorthand_serialization {
             assert_eq!(serialization, "border-top: 4px solid rgb(255, 0, 0);");
         }
 
-        fn get_border_property_values() -> (BorderSideWidth, BorderStyle, CSSColor) {
+        fn get_border_property_values() -> (BorderSideWidth, BorderStyle, Color) {
             (BorderSideWidth::Length(Length::from_px(4f32)),
              BorderStyle::solid,
-             CSSColor::currentcolor())
+             Color::currentcolor())
         }
 
         #[test]
@@ -532,10 +513,7 @@ mod shorthand_serialization {
 
             let width = BorderSideWidth::Length(Length::from_px(4f32));
             let style = Either::Second(BorderStyle::solid);
-            let color = CSSColor {
-                parsed: ComputedColor::RGBA(RGBA::new(255, 0, 0, 255)),
-                authored: None
-            };
+            let color = RGBA::new(255, 0, 0, 255).into();
 
             properties.push(PropertyDeclaration::OutlineWidth(width));
             properties.push(PropertyDeclaration::OutlineStyle(style));
@@ -551,10 +529,7 @@ mod shorthand_serialization {
 
             let width = BorderSideWidth::Length(Length::from_px(4f32));
             let style = Either::First(Auto);
-            let color = CSSColor {
-                parsed: ComputedColor::RGBA(RGBA::new(255, 0, 0, 255)),
-                authored: None
-            };
+            let color = RGBA::new(255, 0, 0, 255).into();
             properties.push(PropertyDeclaration::OutlineWidth(width));
             properties.push(PropertyDeclaration::OutlineStyle(style));
             properties.push(PropertyDeclaration::OutlineColor(color));

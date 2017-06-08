@@ -8,15 +8,13 @@
 
 use Namespace;
 use context::QuirksMode;
-use cssparser::{self, Parser, Token, serialize_identifier};
-use itoa;
+use cssparser::{Parser, Token, serialize_identifier};
 use parser::{ParserContext, Parse};
 use self::grid::TrackSizeOrRepeat;
 use self::url::SpecifiedUrl;
 use std::ascii::AsciiExt;
 use std::f32;
 use std::fmt;
-use std::io::Write;
 use style_traits::ToCss;
 use style_traits::values::specified::AllowedNumericType;
 use super::{Auto, CSSFloat, CSSInteger, Either, None_};
@@ -33,7 +31,7 @@ pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, Justify
 pub use self::background::BackgroundSize;
 pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
 pub use self::border::{BorderImageSideWidth, BorderRadius, BorderSideWidth};
-pub use self::color::Color;
+pub use self::color::{Color, RGBAColor};
 pub use self::rect::LengthOrNumberRect;
 #[cfg(feature = "gecko")]
 pub use self::gecko::ScrollSnapPoint;
@@ -90,166 +88,6 @@ impl Eq for SpecifiedUrl {}
 impl ComputedValueAsSpecified for SpecifiedUrl {}
 
 no_viewport_percentage!(SpecifiedUrl);
-}
-
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct CSSColor {
-    pub parsed: Color,
-    pub authored: Option<Box<str>>,
-}
-
-impl Parse for CSSColor {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_quirky(context, input, AllowQuirks::No)
-    }
-}
-
-impl CSSColor {
-    /// Parse a color, with quirks.
-    ///
-    /// https://quirks.spec.whatwg.org/#the-hashless-hex-color-quirk
-    pub fn parse_quirky(context: &ParserContext,
-                        input: &mut Parser,
-                        allow_quirks: AllowQuirks)
-                        -> Result<Self, ()> {
-        let start_position = input.position();
-        let authored = match input.next() {
-            Ok(Token::Ident(s)) => Some(s.into_owned().into_boxed_str()),
-            _ => None,
-        };
-        input.reset(start_position);
-        if let Ok(parsed) = input.try(|i| Parse::parse(context, i)) {
-            return Ok(CSSColor {
-                parsed: parsed,
-                authored: authored,
-            });
-        }
-        if !allow_quirks.allowed(context.quirks_mode) {
-            return Err(());
-        }
-        let (number, dimension) = match input.next()? {
-            Token::Number(number) => {
-                (number, None)
-            },
-            Token::Dimension(number, dimension) => {
-                (number, Some(dimension))
-            },
-            Token::Ident(ident) => {
-                if ident.len() != 3 && ident.len() != 6 {
-                    return Err(());
-                }
-                return cssparser::Color::parse_hash(ident.as_bytes()).map(|color| {
-                    Self {
-                        parsed: color.into(),
-                        authored: None
-                    }
-                });
-            }
-            _ => {
-                return Err(());
-            },
-        };
-        let value = number.int_value.ok_or(())?;
-        if value < 0 {
-            return Err(());
-        }
-        let length = if value <= 9 {
-            1
-        } else if value <= 99 {
-            2
-        } else if value <= 999 {
-            3
-        } else if value <= 9999 {
-            4
-        } else if value <= 99999 {
-            5
-        } else if value <= 999999 {
-            6
-        } else {
-            return Err(())
-        };
-        let total = length + dimension.as_ref().map_or(0, |d| d.len());
-        if total > 6 {
-            return Err(());
-        }
-        let mut serialization = [b'0'; 6];
-        let space_padding = 6 - total;
-        let mut written = space_padding;
-        written += itoa::write(&mut serialization[written..], value).unwrap();
-        if let Some(dimension) = dimension {
-            written += (&mut serialization[written..]).write(dimension.as_bytes()).unwrap();
-        }
-        debug_assert!(written == 6);
-        Ok(CSSColor {
-            parsed: cssparser::Color::parse_hash(&serialization).map(From::from)?,
-            authored: None,
-        })
-    }
-
-    /// Returns false if the color is completely transparent, and
-    /// true otherwise.
-    pub fn is_non_transparent(&self) -> bool {
-        match self.parsed {
-            Color::RGBA(rgba) if rgba.alpha == 0 => false,
-            _ => true,
-        }
-    }
-}
-
-no_viewport_percentage!(CSSColor);
-
-impl ToCss for CSSColor {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match self.authored {
-            Some(ref s) => dest.write_str(s),
-            None => self.parsed.to_css(dest),
-        }
-    }
-}
-
-impl From<Color> for CSSColor {
-    fn from(color: Color) -> Self {
-        CSSColor {
-            parsed: color,
-            authored: None,
-        }
-    }
-}
-
-impl CSSColor {
-    #[inline]
-    /// Returns currentcolor value.
-    pub fn currentcolor() -> CSSColor {
-        Color::CurrentColor.into()
-    }
-
-    #[inline]
-    /// Returns transparent value.
-    pub fn transparent() -> CSSColor {
-        // We should probably set authored to "transparent", but maybe it doesn't matter.
-        Color::RGBA(cssparser::RGBA::transparent()).into()
-    }
-}
-
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct CSSRGBA {
-    pub parsed: cssparser::RGBA,
-    pub authored: Option<Box<str>>,
-}
-
-no_viewport_percentage!(CSSRGBA);
-
-impl ToCss for CSSRGBA {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match self.authored {
-            Some(ref s) => dest.write_str(s),
-            None => self.parsed.to_css(dest),
-        }
-    }
 }
 
 /// Parse an `<integer>` value, handling `calc()` correctly.
@@ -843,7 +681,7 @@ pub struct Shadow {
     pub offset_y: Length,
     pub blur_radius: Length,
     pub spread_radius: Length,
-    pub color: Option<CSSColor>,
+    pub color: Option<Color>,
     pub inset: bool,
 }
 
@@ -857,10 +695,8 @@ impl ToComputedValue for Shadow {
             offset_y: self.offset_y.to_computed_value(context),
             blur_radius: self.blur_radius.to_computed_value(context),
             spread_radius: self.spread_radius.to_computed_value(context),
-            color: self.color
-                        .as_ref()
-                        .map(|color| color.to_computed_value(context))
-                        .unwrap_or(cssparser::Color::CurrentColor),
+            color: self.color.as_ref().unwrap_or(&Color::CurrentColor)
+                             .to_computed_value(context),
             inset: self.inset,
         }
     }
@@ -933,7 +769,7 @@ impl Shadow {
                 }
             }
             if color.is_none() {
-                if let Ok(value) = input.try(|i| CSSColor::parse(context, i)) {
+                if let Ok(value) = input.try(|i| Color::parse(context, i)) {
                     color = Some(value);
                     continue
                 }
@@ -961,10 +797,10 @@ impl Shadow {
 no_viewport_percentage!(SVGPaint);
 
 /// Specified SVG Paint value
-pub type SVGPaint = ::values::generics::SVGPaint<CSSColor>;
+pub type SVGPaint = ::values::generics::SVGPaint<RGBAColor>;
 
 /// Specified SVG Paint Kind value
-pub type SVGPaintKind = ::values::generics::SVGPaintKind<CSSColor>;
+pub type SVGPaintKind = ::values::generics::SVGPaintKind<RGBAColor>;
 
 impl ToComputedValue for SVGPaint {
     type ComputedValue = super::computed::SVGPaint;
@@ -991,12 +827,7 @@ impl ToComputedValue for SVGPaintKind {
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        self.convert(|color| {
-            match color.parsed {
-                Color::CurrentColor => cssparser::Color::RGBA(context.style().get_color().clone_color()),
-                _ => color.to_computed_value(context),
-            }
-        })
+        self.convert(|color| color.to_computed_value(context))
     }
 
     #[inline]
@@ -1164,7 +995,7 @@ impl ClipRectOrAuto {
 }
 
 /// <color> | auto
-pub type ColorOrAuto = Either<CSSColor, Auto>;
+pub type ColorOrAuto = Either<Color, Auto>;
 
 /// Whether quirks are allowed in this context.
 #[derive(Clone, Copy, PartialEq)]

@@ -158,9 +158,9 @@ fn test_parse_stylesheet() {
                 )),
                 block: Arc::new(stylesheet.shared_lock.wrap(block_from(vec![
                     (PropertyDeclaration::BackgroundColor(
-                        longhands::background_color::SpecifiedValue {
+                        longhands::background_color::SpecifiedValue::Numeric {
                             authored: Some("blue".to_owned().into_boxed_str()),
-                            parsed: cssparser::Color::RGBA(cssparser::RGBA::new(0, 0, 255, 255)),
+                            parsed: cssparser::RGBA::new(0, 0, 255, 255),
                         }
                      ),
                      Importance::Normal),
