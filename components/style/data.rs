@@ -294,6 +294,26 @@ impl EagerPseudoStyles {
             },
         }
     }
+
+    /// Returns whether this EagerPseudoStyles has the same set of
+    /// pseudos as the given one.
+    pub fn has_same_pseudos_as(&self, other: &EagerPseudoStyles) -> bool {
+        // We could probably just compare self.keys() to other.keys(), but that
+        // seems like it'll involve a bunch more moving stuff around and
+        // whatnot.
+        match (&self.0, &other.0) {
+            (&Some(ref our_arr), &Some(ref other_arr)) => {
+                for i in 0..EAGER_PSEUDO_COUNT {
+                    if our_arr[i].is_some() != other_arr[i].is_some() {
+                        return false
+                    }
+                }
+                true
+            },
+            (&None, &None) => true,
+            _ => false,
+        }
+    }
 }
 
 /// The styles associated with a node, including the styles for any

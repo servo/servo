@@ -11,20 +11,8 @@ use bloom::StyleBloom;
 use context::{SelectorFlagsMap, SharedStyleContext};
 use dom::TElement;
 use element_state::*;
-use selectors::matching::StyleRelations;
 use sharing::{StyleSharingCandidate, StyleSharingTarget};
 use stylearc::Arc;
-
-/// Determines, based on the results of selector matching, whether it's worth to
-/// try to share style with this element, that is, to try to insert the element
-/// in the chache.
-#[inline]
-pub fn relations_are_shareable(relations: &StyleRelations) -> bool {
-    use selectors::matching::*;
-    // If we start sharing things that are AFFECTED_BY_PSEUDO_ELEMENTS, we need
-    // to track revalidation selectors on a per-pseudo-element basis.
-    !relations.intersects(AFFECTED_BY_PSEUDO_ELEMENTS)
-}
 
 /// Whether, given two elements, they have pointer-equal computed values.
 ///
