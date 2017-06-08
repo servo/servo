@@ -3790,6 +3790,17 @@ fn static_assert() {
         }
     }
 
+    #[allow(non_snake_case)]
+    pub fn clone__moz_tab_size(&self) -> longhands::_moz_tab_size::computed_value::T {
+        use values::Either;
+
+        match self.gecko.mTabSize.as_value() {
+            CoordDataValue::Coord(coord) => Either::First(Au(coord)),
+            CoordDataValue::Factor(number) => Either::Second(number),
+            _ => unreachable!(),
+        }
+    }
+
     <%call expr="impl_coord_copy('_moz_tab_size', 'mTabSize')"></%call>
 
     <% text_size_adjust_keyword = Keyword("text-size-adjust", "auto none") %>
