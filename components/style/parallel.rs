@@ -41,8 +41,8 @@ pub const WORK_UNIT_MAX: usize = 16;
 
 /// A list of node pointers.
 ///
-/// Note that the inline storage doesn't need to be sized to WORK_UNIT_MAX, but
-/// it generally seems sensible to do so.
+/// We make the inline storage size WORK_UNIT_MAX so that we can collect chunks
+/// into this structure without heap-allocating.
 type NodeList<N> = SmallVec<[SendNode<N>; WORK_UNIT_MAX]>;
 
 /// Entry point for the parallel traversal.
@@ -263,11 +263,12 @@ fn traverse_nodes<'a, 'scope, E, D>(nodes: NodeList<E::ConcreteNode>,
         }
     } else {
         for chunk in nodes.chunks(WORK_UNIT_MAX) {
-            let boxed = chunk.iter().cloned().collect::<Vec<_>>().into_boxed_slice();
+            let nodes = chunk.iter().cloned().collect::<NodeList<E::ConcreteNode>>();
+            debug_assert!(!nodes.spilled());
             let traversal_data_copy = traversal_data.clone();
             scope.spawn(move |scope| {
-                let b = boxed;
-                top_down_dom(&*b, root, traversal_data_copy, scope, pool, traversal, tls)
+                let n = nodes;
+                top_down_dom(&*n, root, traversal_data_copy, scope, pool, traversal, tls)
             });
         }
     }
