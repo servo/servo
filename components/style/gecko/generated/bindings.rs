@@ -588,12 +588,21 @@ extern "C" {
      -> *mut nsIAtom;
 }
 extern "C" {
+    pub fn Gecko_MatchLang(element: RawGeckoElementBorrowed,
+                           override_lang: *mut nsIAtom,
+                           has_override_lang: bool, value: *const u16)
+     -> bool;
+}
+extern "C" {
     pub fn Gecko_GetXMLLangValue(element: RawGeckoElementBorrowed)
      -> *mut nsIAtom;
 }
 extern "C" {
     pub fn Gecko_AtomAttrValue(element: RawGeckoElementBorrowed,
                                attribute: *mut nsIAtom) -> *mut nsIAtom;
+}
+extern "C" {
+    pub fn Gecko_LangValue(element: RawGeckoElementBorrowed) -> *mut nsIAtom;
 }
 extern "C" {
     pub fn Gecko_HasAttr(element: RawGeckoElementBorrowed, ns: *mut nsIAtom,
@@ -637,6 +646,10 @@ extern "C" {
 extern "C" {
     pub fn Gecko_SnapshotAtomAttrValue(element: *const ServoElementSnapshot,
                                        attribute: *mut nsIAtom)
+     -> *mut nsIAtom;
+}
+extern "C" {
+    pub fn Gecko_SnapshotLangValue(element: *const ServoElementSnapshot)
      -> *mut nsIAtom;
 }
 extern "C" {
@@ -2210,8 +2223,7 @@ extern "C" {
                                          from: *const RawGeckoGfxMatrix4x4,
                                          to: *const RawGeckoGfxMatrix4x4,
                                          progress: f64,
-                                         result:
-                                             *mut RawGeckoGfxMatrix4x4);
+                                         result: *mut RawGeckoGfxMatrix4x4);
 }
 extern "C" {
     pub fn Servo_AnimationValues_Interpolate(from:
