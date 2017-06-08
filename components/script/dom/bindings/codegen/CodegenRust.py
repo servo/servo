@@ -5335,7 +5335,7 @@ if !JS_WrapObject(cx, prototype.handle_mut()) {
     return false;
 }
 
-let result: Result<Root<HTMLElement>, Error> = html_constructor(&global, args);
+let result: Result<Root<%s>, Error> = html_constructor(&global, args);
 let result = match result {
     Ok(result) => result,
     Err(e) => {
@@ -5344,14 +5344,11 @@ let result = match result {
     },
 };
 
-rooted!(in(cx) let mut element_val = UndefinedValue());
-result.to_jsval(cx, element_val.handle_mut());
-rooted!(in(cx) let element_object = element_val.to_object());
-JS_SetPrototype(cx, element_object.handle(), prototype.handle());
+JS_SetPrototype(cx, result.reflector().get_jsobject(), prototype.handle());
 
 (result).to_jsval(cx, args.rval());
 return true;
-""")
+""" % self.descriptor.name)
         else:
             name = self.constructor.identifier.name
             nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
