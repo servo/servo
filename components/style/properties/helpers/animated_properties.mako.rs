@@ -199,6 +199,16 @@ pub fn nscsspropertyid_is_animatable(property: nsCSSPropertyID) -> bool {
                 ${helpers.to_nscsspropertyid(prop.ident)} => true,
             % endif
         % endfor
+        % for prop in data.shorthands_except_all():
+            <%
+                animatable = "false"
+                for sub in prop.sub_properties:
+                    if sub.animatable:
+                        animatable = "true"
+                        break
+            %>
+            ${helpers.to_nscsspropertyid(prop.ident)} => ${animatable},
+        % endfor
         _ => false
     }
 }
