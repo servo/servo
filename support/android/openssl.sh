@@ -181,7 +181,7 @@ if [ ! -z "$VERBOSE" ] && [ "$VERBOSE" != "0" ]; then
   echo "ANDROID_DEV: $ANDROID_DEV"
 fi
 
-cd openssl-1.0.1t
+cd openssl-$2
 perl -pi -e 's/install: all install_docs install_sw/install: install_docs install_sw/g' Makefile.org
 
 # The code being built isn't maintained by us, so we redirect stderr to stdout
