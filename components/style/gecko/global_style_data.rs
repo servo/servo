@@ -80,6 +80,12 @@ lazy_static! {
         } else {
             let configuration = rayon::Configuration::new()
                 .num_threads(num_threads)
+                // Enable a breadth-first rayon traversal. This causes the work
+                // queue to be always FIFO, rather than FIFO for stealers and
+                // FILO for the owner (which is what rayon does by default). This
+                // ensures that we process all the elements at a given depth before
+                // proceeding to the next depth, which is important for style sharing.
+                .breadth_first()
                 .thread_name(thread_name)
                 .start_handler(thread_startup)
                 .exit_handler(thread_shutdown);
