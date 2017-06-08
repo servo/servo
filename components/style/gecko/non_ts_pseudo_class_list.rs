@@ -117,7 +117,7 @@ macro_rules! apply_non_ts_list {
                 ("lang", Lang, lang, _, _),
             ],
             keyword: [
-                ("-moz-locale-dir", MozLocaleDir, mozLocaleDir, _, PSEUDO_CLASS_INTERNAL),
+                ("-moz-locale-dir", MozLocaleDir, mozLocaleDir, _, _),
                 ("dir", Dir, dir, _, _),
             ]
         }
