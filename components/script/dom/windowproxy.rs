@@ -160,7 +160,9 @@ impl WindowProxy {
 
             // The window proxy owns the browsing context.
             // When we finalize the window proxy, it drops the browsing context it owns.
-            SetProxyReservedSlot(js_proxy.get(), 0, &js::jsval::PrivateValue((&*window_proxy).as_void_ptr()));
+            SetProxyReservedSlot(js_proxy.get(),
+                                 0,
+                                 &js::jsval::PrivateValue((&*window_proxy).as_void_ptr()));
 
             // Notify the JS engine about the new window proxy binding.
             jsapi::js::SetWindowProxy(cx, window_jsobject, js_proxy.handle());

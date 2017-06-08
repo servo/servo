@@ -43,7 +43,7 @@ pub use js::conversions::{FromJSValConvertible, ToJSValConvertible, ConversionRe
 pub use js::conversions::ConversionBehavior;
 use js::conversions::latin1_to_string;
 use js::error::throw_type_error;
-use js::glue::{GetProxyPrivate, IsWrapper};
+use js::glue::{GetProxyReservedSlot, IsWrapper};
 use js::glue::{RUST_JSID_IS_INT, RUST_JSID_TO_INT};
 use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_STRING, UnwrapObject};
 use js::jsapi;
@@ -345,7 +345,7 @@ pub unsafe fn private_from_object(obj: *mut jsapi::JSObject) -> *const libc::c_v
         jsapi::JS_GetReservedSlot(obj, DOM_OBJECT_SLOT)
     } else {
         debug_assert!(is_dom_proxy(obj));
-        GetProxyPrivate(obj)
+        GetProxyReservedSlot(obj, 0)
     };
     if value.is_undefined() {
         ptr::null()

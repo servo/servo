@@ -8,16 +8,14 @@
 
 use dom::bindings::conversions::is_dom_proxy;
 use dom::bindings::utils::delete_property_by_id;
-use js::glue::{GetProxyHandler, GetProxyHandlerFamily, SetProxyReservedSlot};
-use js::glue::GetProxyReservedSlot;
+use js::glue::{GetProxyHandler, GetProxyHandlerFamily};
+use js::glue::{GetProxyPrivate, SetProxyPrivate};
 use js::glue::InvokeGetOwnPropertyDescriptor;
 use js::jsapi;
 use js::jsval::ObjectValue;
 use libc;
 use std::{mem, ptr};
 
-
-static JSPROXYSLOT_EXPANDO: u32 = 0;
 
 /// Determine if this id shadows any existing properties for this proxy.
 pub unsafe extern "C" fn shadow_check_callback(cx: *mut jsapi::JSContext,
@@ -153,7 +151,7 @@ pub unsafe extern "C" fn get_prototype_if_ordinary(_: *mut jsapi::JSContext,
 /// Get the expando object, or null if there is none.
 pub unsafe fn get_expando_object(obj: jsapi::JS::HandleObject, expando: jsapi::JS::MutableHandleObject) {
     assert!(is_dom_proxy(obj.get()));
-    let val = GetProxyReservedSlot(obj.get(), JSPROXYSLOT_EXPANDO);
+    let val = GetProxyPrivate(obj.get());
     expando.set(if val.is_undefined() {
         ptr::null_mut()
     } else {
@@ -170,7 +168,7 @@ pub unsafe fn ensure_expando_object(cx: *mut jsapi::JSContext, obj: jsapi::JS::H
         expando.set(jsapi::JS_NewObjectWithGivenProto(cx, ptr::null_mut(), jsapi::JS::HandleObject::null()));
         assert!(!expando.is_null());
 
-        SetProxyReservedSlot(obj.get(), JSPROXYSLOT_EXPANDO, &ObjectValue(expando.get()));
+        SetProxyPrivate(obj.get(), &ObjectValue(expando.get()));
     }
 }
 

@@ -2458,11 +2458,15 @@ def CreateBindingJSObject(descriptor, parent=None):
         create += """
 let handler = RegisterBindings::PROXY_HANDLERS[PrototypeList::Proxies::%s as usize];
 rooted!(in(cx) let private = PrivateValue(raw as *const libc::c_void));
-let obj = NewProxyObject(cx, handler,
-                         private.handle(),
-                         proto.get(), %s.get(),
-                         ptr::null_mut(), ptr::null_mut());
+let obj = NewProxyObject(cx,
+                         handler,
+                         jsapi::JS::UndefinedHandleValue,
+                         proto.get(),
+                         %s.get(),
+                         ptr::null_mut(),
+                         ptr::null_mut());
 assert!(!obj.is_null());
+SetProxyReservedSlot(obj, 0, &private.get());
 rooted!(in(cx) let obj = obj);\
 """ % (descriptor.name, parent)
     else:
@@ -3659,7 +3663,7 @@ class CGMemberJITInfo(CGThing):
                         jsapi::JSJitInfo_AliasSet::${aliasSet} as _,
                         jsapi::JSValueType::${returnType} as _,
                         ${isInfallible} as _,
-                        ${isInfallible} as _,
+                        ${isMovable} as _,
                         ${isEliminatable} as _,
                         ${isAlwaysInSlot} as _,
                         ${isLazilyCachedInSlot} as _,
@@ -4801,7 +4805,7 @@ class CGProxyUnwrap(CGAbstractMethod):
     obj = js::UnwrapObject(obj);
 }*/
 //MOZ_ASSERT(IsProxy(obj));
-let box_ = GetProxyPrivate(obj.get()).to_private() as *const %s;
+let box_ = GetProxyReservedSlot(obj.get(), 0).to_private() as *const %s;
 return box_;""" % self.descriptor.concreteType)
 
 
@@ -5549,7 +5553,8 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::glue::CallJitMethodOp',
         'js::glue::CallJitSetterOp',
         'js::glue::CreateProxyHandler',
-        'js::glue::GetProxyPrivate',
+        'js::glue::GetProxyReservedSlot',
+        'js::glue::SetProxyReservedSlot',
         'js::glue::NewProxyObject',
         'js::glue::ProxyTraps',
         'js::glue::RUST_JSID_IS_STRING',
