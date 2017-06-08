@@ -5,6 +5,7 @@
 // https://html.spec.whatwg.org/multipage/#htmlcanvaselement
 typedef (CanvasRenderingContext2D or WebGLRenderingContext) RenderingContext;
 
+[HTMLConstructor]
 interface HTMLCanvasElement : HTMLElement {
   [Pure]
            attribute unsigned long width;

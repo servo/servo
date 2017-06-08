@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlselectelement
+[HTMLConstructor]
 interface HTMLSelectElement : HTMLElement {
   //         attribute boolean autofocus;
            attribute boolean disabled;

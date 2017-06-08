@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlsourceelement
+[HTMLConstructor]
 interface HTMLSourceElement : HTMLElement {
   //         attribute DOMString src;
   //         attribute DOMString type;

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlformelement
-//[OverrideBuiltins]
+[/*OverrideBuiltins, */HTMLConstructor]
 interface HTMLFormElement : HTMLElement {
            attribute DOMString acceptCharset;
            attribute DOMString action;
