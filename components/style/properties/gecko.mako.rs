@@ -11,7 +11,6 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 use app_units::Au;
-use cssparser::Color;
 use custom_properties::ComputedValuesMap;
 use gecko_bindings::bindings;
 % for style_struct in data.style_structs:
@@ -316,18 +315,6 @@ def set_gecko_property(ffi_name, expr):
     }
 </%def>
 
-/// Convert a Servo color into an nscolor; with currentColor as 0
-///
-/// Call sites will need to be updated after https://bugzilla.mozilla.org/show_bug.cgi?id=760345
-fn color_to_nscolor_zero_currentcolor(color: Color) -> structs::nscolor {
-    match color {
-        Color::RGBA(rgba) => {
-            convert_rgba_to_nscolor(&rgba)
-        },
-        Color::CurrentColor => 0,
-    }
-}
-
 <%def name="impl_color_setter(ident, gecko_ffi_name, complex_color=True)">
     #[allow(unreachable_code)]
     #[allow(non_snake_case)]
@@ -335,7 +322,11 @@ fn color_to_nscolor_zero_currentcolor(color: Color) -> structs::nscolor {
         % if complex_color:
             let result = v.into();
         % else:
-            let result = color_to_nscolor_zero_currentcolor(v);
+            let result = match color {
+                Color::RGBA(rgba) => convert_rgba_to_nscolor(&rgba),
+                // FIXME handle currentcolor
+                Color::CurrentColor => 0,
+            };
         % endif
         ${set_gecko_property(gecko_ffi_name, "result")}
     }
@@ -416,6 +407,20 @@ fn color_to_nscolor_zero_currentcolor(color: Color) -> structs::nscolor {
 % endif
 </%def>
 
+<%def name="impl_rgba_color(ident, gecko_ffi_name, need_clone=False)">
+    #[allow(non_snake_case)]
+    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+        ${set_gecko_property(gecko_ffi_name, "convert_rgba_to_nscolor(&v)")}
+    }
+    <%call expr="impl_simple_copy(ident, gecko_ffi_name)"></%call>
+    % if need_clone:
+        #[allow(non_snake_case)]
+        pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+            convert_nscolor_to_rgba(${get_gecko_property(gecko_ffi_name)})
+        }
+    % endif
+</%def>
+
 <%def name="impl_svg_paint(ident, gecko_ffi_name, need_clone=False, complex_color=True)">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, mut v: longhands::${ident}::computed_value::T) {
@@ -444,14 +449,14 @@ fn color_to_nscolor_zero_currentcolor(color: Color) -> structs::nscolor {
             SVGPaintKind::Color(color) => {
                 paint.mType = nsStyleSVGPaintType::eStyleSVGPaintType_Color;
                 unsafe {
-                    *paint.mPaint.mColor.as_mut() = color_to_nscolor_zero_currentcolor(color);
+                    *paint.mPaint.mColor.as_mut() = convert_rgba_to_nscolor(&color);
                 }
             }
         }
 
         if let Some(fallback) = fallback {
             paint.mFallbackType = nsStyleSVGFallbackType::eStyleSVGFallbackType_Color;
-            paint.mFallbackColor = color_to_nscolor_zero_currentcolor(fallback);
+            paint.mFallbackColor = convert_rgba_to_nscolor(&fallback);
         }
     }
 
@@ -472,7 +477,7 @@ fn color_to_nscolor_zero_currentcolor(color: Color) -> structs::nscolor {
         use self::structs::nsStyleSVGFallbackType;
         let ref paint = ${get_gecko_property(gecko_ffi_name)};
         let fallback = if let nsStyleSVGFallbackType::eStyleSVGFallbackType_Color = paint.mFallbackType {
-            Some(Color::RGBA(convert_nscolor_to_rgba(paint.mFallbackColor)))
+            Some(convert_nscolor_to_rgba(paint.mFallbackColor))
         } else {
             None
         };
@@ -485,7 +490,7 @@ fn color_to_nscolor_zero_currentcolor(color: Color) -> structs::nscolor {
                 SVGPaintKind::None
             }
             nsStyleSVGPaintType::eStyleSVGPaintType_Color => {
-                unsafe { SVGPaintKind::Color(Color::RGBA(convert_nscolor_to_rgba(*paint.mPaint.mColor.as_ref()))) }
+                unsafe { SVGPaintKind::Color(convert_nscolor_to_rgba(*paint.mPaint.mColor.as_ref())) }
             }
         };
         SVGPaint {
@@ -717,6 +722,7 @@ impl Debug for ${style_struct.gecko_struct_name} {
         "Integer": impl_simple,
         "Opacity": impl_simple,
         "CSSColor": impl_color,
+        "RGBAColor": impl_rgba_color,
         "SVGPaint": impl_svg_paint,
         "UrlOrNone": impl_css_url,
     }
@@ -948,7 +954,7 @@ fn static_assert() {
                                                          structs::Side::eSide${to_camel_case(side.ident)});
                 }
                 for color in colors {
-                    let c = color_to_nscolor_zero_currentcolor(*color);
+                    let c = convert_rgba_to_nscolor(color);
                     unsafe {
                         bindings::Gecko_AppendMozBorderColors(&mut self.gecko,
                                                               structs::Side::eSide${to_camel_case(side.ident)},

@@ -183,7 +183,6 @@ impl nsStyleImage {
     }
 
     fn set_gradient(&mut self, gradient: Gradient) {
-        use cssparser::Color as CSSColor;
         use gecko_bindings::structs::{NS_STYLE_GRADIENT_SHAPE_CIRCULAR, NS_STYLE_GRADIENT_SHAPE_ELLIPTICAL};
         use gecko_bindings::structs::{NS_STYLE_GRADIENT_SHAPE_LINEAR, NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER};
         use gecko_bindings::structs::{NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE, NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE};
@@ -321,19 +320,7 @@ impl nsStyleImage {
 
             match *item {
                 GradientItem::ColorStop(ref stop) => {
-                    gecko_stop.mColor = match stop.color {
-                        CSSColor::CurrentColor => {
-                            // TODO(emilio): gecko just stores an nscolor,
-                            // and it doesn't seem to support currentColor
-                            // as value in a gradient.
-                            //
-                            // Double-check it and either remove
-                            // currentColor for servo or see how gecko
-                            // handles this.
-                            0
-                        },
-                        CSSColor::RGBA(ref rgba) => convert_rgba_to_nscolor(rgba),
-                    };
+                    gecko_stop.mColor = convert_rgba_to_nscolor(&stop.color);
                     gecko_stop.mIsInterpolationHint = false;
                     coord.set(stop.position);
                 },

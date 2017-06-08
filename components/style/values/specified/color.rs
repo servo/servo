@@ -313,3 +313,56 @@ impl ToComputedValue for CSSColor {
         }).into()
     }
 }
+
+/// Specified color value, but resolved to just RGBA for computed value
+/// with value from color property at the same context.
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct RGBAColor(pub CSSColor);
+
+no_viewport_percentage!(RGBAColor);
+
+impl Parse for RGBAColor {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        CSSColor::parse(context, input).map(RGBAColor)
+    }
+}
+
+impl ToCss for RGBAColor {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        self.0.to_css(dest)
+    }
+}
+
+impl ToComputedValue for RGBAColor {
+    type ComputedValue = RGBA;
+
+    fn to_computed_value(&self, context: &Context) -> RGBA {
+        match self.0.to_computed_value(context) {
+            CSSParserColor::RGBA(rgba) => rgba,
+            CSSParserColor::CurrentColor => context.style.get_color().clone_color(),
+        }
+    }
+
+    fn from_computed_value(computed: &RGBA) -> Self {
+        RGBAColor(CSSColor {
+            parsed: Color::RGBA(*computed),
+            authored: None,
+        })
+    }
+}
+
+impl From<Color> for RGBAColor {
+    fn from(color: Color) -> RGBAColor {
+        RGBAColor(CSSColor {
+            parsed: color,
+            authored: None,
+        })
+    }
+}
+
+impl From<CSSColor> for RGBAColor {
+    fn from(color: CSSColor) -> RGBAColor {
+        RGBAColor(color)
+    }
+}

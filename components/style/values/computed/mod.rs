@@ -28,6 +28,7 @@ pub use properties::animated_properties::TransitionProperty;
 pub use self::background::BackgroundSize;
 pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderCornerRadius};
+pub use self::color::RGBAColor;
 pub use self::image::{Gradient, GradientItem, ImageLayer, LineDirection, Image, ImageRect};
 #[cfg(feature = "gecko")]
 pub use self::gecko::ScrollSnapPoint;
@@ -48,6 +49,7 @@ pub use self::transform::{TimingFunction, TransformOrigin};
 pub mod background;
 pub mod basic_shape;
 pub mod border;
+pub mod color;
 pub mod image;
 #[cfg(feature = "gecko")]
 pub mod gecko;
@@ -479,9 +481,9 @@ impl IntegerOrAuto {
 }
 
 /// Computed SVG Paint value
-pub type SVGPaint = ::values::generics::SVGPaint<CSSColor>;
+pub type SVGPaint = ::values::generics::SVGPaint<RGBA>;
 /// Computed SVG Paint Kind value
-pub type SVGPaintKind = ::values::generics::SVGPaintKind<CSSColor>;
+pub type SVGPaintKind = ::values::generics::SVGPaintKind<RGBA>;
 
 impl Default for SVGPaint {
     fn default() -> Self {
@@ -497,7 +499,7 @@ impl SVGPaint {
     pub fn black() -> Self {
         let rgba = RGBA::from_floats(0., 0., 0., 1.);
         SVGPaint {
-            kind: ::values::generics::SVGPaintKind::Color(CSSColor::RGBA(rgba)),
+            kind: ::values::generics::SVGPaintKind::Color(rgba),
             fallback: None,
         }
     }

@@ -31,7 +31,7 @@ pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, Justify
 pub use self::background::BackgroundSize;
 pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
 pub use self::border::{BorderImageSideWidth, BorderRadius, BorderSideWidth};
-pub use self::color::{CSSColor, Color};
+pub use self::color::{CSSColor, Color, RGBAColor};
 pub use self::rect::LengthOrNumberRect;
 #[cfg(feature = "gecko")]
 pub use self::gecko::ScrollSnapPoint;
@@ -799,10 +799,10 @@ impl Shadow {
 no_viewport_percentage!(SVGPaint);
 
 /// Specified SVG Paint value
-pub type SVGPaint = ::values::generics::SVGPaint<CSSColor>;
+pub type SVGPaint = ::values::generics::SVGPaint<RGBAColor>;
 
 /// Specified SVG Paint Kind value
-pub type SVGPaintKind = ::values::generics::SVGPaintKind<CSSColor>;
+pub type SVGPaintKind = ::values::generics::SVGPaintKind<RGBAColor>;
 
 impl ToComputedValue for SVGPaint {
     type ComputedValue = super::computed::SVGPaint;
@@ -829,12 +829,7 @@ impl ToComputedValue for SVGPaintKind {
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        self.convert(|color| {
-            match color.parsed {
-                Color::CurrentColor => cssparser::Color::RGBA(context.style().get_color().clone_color()),
-                _ => color.to_computed_value(context),
-            }
-        })
+        self.convert(|color| color.to_computed_value(context))
     }
 
     #[inline]

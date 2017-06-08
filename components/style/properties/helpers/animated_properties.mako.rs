@@ -2823,9 +2823,9 @@ impl From<IntermediateColor> for CSSParserColor {
 }
 
 /// Animatable SVGPaint
-pub type IntermediateSVGPaint = SVGPaint<IntermediateColor>;
+pub type IntermediateSVGPaint = SVGPaint<IntermediateRGBA>;
 /// Animatable SVGPaintKind
-pub type IntermediateSVGPaintKind = SVGPaintKind<IntermediateColor>;
+pub type IntermediateSVGPaintKind = SVGPaintKind<IntermediateRGBA>;
 
 impl From<::values::computed::SVGPaint> for IntermediateSVGPaint {
     fn from(paint: ::values::computed::SVGPaint) -> IntermediateSVGPaint {

@@ -66,21 +66,21 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
                        ignored_when_colors_disabled="True">
         use std::fmt;
         use style_traits::ToCss;
-        use values::specified::CSSColor;
+        use values::specified::RGBAColor;
         no_viewport_percentage!(SpecifiedValue);
 
         pub mod computed_value {
-            use values::computed::CSSColor;
+            use cssparser::RGBA;
             #[derive(Debug, Clone, PartialEq)]
             #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-            pub struct T(pub Option<Vec<CSSColor>>);
+            pub struct T(pub Option<Vec<RGBA>>);
         }
 
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum SpecifiedValue {
             None,
-            Colors(Vec<CSSColor>),
+            Colors(Vec<RGBAColor>),
         }
 
         impl ToCss for computed_value::T {
@@ -168,7 +168,7 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
             }
 
             let mut result = Vec::new();
-            while let Ok(value) = input.try(|i| CSSColor::parse(context, i)) {
+            while let Ok(value) = input.try(|i| RGBAColor::parse(context, i)) {
                 result.push(value);
             }
 
