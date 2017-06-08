@@ -9,7 +9,6 @@
 use app_units::Au;
 use block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
 use context::LayoutContext;
-use cssparser::Color;
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode, DisplayListBuildState};
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use flow::{self, Flow, FlowClass, IS_ABSOLUTELY_POSITIONED, OpaqueFlow};
@@ -22,6 +21,7 @@ use std::fmt;
 use style::computed_values::{border_collapse, border_top_style, vertical_align};
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
+use style::values::computed::Color;
 use table::InternalTable;
 use table_row::{CollapsedBorder, CollapsedBorderProvenance};
 

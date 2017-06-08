@@ -52,7 +52,7 @@ ${helpers.predefined_type("column-rule-width",
 
 // https://drafts.csswg.org/css-multicol-1/#crc
 ${helpers.predefined_type("column-rule-color", "Color",
-                          "::cssparser::Color::CurrentColor",
+                          "computed_value::T::currentcolor()",
                           initial_specified_value="specified::Color::currentcolor()",
                           products="gecko", animation_value_type="IntermediateColor", extra_prefixes="moz",
                           need_clone=True, ignored_when_colors_disabled=True,

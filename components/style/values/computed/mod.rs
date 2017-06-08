@@ -23,12 +23,11 @@ use super::generics::grid::TrackList as GenericTrackList;
 use super::specified;
 
 pub use app_units::Au;
-pub use cssparser::Color;
 pub use properties::animated_properties::TransitionProperty;
 pub use self::background::BackgroundSize;
 pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderCornerRadius};
-pub use self::color::RGBAColor;
+pub use self::color::{Color, RGBAColor};
 pub use self::image::{Gradient, GradientItem, ImageLayer, LineDirection, Image, ImageRect};
 #[cfg(feature = "gecko")]
 pub use self::gecko::ScrollSnapPoint;

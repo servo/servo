@@ -12,7 +12,7 @@
                    animation_value_type="IntermediateRGBA"
                    ignored_when_colors_disabled="True"
                    spec="https://drafts.csswg.org/css-color/#color">
-    use cssparser::{Color as CSSParserColor, RGBA};
+    use cssparser::RGBA;
     use values::specified::{AllowQuirks, Color};
 
     impl ToComputedValue for SpecifiedValue {
@@ -20,11 +20,8 @@
 
         #[inline]
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            match self.0.to_computed_value(context) {
-                CSSParserColor::RGBA(rgba) => rgba,
-                CSSParserColor::CurrentColor =>
-                    context.inherited_style.get_color().clone_color(),
-            }
+            self.0.to_computed_value(context)
+                .to_rgba(context.inherited_style.get_color().clone_color())
         }
 
         #[inline]

@@ -10,7 +10,7 @@
                          additional_methods=[Method("outline_has_nonzero_width", "bool")]) %>
 
 // TODO(pcwalton): `invert`
-${helpers.predefined_type("outline-color", "Color", "computed::Color::CurrentColor",
+${helpers.predefined_type("outline-color", "Color", "computed_value::T::currentcolor()",
                           initial_specified_value="specified::Color::currentcolor()",
                           animation_value_type="IntermediateColor", need_clone=True,
                           ignored_when_colors_disabled=True,

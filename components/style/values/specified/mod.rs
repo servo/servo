@@ -8,7 +8,7 @@
 
 use Namespace;
 use context::QuirksMode;
-use cssparser::{self, Parser, Token, serialize_identifier};
+use cssparser::{Parser, Token, serialize_identifier};
 use parser::{ParserContext, Parse};
 use self::grid::TrackSizeOrRepeat;
 use self::url::SpecifiedUrl;
@@ -695,10 +695,8 @@ impl ToComputedValue for Shadow {
             offset_y: self.offset_y.to_computed_value(context),
             blur_radius: self.blur_radius.to_computed_value(context),
             spread_radius: self.spread_radius.to_computed_value(context),
-            color: self.color
-                        .as_ref()
-                        .map(|color| color.to_computed_value(context))
-                        .unwrap_or(cssparser::Color::CurrentColor),
+            color: self.color.as_ref().unwrap_or(&Color::CurrentColor)
+                             .to_computed_value(context),
             inset: self.inset,
         }
     }

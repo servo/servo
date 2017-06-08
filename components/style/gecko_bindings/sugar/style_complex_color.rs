@@ -4,10 +4,10 @@
 
 //! Rust helpers to interact with Gecko's StyleComplexColor.
 
-use cssparser;
 use gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
 use gecko_bindings::structs::{nscolor, StyleComplexColor};
 use values;
+use values::computed::Color as ComputedColor;
 
 impl From<nscolor> for StyleComplexColor {
     fn from(other: nscolor) -> Self {
@@ -39,13 +39,12 @@ impl StyleComplexColor {
     }
 }
 
-impl From<cssparser::Color> for StyleComplexColor {
-    fn from(other: cssparser::Color) -> Self {
-        use cssparser::Color;
-
-        match other {
-            Color::RGBA(rgba) => convert_rgba_to_nscolor(&rgba).into(),
-            Color::CurrentColor => StyleComplexColor::current_color(),
+impl From<ComputedColor> for StyleComplexColor {
+    fn from(other: ComputedColor) -> Self {
+        StyleComplexColor {
+            mColor: convert_rgba_to_nscolor(&other.color).into(),
+            mForegroundRatio: other.foreground_ratio,
+            mIsAuto: false,
         }
     }
 }
@@ -62,17 +61,12 @@ impl From<StyleComplexColor> for values::computed::ColorOrAuto {
     }
 }
 
-impl From<StyleComplexColor> for cssparser::Color {
+impl From<StyleComplexColor> for ComputedColor {
     fn from(other: StyleComplexColor) -> Self {
-        use cssparser::Color;
-
-        if other.mForegroundRatio == 0 {
-            Color::RGBA(convert_nscolor_to_rgba(other.mColor))
-        } else if other.mForegroundRatio == 255 {
-            Color::CurrentColor
-        } else {
-            // FIXME #13546 handle interpolation values
-            Color::CurrentColor
+        debug_assert!(!other.mIsAuto);
+        ComputedColor {
+            color: convert_nscolor_to_rgba(other.mColor),
+            foreground_ratio: other.mForegroundRatio,
         }
     }
 }

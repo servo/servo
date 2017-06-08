@@ -686,7 +686,7 @@ ${helpers.predefined_type("word-spacing",
 </%helpers:longhand>
 
 ${helpers.predefined_type("text-emphasis-color", "Color",
-                          "::cssparser::Color::CurrentColor",
+                          "computed_value::T::currentcolor()",
                           initial_specified_value="specified::Color::currentcolor()",
                           products="gecko", animation_value_type="IntermediateColor",
                           need_clone=True, ignored_when_colors_disabled=True,
@@ -705,14 +705,14 @@ ${helpers.predefined_type(
 // https://compat.spec.whatwg.org
 ${helpers.predefined_type(
     "-webkit-text-fill-color", "Color",
-    "CSSParserColor::CurrentColor",
+    "computed_value::T::currentcolor()",
     products="gecko", animation_value_type="IntermediateColor",
     need_clone=True, ignored_when_colors_disabled=True,
     spec="https://compat.spec.whatwg.org/#the-webkit-text-fill-color")}
 
 ${helpers.predefined_type(
     "-webkit-text-stroke-color", "Color",
-    "CSSParserColor::CurrentColor",
+    "computed_value::T::currentcolor()",
     initial_specified_value="specified::Color::currentcolor()",
     products="gecko", animation_value_type="IntermediateColor",
     need_clone=True, ignored_when_colors_disabled=True,

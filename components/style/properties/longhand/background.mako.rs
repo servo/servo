@@ -7,7 +7,7 @@
 <% data.new_style_struct("Background", inherited=False) %>
 
 ${helpers.predefined_type("background-color", "Color",
-    "::cssparser::Color::RGBA(::cssparser::RGBA::transparent())",
+    "computed_value::T::transparent()",
     initial_specified_value="SpecifiedValue::transparent()",
     spec="https://drafts.csswg.org/css-backgrounds/#background-color",
     animation_value_type="IntermediateColor",

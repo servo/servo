@@ -15,7 +15,7 @@ use std::fmt;
 use std::io::Write;
 use style_traits::ToCss;
 use super::AllowQuirks;
-use values::computed::{Context, ToComputedValue};
+use values::computed::{Color as ComputedColor, Context, ToComputedValue};
 
 /// Specified color value
 #[derive(Clone, PartialEq, Debug)]
@@ -30,6 +30,8 @@ pub enum Color {
         /// Authored representation
         authored: Option<Box<str>>,
     },
+    /// A complex color value from computed value
+    Complex(ComputedColor),
 
     /// A system color
     #[cfg(feature = "gecko")]
@@ -103,6 +105,7 @@ impl ToCss for Color {
             Color::CurrentColor => CSSParserColor::CurrentColor.to_css(dest),
             Color::Numeric { authored: Some(ref authored), .. } => dest.write_str(authored),
             Color::Numeric { parsed: ref rgba, .. } => rgba.to_css(dest),
+            Color::Complex(_) => Ok(()),
             #[cfg(feature = "gecko")]
             Color::System(system) => system.to_css(dest),
             #[cfg(feature = "gecko")]
@@ -232,25 +235,27 @@ impl Color {
 }
 
 #[cfg(feature = "gecko")]
-fn to_rgba(color: nscolor) -> CSSParserColor {
+fn convert_nscolor_to_computedcolor(color: nscolor) -> ComputedColor {
     use gecko::values::convert_nscolor_to_rgba;
-    CSSParserColor::RGBA(convert_nscolor_to_rgba(color))
+    ComputedColor::rgba(convert_nscolor_to_rgba(color))
 }
 
 impl ToComputedValue for Color {
-    type ComputedValue = CSSParserColor;
+    type ComputedValue = ComputedColor;
 
-    fn to_computed_value(&self, _context: &Context) -> CSSParserColor {
+    fn to_computed_value(&self, _context: &Context) -> ComputedColor {
         match *self {
-            Color::CurrentColor => CSSParserColor::CurrentColor,
-            Color::Numeric { ref parsed, .. } => CSSParserColor::RGBA(*parsed),
+            Color::CurrentColor => ComputedColor::currentcolor(),
+            Color::Numeric { ref parsed, .. } => ComputedColor::rgba(*parsed),
+            Color::Complex(ref complex) => *complex,
             #[cfg(feature = "gecko")]
-            Color::System(system) => to_rgba(system.to_computed_value(_context)),
+            Color::System(system) =>
+                convert_nscolor_to_computedcolor(system.to_computed_value(_context)),
             #[cfg(feature = "gecko")]
             Color::Special(special) => {
                 use self::gecko::SpecialColorKeyword as Keyword;
                 let pres_context = unsafe { &*_context.device.pres_context };
-                to_rgba(match special {
+                convert_nscolor_to_computedcolor(match special {
                     Keyword::MozDefaultColor => pres_context.mDefaultColor,
                     Keyword::MozDefaultBackgroundColor => pres_context.mBackgroundColor,
                     Keyword::MozHyperlinktext => pres_context.mLinkColor,
@@ -270,21 +275,24 @@ impl ToComputedValue for Color {
                 if let Some(body) = body {
                     let wrap = GeckoElement(body);
                     let borrow = wrap.borrow_data();
-                    CSSParserColor::RGBA(borrow.as_ref().unwrap()
-                                               .styles().primary.values()
-                                               .get_color()
-                                               .clone_color())
+                    ComputedColor::rgba(borrow.as_ref().unwrap()
+                                              .styles().primary.values()
+                                              .get_color()
+                                              .clone_color())
                 } else {
-                    to_rgba(pres_context.mDefaultColor)
+                    convert_nscolor_to_computedcolor(pres_context.mDefaultColor)
                 }
             },
         }
     }
 
-    fn from_computed_value(computed: &CSSParserColor) -> Self {
-        match *computed {
-            CSSParserColor::RGBA(rgba) => Color::rgba(rgba),
-            CSSParserColor::CurrentColor => Color::currentcolor(),
+    fn from_computed_value(computed: &ComputedColor) -> Self {
+        if computed.is_numeric() {
+            Color::rgba(computed.color)
+        } else if computed.is_currentcolor() {
+            Color::currentcolor()
+        } else {
+            Color::Complex(*computed)
         }
     }
 }
@@ -313,10 +321,8 @@ impl ToComputedValue for RGBAColor {
     type ComputedValue = RGBA;
 
     fn to_computed_value(&self, context: &Context) -> RGBA {
-        match self.0.to_computed_value(context) {
-            CSSParserColor::RGBA(rgba) => rgba,
-            CSSParserColor::CurrentColor => context.style.get_color().clone_color(),
-        }
+        self.0.to_computed_value(context)
+            .to_rgba(context.style.get_color().clone_color())
     }
 
     fn from_computed_value(computed: &RGBA) -> Self {

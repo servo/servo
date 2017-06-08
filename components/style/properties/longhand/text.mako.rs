@@ -279,7 +279,7 @@ ${helpers.single_keyword("text-decoration-style",
 
 ${helpers.predefined_type(
     "text-decoration-color", "Color",
-    "computed::Color::CurrentColor",
+    "computed_value::T::currentcolor()",
     initial_specified_value="specified::Color::currentcolor()",
     products="gecko",
     animation_value_type="IntermediateColor",

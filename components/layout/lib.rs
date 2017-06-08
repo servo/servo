@@ -16,7 +16,6 @@ extern crate atomic_refcell;
 extern crate bitflags;
 extern crate canvas_traits;
 extern crate core;
-extern crate cssparser;
 extern crate euclid;
 extern crate fnv;
 extern crate gfx;

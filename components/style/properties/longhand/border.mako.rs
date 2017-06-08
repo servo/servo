@@ -17,7 +17,7 @@
 %>
 % for side in ALL_SIDES:
     ${helpers.predefined_type("border-%s-color" % side[0], "Color",
-                              "::cssparser::Color::CurrentColor",
+                              "computed_value::T::currentcolor()",
                               alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-color"),
                               spec=maybe_logical_spec(side, "color"),
                               animation_value_type="IntermediateColor",
