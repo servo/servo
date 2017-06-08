@@ -37,6 +37,14 @@ mod gecko {
     use std::fmt;
     use style_traits::ToCss;
 
+    define_css_keyword_enum! { SpecialColorKeyword:
+        "-moz-default-color" => MozDefaultColor,
+        "-moz-default-background-color" => MozDefaultBackgroundColor,
+        "-moz-hyperlinktext" => MozHyperlinktext,
+        "-moz-activehyperlinktext" => MozActiveHyperlinktext,
+        "-moz-visitedhyperlinktext" => MozVisitedHyperlinktext,
+    }
+
     /// Color value including non-standard -moz prefixed values.
     #[derive(Clone, Copy, PartialEq, Debug)]
     pub enum Color {
@@ -46,16 +54,8 @@ mod gecko {
         RGBA(RGBA),
         /// A system color
         System(SystemColor),
-        /// -moz-default-color
-        MozDefaultColor,
-        /// -moz-default-background-color
-        MozDefaultBackgroundColor,
-        /// -moz-hyperlinktext
-        MozHyperlinktext,
-        /// -moz-activehyperlinktext
-        MozActiveHyperlinktext,
-        /// -moz-visitedhyperlinktext
-        MozVisitedHyperlinktext,
+        /// A special color keyword value used in Gecko
+        Special(SpecialColorKeyword),
         /// Quirksmode-only rule for inheriting color from the body
         InheritFromBodyQuirk,
     }
@@ -77,16 +77,10 @@ mod gecko {
                 Ok(value.into())
             } else if let Ok(system) = input.try(SystemColor::parse) {
                 Ok(Color::System(system))
+            } else if let Ok(special) = input.try(SpecialColorKeyword::parse) {
+                Ok(Color::Special(special))
             } else {
-                let ident = input.expect_ident()?;
-                match_ignore_ascii_case! { &ident,
-                    "-moz-default-color" => Ok(Color::MozDefaultColor),
-                    "-moz-default-background-color" => Ok(Color::MozDefaultBackgroundColor),
-                    "-moz-hyperlinktext" => Ok(Color::MozHyperlinktext),
-                    "-moz-activehyperlinktext" => Ok(Color::MozActiveHyperlinktext),
-                    "-moz-visitedhyperlinktext" => Ok(Color::MozVisitedHyperlinktext),
-                    _ => Err(())
-                }
+                Err(())
             }
         }
     }
@@ -100,11 +94,7 @@ mod gecko {
                 Color::System(system) => system.to_css(dest),
 
                 // Non-standard values:
-                Color::MozDefaultColor => dest.write_str("-moz-default-color"),
-                Color::MozDefaultBackgroundColor => dest.write_str("-moz-default-background-color"),
-                Color::MozHyperlinktext => dest.write_str("-moz-hyperlinktext"),
-                Color::MozActiveHyperlinktext => dest.write_str("-moz-activehyperlinktext"),
-                Color::MozVisitedHyperlinktext => dest.write_str("-moz-visitedhyperlinktext"),
+                Color::Special(special) => special.to_css(dest),
                 Color::InheritFromBodyQuirk => Ok(()),
             }
         }
@@ -272,11 +262,16 @@ impl ToComputedValue for Color {
             Color::RGBA(rgba) => rgba,
             Color::System(system) => to_rgba(system.to_computed_value(context)),
             Color::CurrentColor => context.inherited_style.get_color().clone_color(),
-            Color::MozDefaultColor => to_rgba(pres_context.mDefaultColor),
-            Color::MozDefaultBackgroundColor => to_rgba(pres_context.mBackgroundColor),
-            Color::MozHyperlinktext => to_rgba(pres_context.mLinkColor),
-            Color::MozActiveHyperlinktext => to_rgba(pres_context.mActiveLinkColor),
-            Color::MozVisitedHyperlinktext => to_rgba(pres_context.mVisitedLinkColor),
+            Color::Special(special) => {
+                use self::gecko::SpecialColorKeyword as Keyword;
+                to_rgba(match special {
+                    Keyword::MozDefaultColor => pres_context.mDefaultColor,
+                    Keyword::MozDefaultBackgroundColor => pres_context.mBackgroundColor,
+                    Keyword::MozHyperlinktext => pres_context.mLinkColor,
+                    Keyword::MozActiveHyperlinktext => pres_context.mActiveLinkColor,
+                    Keyword::MozVisitedHyperlinktext => pres_context.mVisitedLinkColor,
+                })
+            }
             Color::InheritFromBodyQuirk => {
                 use dom::TElement;
                 use gecko::wrapper::GeckoElement;
