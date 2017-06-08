@@ -1521,11 +1521,11 @@ impl Document {
     pub fn trigger_mozbrowser_event(&self, event: MozBrowserEvent) {
         if PREFS.is_mozbrowser_enabled() {
             if let Some((parent_pipeline_id, _)) = self.window.parent_info() {
-                let global_scope = self.window.upcast::<GlobalScope>();
+                let top_level_browsing_context_id = self.window.window_proxy().top_level_browsing_context_id();
                 let event = ConstellationMsg::MozBrowserEvent(parent_pipeline_id,
-                                                              global_scope.pipeline_id(),
+                                                              top_level_browsing_context_id,
                                                               event);
-                global_scope.constellation_chan().send(event).unwrap();
+                self.window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
             }
         }
     }
