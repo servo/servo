@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlappletelement
+// Note: intentionally not [HTMLConstructor]
 interface HTMLAppletElement : HTMLElement {
   //         attribute DOMString align;
   //         attribute DOMString alt;
