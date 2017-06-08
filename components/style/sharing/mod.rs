@@ -84,8 +84,16 @@ use stylist::{ApplicableDeclarationBlock, Stylist};
 mod checks;
 
 /// The amount of nodes that the style sharing candidate cache should hold at
-/// most.
-pub const STYLE_SHARING_CANDIDATE_CACHE_SIZE: usize = 8;
+/// most.  We'd somewhat like 32, but ArrayDeque only implements certain backing
+/// store sizes.  A cache size of 32 would mean a backing store of 33, but
+/// that's not an implemented size: we can do 32 or 40.
+///
+/// The cache size was chosen by measuring style sharing and resulting
+/// performance on a few pages; sizes up to about 32 were giving good sharing
+/// improvements (e.g. 3x fewer styles having to be resolved than at size 8) and
+/// slight performance improvements.  Sizes larger than 32 haven't really been
+/// tested.
+pub const STYLE_SHARING_CANDIDATE_CACHE_SIZE: usize = 31;
 
 /// Controls whether the style sharing cache is used.
 #[derive(Clone, Copy, PartialEq)]
