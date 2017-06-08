@@ -406,7 +406,24 @@ impl TreeSink for Sink {
     }
 
     fn same_tree(&self, x: &Self::Handle, y: &Self::Handle) -> bool {
-        self.root(&x) == self.root(&y)
+        let nodes = self.nodes.borrow();
+        let (id_x, id_y) = (x.id, y.id);
+
+        let x = nodes.get(&id_x).expect("Node not found");
+        // Update x's parent if no longer in tree
+        if !x.is_in_doc() {
+            self.parse_node_data.borrow_mut().get_mut(&id_x).expect("Node data not found").parent = None;
+        }
+
+        let y = nodes.get(&id_y).expect("Node not found");
+        // Update y's parent if no longer in tree
+        if !y.is_in_doc() {
+            self.parse_node_data.borrow_mut().get_mut(&id_y).expect("Node data not found").parent = None;
+        }
+
+        let x = x.downcast::<Element>().expect("Element node expected");
+        let y = y.downcast::<Element>().expect("Element node expected");
+        x.is_in_same_home_subtree(y)
     }
 
     fn create_element(&mut self, name: QualName, attrs: Vec<Attribute>, _flags: ElementFlags)
