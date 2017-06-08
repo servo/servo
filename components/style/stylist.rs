@@ -1524,9 +1524,9 @@ impl Rule {
                                            -> ApplicableDeclarationBlock {
         ApplicableDeclarationBlock {
             source: StyleSource::Style(self.style_rule.clone()),
-            level: level,
             source_order: self.source_order,
             specificity: self.specificity(),
+            level: level,
         }
     }
 
@@ -1557,12 +1557,12 @@ pub struct ApplicableDeclarationBlock {
     /// The style source, either a style rule, or a property declaration block.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     pub source: StyleSource,
-    /// The cascade level this applicable declaration block is in.
-    pub level: CascadeLevel,
     /// The source order of this block.
     pub source_order: usize,
     /// The specificity of the selector this block is represented by.
     pub specificity: u32,
+    /// The cascade level this applicable declaration block is in.
+    pub level: CascadeLevel,
 }
 
 impl ApplicableDeclarationBlock {
@@ -1574,9 +1574,9 @@ impl ApplicableDeclarationBlock {
                              -> Self {
         ApplicableDeclarationBlock {
             source: StyleSource::Declarations(declarations),
-            level: level,
             source_order: 0,
             specificity: 0,
+            level: level,
         }
     }
 }
