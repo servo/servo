@@ -3333,6 +3333,38 @@ fn static_assert() {
         }
     }
 
+    #[allow(non_snake_case)]
+    pub fn clone__moz_image_region(&self) -> longhands::_moz_image_region::computed_value::T {
+        use values::{Auto, Either};
+        use values::computed::ClipRect;
+
+        // There is no ideal way to detect auto type for structs::nsRect and its components, so
+        // if all components are zero, we use Auto.
+        if self.gecko.mImageRegion.x == 0 &&
+           self.gecko.mImageRegion.y == 0 &&
+           self.gecko.mImageRegion.width == 0 &&
+           self.gecko.mImageRegion.height == 0 {
+           return Either::Second(Auto);
+        }
+
+        let get_clip_rect_component = |value: structs::nscoord| -> Option<Au> {
+            if value == 0 {
+                None
+            } else {
+                Some(Au(value))
+            }
+        };
+
+        Either::First(ClipRect {
+            top: get_clip_rect_component(self.gecko.mImageRegion.y),
+            right: get_clip_rect_component(self.gecko.mImageRegion.width).map(
+                |v| v + Au(self.gecko.mImageRegion.x)),
+            bottom: get_clip_rect_component(self.gecko.mImageRegion.height).map(
+                |v| v + Au(self.gecko.mImageRegion.y)),
+            left: get_clip_rect_component(self.gecko.mImageRegion.x),
+        })
+    }
+
     ${impl_simple_copy('_moz_image_region', 'mImageRegion')}
 
 </%self:impl_trait>
