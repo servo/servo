@@ -16,7 +16,7 @@ extern crate ipc_channel;
 extern crate webrender_traits;
 
 use cssparser::RGBA;
-use euclid::{Transform2D, Point2D, Rect, Size2D};
+use euclid::{Matrix2D, Point2D, Rect, Size2D};
 use ipc_channel::ipc::IpcSender;
 use std::default::Default;
 use std::str::FromStr;
@@ -99,7 +99,7 @@ pub enum Canvas2dMsg {
     SetMiterLimit(f32),
     SetGlobalAlpha(f32),
     SetGlobalComposition(CompositionOrBlending),
-    SetTransform(Transform2D<f32>),
+    SetTransform(Matrix2D<f32>),
     SetShadowOffsetX(f64),
     SetShadowOffsetY(f64),
     SetShadowBlur(f64),

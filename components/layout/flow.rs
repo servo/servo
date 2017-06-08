@@ -29,7 +29,7 @@ use app_units::Au;
 use block::{BlockFlow, FormattingContextType};
 use context::LayoutContext;
 use display_list_builder::DisplayListBuildState;
-use euclid::{Transform3D, Point2D, Vector2D, Rect, Size2D};
+use euclid::{Matrix4D, Point2D, Vector2D, Rect, Size2D};
 use flex::FlexFlow;
 use floats::{Floats, SpeculatedFloatPlacement};
 use flow_list::{FlowList, MutFlowListIterator};
@@ -294,7 +294,7 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
         let transform_2d = self.as_block()
                                .fragment
                                .transform_matrix(&position)
-                               .unwrap_or(Transform3D::identity())
+                               .unwrap_or(Matrix4D::identity())
                                .to_2d();
         let transformed_overflow = Overflow {
             paint: f32_rect_to_au_rect(transform_2d.transform_rect(

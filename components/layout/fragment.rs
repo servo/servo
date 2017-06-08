@@ -10,7 +10,7 @@ use StyleArc;
 use app_units::Au;
 use canvas_traits::CanvasMsg;
 use context::{LayoutContext, with_thread_local_font_context};
-use euclid::{Transform3D, Point2D, Vector2D, Radians, Rect, Size2D};
+use euclid::{Matrix4D, Point2D, Vector2D, Radians, Rect, Size2D};
 use floats::ClearType;
 use flow::{self, ImmutableFlowUtils};
 use flow_ref::FlowRef;
@@ -2842,13 +2842,13 @@ impl Fragment {
     }
 
     /// Returns the 4D matrix representing this fragment's transform.
-    pub fn transform_matrix(&self, stacking_relative_border_box: &Rect<Au>) -> Option<Transform3D<f32>> {
+    pub fn transform_matrix(&self, stacking_relative_border_box: &Rect<Au>) -> Option<Matrix4D<f32>> {
         let operations = match self.style.get_box().transform.0 {
             None => return None,
             Some(ref operations) => operations,
         };
 
-        let mut transform = Transform3D::identity();
+        let mut transform = Matrix4D::identity();
         let transform_origin = &self.style.get_box().transform_origin;
         let transform_origin_x =
             transform_origin.horizontal
@@ -2860,10 +2860,10 @@ impl Fragment {
                 .to_f32_px();
         let transform_origin_z = transform_origin.depth.to_f32_px();
 
-        let pre_transform = Transform3D::create_translation(transform_origin_x,
+        let pre_transform = Matrix4D::create_translation(transform_origin_x,
                                                             transform_origin_y,
                                                             transform_origin_z);
-        let post_transform = Transform3D::create_translation(-transform_origin_x,
+        let post_transform = Matrix4D::create_translation(-transform_origin_x,
                                                              -transform_origin_y,
                                                              -transform_origin_z);
 
@@ -2871,19 +2871,19 @@ impl Fragment {
             let matrix = match *operation {
                 transform::ComputedOperation::Rotate(ax, ay, az, theta) => {
                     let theta = 2.0f32 * f32::consts::PI - theta.radians();
-                    Transform3D::create_rotation(ax, ay, az, Radians::new(theta))
+                    Matrix4D::create_rotation(ax, ay, az, Radians::new(theta))
                 }
                 transform::ComputedOperation::Perspective(d) => {
                     create_perspective_matrix(d)
                 }
                 transform::ComputedOperation::Scale(sx, sy, sz) => {
-                    Transform3D::create_scale(sx, sy, sz)
+                    Matrix4D::create_scale(sx, sy, sz)
                 }
                 transform::ComputedOperation::Translate(tx, ty, tz) => {
                     let tx = tx.to_used_value(stacking_relative_border_box.size.width).to_f32_px();
                     let ty = ty.to_used_value(stacking_relative_border_box.size.height).to_f32_px();
                     let tz = tz.to_f32_px();
-                    Transform3D::create_translation(tx, ty, tz)
+                    Matrix4D::create_translation(tx, ty, tz)
                 }
                 transform::ComputedOperation::Matrix(m) => {
                     m.to_gfx_matrix()
@@ -2893,14 +2893,14 @@ impl Fragment {
                     unreachable!()
                 }
                 transform::ComputedOperation::Skew(theta_x, theta_y) => {
-                    Transform3D::create_skew(Radians::new(theta_x.radians()),
+                    Matrix4D::create_skew(Radians::new(theta_x.radians()),
                                           Radians::new(theta_y.radians()))
                 }
                 transform::ComputedOperation::InterpolateMatrix { .. } |
                 transform::ComputedOperation::AccumulateMatrix { .. } => {
-                    // TODO: Convert InterpolateMatrix/AccmulateMatrix into a valid Transform3D by
+                    // TODO: Convert InterpolateMatrix/AccmulateMatrix into a valid Matrix4D by
                     // the reference box.
-                    Transform3D::identity()
+                    Matrix4D::identity()
                 }
             };
 
@@ -2911,7 +2911,7 @@ impl Fragment {
     }
 
     /// Returns the 4D matrix representing this fragment's perspective.
-    pub fn perspective_matrix(&self, stacking_relative_border_box: &Rect<Au>) -> Option<Transform3D<f32>> {
+    pub fn perspective_matrix(&self, stacking_relative_border_box: &Rect<Au>) -> Option<Matrix4D<f32>> {
         match self.style().get_box().perspective {
             Either::First(length) => {
                 let perspective_origin = self.style().get_box().perspective_origin;
@@ -2924,10 +2924,10 @@ impl Fragment {
                             .to_used_value(stacking_relative_border_box.size.height)
                             .to_f32_px());
 
-                let pre_transform = Transform3D::create_translation(perspective_origin.x,
+                let pre_transform = Matrix4D::create_translation(perspective_origin.x,
                                                                     perspective_origin.y,
                                                                     0.0);
-                let post_transform = Transform3D::create_translation(-perspective_origin.x,
+                let post_transform = Matrix4D::create_translation(-perspective_origin.x,
                                                                      -perspective_origin.y,
                                                                      0.0);
 
@@ -3184,11 +3184,11 @@ impl Serialize for DebugId {
 // and behaves as it does in other browsers.
 // See https://lists.w3.org/Archives/Public/www-style/2016Jan/0020.html for more details.
 #[inline]
-fn create_perspective_matrix(d: Au) -> Transform3D<f32> {
+fn create_perspective_matrix(d: Au) -> Matrix4D<f32> {
     let d = d.to_f32_px();
     if d <= 0.0 {
-        Transform3D::identity()
+        Matrix4D::identity()
     } else {
-        Transform3D::create_perspective(d)
+        Matrix4D::create_perspective(d)
     }
 }

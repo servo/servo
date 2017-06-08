@@ -14,7 +14,7 @@ use app_units::{AU_PER_PX, Au};
 use block::{BlockFlow, BlockStackingContextType};
 use canvas_traits::{CanvasData, CanvasMsg, FromLayoutMsg};
 use context::LayoutContext;
-use euclid::{Transform3D, Point2D, Vector2D, Rect, SideOffsets2D, Size2D, TypedSize2D};
+use euclid::{Matrix4D, Point2D, Vector2D, Rect, SideOffsets2D, Size2D, TypedSize2D};
 use flex::FlexFlow;
 use flow::{BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
 use flow_ref::FlowRef;
@@ -2300,7 +2300,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         };
 
         let perspective = self.fragment.perspective_matrix(&border_box)
-                                       .unwrap_or_else(Transform3D::identity);
+                                       .unwrap_or_else(Matrix4D::identity);
         let transform = transform.pre_mul(&perspective).inverse();
 
         let origin = &border_box.origin;

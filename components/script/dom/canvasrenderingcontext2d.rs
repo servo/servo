@@ -34,7 +34,7 @@ use dom::htmlimageelement::HTMLImageElement;
 use dom::imagedata::ImageData;
 use dom::node::{document_from_node, Node, NodeDamage, window_from_node};
 use dom_struct::dom_struct;
-use euclid::{Transform2D, Point2D, Rect, Size2D, vec2};
+use euclid::{Matrix2D, Point2D, Rect, Size2D, vec2};
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageResponse;
@@ -79,7 +79,7 @@ struct CanvasContextState {
     line_cap: LineCapStyle,
     line_join: LineJoinStyle,
     miter_limit: f64,
-    transform: Transform2D<f32>,
+    transform: Matrix2D<f32>,
     shadow_offset_x: f64,
     shadow_offset_y: f64,
     shadow_blur: f64,
@@ -99,7 +99,7 @@ impl CanvasContextState {
             line_cap: LineCapStyle::Butt,
             line_join: LineJoinStyle::Miter,
             miter_limit: 10.0,
-            transform: Transform2D::identity(),
+            transform: Matrix2D::identity(),
             shadow_offset_x: 0.0,
             shadow_offset_y: 0.0,
             shadow_blur: 0.0,
@@ -568,7 +568,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         let (sin, cos) = (angle.sin(), angle.cos());
         let transform = self.state.borrow().transform;
         self.state.borrow_mut().transform = transform.pre_mul(
-            &Transform2D::row_major(cos as f32, sin as f32,
+            &Matrix2D::row_major(cos as f32, sin as f32,
                                  -sin as f32, cos as f32,
                                  0.0, 0.0));
         self.update_transform()
@@ -594,7 +594,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
         let transform = self.state.borrow().transform;
         self.state.borrow_mut().transform = transform.pre_mul(
-            &Transform2D::row_major(a as f32, b as f32, c as f32, d as f32, e as f32, f as f32));
+            &Matrix2D::row_major(a as f32, b as f32, c as f32, d as f32, e as f32, f as f32));
         self.update_transform()
     }
 
@@ -606,13 +606,13 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         }
 
         self.state.borrow_mut().transform =
-            Transform2D::row_major(a as f32, b as f32, c as f32, d as f32, e as f32, f as f32);
+            Matrix2D::row_major(a as f32, b as f32, c as f32, d as f32, e as f32, f as f32);
         self.update_transform()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-resettransform
     fn ResetTransform(&self) {
-        self.state.borrow_mut().transform = Transform2D::identity();
+        self.state.borrow_mut().transform = Matrix2D::identity();
         self.update_transform()
     }
 

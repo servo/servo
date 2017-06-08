@@ -15,7 +15,7 @@
 //! low-level drawing primitives.
 
 use app_units::Au;
-use euclid::{Transform3D, Point2D, Vector2D, Rect, Size2D, TypedRect, SideOffsets2D};
+use euclid::{Matrix4D, Point2D, Vector2D, Rect, Size2D, TypedRect, SideOffsets2D};
 use euclid::num::{One, Zero};
 use gfx_traits::StackingContextId;
 use gfx_traits::print_tree::PrintTree;
@@ -64,7 +64,7 @@ impl<'a> ScrollOffsetLookup<'a> {
 
     fn new_for_reference_frame(&mut self,
                                clip_id: ClipId,
-                               transform: &Transform3D<f32>,
+                               transform: &Matrix4D<f32>,
                                point: &mut Point2D<Au>)
                                -> Option<ScrollOffsetLookup> {
         // If a transform function causes the current transformation matrix of an object
@@ -425,13 +425,13 @@ pub struct StackingContext {
     pub mix_blend_mode: MixBlendMode,
 
     /// A transform to be applied to this stacking context.
-    pub transform: Option<Transform3D<f32>>,
+    pub transform: Option<Matrix4D<f32>>,
 
     /// The transform style of this stacking context.
     pub transform_style: TransformStyle,
 
     /// The perspective matrix to be applied to children.
-    pub perspective: Option<Transform3D<f32>>,
+    pub perspective: Option<Matrix4D<f32>>,
 
     /// The scroll policy of this layer.
     pub scroll_policy: ScrollPolicy,
@@ -450,9 +450,9 @@ impl StackingContext {
                z_index: i32,
                filters: filter::T,
                mix_blend_mode: MixBlendMode,
-               transform: Option<Transform3D<f32>>,
+               transform: Option<Matrix4D<f32>>,
                transform_style: TransformStyle,
-               perspective: Option<Transform3D<f32>>,
+               perspective: Option<Matrix4D<f32>>,
                scroll_policy: ScrollPolicy,
                parent_scroll_id: ClipId)
                -> StackingContext {
@@ -1388,7 +1388,7 @@ pub trait SimpleMatrixDetection {
     fn is_identity_or_simple_translation(&self) -> bool;
 }
 
-impl SimpleMatrixDetection for Transform3D<f32> {
+impl SimpleMatrixDetection for Matrix4D<f32> {
     #[inline]
     fn is_identity_or_simple_translation(&self) -> bool {
         let (_0, _1) = (Zero::zero(), One::one());
