@@ -26,7 +26,6 @@ use context::TraversalStatistics;
 use dom::{OpaqueNode, SendNode, TElement, TNode};
 use rayon;
 use scoped_tls::ScopedTLS;
-use sharing::STYLE_SHARING_CANDIDATE_CACHE_SIZE;
 use smallvec::SmallVec;
 use std::borrow::Borrow;
 use std::mem;
@@ -36,20 +35,9 @@ use traversal::{DomTraversal, PerLevelTraversalData, PreTraverseToken};
 /// The maximum number of child nodes that we will process as a single unit.
 ///
 /// Larger values will increase style sharing cache hits and general DOM locality
-/// at the expense of decreased opportunities for parallelism. The style sharing
-/// cache can hold 8 entries, but not all styles are shareable, so we set this
-/// value to 16. These values have not been measured and could potentially be
-/// tuned.
+/// at the expense of decreased opportunities for parallelism. This value has not
+/// been measured and could potentially be tuned.
 pub const WORK_UNIT_MAX: usize = 16;
-
-/// Verify that the style sharing cache size doesn't change. If it does, we should
-/// reconsider the above. We do this, rather than defining WORK_UNIT_MAX in terms
-/// of STYLE_SHARING_CANDIDATE_CACHE_SIZE, so that altering the latter doesn't
-/// have surprising effects on the parallelism characteristics of the style system.
-#[allow(dead_code)]
-fn static_assert() {
-    unsafe { mem::transmute::<_, [u32; STYLE_SHARING_CANDIDATE_CACHE_SIZE]>([1; 8]); }
-}
 
 /// A list of node pointers.
 ///
