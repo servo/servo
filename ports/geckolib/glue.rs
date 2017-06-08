@@ -53,6 +53,7 @@ use style::gecko_bindings::bindings::RawGeckoCSSPropertyIDListBorrowed;
 use style::gecko_bindings::bindings::RawGeckoComputedKeyframeValuesListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoComputedTimingBorrowed;
 use style::gecko_bindings::bindings::RawGeckoFontFaceRuleListBorrowedMut;
+use style::gecko_bindings::bindings::RawGeckoServoAnimationValueListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoServoStyleRuleListBorrowedMut;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueMapBorrowedMut;
@@ -2630,6 +2631,35 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
                 }
             }
         }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_GetAnimationValues(declarations: RawServoDeclarationBlockBorrowed,
+                                           element: RawGeckoElementBorrowed,
+                                           style: ServoComputedValuesBorrowed,
+                                           raw_data: RawServoStyleSetBorrowed,
+                                           animation_values: RawGeckoServoAnimationValueListBorrowedMut) {
+    let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
+    let style = ComputedValues::as_arc(&style);
+    let metrics = get_metrics_provider_for_product();
+
+    let element = GeckoElement(element);
+    let parent_element = element.inheritance_parent();
+    let parent_data = parent_element.as_ref().and_then(|e| e.borrow_data());
+    let parent_style = parent_data.as_ref().map(|d| d.styles().primary.values());
+
+    let mut context = create_context(&data, &metrics, style, &parent_style);
+
+    let default_values = data.default_computed_values();
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+
+    let declarations = Locked::<PropertyDeclarationBlock>::as_arc(&declarations);
+    let guard = declarations.read_with(&guard);
+    for (index, anim) in guard.to_animation_value_iter(&mut context, &default_values).enumerate() {
+        unsafe { animation_values.set_len((index + 1) as u32) };
+        animation_values[index].set_arc_leaky(Arc::new(anim.1));
     }
 }
 
