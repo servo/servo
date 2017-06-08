@@ -4,11 +4,12 @@ all: openssl
 
 # From http://wiki.openssl.org/index.php/Android
 .PHONY: openssl
-openssl: openssl-1.0.1t/libssl.so
+openssl: openssl/libssl.so
 
-openssl-1.0.1t/libssl.so: openssl-1.0.1t/Configure
+openssl/libssl.so: openssl/Configure
 	./openssl.sh ${ANDROID_NDK}
 
-openssl-1.0.1t/Configure:
-	wget https://www.openssl.org/source/old/1.0.1/openssl-1.0.1t.tar.gz
-	tar -zxf openssl-1.0.1t.tar.gz
+openssl/Configure:
+    VERSION=1.0.2k
+    URL=https://s3.amazonaws.com/rust-lang-ci/rust-ci-mirror/openssl-$VERSION.tar.gz
+    curl $URL | tar xzf -
