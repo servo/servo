@@ -29,6 +29,7 @@ use scoped_tls::ScopedTLS;
 use sharing::STYLE_SHARING_CANDIDATE_CACHE_SIZE;
 use smallvec::SmallVec;
 use std::borrow::Borrow;
+use std::cell::RefMut;
 use std::mem;
 use time;
 use traversal::{DomTraversal, PerLevelTraversalData, PreTraverseToken};
@@ -125,6 +126,19 @@ pub fn traverse_dom<E, D>(traversal: &D,
     }
 }
 
+/// A callback to create our thread local context.  This needs to be
+/// out of line so we don't allocate stack space for the entire struct
+/// in the caller.
+#[inline(never)]
+fn create_thread_local_context<'scope, E, D>(
+    traversal: &'scope D,
+    slot: &mut RefMut<Option<D::ThreadLocalContext>>)
+    where E: TElement + 'scope,
+          D: DomTraversal<E>
+{
+    **slot = Some(traversal.create_thread_local_context())
+}
+
 /// A parallel top-down DOM traversal.
 ///
 /// This algorithm traverses the DOM in a breadth-first, top-down manner. The
@@ -153,7 +167,8 @@ fn top_down_dom<'a, 'scope, E, D>(nodes: &'a [SendNode<E::ConcreteNode>],
     {
         // Scope the borrow of the TLS so that the borrow is dropped before
         // a potential recursive call when we pass TailCall.
-        let mut tlc = tls.ensure(|| traversal.create_thread_local_context());
+        let mut tlc = tls.ensure(
+            |slot: &mut RefMut<Option<D::ThreadLocalContext>>| create_thread_local_context(traversal, slot));
 
         for n in nodes {
             // If the last node we processed produced children, spawn them off

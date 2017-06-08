@@ -52,11 +52,16 @@ impl<'scope, T: Send> ScopedTLS<'scope, T> {
     }
 
     /// Ensure that the current data this thread owns is initialized, or
-    /// initialize it using `f`.
-    pub fn ensure<F: FnOnce() -> T>(&self, f: F) -> RefMut<T> {
+    /// initialize it using `f`.  We want ensure() to be fast and inline, and we
+    /// want to inline the memmove that initializes the Option<T>.  But we don't
+    /// want to inline space for the entire large T struct in our stack frame.
+    /// That's why we hand `f` a mutable borrow to write to instead of just
+    /// having it return a T.
+    #[inline(always)]
+    pub fn ensure<F: FnOnce(&mut RefMut<Option<T>>)>(&self, f: F) -> RefMut<T> {
         let mut opt = self.borrow_mut();
         if opt.is_none() {
-            *opt = Some(f());
+            f(&mut opt);
         }
 
         RefMut::map(opt, |x| x.as_mut().unwrap())
