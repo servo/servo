@@ -34,7 +34,6 @@ use atomic_refcell::{AtomicRef, AtomicRefCell};
 use dom::bindings::inheritance::{CharacterDataTypeId, ElementTypeId};
 use dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::LayoutJS;
-use dom::bindings::str::extended_filtering;
 use dom::characterdata::LayoutCharacterDataHelpers;
 use dom::document::{Document, LayoutDocumentHelpers, PendingRestyle};
 use dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
@@ -70,7 +69,8 @@ use style::dom::{PresentationalHintsSynthesizer, TElement, TNode, UnsafeNode};
 use style::element_state::*;
 use style::font_metrics::ServoMetricsProvider;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
-use style::selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl};
+use style::selector_parser::{AttrValue as SelectorAttrValue, NonTSPseudoClass, PseudoClassStringArg};
+use style::selector_parser::{PseudoElement, SelectorImpl, extended_filtering};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
 use style::sink::Push;
 use style::str::is_whitespace;
@@ -499,6 +499,39 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     fn has_css_transitions(&self) -> bool {
         unreachable!("this should be only called on gecko");
     }
+
+    #[inline]
+    fn lang_attr(&self) -> Option<SelectorAttrValue> {
+        self.get_attr(&ns!(xml), &local_name!("lang"))
+            .or_else(|| self.get_attr(&ns!(), &local_name!("lang")))
+            .map(|v| String::from(v as &str))
+    }
+
+    fn match_element_lang(&self,
+                          override_lang: Option<Option<SelectorAttrValue>>,
+                          value: &PseudoClassStringArg)
+                          -> bool
+    {
+        // Servo supports :lang() from CSS Selectors 4, which can take a comma-
+        // separated list of language tags in the pseudo-class, and which
+        // performs RFC 4647 extended filtering matching on them.
+        //
+        // FIXME(heycam): This is wrong, since extended_filtering accepts
+        // a string containing commas (separating each language tag in
+        // a list) but the pseudo-class instead should be parsing and
+        // storing separate <ident> or <string>s for each language tag.
+        //
+        // FIXME(heycam): Look at `element`'s document's Content-Language
+        // HTTP header for language tags to match `value` against.  To
+        // do this, we should make `get_lang_for_layout` return an Option,
+        // so we can decide when to fall back to the Content-Language check.
+        let element_lang = match override_lang {
+            Some(Some(lang)) => lang,
+            Some(None) => String::new(),
+            None => self.element.get_lang_for_layout(),
+        };
+        extended_filtering(&element_lang, &*value)
+    }
 }
 
 impl<'le> PartialEq for ServoLayoutElement<'le> {
@@ -691,9 +724,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
             NonTSPseudoClass::AnyLink => self.is_link(),
             NonTSPseudoClass::Visited => false,
 
-            // FIXME(#15746): This is wrong, we need to instead use extended filtering as per RFC4647
-            //                https://tools.ietf.org/html/rfc4647#section-3.3.2
-            NonTSPseudoClass::Lang(ref lang) => extended_filtering(&*self.element.get_lang_for_layout(), &*lang),
+            NonTSPseudoClass::Lang(ref lang) => self.match_element_lang(None, &*lang),
 
             NonTSPseudoClass::ServoNonZeroBorder => unsafe {
                 match (*self.element.unsafe_get()).get_attr_for_layout(&ns!(), &local_name!("border")) {

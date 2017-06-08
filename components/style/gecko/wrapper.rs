@@ -45,6 +45,7 @@ use gecko_bindings::bindings::Gecko_GetStyleContext;
 use gecko_bindings::bindings::Gecko_GetUnvisitedLinkAttrDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetVisitedLinkAttrDeclarationBlock;
 use gecko_bindings::bindings::Gecko_IsSignificantChild;
+use gecko_bindings::bindings::Gecko_MatchLang;
 use gecko_bindings::bindings::Gecko_MatchStringArgPseudo;
 use gecko_bindings::bindings::Gecko_UnsetDirtyStyleAttr;
 use gecko_bindings::bindings::Gecko_UpdateAnimations;
@@ -66,7 +67,7 @@ use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use properties::animated_properties::{AnimationValue, AnimationValueMap, TransitionProperty};
 use properties::style_structs::Font;
 use rule_tree::CascadeLevel as ServoCascadeLevel;
-use selector_parser::ElementExt;
+use selector_parser::{AttrValue, ElementExt, PseudoClassStringArg};
 use selectors::Element;
 use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator, CaseSensitivity, NamespaceConstraint};
 use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode};
@@ -1023,6 +1024,35 @@ impl<'le> TElement for GeckoElement<'le> {
                                                    before_change_style,
                                                    after_change_style).does_animate()
     }
+
+    #[inline]
+    fn lang_attr(&self) -> Option<AttrValue> {
+        let ptr = unsafe { bindings::Gecko_LangValue(self.0) };
+        if ptr.is_null() {
+            None
+        } else {
+            Some(unsafe { Atom::from_addrefed(ptr) })
+        }
+    }
+
+    fn match_element_lang(&self,
+                          override_lang: Option<Option<AttrValue>>,
+                          value: &PseudoClassStringArg)
+                          -> bool
+    {
+        // Gecko supports :lang() from CSS Selectors 3, which only accepts a
+        // single language tag, and which performs simple dash-prefix matching
+        // on it.
+        debug_assert!(value.len() > 0 && value[value.len() - 1] == 0,
+                      "expected value to be null terminated");
+        let override_lang_ptr = match &override_lang {
+            &Some(Some(ref atom)) => atom.as_ptr(),
+            _ => ptr::null_mut(),
+        };
+        unsafe {
+            Gecko_MatchLang(self.0, override_lang_ptr, override_lang.is_some(), value.as_ptr())
+        }
+    }
 }
 
 impl<'le> PartialEq for GeckoElement<'le> {
@@ -1408,11 +1438,13 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                     matches_complex_selector(s, 0, self, context, flags_setter)
                 })
             }
+            NonTSPseudoClass::Lang(ref lang_arg) => {
+                self.match_element_lang(None, lang_arg)
+            }
             NonTSPseudoClass::MozSystemMetric(ref s) |
             NonTSPseudoClass::MozLocaleDir(ref s) |
             NonTSPseudoClass::MozEmptyExceptChildrenWithLocalname(ref s) |
-            NonTSPseudoClass::Dir(ref s) |
-            NonTSPseudoClass::Lang(ref s) => {
+            NonTSPseudoClass::Dir(ref s) => {
                 unsafe {
                     let mut set_slow_selector = false;
                     let matches = Gecko_MatchStringArgPseudo(self.0,
