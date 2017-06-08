@@ -619,27 +619,28 @@ extern "C" {
 extern "C" {
     pub fn Gecko_AttrDashEquals(element: RawGeckoElementBorrowed,
                                 ns: *mut nsIAtom, name: *mut nsIAtom,
-                                str: *mut nsIAtom) -> bool;
+                                str: *mut nsIAtom, ignore_case: bool) -> bool;
 }
 extern "C" {
     pub fn Gecko_AttrIncludes(element: RawGeckoElementBorrowed,
                               ns: *mut nsIAtom, name: *mut nsIAtom,
-                              str: *mut nsIAtom) -> bool;
+                              str: *mut nsIAtom, ignore_case: bool) -> bool;
 }
 extern "C" {
     pub fn Gecko_AttrHasSubstring(element: RawGeckoElementBorrowed,
                                   ns: *mut nsIAtom, name: *mut nsIAtom,
-                                  str: *mut nsIAtom) -> bool;
+                                  str: *mut nsIAtom, ignore_case: bool)
+     -> bool;
 }
 extern "C" {
     pub fn Gecko_AttrHasPrefix(element: RawGeckoElementBorrowed,
                                ns: *mut nsIAtom, name: *mut nsIAtom,
-                               str: *mut nsIAtom) -> bool;
+                               str: *mut nsIAtom, ignore_case: bool) -> bool;
 }
 extern "C" {
     pub fn Gecko_AttrHasSuffix(element: RawGeckoElementBorrowed,
                                ns: *mut nsIAtom, name: *mut nsIAtom,
-                               str: *mut nsIAtom) -> bool;
+                               str: *mut nsIAtom, ignore_case: bool) -> bool;
 }
 extern "C" {
     pub fn Gecko_ClassOrClassList(element: RawGeckoElementBorrowed,
@@ -669,29 +670,34 @@ extern "C" {
 extern "C" {
     pub fn Gecko_SnapshotAttrDashEquals(element: *const ServoElementSnapshot,
                                         ns: *mut nsIAtom, name: *mut nsIAtom,
-                                        str: *mut nsIAtom) -> bool;
+                                        str: *mut nsIAtom, ignore_case: bool)
+     -> bool;
 }
 extern "C" {
     pub fn Gecko_SnapshotAttrIncludes(element: *const ServoElementSnapshot,
                                       ns: *mut nsIAtom, name: *mut nsIAtom,
-                                      str: *mut nsIAtom) -> bool;
+                                      str: *mut nsIAtom, ignore_case: bool)
+     -> bool;
 }
 extern "C" {
     pub fn Gecko_SnapshotAttrHasSubstring(element:
                                               *const ServoElementSnapshot,
                                           ns: *mut nsIAtom,
                                           name: *mut nsIAtom,
-                                          str: *mut nsIAtom) -> bool;
+                                          str: *mut nsIAtom,
+                                          ignore_case: bool) -> bool;
 }
 extern "C" {
     pub fn Gecko_SnapshotAttrHasPrefix(element: *const ServoElementSnapshot,
                                        ns: *mut nsIAtom, name: *mut nsIAtom,
-                                       str: *mut nsIAtom) -> bool;
+                                       str: *mut nsIAtom, ignore_case: bool)
+     -> bool;
 }
 extern "C" {
     pub fn Gecko_SnapshotAttrHasSuffix(element: *const ServoElementSnapshot,
                                        ns: *mut nsIAtom, name: *mut nsIAtom,
-                                       str: *mut nsIAtom) -> bool;
+                                       str: *mut nsIAtom, ignore_case: bool)
+     -> bool;
 }
 extern "C" {
     pub fn Gecko_SnapshotClassOrClassList(element:

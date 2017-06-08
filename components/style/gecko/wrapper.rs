@@ -1352,30 +1352,35 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                             ns.atom_or_null(),
                             local_name.as_ptr(),
                             expected_value.as_ptr(),
+                            ignore_case,
                         ),
                         AttrSelectorOperator::DashMatch => bindings::Gecko_AttrDashEquals(
                             self.0,
                             ns.atom_or_null(),
                             local_name.as_ptr(),
                             expected_value.as_ptr(),
+                            ignore_case,
                         ),
                         AttrSelectorOperator::Prefix => bindings::Gecko_AttrHasPrefix(
                             self.0,
                             ns.atom_or_null(),
                             local_name.as_ptr(),
                             expected_value.as_ptr(),
+                            ignore_case,
                         ),
                         AttrSelectorOperator::Suffix => bindings::Gecko_AttrHasSuffix(
                             self.0,
                             ns.atom_or_null(),
                             local_name.as_ptr(),
                             expected_value.as_ptr(),
+                            ignore_case,
                         ),
                         AttrSelectorOperator::Substring => bindings::Gecko_AttrHasSubstring(
                             self.0,
                             ns.atom_or_null(),
                             local_name.as_ptr(),
                             expected_value.as_ptr(),
+                            ignore_case,
                         ),
                     }
                 }
