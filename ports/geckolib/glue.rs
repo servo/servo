@@ -53,6 +53,7 @@ use style::gecko_bindings::bindings::RawGeckoCSSPropertyIDListBorrowed;
 use style::gecko_bindings::bindings::RawGeckoComputedKeyframeValuesListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoComputedTimingBorrowed;
 use style::gecko_bindings::bindings::RawGeckoFontFaceRuleListBorrowedMut;
+use style::gecko_bindings::bindings::RawGeckoServoAnimationValueListBorrowed;
 use style::gecko_bindings::bindings::RawGeckoServoAnimationValueListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoServoStyleRuleListBorrowedMut;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
@@ -90,7 +91,7 @@ use style::media_queries::{MediaList, parse_media_query_list};
 use style::parallel;
 use style::parser::{PARSING_MODE_DEFAULT, ParserContext};
 use style::properties::{CascadeFlags, ComputedValues, Importance, SourcePropertyDeclaration};
-use style::properties::{LonghandIdSet, PropertyDeclarationBlock, PropertyId, StyleBuilder};
+use style::properties::{LonghandIdSet, PropertyDeclaration, PropertyDeclarationBlock, PropertyId, StyleBuilder};
 use style::properties::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
 use style::properties::animated_properties::{Animatable, AnimationValue, TransitionProperty};
 use style::properties::parse_one_declaration_into;
@@ -557,7 +558,34 @@ pub extern "C" fn Servo_AnimationValue_Serialize(value: RawServoAnimationValueBo
         .single_value_to_css(&get_property_id_from_nscsspropertyid!(property, ()), &mut string);
     debug_assert!(rv.is_ok());
 
-    write!(unsafe { &mut *buffer }, "{}", string).expect("Failed to copy string");
+    let buffer = unsafe { buffer.as_mut().unwrap() };
+    buffer.assign_utf8(&string);
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_Shorthand_AnimationValues_Serialize(shorthand_property: nsCSSPropertyID,
+                                                            values: RawGeckoServoAnimationValueListBorrowed,
+                                                            buffer: *mut nsAString)
+{
+    let property_id = get_property_id_from_nscsspropertyid!(shorthand_property, ());
+    let shorthand = match property_id.as_shorthand() {
+        Ok(shorthand) => shorthand,
+        _ => return,
+    };
+
+    // Convert RawServoAnimationValue(s) into a vector of PropertyDeclaration
+    // so that we can use reference of the PropertyDeclaration without worrying
+    // about its lifetime. (longhands_to_css() expects &PropertyDeclaration
+    // iterator.)
+    let declarations: Vec<PropertyDeclaration> =
+        values.iter().map(|v| AnimationValue::as_arc(unsafe { &&*v.mRawPtr }).uncompute()).collect();
+
+    let mut string = String::new();
+    let rv = shorthand.longhands_to_css(declarations.iter(), &mut string);
+    if rv.is_ok() {
+        let buffer = unsafe { buffer.as_mut().unwrap() };
+        buffer.assign_utf8(&string);
+    }
 }
 
 #[no_mangle]
@@ -1696,7 +1724,8 @@ pub extern "C" fn Servo_DeclarationBlock_SerializeOneValue(
         let rv = decls.single_value_to_css(&property_id, &mut string);
         debug_assert!(rv.is_ok());
 
-        write!(unsafe { &mut *buffer }, "{}", string).expect("Failed to copy string");
+        let buffer = unsafe { buffer.as_mut().unwrap() };
+        buffer.assign_utf8(&string);
     })
 }
 
@@ -1719,7 +1748,8 @@ pub extern "C" fn Servo_SerializeFontValueForCanvas(
         let rv = longhands.to_css_for_canvas(&mut string);
         debug_assert!(rv.is_ok());
 
-        write!(unsafe { &mut *buffer }, "{}", string).expect("Failed to copy string");
+        let buffer = unsafe { buffer.as_mut().unwrap() };
+        buffer.assign_utf8(&string);
     })
 }
 
