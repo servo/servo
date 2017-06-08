@@ -150,6 +150,18 @@ impl ToNsCssValue for FontDisplay {
     }
 }
 
+impl FontFaceRule {
+    /// Ask Gecko to deep clone the nsCSSFontFaceRule, and then construct
+    /// a FontFaceRule object from it.
+    pub fn deep_clone_from_gecko(&self) -> FontFaceRule {
+        let result = unsafe {
+            UniqueRefPtr::from_addrefed(
+                bindings::Gecko_CSSFontFaceRule_Clone(self.get()))
+        };
+        result.get()
+    }
+}
+
 impl From<FontFaceRuleData> for FontFaceRule {
     fn from(data: FontFaceRuleData) -> FontFaceRule {
         let mut result = unsafe {
@@ -175,6 +187,18 @@ impl ToCssWithGuard for FontFaceRule {
 
 /// A @counter-style rule
 pub type CounterStyleRule = RefPtr<nsCSSCounterStyleRule>;
+
+impl CounterStyleRule {
+    /// Ask Gecko to deep clone the nsCSSCounterStyleRule, and then construct
+    /// a CounterStyleRule object from it.
+    pub fn deep_clone_from_gecko(&self) -> CounterStyleRule {
+        let result = unsafe {
+            UniqueRefPtr::from_addrefed(
+                bindings::Gecko_CSSCounterStyle_Clone(self.get()))
+        };
+        result.get()
+    }
+}
 
 impl From<counter_style::CounterStyleRuleData> for CounterStyleRule {
     fn from(data: counter_style::CounterStyleRuleData) -> CounterStyleRule {

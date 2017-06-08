@@ -289,11 +289,13 @@ impl DeepCloneWithLock for CssRule {
             },
             CssRule::FontFace(ref arc) => {
                 let rule = arc.read_with(guard);
-                CssRule::FontFace(Arc::new(lock.wrap(rule.clone())))
+                CssRule::FontFace(Arc::new(lock.wrap(
+                    rule.clone_conditionally_gecko_or_servo())))
             },
             CssRule::CounterStyle(ref arc) => {
                 let rule = arc.read_with(guard);
-                CssRule::CounterStyle(Arc::new(lock.wrap(rule.clone())))
+                CssRule::CounterStyle(Arc::new(lock.wrap(
+                    rule.clone_conditionally_gecko_or_servo())))
             },
             CssRule::Viewport(ref arc) => {
                 let rule = arc.read_with(guard);
