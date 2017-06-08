@@ -726,17 +726,6 @@ impl<'le> TElement for GeckoElement<'le> {
         }
     }
 
-    #[inline]
-    fn attr_equals(&self, namespace: &Namespace, attr: &Atom, val: &Atom) -> bool {
-        unsafe {
-            bindings::Gecko_AttrEquals(self.0,
-                                       namespace.0.as_ptr(),
-                                       attr.as_ptr(),
-                                       val.as_ptr(),
-                                       /* ignoreCase = */ false)
-        }
-    }
-
     fn each_class<F>(&self, callback: F)
         where F: FnMut(&Atom)
     {

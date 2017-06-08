@@ -399,11 +399,6 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         self.get_attr(namespace, attr).is_some()
     }
 
-    #[inline]
-    fn attr_equals(&self, namespace: &Namespace, attr: &LocalName, val: &Atom) -> bool {
-        self.get_attr(namespace, attr).map_or(false, |x| x == val)
-    }
-
     #[inline(always)]
     fn each_class<F>(&self, mut callback: F) where F: FnMut(&Atom) {
         unsafe {
