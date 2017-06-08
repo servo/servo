@@ -160,7 +160,7 @@ fn test_parse_stylesheet() {
                     (PropertyDeclaration::BackgroundColor(
                         longhands::background_color::SpecifiedValue {
                             authored: Some("blue".to_owned().into_boxed_str()),
-                            parsed: cssparser::Color::RGBA(cssparser::RGBA::new(0, 0, 255, 255)),
+                            parsed: cssparser::RGBA::new(0, 0, 255, 255).into(),
                         }
                      ),
                      Importance::Normal),

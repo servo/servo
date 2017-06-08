@@ -7,34 +7,38 @@
 use cssparser::{self, Color as CSSParserColor, Parser, RGBA, Token};
 use itoa;
 use parser::{ParserContext, Parse};
+#[cfg(feature = "gecko")]
+use properties::longhands::color::SystemColor;
 use std::fmt;
 use std::io::Write;
 use style_traits::ToCss;
 use super::AllowQuirks;
 use values::computed::{Context, ToComputedValue};
 
-#[cfg(not(feature = "gecko"))] pub use self::servo::Color;
-#[cfg(feature = "gecko")] pub use self::gecko::Color;
+/// Specified color value
+#[derive(Clone, Copy, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum Color {
+    /// The 'currentColor' keyword
+    CurrentColor,
+    /// A specific RGBA color
+    RGBA(RGBA),
 
-#[cfg(not(feature = "gecko"))]
-mod servo {
-    pub use cssparser::Color;
-    use cssparser::Parser;
-    use parser::{Parse, ParserContext};
-
-    impl Parse for Color {
-        fn parse(_: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-            Color::parse(input)
-        }
-    }
+    /// A system color
+    #[cfg(feature = "gecko")]
+    System(SystemColor),
+    /// A special color keyword value used in Gecko
+    #[cfg(feature = "gecko")]
+    Special(gecko::SpecialColorKeyword),
+    /// Quirksmode-only rule for inheriting color from the body
+    #[cfg(feature = "gecko")]
+    InheritFromBodyQuirk,
 }
+
+no_viewport_percentage!(Color);
 
 #[cfg(feature = "gecko")]
 mod gecko {
-    use cssparser::{Color as CSSParserColor, Parser, RGBA};
-    use parser::{Parse, ParserContext};
-    use properties::longhands::color::SystemColor;
-    use std::fmt;
     use style_traits::ToCss;
 
     define_css_keyword_enum! { SpecialColorKeyword:
@@ -44,59 +48,53 @@ mod gecko {
         "-moz-activehyperlinktext" => MozActiveHyperlinktext,
         "-moz-visitedhyperlinktext" => MozVisitedHyperlinktext,
     }
+}
 
-    /// Color value including non-standard -moz prefixed values.
-    #[derive(Clone, Copy, PartialEq, Debug)]
-    pub enum Color {
-        /// The 'currentColor' keyword
-        CurrentColor,
-        /// A specific RGBA color
-        RGBA(RGBA),
-        /// A system color
-        System(SystemColor),
-        /// A special color keyword value used in Gecko
-        Special(SpecialColorKeyword),
-        /// Quirksmode-only rule for inheriting color from the body
-        InheritFromBodyQuirk,
-    }
-
-    no_viewport_percentage!(Color);
-
-    impl From<CSSParserColor> for Color {
-        fn from(value: CSSParserColor) -> Self {
-            match value {
-                CSSParserColor::CurrentColor => Color::CurrentColor,
-                CSSParserColor::RGBA(x) => Color::RGBA(x),
-            }
+impl From<CSSParserColor> for Color {
+    fn from(value: CSSParserColor) -> Self {
+        match value {
+            CSSParserColor::CurrentColor => Color::CurrentColor,
+            CSSParserColor::RGBA(x) => Color::RGBA(x),
         }
     }
+}
 
-    impl Parse for Color {
-        fn parse(_: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-            if let Ok(value) = input.try(CSSParserColor::parse) {
-                Ok(value.into())
-            } else if let Ok(system) = input.try(SystemColor::parse) {
-                Ok(Color::System(system))
-            } else if let Ok(special) = input.try(SpecialColorKeyword::parse) {
-                Ok(Color::Special(special))
-            } else {
+impl From<RGBA> for Color {
+    fn from(value: RGBA) -> Self {
+        Color::RGBA(value)
+    }
+}
+
+impl Parse for Color {
+    fn parse(_: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        if let Ok(value) = input.try(CSSParserColor::parse) {
+            Ok(value.into())
+        } else {
+            #[cfg(feature = "gecko")] {
+                if let Ok(system) = input.try(SystemColor::parse) {
+                    Ok(Color::System(system))
+                } else {
+                    gecko::SpecialColorKeyword::parse(input).map(Color::Special)
+                }
+            }
+            #[cfg(not(feature = "gecko"))] {
                 Err(())
             }
         }
     }
+}
 
-    impl ToCss for Color {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                // Standard values:
-                Color::CurrentColor => CSSParserColor::CurrentColor.to_css(dest),
-                Color::RGBA(rgba) => rgba.to_css(dest),
-                Color::System(system) => system.to_css(dest),
-
-                // Non-standard values:
-                Color::Special(special) => special.to_css(dest),
-                Color::InheritFromBodyQuirk => Ok(()),
-            }
+impl ToCss for Color {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            Color::CurrentColor => CSSParserColor::CurrentColor.to_css(dest),
+            Color::RGBA(rgba) => rgba.to_css(dest),
+            #[cfg(feature = "gecko")]
+            Color::System(system) => system.to_css(dest),
+            #[cfg(feature = "gecko")]
+            Color::Special(special) => special.to_css(dest),
+            #[cfg(feature = "gecko")]
+            Color::InheritFromBodyQuirk => Ok(()),
         }
     }
 }
@@ -245,25 +243,18 @@ impl CSSColor {
 impl ToComputedValue for Color {
     type ComputedValue = RGBA;
 
-    #[cfg(not(feature = "gecko"))]
     fn to_computed_value(&self, context: &Context) -> RGBA {
-        match *self {
-            Color::RGBA(rgba) => rgba,
-            Color::CurrentColor => context.inherited_style.get_color().clone_color(),
-        }
-    }
-
-    #[cfg(feature = "gecko")]
-    fn to_computed_value(&self, context: &Context) -> RGBA {
+        #[cfg(feature = "gecko")]
         use gecko::values::convert_nscolor_to_rgba as to_rgba;
-        // It's safe to access the nsPresContext immutably during style computation.
-        let pres_context = unsafe { &*context.device.pres_context };
         match *self {
             Color::RGBA(rgba) => rgba,
-            Color::System(system) => to_rgba(system.to_computed_value(context)),
             Color::CurrentColor => context.inherited_style.get_color().clone_color(),
+            #[cfg(feature = "gecko")]
+            Color::System(system) => to_rgba(system.to_computed_value(context)),
+            #[cfg(feature = "gecko")]
             Color::Special(special) => {
                 use self::gecko::SpecialColorKeyword as Keyword;
+                let pres_context = unsafe { &*context.device.pres_context };
                 to_rgba(match special {
                     Keyword::MozDefaultColor => pres_context.mDefaultColor,
                     Keyword::MozDefaultBackgroundColor => pres_context.mBackgroundColor,
@@ -272,10 +263,12 @@ impl ToComputedValue for Color {
                     Keyword::MozVisitedHyperlinktext => pres_context.mVisitedLinkColor,
                 })
             }
+            #[cfg(feature = "gecko")]
             Color::InheritFromBodyQuirk => {
                 use dom::TElement;
                 use gecko::wrapper::GeckoElement;
                 use gecko_bindings::bindings::Gecko_GetBody;
+                let pres_context = unsafe { &*context.device.pres_context };
                 let body = unsafe {
                     Gecko_GetBody(pres_context)
                 };
@@ -301,20 +294,14 @@ impl ToComputedValue for Color {
 impl ToComputedValue for CSSColor {
     type ComputedValue = CSSParserColor;
 
-    #[cfg(not(feature = "gecko"))]
     #[inline]
     fn to_computed_value(&self, _context: &Context) -> CSSParserColor {
-        self.parsed
-    }
-
-    #[cfg(feature = "gecko")]
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> CSSParserColor {
         match self.parsed {
             Color::RGBA(rgba) => CSSParserColor::RGBA(rgba),
             Color::CurrentColor => CSSParserColor::CurrentColor,
             // Resolve non-standard -moz keywords to RGBA:
-            non_standard => CSSParserColor::RGBA(non_standard.to_computed_value(context)),
+            #[cfg(feature = "gecko")]
+            non_standard => CSSParserColor::RGBA(non_standard.to_computed_value(_context)),
         }
     }
 

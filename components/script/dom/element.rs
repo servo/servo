@@ -4,7 +4,6 @@
 
 //! Element nodes.
 
-use cssparser::Color;
 use devtools_traits::AttrInfo;
 use dom::activation::Activatable;
 use dom::attr::{Attr, AttrHelpersForLayout};
@@ -112,7 +111,7 @@ use style::stylearc::Arc;
 use style::stylist::ApplicableDeclarationBlock;
 use style::thread_state;
 use style::values::{CSSFloat, Either};
-use style::values::specified::{self, CSSColor};
+use style::values::specified::{self, CSSColor, Color};
 use stylesheet_loader::StylesheetOwner;
 
 // TODO: Update focus state when the top-level browsing context gains or loses system focus,

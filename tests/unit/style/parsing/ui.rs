@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{Color, RGBA};
+use cssparser::RGBA;
 use parsing::parse;
 use style::values::{Auto, Either};
-use style::values::specified::CSSColor;
+use style::values::specified::{CSSColor, Color};
 use style_traits::ToCss;
 
 #[test]
