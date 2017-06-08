@@ -11,7 +11,7 @@ use gecko_bindings::bindings::Gecko_Atomize;
 use gecko_bindings::bindings::Gecko_Atomize16;
 use gecko_bindings::bindings::Gecko_ReleaseAtom;
 use gecko_bindings::structs::nsIAtom;
-use nsstring::nsAString;
+use nsstring::{nsAString, nsString};
 use precomputed_hash::PrecomputedHash;
 use std::ascii::AsciiExt;
 use std::borrow::{Cow, Borrow};
@@ -176,6 +176,31 @@ impl WeakAtom {
         let const_ptr: *const nsIAtom = &self.0;
         const_ptr as *mut nsIAtom
     }
+
+    /// Convert this atom to ASCII lower-case
+    pub fn to_ascii_lowercase(&self) -> Atom {
+        let slice = self.as_slice();
+        match slice.iter().position(|&char16| (b'A' as u16) <= char16 && char16 <= (b'Z' as u16)) {
+            None => self.clone(),
+            Some(i) => {
+                let mut buffer: [u16; 64] = unsafe { mem::uninitialized() };
+                let mut vec;
+                let mutable_slice = if let Some(buffer_prefix) = buffer.get_mut(..slice.len()) {
+                    buffer_prefix.copy_from_slice(slice);
+                    buffer_prefix
+                } else {
+                    vec = slice.to_vec();
+                    &mut vec
+                };
+                for char16 in &mut mutable_slice[i..] {
+                    if *char16 <= 0x7F {
+                        *char16 = (*char16 as u8).to_ascii_lowercase() as u16
+                    }
+                }
+                Atom::from(&*mutable_slice)
+            }
+        }
+    }
 }
 
 impl fmt::Debug for WeakAtom {
@@ -318,6 +343,13 @@ impl<'a> From<&'a str> for Atom {
                 Gecko_Atomize(string.as_ptr() as *const _, string.len() as u32)
             ))
         }
+    }
+}
+
+impl<'a> From<&'a [u16]> for Atom {
+    #[inline]
+    fn from(slice: &[u16]) -> Atom {
+        Atom::from(&*nsString::from(slice))
     }
 }
 
