@@ -53,6 +53,8 @@ use style::gecko_bindings::bindings::RawGeckoCSSPropertyIDListBorrowed;
 use style::gecko_bindings::bindings::RawGeckoComputedKeyframeValuesListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoComputedTimingBorrowed;
 use style::gecko_bindings::bindings::RawGeckoFontFaceRuleListBorrowedMut;
+use style::gecko_bindings::bindings::RawGeckoServoAnimationValueListBorrowed;
+use style::gecko_bindings::bindings::RawGeckoServoAnimationValueListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoServoStyleRuleListBorrowedMut;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueMapBorrowedMut;
@@ -89,7 +91,7 @@ use style::media_queries::{MediaList, parse_media_query_list};
 use style::parallel;
 use style::parser::{PARSING_MODE_DEFAULT, ParserContext};
 use style::properties::{CascadeFlags, ComputedValues, Importance, SourcePropertyDeclaration};
-use style::properties::{LonghandIdSet, PropertyDeclarationBlock, PropertyId, StyleBuilder};
+use style::properties::{LonghandIdSet, PropertyDeclaration, PropertyDeclarationBlock, PropertyId, StyleBuilder};
 use style::properties::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
 use style::properties::animated_properties::{Animatable, AnimationValue, TransitionProperty};
 use style::properties::parse_one_declaration_into;
@@ -556,7 +558,34 @@ pub extern "C" fn Servo_AnimationValue_Serialize(value: RawServoAnimationValueBo
         .single_value_to_css(&get_property_id_from_nscsspropertyid!(property, ()), &mut string);
     debug_assert!(rv.is_ok());
 
-    write!(unsafe { &mut *buffer }, "{}", string).expect("Failed to copy string");
+    let buffer = unsafe { buffer.as_mut().unwrap() };
+    buffer.assign_utf8(&string);
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_Shorthand_AnimationValues_Serialize(shorthand_property: nsCSSPropertyID,
+                                                            values: RawGeckoServoAnimationValueListBorrowed,
+                                                            buffer: *mut nsAString)
+{
+    let property_id = get_property_id_from_nscsspropertyid!(shorthand_property, ());
+    let shorthand = match property_id.as_shorthand() {
+        Ok(shorthand) => shorthand,
+        _ => return,
+    };
+
+    // Convert RawServoAnimationValue(s) into a vector of PropertyDeclaration
+    // so that we can use reference of the PropertyDeclaration without worrying
+    // about its lifetime. (longhands_to_css() expects &PropertyDeclaration
+    // iterator.)
+    let declarations: Vec<PropertyDeclaration> =
+        values.iter().map(|v| AnimationValue::as_arc(unsafe { &&*v.mRawPtr }).uncompute()).collect();
+
+    let mut string = String::new();
+    let rv = shorthand.longhands_to_css(declarations.iter(), &mut string);
+    if rv.is_ok() {
+        let buffer = unsafe { buffer.as_mut().unwrap() };
+        buffer.assign_utf8(&string);
+    }
 }
 
 #[no_mangle]
@@ -1695,7 +1724,8 @@ pub extern "C" fn Servo_DeclarationBlock_SerializeOneValue(
         let rv = decls.single_value_to_css(&property_id, &mut string);
         debug_assert!(rv.is_ok());
 
-        write!(unsafe { &mut *buffer }, "{}", string).expect("Failed to copy string");
+        let buffer = unsafe { buffer.as_mut().unwrap() };
+        buffer.assign_utf8(&string);
     })
 }
 
@@ -1718,7 +1748,8 @@ pub extern "C" fn Servo_SerializeFontValueForCanvas(
         let rv = longhands.to_css_for_canvas(&mut string);
         debug_assert!(rv.is_ok());
 
-        write!(unsafe { &mut *buffer }, "{}", string).expect("Failed to copy string");
+        let buffer = unsafe { buffer.as_mut().unwrap() };
+        buffer.assign_utf8(&string);
     })
 }
 
@@ -2581,7 +2612,6 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
 {
     use std::mem;
     use style::properties::LonghandIdSet;
-    use style::properties::declaration_block::Importance;
 
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     let metrics = get_metrics_provider_for_product();
@@ -2616,28 +2646,7 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
             let declarations = Locked::<PropertyDeclarationBlock>::as_arc(&declarations);
             let guard = declarations.read_with(&guard);
 
-            let anim_iter = guard.declarations()
-                            .iter()
-                            .filter_map(|&(ref decl, imp)| {
-                                if imp == Importance::Normal {
-                                    let property = TransitionProperty::from_declaration(decl);
-                                    let animation = AnimationValue::from_declaration(decl, &mut context,
-                                                                                     default_values);
-                                    debug_assert!(property.is_none() == animation.is_none(),
-                                                  "The failure condition of TransitionProperty::from_declaration \
-                                                   and AnimationValue::from_declaration should be the same");
-                                    // Skip the property if either ::from_declaration fails.
-                                    if property.is_none() || animation.is_none() {
-                                        None
-                                    } else {
-                                        Some((property.unwrap(), animation.unwrap()))
-                                    }
-                                } else {
-                                    None
-                                }
-                            });
-
-            for anim in anim_iter {
+            for anim in guard.to_animation_value_iter(&mut context, &default_values) {
                 if !seen.has_transition_property_bit(&anim.0) {
                     // This is safe since we immediately write to the uninitialized values.
                     unsafe { animation_values.set_len((property_index + 1) as u32) };
@@ -2652,6 +2661,35 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
                 }
             }
         }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_GetAnimationValues(declarations: RawServoDeclarationBlockBorrowed,
+                                           element: RawGeckoElementBorrowed,
+                                           style: ServoComputedValuesBorrowed,
+                                           raw_data: RawServoStyleSetBorrowed,
+                                           animation_values: RawGeckoServoAnimationValueListBorrowedMut) {
+    let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
+    let style = ComputedValues::as_arc(&style);
+    let metrics = get_metrics_provider_for_product();
+
+    let element = GeckoElement(element);
+    let parent_element = element.inheritance_parent();
+    let parent_data = parent_element.as_ref().and_then(|e| e.borrow_data());
+    let parent_style = parent_data.as_ref().map(|d| d.styles().primary.values());
+
+    let mut context = create_context(&data, &metrics, style, &parent_style);
+
+    let default_values = data.default_computed_values();
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
+
+    let declarations = Locked::<PropertyDeclarationBlock>::as_arc(&declarations);
+    let guard = declarations.read_with(&guard);
+    for (index, anim) in guard.to_animation_value_iter(&mut context, &default_values).enumerate() {
+        unsafe { animation_values.set_len((index + 1) as u32) };
+        animation_values[index].set_arc_leaky(Arc::new(anim.1));
     }
 }
 

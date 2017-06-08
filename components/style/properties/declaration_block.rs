@@ -11,6 +11,7 @@ use cssparser::{DeclarationListParser, parse_important};
 use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter};
 use error_reporting::ParseErrorReporter;
 use parser::{PARSING_MODE_DEFAULT, ParsingMode, ParserContext, log_css_error};
+use properties::animated_properties::AnimationValue;
 use shared_lock::Locked;
 use std::fmt;
 use std::slice::Iter;
@@ -18,6 +19,7 @@ use style_traits::ToCss;
 use stylesheets::{CssRuleType, Origin, UrlExtraData};
 use stylesheets::{MallocSizeOf, MallocSizeOfFn};
 use super::*;
+use values::computed::Context;
 #[cfg(feature = "gecko")] use properties::animated_properties::AnimationValueMap;
 
 /// The animation rules.
@@ -102,6 +104,55 @@ impl<'a> Iterator for PropertyDeclarationIterator<'a> {
     }
 }
 
+/// Iterator for AnimationValue to be generated from PropertyDeclarationBlock.
+pub struct AnimationValueIterator<'a, 'cx, 'cx_a:'cx> {
+    iter: Iter<'a, (PropertyDeclaration, Importance)>,
+    context: &'cx mut Context<'cx_a>,
+    default_values: &'a Arc<ComputedValues>,
+}
+
+impl<'a, 'cx, 'cx_a:'cx> AnimationValueIterator<'a, 'cx, 'cx_a> {
+    fn new(declarations: &'a PropertyDeclarationBlock,
+           context: &'cx mut Context<'cx_a>,
+           default_values: &'a Arc<ComputedValues>) -> AnimationValueIterator<'a, 'cx, 'cx_a> {
+        AnimationValueIterator {
+            iter: declarations.declarations().iter(),
+            context: context,
+            default_values: default_values,
+        }
+    }
+}
+
+impl<'a, 'cx, 'cx_a:'cx> Iterator for AnimationValueIterator<'a, 'cx, 'cx_a> {
+    type Item = (TransitionProperty, AnimationValue);
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        use properties::Importance;
+
+        loop {
+            let next = self.iter.next();
+            match next {
+                Some(&(ref decl, importance)) => {
+                    if importance == Importance::Normal {
+                        let property = TransitionProperty::from_declaration(decl);
+                        let animation = AnimationValue::from_declaration(decl, &mut self.context,
+                                                                         self.default_values);
+                        debug_assert!(property.is_none() == animation.is_none(),
+                                      "The failure condition of TransitionProperty::from_declaration \
+                                       and AnimationValue::from_declaration should be the same");
+                        // Skip the property if either ::from_declaration fails.
+                        match (property, animation) {
+                            (Some(p), Some(a)) => return Some((p, a)),
+                            (_, _) => {},
+                        }
+                    }
+                },
+                None => return None,
+            }
+        }
+    }
+}
+
 impl fmt::Debug for PropertyDeclarationBlock {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.declarations.fmt(f)
@@ -146,6 +197,14 @@ impl PropertyDeclarationBlock {
         PropertyDeclarationIterator {
             iter: self.declarations.iter(),
         }
+    }
+
+    /// Return an iterator of (TransitionProperty, AnimationValue).
+    pub fn to_animation_value_iter<'a, 'cx, 'cx_a:'cx>(&'a self,
+                                                       context: &'cx mut Context<'cx_a>,
+                                                       default_values: &'a Arc<ComputedValues>)
+                                                       -> AnimationValueIterator<'a, 'cx, 'cx_a> {
+        AnimationValueIterator::new(self, context, default_values)
     }
 
     /// Returns whether this block contains any declaration with `!important`.

@@ -874,20 +874,12 @@ impl<'le> TElement for GeckoElement<'le> {
             computed_data.as_ref().map(|d| d.styles().primary.values());
         let computed_values_opt =
             computed_values.map(|v| *HasArcFFI::arc_as_borrowed(v));
-        let parent_element = self.parent_element();
-        let parent_data =
-            parent_element.as_ref().and_then(|e| e.borrow_data());
-        let parent_values =
-            parent_data.as_ref().map(|d| d.styles().primary.values());
-        let parent_values_opt =
-            parent_values.map(|v| *HasArcFFI::arc_as_borrowed(v));
         let before_change_values =
             before_change_style.as_ref().map(|v| *HasArcFFI::arc_as_borrowed(v));
         unsafe {
             Gecko_UpdateAnimations(self.0,
                                    before_change_values,
                                    computed_values_opt,
-                                   parent_values_opt,
                                    tasks.bits());
         }
     }
