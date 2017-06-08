@@ -6,7 +6,7 @@
 
 use gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
 use gecko_bindings::structs::{nscolor, StyleComplexColor};
-use values;
+use values::{Auto, Either};
 use values::computed::Color as ComputedColor;
 
 impl From<nscolor> for StyleComplexColor {
@@ -49,24 +49,31 @@ impl From<ComputedColor> for StyleComplexColor {
     }
 }
 
-impl From<StyleComplexColor> for values::computed::ColorOrAuto {
-    fn from(color: StyleComplexColor) -> Self {
-        use values::{Auto, Either};
-
-        if color.mIsAuto {
-            return Either::Second(Auto);
-        }
-
-        Either::First(color.into())
-    }
-}
-
 impl From<StyleComplexColor> for ComputedColor {
     fn from(other: StyleComplexColor) -> Self {
         debug_assert!(!other.mIsAuto);
         ComputedColor {
             color: convert_nscolor_to_rgba(other.mColor),
             foreground_ratio: other.mForegroundRatio,
+        }
+    }
+}
+
+impl From<Either<ComputedColor, Auto>> for StyleComplexColor {
+    fn from(other: Either<ComputedColor, Auto>) -> Self {
+        match other {
+            Either::First(color) => color.into(),
+            Either::Second(_auto) => StyleComplexColor::auto(),
+        }
+    }
+}
+
+impl From<StyleComplexColor> for Either<ComputedColor, Auto> {
+    fn from(other: StyleComplexColor) -> Self {
+        if !other.mIsAuto {
+            Either::First(other.into())
+        } else {
+            Either::Second(Auto)
         }
     }
 }
