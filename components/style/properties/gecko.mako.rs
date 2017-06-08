@@ -315,7 +315,7 @@ def set_gecko_property(ffi_name, expr):
     }
 </%def>
 
-<%def name="impl_color_setter(ident, gecko_ffi_name, complex_color=True)">
+<%def name="impl_color_setter(ident, gecko_ffi_name)">
     #[allow(unreachable_code)]
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
@@ -323,7 +323,7 @@ def set_gecko_property(ffi_name, expr):
     }
 </%def>
 
-<%def name="impl_color_copy(ident, gecko_ffi_name, complex_color=True)">
+<%def name="impl_color_copy(ident, gecko_ffi_name)">
     #[allow(non_snake_case)]
     pub fn copy_${ident}_from(&mut self, other: &Self) {
         let color = ${get_gecko_property(gecko_ffi_name, self_param = "other")};
@@ -331,7 +331,7 @@ def set_gecko_property(ffi_name, expr):
     }
 </%def>
 
-<%def name="impl_color_clone(ident, gecko_ffi_name, complex_color=True)">
+<%def name="impl_color_clone(ident, gecko_ffi_name)">
     #[allow(non_snake_case)]
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
         ${get_gecko_property(gecko_ffi_name)}.into()
@@ -386,11 +386,11 @@ def set_gecko_property(ffi_name, expr):
     % endif
 </%def>
 
-<%def name="impl_color(ident, gecko_ffi_name, need_clone=False, complex_color=True)">
-<%call expr="impl_color_setter(ident, gecko_ffi_name, complex_color)"></%call>
-<%call expr="impl_color_copy(ident, gecko_ffi_name, complex_color)"></%call>
+<%def name="impl_color(ident, gecko_ffi_name, need_clone=False)">
+<%call expr="impl_color_setter(ident, gecko_ffi_name)"></%call>
+<%call expr="impl_color_copy(ident, gecko_ffi_name)"></%call>
 % if need_clone:
-    <%call expr="impl_color_clone(ident, gecko_ffi_name, complex_color)"></%call>
+    <%call expr="impl_color_clone(ident, gecko_ffi_name)"></%call>
 % endif
 </%def>
 
@@ -408,7 +408,7 @@ def set_gecko_property(ffi_name, expr):
     % endif
 </%def>
 
-<%def name="impl_svg_paint(ident, gecko_ffi_name, need_clone=False, complex_color=True)">
+<%def name="impl_svg_paint(ident, gecko_ffi_name, need_clone=False)">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, mut v: longhands::${ident}::computed_value::T) {
         use values::generics::SVGPaintKind;

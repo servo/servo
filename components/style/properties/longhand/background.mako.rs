@@ -11,7 +11,6 @@ ${helpers.predefined_type("background-color", "Color",
     initial_specified_value="SpecifiedValue::transparent()",
     spec="https://drafts.csswg.org/css-backgrounds/#background-color",
     animation_value_type="IntermediateColor",
-    complex_color=True,
     ignored_when_colors_disabled=True,
     allow_quirks=True)}
 

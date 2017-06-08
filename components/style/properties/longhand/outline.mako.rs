@@ -12,7 +12,7 @@
 // TODO(pcwalton): `invert`
 ${helpers.predefined_type("outline-color", "Color", "computed::Color::CurrentColor",
                           initial_specified_value="specified::Color::currentcolor()",
-                          animation_value_type="IntermediateColor", complex_color=True, need_clone=True,
+                          animation_value_type="IntermediateColor", need_clone=True,
                           ignored_when_colors_disabled=True,
                           spec="https://drafts.csswg.org/css-ui/#propdef-outline-color")}
 

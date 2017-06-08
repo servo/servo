@@ -281,7 +281,6 @@ ${helpers.predefined_type(
     "text-decoration-color", "Color",
     "computed::Color::CurrentColor",
     initial_specified_value="specified::Color::currentcolor()",
-    complex_color=True,
     products="gecko",
     animation_value_type="IntermediateColor",
     ignored_when_colors_disabled=True,

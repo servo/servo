@@ -148,7 +148,7 @@ class Longhand(object):
     def __init__(self, style_struct, name, spec=None, animation_value_type=None, derived_from=None, keyword=None,
                  predefined_type=None, custom_cascade=False, experimental=False, internal=False,
                  need_clone=False, need_index=False, gecko_ffi_name=None, depend_on_viewport_size=False,
-                 allowed_in_keyframe_block=True, complex_color=False, cast_type='u8',
+                 allowed_in_keyframe_block=True, cast_type='u8',
                  has_uncacheable_values=False, logical=False, alias=None, extra_prefixes=None, boxed=False,
                  flags=None, allowed_in_page_rule=False, allow_quirks=False, ignored_when_colors_disabled=False,
                  vector=False):
@@ -169,7 +169,6 @@ class Longhand(object):
         self.gecko_ffi_name = gecko_ffi_name or "m" + self.camel_case
         self.depend_on_viewport_size = depend_on_viewport_size
         self.derived_from = (derived_from or "").split()
-        self.complex_color = complex_color
         self.cast_type = cast_type
         self.logical = arg_to_bool(logical)
         self.alias = alias.split() if alias else []
