@@ -40,7 +40,7 @@ ${helpers.predefined_type(
     spec="https://www.w3.org/TR/SVG2/painting.html#SpecifyingFillPaint")}
 
 ${helpers.predefined_type("fill-opacity", "Opacity", "1.0",
-                          products="gecko", animation_value_type="none",
+                          products="gecko", animation_value_type="ComputedValue",
                           spec="https://www.w3.org/TR/SVG11/painting.html#FillOpacityProperty")}
 
 ${helpers.single_keyword("fill-rule", "nonzero evenodd",
