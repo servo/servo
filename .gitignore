@@ -15,6 +15,7 @@
 *.swo
 *.csv
 *.rej
+*.orig
 .DS_Store
 Servo.app
 .config.mk.last
