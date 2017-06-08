@@ -4,13 +4,14 @@
 
 //! Specified color values.
 
-use cssparser::{self, Parser, Token};
+use cssparser::{self, Color as CSSParserColor, Parser, RGBA, Token};
 use itoa;
 use parser::{ParserContext, Parse};
 use std::fmt;
 use std::io::Write;
 use style_traits::ToCss;
 use super::AllowQuirks;
+use values::computed::{Context, ToComputedValue};
 
 #[cfg(not(feature = "gecko"))] pub use self::servo::Color;
 #[cfg(feature = "gecko")] pub use self::gecko::Color;
@@ -248,5 +249,85 @@ impl CSSColor {
     pub fn transparent() -> CSSColor {
         // We should probably set authored to "transparent", but maybe it doesn't matter.
         Color::RGBA(cssparser::RGBA::transparent()).into()
+    }
+}
+
+impl ToComputedValue for Color {
+    type ComputedValue = RGBA;
+
+    #[cfg(not(feature = "gecko"))]
+    fn to_computed_value(&self, context: &Context) -> RGBA {
+        match *self {
+            Color::RGBA(rgba) => rgba,
+            Color::CurrentColor => context.inherited_style.get_color().clone_color(),
+        }
+    }
+
+    #[cfg(feature = "gecko")]
+    fn to_computed_value(&self, context: &Context) -> RGBA {
+        use gecko::values::convert_nscolor_to_rgba as to_rgba;
+        // It's safe to access the nsPresContext immutably during style computation.
+        let pres_context = unsafe { &*context.device.pres_context };
+        match *self {
+            Color::RGBA(rgba) => rgba,
+            Color::System(system) => to_rgba(system.to_computed_value(context)),
+            Color::CurrentColor => context.inherited_style.get_color().clone_color(),
+            Color::MozDefaultColor => to_rgba(pres_context.mDefaultColor),
+            Color::MozDefaultBackgroundColor => to_rgba(pres_context.mBackgroundColor),
+            Color::MozHyperlinktext => to_rgba(pres_context.mLinkColor),
+            Color::MozActiveHyperlinktext => to_rgba(pres_context.mActiveLinkColor),
+            Color::MozVisitedHyperlinktext => to_rgba(pres_context.mVisitedLinkColor),
+            Color::InheritFromBodyQuirk => {
+                use dom::TElement;
+                use gecko::wrapper::GeckoElement;
+                use gecko_bindings::bindings::Gecko_GetBody;
+                let body = unsafe {
+                    Gecko_GetBody(pres_context)
+                };
+                if let Some(body) = body {
+                    let wrap = GeckoElement(body);
+                    let borrow = wrap.borrow_data();
+                    borrow.as_ref().unwrap()
+                          .styles().primary.values()
+                          .get_color()
+                          .clone_color()
+                } else {
+                    to_rgba(pres_context.mDefaultColor)
+                }
+            },
+        }
+    }
+
+    fn from_computed_value(computed: &RGBA) -> Self {
+        Color::RGBA(*computed)
+    }
+}
+
+impl ToComputedValue for CSSColor {
+    type ComputedValue = CSSParserColor;
+
+    #[cfg(not(feature = "gecko"))]
+    #[inline]
+    fn to_computed_value(&self, _context: &Context) -> CSSParserColor {
+        self.parsed
+    }
+
+    #[cfg(feature = "gecko")]
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> CSSParserColor {
+        match self.parsed {
+            Color::RGBA(rgba) => CSSParserColor::RGBA(rgba),
+            Color::CurrentColor => CSSParserColor::CurrentColor,
+            // Resolve non-standard -moz keywords to RGBA:
+            non_standard => CSSParserColor::RGBA(non_standard.to_computed_value(context)),
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &CSSParserColor) -> Self {
+        (match *computed {
+            CSSParserColor::RGBA(rgba) => Color::RGBA(rgba),
+            CSSParserColor::CurrentColor => Color::CurrentColor,
+        }).into()
     }
 }
