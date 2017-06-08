@@ -15,6 +15,7 @@ use dom::bindings::guard::Guard;
 use dom::bindings::js::Root;
 use dom::bindings::utils::{DOM_PROTOTYPE_SLOT, ProtoOrIfaceArray, get_proto_or_iface_array};
 use dom::create::create_native_html_element;
+use dom::customelementregistry::ConstructionEntry;
 use dom::element::ElementCreator;
 use dom::htmlelement::HTMLElement;
 use dom::window::Window;
@@ -212,14 +213,34 @@ pub unsafe fn html_constructor(window: &Window, call_args: CallArgs) -> Fallible
         }
     }
 
-    if definition.construction_stack.borrow().is_empty() {
-        let name = QualName::new(None, ns!(html), definition.local_name.clone());
+    // Step 8
+    let mut construction_stack = definition.construction_stack.borrow_mut();
+    match construction_stack.last_mut() {
+        None => {
+            // Step 8.1
+            let name = QualName::new(None, ns!(html), definition.local_name.clone());
+            let element = create_native_html_element(name, None, &*document, ElementCreator::ScriptCreated);
 
-        let element = create_native_html_element(name, None, &*document, ElementCreator::ScriptCreated);
-        return Root::downcast(element).ok_or(Error::InvalidState)
+            // Step 8.2 Done in codegen
+
+            // TODO: Steps 8.3-8.4
+
+            // Step 8.5
+            Root::downcast(element).ok_or(Error::InvalidState)
+        },
+        Some(entry) => {
+            let result = match *entry {
+                ConstructionEntry::AlreadyConstructed => return Err(Error::InvalidState),
+                ConstructionEntry::Element(ref mut element) => {
+                    // Step 11 Done in codegen
+                    Root::downcast(element.clone()).ok_or(Error::InvalidState)
+                }
+            };
+            // Step 12
+            *entry = ConstructionEntry::AlreadyConstructed;
+            result
+        },
     }
-
-    Err(Error::InvalidState)
 }
 
 /// Create and define the interface object of a callback interface.

@@ -5308,6 +5308,33 @@ if constructor.get() == new_target.get() {
     return false;
 }
 
+// Step 6
+rooted!(in(cx) let mut prototype = ptr::null_mut());
+{
+    rooted!(in(cx) let mut proto_val = UndefinedValue());
+    let _ac = JSAutoCompartment::new(cx, new_target.get());
+    if !JS_GetProperty(cx, new_target.handle(), b"prototype\\0".as_ptr() as *const _, proto_val.handle_mut()) {
+        return false;
+    }
+
+    if !proto_val.is_object() {
+        // Step 7
+        rooted!(in(cx) let global_object = CurrentGlobalOrNull(cx));
+        GetProtoObject(cx, global_object.handle(), prototype.handle_mut());
+        if prototype.is_null() {
+            return false;
+        }
+    } else {
+        // Step 6
+        prototype.set(proto_val.to_object());
+    };
+}
+
+// Wrap prototype in this context since it is from the newTarget compartment
+if !JS_WrapObject(cx, prototype.handle_mut()) {
+    return false;
+}
+
 let result: Result<Root<HTMLElement>, Error> = html_constructor(&global, args);
 let result = match result {
     Ok(result) => result,
@@ -5316,6 +5343,11 @@ let result = match result {
         return false;
     },
 };
+
+rooted!(in(cx) let mut element_val = UndefinedValue());
+result.to_jsval(cx, element_val.handle_mut());
+rooted!(in(cx) let element_object = element_val.to_object());
+JS_SetPrototype(cx, element_object.handle(), prototype.handle());
 
 (result).to_jsval(cx, args.rval());
 return true;
@@ -5537,9 +5569,11 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::JS_ObjectIsDate',
         'js::jsapi::JS_SetImmutablePrototype',
         'js::jsapi::JS_SetProperty',
+        'js::jsapi::JS_SetPrototype',
         'js::jsapi::JS_SetReservedSlot',
         'js::jsapi::JS_SplicePrototype',
         'js::jsapi::JS_WrapValue',
+        'js::jsapi::JS_WrapObject',
         'js::jsapi::MutableHandle',
         'js::jsapi::MutableHandleObject',
         'js::jsapi::MutableHandleValue',
