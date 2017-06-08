@@ -23,6 +23,7 @@ use dom::{OpaqueNode, PresentationalHintsSynthesizer};
 use element_state::ElementState;
 use error_reporting::RustLogReporter;
 use font_metrics::{FontMetrics, FontMetricsProvider, FontMetricsQueryResult};
+use gecko::data::PerDocumentStyleData;
 use gecko::global_style_data::GLOBAL_STYLE_DATA;
 use gecko::selector_parser::{SelectorImpl, NonTSPseudoClass, PseudoElement};
 use gecko::snapshot_helpers;
@@ -50,7 +51,7 @@ use gecko_bindings::bindings::Gecko_MatchStringArgPseudo;
 use gecko_bindings::bindings::Gecko_UnsetDirtyStyleAttr;
 use gecko_bindings::bindings::Gecko_UpdateAnimations;
 use gecko_bindings::structs;
-use gecko_bindings::structs::{RawGeckoElement, RawGeckoNode};
+use gecko_bindings::structs::{RawGeckoElement, RawGeckoNode, RawGeckoXBLBinding};
 use gecko_bindings::structs::{nsIAtom, nsIContent, nsINode_BooleanFlag, nsStyleContext};
 use gecko_bindings::structs::ELEMENT_HANDLED_SNAPSHOT;
 use gecko_bindings::structs::ELEMENT_HAS_ANIMATION_ONLY_DIRTY_DESCENDANTS_FOR_SERVO;
@@ -59,7 +60,7 @@ use gecko_bindings::structs::ELEMENT_HAS_SNAPSHOT;
 use gecko_bindings::structs::EffectCompositor_CascadeLevel as CascadeLevel;
 use gecko_bindings::structs::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
 use gecko_bindings::structs::NODE_IS_NATIVE_ANONYMOUS;
-use gecko_bindings::sugar::ownership::HasArcFFI;
+use gecko_bindings::sugar::ownership::{HasArcFFI, HasSimpleFFI};
 use logical_geometry::WritingMode;
 use media_queries::Device;
 use properties::{ComputedValues, parse_style_attribute};
@@ -74,6 +75,7 @@ use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode};
 use selectors::matching::{RelevantLinkStatus, VisitedHandlingMode};
 use shared_lock::Locked;
 use sink::Push;
+use smallvec::VecLike;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
@@ -200,6 +202,12 @@ impl<'ln> GeckoNode<'ln> {
         }
 
         true
+    }
+
+    /// This logic is duplicated in Gecko's nsIContent::IsRootOfNativeAnonymousSubtree.
+    fn is_root_of_native_anonymous_subtree(&self) -> bool {
+        use gecko_bindings::structs::NODE_IS_NATIVE_ANONYMOUS_ROOT;
+        return self.flags() & (NODE_IS_NATIVE_ANONYMOUS_ROOT as u32) != 0
     }
 
     fn contains_non_whitespace_content(&self) -> bool {
@@ -341,6 +349,37 @@ impl<'a> Iterator for GeckoChildrenIterator<'a> {
     }
 }
 
+/// A Simple wrapper over a non-null Gecko `nsXBLBinding` pointer.
+pub struct GeckoXBLBinding<'lb>(pub &'lb RawGeckoXBLBinding);
+
+impl<'lb> GeckoXBLBinding<'lb> {
+    fn base_binding(&self) -> Option<GeckoXBLBinding> {
+        unsafe { self.0.mNextBinding.mRawPtr.as_ref().map(GeckoXBLBinding) }
+    }
+
+    fn inherits_style(&self) -> bool {
+        unsafe { bindings::Gecko_XBLBinding_InheritsStyle(self.0) }
+    }
+
+    // Implements Gecko's nsXBLBinding::WalkRules().
+    fn get_declarations_for<E, V>(&self,
+                                  element: &E,
+                                  applicable_declarations: &mut V)
+        where E: TElement,
+              V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock> {
+        if let Some(base_binding) = self.base_binding() {
+            base_binding.get_declarations_for(element, applicable_declarations);
+        }
+
+        let raw_data = unsafe { bindings::Gecko_XBLBinding_GetRawServoStyleSet(self.0) };
+        if let Some(raw_data) = raw_data {
+            let data = PerDocumentStyleData::from_ffi(&*raw_data).borrow();
+            data.stylist.push_applicable_declarations_as_xbl_only_stylist(element,
+                                                                          applicable_declarations);
+        }
+    }
+}
+
 /// A simple wrapper over a non-null Gecko `Element` pointer.
 #[derive(Clone, Copy)]
 pub struct GeckoElement<'le>(pub &'le RawGeckoElement);
@@ -392,6 +431,14 @@ impl<'le> GeckoElement<'le> {
     fn get_dom_slots(&self) -> Option<&structs::FragmentOrElement_nsDOMSlots> {
         let slots = self.as_node().0.mSlots as *const structs::FragmentOrElement_nsDOMSlots;
         unsafe { slots.as_ref() }
+    }
+
+    fn get_xbl_binding(&self) -> Option<GeckoXBLBinding> {
+        unsafe { bindings::Gecko_GetXBLBinding(self.0).map(GeckoXBLBinding) }
+    }
+
+    fn get_xbl_binding_parent(&self) -> Option<Self> {
+        unsafe { bindings::Gecko_GetBindingParent(self.0).map(GeckoElement) }
     }
 
     /// Clear the element data for a given element.
@@ -855,6 +902,43 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn has_css_transitions(&self) -> bool {
         self.may_have_animations() && unsafe { Gecko_ElementHasCSSTransitions(self.0) }
+    }
+
+    // Implements Gecko's nsBindingManager::WalkRules(). Returns whether to cut off the
+    // inheritance.
+    fn get_declarations_from_xbl_bindings<V>(&self,
+                                             applicable_declarations: &mut V)
+                                             -> bool
+        where V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock> {
+        // Walk the binding scope chain, starting with the binding attached to our content, up
+        // till we run out of scopes or we get cut off.
+        let mut current = Some(*self);
+
+        while let Some(element) = current {
+            if let Some(binding) = element.get_xbl_binding() {
+                binding.get_declarations_for(self, applicable_declarations);
+
+                // If we're not looking at our original element, allow the binding to cut off
+                // style inheritance.
+                if element != *self {
+                    if !binding.inherits_style() {
+                        // Go no further; we're not inheriting style from anything above here.
+                        break;
+                    }
+                }
+            }
+
+            if element.as_node().is_root_of_native_anonymous_subtree() {
+                // Deliberately cut off style inheritance here.
+                break;
+            }
+
+            current = element.get_xbl_binding_parent();
+        }
+
+        // If current has something, this means we cut off inheritance at some point in the
+        // loop.
+        current.is_some()
     }
 
     fn get_css_transitions_info(&self)

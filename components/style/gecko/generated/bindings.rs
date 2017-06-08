@@ -28,6 +28,7 @@ use gecko_bindings::structs::RawGeckoPresContextOwned;
 use gecko_bindings::structs::RawGeckoStyleAnimationList;
 use gecko_bindings::structs::RawGeckoServoStyleRuleList;
 use gecko_bindings::structs::RawGeckoURLExtraData;
+use gecko_bindings::structs::RawGeckoXBLBinding;
 use gecko_bindings::structs::RefPtr;
 use gecko_bindings::structs::CSSPseudoClassType;
 use gecko_bindings::structs::CSSPseudoElementType;
@@ -257,6 +258,8 @@ pub type RawGeckoPresContextBorrowed<'a> = &'a RawGeckoPresContext;
 pub type RawGeckoPresContextBorrowedOrNull<'a> = Option<&'a RawGeckoPresContext>;
 pub type RawGeckoStyleAnimationListBorrowed<'a> = &'a RawGeckoStyleAnimationList;
 pub type RawGeckoStyleAnimationListBorrowedOrNull<'a> = Option<&'a RawGeckoStyleAnimationList>;
+pub type RawGeckoXBLBindingBorrowed<'a> = &'a RawGeckoXBLBinding;
+pub type RawGeckoXBLBindingBorrowedOrNull<'a> = Option<&'a RawGeckoXBLBinding>;
 pub type nsCSSPropertyIDSetBorrowed<'a> = &'a nsCSSPropertyIDSet;
 pub type nsCSSPropertyIDSetBorrowedOrNull<'a> = Option<&'a nsCSSPropertyIDSet>;
 pub type nsCSSPropertyIDSetBorrowedMut<'a> = &'a mut nsCSSPropertyIDSet;
@@ -1372,6 +1375,24 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_GetBaseSize(lang: *mut nsIAtom) -> FontSizePrefs;
+}
+extern "C" {
+    pub fn Gecko_GetBindingParent(aElement: RawGeckoElementBorrowed)
+     -> RawGeckoElementBorrowedOrNull;
+}
+extern "C" {
+    pub fn Gecko_GetXBLBinding(aElement: RawGeckoElementBorrowed)
+     -> RawGeckoXBLBindingBorrowedOrNull;
+}
+extern "C" {
+    pub fn Gecko_XBLBinding_GetRawServoStyleSet(aXBLBinding:
+                                                    RawGeckoXBLBindingBorrowed)
+     -> RawServoStyleSetBorrowedOrNull;
+}
+extern "C" {
+    pub fn Gecko_XBLBinding_InheritsStyle(aXBLBinding:
+                                              RawGeckoXBLBindingBorrowed)
+     -> bool;
 }
 extern "C" {
     pub fn Gecko_GetFontMetrics(pres_context: RawGeckoPresContextBorrowed,

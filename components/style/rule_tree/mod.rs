@@ -406,6 +406,8 @@ pub enum CascadeLevel {
     PresHints,
     /// User normal rules.
     UserNormal,
+    /// XBL <stylesheet> rules.
+    XBL,
     /// Author normal rules.
     AuthorNormal,
     /// Style attribute normal rules.
@@ -1048,7 +1050,8 @@ impl StrongRuleNode {
                     CascadeLevel::UANormal |
                     CascadeLevel::UAImportant |
                     CascadeLevel::UserNormal |
-                    CascadeLevel::UserImportant => {
+                    CascadeLevel::UserImportant |
+                    CascadeLevel::XBL => {
                         for (id, declaration) in longhands {
                             if properties.contains(id) {
                                 // This property was set by a non-author rule.
