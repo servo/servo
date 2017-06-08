@@ -3327,8 +3327,14 @@ fn static_assert() {
             Either::First(rect) => {
                 self.gecko.mImageRegion.x = rect.left.unwrap_or(Au(0)).0;
                 self.gecko.mImageRegion.y = rect.top.unwrap_or(Au(0)).0;
-                self.gecko.mImageRegion.height = rect.bottom.unwrap_or(Au(0)).0 - self.gecko.mImageRegion.y;
-                self.gecko.mImageRegion.width = rect.right.unwrap_or(Au(0)).0 - self.gecko.mImageRegion.x;
+                self.gecko.mImageRegion.height = match rect.bottom {
+                    Some(value) => value.0 - self.gecko.mImageRegion.y,
+                    None => 0,
+                };
+                self.gecko.mImageRegion.width = match rect.right {
+                    Some(value) => value.0 - self.gecko.mImageRegion.x,
+                    None => 0,
+                };
             }
         }
     }
