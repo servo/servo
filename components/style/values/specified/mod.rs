@@ -233,25 +233,6 @@ impl CSSColor {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct CSSRGBA {
-    pub parsed: cssparser::RGBA,
-    pub authored: Option<Box<str>>,
-}
-
-no_viewport_percentage!(CSSRGBA);
-
-impl ToCss for CSSRGBA {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match self.authored {
-            Some(ref s) => dest.write_str(s),
-            None => self.parsed.to_css(dest),
-        }
-    }
-}
-
 /// Parse an `<integer>` value, handling `calc()` correctly.
 pub fn parse_integer(context: &ParserContext, input: &mut Parser) -> Result<Integer, ()> {
     match try!(input.next()) {
