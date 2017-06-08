@@ -9,14 +9,12 @@
 use Namespace;
 use context::QuirksMode;
 use cssparser::{self, Parser, Token, serialize_identifier};
-use itoa;
 use parser::{ParserContext, Parse};
 use self::grid::TrackSizeOrRepeat;
 use self::url::SpecifiedUrl;
 use std::ascii::AsciiExt;
 use std::f32;
 use std::fmt;
-use std::io::Write;
 use style_traits::ToCss;
 use style_traits::values::specified::AllowedNumericType;
 use super::{Auto, CSSFloat, CSSInteger, Either, None_};
@@ -33,7 +31,7 @@ pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, Justify
 pub use self::background::BackgroundSize;
 pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
 pub use self::border::{BorderImageSideWidth, BorderRadius, BorderSideWidth};
-pub use self::color::Color;
+pub use self::color::{CSSColor, Color};
 pub use self::rect::LengthOrNumberRect;
 #[cfg(feature = "gecko")]
 pub use self::gecko::ScrollSnapPoint;
@@ -90,147 +88,6 @@ impl Eq for SpecifiedUrl {}
 impl ComputedValueAsSpecified for SpecifiedUrl {}
 
 no_viewport_percentage!(SpecifiedUrl);
-}
-
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub struct CSSColor {
-    pub parsed: Color,
-    pub authored: Option<Box<str>>,
-}
-
-impl Parse for CSSColor {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        Self::parse_quirky(context, input, AllowQuirks::No)
-    }
-}
-
-impl CSSColor {
-    /// Parse a color, with quirks.
-    ///
-    /// https://quirks.spec.whatwg.org/#the-hashless-hex-color-quirk
-    pub fn parse_quirky(context: &ParserContext,
-                        input: &mut Parser,
-                        allow_quirks: AllowQuirks)
-                        -> Result<Self, ()> {
-        let start_position = input.position();
-        let authored = match input.next() {
-            Ok(Token::Ident(s)) => Some(s.into_owned().into_boxed_str()),
-            _ => None,
-        };
-        input.reset(start_position);
-        if let Ok(parsed) = input.try(|i| Parse::parse(context, i)) {
-            return Ok(CSSColor {
-                parsed: parsed,
-                authored: authored,
-            });
-        }
-        if !allow_quirks.allowed(context.quirks_mode) {
-            return Err(());
-        }
-        let (number, dimension) = match input.next()? {
-            Token::Number(number) => {
-                (number, None)
-            },
-            Token::Dimension(number, dimension) => {
-                (number, Some(dimension))
-            },
-            Token::Ident(ident) => {
-                if ident.len() != 3 && ident.len() != 6 {
-                    return Err(());
-                }
-                return cssparser::Color::parse_hash(ident.as_bytes()).map(|color| {
-                    Self {
-                        parsed: color.into(),
-                        authored: None
-                    }
-                });
-            }
-            _ => {
-                return Err(());
-            },
-        };
-        let value = number.int_value.ok_or(())?;
-        if value < 0 {
-            return Err(());
-        }
-        let length = if value <= 9 {
-            1
-        } else if value <= 99 {
-            2
-        } else if value <= 999 {
-            3
-        } else if value <= 9999 {
-            4
-        } else if value <= 99999 {
-            5
-        } else if value <= 999999 {
-            6
-        } else {
-            return Err(())
-        };
-        let total = length + dimension.as_ref().map_or(0, |d| d.len());
-        if total > 6 {
-            return Err(());
-        }
-        let mut serialization = [b'0'; 6];
-        let space_padding = 6 - total;
-        let mut written = space_padding;
-        written += itoa::write(&mut serialization[written..], value).unwrap();
-        if let Some(dimension) = dimension {
-            written += (&mut serialization[written..]).write(dimension.as_bytes()).unwrap();
-        }
-        debug_assert!(written == 6);
-        Ok(CSSColor {
-            parsed: cssparser::Color::parse_hash(&serialization).map(From::from)?,
-            authored: None,
-        })
-    }
-
-    /// Returns false if the color is completely transparent, and
-    /// true otherwise.
-    pub fn is_non_transparent(&self) -> bool {
-        match self.parsed {
-            Color::RGBA(rgba) if rgba.alpha == 0 => false,
-            _ => true,
-        }
-    }
-}
-
-no_viewport_percentage!(CSSColor);
-
-impl ToCss for CSSColor {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match self.authored {
-            Some(ref s) => dest.write_str(s),
-            None => self.parsed.to_css(dest),
-        }
-    }
-}
-
-impl From<Color> for CSSColor {
-    fn from(color: Color) -> Self {
-        CSSColor {
-            parsed: color,
-            authored: None,
-        }
-    }
-}
-
-impl CSSColor {
-    #[inline]
-    /// Returns currentcolor value.
-    pub fn currentcolor() -> CSSColor {
-        Color::CurrentColor.into()
-    }
-
-    #[inline]
-    /// Returns transparent value.
-    pub fn transparent() -> CSSColor {
-        // We should probably set authored to "transparent", but maybe it doesn't matter.
-        Color::RGBA(cssparser::RGBA::transparent()).into()
-    }
 }
 
 /// Parse an `<integer>` value, handling `calc()` correctly.
