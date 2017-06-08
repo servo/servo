@@ -316,8 +316,12 @@ impl HTMLElementMethods for HTMLElement {
 
     // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetparent
     fn GetOffsetParent(&self) -> Option<Root<Element>> {
-        if self.is::<HTMLBodyElement>() || self.is::<HTMLHtmlElement>() {
+        if self.is::<HTMLHtmlElement>() || self.upcast::<Element>().is_root() {
             return None;
+        }
+        match self.downcast::<HTMLBodyElement>() {
+            Some(e) if e.is_the_html_body_element() => return None,
+            _ => (),
         }
 
         let node = self.upcast::<Node>();
@@ -329,8 +333,9 @@ impl HTMLElementMethods for HTMLElement {
 
     // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsettop
     fn OffsetTop(&self) -> i32 {
-        if self.is::<HTMLBodyElement>() {
-            return 0;
+        match self.downcast::<HTMLBodyElement>() {
+            Some(e) if e.is_the_html_body_element() => return 0,
+            _ => (),
         }
 
         let node = self.upcast::<Node>();
@@ -342,8 +347,9 @@ impl HTMLElementMethods for HTMLElement {
 
     // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetleft
     fn OffsetLeft(&self) -> i32 {
-        if self.is::<HTMLBodyElement>() {
-            return 0;
+        match self.downcast::<HTMLBodyElement>() {
+            Some(e) if e.is_the_html_body_element() => return 0,
+            _ => (),
         }
 
         let node = self.upcast::<Node>();
