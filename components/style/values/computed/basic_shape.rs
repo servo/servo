@@ -41,7 +41,8 @@ impl ToCss for Circle {
         dest.write_str("circle(")?;
         self.radius.to_css(dest)?;
         dest.write_str(" at ")?;
-        self.position.to_css(dest)
+        self.position.to_css(dest)?;
+        dest.write_str(")")
     }
 }
 
