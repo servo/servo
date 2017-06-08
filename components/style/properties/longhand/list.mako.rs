@@ -63,7 +63,7 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
             pub fn from_gecko_keyword(value: u32) -> Self {
                 use gecko_bindings::structs;
                 SpecifiedValue::CounterStyle(if value == structs::NS_STYLE_LIST_STYLE_NONE {
-                    CounterStyleOrNone::None_
+                    CounterStyleOrNone::None
                 } else {
                     <%
                         values = """disc circle square decimal lower-roman
