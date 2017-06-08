@@ -61,10 +61,10 @@
 //! the up-front checks but would have different matching results for the
 //! selector in question.  In this case, "descendants" includes pseudo-elements,
 //! so there is a single selector map of revalidation selectors that includes
-//! both selectors targeting element and selectors targeting pseudo-elements.
-//! This relies on matching an element against a pseudo-element-targeting
-//! selector being a sensible operation that will effectively check whether that
-//! element is a matching originating element for the selector.
+//! both selectors targeting elements and selectors targeting pseudo-element
+//! originating elements.  We ensure that the pseudo-element parts of all these
+//! selectors are effectively stripped off, so that matching them all against
+//! elements makes sense.
 
 use Atom;
 use bit_vec::BitVec;

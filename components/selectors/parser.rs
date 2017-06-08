@@ -479,6 +479,9 @@ impl<'a, Impl: 'a + SelectorImpl> AncestorIter<'a, Impl> {
     fn skip_until_ancestor(&mut self) {
         loop {
             while self.0.next().is_some() {}
+            // If this is ever changed to stop at the "pseudo-element"
+            // combinator, we will need to fix the way we compute hashes for
+            // revalidation selectors.
             if self.0.next_sequence().map_or(true, |x| matches!(x, Combinator::Child | Combinator::Descendant)) {
                 break;
             }
@@ -515,7 +518,9 @@ pub enum Combinator {
     /// A dummy combinator we use to the left of pseudo-elements.
     ///
     /// It serializes as the empty string, and acts effectively as a child
-    /// combinator.
+    /// combinator in most cases.  If we ever actually start using a child
+    /// combinator for this, we will need to fix up the way hashes are computed
+    /// for revalidation selectors.
     PseudoElement,
 }
 
