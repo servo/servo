@@ -574,7 +574,7 @@ fn color_to_nscolor_zero_currentcolor(color: Color) -> structs::nscolor {
     % endif
 </%def>
 
-<%def name="impl_corner_style_coord(ident, gecko_ffi_name, x_index, y_index, need_clone=False)">
+<%def name="impl_corner_style_coord(ident, gecko_ffi_name, x_index, y_index, need_clone)">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         v.0.width.to_gecko_style_coord(&mut self.gecko.${gecko_ffi_name}.data_at_mut(${x_index}));
@@ -1494,7 +1494,8 @@ fn static_assert() {
     <% impl_corner_style_coord("_moz_outline_radius_%s" % corner.ident.replace("_", ""),
                                "mOutlineRadius",
                                corner.x_index,
-                               corner.y_index) %>
+                               corner.y_index,
+                               need_clone=True) %>
     % endfor
 
     pub fn outline_has_nonzero_width(&self) -> bool {
