@@ -14,6 +14,7 @@ use flow_ref::FlowRef;
 use profile_traits::time::{self, TimerMetadata, profile};
 use rayon;
 use servo_config::opts;
+use smallvec::SmallVec;
 use std::mem;
 use std::sync::atomic::{AtomicIsize, Ordering};
 use style::dom::UnsafeNode;
@@ -23,10 +24,9 @@ use traversal::AssignBSizes;
 pub use style::parallel::traverse_dom;
 
 /// Traversal chunk size.
-///
-/// FIXME(bholley): This is all likely very inefficient and should probably be
-/// reworked to mirror the style system's parallel.rs.
-pub const CHUNK_SIZE: usize = 64;
+const CHUNK_SIZE: usize = 16;
+
+pub type FlowList = SmallVec<[UnsafeNode; CHUNK_SIZE]>;
 
 #[allow(dead_code)]
 fn static_assertion(node: UnsafeNode) {
@@ -131,7 +131,7 @@ fn top_down_flow<'scope>(unsafe_flows: &[UnsafeFlow],
                          assign_isize_traversal: &'scope AssignISizes,
                          assign_bsize_traversal: &'scope AssignBSizes)
 {
-    let mut discovered_child_flows = vec![];
+    let mut discovered_child_flows = FlowList::new();
 
     for unsafe_flow in unsafe_flows {
         let mut had_children = false;
@@ -164,12 +164,29 @@ fn top_down_flow<'scope>(unsafe_flows: &[UnsafeFlow],
         }
     }
 
-    for chunk in discovered_child_flows.chunks(CHUNK_SIZE) {
-        let nodes = chunk.iter().cloned().collect::<Vec<_>>().into_boxed_slice();
+    if discovered_child_flows.is_empty() {
+        return
+    }
 
-        scope.spawn(move |scope| {
-            top_down_flow(&nodes, scope, &assign_isize_traversal, &assign_bsize_traversal);
-        });
+    if discovered_child_flows.len() <= CHUNK_SIZE {
+        // We can handle all the children in this work unit.
+        top_down_flow(&discovered_child_flows,
+                      scope,
+                      &assign_isize_traversal,
+                      &assign_bsize_traversal);
+    } else {
+        // Spawn a new work unit for each chunk after the first.
+        let mut chunks = discovered_child_flows.chunks(CHUNK_SIZE);
+        let first_chunk = chunks.next();
+        for chunk in chunks {
+            let nodes = chunk.iter().cloned().collect::<FlowList>();
+            scope.spawn(move |scope| {
+                top_down_flow(&nodes, scope, &assign_isize_traversal, &assign_bsize_traversal);
+            });
+        }
+        if let Some(chunk) = first_chunk {
+            top_down_flow(chunk, scope, &assign_isize_traversal, &assign_bsize_traversal);
+        }
     }
 }
 
@@ -186,7 +203,7 @@ pub fn traverse_flow_tree_preorder(
 
     let assign_isize_traversal = &AssignISizes { layout_context: &context };
     let assign_bsize_traversal = &AssignBSizes { layout_context: &context };
-    let nodes = vec![borrowed_flow_to_unsafe_flow(root)].into_boxed_slice();
+    let nodes = [borrowed_flow_to_unsafe_flow(root)];
 
     queue.install(move || {
         rayon::scope(move |scope| {

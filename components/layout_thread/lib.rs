@@ -443,7 +443,11 @@ impl LayoutThread {
 
         let configuration =
             rayon::Configuration::new().num_threads(layout_threads);
-        let parallel_traversal = rayon::ThreadPool::new(configuration).ok();
+        let parallel_traversal = if layout_threads > 1 {
+            Some(rayon::ThreadPool::new(configuration).expect("ThreadPool creation failed"))
+        } else {
+            None
+        };
         debug!("Possible layout Threads: {}", layout_threads);
 
         // Create the channel on which new animations can be sent.
@@ -1074,7 +1078,7 @@ impl LayoutThread {
 
         debug!("layout: processing reflow request for: {:?} ({}) (query={:?})",
                element, self.url, data.query_type);
-        debug!("{:?}", ShowSubtree(element.as_node()));
+        trace!("{:?}", ShowSubtree(element.as_node()));
 
         let initial_viewport = data.window_size.initial_viewport;
         let old_viewport_size = self.viewport_size;
