@@ -1421,6 +1421,10 @@ extern "C" {
      -> *mut nsCSSFontFaceRule;
 }
 extern "C" {
+    pub fn Gecko_CSSFontFaceRule_Clone(rule: *const nsCSSFontFaceRule)
+     -> *mut nsCSSFontFaceRule;
+}
+extern "C" {
     pub fn Gecko_CSSFontFaceRule_GetCssText(rule: *const nsCSSFontFaceRule,
                                             result: *mut nsAString);
 }
@@ -1432,6 +1436,10 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_CSSCounterStyle_Create(name: *mut nsIAtom)
+     -> *mut nsCSSCounterStyleRule;
+}
+extern "C" {
+    pub fn Gecko_CSSCounterStyle_Clone(rule: *const nsCSSCounterStyleRule)
      -> *mut nsCSSCounterStyleRule;
 }
 extern "C" {
