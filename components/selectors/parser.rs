@@ -1053,7 +1053,10 @@ fn parse_type_selector<P, Impl>(parser: &P, input: &mut CssParser, sequence: &mu
                     sequence.push(Component::DefaultNamespace(url))
                 }
                 QNamePrefix::ExplicitNamespace(prefix, url) => {
-                    sequence.push(Component::Namespace(prefix, url))
+                    sequence.push(match parser.default_namespace() {
+                        Some(ref default_url) if url == *default_url => Component::DefaultNamespace(url),
+                        _ => Component::Namespace(prefix, url),
+                    })
                 }
                 QNamePrefix::ExplicitNoNamespace => {
                     sequence.push(Component::ExplicitNoNamespace)
