@@ -2581,7 +2581,6 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
 {
     use std::mem;
     use style::properties::LonghandIdSet;
-    use style::properties::declaration_block::Importance;
 
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     let metrics = get_metrics_provider_for_product();
@@ -2616,28 +2615,7 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
             let declarations = Locked::<PropertyDeclarationBlock>::as_arc(&declarations);
             let guard = declarations.read_with(&guard);
 
-            let anim_iter = guard.declarations()
-                            .iter()
-                            .filter_map(|&(ref decl, imp)| {
-                                if imp == Importance::Normal {
-                                    let property = TransitionProperty::from_declaration(decl);
-                                    let animation = AnimationValue::from_declaration(decl, &mut context,
-                                                                                     default_values);
-                                    debug_assert!(property.is_none() == animation.is_none(),
-                                                  "The failure condition of TransitionProperty::from_declaration \
-                                                   and AnimationValue::from_declaration should be the same");
-                                    // Skip the property if either ::from_declaration fails.
-                                    if property.is_none() || animation.is_none() {
-                                        None
-                                    } else {
-                                        Some((property.unwrap(), animation.unwrap()))
-                                    }
-                                } else {
-                                    None
-                                }
-                            });
-
-            for anim in anim_iter {
+            for anim in guard.to_animation_value_iter(&mut context, &default_values) {
                 if !seen.has_transition_property_bit(&anim.0) {
                     // This is safe since we immediately write to the uninitialized values.
                     unsafe { animation_values.set_len((property_index + 1) as u32) };
