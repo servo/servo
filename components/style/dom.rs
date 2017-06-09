@@ -368,9 +368,6 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// Whether this element has an attribute with a given namespace.
     fn has_attr(&self, namespace: &Namespace, attr: &LocalName) -> bool;
 
-    /// Whether an attribute value equals `value`.
-    fn attr_equals(&self, namespace: &Namespace, attr: &LocalName, value: &Atom) -> bool;
-
     /// Internal iterator for the classes of this element.
     fn each_class<F>(&self, callback: F) where F: FnMut(&Atom);
 

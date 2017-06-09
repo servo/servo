@@ -94,30 +94,35 @@ impl GeckoElementSnapshot {
                             ns.atom_or_null(),
                             local_name.as_ptr(),
                             expected_value.as_ptr(),
+                            ignore_case,
                         ),
                         AttrSelectorOperator::DashMatch => bindings::Gecko_SnapshotAttrDashEquals(
                             self,
                             ns.atom_or_null(),
                             local_name.as_ptr(),
                             expected_value.as_ptr(),
+                            ignore_case,
                         ),
                         AttrSelectorOperator::Prefix => bindings::Gecko_SnapshotAttrHasPrefix(
                             self,
                             ns.atom_or_null(),
                             local_name.as_ptr(),
                             expected_value.as_ptr(),
+                            ignore_case,
                         ),
                         AttrSelectorOperator::Suffix => bindings::Gecko_SnapshotAttrHasSuffix(
                             self,
                             ns.atom_or_null(),
                             local_name.as_ptr(),
                             expected_value.as_ptr(),
+                            ignore_case,
                         ),
                         AttrSelectorOperator::Substring => bindings::Gecko_SnapshotAttrHasSubstring(
                             self,
                             ns.atom_or_null(),
                             local_name.as_ptr(),
                             expected_value.as_ptr(),
+                            ignore_case,
                         ),
                     }
                 }
