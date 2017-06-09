@@ -17,17 +17,19 @@
     no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
+        #[cfg(feature = "gecko")]
         use std::fmt;
-        use style_traits::cursor::Cursor;
+        #[cfg(feature = "gecko")]
         use style_traits::ToCss;
+        use style_traits::cursor::Cursor;
         #[cfg(feature = "gecko")]
         use values::specified::url::SpecifiedUrl;
 
-        #[derive(Clone, PartialEq, Copy, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        #[derive(Clone, Copy, Debug, PartialEq, ToCss)]
         pub enum Keyword {
-            AutoCursor,
-            SpecifiedCursor(Cursor),
+            Auto,
+            Cursor(Cursor),
         }
 
         #[cfg(not(feature = "gecko"))]
@@ -45,15 +47,6 @@
         pub struct T {
             pub images: Vec<Image>,
             pub keyword: Keyword,
-        }
-
-        impl ToCss for Keyword {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                match *self {
-                    Keyword::AutoCursor => dest.write_str("auto"),
-                    Keyword::SpecifiedCursor(c) => c.to_css(dest),
-                }
-            }
         }
 
         #[cfg(feature = "gecko")]
@@ -85,7 +78,7 @@
     #[cfg(not(feature = "gecko"))]
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        computed_value::Keyword::AutoCursor
+        computed_value::Keyword::Auto
     }
 
     #[cfg(feature = "gecko")]
@@ -93,7 +86,7 @@
     pub fn get_initial_value() -> computed_value::T {
         computed_value::T {
             images: vec![],
-            keyword: computed_value::Keyword::AutoCursor
+            keyword: computed_value::Keyword::Auto
         }
     }
 
@@ -103,9 +96,9 @@
             use style_traits::cursor::Cursor;
             let ident = try!(input.expect_ident());
             if ident.eq_ignore_ascii_case("auto") {
-                Ok(computed_value::Keyword::AutoCursor)
+                Ok(computed_value::Keyword::Auto)
             } else {
-                Cursor::from_css_keyword(&ident).map(computed_value::Keyword::SpecifiedCursor)
+                Cursor::from_css_keyword(&ident).map(computed_value::Keyword::Cursor)
             }
         }
     }

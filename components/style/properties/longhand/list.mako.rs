@@ -33,9 +33,6 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
 % else:
     <%helpers:longhand name="list-style-type" animation_value_type="none" boxed="True"
                        spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type">
-        use cssparser;
-        use std::fmt;
-        use style_traits::ToCss;
         use values::CustomIdent;
         use values::computed::ComputedValueAsSpecified;
         use values::generics::CounterStyleOrNone;
@@ -46,7 +43,7 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
             use values::generics::CounterStyleOrNone;
 
             /// <counter-style> | <string> | none
-            #[derive(Debug, Clone, PartialEq, Eq)]
+            #[derive(Debug, Clone, Eq, PartialEq, ToCss)]
             pub enum T {
                 CounterStyle(CounterStyleOrNone),
                 String(String),
@@ -55,15 +52,6 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
 
         impl ComputedValueAsSpecified for SpecifiedValue {}
         no_viewport_percentage!(SpecifiedValue);
-
-        impl ToCss for SpecifiedValue {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                match *self {
-                    SpecifiedValue::CounterStyle(ref s) => s.to_css(dest),
-                    SpecifiedValue::String(ref s) => cssparser::serialize_string(s, dest)
-                }
-            }
-        }
 
         #[cfg(feature = "gecko")]
         impl SpecifiedValue {

@@ -427,8 +427,8 @@ ${helpers.predefined_type("word-spacing",
     no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
-        #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        #[derive(Clone, Debug, PartialEq, ToCss)]
         pub enum T {
             Keyword(KeywordValue),
             None,
@@ -443,31 +443,12 @@ ${helpers.predefined_type("word-spacing",
         }
     }
 
-    #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[derive(Clone, Debug, PartialEq, ToCss)]
     pub enum SpecifiedValue {
         Keyword(KeywordValue),
         None,
         String(String),
-    }
-
-    impl ToCss for computed_value::T {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                computed_value::T::Keyword(ref keyword) => keyword.to_css(dest),
-                computed_value::T::None => dest.write_str("none"),
-                computed_value::T::String(ref string) => write!(dest, "\"{}\"", string),
-            }
-        }
-    }
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                SpecifiedValue::Keyword(ref keyword) => keyword.to_css(dest),
-                SpecifiedValue::None => dest.write_str("none"),
-                SpecifiedValue::String(ref string) => write!(dest, "\"{}\"", string),
-            }
-        }
     }
 
     #[derive(Debug, Clone, PartialEq)]

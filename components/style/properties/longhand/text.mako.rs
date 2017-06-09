@@ -16,12 +16,11 @@
                    spec="https://drafts.csswg.org/css-ui/#propdef-text-overflow">
     use std::fmt;
     use style_traits::ToCss;
-    use cssparser;
 
     no_viewport_percentage!(SpecifiedValue);
 
-    #[derive(PartialEq, Eq, Clone, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[derive(Clone, Debug, Eq, PartialEq, ToCss)]
     pub enum Side {
         Clip,
         Ellipsis,
@@ -123,18 +122,6 @@
                 }
             } else {
                 Ok(Side::String(try!(input.expect_string()).into_owned().into_boxed_str()))
-            }
-        }
-    }
-
-    impl ToCss for Side {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                Side::Clip => dest.write_str("clip"),
-                Side::Ellipsis => dest.write_str("ellipsis"),
-                Side::String(ref s) => {
-                    cssparser::serialize_string(s, dest)
-                }
             }
         }
     }

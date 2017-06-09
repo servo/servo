@@ -143,12 +143,11 @@ impl<T> OneOrMoreCommaSeparated for FontSettingTag<T> {}
 impl<T: ToCss> ToCss for FontSettingTag<T> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         use byteorder::{BigEndian, ByteOrder};
-        use cssparser::serialize_string;
         use std::str;
 
         let mut raw = [0u8; 4];
         BigEndian::write_u32(&mut raw, self.tag);
-        serialize_string(str::from_utf8(&raw).unwrap_or_default(), dest)?;
+        str::from_utf8(&raw).unwrap_or_default().to_css(dest)?;
 
         self.value.to_css(dest)
     }

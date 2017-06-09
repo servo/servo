@@ -4241,8 +4241,8 @@ clip-path
         use style_traits::cursor::Cursor;
 
         self.gecko.mCursor = match v.keyword {
-            Keyword::AutoCursor => structs::NS_STYLE_CURSOR_AUTO,
-            Keyword::SpecifiedCursor(cursor) => match cursor {
+            Keyword::Auto => structs::NS_STYLE_CURSOR_AUTO,
+            Keyword::Cursor(cursor) => match cursor {
                 Cursor::None => structs::NS_STYLE_CURSOR_NONE,
                 Cursor::Default => structs::NS_STYLE_CURSOR_DEFAULT,
                 Cursor::Pointer => structs::NS_STYLE_CURSOR_POINTER,
