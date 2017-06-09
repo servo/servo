@@ -236,6 +236,14 @@ class MachCommands(CommandBase):
             packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit"))) - set(['.DS_Store'])
             in_crate_packages += ["selectors"]
 
+        # Since the selectors tests have no corresponding selectors_tests crate in tests/unit,
+        # we need to treat them separately from those that do.
+        try:
+            packages.remove('selectors')
+            in_crate_packages += ["selectors"]
+        except KeyError:
+            pass
+
         packages.discard('stylo')
 
         has_style = True
