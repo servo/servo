@@ -34,6 +34,7 @@ use gecko_bindings::bindings::{Gecko_IsRootElement, Gecko_MatchesElement, Gecko_
 use gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_ElementHasAnimations;
+use gecko_bindings::bindings::Gecko_ElementHasBindingWithAnonymousContent;
 use gecko_bindings::bindings::Gecko_ElementHasCSSAnimations;
 use gecko_bindings::bindings::Gecko_ElementHasCSSTransitions;
 use gecko_bindings::bindings::Gecko_GetActiveLinkAttrDeclarationBlock;
@@ -269,6 +270,10 @@ impl<'ln> TNode for GeckoNode<'ln> {
         } else {
             LayoutIterator(self.dom_children())
         }
+    }
+
+    fn children_and_traversal_children_might_differ(&self) -> bool {
+        self.as_element().map_or(false, |e| unsafe { Gecko_ElementHasBindingWithAnonymousContent(e.0) })
     }
 
     fn opaque(&self) -> OpaqueNode {
