@@ -408,6 +408,24 @@ impl<'le> fmt::Debug for GeckoElement<'le> {
         if let Some(id) = self.get_id() {
             try!(write!(f, " id={}", id));
         }
+
+        let mut first = true;
+        let mut any = false;
+        self.each_class(|c| {
+            if first {
+                first = false;
+                any = true;
+                let _ = f.write_str(" class=\"");
+            } else {
+                let _ = f.write_str(" ");
+            }
+            let _ = write!(f, "{}", c);
+        });
+
+        if any {
+            f.write_str("\"")?;
+        }
+
         write!(f, "> ({:#x})", self.as_node().opaque().0)
     }
 }
