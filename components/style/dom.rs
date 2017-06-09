@@ -316,16 +316,6 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
         depth
     }
 
-    /// While doing a reflow, the element at the root has no parent, as far as we're
-    /// concerned. This method returns `None` at the reflow root.
-    fn layout_parent_element(self, reflow_root: OpaqueNode) -> Option<Self> {
-        if self.as_node().opaque() == reflow_root {
-            None
-        } else {
-            self.parent_element()
-        }
-    }
-
     /// Get this node's parent element from the perspective of a restyle
     /// traversal.
     fn traversal_parent(&self) -> Option<Self> {
