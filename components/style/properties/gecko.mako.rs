@@ -680,6 +680,20 @@ impl Debug for ${style_struct.gecko_struct_name} {
 %endif
 </%def>
 
+<%def name="impl_simple_type_with_conversion(ident)">
+    #[allow(non_snake_case)]
+    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+        self.gecko.m${to_camel_case(ident)} = From::from(v)
+    }
+
+    <% impl_simple_copy(ident, "m" + to_camel_case(ident)) %>
+
+    #[allow(non_snake_case)]
+    pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+        From::from(self.gecko.m${to_camel_case(ident)})
+    }
+</%def>
+
 <%def name="raw_impl_trait(style_struct, skip_longhands='', skip_additionals='')">
 <%
     longhands = [x for x in style_struct.longhands
@@ -1134,53 +1148,11 @@ fn static_assert() {
         }
     }
 
-    pub fn set_align_content(&mut self, v: longhands::align_content::computed_value::T) {
-        self.gecko.mAlignContent = v.bits()
-    }
-
-    ${impl_simple_copy('align_content', 'mAlignContent')}
-
-    pub fn set_justify_content(&mut self, v: longhands::justify_content::computed_value::T) {
-        self.gecko.mJustifyContent = v.bits()
-    }
-
-    ${impl_simple_copy('justify_content', 'mJustifyContent')}
-
-    pub fn set_align_self(&mut self, v: longhands::align_self::computed_value::T) {
-        self.gecko.mAlignSelf = v.0.bits()
-    }
-
-    ${impl_simple_copy('align_self', 'mAlignSelf')}
-
-    pub fn set_justify_self(&mut self, v: longhands::justify_self::computed_value::T) {
-        self.gecko.mJustifySelf = v.0.bits()
-    }
-
-    ${impl_simple_copy('justify_self', 'mJustifySelf')}
-
-    pub fn set_align_items(&mut self, v: longhands::align_items::computed_value::T) {
-        self.gecko.mAlignItems = v.0.bits()
-    }
-
-    ${impl_simple_copy('align_items', 'mAlignItems')}
-
-    pub fn clone_align_items(&self) -> longhands::align_items::computed_value::T {
-        use values::specified::align::{AlignFlags, AlignItems};
-        AlignItems(AlignFlags::from_bits(self.gecko.mAlignItems)
-                                        .expect("mAlignItems contains valid flags"))
-    }
-
-    pub fn set_justify_items(&mut self, v: longhands::justify_items::computed_value::T) {
-        self.gecko.mJustifyItems = v.0.bits()
-    }
-
-    ${impl_simple_copy('justify_items', 'mJustifyItems')}
-
-    pub fn clone_justify_items(&self) -> longhands::justify_items::computed_value::T {
-        use values::specified::align::{AlignFlags, JustifyItems};
-        JustifyItems(AlignFlags::from_bits(self.gecko.mJustifyItems)
-                                          .expect("mJustifyItems contains valid flags"))
-    }
+    % for kind in ["align", "justify"]:
+    ${impl_simple_type_with_conversion(kind + "_content")}
+    ${impl_simple_type_with_conversion(kind + "_self")}
+    ${impl_simple_type_with_conversion(kind + "_items")}
+    % endfor
 
     pub fn set_order(&mut self, v: longhands::order::computed_value::T) {
         self.gecko.mOrder = v;
@@ -2855,11 +2827,7 @@ fn static_assert() {
 
     ${impl_simple_copy("contain", "mContain")}
 
-    pub fn set_touch_action(&mut self, v: longhands::touch_action::computed_value::T) {
-        self.gecko.mTouchAction = v.bits();
-    }
-
-    ${impl_simple_copy("touch_action", "mTouchAction")}
+    ${impl_simple_type_with_conversion("touch_action")}
 </%self:impl_trait>
 
 <%def name="simple_image_array_property(name, shorthand, field_name)">
@@ -3843,28 +3811,7 @@ fn static_assert() {
                   skip_longhands="text-decoration-line text-overflow initial-letter"
                   skip_additionals="*">
 
-    pub fn set_text_decoration_line(&mut self, v: longhands::text_decoration_line::computed_value::T) {
-        let mut bits: u8 = 0;
-        if v.contains(longhands::text_decoration_line::UNDERLINE) {
-            bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE as u8;
-        }
-        if v.contains(longhands::text_decoration_line::OVERLINE) {
-            bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_OVERLINE as u8;
-        }
-        if v.contains(longhands::text_decoration_line::LINE_THROUGH) {
-            bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH as u8;
-        }
-        if v.contains(longhands::text_decoration_line::BLINK) {
-            bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_BLINK as u8;
-        }
-        if v.contains(longhands::text_decoration_line::COLOR_OVERRIDE) {
-            bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_OVERRIDE_ALL as u8;
-        }
-        self.gecko.mTextDecorationLine = bits;
-    }
-
-    ${impl_simple_copy('text_decoration_line', 'mTextDecorationLine')}
-
+    ${impl_simple_type_with_conversion("text_decoration_line")}
 
     fn clear_overflow_sides_if_string(&mut self) {
         use gecko_bindings::structs::nsStyleTextOverflowSide;

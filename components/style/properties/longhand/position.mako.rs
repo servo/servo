@@ -24,6 +24,24 @@
                               animation_value_type="ComputedValue", logical=True)}
 % endfor
 
+#[cfg(feature = "gecko")]
+macro_rules! impl_align_conversions {
+    ($name: path) => {
+        impl From<u8> for $name {
+            fn from(bits: u8) -> $name {
+                $name(::values::specified::align::AlignFlags::from_bits(bits)
+                      .expect("bits contain valid flag"))
+            }
+        }
+
+        impl From<$name> for u8 {
+            fn from(v: $name) -> u8 {
+                v.0.bits()
+            }
+        }
+    };
+}
+
 ${helpers.predefined_type("z-index", "IntegerOrAuto",
                           "Either::Second(Auto)",
                           spec="https://www.w3.org/TR/CSS2/visuren.html#z-index",
@@ -48,14 +66,14 @@ ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse",
     ${helpers.single_keyword("justify-content", "flex-start stretch flex-end center space-between space-around",
                              extra_prefixes="webkit",
                              spec="https://drafts.csswg.org/css-align/#propdef-justify-content",
-                             animation_value_type="none")}
+                             animation_value_type="discrete")}
 % else:
     ${helpers.predefined_type(name="justify-content",
                               type="AlignJustifyContent",
                               initial_value="specified::AlignJustifyContent::normal()",
                               spec="https://drafts.csswg.org/css-align/#propdef-justify-content",
                               extra_prefixes="webkit",
-                              animation_value_type="none")}
+                              animation_value_type="discrete")}
 % endif
 
 % if product == "servo":
@@ -63,7 +81,7 @@ ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse",
     ${helpers.single_keyword("align-content", "stretch flex-start flex-end center space-between space-around",
                              extra_prefixes="webkit",
                              spec="https://drafts.csswg.org/css-align/#propdef-align-content",
-                             animation_value_type="none")}
+                             animation_value_type="discrete")}
 
     ${helpers.single_keyword("align-items",
                              "stretch flex-start flex-end center baseline",
@@ -76,7 +94,7 @@ ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse",
                               initial_value="specified::AlignJustifyContent::normal()",
                               spec="https://drafts.csswg.org/css-align/#propdef-align-content",
                               extra_prefixes="webkit",
-                              animation_value_type="none")}
+                              animation_value_type="discrete")}
 
     ${helpers.predefined_type(name="align-items",
                               type="AlignItems",
@@ -85,11 +103,17 @@ ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse",
                               extra_prefixes="webkit",
                               animation_value_type="discrete")}
 
+    #[cfg(feature = "gecko")]
+    impl_align_conversions!(::values::specified::align::AlignItems);
+
     ${helpers.predefined_type(name="justify-items",
                               type="JustifyItems",
                               initial_value="specified::JustifyItems::auto()",
                               spec="https://drafts.csswg.org/css-align/#propdef-justify-items",
-                              animation_value_type="none")}
+                              animation_value_type="discrete")}
+
+    #[cfg(feature = "gecko")]
+    impl_align_conversions!(::values::specified::align::JustifyItems);
 % endif
 
 // Flex item properties
@@ -109,23 +133,25 @@ ${helpers.predefined_type("flex-shrink", "Number",
 % if product == "servo":
     // FIXME: Update Servo to support the same syntax as Gecko.
     ${helpers.single_keyword("align-self", "auto stretch flex-start flex-end center baseline",
-                             need_clone=True,
                              extra_prefixes="webkit",
                              spec="https://drafts.csswg.org/css-flexbox/#propdef-align-self",
-                             animation_value_type="none")}
+                             animation_value_type="discrete")}
 % else:
     ${helpers.predefined_type(name="align-self",
                               type="AlignJustifySelf",
                               initial_value="specified::AlignJustifySelf::auto()",
                               spec="https://drafts.csswg.org/css-align/#align-self-property",
                               extra_prefixes="webkit",
-                              animation_value_type="none")}
+                              animation_value_type="discrete")}
 
     ${helpers.predefined_type(name="justify-self",
                               type="AlignJustifySelf",
                               initial_value="specified::AlignJustifySelf::auto()",
                               spec="https://drafts.csswg.org/css-align/#justify-self-property",
-                              animation_value_type="none")}
+                              animation_value_type="discrete")}
+
+    #[cfg(feature = "gecko")]
+    impl_align_conversions!(::values::specified::align::AlignJustifySelf);
 % endif
 
 // https://drafts.csswg.org/css-flexbox/#propdef-order
