@@ -34,6 +34,7 @@ use gecko_bindings::bindings::{Gecko_IsRootElement, Gecko_MatchesElement, Gecko_
 use gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_ElementHasAnimations;
+use gecko_bindings::bindings::Gecko_ElementHasBindingWithAnonymousContent;
 use gecko_bindings::bindings::Gecko_ElementHasCSSAnimations;
 use gecko_bindings::bindings::Gecko_ElementHasCSSTransitions;
 use gecko_bindings::bindings::Gecko_GetActiveLinkAttrDeclarationBlock;
@@ -204,6 +205,16 @@ impl<'ln> GeckoNode<'ln> {
         true
     }
 
+    fn flattened_tree_parent(&self) -> Option<Self> {
+        let fast_path = self.flattened_tree_parent_is_parent();
+        debug_assert!(fast_path == unsafe { bindings::Gecko_FlattenedTreeParentIsParent(self.0) });
+        if fast_path {
+            unsafe { self.0.mParent.as_ref().map(GeckoNode) }
+        } else {
+            unsafe { bindings::Gecko_GetFlattenedTreeParentNode(self.0).map(GeckoNode) }
+        }
+    }
+
     /// This logic is duplicated in Gecko's nsIContent::IsRootOfNativeAnonymousSubtree.
     fn is_root_of_native_anonymous_subtree(&self) -> bool {
         use gecko_bindings::structs::NODE_IS_NATIVE_ANONYMOUS_ROOT;
@@ -240,13 +251,29 @@ impl<'ln> TNode for GeckoNode<'ln> {
         GeckoNode(&*(n.0 as *mut RawGeckoNode))
     }
 
-    fn children(self) -> LayoutIterator<GeckoChildrenIterator<'ln>> {
+    fn parent_node(&self) -> Option<Self> {
+        unsafe { self.0.mParent.as_ref().map(GeckoNode) }
+    }
+
+    fn children(&self) -> LayoutIterator<GeckoChildrenIterator<'ln>> {
+        LayoutIterator(self.dom_children())
+    }
+
+    fn traversal_parent(&self) -> Option<GeckoElement<'ln>> {
+        self.flattened_tree_parent().and_then(|n| n.as_element())
+    }
+
+    fn traversal_children(&self) -> LayoutIterator<GeckoChildrenIterator<'ln>> {
         let maybe_iter = unsafe { Gecko_MaybeCreateStyleChildrenIterator(self.0) };
         if let Some(iter) = maybe_iter.into_owned_opt() {
             LayoutIterator(GeckoChildrenIterator::GeckoIterator(iter))
         } else {
-            LayoutIterator(GeckoChildrenIterator::Current(self.first_child()))
+            LayoutIterator(self.dom_children())
         }
+    }
+
+    fn children_and_traversal_children_might_differ(&self) -> bool {
+        self.as_element().map_or(false, |e| unsafe { Gecko_ElementHasBindingWithAnonymousContent(e.0) })
     }
 
     fn opaque(&self) -> OpaqueNode {
@@ -275,16 +302,6 @@ impl<'ln> TNode for GeckoNode<'ln> {
     unsafe fn set_can_be_fragmented(&self, _value: bool) {
         // FIXME(SimonSapin): Servo uses this to implement CSS multicol / fragmentation
         // Maybe this isn’t useful for Gecko?
-    }
-
-    fn parent_node(&self) -> Option<Self> {
-        let fast_path = self.flattened_tree_parent_is_parent();
-        debug_assert!(fast_path == unsafe { bindings::Gecko_FlattenedTreeParentIsParent(self.0) });
-        if fast_path {
-            unsafe { self.0.mParent.as_ref().map(GeckoNode) }
-        } else {
-            unsafe { bindings::Gecko_GetParentNode(self.0).map(GeckoNode) }
-        }
     }
 
     fn is_in_doc(&self) -> bool {
@@ -644,9 +661,10 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn inheritance_parent(&self) -> Option<Self> {
         if self.is_native_anonymous() {
-            return self.closest_non_native_anonymous_ancestor();
+            self.closest_non_native_anonymous_ancestor()
+        } else {
+            self.as_node().flattened_tree_parent().and_then(|n| n.as_element())
         }
-        return self.parent_element();
     }
 
     fn closest_non_native_anonymous_ancestor(&self) -> Option<Self> {

@@ -185,10 +185,10 @@ impl ValidationData {
             // filter, to avoid thrashing the filter.
             let bloom_to_use = if bloom_known_valid {
                 debug_assert_eq!(bloom.current_parent(),
-                                 element.parent_element());
+                                 element.traversal_parent());
                 Some(bloom.filter())
             } else {
-                if bloom.current_parent() == element.parent_element() {
+                if bloom.current_parent() == element.traversal_parent() {
                     Some(bloom.filter())
                 } else {
                     None
@@ -344,7 +344,7 @@ impl<E: TElement> StyleSharingTarget<E> {
             return StyleSharingResult::CannotShare;
         }
         debug_assert_eq!(bloom_filter.current_parent(),
-                         self.element.parent_element());
+                         self.element.traversal_parent());
 
         let result = cache
             .share_style_if_possible(shared_context,
@@ -500,7 +500,7 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
                               dom_depth: usize) {
         use selectors::matching::AFFECTED_BY_PRESENTATIONAL_HINTS;
 
-        let parent = match element.parent_element() {
+        let parent = match element.traversal_parent() {
             Some(element) => element,
             None => {
                 debug!("Failing to insert to the cache: no parent element");
@@ -572,7 +572,7 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
             return StyleSharingResult::CannotShare
         }
 
-        if target.parent_element().is_none() {
+        if target.traversal_parent().is_none() {
             debug!("{:?} Cannot share style: element has no parent",
                    target.element);
             return StyleSharingResult::CannotShare
@@ -644,8 +644,8 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
         // Check that we have the same parent, or at least the same pointer
         // identity for parent computed style. The latter check allows us to
         // share style between cousins if the parents shared style.
-        let parent = target.parent_element();
-        let candidate_parent = candidate.element.parent_element();
+        let parent = target.traversal_parent();
+        let candidate_parent = candidate.element.traversal_parent();
         if parent != candidate_parent &&
            !checks::same_computed_values(parent, candidate_parent) {
             miss!(Parent)

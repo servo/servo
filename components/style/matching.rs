@@ -230,7 +230,7 @@ trait PrivateMatchMethods: TElement {
     fn layout_parent(&self) -> Self {
         let mut current = self.clone();
         loop {
-            current = match current.parent_element() {
+            current = match current.traversal_parent() {
                 Some(el) => el,
                 None => return current,
             };

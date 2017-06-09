@@ -64,7 +64,7 @@ pub fn traverse_dom<E, D>(traversal: &D,
     // it on the context to make it available to the bottom-up phase.
     let depth = if token.traverse_unstyled_children_only() {
         debug_assert!(!D::needs_postorder_traversal());
-        for kid in root.as_node().children() {
+        for kid in root.as_node().traversal_children() {
             if kid.as_element().map_or(false, |el| el.get_data().is_none()) {
                 nodes.push(unsafe { SendNode::new(kid) });
             }

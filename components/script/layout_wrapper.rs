@@ -165,10 +165,30 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         transmute(node)
     }
 
-    fn children(self) -> LayoutIterator<ServoChildrenIterator<'ln>> {
+    fn parent_node(&self) -> Option<Self> {
+        unsafe {
+            self.node.parent_node_ref().map(|node| self.new_with_this_lifetime(&node))
+        }
+    }
+
+    fn children(&self) -> LayoutIterator<ServoChildrenIterator<'ln>> {
         LayoutIterator(ServoChildrenIterator {
             current: self.first_child(),
         })
+    }
+
+    fn traversal_parent(&self) -> Option<ServoLayoutElement<'ln>> {
+        self.parent_element()
+    }
+
+    fn traversal_children(&self) -> LayoutIterator<ServoChildrenIterator<'ln>> {
+        self.children()
+    }
+
+    fn children_and_traversal_children_might_differ(&self) -> bool {
+        // Servo doesn't have to worry about nodes being rearranged in the
+        // flattened tree like Gecko does (for XBL and Shadow DOM).  Yet.
+        false
     }
 
     fn opaque(&self) -> OpaqueNode {
@@ -197,12 +217,6 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
 
     unsafe fn set_can_be_fragmented(&self, value: bool) {
         self.node.set_flag(CAN_BE_FRAGMENTED, value)
-    }
-
-    fn parent_node(&self) -> Option<ServoLayoutNode<'ln>> {
-        unsafe {
-            self.node.parent_node_ref().map(|node| self.new_with_this_lifetime(&node))
-        }
     }
 
     fn is_in_doc(&self) -> bool {

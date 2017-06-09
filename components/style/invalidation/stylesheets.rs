@@ -166,7 +166,7 @@ impl StylesheetInvalidationSet {
 
         let mut any_children_invalid = false;
 
-        for child in element.as_node().children() {
+        for child in element.as_node().traversal_children() {
             let child = match child.as_element() {
                 Some(e) => e,
                 None => continue,

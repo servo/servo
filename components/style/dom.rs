@@ -108,16 +108,30 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo {
     /// Get a node back from an `UnsafeNode`.
     unsafe fn from_unsafe(n: &UnsafeNode) -> Self;
 
-    /// Returns an iterator over this node's children.
-    fn children(self) -> LayoutIterator<Self::ConcreteChildrenIterator>;
-
-    /// Converts self into an `OpaqueNode`.
-    fn opaque(&self) -> OpaqueNode;
+    /// Get this node's parent node.
+    fn parent_node(&self) -> Option<Self>;
 
     /// Get this node's parent element if present.
     fn parent_element(&self) -> Option<Self::ConcreteElement> {
         self.parent_node().and_then(|n| n.as_element())
     }
+
+    /// Returns an iterator over this node's children.
+    fn children(&self) -> LayoutIterator<Self::ConcreteChildrenIterator>;
+
+    /// Get this node's parent element from the perspective of a restyle
+    /// traversal.
+    fn traversal_parent(&self) -> Option<Self::ConcreteElement>;
+
+    /// Get this node's children from the perspective of a restyle traversal.
+    fn traversal_children(&self) -> LayoutIterator<Self::ConcreteChildrenIterator>;
+
+    /// Returns whether `children()` and `traversal_children()` might return
+    /// iterators over different nodes.
+    fn children_and_traversal_children_might_differ(&self) -> bool;
+
+    /// Converts self into an `OpaqueNode`.
+    fn opaque(&self) -> OpaqueNode;
 
     /// A debug id, only useful, mm... for debugging.
     fn debug_id(self) -> usize;
@@ -137,9 +151,6 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo {
 
     /// Set whether this node can be fragmented.
     unsafe fn set_can_be_fragmented(&self, value: bool);
-
-    /// Get this node's parent node.
-    fn parent_node(&self) -> Option<Self>;
 
     /// Whether this node is in the document right now needed to clear the
     /// restyle data appropriately on some forced restyles.
@@ -222,7 +233,7 @@ fn fmt_subtree<F, N: TNode>(f: &mut fmt::Formatter, stringify: &F, n: N, indent:
         try!(write!(f, "  "));
     }
     try!(stringify(f, n));
-    for kid in n.children() {
+    for kid in n.traversal_children() {
         try!(writeln!(f, ""));
         try!(fmt_subtree(f, stringify, kid, indent + 1));
     }
@@ -256,7 +267,7 @@ pub unsafe fn raw_note_descendants<E, B>(element: E) -> bool
             break;
         }
         B::set(el);
-        curr = el.parent_element();
+        curr = el.traversal_parent();
     }
 
     // Note: We disable this assertion on servo because of bugs. See the
@@ -297,7 +308,7 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     fn depth(&self) -> usize {
         let mut depth = 0;
         let mut curr = *self;
-        while let Some(parent) = curr.parent_element() {
+        while let Some(parent) = curr.traversal_parent() {
             depth += 1;
             curr = parent;
         }
@@ -305,21 +316,18 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
         depth
     }
 
-    /// While doing a reflow, the element at the root has no parent, as far as we're
-    /// concerned. This method returns `None` at the reflow root.
-    fn layout_parent_element(self, reflow_root: OpaqueNode) -> Option<Self> {
-        if self.as_node().opaque() == reflow_root {
-            None
-        } else {
-            self.parent_element()
-        }
+    /// Get this node's parent element from the perspective of a restyle
+    /// traversal.
+    fn traversal_parent(&self) -> Option<Self> {
+        self.as_node().traversal_parent()
     }
 
     /// Returns the parent element we should inherit from.
     ///
     /// This is pretty much always the parent element itself, except in the case
-    /// of Gecko's Native Anonymous Content, which may need to find the closest
-    /// non-NAC ancestor.
+    /// of Gecko's Native Anonymous Content, which uses the traversal parent
+    /// (i.e. the flattened tree parent) and which also may need to find the
+    /// closest non-NAC ancestor.
     fn inheritance_parent(&self) -> Option<Self> {
         self.parent_element()
     }
@@ -442,7 +450,7 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
         let mut current = Some(*self);
         while let Some(el) = current {
             if !B::has(el) { return false; }
-            current = el.parent_element();
+            current = el.traversal_parent();
         }
 
         true
