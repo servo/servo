@@ -9,7 +9,7 @@ use Atom;
 use context::SharedStyleContext;
 use data::ElementData;
 use dom::{TElement, TNode};
-use element_state::ElementState;
+use element_state::{ElementState, IN_VISITED_OR_UNVISITED_STATE};
 use invalidation::element::element_wrapper::{ElementSnapshot, ElementWrapper};
 use invalidation::element::invalidation_map::*;
 use invalidation::element::restyle_hints::*;
@@ -103,6 +103,18 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
 
         if !snapshot.has_attrs() && state_changes.is_empty() {
             return;
+        }
+
+        // If we are sensitive to visitedness and the visited state changed, we
+        // force a restyle here. Matching doesn't depend on the actual visited
+        // state at all, so we can't look at matching results to decide what to
+        // do for this case.
+        if state_changes.intersects(IN_VISITED_OR_UNVISITED_STATE) {
+            trace!(" > visitedness change, force subtree restyle");
+            // We can't just return here because there may also be attribute
+            // changes as well that imply additional hints.
+            let mut data = self.data.as_mut().unwrap();
+            data.ensure_restyle().hint.insert(RestyleHint::restyle_subtree().into());
         }
 
         let mut classes_removed = SmallVec::<[Atom; 8]>::new();
@@ -525,7 +537,10 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
             self.removed_id,
             self.classes_removed,
             &mut |dependency| {
-                self.scan_dependency(dependency);
+                self.scan_dependency(
+                    dependency,
+                    /* is_visited_dependent = */ false
+                );
                 true
             },
         );
@@ -544,13 +559,20 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
                 if !dependency.state.intersects(state_changes) {
                     return true;
                 }
-                self.scan_dependency(&dependency.dep);
+                self.scan_dependency(
+                    &dependency.dep,
+                    dependency.state.intersects(IN_VISITED_OR_UNVISITED_STATE)
+                );
                 true
             },
         );
     }
 
-    fn scan_dependency(&mut self, dependency: &Dependency) {
+    fn scan_dependency(
+        &mut self,
+        dependency: &Dependency,
+        is_visited_dependent: bool
+    ) {
         debug!("TreeStyleInvalidator::scan_dependency({:?}, {:?}, {})",
                self.element,
                dependency,
@@ -599,7 +621,46 @@ impl<'a, 'b: 'a, E> InvalidationCollector<'a, 'b, E>
         // of whether a relevant link was found.
         if matched_then != matches_now ||
            then_context.relevant_link_found != now_context.relevant_link_found {
-            self.note_dependency(dependency);
+            return self.note_dependency(dependency);
+        }
+
+        // If there is a relevant link, then we also matched in visited
+        // mode.
+        //
+        // Match again in this mode to ensure this also matches.
+        //
+        // Note that we never actually match directly against the element's true
+        // visited state at all, since that would expose us to timing attacks.
+        //
+        // The matching process only considers the relevant link state and
+        // visited handling mode when deciding if visited matches.  Instead, we
+        // are rematching here in case there is some :visited selector whose
+        // matching result changed for some other state or attribute change of
+        // this element (for example, for things like [foo]:visited).
+        //
+        // NOTE: This thing is actually untested because testing it is flaky,
+        // see the tests that were added and then backed out in bug 1328509.
+        if is_visited_dependent && now_context.relevant_link_found {
+            then_context.visited_handling = VisitedHandlingMode::RelevantLinkVisited;
+            let matched_then =
+                matches_selector(&dependency.selector,
+                                 dependency.selector_offset,
+                                 &dependency.hashes,
+                                 &self.wrapper,
+                                 &mut then_context,
+                                 &mut |_, _| {});
+
+            now_context.visited_handling = VisitedHandlingMode::RelevantLinkVisited;
+            let matches_now =
+                matches_selector(&dependency.selector,
+                                 dependency.selector_offset,
+                                 &dependency.hashes,
+                                 &self.element,
+                                 &mut now_context,
+                                 &mut |_, _| {});
+            if matched_then != matches_now {
+                return self.note_dependency(dependency);
+            }
         }
     }
 
