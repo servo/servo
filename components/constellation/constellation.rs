@@ -786,6 +786,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                  top_level_id: TopLevelBrowsingContextId,
                  pipeline_id: PipelineId,
                  load_data: LoadData) {
+        debug!("Creating new browsing context {}", browsing_context_id);
         let browsing_context = BrowsingContext::new(browsing_context_id, top_level_id, pipeline_id, load_data);
         self.browsing_contexts.insert(browsing_context_id, browsing_context);
 
@@ -2857,11 +2858,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         while let Some(pipeline) = self.pipelines.get(&pipeline_id) {
             match pipeline.parent_info {
-                Some((parent_id, _)) => {
+                Some((parent_id, _)) => pipeline_id = parent_id,
+                None => {
                     browsing_context_id = pipeline.browsing_context_id;
-                    pipeline_id = parent_id;
+                    break;
                 },
-                None => break,
             }
         }
 
