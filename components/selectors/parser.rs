@@ -2007,7 +2007,7 @@ pub mod tests {
                 ].into_boxed_slice())
             ), specificity(0, 0, 1))
         ))));
-        assert_eq!(parse("[attr |= \"foo\"]"), Ok(SelectorList::from_vec(vec!(
+        assert_eq!(parse("[attr|=\"foo\"]"), Ok(SelectorList::from_vec(vec!(
             Selector::from_vec(vec!(
                 Component::AttributeInNoNamespace {
                     local_name: DummyAtom::from("attr"),
