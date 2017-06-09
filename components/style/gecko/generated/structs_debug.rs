@@ -258,13 +258,6 @@ pub mod root {
     pub const NS_STYLE_IMAGELAYER_POSITION_BOTTOM: ::std::os::raw::c_uint = 4;
     pub const NS_STYLE_IMAGELAYER_POSITION_LEFT: ::std::os::raw::c_uint = 8;
     pub const NS_STYLE_IMAGELAYER_POSITION_RIGHT: ::std::os::raw::c_uint = 16;
-    pub const NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT: ::std::os::raw::c_uint =
-        0;
-    pub const NS_STYLE_IMAGELAYER_REPEAT_REPEAT_X: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_IMAGELAYER_REPEAT_REPEAT_Y: ::std::os::raw::c_uint = 2;
-    pub const NS_STYLE_IMAGELAYER_REPEAT_REPEAT: ::std::os::raw::c_uint = 3;
-    pub const NS_STYLE_IMAGELAYER_REPEAT_SPACE: ::std::os::raw::c_uint = 4;
-    pub const NS_STYLE_IMAGELAYER_REPEAT_ROUND: ::std::os::raw::c_uint = 5;
     pub const NS_STYLE_IMAGELAYER_SIZE_CONTAIN: ::std::os::raw::c_uint = 0;
     pub const NS_STYLE_IMAGELAYER_SIZE_COVER: ::std::os::raw::c_uint = 1;
     pub const NS_STYLE_MASK_MODE_ALPHA: ::std::os::raw::c_uint = 0;
@@ -6417,6 +6410,16 @@ pub mod root {
             Block = 1,
             Horizontal = 2,
             Vertical = 3,
+        }
+        #[repr(u8)]
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        pub enum StyleImageLayerRepeat {
+            NoRepeat = 0,
+            RepeatX = 1,
+            RepeatY = 2,
+            Repeat = 3,
+            Space = 4,
+            Round = 5,
         }
         #[repr(u8)]
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -29977,8 +29980,8 @@ pub mod root {
     #[repr(C)]
     #[derive(Debug, Copy)]
     pub struct nsStyleImageLayers_Repeat {
-        pub mXRepeat: u8,
-        pub mYRepeat: u8,
+        pub mXRepeat: root::mozilla::StyleImageLayerRepeat,
+        pub mYRepeat: root::mozilla::StyleImageLayerRepeat,
     }
     #[test]
     fn bindgen_test_layout_nsStyleImageLayers_Repeat() {

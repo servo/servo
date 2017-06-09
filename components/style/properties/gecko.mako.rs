@@ -2928,25 +2928,22 @@ fn static_assert() {
     <%self:simple_image_array_property name="repeat" shorthand="${shorthand}" field_name="mRepeat">
         use properties::longhands::${shorthand}_repeat::single_value::computed_value::RepeatKeyword;
         use gecko_bindings::structs::nsStyleImageLayers_Repeat;
-        use gecko_bindings::structs::NS_STYLE_IMAGELAYER_REPEAT_REPEAT;
-        use gecko_bindings::structs::NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT;
-        use gecko_bindings::structs::NS_STYLE_IMAGELAYER_REPEAT_SPACE;
-        use gecko_bindings::structs::NS_STYLE_IMAGELAYER_REPEAT_ROUND;
+        use gecko_bindings::structs::StyleImageLayerRepeat;
 
-        fn to_ns(repeat: RepeatKeyword) -> u32 {
+        fn to_ns(repeat: RepeatKeyword) -> StyleImageLayerRepeat {
             match repeat {
-                RepeatKeyword::Repeat => NS_STYLE_IMAGELAYER_REPEAT_REPEAT,
-                RepeatKeyword::Space => NS_STYLE_IMAGELAYER_REPEAT_SPACE,
-                RepeatKeyword::Round => NS_STYLE_IMAGELAYER_REPEAT_ROUND,
-                RepeatKeyword::NoRepeat => NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT,
+                RepeatKeyword::Repeat => StyleImageLayerRepeat::Repeat,
+                RepeatKeyword::Space => StyleImageLayerRepeat::Space,
+                RepeatKeyword::Round => StyleImageLayerRepeat::Round,
+                RepeatKeyword::NoRepeat => StyleImageLayerRepeat::NoRepeat,
             }
         }
 
         let repeat_x = to_ns(servo.0);
         let repeat_y = to_ns(servo.1);
         nsStyleImageLayers_Repeat {
-              mXRepeat: repeat_x as u8,
-              mYRepeat: repeat_y as u8,
+              mXRepeat: repeat_x,
+              mYRepeat: repeat_y,
         }
     </%self:simple_image_array_property>
 
