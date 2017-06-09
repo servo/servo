@@ -3,8 +3,8 @@ import WebIDL
 def WebIDLTest(parser, harness):
     parser.parse("""
         dictionary Dict {};
-        interface MozMapArg {
-          void foo(MozMap<Dict> arg);
+        interface RecordArg {
+          void foo(record<DOMString, Dict> arg);
         };
     """)
 
@@ -19,7 +19,7 @@ def WebIDLTest(parser, harness):
     signature = members[0].signatures()[0]
     args = signature[1]
     harness.check(len(args), 1, "Should have one arg")
-    harness.ok(args[0].type.isMozMap(), "Should have a MozMap type here")
+    harness.ok(args[0].type.isRecord(), "Should have a record type here")
     harness.ok(args[0].type.inner.isDictionary(),
                "Should have a dictionary inner type")
 
@@ -27,13 +27,27 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse("""
-            interface MozMapVoidArg {
-              void foo(MozMap<void> arg);
+            interface RecordVoidArg {
+              void foo(record<DOMString, void> arg);
             };
         """)
 
         results = parser.finish()
     except Exception,x:
         threw = True
+    harness.ok(threw, "Should have thrown because record can't have void as value type.")
+ 
+    parser = parser.reset()
+    threw = False
+    try:
+        parser.parse("""
+            dictionary Dict {
+              record<DOMString, Dict> val;
+            };
+        """)
 
-    harness.ok(threw, "Should have thrown.")
+        results = parser.finish()
+    except Exception,x:
+        threw = True
+    harness.ok(threw,
+               "Should have thrown on dictionary containing itself via record.")

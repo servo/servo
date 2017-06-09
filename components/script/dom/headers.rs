@@ -194,7 +194,7 @@ impl Headers {
                 }
                 Ok(())
             },
-            Some(HeadersInit::ByteStringMozMap(m)) => {
+            Some(HeadersInit::StringByteStringRecord(m)) => {
                 for (key, value) in m.iter() {
                     let key_vec = key.as_ref().to_string().into();
                     let headers_key = ByteString::new(key_vec);

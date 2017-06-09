@@ -4,7 +4,7 @@
 
 // https://fetch.spec.whatwg.org/#headers-class
 
-typedef (Headers or sequence<sequence<ByteString>> or MozMap<ByteString>) HeadersInit;
+typedef (Headers or sequence<sequence<ByteString>> or record<DOMString, ByteString>) HeadersInit;
 
 [Constructor(optional HeadersInit init),
  Exposed=(Window,Worker)]

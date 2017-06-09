@@ -662,9 +662,9 @@ impl TestBindingMethods for TestBinding {
     fn PassStringMozMap(&self, _: MozMap<DOMString>) {}
     fn PassByteStringMozMap(&self, _: MozMap<ByteString>) {}
     fn PassMozMapOfMozMaps(&self, _: MozMap<MozMap<i32>>) {}
-    fn PassMozMapUnion(&self, _: UnionTypes::LongOrByteStringMozMap) {}
-    fn PassMozMapUnion2(&self, _: UnionTypes::TestBindingOrByteStringMozMap) {}
-    fn PassMozMapUnion3(&self, _: UnionTypes::TestBindingOrByteStringSequenceSequenceOrByteStringMozMap) {}
+    fn PassMozMapUnion(&self, _: UnionTypes::LongOrStringByteStringRecord) {}
+    fn PassMozMapUnion2(&self, _: UnionTypes::TestBindingOrStringByteStringRecord) {}
+    fn PassMozMapUnion3(&self, _: UnionTypes::TestBindingOrByteStringSequenceSequenceOrStringByteStringRecord) {}
     fn ReceiveMozMap(&self) -> MozMap<i32> { MozMap::new() }
     fn ReceiveNullableMozMap(&self) -> Option<MozMap<i32>> { Some(MozMap::new()) }
     fn ReceiveMozMapOfNullableInts(&self) -> MozMap<Option<i32>> { MozMap::new() }
@@ -748,9 +748,6 @@ impl TestBindingMethods for TestBinding {
     }
 
     fn AcceptPromise(&self, _promise: &Promise) {
-    }
-
-    fn AcceptNullablePromise(&self, _promise: Option<&Promise>) {
     }
 
     fn PassSequenceSequence(&self, _seq: Vec<Vec<i32>>) {}

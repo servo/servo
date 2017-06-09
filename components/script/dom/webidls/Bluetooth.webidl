@@ -16,9 +16,9 @@ dictionary BluetoothLEScanFilterInit {
   DOMString name;
   DOMString namePrefix;
   // Maps unsigned shorts to BluetoothDataFilters.
-  MozMap<BluetoothDataFilterInit> manufacturerData;
+  record<DOMString, BluetoothDataFilterInit> manufacturerData;
   // Maps BluetoothServiceUUIDs to BluetoothDataFilters.
-  MozMap<BluetoothDataFilterInit> serviceData;
+  record<DOMString, BluetoothDataFilterInit> serviceData;
 };
 
 dictionary RequestDeviceOptions {

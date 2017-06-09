@@ -6,15 +6,14 @@ def WebIDLTest(parser, harness):
           getter long long (unsigned long index);
           setter long long (unsigned long index, long long value);
           creator long long (unsigned long index, long long value);
-          deleter long long (unsigned long index);
           getter boolean (DOMString name);
           setter boolean (DOMString name, boolean value);
           creator boolean (DOMString name, boolean value);
           deleter boolean (DOMString name);
+          readonly attribute unsigned long length;
         };
 
         interface SpecialMethodsCombination {
-          getter deleter long long (unsigned long index);
           setter creator long long (unsigned long index, long long value);
           getter deleter boolean (DOMString name);
           setter creator boolean (DOMString name, boolean value);
@@ -49,25 +48,39 @@ def WebIDLTest(parser, harness):
                 setter=True)
     checkMethod(iface.members[2], "::SpecialMethods::__indexedcreator", "__indexedcreator",
                 creator=True)
-    checkMethod(iface.members[3], "::SpecialMethods::__indexeddeleter", "__indexeddeleter",
-                deleter=True)
-    checkMethod(iface.members[4], "::SpecialMethods::__namedgetter", "__namedgetter",
+    checkMethod(iface.members[3], "::SpecialMethods::__namedgetter", "__namedgetter",
                 getter=True)
-    checkMethod(iface.members[5], "::SpecialMethods::__namedsetter", "__namedsetter",
+    checkMethod(iface.members[4], "::SpecialMethods::__namedsetter", "__namedsetter",
                 setter=True)
-    checkMethod(iface.members[6], "::SpecialMethods::__namedcreator", "__namedcreator",
+    checkMethod(iface.members[5], "::SpecialMethods::__namedcreator", "__namedcreator",
                 creator=True)
-    checkMethod(iface.members[7], "::SpecialMethods::__nameddeleter", "__nameddeleter",
+    checkMethod(iface.members[6], "::SpecialMethods::__nameddeleter", "__nameddeleter",
                 deleter=True)
 
     iface = results[1]
-    harness.check(len(iface.members), 4, "Expect 4 members")
+    harness.check(len(iface.members), 3, "Expect 3 members")
 
-    checkMethod(iface.members[0], "::SpecialMethodsCombination::__indexedgetterdeleter",
-                "__indexedgetterdeleter", getter=True, deleter=True)
-    checkMethod(iface.members[1], "::SpecialMethodsCombination::__indexedsettercreator",
+    checkMethod(iface.members[0], "::SpecialMethodsCombination::__indexedsettercreator",
                 "__indexedsettercreator", setter=True, creator=True)
-    checkMethod(iface.members[2], "::SpecialMethodsCombination::__namedgetterdeleter",
+    checkMethod(iface.members[1], "::SpecialMethodsCombination::__namedgetterdeleter",
                 "__namedgetterdeleter", getter=True, deleter=True)
-    checkMethod(iface.members[3], "::SpecialMethodsCombination::__namedsettercreator",
+    checkMethod(iface.members[2], "::SpecialMethodsCombination::__namedsettercreator",
                 "__namedsettercreator", setter=True, creator=True)
+
+    parser = parser.reset();
+
+    threw = False
+    try:
+        parser.parse(
+            """
+            interface IndexedDeleter {
+              deleter void(unsigned long index);
+            };
+            """)
+        parser.finish()
+    except:
+        threw = True
+
+    harness.ok(threw, "There are no indexed deleters")
+        
+        

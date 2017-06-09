@@ -88,6 +88,8 @@ def WebIDLTest(parser, harness):
     disallowedNonMethodNames = ["clear", "delete"]
     mapDisallowedNonMethodNames = ["set"] + disallowedNonMethodNames
     setDisallowedNonMethodNames = ["add"] + disallowedNonMethodNames
+    unrelatedMembers = [("unrelatedAttribute", WebIDL.IDLAttribute),
+                        ("unrelatedMethod", WebIDL.IDLMethod)]
 
     #
     # Simple Usage Tests
@@ -99,52 +101,147 @@ def WebIDLTest(parser, harness):
                iterable<long>;
                readonly attribute unsigned long length;
                getter long(unsigned long index);
+               attribute long unrelatedAttribute;
+               long unrelatedMethod();
                };
-               """, valueIterableMembers)
+               """, valueIterableMembers + unrelatedMembers)
+
+    shouldPass("Iterable (key only) inheriting from parent",
+               """
+               interface Foo1 : Foo2 {
+               iterable<long>;
+               readonly attribute unsigned long length;
+               getter long(unsigned long index);
+               };
+               interface Foo2 {
+               attribute long unrelatedAttribute;
+               long unrelatedMethod();
+               };
+               """, valueIterableMembers, numProductions=2)
 
     shouldPass("Iterable (key and value)",
                """
                interface Foo1 {
                iterable<long, long>;
+               attribute long unrelatedAttribute;
+               long unrelatedMethod();
                };
-               """, iterableMembers,
+               """, iterableMembers + unrelatedMembers,
                # numProductions == 2 because of the generated iterator iface,
                numProductions=2)
 
-    shouldPass("Maplike (readwrite)",
+    shouldPass("Iterable (key and value) inheriting from parent",
                """
-               interface Foo1 {
-               maplike<long, long>;
+               interface Foo1 : Foo2 {
+               iterable<long, long>;
                };
-               """, mapRWMembers)
+               interface Foo2 {
+               attribute long unrelatedAttribute;
+               long unrelatedMethod();
+               };
+               """, iterableMembers,
+               # numProductions == 3 because of the generated iterator iface,
+               numProductions=3)
 
     shouldPass("Maplike (readwrite)",
                """
                interface Foo1 {
                maplike<long, long>;
+               attribute long unrelatedAttribute;
+               long unrelatedMethod();
                };
-               """, mapRWMembers)
+               """, mapRWMembers + unrelatedMembers)
+
+    shouldPass("Maplike (readwrite) inheriting from parent",
+               """
+               interface Foo1 : Foo2 {
+               maplike<long, long>;
+               };
+               interface Foo2 {
+               attribute long unrelatedAttribute;
+               long unrelatedMethod();
+               };
+               """, mapRWMembers, numProductions=2)
+
+    shouldPass("Maplike (readwrite)",
+               """
+               interface Foo1 {
+               maplike<long, long>;
+               attribute long unrelatedAttribute;
+               long unrelatedMethod();
+               };
+               """, mapRWMembers + unrelatedMembers)
+
+    shouldPass("Maplike (readwrite) inheriting from parent",
+               """
+               interface Foo1 : Foo2 {
+               maplike<long, long>;
+               };
+               interface Foo2 {
+               attribute long unrelatedAttribute;
+               long unrelatedMethod();
+               };
+               """, mapRWMembers, numProductions=2)
 
     shouldPass("Maplike (readonly)",
                """
                interface Foo1 {
                readonly maplike<long, long>;
+               attribute long unrelatedAttribute;
+               long unrelatedMethod();
                };
-               """, mapROMembers)
+               """, mapROMembers + unrelatedMembers)
+
+    shouldPass("Maplike (readonly) inheriting from parent",
+               """
+               interface Foo1 : Foo2 {
+               readonly maplike<long, long>;
+               };
+               interface Foo2 {
+               attribute long unrelatedAttribute;
+               long unrelatedMethod();
+               };
+               """, mapROMembers, numProductions=2)
 
     shouldPass("Setlike (readwrite)",
                """
                interface Foo1 {
                setlike<long>;
+               attribute long unrelatedAttribute;
+               long unrelatedMethod();
                };
-               """, setRWMembers)
+               """, setRWMembers + unrelatedMembers)
+
+    shouldPass("Setlike (readwrite) inheriting from parent",
+               """
+               interface Foo1 : Foo2 {
+               setlike<long>;
+               };
+               interface Foo2 {
+               attribute long unrelatedAttribute;
+               long unrelatedMethod();
+               };
+               """, setRWMembers, numProductions=2)
 
     shouldPass("Setlike (readonly)",
                """
                interface Foo1 {
                readonly setlike<long>;
+               attribute long unrelatedAttribute;
+               long unrelatedMethod();
                };
-               """, setROMembers)
+               """, setROMembers + unrelatedMembers)
+
+    shouldPass("Setlike (readonly) inheriting from parent",
+               """
+               interface Foo1 : Foo2 {
+               readonly setlike<long>;
+               };
+               interface Foo2 {
+               attribute long unrelatedAttribute;
+               long unrelatedMethod();
+               };
+               """, setROMembers, numProductions=2)
 
     shouldPass("Inheritance of maplike/setlike",
                """

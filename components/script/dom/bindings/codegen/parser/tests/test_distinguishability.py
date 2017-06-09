@@ -158,21 +158,27 @@ def WebIDLTest(parser, harness):
                  "CallbackInterface?", "CallbackInterface2",
                  "object", "Callback", "Callback2", "optional Dict",
                  "optional Dict2", "sequence<long>", "sequence<short>",
-                 "MozMap<object>", "MozMap<Dict>", "MozMap<long>",
+                 "record<DOMString, object>",
+                 "record<USVString, Dict>",
+                 "record<ByteString, long>",
                  "Date", "Date?", "any",
                  "Promise<any>", "Promise<any>?",
                  "USVString", "ArrayBuffer", "ArrayBufferView", "SharedArrayBuffer",
-                 "Uint8Array", "Uint16Array" ]
-    # When we can parse Date and RegExp, we need to add them here.
+                 "Uint8Array", "Uint16Array",
+                 "(long or Callback)", "optional (long or Dict)",
+    ]
+    # When we can parse Date, we need to add it here.
+    # XXXbz we can, and should really do that...
 
     # Try to categorize things a bit to keep list lengths down
     def allBut(list1, list2):
         return [a for a in list1 if a not in list2 and
                 (a != "any" and a != "Promise<any>" and a != "Promise<any>?")]
+    unions = [ "(long or Callback)", "optional (long or Dict)" ]
     numerics = [ "long", "short", "long?", "short?" ]
     booleans = [ "boolean", "boolean?" ]
     primitives = numerics + booleans
-    nonNumerics = allBut(argTypes, numerics)
+    nonNumerics = allBut(argTypes, numerics + unions)
     nonBooleans = allBut(argTypes, booleans)
     strings = [ "DOMString", "ByteString", "Enum", "Enum2", "USVString" ]
     nonStrings = allBut(argTypes, strings)
@@ -182,16 +188,18 @@ def WebIDLTest(parser, harness):
     sharedBufferSourceTypes = ["SharedArrayBuffer"]
     interfaces = [ "Interface", "Interface?", "AncestorInterface",
                    "UnrelatedInterface", "ImplementedInterface" ] + bufferSourceTypes + sharedBufferSourceTypes
-    nullables = ["long?", "short?", "boolean?", "Interface?",
-                 "CallbackInterface?", "optional Dict", "optional Dict2",
-                 "Date?", "any", "Promise<any>?"]
+    nullables = (["long?", "short?", "boolean?", "Interface?",
+                  "CallbackInterface?", "optional Dict", "optional Dict2",
+                  "Date?", "any", "Promise<any>?"] +
+                 allBut(unions, [ "(long or Callback)" ]))
     dates = [ "Date", "Date?" ]
     sequences = [ "sequence<long>", "sequence<short>" ]
     nonUserObjects = nonObjects + interfaces + dates + sequences
     otherObjects = allBut(argTypes, nonUserObjects + ["object"])
     notRelatedInterfaces = (nonObjects + ["UnrelatedInterface"] +
                             otherObjects + dates + sequences + bufferSourceTypes + sharedBufferSourceTypes)
-    mozMaps = [ "MozMap<object>", "MozMap<Dict>", "MozMap<long>" ]
+    records = [ "record<DOMString, object>", "record<USVString, Dict>",
+                "record<ByteString, long>" ]
 
     # Build a representation of the distinguishability table as a dict
     # of dicts, holding True values where needed, holes elsewhere.
@@ -231,9 +239,9 @@ def WebIDLTest(parser, harness):
                        allBut(argTypes, sequences + ["object"]))
     setDistinguishable("sequence<short>",
                        allBut(argTypes, sequences + ["object"]))
-    setDistinguishable("MozMap<object>", nonUserObjects)
-    setDistinguishable("MozMap<Dict>", nonUserObjects)
-    setDistinguishable("MozMap<long>", nonUserObjects)
+    setDistinguishable("record<DOMString, object>", nonUserObjects)
+    setDistinguishable("record<USVString, Dict>", nonUserObjects)
+    setDistinguishable("record<ByteString, long>", nonUserObjects)
     setDistinguishable("Date", allBut(argTypes, dates + ["object"]))
     setDistinguishable("Date?", allBut(argTypes, dates + nullables + ["object"]))
     setDistinguishable("any", [])
@@ -244,6 +252,10 @@ def WebIDLTest(parser, harness):
     setDistinguishable("Uint8Array", allBut(argTypes, ["ArrayBufferView", "Uint8Array", "object"]))
     setDistinguishable("Uint16Array", allBut(argTypes, ["ArrayBufferView", "Uint16Array", "object"]))
     setDistinguishable("SharedArrayBuffer", allBut(argTypes, ["SharedArrayBuffer", "object"]))
+    setDistinguishable("(long or Callback)",
+                       allBut(nonUserObjects, numerics))
+    setDistinguishable("optional (long or Dict)",
+                       allBut(nonUserObjects, numerics + nullables))
 
     def areDistinguishable(type1, type2):
         return data[type1].get(type2, False)
@@ -263,7 +275,6 @@ def WebIDLTest(parser, harness):
           callback Callback2 = long(short arg);
           dictionary Dict {};
           dictionary Dict2 {};
-          interface _Promise {};
           interface TestInterface {%s
           };
         """
