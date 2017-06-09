@@ -137,10 +137,6 @@ impl AlignJustifyContent {
         AlignJustifyContent(flags.bits() as u16 | ((fallback.bits() as u16) << ALIGN_ALL_SHIFT))
     }
 
-    /// The combined 16-bit flags, for copying into a Gecko style struct.
-    #[inline]
-    pub fn bits(self) -> u16 { self.0 }
-
     /// The primary alignment
     #[inline]
     pub fn primary(self) -> AlignFlags {
@@ -322,6 +318,20 @@ impl Parse for JustifyItems {
             return Ok(JustifyItems(value))
         }
         Err(())
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl From<u16> for AlignJustifyContent {
+    fn from(bits: u16) -> AlignJustifyContent {
+        AlignJustifyContent(bits)
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl From<AlignJustifyContent> for u16 {
+    fn from(v: AlignJustifyContent) -> u16 {
+        v.0
     }
 }
 

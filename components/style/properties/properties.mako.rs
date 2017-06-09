@@ -53,6 +53,23 @@ macro_rules! property_name {
     ($s: tt) => { atom!($s) }
 }
 
+#[cfg(feature = "gecko")]
+macro_rules! impl_bitflags_conversions {
+    ($name: ident) => {
+        impl From<u8> for $name {
+            fn from(bits: u8) -> $name {
+                $name::from_bits(bits).expect("bits contain valid flag")
+            }
+        }
+
+        impl From<$name> for u8 {
+            fn from(v: $name) -> u8 {
+                v.bits()
+            }
+        }
+    };
+}
+
 <%!
     from data import Method, Keyword, to_rust_ident, to_camel_case, SYSTEM_FONT_LONGHANDS
     import os.path

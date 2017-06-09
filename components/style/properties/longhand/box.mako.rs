@@ -1925,7 +1925,7 @@ ${helpers.predefined_type("shape-outside", "basic_shape::FloatAreaShape",
 
 <%helpers:longhand name="touch-action"
                    products="gecko"
-                   animation_value_type="none"
+                   animation_value_type="discrete"
                    disable_when_testing="True"
                    spec="https://compat.spec.whatwg.org/#touch-action">
     use gecko_bindings::structs;
@@ -1999,4 +1999,7 @@ ${helpers.predefined_type("shape-outside", "basic_shape::FloatAreaShape",
             _ => Err(()),
         }
     }
+
+    #[cfg(feature = "gecko")]
+    impl_bitflags_conversions!(SpecifiedValue);
 </%helpers:longhand>
