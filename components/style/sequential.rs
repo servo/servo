@@ -32,7 +32,7 @@ pub fn traverse_dom<E, D>(traversal: &D,
     let root_depth = root.depth();
 
     if token.traverse_unstyled_children_only() {
-        for kid in root.as_node().children() {
+        for kid in root.as_node().traversal_children() {
             if kid.as_element().map_or(false, |el| el.get_data().is_none()) {
                 discovered.push_back(WorkItem(kid, root_depth + 1));
             }

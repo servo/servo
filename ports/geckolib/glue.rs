@@ -198,7 +198,7 @@ fn traverse_subtree(element: GeckoElement,
                     snapshots: &ServoElementSnapshotTable) {
     // When new content is inserted in a display:none subtree, we will call into
     // servo to try to style it. Detect that here and bail out.
-    if let Some(parent) = element.parent_element() {
+    if let Some(parent) = element.traversal_parent() {
         if parent.borrow_data().map_or(true, |d| d.styles().is_display_none()) {
             debug!("{:?} has unstyled parent {:?} - ignoring call to traverse_subtree", element, parent);
             return;
@@ -2398,7 +2398,7 @@ unsafe fn maybe_restyle<'a>(data: &'a mut AtomicRefMut<ElementData>,
     }
 
     // Propagate the bit up the chain.
-    if let Some(p) = element.parent_element() {
+    if let Some(p) = element.traversal_parent() {
         if animation_only {
             p.note_descendants::<AnimationOnlyDirtyDescendants>();
         } else {
@@ -2735,7 +2735,7 @@ pub extern "C" fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed) {
     let root = GeckoElement(root);
     fn assert_subtree_is_clean<'le>(el: GeckoElement<'le>) {
         debug_assert!(!el.has_dirty_descendants() && !el.has_animation_only_dirty_descendants());
-        for child in el.as_node().children() {
+        for child in el.as_node().traversal_children() {
             if let Some(child) = child.as_element() {
                 assert_subtree_is_clean(child);
             }

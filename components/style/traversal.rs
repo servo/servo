@@ -192,7 +192,7 @@ pub trait DomTraversal<E: TElement> : Sync {
                 if node.opaque() == root {
                     break;
                 }
-                let parent = node.parent_element().unwrap();
+                let parent = node.traversal_parent().unwrap();
                 let remaining = parent.did_process_child();
                 if remaining != 0 {
                     // The parent has other unprocessed descendants. We only
@@ -308,7 +308,7 @@ pub trait DomTraversal<E: TElement> : Sync {
         // But it may be that we no longer match, so detect that case
         // and act appropriately here.
         if el.is_native_anonymous() {
-            if let Some(parent) = el.parent_element() {
+            if let Some(parent) = el.traversal_parent() {
                 let parent_data = parent.borrow_data().unwrap();
                 let going_to_reframe = parent_data.get_restyle().map_or(false, |r| {
                     (r.damage | r.damage_handled())
@@ -467,7 +467,7 @@ pub trait DomTraversal<E: TElement> : Sync {
             return;
         }
 
-        for kid in parent.as_node().children() {
+        for kid in parent.as_node().traversal_children() {
             if Self::node_needs_traversal(kid, self.shared_context().traversal_flags) {
                 // If we are in a restyle for reconstruction, there is no need to
                 // perform a post-traversal, so we don't need to set the dirty
@@ -527,7 +527,7 @@ fn resolve_style_internal<E, F>(context: &mut StyleContext<E>,
     // If the Element isn't styled, we need to compute its style.
     if data.get_styles().is_none() {
         // Compute the parent style if necessary.
-        let parent = element.parent_element();
+        let parent = element.traversal_parent();
         if let Some(p) = parent {
             display_none_root = resolve_style_internal(context, p, ensure_data);
         }
@@ -604,7 +604,7 @@ pub fn resolve_style<E, F, G, H>(context: &mut StyleContext<E>, element: E,
                 break;
             }
             clear_data(curr);
-            curr = match curr.parent_element() {
+            curr = match curr.traversal_parent() {
                 Some(parent) => parent,
                 None => break,
             };
@@ -632,7 +632,7 @@ pub fn resolve_default_style<E, F, G, H>(context: &mut StyleContext<E>,
         let mut e = element;
         loop {
             old_data.push((e, set_data(e, None)));
-            match e.parent_element() {
+            match e.traversal_parent() {
                 Some(parent) => e = parent,
                 None => break,
             }
@@ -862,8 +862,8 @@ fn preprocess_children<E, D>(context: &mut StyleContext<E>,
 {
     trace!("preprocess_children: {:?}", element);
 
-    // Loop over all the children.
-    for child in element.as_node().children() {
+    // Loop over all the traversal children.
+    for child in element.as_node().traversal_children() {
         // FIXME(bholley): Add TElement::element_children instead of this.
         let child = match child.as_element() {
             Some(el) => el,
@@ -919,7 +919,7 @@ fn preprocess_children<E, D>(context: &mut StyleContext<E>,
 
 /// Clear style data for all the subtree under `el`.
 pub fn clear_descendant_data<E: TElement, F: Fn(E)>(el: E, clear_data: &F) {
-    for kid in el.as_node().children() {
+    for kid in el.as_node().traversal_children() {
         if let Some(kid) = kid.as_element() {
             // We maintain an invariant that, if an element has data, all its ancestors
             // have data as well. By consequence, any element without data has no

@@ -89,7 +89,7 @@ impl<E: TElement> StyleBloom<E> {
     pub fn push(&mut self, element: E) {
         if cfg!(debug_assertions) {
             if self.elements.is_empty() {
-                assert!(element.parent_element().is_none());
+                assert!(element.traversal_parent().is_none());
             }
         }
         self.push_internal(element);
@@ -139,7 +139,7 @@ impl<E: TElement> StyleBloom<E> {
     pub fn rebuild(&mut self, mut element: E) {
         self.clear();
 
-        while let Some(parent) = element.parent_element() {
+        while let Some(parent) = element.traversal_parent() {
             self.push_internal(parent);
             element = parent;
         }
@@ -155,7 +155,7 @@ impl<E: TElement> StyleBloom<E> {
     pub fn assert_complete(&self, mut element: E) {
         if cfg!(debug_assertions) {
             let mut checked = 0;
-            while let Some(parent) = element.parent_element() {
+            while let Some(parent) = element.traversal_parent() {
                 assert_eq!(parent, *self.elements[self.elements.len() - 1 - checked]);
                 element = parent;
                 checked += 1;
@@ -190,7 +190,7 @@ impl<E: TElement> StyleBloom<E> {
             return;
         }
 
-        let parent_element = match element.parent_element() {
+        let traversal_parent = match element.traversal_parent() {
             Some(parent) => parent,
             None => {
                 // Yay, another easy case.
@@ -199,7 +199,7 @@ impl<E: TElement> StyleBloom<E> {
             }
         };
 
-        if self.current_parent() == Some(parent_element) {
+        if self.current_parent() == Some(traversal_parent) {
             // Ta da, cache hit, we're all done.
             return;
         }
@@ -232,8 +232,8 @@ impl<E: TElement> StyleBloom<E> {
         }
 
         // Now let's try to find a common parent in the bloom filter chain,
-        // starting with parent_element.
-        let mut common_parent = parent_element;
+        // starting with traversal_parent.
+        let mut common_parent = traversal_parent;
         let mut common_parent_depth = element_depth - 1;
 
         // Let's collect the parents we are going to need to insert once we've
@@ -247,7 +247,7 @@ impl<E: TElement> StyleBloom<E> {
             // reverse the slice.
             parents_to_insert.push(common_parent);
             common_parent =
-                common_parent.parent_element().expect("We were lied");
+                common_parent.traversal_parent().expect("We were lied to");
             common_parent_depth -= 1;
         }
 
@@ -269,7 +269,7 @@ impl<E: TElement> StyleBloom<E> {
         while **self.elements.last().unwrap() != common_parent {
             parents_to_insert.push(common_parent);
             self.pop().unwrap();
-            common_parent = match common_parent.parent_element() {
+            common_parent = match common_parent.traversal_parent() {
                 Some(parent) => parent,
                 None => {
                     debug_assert!(self.elements.is_empty());
