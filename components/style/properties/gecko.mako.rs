@@ -566,7 +566,7 @@ def set_gecko_property(ffi_name, expr):
     % endif
 </%def>
 
-<%def name="impl_corner_style_coord(ident, gecko_ffi_name, x_index, y_index, need_clone=False)">
+<%def name="impl_corner_style_coord(ident, gecko_ffi_name, x_index, y_index, need_clone)">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         v.0.width.to_gecko_style_coord(&mut self.gecko.${gecko_ffi_name}.data_at_mut(${x_index}));
@@ -1485,7 +1485,8 @@ fn static_assert() {
     <% impl_corner_style_coord("_moz_outline_radius_%s" % corner.ident.replace("_", ""),
                                "mOutlineRadius",
                                corner.x_index,
-                               corner.y_index) %>
+                               corner.y_index,
+                               need_clone=True) %>
     % endfor
 
     pub fn outline_has_nonzero_width(&self) -> bool {
@@ -3318,10 +3319,48 @@ fn static_assert() {
             Either::First(rect) => {
                 self.gecko.mImageRegion.x = rect.left.unwrap_or(Au(0)).0;
                 self.gecko.mImageRegion.y = rect.top.unwrap_or(Au(0)).0;
-                self.gecko.mImageRegion.height = rect.bottom.unwrap_or(Au(0)).0 - self.gecko.mImageRegion.y;
-                self.gecko.mImageRegion.width = rect.right.unwrap_or(Au(0)).0 - self.gecko.mImageRegion.x;
+                self.gecko.mImageRegion.height = match rect.bottom {
+                    Some(value) => value.0 - self.gecko.mImageRegion.y,
+                    None => 0,
+                };
+                self.gecko.mImageRegion.width = match rect.right {
+                    Some(value) => value.0 - self.gecko.mImageRegion.x,
+                    None => 0,
+                };
             }
         }
+    }
+
+    #[allow(non_snake_case)]
+    pub fn clone__moz_image_region(&self) -> longhands::_moz_image_region::computed_value::T {
+        use values::{Auto, Either};
+        use values::computed::ClipRect;
+
+        // There is no ideal way to detect auto type for structs::nsRect and its components, so
+        // if all components are zero, we use Auto.
+        if self.gecko.mImageRegion.x == 0 &&
+           self.gecko.mImageRegion.y == 0 &&
+           self.gecko.mImageRegion.width == 0 &&
+           self.gecko.mImageRegion.height == 0 {
+           return Either::Second(Auto);
+        }
+
+        let get_clip_rect_component = |value: structs::nscoord| -> Option<Au> {
+            if value == 0 {
+                None
+            } else {
+                Some(Au(value))
+            }
+        };
+
+        Either::First(ClipRect {
+            top: get_clip_rect_component(self.gecko.mImageRegion.y),
+            right: get_clip_rect_component(self.gecko.mImageRegion.width).map(
+                |v| v + Au(self.gecko.mImageRegion.x)),
+            bottom: get_clip_rect_component(self.gecko.mImageRegion.height).map(
+                |v| v + Au(self.gecko.mImageRegion.y)),
+            left: get_clip_rect_component(self.gecko.mImageRegion.x),
+        })
     }
 
     ${impl_simple_copy('_moz_image_region', 'mImageRegion')}
@@ -3778,6 +3817,17 @@ fn static_assert() {
             Either::First(au) => {
                 self.gecko.mTabSize.set(au);
             }
+        }
+    }
+
+    #[allow(non_snake_case)]
+    pub fn clone__moz_tab_size(&self) -> longhands::_moz_tab_size::computed_value::T {
+        use values::Either;
+
+        match self.gecko.mTabSize.as_value() {
+            CoordDataValue::Coord(coord) => Either::First(Au(coord)),
+            CoordDataValue::Factor(number) => Either::Second(number),
+            _ => unreachable!(),
         }
     }
 

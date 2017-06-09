@@ -697,7 +697,7 @@ ${helpers.predefined_type(
     "-moz-tab-size", "LengthOrNumber",
     "::values::Either::Second(8.0)",
     "parse_non_negative",
-    products="gecko", animation_value_type="none",
+    products="gecko", animation_value_type="ComputedValue",
     spec="https://drafts.csswg.org/css-text-3/#tab-size-property")}
 
 

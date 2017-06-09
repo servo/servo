@@ -228,7 +228,7 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
 ${helpers.predefined_type("-moz-image-region",
                           "ClipRectOrAuto",
                           "computed::ClipRectOrAuto::auto()",
-                          animation_value_type="none",
+                          animation_value_type="ComputedValue",
                           products="gecko",
                           boxed="True",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-image-region)")}
