@@ -283,7 +283,7 @@ impl<'ln> TNode for GeckoNode<'ln> {
         if fast_path {
             unsafe { self.0.mParent.as_ref().map(GeckoNode) }
         } else {
-            unsafe { bindings::Gecko_GetParentNode(self.0).map(GeckoNode) }
+            unsafe { bindings::Gecko_GetFlattenedTreeParentNode(self.0).map(GeckoNode) }
         }
     }
 
