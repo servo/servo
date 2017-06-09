@@ -800,6 +800,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
+    fn add_pending_change(&mut self, change: SessionHistoryChange)
+    {
+        self.handle_load_start_msg(change.new_pipeline_id);
+        self.pending_changes.push(change);
+    }
+
     /// Handles loading pages, navigation, and granting access to the compositor
     #[allow(unsafe_code)]
     fn handle_request(&mut self) {
@@ -1418,8 +1424,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let sandbox = IFrameSandboxState::IFrameSandboxed;
         self.new_pipeline(new_pipeline_id, browsing_context_id, top_level_browsing_context_id, parent_info,
                           window_size, load_data.clone(), sandbox, false);
-        self.handle_load_start_msg(new_pipeline_id);
-        self.pending_changes.push(SessionHistoryChange {
+        self.add_pending_change(SessionHistoryChange {
             top_level_browsing_context_id: top_level_browsing_context_id,
             browsing_context_id: browsing_context_id,
             new_pipeline_id: new_pipeline_id,
@@ -1476,8 +1481,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                           load_data.clone(),
                           sandbox,
                           false);
-        self.handle_load_start_msg(pipeline_id);
-        self.pending_changes.push(SessionHistoryChange {
+        self.add_pending_change(SessionHistoryChange {
             top_level_browsing_context_id: top_level_browsing_context_id,
             browsing_context_id: browsing_context_id,
             new_pipeline_id: pipeline_id,
@@ -1573,8 +1577,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         };
 
         // Create the new pipeline, attached to the parent and push to pending changes
-        self.handle_load_start_msg(load_info.info.new_pipeline_id);
-        self.pending_changes.push(SessionHistoryChange {
+        self.add_pending_change(SessionHistoryChange {
             top_level_browsing_context_id: load_info.info.top_level_browsing_context_id,
             browsing_context_id: load_info.info.browsing_context_id,
             new_pipeline_id: load_info.info.new_pipeline_id,
@@ -1639,8 +1642,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         assert!(!self.pipelines.contains_key(&new_pipeline_id));
         self.pipelines.insert(new_pipeline_id, pipeline);
 
-        self.handle_load_start_msg(new_pipeline_id);
-        self.pending_changes.push(SessionHistoryChange {
+        self.add_pending_change(SessionHistoryChange {
             top_level_browsing_context_id: top_level_browsing_context_id,
             browsing_context_id: browsing_context_id,
             new_pipeline_id: new_pipeline_id,
@@ -1791,8 +1793,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 let new_pipeline_id = PipelineId::new();
                 let sandbox = IFrameSandboxState::IFrameUnsandboxed;
                 let replace_instant = if replace { Some(timestamp) } else { None };
-                self.handle_load_start_msg(new_pipeline_id);
-                self.pending_changes.push(SessionHistoryChange {
+                self.add_pending_change(SessionHistoryChange {
                     top_level_browsing_context_id: top_level_id,
                     browsing_context_id: browsing_context_id,
                     new_pipeline_id: new_pipeline_id,
@@ -2180,8 +2181,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 };
                 self.new_pipeline(new_pipeline_id, browsing_context_id, top_level_id, parent_info,
                                   window_size, load_data.clone(), sandbox, is_private);
-                self.handle_load_start_msg(new_pipeline_id);
-                self.pending_changes.push(SessionHistoryChange {
+                self.add_pending_change(SessionHistoryChange {
                     top_level_browsing_context_id: top_level_id,
                     browsing_context_id: browsing_context_id,
                     new_pipeline_id: new_pipeline_id,
