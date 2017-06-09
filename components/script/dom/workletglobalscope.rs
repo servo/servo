@@ -20,6 +20,7 @@ use microtask::Microtask;
 use microtask::MicrotaskQueue;
 use msg::constellation_msg::PipelineId;
 use net_traits::ResourceThreads;
+use net_traits::image_cache::ImageCache;
 use profile_traits::mem;
 use profile_traits::time;
 use script_traits::ScriptMsg;
@@ -27,6 +28,7 @@ use script_traits::TimerSchedulerMsg;
 use servo_url::ImmutableOrigin;
 use servo_url::MutableOrigin;
 use servo_url::ServoUrl;
+use std::sync::Arc;
 
 #[dom_struct]
 /// https://drafts.css-houdini.org/worklets/#workletglobalscope
@@ -123,6 +125,8 @@ pub struct WorkletGlobalScopeInit {
     pub constellation_chan: IpcSender<ScriptMsg>,
     /// Message to send to the scheduler
     pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
+    /// The image cache
+    pub image_cache: Arc<ImageCache>,
 }
 
 /// https://drafts.css-houdini.org/worklets/#worklet-global-scope-type
