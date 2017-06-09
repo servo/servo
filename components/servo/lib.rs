@@ -287,8 +287,8 @@ fn create_compositor_channel(event_loop_waker: Box<compositor_thread::EventLoopW
 
 fn create_constellation(user_agent: Cow<'static, str>,
                         config_dir: Option<PathBuf>,
-                        url: Option<ServoUrl>,
-                        compositor_proxy: Box<CompositorProxy + Send>,
+                        url: ServoUrl,
+                        compositor_proxy: CompositorProxy,
                         time_profiler_chan: time::ProfilerChan,
                         mem_profiler_chan: mem::ProfilerChan,
                         debugger_chan: Option<debugger::Sender>,
