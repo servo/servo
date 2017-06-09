@@ -41,14 +41,14 @@ CanvasRenderingContext2D implements CanvasPathDrawingStyles;
 CanvasRenderingContext2D implements CanvasTextDrawingStyles;
 CanvasRenderingContext2D implements CanvasPath;
 
-[NoInterfaceObject]
+[NoInterfaceObject, Exposed=(Window, PaintWorklet)]
 interface CanvasState {
   // state
   void save(); // push state on state stack
   void restore(); // pop state stack and restore state
 };
 
-[NoInterfaceObject]
+[NoInterfaceObject, Exposed=(Window, PaintWorklet)]
 interface CanvasTransform {
   // transformations (default transform is the identity matrix)
   void scale(unrestricted double x, unrestricted double y);
@@ -72,21 +72,21 @@ interface CanvasTransform {
   void resetTransform();
 };
 
-[NoInterfaceObject]
+[NoInterfaceObject, Exposed=(Window, PaintWorklet)]
 interface CanvasCompositing {
   // compositing
   attribute unrestricted double globalAlpha; // (default 1.0)
   attribute DOMString globalCompositeOperation; // (default source-over)
 };
 
-[NoInterfaceObject]
+[NoInterfaceObject, Exposed=(Window, PaintWorklet)]
 interface CanvasImageSmoothing {
   // image smoothing
   attribute boolean imageSmoothingEnabled; // (default true)
   // attribute ImageSmoothingQuality imageSmoothingQuality; // (default low)
 };
 
-[NoInterfaceObject]
+[NoInterfaceObject, Exposed=(Window, PaintWorklet)]
 interface CanvasFillStrokeStyles {
 
   // colours and styles (see also the CanvasDrawingStyles interface)
@@ -99,7 +99,7 @@ interface CanvasFillStrokeStyles {
   CanvasPattern createPattern(CanvasImageSource image, [TreatNullAs=EmptyString] DOMString repetition);
 };
 
-[NoInterfaceObject]
+[NoInterfaceObject, Exposed=(Window, PaintWorklet)]
 interface CanvasShadowStyles {
   // shadows
   attribute unrestricted double shadowOffsetX; // (default 0)
@@ -108,7 +108,7 @@ interface CanvasShadowStyles {
   attribute DOMString shadowColor; // (default transparent black)
 };
 
-[NoInterfaceObject]
+[NoInterfaceObject, Exposed=(Window, PaintWorklet)]
 interface CanvasRect {
   // rects
   //[LenientFloat]
@@ -119,7 +119,7 @@ interface CanvasRect {
   void strokeRect(unrestricted double x, unrestricted double y, unrestricted double w, unrestricted double h);
 };
 
-[NoInterfaceObject]
+[NoInterfaceObject, Exposed=(Window, PaintWorklet)]
 interface CanvasDrawPath {
   // path API (see also CanvasPathMethods)
   void beginPath();
@@ -157,7 +157,7 @@ interface CanvasText {
   //TextMetrics measureText(DOMString text);
 };
 
-[NoInterfaceObject]
+[NoInterfaceObject, Exposed=(Window, PaintWorklet)]
 interface CanvasDrawImage {
   // drawing images
   [Throws]
@@ -205,7 +205,7 @@ enum CanvasTextAlign { "start", "end", "left", "right", "center" };
 enum CanvasTextBaseline { "top", "hanging", "middle", "alphabetic", "ideographic", "bottom" };
 enum CanvasDirection { "ltr", "rtl", "inherit" };
 
-[NoInterfaceObject]
+[NoInterfaceObject, Exposed=(Window, PaintWorklet)]
 interface CanvasPathDrawingStyles {
   // line caps/joins
   attribute unrestricted double lineWidth; // (default 1)
@@ -229,7 +229,7 @@ interface CanvasTextDrawingStyles {
   //attribute CanvasDirection direction; // "ltr", "rtl", "inherit" (default: "inherit")
 };
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
+[NoInterfaceObject, Exposed=(Window, Worker, PaintWorklet)]
 interface CanvasPath {
   // shared path API methods
   void closePath();
