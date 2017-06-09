@@ -127,6 +127,7 @@ impl TrustedPromise {
         struct RejectPromise(TrustedPromise, Error);
         impl Runnable for RejectPromise {
             fn main_thread_handler(self: Box<Self>, script_thread: &ScriptThread) {
+                debug!("Rejecting promise.");
                 let this = *self;
                 let cx = script_thread.get_cx();
                 let promise = this.0.root();
@@ -145,6 +146,7 @@ impl TrustedPromise {
         struct ResolvePromise<T>(TrustedPromise, T);
         impl<T: ToJSValConvertible> Runnable for ResolvePromise<T> {
             fn main_thread_handler(self: Box<Self>, script_thread: &ScriptThread) {
+                debug!("Resolving promise.");
                 let this = *self;
                 let cx = script_thread.get_cx();
                 let promise = this.0.root();
