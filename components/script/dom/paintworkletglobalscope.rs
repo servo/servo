@@ -3,6 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use canvas_traits::CanvasData;
+use canvas_traits::CanvasImageData;
 use dom::bindings::callback::CallbackContainer;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::PaintWorkletGlobalScopeBinding;
@@ -13,6 +15,7 @@ use dom::bindings::conversions::get_property;
 use dom::bindings::conversions::get_property_jsval;
 use dom::bindings::error::Error;
 use dom::bindings::error::Fallible;
+use dom::bindings::js::JS;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
@@ -22,6 +25,7 @@ use dom::workletglobalscope::WorkletGlobalScope;
 use dom::workletglobalscope::WorkletGlobalScopeInit;
 use dom_struct::dom_struct;
 use euclid::Size2D;
+use ipc_channel::ipc::IpcSender;
 use ipc_channel::ipc::IpcSharedMemory;
 use js::jsapi::Call;
 use js::jsapi::Construct1;
@@ -40,7 +44,7 @@ use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::Image;
 use net_traits::image::base::PixelFormat;
-use script_traits::PaintWorkletError;
+use net_traits::image_cache::ImageCache;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::cell::Cell;
@@ -48,19 +52,20 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::ptr::null_mut;
 use std::rc::Rc;
-use std::sync::mpsc::Sender;
+use std::sync::Arc;
 
 /// https://drafts.css-houdini.org/css-paint-api/#paintworkletglobalscope
 #[dom_struct]
 pub struct PaintWorkletGlobalScope {
     /// The worklet global for this object
     worklet_global: WorkletGlobalScope,
+    /// The image cache (used for generating invalid images).
+    #[ignore_heap_size_of = "Arc"]
+    image_cache: Arc<ImageCache>,
     /// https://drafts.css-houdini.org/css-paint-api/#paint-definitions
     paint_definitions: DOMRefCell<HashMap<Atom, Box<PaintDefinition>>>,
     /// https://drafts.css-houdini.org/css-paint-api/#paint-class-instances
     paint_class_instances: DOMRefCell<HashMap<Atom, Box<Heap<JSVal>>>>,
-    /// A buffer to draw into
-    buffer: DOMRefCell<Vec<u8>>,
 }
 
 impl PaintWorkletGlobalScope {
@@ -73,9 +78,9 @@ impl PaintWorkletGlobalScope {
         debug!("Creating paint worklet global scope for pipeline {}.", pipeline_id);
         let global = box PaintWorkletGlobalScope {
             worklet_global: WorkletGlobalScope::new_inherited(pipeline_id, base_url, init),
+            image_cache: init.image_cache.clone(),
             paint_definitions: Default::default(),
             paint_class_instances: Default::default(),
-            buffer: Default::default(),
         };
         unsafe { PaintWorkletGlobalScopeBinding::Wrap(runtime.cx(), global) }
     }
@@ -90,7 +95,7 @@ impl PaintWorkletGlobalScope {
     fn draw_a_paint_image(&self,
                           name: Atom,
                           size: Size2D<Au>,
-                          sender: Sender<Result<Image, PaintWorkletError>>)
+                          sender: IpcSender<CanvasData>)
     {
         // TODO: document paint definitions.
         self.invoke_a_paint_callback(name, size, sender);
@@ -101,7 +106,7 @@ impl PaintWorkletGlobalScope {
     fn invoke_a_paint_callback(&self,
                                name: Atom,
                                size: Size2D<Au>,
-                               sender: Sender<Result<Image, PaintWorkletError>>)
+                               sender: IpcSender<CanvasData>)
     {
         let width = size.width.to_px().abs() as u32;
         let height = size.height.to_px().abs() as u32;
@@ -114,24 +119,21 @@ impl PaintWorkletGlobalScope {
         // Step 2.2-5.1.
         rooted!(in(cx) let mut class_constructor = UndefinedValue());
         rooted!(in(cx) let mut paint_function = UndefinedValue());
-        match self.paint_definitions.borrow().get(&name) {
+        let rendering_context = match self.paint_definitions.borrow().get(&name) {
             None => {
                 // Step 2.2.
                 warn!("Drawing un-registered paint definition {}.", name);
-                let image = self.placeholder_image(width, height, [0x00, 0x00, 0xFF, 0xFF]);
-                let _ = sender.send(Ok(image));
-                return;
+                return self.send_invalid_image(size, sender);
             }
             Some(definition) => {
                 // Step 5.1
                 if !definition.constructor_valid_flag.get() {
                     debug!("Drawing invalid paint definition {}.", name);
-                    let image = self.placeholder_image(width, height, [0x00, 0x00, 0xFF, 0xFF]);
-                    let _ = sender.send(Ok(image));
-                    return;
+                    return self.send_invalid_image(size, sender);
                 }
                 class_constructor.set(definition.class_constructor.get());
                 paint_function.set(definition.paint_function.get());
+                Root::from_ref(&*definition.context)
             }
         };
 
@@ -155,9 +157,7 @@ impl PaintWorkletGlobalScope {
                     self.paint_definitions.borrow_mut().get_mut(&name)
                         .expect("Vanishing paint definition.")
                         .constructor_valid_flag.set(false);
-                    let image = self.placeholder_image(width, height, [0x00, 0x00, 0xFF, 0xFF]);
-                    let _ = sender.send(Ok(image));
-                    return;
+                    return self.send_invalid_image(size, sender);
                 }
                 // Step 5.4
                 entry.insert(Box::new(Heap::default())).set(paint_instance.get());
@@ -166,7 +166,9 @@ impl PaintWorkletGlobalScope {
 
         // TODO: Steps 6-7
         // Step 8
-        let rendering_context = PaintRenderingContext2D::new(self);
+        // TODO: the spec requires creating a new paint rendering context each time,
+        // this code recycles the same one.
+        rendering_context.set_bitmap_dimensions(size);
 
         // Step 9
         let paint_size = PaintSize::new(self, size);
@@ -186,37 +188,37 @@ impl PaintWorkletGlobalScope {
         if unsafe { JS_IsExceptionPending(cx) } {
             debug!("Paint function threw an exception {}.", name);
             unsafe { JS_ClearPendingException(cx); }
-            let image = self.placeholder_image(width, height, [0x00, 0x00, 0xFF, 0xFF]);
-            let _ = sender.send(Ok(image));
-            return;
+            return self.send_invalid_image(size, sender);
         }
 
-        // For now, we just build a dummy image.
-        let image = self.placeholder_image(width, height, [0xFF, 0x00, 0x00, 0xFF]);
-        let _ = sender.send(Ok(image));
+        rendering_context.send_data(sender);
     }
 
-    fn placeholder_image(&self, width: u32, height: u32, pixel: [u8; 4]) -> Image {
-        let area = (width as usize) * (height as usize);
-        let old_buffer_size = self.buffer.borrow().len();
-        let new_buffer_size = area * 4;
-        if new_buffer_size > old_buffer_size {
-            self.buffer.borrow_mut().extend(pixel.iter().cycle().take(new_buffer_size - old_buffer_size));
-        } else {
-            self.buffer.borrow_mut().truncate(new_buffer_size);
-        }
-        Image {
+    fn send_invalid_image(&self, size: Size2D<Au>, sender: IpcSender<CanvasData>) {
+        debug!("Sending an invalid image.");
+        let width = size.width.to_px().abs() as u32;
+        let height = size.height.to_px().abs() as u32;
+        let len = (width as usize) * (height as usize) * 4;
+        let pixel = [0xFF, 0x00, 0x00, 0xFF];
+        let bytes: Vec<u8> = pixel.iter().cloned().cycle().take(len).collect();
+        let mut image = Image {
             width: width,
             height: height,
             format: PixelFormat::BGRA8,
-            bytes: IpcSharedMemory::from_bytes(&*self.buffer.borrow()),
+            bytes: IpcSharedMemory::from_bytes(&*bytes),
             id: None,
-        }
+        };
+        self.image_cache.set_webrender_image_key(&mut image);
+        let image_key = image.id.expect("Image cache should set image key.");
+        let image_data = CanvasImageData { image_key: image_key };
+        let canvas_data = CanvasData::Image(image_data);
+        let _ = sender.send(canvas_data);
     }
 }
 
 impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
     #[allow(unsafe_code)]
+    #[allow(unrooted_must_root)]
     /// https://drafts.css-houdini.org/css-paint-api/#dom-paintworkletglobalscope-registerpaint
     fn RegisterPaint(&self, name: DOMString, paint_ctor: Rc<VoidFunction>) -> Fallible<()> {
         let name = Atom::from(name);
@@ -279,11 +281,17 @@ impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
             return Err(Error::Type(String::from("Paint function is not callable.")));
         }
 
-        // Steps 19-20.
+        // Step 19.
+        let context = PaintRenderingContext2D::new(self);
+        let definition = PaintDefinition::new(paint_val.handle(),
+                                              paint_function.handle(),
+                                              input_properties,
+                                              alpha,
+                                              &*context);
+
+        // Step 20.
         debug!("Registering definition {}.", name);
-        self.paint_definitions.borrow_mut()
-            .insert(name,
-                    PaintDefinition::new(paint_val.handle(), paint_function.handle(), input_properties, alpha));
+        self.paint_definitions.borrow_mut().insert(name, definition);
 
         // TODO: Step 21.
 
@@ -293,7 +301,7 @@ impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
 
 /// Tasks which can be peformed by a paint worklet
 pub enum PaintWorkletTask {
-    DrawAPaintImage(Atom, Size2D<Au>, Sender<Result<Image, PaintWorkletError>>)
+    DrawAPaintImage(Atom, Size2D<Au>, IpcSender<CanvasData>)
 }
 
 /// A paint definition
@@ -308,13 +316,18 @@ struct PaintDefinition {
     constructor_valid_flag: Cell<bool>,
     input_properties: Vec<DOMString>,
     context_alpha_flag: bool,
+    // TODO: the spec calls for fresh rendering contexts each time a paint image is drawn,
+    // but to avoid having the primary worklet thread create a new renering context,
+    // we recycle them.
+    context: JS<PaintRenderingContext2D>,
 }
 
 impl PaintDefinition {
     fn new(class_constructor: HandleValue,
            paint_function: HandleValue,
            input_properties: Vec<DOMString>,
-           alpha: bool)
+           alpha: bool,
+           context: &PaintRenderingContext2D)
            -> Box<PaintDefinition>
     {
         let result = Box::new(PaintDefinition {
@@ -323,6 +336,7 @@ impl PaintDefinition {
             constructor_valid_flag: Cell::new(true),
             input_properties: input_properties,
             context_alpha_flag: alpha,
+            context: JS::from_ref(context),
         });
         result.class_constructor.set(class_constructor.get());
         result.paint_function.set(paint_function.get());

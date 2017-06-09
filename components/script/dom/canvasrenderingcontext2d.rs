@@ -61,7 +61,9 @@ pub struct CanvasRenderingContext2D {
     reflector_: Reflector,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     ipc_renderer: IpcSender<CanvasMsg>,
-    canvas: JS<HTMLCanvasElement>,
+    // For rendering contexts created by an HTML canvas element, this is Some,
+    // for ones created by a paint worklet, this is None.
+    canvas: Option<JS<HTMLCanvasElement>>,
     state: DOMRefCell<CanvasContextState>,
     saved_states: DOMRefCell<Vec<CanvasContextState>>,
     origin_clean: Cell<bool>,
@@ -109,18 +111,21 @@ impl CanvasContextState {
 }
 
 impl CanvasRenderingContext2D {
-    fn new_inherited(global: &GlobalScope,
-                     canvas: &HTMLCanvasElement,
-                     size: Size2D<i32>)
-                     -> CanvasRenderingContext2D {
+    pub fn new_inherited(global: &GlobalScope,
+                         canvas: Option<&HTMLCanvasElement>,
+                         size: Size2D<i32>)
+                         -> CanvasRenderingContext2D {
+        debug!("Creating new canvas rendering context.");
         let (sender, receiver) = ipc::channel().unwrap();
         let constellation_chan = global.constellation_chan();
+        debug!("Asking constellation to create new canvas thread.");
         constellation_chan.send(ConstellationMsg::CreateCanvasPaintThread(size, sender)).unwrap();
         let ipc_renderer = receiver.recv().unwrap();
+        debug!("Done.");
         CanvasRenderingContext2D {
             reflector_: Reflector::new(),
             ipc_renderer: ipc_renderer,
-            canvas: JS::from_ref(canvas),
+            canvas: canvas.map(JS::from_ref),
             state: DOMRefCell::new(CanvasContextState::new()),
             saved_states: DOMRefCell::new(Vec::new()),
             origin_clean: Cell::new(true),
@@ -131,7 +136,7 @@ impl CanvasRenderingContext2D {
                canvas: &HTMLCanvasElement,
                size: Size2D<i32>)
                -> Root<CanvasRenderingContext2D> {
-        reflect_dom_object(box CanvasRenderingContext2D::new_inherited(global, canvas, size),
+        reflect_dom_object(box CanvasRenderingContext2D::new_inherited(global, Some(canvas), size),
                            global,
                            CanvasRenderingContext2DBinding::Wrap)
     }
@@ -155,7 +160,9 @@ impl CanvasRenderingContext2D {
     }
 
     fn mark_as_dirty(&self) {
-        self.canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        if let Some(ref canvas) = self.canvas {
+            canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        }
     }
 
     fn update_transform(&self) {
@@ -226,8 +233,12 @@ impl CanvasRenderingContext2D {
             HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::CanvasRenderingContext2D(image) =>
                 image.origin_is_clean(),
             HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::HTMLImageElement(image) => {
+                let canvas = match self.canvas {
+                    Some(ref canvas) => canvas,
+                    None => return false,
+                };
                 let image_origin = image.get_origin().expect("Image's origin is missing");
-                let document = document_from_node(&*self.canvas);
+                let document = document_from_node(&**canvas);
                 document.url().clone().origin() == image_origin
             }
         }
@@ -347,7 +358,7 @@ impl CanvasRenderingContext2D {
 
         let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
 
-        if &*self.canvas == canvas {
+        if self.canvas.as_ref().map_or(false, |c| &**c == canvas) {
             let msg = CanvasMsg::Canvas2d(Canvas2dMsg::DrawImageSelf(
                 image_size, dest_rect, source_rect, smoothing_enabled));
             self.ipc_renderer.send(msg).unwrap();
@@ -442,8 +453,10 @@ impl CanvasRenderingContext2D {
 
     #[inline]
     fn request_image_from_cache(&self, url: ServoUrl) -> ImageResponse {
-        let window = window_from_node(&*self.canvas);
-        canvas_utils::request_image_from_cache(&window, url)
+        self.canvas.as_ref()
+            .map(|canvas| window_from_node(&**canvas))
+            .map(|window| canvas_utils::request_image_from_cache(&window, url))
+            .unwrap_or(ImageResponse::None)
     }
 
     fn create_drawable_rect(&self, x: f64, y: f64, w: f64, h: f64) -> Option<Rect<f32>> {
@@ -472,12 +485,20 @@ impl CanvasRenderingContext2D {
 
                     // TODO: will need to check that the context bitmap mode is fixed
                     // once we implement CanvasProxy
-                    let window = window_from_node(&*self.canvas);
+                    let canvas = match self.canvas {
+                        // https://drafts.css-houdini.org/css-paint-api/#2d-rendering-context
+                        // Whenever "currentColor" is used as a color in the PaintRenderingContext2D API,
+                        // it is treated as opaque black.
+                        None => return Ok(RGBA::new(0, 0, 0, 255)),
+                        Some(ref canvas) => &**canvas,
+                    };
 
-                    let style = window.GetComputedStyle(&*self.canvas.upcast(), None);
+                    let window = window_from_node(canvas);
+
+                    let style = window.GetComputedStyle(canvas.upcast(), None);
 
                     let element_not_rendered =
-                        !self.canvas.upcast::<Node>().is_in_doc() ||
+                        !canvas.upcast::<Node>().is_in_doc() ||
                         style.GetPropertyValue(DOMString::from("display")) == "none";
 
                     if element_not_rendered {
@@ -530,7 +551,9 @@ impl LayoutCanvasRenderingContext2DHelpers for LayoutJS<CanvasRenderingContext2D
 impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-canvas
     fn Canvas(&self) -> Root<HTMLCanvasElement> {
-        Root::from_ref(&*self.canvas)
+        // This method is not called from a paint worklet rendering context,
+        // so it's OK to panic if self.canvas is None.
+        Root::from_ref(self.canvas.as_ref().expect("No canvas."))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-save
@@ -1037,7 +1060,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         let (sender, receiver) = ipc::channel::<Vec<u8>>().unwrap();
         let dest_rect = Rect::new(Point2D::new(sx.to_i32().unwrap(), sy.to_i32().unwrap()),
                                   Size2D::new(sw as i32, sh as i32));
-        let canvas_size = self.canvas.get_size();
+        let canvas_size = self.canvas.as_ref().map(|c| c.get_size()).unwrap_or(Size2D::zero());
         let canvas_size = Size2D::new(canvas_size.width as f64, canvas_size.height as f64);
         self.ipc_renderer
             .send(CanvasMsg::Canvas2d(Canvas2dMsg::GetImageData(dest_rect, canvas_size, sender)))
