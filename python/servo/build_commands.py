@@ -264,7 +264,7 @@ class MachCommands(CommandBase):
                     verbose=verbose)
                 if status:
                     return status
-            openssl_dir = path.join(openssl_dir, "openssl-1.0.1t")
+            openssl_dir = path.join(openssl_dir, "openssl-1.0.2k")
             env['OPENSSL_LIB_DIR'] = openssl_dir
             env['OPENSSL_INCLUDE_DIR'] = path.join(openssl_dir, "include")
             env['OPENSSL_STATIC'] = 'TRUE'
