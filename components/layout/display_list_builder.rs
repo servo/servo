@@ -1174,21 +1174,30 @@ impl FragmentDisplayListBuilding for Fragment {
         // TODO: add a one-place cache to avoid drawing the paint image every time.
         // https://github.com/servo/servo/issues/17369
         debug!("Drawing a paint image {}({},{}).", name, size.width.to_px(), size.height.to_px());
-        let mut image = match executor.draw_a_paint_image(name, size) {
-            Ok(image) => image,
-            Err(err) => return warn!("Error running paint worklet ({:?}).", err),
+        let (sender, receiver) = ipc::channel().unwrap();
+        executor.draw_a_paint_image(name, size, sender);
+
+        // TODO: timeout
+        let webrender_image = match receiver.recv() {
+            Ok(CanvasData::Image(canvas_data)) => {
+                WebRenderImageInfo {
+                    // TODO: it would be nice to get this data back from the canvas
+                    width: size.width.to_px().abs() as u32,
+                    height: size.height.to_px().abs() as u32,
+                    format: PixelFormat::BGRA8,
+                    key: Some(canvas_data.image_key),
+                }
+            },
+            Ok(CanvasData::WebGL(_)) => return warn!("Paint worklet generated WebGL."),
+            Err(err) => return warn!("Paint worklet recv generated error ({}).", err),
         };
 
-        // Make sure the image has a webrender key.
-        state.layout_context.image_cache.set_webrender_image_key(&mut image);
-
-        debug!("Drew a paint image ({},{}).", image.width, image.height);
         self.build_display_list_for_webrender_image(state,
                                                     style,
                                                     display_list_section,
                                                     absolute_bounds,
                                                     clip,
-                                                    WebRenderImageInfo::from_image(&image),
+                                                    webrender_image,
                                                     index);
     }
 
