@@ -16,6 +16,23 @@
     %endif
 </%def>
 
+#[cfg(feature = "gecko")]
+macro_rules! impl_gecko_keyword_from_trait {
+    ($name: ident, $utype: ty) => {
+        impl From<$utype> for $name {
+            fn from(bits: $utype) -> $name {
+                $name::from_gecko_keyword(bits)
+            }
+        }
+
+        impl From<$name> for $utype {
+            fn from(v: $name) -> $utype {
+                v.to_gecko_keyword()
+            }
+        }
+    };
+}
+
 // Define ToComputedValue, ToCss, and other boilerplate for a specified value
 // which is of the form `enum SpecifiedValue {Value(..), System(SystemFont)}`
 <%def name="simple_system_boilerplate(name)">
@@ -1362,7 +1379,7 @@ macro_rules! exclusive_value {
     }
 }
 
-<%helpers:longhand name="font-variant-east-asian" products="gecko" animation_value_type="none"
+<%helpers:longhand name="font-variant-east-asian" products="gecko" animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-east-asian">
     use properties::longhands::system_font::SystemFont;
     use std::fmt;
@@ -1500,9 +1517,12 @@ macro_rules! exclusive_value {
             Err(())
         }
     }
+
+    #[cfg(feature = "gecko")]
+    impl_gecko_keyword_from_trait!(VariantEastAsian, u16);
 </%helpers:longhand>
 
-<%helpers:longhand name="font-variant-ligatures" products="gecko" animation_value_type="none"
+<%helpers:longhand name="font-variant-ligatures" products="gecko" animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-ligatures">
     use properties::longhands::system_font::SystemFont;
     use std::fmt;
@@ -1650,9 +1670,12 @@ macro_rules! exclusive_value {
             Err(())
         }
     }
+
+    #[cfg(feature = "gecko")]
+    impl_gecko_keyword_from_trait!(VariantLigatures, u16);
 </%helpers:longhand>
 
-<%helpers:longhand name="font-variant-numeric" products="gecko" animation_value_type="none"
+<%helpers:longhand name="font-variant-numeric" products="gecko" animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-numeric">
     use properties::longhands::system_font::SystemFont;
     use std::fmt;
@@ -1793,6 +1816,9 @@ macro_rules! exclusive_value {
             Err(())
         }
     }
+
+    #[cfg(feature = "gecko")]
+    impl_gecko_keyword_from_trait!(VariantNumeric, u8);
 </%helpers:longhand>
 
 ${helpers.single_keyword_system("font-variant-position",

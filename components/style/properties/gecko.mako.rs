@@ -680,17 +680,22 @@ impl Debug for ${style_struct.gecko_struct_name} {
 %endif
 </%def>
 
-<%def name="impl_simple_type_with_conversion(ident)">
+<%def name="impl_simple_type_with_conversion(ident, gecko_ffi_name=None)">
+    <%
+    if gecko_ffi_name is None:
+        gecko_ffi_name = "m" + to_camel_case(ident)
+    %>
+
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        self.gecko.m${to_camel_case(ident)} = From::from(v)
+        self.gecko.${gecko_ffi_name} = From::from(v)
     }
 
-    <% impl_simple_copy(ident, "m" + to_camel_case(ident)) %>
+    <% impl_simple_copy(ident, gecko_ffi_name) %>
 
     #[allow(non_snake_case)]
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        From::from(self.gecko.m${to_camel_case(ident)})
+        From::from(self.gecko.${gecko_ffi_name})
     }
 </%def>
 
@@ -1851,23 +1856,9 @@ fn static_assert() {
         // self.gecko.mFont.alternateValues = other.gecko.mFont.alternateValues;
     }
 
-    pub fn set_font_variant_ligatures(&mut self, v: longhands::font_variant_ligatures::computed_value::T) {
-        self.gecko.mFont.variantLigatures = v.to_gecko_keyword()
-    }
-
-    ${impl_simple_copy('font_variant_ligatures', 'mFont.variantLigatures')}
-
-    pub fn set_font_variant_east_asian(&mut self, v: longhands::font_variant_east_asian::computed_value::T) {
-        self.gecko.mFont.variantEastAsian = v.to_gecko_keyword()
-    }
-
-    ${impl_simple_copy('font_variant_east_asian', 'mFont.variantEastAsian')}
-
-    pub fn set_font_variant_numeric(&mut self, v: longhands::font_variant_numeric::computed_value::T) {
-        self.gecko.mFont.variantNumeric = v.to_gecko_keyword()
-    }
-
-    ${impl_simple_copy('font_variant_numeric', 'mFont.variantNumeric')}
+    ${impl_simple_type_with_conversion("font_variant_ligatures", "mFont.variantLigatures")}
+    ${impl_simple_type_with_conversion("font_variant_east_asian", "mFont.variantEastAsian")}
+    ${impl_simple_type_with_conversion("font_variant_numeric", "mFont.variantNumeric")}
 
     #[allow(non_snake_case)]
     pub fn set__moz_min_font_size_ratio(&mut self, v: longhands::_moz_min_font_size_ratio::computed_value::T) {
