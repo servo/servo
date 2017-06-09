@@ -12,6 +12,7 @@ use style_traits::{ToCss, ParseError, StyleParseError};
 use values::{CSSFloat, CustomIdent};
 use values::computed::{self, ComputedValueAsSpecified, Context, ToComputedValue};
 use values::specified::Integer;
+use values::specified::grid::parse_line_names;
 
 #[derive(PartialEq, Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -551,3 +552,101 @@ impl<T: ToCss> ToCss for TrackList<T> {
         Ok(())
     }
 }
+
+/// The `<line-name-list>` for subgrids.
+///
+/// `subgrid [ <line-names> | repeat(<positive-integer> | auto-fill, <line-names>+) ]+`
+/// Old spec: https://www.w3.org/TR/2015/WD-css-grid-1-20150917/#typedef-line-name-list
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct LineNameList {
+    /// The optional `<line-name-list>`
+    pub names: Vec<Vec<CustomIdent>>,
+    /// Indicates the line name that requires `auto-fill`
+    pub fill_idx: Option<u32>,
+}
+
+impl Parse for LineNameList {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        input.expect_ident_matching("subgrid")?;
+        let mut line_names = vec![];
+        let mut fill_idx = None;
+
+        loop {
+            let repeat_parse_result = input.try(|input| {
+                input.expect_function_matching("repeat")?;
+                input.parse_nested_block(|input| {
+                    let count = RepeatCount::parse(context, input)?;
+                    input.expect_comma()?;
+                    let mut names_list = vec![];
+                    names_list.push(parse_line_names(input)?);      // there should be at least one
+                    while let Ok(names) = input.try(parse_line_names) {
+                        names_list.push(names);
+                    }
+
+                    Ok((names_list, count))
+                })
+            });
+
+            if let Ok((mut names_list, count)) = repeat_parse_result {
+                match count {
+                    RepeatCount::Number(num) =>
+                        line_names.extend(names_list.iter().cloned().cycle()
+                                  .take(num.value() as usize * names_list.len())),
+                    RepeatCount::AutoFill if fill_idx.is_none() => {
+                        // `repeat(autof-fill, ..)` should have just one line name.
+                        if names_list.len() > 1 {
+                            return Err(StyleParseError::UnspecifiedError.into());
+                        }
+                        let names = names_list.pop().expect("expected one name list for auto-fill");
+
+                        line_names.push(names);
+                        fill_idx = Some(line_names.len() as u32 - 1);
+                    },
+                    _ => return Err(StyleParseError::UnspecifiedError.into()),
+                }
+            } else if let Ok(names) = input.try(parse_line_names) {
+                line_names.push(names);
+            } else {
+                break
+            }
+        }
+
+        Ok(LineNameList {
+            names: line_names,
+            fill_idx: fill_idx,
+        })
+    }
+}
+
+impl ToCss for LineNameList {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        dest.write_str("subgrid")?;
+        let fill_idx = self.fill_idx.map(|v| v as usize).unwrap_or(usize::MAX);
+        for (i, names) in self.names.iter().enumerate() {
+            if i == fill_idx {
+                dest.write_str(" repeat(auto-fill,")?;
+            }
+
+            dest.write_str(" [")?;
+
+            if let Some((ref first, rest)) = names.split_first() {
+                first.to_css(dest)?;
+                for name in rest {
+                    dest.write_str(" ")?;
+                    name.to_css(dest)?;
+                }
+            }
+
+            dest.write_str("]")?;
+            if i == fill_idx {
+                dest.write_str(")")?;
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl ComputedValueAsSpecified for LineNameList {}
+no_viewport_percentage!(LineNameList);
