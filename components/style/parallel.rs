@@ -22,6 +22,7 @@
 
 #![deny(missing_docs)]
 
+use arrayvec::ArrayVec;
 use context::TraversalStatistics;
 use dom::{OpaqueNode, SendNode, TElement, TNode};
 use rayon;
@@ -39,11 +40,9 @@ use traversal::{DomTraversal, PerLevelTraversalData, PreTraverseToken};
 /// been measured and could potentially be tuned.
 pub const WORK_UNIT_MAX: usize = 16;
 
-/// A list of node pointers.
-///
-/// We make the inline storage size WORK_UNIT_MAX so that we can collect chunks
-/// into this structure without heap-allocating.
-type NodeList<N> = SmallVec<[SendNode<N>; WORK_UNIT_MAX]>;
+/// A set of nodes, sized to the work unit. This gets copied when sent to other
+/// threads, so we keep it compact.
+type WorkUnit<N> = ArrayVec<[SendNode<N>; WORK_UNIT_MAX]>;
 
 /// Entry point for the parallel traversal.
 #[allow(unsafe_code)]
@@ -56,7 +55,10 @@ pub fn traverse_dom<E, D>(traversal: &D,
 {
     let dump_stats = traversal.shared_context().options.dump_style_statistics;
     let start_time = if dump_stats { Some(time::precise_time_s()) } else { None };
-    let mut nodes = NodeList::<E::ConcreteNode>::new();
+
+    // Set up the SmallVec. We need to move this, and in most cases this is just
+    // one node, so keep it small.
+    let mut nodes = SmallVec::<[SendNode<E::ConcreteNode>; 8]>::new();
 
     debug_assert!(traversal.is_parallel());
     // Handle Gecko's eager initial styling. We don't currently support it
@@ -87,7 +89,8 @@ pub fn traverse_dom<E, D>(traversal: &D,
 
     pool.install(|| {
         rayon::scope(|scope| {
-            traverse_nodes(nodes,
+            let nodes = nodes;
+            traverse_nodes(&*nodes,
                            DispatchMode::TailCall,
                            root,
                            traversal_data,
@@ -152,7 +155,12 @@ fn top_down_dom<'a, 'scope, E, D>(nodes: &'a [SendNode<E::ConcreteNode>],
           D: DomTraversal<E>,
 {
     debug_assert!(nodes.len() <= WORK_UNIT_MAX);
-    let mut discovered_child_nodes = NodeList::<E::ConcreteNode>::new();
+
+    // Collect all the children of the elements in our work unit. This will
+    // contain the combined children of up to WORK_UNIT_MAX nodes, which may
+    // be numerous. As such, we store it in a large SmallVec to minimize heap-
+    // spilling, and never move it.
+    let mut discovered_child_nodes = SmallVec::<[SendNode<E::ConcreteNode>; 128]>::new();
     {
         // Scope the borrow of the TLS so that the borrow is dropped before
         // a potential recursive call when we pass TailCall.
@@ -176,7 +184,7 @@ fn top_down_dom<'a, 'scope, E, D>(nodes: &'a [SendNode<E::ConcreteNode>],
                 let children = mem::replace(&mut discovered_child_nodes, Default::default());
                 let mut traversal_data_copy = traversal_data.clone();
                 traversal_data_copy.current_dom_depth += 1;
-                traverse_nodes(children,
+                traverse_nodes(&*children,
                                DispatchMode::NotTailCall,
                                root,
                                traversal_data_copy,
@@ -206,7 +214,7 @@ fn top_down_dom<'a, 'scope, E, D>(nodes: &'a [SendNode<E::ConcreteNode>],
     // on this thread by passing TailCall.
     if !discovered_child_nodes.is_empty() {
         traversal_data.current_dom_depth += 1;
-        traverse_nodes(discovered_child_nodes,
+        traverse_nodes(&discovered_child_nodes,
                        DispatchMode::TailCall,
                        root,
                        traversal_data,
@@ -230,7 +238,7 @@ impl DispatchMode {
 }
 
 #[inline]
-fn traverse_nodes<'a, 'scope, E, D>(nodes: NodeList<E::ConcreteNode>,
+fn traverse_nodes<'a, 'scope, E, D>(nodes: &[SendNode<E::ConcreteNode>],
                                     mode: DispatchMode,
                                     root: OpaqueNode,
                                     traversal_data: PerLevelTraversalData,
@@ -253,18 +261,18 @@ fn traverse_nodes<'a, 'scope, E, D>(nodes: NodeList<E::ConcreteNode>,
     // In the common case, our children fit within a single work unit, in which
     // case we can pass the SmallVec directly and avoid extra allocation.
     if nodes.len() <= WORK_UNIT_MAX {
+        let work = nodes.iter().cloned().collect::<WorkUnit<E::ConcreteNode>>();
         if may_dispatch_tail {
-            top_down_dom(&nodes, root, traversal_data, scope, pool, traversal, tls);
+            top_down_dom(&work, root, traversal_data, scope, pool, traversal, tls);
         } else {
             scope.spawn(move |scope| {
-                let nodes = nodes;
-                top_down_dom(&nodes, root, traversal_data, scope, pool, traversal, tls);
+                let work = work;
+                top_down_dom(&work, root, traversal_data, scope, pool, traversal, tls);
             });
         }
     } else {
         for chunk in nodes.chunks(WORK_UNIT_MAX) {
-            let nodes = chunk.iter().cloned().collect::<NodeList<E::ConcreteNode>>();
-            debug_assert!(!nodes.spilled());
+            let nodes = chunk.iter().cloned().collect::<WorkUnit<E::ConcreteNode>>();
             let traversal_data_copy = traversal_data.clone();
             scope.spawn(move |scope| {
                 let n = nodes;
