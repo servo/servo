@@ -59,5 +59,5 @@ ${helpers.predefined_type("-moz-box-ordinal-group", "Integer", "0",
                           products="gecko",
                           alias="-webkit-box-ordinal-group",
                           gecko_ffi_name="mBoxOrdinal",
-                          animation_value_type="none",
+                          animation_value_type="discrete",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-box-ordinal-group)")}

@@ -1017,17 +1017,19 @@ fn static_assert() {
         % endfor
     }
 
+    <%
+    border_image_repeat_keywords = ["Stretch", "Repeat", "Round", "Space"]
+    %>
+
     pub fn set_border_image_repeat(&mut self, v: longhands::border_image_repeat::computed_value::T) {
         use properties::longhands::border_image_repeat::computed_value::RepeatKeyword;
-        use gecko_bindings::structs::{NS_STYLE_BORDER_IMAGE_REPEAT_STRETCH, NS_STYLE_BORDER_IMAGE_REPEAT_REPEAT};
-        use gecko_bindings::structs::{NS_STYLE_BORDER_IMAGE_REPEAT_ROUND, NS_STYLE_BORDER_IMAGE_REPEAT_SPACE};
+        use gecko_bindings::structs;
 
         % for i, side in enumerate(["H", "V"]):
             let k = match v.${i} {
-                RepeatKeyword::Stretch => NS_STYLE_BORDER_IMAGE_REPEAT_STRETCH,
-                RepeatKeyword::Repeat => NS_STYLE_BORDER_IMAGE_REPEAT_REPEAT,
-                RepeatKeyword::Round => NS_STYLE_BORDER_IMAGE_REPEAT_ROUND,
-                RepeatKeyword::Space => NS_STYLE_BORDER_IMAGE_REPEAT_SPACE,
+                % for keyword in border_image_repeat_keywords:
+                RepeatKeyword::${keyword} => structs::NS_STYLE_BORDER_IMAGE_REPEAT_${keyword.upper()},
+                % endfor
             };
 
             self.gecko.mBorderImageRepeat${side} = k as u8;
@@ -1037,6 +1039,21 @@ fn static_assert() {
     pub fn copy_border_image_repeat_from(&mut self, other: &Self) {
         self.gecko.mBorderImageRepeatH = other.gecko.mBorderImageRepeatH;
         self.gecko.mBorderImageRepeatV = other.gecko.mBorderImageRepeatV;
+    }
+
+    pub fn clone_border_image_repeat(&self) -> longhands::border_image_repeat::computed_value::T {
+        use properties::longhands::border_image_repeat::computed_value::RepeatKeyword;
+        use gecko_bindings::structs;
+
+        % for side in ["H", "V"]:
+        let servo_${side.lower()} = match self.gecko.mBorderImageRepeat${side} as u32 {
+            % for keyword in border_image_repeat_keywords:
+            structs::NS_STYLE_BORDER_IMAGE_REPEAT_${keyword.upper()} => RepeatKeyword::${keyword},
+            % endfor
+            x => panic!("Found unexpected value in mBorderImageRepeat${side}: {:?}", x),
+        };
+        % endfor
+        longhands::border_image_repeat::computed_value::T(servo_h, servo_v)
     }
 
     pub fn set_border_image_width(&mut self, v: longhands::border_image_width::computed_value::T) {
@@ -1806,10 +1823,7 @@ fn static_assert() {
         }
     }
 
-    pub fn set_font_language_override(&mut self, v: longhands::font_language_override::computed_value::T) {
-        self.gecko.mFont.languageOverride = v.0;
-    }
-    ${impl_simple_copy('font_language_override', 'mFont.languageOverride')}
+    <% impl_simple_type_with_conversion("font_language_override", "mFont.languageOverride") %>
 
     pub fn set_font_variant_alternates(&mut self, v: longhands::font_variant_alternates::computed_value::T) {
         self.gecko.mFont.variantAlternates = v.to_gecko_keyword()
@@ -3711,7 +3725,7 @@ fn static_assert() {
         self.gecko.mTextEmphasisStyle = other.gecko.mTextEmphasisStyle;
     }
 
-    <%call expr="impl_app_units('_webkit_text_stroke_width', 'mWebkitTextStrokeWidth', need_clone=False)"></%call>
+    <%call expr="impl_app_units('_webkit_text_stroke_width', 'mWebkitTextStrokeWidth', need_clone=True)"></%call>
 
     #[allow(non_snake_case)]
     pub fn set__moz_tab_size(&mut self, v: longhands::_moz_tab_size::computed_value::T) {
@@ -3822,6 +3836,18 @@ fn static_assert() {
     pub fn copy_initial_letter_from(&mut self, other: &Self) {
         self.gecko.mInitialLetterSize = other.gecko.mInitialLetterSize;
         self.gecko.mInitialLetterSink = other.gecko.mInitialLetterSink;
+    }
+
+    pub fn clone_initial_letter(&self) -> longhands::initial_letter::computed_value::T {
+        use values::generics::text::InitialLetter;
+
+        if self.gecko.mInitialLetterSize == 0. && self.gecko.mInitialLetterSink == 0 {
+            InitialLetter::Normal
+        } else if self.gecko.mInitialLetterSize.floor() as i32 == self.gecko.mInitialLetterSink {
+            InitialLetter::Specified(self.gecko.mInitialLetterSize, None)
+        } else {
+            InitialLetter::Specified(self.gecko.mInitialLetterSize, Some(self.gecko.mInitialLetterSink))
+        }
     }
 
     #[inline]
@@ -4377,12 +4403,7 @@ clip-path
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="UI" skip_longhands="-moz-force-broken-image-icon">
-    #[allow(non_snake_case)]
-    pub fn set__moz_force_broken_image_icon(&mut self, v: longhands::_moz_force_broken_image_icon::computed_value::T) {
-        self.gecko.mForceBrokenImageIcon = v.0 as u8;
-    }
-
-    ${impl_simple_copy("_moz_force_broken_image_icon", "mForceBrokenImageIcon")}
+    ${impl_simple_type_with_conversion("_moz_force_broken_image_icon", "mForceBrokenImageIcon")}
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="XUL"
@@ -4393,6 +4414,11 @@ clip-path
     }
 
     ${impl_simple_copy("_moz_box_ordinal_group", "mBoxOrdinal")}
+
+    #[allow(non_snake_case)]
+    pub fn clone__moz_box_ordinal_group(&self) -> i32{
+        self.gecko.mBoxOrdinal as i32
+    }
 </%self:impl_trait>
 
 <%def name="define_ffi_struct_accessor(style_struct)">
