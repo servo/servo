@@ -420,28 +420,64 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
         let mut invalidated_self = false;
         match matching_result {
             CompoundSelectorMatchingResult::Matched { next_combinator_offset: 0 } => {
-                if let Some(ref mut data) = self.data {
-                    data.ensure_restyle().hint.insert(RESTYLE_SELF.into());
-                    invalidated_self = true;
-                }
+                debug!(" > Invalidation matched completely");
+                invalidated_self = true;
             }
             CompoundSelectorMatchingResult::Matched { next_combinator_offset } => {
                 let next_combinator =
                     invalidation.selector.combinator_at(next_combinator_offset);
 
+                if matches!(next_combinator, Combinator::PseudoElement) {
+                    let pseudo_selector =
+                        invalidation.selector
+                            .iter_raw_rev_from(next_combinator_offset - 1)
+                            .next()
+                            .unwrap();
+                    let pseudo = match *pseudo_selector {
+                        Component::PseudoElement(ref pseudo) => pseudo,
+                        _ => unreachable!("Someone seriously messed up selector parsing"),
+                    };
+
+                    // FIXME(emilio): This is not ideal, and could not be
+                    // accurate if we ever have stateful element-backed eager
+                    // pseudos.
+                    //
+                    // Ideally, we'd just remove element-backed eager pseudos
+                    // altogether, given they work fine without it. Only gotcha
+                    // is that we wouldn't style them in parallel, which may or
+                    // may not be an issue.
+                    //
+                    // Also, this could be more fine grained now (perhaps a
+                    // RESTYLE_PSEUDOS hint?).
+                    //
+                    // Note that we'll also restyle the pseudo-element because
+                    // it would match this invalidation.
+                    if pseudo.is_eager() {
+                        invalidated_self = true;
+                    }
+                }
+
+
+                let next_invalidation = Invalidation {
+                    selector: invalidation.selector.clone(),
+                    offset: next_combinator_offset,
+                };
+
+                debug!(" > Invalidation matched, next: {:?}, ({:?})",
+                        next_invalidation, next_combinator);
                 if next_combinator.is_ancestor() {
-                    descendant_invalidations.push(Invalidation {
-                        selector: invalidation.selector.clone(),
-                        offset: next_combinator_offset,
-                    })
+                    descendant_invalidations.push(next_invalidation);
                 } else {
-                    sibling_invalidations.push(Invalidation {
-                        selector: invalidation.selector.clone(),
-                        offset: next_combinator_offset,
-                    })
+                    sibling_invalidations.push(next_invalidation);
                 }
             }
             CompoundSelectorMatchingResult::NotMatched => {}
+        }
+
+        if invalidated_self {
+            if let Some(ref mut data) = self.data {
+                data.ensure_restyle().hint.insert(RESTYLE_SELF.into());
+            }
         }
 
         // TODO(emilio): For pseudo-elements this should be mostly false, except
