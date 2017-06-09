@@ -62,6 +62,25 @@ impl GeckoElementSnapshot {
         self.has_any(Flags::OtherPseudoClassState)
     }
 
+    /// Returns true if the snapshot recorded an id change.
+    #[inline]
+    pub fn id_changed(&self) -> bool {
+        self.mIdAttributeChanged()
+    }
+
+    /// Returns true if the snapshot recorded a class attribute change.
+    #[inline]
+    pub fn class_changed(&self) -> bool {
+        self.mClassAttributeChanged()
+    }
+
+    /// Returns true if the snapshot recorded an attribute change which isn't a
+    /// class or id change.
+    #[inline]
+    pub fn other_attr_changed(&self) -> bool {
+        self.mOtherAttributeChanged()
+    }
+
     /// selectors::Element::attr_matches
     pub fn attr_matches(&self,
                         ns: &NamespaceConstraint<&Namespace>,

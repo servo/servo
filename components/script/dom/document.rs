@@ -2387,6 +2387,13 @@ impl Document {
         }
 
         let mut snapshot = entry.snapshot.as_mut().unwrap();
+        if attr.local_name() == &local_name!("id") {
+            snapshot.id_changed = true;
+        } else if attr.local_name() == &local_name!("class") {
+            snapshot.class_changed = true;
+        } else {
+            snapshot.other_attributes_changed = true;
+        }
         if snapshot.attrs.is_none() {
             let attrs = el.attrs()
                           .iter()
