@@ -1929,7 +1929,7 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="font-language-override" products="gecko" animation_value_type="none"
+<%helpers:longhand name="font-language-override" products="gecko" animation_value_type="discrete"
                    extra_prefixes="moz" boxed="True"
                    spec="https://drafts.csswg.org/css-fonts-3/#propdef-font-language-override">
     use properties::longhands::system_font::SystemFont;
@@ -2064,6 +2064,20 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
             input.expect_string().map(|cow| {
                 SpecifiedValue::Override(cow.into_owned())
             })
+        }
+    }
+
+    #[cfg(feature = "gecko")]
+    impl From<u32> for computed_value::T {
+        fn from(bits: u32) -> computed_value::T {
+            computed_value::T(bits)
+        }
+    }
+
+    #[cfg(feature = "gecko")]
+    impl From<computed_value::T> for u32 {
+        fn from(v: computed_value::T) -> u32 {
+            v.0
         }
     }
 </%helpers:longhand>

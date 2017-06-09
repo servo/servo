@@ -212,7 +212,7 @@ ${helpers.predefined_type("border-image-outset", "LengthOrNumberRect",
     animation_value_type="none",
     boxed=True)}
 
-<%helpers:longhand name="border-image-repeat" animation_value_type="none"
+<%helpers:longhand name="border-image-repeat" animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-repeat">
     use std::fmt;
     use style_traits::ToCss;

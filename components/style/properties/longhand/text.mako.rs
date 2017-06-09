@@ -293,6 +293,6 @@ ${helpers.predefined_type(
     "InitialLetter",
     "computed::InitialLetter::normal()",
     initial_specified_value="specified::InitialLetter::normal()",
-    animation_value_type="none",
+    animation_value_type="discrete",
     products="gecko",
     spec="https://drafts.csswg.org/css-inline/#sizing-drop-initials")}
