@@ -2597,7 +2597,7 @@ fn static_assert() {
 
     <% scroll_snap_type_keyword = Keyword("scroll-snap-type", "none mandatory proximity") %>
 
-    ${impl_keyword('scroll_snap_type_y', 'mScrollSnapTypeY', scroll_snap_type_keyword, need_clone=False)}
+    ${impl_keyword('scroll_snap_type_y', 'mScrollSnapTypeY', scroll_snap_type_keyword, need_clone=True)}
 
     pub fn set_perspective_origin(&mut self, v: longhands::perspective_origin::computed_value::T) {
         self.gecko.mPerspectiveOrigin[0].set(v.horizontal);
@@ -3576,7 +3576,7 @@ fn static_assert() {
 
 <%self:impl_trait style_struct_name="InheritedText"
                   skip_longhands="text-align text-emphasis-style text-shadow line-height letter-spacing word-spacing
-                                  -webkit-text-stroke-width text-emphasis-position -moz-tab-size -moz-text-size-adjust">
+                                  -webkit-text-stroke-width text-emphasis-position -moz-tab-size">
 
     <% text_align_keyword = Keyword("text-align",
                                     "start end left right center justify -moz-center -moz-left -moz-right char",
@@ -3753,11 +3753,6 @@ fn static_assert() {
     }
 
     <%call expr="impl_coord_copy('_moz_tab_size', 'mTabSize')"></%call>
-
-    <% text_size_adjust_keyword = Keyword("text-size-adjust", "auto none") %>
-
-    ${impl_keyword('_moz_text_size_adjust', 'mTextSizeAdjust', text_size_adjust_keyword, need_clone=False)}
-
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Text"

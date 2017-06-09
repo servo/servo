@@ -16,7 +16,7 @@ ${helpers.predefined_type("outline-color", "Color", "computed_value::T::currentc
                           ignored_when_colors_disabled=True,
                           spec="https://drafts.csswg.org/css-ui/#propdef-outline-color")}
 
-<%helpers:longhand name="outline-style" need_clone="True" animation_value_type="none"
+<%helpers:longhand name="outline-style" animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-ui/#propdef-outline-style">
     use values::specified::BorderStyle;
 

@@ -18,18 +18,20 @@ ${helpers.predefined_type("line-height",
 ${helpers.single_keyword("text-transform",
                          "none capitalize uppercase lowercase",
                          extra_gecko_values="full-width",
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-text/#propdef-text-transform")}
 
 ${helpers.single_keyword("hyphens", "manual none auto",
                          gecko_enum_prefix="StyleHyphens",
-                         products="gecko", animation_value_type="none", extra_prefixes="moz",
+                         gecko_inexhaustive=True,
+                         products="gecko", animation_value_type="discrete", extra_prefixes="moz",
                          spec="https://drafts.csswg.org/css-text/#propdef-hyphens")}
 
 // TODO: Support <percentage>
 ${helpers.single_keyword("-moz-text-size-adjust", "auto none",
                          gecko_constant_prefix="NS_STYLE_TEXT_SIZE_ADJUST",
-                         products="gecko", animation_value_type="none",
+                         gecko_ffi_name="mTextSizeAdjust",
+                         products="gecko", animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-size-adjust/#adjustment-control",
                          alias="-webkit-text-size-adjust")}
 
@@ -45,7 +47,7 @@ ${helpers.predefined_type("text-indent",
 ${helpers.single_keyword("overflow-wrap",
                          "normal break-word",
                          gecko_constant_prefix="NS_STYLE_OVERFLOWWRAP",
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-text/#propdef-overflow-wrap",
                          alias="word-wrap")}
 
@@ -53,7 +55,7 @@ ${helpers.single_keyword("overflow-wrap",
 ${helpers.single_keyword("word-break",
                          "normal break-all keep-all",
                          gecko_constant_prefix="NS_STYLE_WORDBREAK",
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-text/#propdef-word-break")}
 
 // TODO(pcwalton): Support `text-justify: distribute`.
@@ -62,7 +64,8 @@ ${helpers.single_keyword("word-break",
                                   extra_gecko_values="inter-character"
                                   extra_specified="${'distribute' if product == 'gecko' else ''}"
                                   gecko_enum_prefix="StyleTextJustify"
-                                  animation_value_type="none"
+                                  gecko_inexhaustive="True"
+                                  animation_value_type="discrete"
                                   spec="https://drafts.csswg.org/css-text/#propdef-text-justify">
     no_viewport_percentage!(SpecifiedValue);
 
@@ -101,11 +104,11 @@ ${helpers.single_keyword("text-align-last",
                          "auto start end left right center justify",
                          products="gecko",
                          gecko_constant_prefix="NS_STYLE_TEXT_ALIGN",
-                         animation_value_type="none",
+                         animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-text/#propdef-text-align-last")}
 
 // TODO make this a shorthand and implement text-align-last/text-align-all
-<%helpers:longhand name="text-align" animation_value_type="none" need_clone="True"
+<%helpers:longhand name="text-align" animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-text/#propdef-text-align">
     no_viewport_percentage!(SpecifiedValue);
     pub mod computed_value {
@@ -360,7 +363,8 @@ ${helpers.predefined_type("word-spacing",
                                   extra_gecko_values="-moz-pre-space"
                                   gecko_enum_prefix="StyleWhiteSpace"
                                   needs_conversion="True"
-                                  animation_value_type="none"
+                                  gecko_inexhaustive="True"
+                                  animation_value_type="discrete"
                                   spec="https://drafts.csswg.org/css-text/#propdef-white-space">
     use values::computed::ComputedValueAsSpecified;
     impl ComputedValueAsSpecified for SpecifiedValue {}
