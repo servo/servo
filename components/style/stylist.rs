@@ -468,18 +468,31 @@ impl Stylist {
                             self.element_map.borrow_for_origin(&stylesheet.origin)
                         };
 
-                        map.insert(
-                            Rule::new(selector_and_hashes.selector.clone(),
-                                      selector_and_hashes.hashes.clone(),
-                                      locked.clone(),
-                                      self.rules_source_order),
-                            self.quirks_mode);
+                        let rule = Rule::new(selector_and_hashes.selector.clone(),
+                                             selector_and_hashes.hashes.clone(),
+                                             locked.clone(),
+                                             self.rules_source_order);
+
+                        macro_rules! call {
+                            ($case_sensitivity: expr) => {
+                                map.insert(rule, $case_sensitivity);
+                            }
+                        }
+
+                        with_classes_and_ids_case_sensitivity!(self.quirks_mode, call);
 
                         self.dependencies.note_selector(selector_and_hashes, self.quirks_mode);
                         if needs_revalidation(&selector_and_hashes.selector) {
-                            self.selectors_for_cache_revalidation.insert(
-                                RevalidationSelectorAndHashes::new(&selector_and_hashes),
-                                self.quirks_mode);
+                            let revalidation = RevalidationSelectorAndHashes::new(&selector_and_hashes);
+
+                            macro_rules! call {
+                                ($case_sensitivity: expr) => {
+                                    self.selectors_for_cache_revalidation.insert(
+                                        revalidation, $case_sensitivity)
+                                }
+                            }
+
+                            with_classes_and_ids_case_sensitivity!(self.quirks_mode, call);
                         }
                         selector_and_hashes.selector.visit(&mut AttributeAndStateDependencyVisitor {
                             attribute_dependencies: &mut self.attribute_dependencies,
@@ -936,13 +949,19 @@ impl Stylist {
             MatchingContext::new(MatchingMode::Normal, None, self.quirks_mode);
         let mut dummy_flag_setter = |_: &E, _: ElementSelectorFlags| {};
 
-        self.element_map.author.get_all_matching_rules(element,
-                                                       element,
-                                                       applicable_declarations,
-                                                       &mut matching_context,
-                                                       self.quirks_mode,
-                                                       &mut dummy_flag_setter,
-                                                       CascadeLevel::XBL);
+        macro_rules! call {
+            ($case_sensitivity: expr) => {
+                self.element_map.author.get_all_matching_rules(element,
+                                                               element,
+                                                               applicable_declarations,
+                                                               &mut matching_context,
+                                                               $case_sensitivity,
+                                                               &mut dummy_flag_setter,
+                                                               CascadeLevel::XBL);
+            }
+        }
+
+        with_classes_and_ids_case_sensitivity!(self.quirks_mode, call);
     }
 
     /// Returns the applicable CSS declarations for the given element.
@@ -997,13 +1016,20 @@ impl Stylist {
         let only_default_rules = rule_inclusion == RuleInclusion::DefaultOnly;
 
         // Step 1: Normal user-agent rules.
-        map.user_agent.get_all_matching_rules(element,
-                                              &rule_hash_target,
-                                              applicable_declarations,
-                                              context,
-                                              self.quirks_mode,
-                                              flags_setter,
-                                              CascadeLevel::UANormal);
+        macro_rules! call {
+            ($case_sensitivity: expr) => {
+                map.user_agent.get_all_matching_rules(element,
+                                                      &rule_hash_target,
+                                                      applicable_declarations,
+                                                      context,
+                                                      $case_sensitivity,
+                                                      flags_setter,
+                                                      CascadeLevel::UANormal);
+            }
+        }
+
+        with_classes_and_ids_case_sensitivity!(self.quirks_mode, call);
+
         debug!("UA normal: {:?}", context.relations);
 
         if pseudo_element.is_none() && !only_default_rules {
@@ -1037,13 +1063,19 @@ impl Stylist {
         // Which may be more what you would probably expect.
         if rule_hash_target.matches_user_and_author_rules() {
             // Step 3a: User normal rules.
-            map.user.get_all_matching_rules(element,
-                                            &rule_hash_target,
-                                            applicable_declarations,
-                                            context,
-                                            self.quirks_mode,
-                                            flags_setter,
-                                            CascadeLevel::UserNormal);
+            macro_rules! call {
+                ($case_sensitivity: expr) => {
+                    map.user.get_all_matching_rules(element,
+                                                    &rule_hash_target,
+                                                    applicable_declarations,
+                                                    context,
+                                                    $case_sensitivity,
+                                                    flags_setter,
+                                                    CascadeLevel::UserNormal);
+                }
+            }
+
+            with_classes_and_ids_case_sensitivity!(self.quirks_mode, call);
             debug!("user normal: {:?}", context.relations);
         } else {
             debug!("skipping user rules");
@@ -1059,13 +1091,20 @@ impl Stylist {
             // See nsStyleSet::FileRules().
             if !cut_off_inheritance {
                 // Step 3c: Author normal rules.
-                map.author.get_all_matching_rules(element,
-                                                  &rule_hash_target,
-                                                  applicable_declarations,
-                                                  context,
-                                              self.quirks_mode,
-                                                  flags_setter,
-                                                  CascadeLevel::AuthorNormal);
+                macro_rules! call {
+                    ($case_sensitivity: expr) => {
+                        map.author.get_all_matching_rules(element,
+                                                          &rule_hash_target,
+                                                          applicable_declarations,
+                                                          context,
+                                                          $case_sensitivity,
+                                                          flags_setter,
+                                                          CascadeLevel::AuthorNormal);
+                    }
+                }
+
+                with_classes_and_ids_case_sensitivity!(self.quirks_mode, call);
+
                 debug!("author normal: {:?}", context.relations);
             } else {
                 debug!("Skipping author normal rules due to cut off inheritance");
@@ -1174,8 +1213,8 @@ impl Stylist {
         // the lookups, which means that the bitvecs are comparable. We verify
         // this in the caller by asserting that the bitvecs are same-length.
         let mut results = BitVec::new();
-        self.selectors_for_cache_revalidation.lookup(
-            *element, self.quirks_mode, &mut |selector_and_hashes| {
+        {
+            let mut each = |selector_and_hashes: &RevalidationSelectorAndHashes| {
                 results.push(matches_selector(&selector_and_hashes.selector,
                                               selector_and_hashes.selector_offset,
                                               &selector_and_hashes.hashes,
@@ -1183,8 +1222,17 @@ impl Stylist {
                                               &mut matching_context,
                                               flags_setter));
                 true
+            };
+
+            macro_rules! call {
+                ($case_sensitivity: expr) => {
+                    self.selectors_for_cache_revalidation.lookup(
+                        *element, $case_sensitivity, &mut each)
+                }
             }
-        );
+
+            with_classes_and_ids_case_sensitivity!(self.quirks_mode, call);
+        }
 
         results
     }

@@ -13,7 +13,7 @@ use style::media_queries::{Device, MediaType};
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration};
 use style::properties::{longhands, Importance};
 use style::rule_tree::CascadeLevel;
-use style::selector_map::{self, SelectorMap};
+use style::selector_map::{self, SelectorMap, CaseSensitive};
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::shared_lock::SharedRwLock;
 use style::stylearc::Arc;
@@ -56,7 +56,7 @@ fn get_mock_map(selectors: &[&str]) -> (SelectorMap<Rule>, SharedRwLock) {
 
     for rules in selector_rules.into_iter() {
         for rule in rules.into_iter() {
-            map.insert(rule, QuirksMode::NoQuirks)
+            map.insert(rule, CaseSensitive)
         }
     }
 
@@ -217,11 +217,11 @@ fn test_get_local_name() {
 fn test_insert() {
     let (rules_list, _) = get_mock_rules(&[".intro.foo", "#top"]);
     let mut selector_map = SelectorMap::new();
-    selector_map.insert(rules_list[1][0].clone(), QuirksMode::NoQuirks);
-    assert_eq!(1, selector_map.id_hash.get(&Atom::from("top"), QuirksMode::NoQuirks).unwrap()[0].source_order);
-    selector_map.insert(rules_list[0][0].clone(), QuirksMode::NoQuirks);
-    assert_eq!(0, selector_map.class_hash.get(&Atom::from("foo"), QuirksMode::NoQuirks).unwrap()[0].source_order);
-    assert!(selector_map.class_hash.get(&Atom::from("intro"), QuirksMode::NoQuirks).is_none());
+    selector_map.insert(rules_list[1][0].clone(), CaseSensitive);
+    assert_eq!(1, selector_map.id_hash.get(&Atom::from("top"), CaseSensitive).unwrap()[0].source_order);
+    selector_map.insert(rules_list[0][0].clone(), CaseSensitive);
+    assert_eq!(0, selector_map.class_hash.get(&Atom::from("foo"), CaseSensitive).unwrap()[0].source_order);
+    assert!(selector_map.class_hash.get(&Atom::from("intro"), CaseSensitive).is_none());
 }
 
 #[test]

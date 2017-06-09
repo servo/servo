@@ -6,7 +6,6 @@
 //! name, ids and hash.
 
 use {Atom, LocalName};
-use context::QuirksMode;
 use dom::TElement;
 use fnv::FnvHashMap;
 use pdqsort::sort_by;
@@ -17,7 +16,7 @@ use selectors::parser::{AncestorHashes, Component, Combinator, SelectorAndHashes
 use selectors::parser::LocalName as LocalNameSelector;
 use smallvec::VecLike;
 use std::collections::HashMap;
-use std::collections::hash_map;
+use std::collections::hash_map::Entry;
 use std::hash::Hash;
 use stylist::{ApplicableDeclarationBlock, Rule};
 
@@ -110,17 +109,18 @@ impl SelectorMap<Rule> {
     ///
     /// Extract matching rules as per element's ID, classes, tag name, etc..
     /// Sort the Rules at the end to maintain cascading order.
-    pub fn get_all_matching_rules<E, V, F>(&self,
-                                           element: &E,
-                                           rule_hash_target: &E,
-                                           matching_rules_list: &mut V,
-                                           context: &mut MatchingContext,
-                                           quirks_mode: QuirksMode,
-                                           flags_setter: &mut F,
-                                           cascade_level: CascadeLevel)
+    pub fn get_all_matching_rules<E, V, F, C>(&self,
+                                              element: &E,
+                                              rule_hash_target: &E,
+                                              matching_rules_list: &mut V,
+                                              context: &mut MatchingContext,
+                                              classes_and_ids_case_sensitivity: C,
+                                              flags_setter: &mut F,
+                                              cascade_level: CascadeLevel)
         where E: TElement,
               V: VecLike<ApplicableDeclarationBlock>,
               F: FnMut(&E, ElementSelectorFlags),
+              C: CaseSensitivity,
     {
         if self.is_empty() {
             return
@@ -129,7 +129,7 @@ impl SelectorMap<Rule> {
         // At the end, we're going to sort the rules that we added, so remember where we began.
         let init_len = matching_rules_list.len();
         if let Some(id) = rule_hash_target.get_id() {
-            if let Some(rules) = self.id_hash.get(&id, quirks_mode) {
+            if let Some(rules) = self.id_hash.get(&id, classes_and_ids_case_sensitivity) {
                 SelectorMap::get_matching_rules(element,
                                                 rules,
                                                 matching_rules_list,
@@ -140,7 +140,7 @@ impl SelectorMap<Rule> {
         }
 
         rule_hash_target.each_class(|class| {
-            if let Some(rules) = self.class_hash.get(&class, quirks_mode) {
+            if let Some(rules) = self.class_hash.get(&class, classes_and_ids_case_sensitivity) {
                 SelectorMap::get_matching_rules(element,
                                                 rules,
                                                 matching_rules_list,
@@ -221,16 +221,22 @@ impl SelectorMap<Rule> {
 
 impl<T: SelectorMapEntry> SelectorMap<T> {
     /// Inserts into the correct hash, trying id, class, and localname.
-    pub fn insert(&mut self, entry: T, quirks_mode: QuirksMode) {
+    pub fn insert<C: CaseSensitivity>(&mut self, entry: T, classes_and_ids_case_sensitivity: C) {
         self.count += 1;
 
         if let Some(id_name) = get_id_name(entry.selector()) {
-            self.id_hash.entry(id_name, quirks_mode).or_insert_with(Vec::new).push(entry);
+            self.id_hash
+                .entry(id_name, classes_and_ids_case_sensitivity)
+                .or_insert_with(Vec::new)
+                .push(entry);
             return;
         }
 
         if let Some(class_name) = get_class_name(entry.selector()) {
-            self.class_hash.entry(class_name, quirks_mode).or_insert_with(Vec::new).push(entry);
+            self.class_hash
+                .entry(class_name, classes_and_ids_case_sensitivity)
+                .or_insert_with(Vec::new)
+                .push(entry);
             return;
         }
 
@@ -267,13 +273,14 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
     /// FIXME(bholley) This overlaps with SelectorMap<Rule>::get_all_matching_rules,
     /// but that function is extremely hot and I'd rather not rearrange it.
     #[inline]
-    pub fn lookup<E, F>(&self, element: E, quirks_mode: QuirksMode, f: &mut F) -> bool
+    pub fn lookup<E, F, C>(&self, element: E, classes_and_ids_case_sensitivity: C, f: &mut F) -> bool
         where E: TElement,
-              F: FnMut(&T) -> bool
+              F: FnMut(&T) -> bool,
+              C: CaseSensitivity,
     {
         // Id.
         if let Some(id) = element.get_id() {
-            if let Some(v) = self.id_hash.get(&id, quirks_mode) {
+            if let Some(v) = self.id_hash.get(&id, classes_and_ids_case_sensitivity) {
                 for entry in v.iter() {
                     if !f(&entry) {
                         return false;
@@ -286,7 +293,7 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
         let mut done = false;
         element.each_class(|class| {
             if !done {
-                if let Some(v) = self.class_hash.get(class, quirks_mode) {
+                if let Some(v) = self.class_hash.get(class, classes_and_ids_case_sensitivity) {
                     for entry in v.iter() {
                         if !f(&entry) {
                             done = true;
@@ -327,24 +334,25 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
     ///
     /// Returns false if the callback ever returns false.
     #[inline]
-    pub fn lookup_with_additional<E, F>(&self,
-                                        element: E,
-                                        quirks_mode: QuirksMode,
-                                        additional_id: Option<Atom>,
-                                        additional_classes: &[Atom],
-                                        f: &mut F)
-                                        -> bool
+    pub fn lookup_with_additional<E, F, C>(&self,
+                                           element: E,
+                                           classes_and_ids_case_sensitivity: C,
+                                           additional_id: Option<Atom>,
+                                           additional_classes: &[Atom],
+                                           f: &mut F)
+                                           -> bool
         where E: TElement,
-              F: FnMut(&T) -> bool
+              F: FnMut(&T) -> bool,
+              C: CaseSensitivity,
     {
         // Do the normal lookup.
-        if !self.lookup(element, quirks_mode, f) {
+        if !self.lookup(element, classes_and_ids_case_sensitivity, f) {
             return false;
         }
 
         // Check the additional id.
         if let Some(id) = additional_id {
-            if let Some(v) = self.id_hash.get(&id, quirks_mode) {
+            if let Some(v) = self.id_hash.get(&id, classes_and_ids_case_sensitivity) {
                 for entry in v.iter() {
                     if !f(&entry) {
                         return false;
@@ -355,7 +363,7 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
 
         // Check the additional classes.
         for class in additional_classes {
-            if let Some(v) = self.class_hash.get(class, quirks_mode) {
+            if let Some(v) = self.class_hash.get(class, classes_and_ids_case_sensitivity) {
                 for entry in v.iter() {
                     if !f(&entry) {
                         return false;
@@ -403,8 +411,6 @@ fn find_from_right<F, R>(mut iter: SelectorIter<SelectorImpl>,
 pub fn get_id_name(iter: SelectorIter<SelectorImpl>)
                    -> Option<Atom> {
     find_from_right(iter, |ss| {
-        // TODO(pradeep): Implement case-sensitivity based on the
-        // document type and quirks mode.
         if let Component::ID(ref id) = *ss {
             return Some(id.clone());
         }
@@ -417,8 +423,6 @@ pub fn get_id_name(iter: SelectorIter<SelectorImpl>)
 pub fn get_class_name(iter: SelectorIter<SelectorImpl>)
                       -> Option<Atom> {
     find_from_right(iter, |ss| {
-        // TODO(pradeep): Implement case-sensitivity based on the
-        // document type and quirks mode.
         if let Component::Class(ref class) = *ss {
             return Some(class.clone());
         }
@@ -460,19 +464,44 @@ impl<V> MaybeCaseInsensitiveHashMap<Atom, V> {
     }
 
     /// HashMap::entry
-    pub fn entry(&mut self, mut key: Atom, quirks_mode: QuirksMode) -> hash_map::Entry<Atom, V> {
-        if quirks_mode == QuirksMode::Quirks {
-            key = key.to_ascii_lowercase()
-        }
-        self.0.entry(key)
+    pub fn entry<C: CaseSensitivity>(&mut self, key: Atom, case_sensitivity: C) -> Entry<Atom, V> {
+        self.0.entry(case_sensitivity.map(key))
     }
 
     /// HashMap::get
-    pub fn get(&self, key: &Atom, quirks_mode: QuirksMode) -> Option<&V> {
-        if quirks_mode == QuirksMode::Quirks {
-            self.0.get(&key.to_ascii_lowercase())
-        } else {
-            self.0.get(key)
-        }
+    pub fn get<C: CaseSensitivity>(&self, key: &Atom, case_sensitivity: C) -> Option<&V> {
+        case_sensitivity.with_ref(key, |mapped_key| self.0.get(mapped_key))
+    }
+}
+
+/// Compile-time case-sensitivity, to pull runtime branches up to callers
+pub trait CaseSensitivity: Copy {
+    /// Return a normalized atom
+    fn map(self, atom: Atom) -> Atom;
+
+    /// Give a reference to a normalized atom
+    fn with_ref<R, F: FnOnce(&Atom) -> R>(self, atom: &Atom, f: F) -> R;
+}
+
+/// Case sensitive
+#[derive(Copy, Clone)]
+pub struct CaseSensitive;
+
+/// ASCII case insensitive
+#[derive(Copy, Clone)]
+pub struct AsciiCaseInsensitive;
+
+impl CaseSensitivity for CaseSensitive {
+    fn map(self, atom: Atom) -> Atom { atom }
+    fn with_ref<R, F: FnOnce(&Atom) -> R>(self, atom: &Atom, f: F) -> R { f(atom) }
+}
+
+impl CaseSensitivity for AsciiCaseInsensitive {
+    fn map(self, atom: Atom) -> Atom {
+        atom.to_ascii_lowercase()
+    }
+
+    fn with_ref<R, F: FnOnce(&Atom) -> R>(self, atom: &Atom, f: F) -> R {
+        f(&atom.to_ascii_lowercase())
     }
 }

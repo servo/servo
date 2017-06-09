@@ -1075,13 +1075,21 @@ impl DependencySet {
                     AncestorHashes::from_iter(seq_iter)
                 };
 
-                self.dependencies.insert(Dependency {
+                let dep = Dependency {
                     sensitivities: visitor.sensitivities,
                     hint: hint,
                     selector: selector_and_hashes.selector.clone(),
                     selector_offset: sequence_start,
                     hashes: hashes,
-                }, quirks_mode);
+                };
+
+                macro_rules! call {
+                    ($case_sensitivity: expr) => {
+                        self.dependencies.insert(dep, $case_sensitivity);
+                    }
+                }
+
+                with_classes_and_ids_case_sensitivity!(quirks_mode, call);
             }
 
             combinator = iter.next_sequence();
@@ -1180,74 +1188,34 @@ impl DependencySet {
             *el
         };
 
-        self.dependencies.lookup_with_additional(
-            lookup_element, shared_context.quirks_mode, additional_id, &additional_classes,
-            &mut |dep| {
-            trace!("scanning dependency: {:?}", dep);
+        {
+            let mut each = |dep: &Dependency| {
+                trace!("scanning dependency: {:?}", dep);
 
-            if !dep.sensitivities.sensitive_to(attrs_changed,
-                                               state_changes) {
-                trace!(" > non-sensitive");
-                return true;
-            }
+                if !dep.sensitivities.sensitive_to(attrs_changed,
+                                                   state_changes) {
+                    trace!(" > non-sensitive");
+                    return true;
+                }
 
-            if hint.contains(&dep.hint) {
-                trace!(" > hint was already there");
-                return true;
-            }
+                if hint.contains(&dep.hint) {
+                    trace!(" > hint was already there");
+                    return true;
+                }
 
-            // NOTE(emilio): We can't use the bloom filter for snapshots, given
-            // that arbitrary elements in the parent chain may have mutated
-            // their id's/classes, which means that they won't be in the
-            // filter, and as such we may fast-reject selectors incorrectly.
-            //
-            // We may be able to improve this if we record as we go down the
-            // tree whether any parent had a snapshot, and whether those
-            // snapshots were taken due to an element class/id change, but it's
-            // not clear we _need_ it right now.
-            let mut then_context =
-                MatchingContext::new_for_visited(MatchingMode::Normal, None,
-                                                 VisitedHandlingMode::AllLinksUnvisited,
-                                                 shared_context.quirks_mode);
-            let matched_then =
-                matches_selector(&dep.selector,
-                                 dep.selector_offset,
-                                 &dep.hashes,
-                                 &snapshot_el,
-                                 &mut then_context,
-                                 &mut |_, _| {});
-            let mut now_context =
-                MatchingContext::new_for_visited(MatchingMode::Normal, bloom_filter,
-                                                 VisitedHandlingMode::AllLinksUnvisited,
-                                                 shared_context.quirks_mode);
-            let matches_now =
-                matches_selector(&dep.selector,
-                                 dep.selector_offset,
-                                 &dep.hashes,
-                                 el,
-                                 &mut now_context,
-                                 &mut |_, _| {});
-
-            // Check for mismatches in both the match result and also the status
-            // of whether a relevant link was found.
-            if matched_then != matches_now ||
-               then_context.relevant_link_found != now_context.relevant_link_found {
-                hint.insert_from(&dep.hint);
-                return !hint.is_maximum()
-            }
-
-            // If there is a relevant link, then we also matched in visited
-            // mode.  Match again in this mode to ensure this also matches.
-            // Note that we never actually match directly against the element's
-            // true visited state at all, since that would expose us to timing
-            // attacks.  The matching process only considers the relevant link
-            // state and visited handling mode when deciding if visited
-            // matches.  Instead, we are rematching here in case there is some
-            // :visited selector whose matching result changed for some _other_
-            // element state or attribute.
-            if now_context.relevant_link_found &&
-               dep.sensitivities.states.intersects(IN_VISITED_OR_UNVISITED_STATE) {
-                then_context.visited_handling = VisitedHandlingMode::RelevantLinkVisited;
+                // NOTE(emilio): We can't use the bloom filter for snapshots, given
+                // that arbitrary elements in the parent chain may have mutated
+                // their id's/classes, which means that they won't be in the
+                // filter, and as such we may fast-reject selectors incorrectly.
+                //
+                // We may be able to improve this if we record as we go down the
+                // tree whether any parent had a snapshot, and whether those
+                // snapshots were taken due to an element class/id change, but it's
+                // not clear we _need_ it right now.
+                let mut then_context =
+                    MatchingContext::new_for_visited(MatchingMode::Normal, None,
+                                                     VisitedHandlingMode::AllLinksUnvisited,
+                                                     shared_context.quirks_mode);
                 let matched_then =
                     matches_selector(&dep.selector,
                                      dep.selector_offset,
@@ -1255,7 +1223,10 @@ impl DependencySet {
                                      &snapshot_el,
                                      &mut then_context,
                                      &mut |_, _| {});
-                now_context.visited_handling = VisitedHandlingMode::RelevantLinkVisited;
+                let mut now_context =
+                    MatchingContext::new_for_visited(MatchingMode::Normal, bloom_filter,
+                                                     VisitedHandlingMode::AllLinksUnvisited,
+                                                     shared_context.quirks_mode);
                 let matches_now =
                     matches_selector(&dep.selector,
                                      dep.selector_offset,
@@ -1263,14 +1234,62 @@ impl DependencySet {
                                      el,
                                      &mut now_context,
                                      &mut |_, _| {});
-                if matched_then != matches_now {
+
+                // Check for mismatches in both the match result and also the status
+                // of whether a relevant link was found.
+                if matched_then != matches_now ||
+                   then_context.relevant_link_found != now_context.relevant_link_found {
                     hint.insert_from(&dep.hint);
                     return !hint.is_maximum()
                 }
+
+                // If there is a relevant link, then we also matched in visited
+                // mode.  Match again in this mode to ensure this also matches.
+                // Note that we never actually match directly against the element's
+                // true visited state at all, since that would expose us to timing
+                // attacks.  The matching process only considers the relevant link
+                // state and visited handling mode when deciding if visited
+                // matches.  Instead, we are rematching here in case there is some
+                // :visited selector whose matching result changed for some _other_
+                // element state or attribute.
+                if now_context.relevant_link_found &&
+                   dep.sensitivities.states.intersects(IN_VISITED_OR_UNVISITED_STATE) {
+                    then_context.visited_handling = VisitedHandlingMode::RelevantLinkVisited;
+                    let matched_then =
+                        matches_selector(&dep.selector,
+                                         dep.selector_offset,
+                                         &dep.hashes,
+                                         &snapshot_el,
+                                         &mut then_context,
+                                         &mut |_, _| {});
+                    now_context.visited_handling = VisitedHandlingMode::RelevantLinkVisited;
+                    let matches_now =
+                        matches_selector(&dep.selector,
+                                         dep.selector_offset,
+                                         &dep.hashes,
+                                         el,
+                                         &mut now_context,
+                                         &mut |_, _| {});
+                    if matched_then != matches_now {
+                        hint.insert_from(&dep.hint);
+                        return !hint.is_maximum()
+                    }
+                }
+
+                !hint.is_maximum()
+            };
+
+            macro_rules! call {
+                ($case_sensitivity: expr) => {
+                    self.dependencies.lookup_with_additional(
+                        lookup_element, $case_sensitivity,
+                        additional_id, &additional_classes, &mut each,
+                    )
+                }
             }
 
-            !hint.is_maximum()
-        });
+            with_classes_and_ids_case_sensitivity!(shared_context.quirks_mode, call);
+        }
 
         debug!("Calculated restyle hint: {:?} for {:?}. (State={:?}, {} Deps)",
                hint, el, el.get_state(), self.len());

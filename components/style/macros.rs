@@ -103,3 +103,17 @@ macro_rules! define_keyword_type {
         no_viewport_percentage!($name);
     };
 }
+
+macro_rules! with_classes_and_ids_case_sensitivity {
+    ($quirks_mode: expr, $macro_name: ident) => {
+        match $quirks_mode {
+            ::context::QuirksMode::NoQuirks |
+            ::context::QuirksMode::LimitedQuirks => {
+                $macro_name!(::selector_map::AsciiCaseInsensitive)
+            }
+            ::context::QuirksMode::Quirks => {
+                $macro_name!(::selector_map::AsciiCaseInsensitive)
+            }
+        }
+    }
+}
