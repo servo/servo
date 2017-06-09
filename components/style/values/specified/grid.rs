@@ -110,8 +110,7 @@ enum RepeatType {
 
 impl TrackRepeat<LengthOrPercentage> {
     fn parse_with_repeat_type<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                      -> Result<(TrackRepeat<LengthOrPercentage>, RepeatType),
-                                                ParseError<'i>> {
+                                      -> Result<(TrackRepeat<LengthOrPercentage>, RepeatType), ParseError<'i>> {
         input.try(|i| i.expect_function_matching("repeat").map_err(|e| e.into())).and_then(|_| {
             input.parse_nested_block(|input| {
                 let count = RepeatCount::parse(context, input)?;
