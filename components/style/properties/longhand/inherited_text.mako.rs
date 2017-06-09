@@ -624,7 +624,7 @@ ${helpers.predefined_type("word-spacing",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="text-emphasis-position" animation_value_type="none" products="gecko"
+<%helpers:longhand name="text-emphasis-position" animation_value_type="discrete" products="gecko"
                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-position">
     use values::computed::ComputedValueAsSpecified;
     use style_traits::ToCss;
@@ -680,6 +680,32 @@ ${helpers.predefined_type("word-spacing",
                     HorizontalWritingModeValue::Under
                 };
                 SpecifiedValue(horiz, vert)
+            }
+        }
+
+        impl From<u8> for SpecifiedValue {
+            fn from(bits: u8) -> SpecifiedValue {
+                SpecifiedValue::from_gecko_keyword(bits as u32)
+            }
+        }
+
+        impl From<SpecifiedValue> for u8 {
+            fn from(v: SpecifiedValue) -> u8 {
+                use gecko_bindings::structs;
+
+                let mut result = match v.0 {
+                    HorizontalWritingModeValue::Over => structs::NS_STYLE_TEXT_EMPHASIS_POSITION_OVER,
+                    HorizontalWritingModeValue::Under => structs::NS_STYLE_TEXT_EMPHASIS_POSITION_UNDER,
+                };
+                match v.1 {
+                    VerticalWritingModeValue::Right => {
+                        result |= structs::NS_STYLE_TEXT_EMPHASIS_POSITION_RIGHT;
+                    }
+                    VerticalWritingModeValue::Left => {
+                        result |= structs::NS_STYLE_TEXT_EMPHASIS_POSITION_LEFT;
+                    }
+                };
+                result as u8
             }
         }
     % endif
