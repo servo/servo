@@ -680,6 +680,25 @@ impl Debug for ${style_struct.gecko_struct_name} {
 %endif
 </%def>
 
+<%def name="impl_simple_type_with_conversion(ident, gecko_ffi_name=None)">
+    <%
+    if gecko_ffi_name is None:
+        gecko_ffi_name = "m" + to_camel_case(ident)
+    %>
+
+    #[allow(non_snake_case)]
+    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+        self.gecko.${gecko_ffi_name} = From::from(v)
+    }
+
+    <% impl_simple_copy(ident, gecko_ffi_name) %>
+
+    #[allow(non_snake_case)]
+    pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+        From::from(self.gecko.${gecko_ffi_name})
+    }
+</%def>
+
 <%def name="raw_impl_trait(style_struct, skip_longhands='', skip_additionals='')">
 <%
     longhands = [x for x in style_struct.longhands
@@ -998,17 +1017,19 @@ fn static_assert() {
         % endfor
     }
 
+    <%
+    border_image_repeat_keywords = ["Stretch", "Repeat", "Round", "Space"]
+    %>
+
     pub fn set_border_image_repeat(&mut self, v: longhands::border_image_repeat::computed_value::T) {
         use properties::longhands::border_image_repeat::computed_value::RepeatKeyword;
-        use gecko_bindings::structs::{NS_STYLE_BORDER_IMAGE_REPEAT_STRETCH, NS_STYLE_BORDER_IMAGE_REPEAT_REPEAT};
-        use gecko_bindings::structs::{NS_STYLE_BORDER_IMAGE_REPEAT_ROUND, NS_STYLE_BORDER_IMAGE_REPEAT_SPACE};
+        use gecko_bindings::structs;
 
         % for i, side in enumerate(["H", "V"]):
             let k = match v.${i} {
-                RepeatKeyword::Stretch => NS_STYLE_BORDER_IMAGE_REPEAT_STRETCH,
-                RepeatKeyword::Repeat => NS_STYLE_BORDER_IMAGE_REPEAT_REPEAT,
-                RepeatKeyword::Round => NS_STYLE_BORDER_IMAGE_REPEAT_ROUND,
-                RepeatKeyword::Space => NS_STYLE_BORDER_IMAGE_REPEAT_SPACE,
+                % for keyword in border_image_repeat_keywords:
+                RepeatKeyword::${keyword} => structs::NS_STYLE_BORDER_IMAGE_REPEAT_${keyword.upper()},
+                % endfor
             };
 
             self.gecko.mBorderImageRepeat${side} = k as u8;
@@ -1018,6 +1039,21 @@ fn static_assert() {
     pub fn copy_border_image_repeat_from(&mut self, other: &Self) {
         self.gecko.mBorderImageRepeatH = other.gecko.mBorderImageRepeatH;
         self.gecko.mBorderImageRepeatV = other.gecko.mBorderImageRepeatV;
+    }
+
+    pub fn clone_border_image_repeat(&self) -> longhands::border_image_repeat::computed_value::T {
+        use properties::longhands::border_image_repeat::computed_value::RepeatKeyword;
+        use gecko_bindings::structs;
+
+        % for side in ["H", "V"]:
+        let servo_${side.lower()} = match self.gecko.mBorderImageRepeat${side} as u32 {
+            % for keyword in border_image_repeat_keywords:
+            structs::NS_STYLE_BORDER_IMAGE_REPEAT_${keyword.upper()} => RepeatKeyword::${keyword},
+            % endfor
+            x => panic!("Found unexpected value in mBorderImageRepeat${side}: {:?}", x),
+        };
+        % endfor
+        longhands::border_image_repeat::computed_value::T(servo_h, servo_v)
     }
 
     pub fn set_border_image_width(&mut self, v: longhands::border_image_width::computed_value::T) {
@@ -1134,53 +1170,11 @@ fn static_assert() {
         }
     }
 
-    pub fn set_align_content(&mut self, v: longhands::align_content::computed_value::T) {
-        self.gecko.mAlignContent = v.bits()
-    }
-
-    ${impl_simple_copy('align_content', 'mAlignContent')}
-
-    pub fn set_justify_content(&mut self, v: longhands::justify_content::computed_value::T) {
-        self.gecko.mJustifyContent = v.bits()
-    }
-
-    ${impl_simple_copy('justify_content', 'mJustifyContent')}
-
-    pub fn set_align_self(&mut self, v: longhands::align_self::computed_value::T) {
-        self.gecko.mAlignSelf = v.0.bits()
-    }
-
-    ${impl_simple_copy('align_self', 'mAlignSelf')}
-
-    pub fn set_justify_self(&mut self, v: longhands::justify_self::computed_value::T) {
-        self.gecko.mJustifySelf = v.0.bits()
-    }
-
-    ${impl_simple_copy('justify_self', 'mJustifySelf')}
-
-    pub fn set_align_items(&mut self, v: longhands::align_items::computed_value::T) {
-        self.gecko.mAlignItems = v.0.bits()
-    }
-
-    ${impl_simple_copy('align_items', 'mAlignItems')}
-
-    pub fn clone_align_items(&self) -> longhands::align_items::computed_value::T {
-        use values::specified::align::{AlignFlags, AlignItems};
-        AlignItems(AlignFlags::from_bits(self.gecko.mAlignItems)
-                                        .expect("mAlignItems contains valid flags"))
-    }
-
-    pub fn set_justify_items(&mut self, v: longhands::justify_items::computed_value::T) {
-        self.gecko.mJustifyItems = v.0.bits()
-    }
-
-    ${impl_simple_copy('justify_items', 'mJustifyItems')}
-
-    pub fn clone_justify_items(&self) -> longhands::justify_items::computed_value::T {
-        use values::specified::align::{AlignFlags, JustifyItems};
-        JustifyItems(AlignFlags::from_bits(self.gecko.mJustifyItems)
-                                          .expect("mJustifyItems contains valid flags"))
-    }
+    % for kind in ["align", "justify"]:
+    ${impl_simple_type_with_conversion(kind + "_content")}
+    ${impl_simple_type_with_conversion(kind + "_self")}
+    ${impl_simple_type_with_conversion(kind + "_items")}
+    % endfor
 
     pub fn set_order(&mut self, v: longhands::order::computed_value::T) {
         self.gecko.mOrder = v;
@@ -1372,27 +1366,7 @@ fn static_assert() {
     }
     % endfor
 
-    pub fn set_grid_auto_flow(&mut self, v: longhands::grid_auto_flow::computed_value::T) {
-        use gecko_bindings::structs::NS_STYLE_GRID_AUTO_FLOW_ROW;
-        use gecko_bindings::structs::NS_STYLE_GRID_AUTO_FLOW_COLUMN;
-        use gecko_bindings::structs::NS_STYLE_GRID_AUTO_FLOW_DENSE;
-        use properties::longhands::grid_auto_flow::computed_value::AutoFlow::{Row, Column};
-
-        self.gecko.mGridAutoFlow = 0;
-
-        let value = match v.autoflow {
-            Row => NS_STYLE_GRID_AUTO_FLOW_ROW,
-            Column => NS_STYLE_GRID_AUTO_FLOW_COLUMN,
-        };
-
-        self.gecko.mGridAutoFlow |= value as u8;
-
-        if v.dense {
-            self.gecko.mGridAutoFlow |= NS_STYLE_GRID_AUTO_FLOW_DENSE as u8;
-        }
-    }
-
-    ${impl_simple_copy('grid_auto_flow', 'mGridAutoFlow')}
+    ${impl_simple_type_with_conversion("grid_auto_flow")}
 
     pub fn set_grid_template_areas(&mut self, v: longhands::grid_template_areas::computed_value::T) {
         use gecko_bindings::bindings::Gecko_NewGridTemplateAreasValue;
@@ -1814,21 +1788,7 @@ fn static_assert() {
         unsafe { transmute(self.gecko.mFont.weight) }
     }
 
-    pub fn set_font_synthesis(&mut self, v: longhands::font_synthesis::computed_value::T) {
-        use gecko_bindings::structs::{NS_FONT_SYNTHESIS_WEIGHT, NS_FONT_SYNTHESIS_STYLE};
-
-        self.gecko.mFont.synthesis = 0;
-        if v.weight {
-            self.gecko.mFont.synthesis |= NS_FONT_SYNTHESIS_WEIGHT as u8;
-        }
-        if v.style {
-            self.gecko.mFont.synthesis |= NS_FONT_SYNTHESIS_STYLE as u8;
-        }
-    }
-
-    pub fn copy_font_synthesis_from(&mut self, other: &Self) {
-        self.gecko.mFont.synthesis = other.gecko.mFont.synthesis;
-    }
+    ${impl_simple_type_with_conversion("font_synthesis", "mFont.synthesis")}
 
     pub fn set_font_size_adjust(&mut self, v: longhands::font_size_adjust::computed_value::T) {
         use properties::longhands::font_size_adjust::computed_value::T;
@@ -1863,10 +1823,7 @@ fn static_assert() {
         }
     }
 
-    pub fn set_font_language_override(&mut self, v: longhands::font_language_override::computed_value::T) {
-        self.gecko.mFont.languageOverride = v.0;
-    }
-    ${impl_simple_copy('font_language_override', 'mFont.languageOverride')}
+    <% impl_simple_type_with_conversion("font_language_override", "mFont.languageOverride") %>
 
     pub fn set_font_variant_alternates(&mut self, v: longhands::font_variant_alternates::computed_value::T) {
         self.gecko.mFont.variantAlternates = v.to_gecko_keyword()
@@ -1879,23 +1836,9 @@ fn static_assert() {
         // self.gecko.mFont.alternateValues = other.gecko.mFont.alternateValues;
     }
 
-    pub fn set_font_variant_ligatures(&mut self, v: longhands::font_variant_ligatures::computed_value::T) {
-        self.gecko.mFont.variantLigatures = v.to_gecko_keyword()
-    }
-
-    ${impl_simple_copy('font_variant_ligatures', 'mFont.variantLigatures')}
-
-    pub fn set_font_variant_east_asian(&mut self, v: longhands::font_variant_east_asian::computed_value::T) {
-        self.gecko.mFont.variantEastAsian = v.to_gecko_keyword()
-    }
-
-    ${impl_simple_copy('font_variant_east_asian', 'mFont.variantEastAsian')}
-
-    pub fn set_font_variant_numeric(&mut self, v: longhands::font_variant_numeric::computed_value::T) {
-        self.gecko.mFont.variantNumeric = v.to_gecko_keyword()
-    }
-
-    ${impl_simple_copy('font_variant_numeric', 'mFont.variantNumeric')}
+    ${impl_simple_type_with_conversion("font_variant_ligatures", "mFont.variantLigatures")}
+    ${impl_simple_type_with_conversion("font_variant_east_asian", "mFont.variantEastAsian")}
+    ${impl_simple_type_with_conversion("font_variant_numeric", "mFont.variantNumeric")}
 
     #[allow(non_snake_case)]
     pub fn set__moz_min_font_size_ratio(&mut self, v: longhands::_moz_min_font_size_ratio::computed_value::T) {
@@ -2654,7 +2597,7 @@ fn static_assert() {
 
     <% scroll_snap_type_keyword = Keyword("scroll-snap-type", "none mandatory proximity") %>
 
-    ${impl_keyword('scroll_snap_type_y', 'mScrollSnapTypeY', scroll_snap_type_keyword, need_clone=False)}
+    ${impl_keyword('scroll_snap_type_y', 'mScrollSnapTypeY', scroll_snap_type_keyword, need_clone=True)}
 
     pub fn set_perspective_origin(&mut self, v: longhands::perspective_origin::computed_value::T) {
         self.gecko.mPerspectiveOrigin[0].set(v.horizontal);
@@ -2855,11 +2798,7 @@ fn static_assert() {
 
     ${impl_simple_copy("contain", "mContain")}
 
-    pub fn set_touch_action(&mut self, v: longhands::touch_action::computed_value::T) {
-        self.gecko.mTouchAction = v.bits();
-    }
-
-    ${impl_simple_copy("touch_action", "mTouchAction")}
+    ${impl_simple_type_with_conversion("touch_action")}
 </%self:impl_trait>
 
 <%def name="simple_image_array_property(name, shorthand, field_name)">
@@ -3637,7 +3576,7 @@ fn static_assert() {
 
 <%self:impl_trait style_struct_name="InheritedText"
                   skip_longhands="text-align text-emphasis-style text-shadow line-height letter-spacing word-spacing
-                                  -webkit-text-stroke-width text-emphasis-position -moz-tab-size -moz-text-size-adjust">
+                                  -webkit-text-stroke-width text-emphasis-position -moz-tab-size">
 
     <% text_align_keyword = Keyword("text-align",
                                     "start end left right center justify -moz-center -moz-left -moz-right char",
@@ -3744,25 +3683,7 @@ fn static_assert() {
         }
     }
 
-    pub fn set_text_emphasis_position(&mut self, v: longhands::text_emphasis_position::computed_value::T) {
-        use properties::longhands::text_emphasis_position::*;
-
-        let mut result = match v.0 {
-            HorizontalWritingModeValue::Over => structs::NS_STYLE_TEXT_EMPHASIS_POSITION_OVER as u8,
-            HorizontalWritingModeValue::Under => structs::NS_STYLE_TEXT_EMPHASIS_POSITION_UNDER as u8,
-        };
-        match v.1 {
-            VerticalWritingModeValue::Right => {
-                result |= structs::NS_STYLE_TEXT_EMPHASIS_POSITION_RIGHT as u8;
-            }
-            VerticalWritingModeValue::Left => {
-                result |= structs::NS_STYLE_TEXT_EMPHASIS_POSITION_LEFT as u8;
-            }
-        }
-        self.gecko.mTextEmphasisPosition = result;
-    }
-
-    <%call expr="impl_simple_copy('text_emphasis_position', 'mTextEmphasisPosition')"></%call>
+    ${impl_simple_type_with_conversion("text_emphasis_position")}
 
     pub fn set_text_emphasis_style(&mut self, v: longhands::text_emphasis_style::computed_value::T) {
         use properties::longhands::text_emphasis_style::computed_value::T;
@@ -3804,7 +3725,7 @@ fn static_assert() {
         self.gecko.mTextEmphasisStyle = other.gecko.mTextEmphasisStyle;
     }
 
-    <%call expr="impl_app_units('_webkit_text_stroke_width', 'mWebkitTextStrokeWidth', need_clone=False)"></%call>
+    <%call expr="impl_app_units('_webkit_text_stroke_width', 'mWebkitTextStrokeWidth', need_clone=True)"></%call>
 
     #[allow(non_snake_case)]
     pub fn set__moz_tab_size(&mut self, v: longhands::_moz_tab_size::computed_value::T) {
@@ -3832,39 +3753,13 @@ fn static_assert() {
     }
 
     <%call expr="impl_coord_copy('_moz_tab_size', 'mTabSize')"></%call>
-
-    <% text_size_adjust_keyword = Keyword("text-size-adjust", "auto none") %>
-
-    ${impl_keyword('_moz_text_size_adjust', 'mTextSizeAdjust', text_size_adjust_keyword, need_clone=False)}
-
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Text"
                   skip_longhands="text-decoration-line text-overflow initial-letter"
                   skip_additionals="*">
 
-    pub fn set_text_decoration_line(&mut self, v: longhands::text_decoration_line::computed_value::T) {
-        let mut bits: u8 = 0;
-        if v.contains(longhands::text_decoration_line::UNDERLINE) {
-            bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE as u8;
-        }
-        if v.contains(longhands::text_decoration_line::OVERLINE) {
-            bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_OVERLINE as u8;
-        }
-        if v.contains(longhands::text_decoration_line::LINE_THROUGH) {
-            bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH as u8;
-        }
-        if v.contains(longhands::text_decoration_line::BLINK) {
-            bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_BLINK as u8;
-        }
-        if v.contains(longhands::text_decoration_line::COLOR_OVERRIDE) {
-            bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_OVERRIDE_ALL as u8;
-        }
-        self.gecko.mTextDecorationLine = bits;
-    }
-
-    ${impl_simple_copy('text_decoration_line', 'mTextDecorationLine')}
-
+    ${impl_simple_type_with_conversion("text_decoration_line")}
 
     fn clear_overflow_sides_if_string(&mut self) {
         use gecko_bindings::structs::nsStyleTextOverflowSide;
@@ -3936,6 +3831,18 @@ fn static_assert() {
     pub fn copy_initial_letter_from(&mut self, other: &Self) {
         self.gecko.mInitialLetterSize = other.gecko.mInitialLetterSize;
         self.gecko.mInitialLetterSink = other.gecko.mInitialLetterSink;
+    }
+
+    pub fn clone_initial_letter(&self) -> longhands::initial_letter::computed_value::T {
+        use values::generics::text::InitialLetter;
+
+        if self.gecko.mInitialLetterSize == 0. && self.gecko.mInitialLetterSink == 0 {
+            InitialLetter::Normal
+        } else if self.gecko.mInitialLetterSize.floor() as i32 == self.gecko.mInitialLetterSink {
+            InitialLetter::Specified(self.gecko.mInitialLetterSize, None)
+        } else {
+            InitialLetter::Specified(self.gecko.mInitialLetterSize, Some(self.gecko.mInitialLetterSink))
+        }
     }
 
     #[inline]
@@ -4491,12 +4398,7 @@ clip-path
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="UI" skip_longhands="-moz-force-broken-image-icon">
-    #[allow(non_snake_case)]
-    pub fn set__moz_force_broken_image_icon(&mut self, v: longhands::_moz_force_broken_image_icon::computed_value::T) {
-        self.gecko.mForceBrokenImageIcon = v.0 as u8;
-    }
-
-    ${impl_simple_copy("_moz_force_broken_image_icon", "mForceBrokenImageIcon")}
+    ${impl_simple_type_with_conversion("_moz_force_broken_image_icon", "mForceBrokenImageIcon")}
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="XUL"
@@ -4507,6 +4409,11 @@ clip-path
     }
 
     ${impl_simple_copy("_moz_box_ordinal_group", "mBoxOrdinal")}
+
+    #[allow(non_snake_case)]
+    pub fn clone__moz_box_ordinal_group(&self) -> i32{
+        self.gecko.mBoxOrdinal as i32
+    }
 </%self:impl_trait>
 
 <%def name="define_ffi_struct_accessor(style_struct)">

@@ -1612,7 +1612,7 @@ ${helpers.single_keyword("scroll-snap-type-x",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-type-x)",
                          animation_value_type="discrete")}
 
-<%helpers:longhand products="gecko" name="scroll-snap-type-y" animation_value_type="none"
+<%helpers:longhand products="gecko" name="scroll-snap-type-y" animation_value_type="discrete"
                    spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-type-x)">
     pub use super::scroll_snap_type_x::SpecifiedValue;
     pub use super::scroll_snap_type_x::computed_value;
@@ -1710,7 +1710,7 @@ ${helpers.predefined_type("transform-origin",
 // FIXME: `size` and `content` values are not implemented and `strict` is implemented
 // like `content`(layout style paint) in gecko. We should implement `size` and `content`,
 // also update the glue once they are implemented in gecko.
-<%helpers:longhand name="contain" animation_value_type="none" products="gecko" need_clone="True"
+<%helpers:longhand name="contain" animation_value_type="discrete" products="gecko" need_clone="True"
                    flags="FIXPOS_CB"
                    spec="https://drafts.csswg.org/css-contain/#contain-property">
     use std::fmt;
@@ -1925,7 +1925,7 @@ ${helpers.predefined_type("shape-outside", "basic_shape::FloatAreaShape",
 
 <%helpers:longhand name="touch-action"
                    products="gecko"
-                   animation_value_type="none"
+                   animation_value_type="discrete"
                    disable_when_testing="True"
                    spec="https://compat.spec.whatwg.org/#touch-action">
     use gecko_bindings::structs;
@@ -1999,4 +1999,7 @@ ${helpers.predefined_type("shape-outside", "basic_shape::FloatAreaShape",
             _ => Err(()),
         }
     }
+
+    #[cfg(feature = "gecko")]
+    impl_bitflags_conversions!(SpecifiedValue);
 </%helpers:longhand>

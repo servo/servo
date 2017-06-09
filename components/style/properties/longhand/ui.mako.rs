@@ -42,7 +42,7 @@ ${helpers.single_keyword("-moz-window-shadow", "none default menu tooltip sheet"
 
 <%helpers:longhand name="-moz-force-broken-image-icon"
                    products="gecko"
-                   animation_value_type="none"
+                   animation_value_type="discrete"
                    spec="None (Nonstandard Firefox-only property)">
     use std::fmt;
     use style_traits::ToCss;
@@ -81,6 +81,21 @@ ${helpers.single_keyword("-moz-window-shadow", "none default menu tooltip sheet"
             0 => Ok(computed_value::T(false)),
             1 => Ok(computed_value::T(true)),
             _ => Err(()),
+        }
+    }
+
+    impl From<u8> for SpecifiedValue {
+        fn from(bits: u8) -> SpecifiedValue {
+            SpecifiedValue(bits == 1)
+        }
+    }
+
+    impl From<SpecifiedValue> for u8 {
+        fn from(v: SpecifiedValue) -> u8 {
+            match v.0 {
+                true => 1u8,
+                false => 0u8,
+            }
         }
     }
 </%helpers:longhand>

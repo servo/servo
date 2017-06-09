@@ -24,6 +24,24 @@
                               animation_value_type="ComputedValue", logical=True)}
 % endfor
 
+#[cfg(feature = "gecko")]
+macro_rules! impl_align_conversions {
+    ($name: path) => {
+        impl From<u8> for $name {
+            fn from(bits: u8) -> $name {
+                $name(::values::specified::align::AlignFlags::from_bits(bits)
+                      .expect("bits contain valid flag"))
+            }
+        }
+
+        impl From<$name> for u8 {
+            fn from(v: $name) -> u8 {
+                v.0.bits()
+            }
+        }
+    };
+}
+
 ${helpers.predefined_type("z-index", "IntegerOrAuto",
                           "Either::Second(Auto)",
                           spec="https://www.w3.org/TR/CSS2/visuren.html#z-index",
@@ -48,14 +66,14 @@ ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse",
     ${helpers.single_keyword("justify-content", "flex-start stretch flex-end center space-between space-around",
                              extra_prefixes="webkit",
                              spec="https://drafts.csswg.org/css-align/#propdef-justify-content",
-                             animation_value_type="none")}
+                             animation_value_type="discrete")}
 % else:
     ${helpers.predefined_type(name="justify-content",
                               type="AlignJustifyContent",
                               initial_value="specified::AlignJustifyContent::normal()",
                               spec="https://drafts.csswg.org/css-align/#propdef-justify-content",
                               extra_prefixes="webkit",
-                              animation_value_type="none")}
+                              animation_value_type="discrete")}
 % endif
 
 % if product == "servo":
@@ -63,7 +81,7 @@ ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse",
     ${helpers.single_keyword("align-content", "stretch flex-start flex-end center space-between space-around",
                              extra_prefixes="webkit",
                              spec="https://drafts.csswg.org/css-align/#propdef-align-content",
-                             animation_value_type="none")}
+                             animation_value_type="discrete")}
 
     ${helpers.single_keyword("align-items",
                              "stretch flex-start flex-end center baseline",
@@ -76,7 +94,7 @@ ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse",
                               initial_value="specified::AlignJustifyContent::normal()",
                               spec="https://drafts.csswg.org/css-align/#propdef-align-content",
                               extra_prefixes="webkit",
-                              animation_value_type="none")}
+                              animation_value_type="discrete")}
 
     ${helpers.predefined_type(name="align-items",
                               type="AlignItems",
@@ -85,11 +103,17 @@ ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse",
                               extra_prefixes="webkit",
                               animation_value_type="discrete")}
 
+    #[cfg(feature = "gecko")]
+    impl_align_conversions!(::values::specified::align::AlignItems);
+
     ${helpers.predefined_type(name="justify-items",
                               type="JustifyItems",
                               initial_value="specified::JustifyItems::auto()",
                               spec="https://drafts.csswg.org/css-align/#propdef-justify-items",
-                              animation_value_type="none")}
+                              animation_value_type="discrete")}
+
+    #[cfg(feature = "gecko")]
+    impl_align_conversions!(::values::specified::align::JustifyItems);
 % endif
 
 // Flex item properties
@@ -109,23 +133,25 @@ ${helpers.predefined_type("flex-shrink", "Number",
 % if product == "servo":
     // FIXME: Update Servo to support the same syntax as Gecko.
     ${helpers.single_keyword("align-self", "auto stretch flex-start flex-end center baseline",
-                             need_clone=True,
                              extra_prefixes="webkit",
                              spec="https://drafts.csswg.org/css-flexbox/#propdef-align-self",
-                             animation_value_type="none")}
+                             animation_value_type="discrete")}
 % else:
     ${helpers.predefined_type(name="align-self",
                               type="AlignJustifySelf",
                               initial_value="specified::AlignJustifySelf::auto()",
                               spec="https://drafts.csswg.org/css-align/#align-self-property",
                               extra_prefixes="webkit",
-                              animation_value_type="none")}
+                              animation_value_type="discrete")}
 
     ${helpers.predefined_type(name="justify-self",
                               type="AlignJustifySelf",
                               initial_value="specified::AlignJustifySelf::auto()",
                               spec="https://drafts.csswg.org/css-align/#justify-self-property",
-                              animation_value_type="none")}
+                              animation_value_type="discrete")}
+
+    #[cfg(feature = "gecko")]
+    impl_align_conversions!(::values::specified::align::AlignJustifySelf);
 % endif
 
 // https://drafts.csswg.org/css-flexbox/#propdef-order
@@ -266,7 +292,7 @@ ${helpers.predefined_type("object-position",
 <%helpers:longhand name="grid-auto-flow"
         spec="https://drafts.csswg.org/css-grid/#propdef-grid-auto-flow"
         products="gecko"
-        animation_value_type="none">
+        animation_value_type="discrete">
     use std::fmt;
     use style_traits::ToCss;
     use values::computed::ComputedValueAsSpecified;
@@ -344,6 +370,43 @@ ${helpers.predefined_type("object-position",
             })
         } else {
             Err(())
+        }
+    }
+
+    #[cfg(feature = "gecko")]
+    impl From<u8> for SpecifiedValue {
+        fn from(bits: u8) -> SpecifiedValue {
+            use gecko_bindings::structs;
+            use self::computed_value::AutoFlow;
+
+            SpecifiedValue {
+                autoflow:
+                    if bits & structs::NS_STYLE_GRID_AUTO_FLOW_ROW as u8 != 0 {
+                        AutoFlow::Row
+                    } else {
+                        AutoFlow::Column
+                    },
+                dense:
+                    bits & structs::NS_STYLE_GRID_AUTO_FLOW_DENSE as u8 != 0,
+            }
+        }
+    }
+
+    #[cfg(feature = "gecko")]
+    impl From<SpecifiedValue> for u8 {
+        fn from(v: SpecifiedValue) -> u8 {
+            use gecko_bindings::structs;
+            use self::computed_value::AutoFlow;
+
+            let mut result: u8 = match v.autoflow {
+                AutoFlow::Row => structs::NS_STYLE_GRID_AUTO_FLOW_ROW as u8,
+                AutoFlow::Column => structs::NS_STYLE_GRID_AUTO_FLOW_COLUMN as u8,
+            };
+
+            if v.dense {
+                result |= structs::NS_STYLE_GRID_AUTO_FLOW_DENSE as u8;
+            }
+            result
         }
     }
 </%helpers:longhand>

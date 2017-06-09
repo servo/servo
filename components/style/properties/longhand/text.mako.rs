@@ -143,10 +143,9 @@ ${helpers.single_keyword("unicode-bidi",
                          animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-writing-modes/#propdef-unicode-bidi")}
 
-// FIXME: This prop should be animatable.
 <%helpers:longhand name="text-decoration-line"
                    custom_cascade="${product == 'servo'}"
-                   animation_value_type="none"
+                   animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-line">
     use std::fmt;
     use style_traits::ToCss;
@@ -159,8 +158,8 @@ ${helpers.single_keyword("unicode-bidi",
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub flags SpecifiedValue: u8 {
             const NONE = 0,
-            const OVERLINE = 0x01,
-            const UNDERLINE = 0x02,
+            const UNDERLINE = 0x01,
+            const OVERLINE = 0x02,
             const LINE_THROUGH = 0x04,
             const BLINK = 0x08,
         % if product == "gecko":
@@ -256,6 +255,9 @@ ${helpers.single_keyword("unicode-bidi",
                 longhands::_servo_text_decorations_in_effect::derive_from_text_decoration(context);
         }
     % endif
+
+    #[cfg(feature = "gecko")]
+    impl_bitflags_conversions!(SpecifiedValue);
 </%helpers:longhand>
 
 ${helpers.single_keyword("text-decoration-style",
@@ -278,6 +280,6 @@ ${helpers.predefined_type(
     "InitialLetter",
     "computed::InitialLetter::normal()",
     initial_specified_value="specified::InitialLetter::normal()",
-    animation_value_type="none",
+    animation_value_type="discrete",
     products="gecko",
     spec="https://drafts.csswg.org/css-inline/#sizing-drop-initials")}
