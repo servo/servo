@@ -19,6 +19,7 @@ use dom::promise::Promise;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
+use js::glue::UnwrapObject;
 use js::jsapi::{IsConstructor, HandleObject, JS_GetProperty, JSAutoCompartment, JSContext};
 use js::jsval::{JSVal, UndefinedValue};
 use std::cell::Cell;
@@ -95,7 +96,15 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         rooted!(in(global_scope.get_cx()) let constructor = constructor_.callback());
 
         // Step 1
-        if unsafe { !IsConstructor(constructor.get()) } {
+        // We must unwrap the constructor as all wrappers are constructable if they are callable.
+        rooted!(in(global_scope.get_cx()) let unwrapped_constructor = unsafe { UnwrapObject(constructor.get(), 1) });
+
+        if unwrapped_constructor.is_null() {
+            // We do not have permission to access the unwrapped constructor.
+            return Err(Error::Security);
+        }
+
+        if unsafe { !IsConstructor(unwrapped_constructor.get()) } {
             return Err(Error::Type("Second argument of CustomElementRegistry.define is not a constructor".to_owned()));
         }
 
