@@ -1161,7 +1161,7 @@ ${helpers.single_keyword_system("font-variant-caps",
     }
 </%helpers:longhand>
 
-<%helpers:longhand products="gecko" name="font-synthesis" animation_value_type="none"
+<%helpers:longhand products="gecko" name="font-synthesis" animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-synthesis">
     use std::fmt;
     use style_traits::ToCss;
@@ -1219,6 +1219,34 @@ ${helpers.single_keyword_system("font-variant-caps",
                 Ok(result)
             },
             _ => Err(())
+        }
+    }
+
+    #[cfg(feature = "gecko")]
+    impl From<u8> for SpecifiedValue {
+        fn from(bits: u8) -> SpecifiedValue {
+            use gecko_bindings::structs;
+
+            SpecifiedValue {
+                weight: bits & structs::NS_FONT_SYNTHESIS_WEIGHT as u8 != 0,
+                style: bits & structs::NS_FONT_SYNTHESIS_STYLE as u8 != 0
+            }
+        }
+    }
+
+    #[cfg(feature = "gecko")]
+    impl From<SpecifiedValue> for u8 {
+        fn from(v: SpecifiedValue) -> u8 {
+            use gecko_bindings::structs;
+
+            let mut bits: u8 = 0;
+            if v.weight {
+                bits |= structs::NS_FONT_SYNTHESIS_WEIGHT as u8;
+            }
+            if v.style {
+                bits |= structs::NS_FONT_SYNTHESIS_STYLE as u8;
+            }
+            bits
         }
     }
 </%helpers:longhand>

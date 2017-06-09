@@ -1349,27 +1349,7 @@ fn static_assert() {
     }
     % endfor
 
-    pub fn set_grid_auto_flow(&mut self, v: longhands::grid_auto_flow::computed_value::T) {
-        use gecko_bindings::structs::NS_STYLE_GRID_AUTO_FLOW_ROW;
-        use gecko_bindings::structs::NS_STYLE_GRID_AUTO_FLOW_COLUMN;
-        use gecko_bindings::structs::NS_STYLE_GRID_AUTO_FLOW_DENSE;
-        use properties::longhands::grid_auto_flow::computed_value::AutoFlow::{Row, Column};
-
-        self.gecko.mGridAutoFlow = 0;
-
-        let value = match v.autoflow {
-            Row => NS_STYLE_GRID_AUTO_FLOW_ROW,
-            Column => NS_STYLE_GRID_AUTO_FLOW_COLUMN,
-        };
-
-        self.gecko.mGridAutoFlow |= value as u8;
-
-        if v.dense {
-            self.gecko.mGridAutoFlow |= NS_STYLE_GRID_AUTO_FLOW_DENSE as u8;
-        }
-    }
-
-    ${impl_simple_copy('grid_auto_flow', 'mGridAutoFlow')}
+    ${impl_simple_type_with_conversion("grid_auto_flow")}
 
     pub fn set_grid_template_areas(&mut self, v: longhands::grid_template_areas::computed_value::T) {
         use gecko_bindings::bindings::Gecko_NewGridTemplateAreasValue;
@@ -1791,21 +1771,7 @@ fn static_assert() {
         unsafe { transmute(self.gecko.mFont.weight) }
     }
 
-    pub fn set_font_synthesis(&mut self, v: longhands::font_synthesis::computed_value::T) {
-        use gecko_bindings::structs::{NS_FONT_SYNTHESIS_WEIGHT, NS_FONT_SYNTHESIS_STYLE};
-
-        self.gecko.mFont.synthesis = 0;
-        if v.weight {
-            self.gecko.mFont.synthesis |= NS_FONT_SYNTHESIS_WEIGHT as u8;
-        }
-        if v.style {
-            self.gecko.mFont.synthesis |= NS_FONT_SYNTHESIS_STYLE as u8;
-        }
-    }
-
-    pub fn copy_font_synthesis_from(&mut self, other: &Self) {
-        self.gecko.mFont.synthesis = other.gecko.mFont.synthesis;
-    }
+    ${impl_simple_type_with_conversion("font_synthesis", "mFont.synthesis")}
 
     pub fn set_font_size_adjust(&mut self, v: longhands::font_size_adjust::computed_value::T) {
         use properties::longhands::font_size_adjust::computed_value::T;
@@ -3703,25 +3669,7 @@ fn static_assert() {
         }
     }
 
-    pub fn set_text_emphasis_position(&mut self, v: longhands::text_emphasis_position::computed_value::T) {
-        use properties::longhands::text_emphasis_position::*;
-
-        let mut result = match v.0 {
-            HorizontalWritingModeValue::Over => structs::NS_STYLE_TEXT_EMPHASIS_POSITION_OVER as u8,
-            HorizontalWritingModeValue::Under => structs::NS_STYLE_TEXT_EMPHASIS_POSITION_UNDER as u8,
-        };
-        match v.1 {
-            VerticalWritingModeValue::Right => {
-                result |= structs::NS_STYLE_TEXT_EMPHASIS_POSITION_RIGHT as u8;
-            }
-            VerticalWritingModeValue::Left => {
-                result |= structs::NS_STYLE_TEXT_EMPHASIS_POSITION_LEFT as u8;
-            }
-        }
-        self.gecko.mTextEmphasisPosition = result;
-    }
-
-    <%call expr="impl_simple_copy('text_emphasis_position', 'mTextEmphasisPosition')"></%call>
+    ${impl_simple_type_with_conversion("text_emphasis_position")}
 
     pub fn set_text_emphasis_style(&mut self, v: longhands::text_emphasis_style::computed_value::T) {
         use properties::longhands::text_emphasis_style::computed_value::T;

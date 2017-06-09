@@ -292,7 +292,7 @@ ${helpers.predefined_type("object-position",
 <%helpers:longhand name="grid-auto-flow"
         spec="https://drafts.csswg.org/css-grid/#propdef-grid-auto-flow"
         products="gecko"
-        animation_value_type="none">
+        animation_value_type="discrete">
     use std::fmt;
     use style_traits::ToCss;
     use values::computed::ComputedValueAsSpecified;
@@ -370,6 +370,43 @@ ${helpers.predefined_type("object-position",
             })
         } else {
             Err(())
+        }
+    }
+
+    #[cfg(feature = "gecko")]
+    impl From<u8> for SpecifiedValue {
+        fn from(bits: u8) -> SpecifiedValue {
+            use gecko_bindings::structs;
+            use self::computed_value::AutoFlow;
+
+            SpecifiedValue {
+                autoflow:
+                    if bits & structs::NS_STYLE_GRID_AUTO_FLOW_ROW as u8 != 0 {
+                        AutoFlow::Row
+                    } else {
+                        AutoFlow::Column
+                    },
+                dense:
+                    bits & structs::NS_STYLE_GRID_AUTO_FLOW_DENSE as u8 != 0,
+            }
+        }
+    }
+
+    #[cfg(feature = "gecko")]
+    impl From<SpecifiedValue> for u8 {
+        fn from(v: SpecifiedValue) -> u8 {
+            use gecko_bindings::structs;
+            use self::computed_value::AutoFlow;
+
+            let mut result: u8 = match v.autoflow {
+                AutoFlow::Row => structs::NS_STYLE_GRID_AUTO_FLOW_ROW as u8,
+                AutoFlow::Column => structs::NS_STYLE_GRID_AUTO_FLOW_COLUMN as u8,
+            };
+
+            if v.dense {
+                result |= structs::NS_STYLE_GRID_AUTO_FLOW_DENSE as u8;
+            }
+            result
         }
     }
 </%helpers:longhand>
