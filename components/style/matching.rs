@@ -991,6 +991,10 @@ pub trait MatchMethods : TElement {
                                                    &context.shared.guards);
 
                 let rules_changed = match visited_handling {
+                    VisitedHandlingMode::AllLinksVisitedAndUnvisited => {
+                        unreachable!("We should never try to selector match with \
+                                     AllLinksVisitedAndUnvisited");
+                    },
                     VisitedHandlingMode::AllLinksUnvisited => {
                         data.set_primary_rules(rules)
                     },
@@ -1070,6 +1074,10 @@ pub trait MatchMethods : TElement {
             );
 
         let rules_changed = match visited_handling {
+            VisitedHandlingMode::AllLinksVisitedAndUnvisited => {
+                unreachable!("We should never try to selector match with \
+                             AllLinksVisitedAndUnvisited");
+            },
             VisitedHandlingMode::AllLinksUnvisited => {
                 data.set_primary_rules(primary_rule_node)
             },

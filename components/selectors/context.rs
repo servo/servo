@@ -48,6 +48,12 @@ pub enum MatchingMode {
 pub enum VisitedHandlingMode {
     /// All links are matched as if they are unvisted.
     AllLinksUnvisited,
+    /// All links are matched as if they are visited and unvisited (both :link
+    /// and :visited match).
+    ///
+    /// This is intended to be used from invalidation code, to be conservative
+    /// about whether we need to restyle a link.
+    AllLinksVisitedAndUnvisited,
     /// A element's "relevant link" is the element being matched if it is a link
     /// or the nearest ancestor link. The relevant link is matched as though it
     /// is visited, and all other links are matched as if they are unvisited.

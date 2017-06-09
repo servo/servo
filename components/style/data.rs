@@ -268,6 +268,10 @@ impl EagerPseudoStyles {
                      rules: StrongRuleNode)
                      -> bool {
         match visited_handling {
+            VisitedHandlingMode::AllLinksVisitedAndUnvisited => {
+                unreachable!("We should never try to selector match with \
+                             AllLinksVisitedAndUnvisited");
+            },
             VisitedHandlingMode::AllLinksUnvisited => {
                 self.add_unvisited_rules(&pseudo, rules)
             },
@@ -286,6 +290,10 @@ impl EagerPseudoStyles {
                         visited_handling: VisitedHandlingMode)
                         -> bool {
         match visited_handling {
+            VisitedHandlingMode::AllLinksVisitedAndUnvisited => {
+                unreachable!("We should never try to selector match with \
+                             AllLinksVisitedAndUnvisited");
+            },
             VisitedHandlingMode::AllLinksUnvisited => {
                 self.remove_unvisited_rules(&pseudo)
             },

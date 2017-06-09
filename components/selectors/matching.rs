@@ -253,6 +253,10 @@ impl RelevantLinkStatus {
             return false
         }
 
+        if context.visited_handling == VisitedHandlingMode::AllLinksVisitedAndUnvisited {
+            return true;
+        }
+
         // Non-relevant links are always unvisited.
         if *self != RelevantLinkStatus::Found {
             return false
@@ -272,6 +276,10 @@ impl RelevantLinkStatus {
     {
         if !element.is_link() {
             return false
+        }
+
+        if context.visited_handling == VisitedHandlingMode::AllLinksVisitedAndUnvisited {
+            return true;
         }
 
         // Non-relevant links are always unvisited.

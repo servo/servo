@@ -420,8 +420,14 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
         debug!("TreeStyleInvalidator::process_invalidation({:?}, {:?})",
                self.element, invalidation);
 
-        let mut context = MatchingContext::new(MatchingMode::Normal, None,
-                                               self.shared_context.quirks_mode);
+        let mut context =
+            MatchingContext::new_for_visited(
+                MatchingMode::Normal,
+                None,
+                VisitedHandlingMode::AllLinksVisitedAndUnvisited,
+                self.shared_context.quirks_mode,
+            );
+
         let matching_result = matches_compound_selector(
             &invalidation.selector,
             invalidation.offset,

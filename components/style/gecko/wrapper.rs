@@ -1258,6 +1258,10 @@ impl<'le> PresentationalHintsSynthesizer for GeckoElement<'le> {
             // Unvisited vs. visited styles are computed up-front based on the
             // visited mode (not the element's actual state).
             let declarations = match visited_handling {
+                VisitedHandlingMode::AllLinksVisitedAndUnvisited => {
+                    unreachable!("We should never try to selector match with \
+                                 AllLinksVisitedAndUnvisited");
+                },
                 VisitedHandlingMode::AllLinksUnvisited => unsafe {
                     Gecko_GetUnvisitedLinkAttrDeclarationBlock(self.0)
                 },
