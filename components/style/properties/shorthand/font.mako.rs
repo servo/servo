@@ -38,7 +38,8 @@
     % endif
     use self::font_family::SpecifiedValue as FontFamily;
 
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         let mut nb_normals = 0;
         let mut style = None;
         let mut variant_caps = None;
@@ -97,7 +98,7 @@
         }
         if size.is_none() ||
            (count(&style) + count(&weight) + count(&variant_caps) + count(&stretch) + nb_normals) > 4 {
-            return Err(())
+            return Err(StyleParseError::UnspecifiedError.into())
         }
         let line_height = if input.try(|input| input.expect_delim('/')).is_ok() {
             Some(try!(LineHeight::parse(context, input)))
@@ -239,7 +240,8 @@
         % endfor
     % endif
 
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         let mut nb_normals = 0;
         let mut caps = None;
         loop {
@@ -264,7 +266,7 @@
         }
         let count = count(&caps) + nb_normals;
         if count == 0 || count > 1 {
-            return Err(())
+            return Err(StyleParseError::UnspecifiedError.into())
         }
         Ok(expanded! {
             font_variant_caps: unwrap_or_initial!(font_variant_caps, caps),

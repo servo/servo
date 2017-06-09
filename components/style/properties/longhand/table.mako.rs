@@ -40,7 +40,8 @@ ${helpers.single_keyword("table-layout", "auto fixed",
     }
 
     // never parse it, only set via presentation attribute
-    fn parse(_: &ParserContext, _: &mut Parser) -> Result<SpecifiedValue, ()> {
-        Err(())
+    fn parse<'i, 't>(_: &ParserContext, _: &mut Parser<'i, 't>)
+                     -> Result<SpecifiedValue, ParseError<'i>> {
+        Err(StyleParseError::UnspecifiedError.into())
     }
 </%helpers:longhand>

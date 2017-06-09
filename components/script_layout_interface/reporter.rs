@@ -9,7 +9,7 @@ use msg::constellation_msg::PipelineId;
 use script_traits::ConstellationControlMsg;
 use servo_url::ServoUrl;
 use std::sync::{Mutex, Arc};
-use style::error_reporting::ParseErrorReporter;
+use style::error_reporting::{ParseErrorReporter, ContextualParseError};
 
 #[derive(HeapSizeOf, Clone)]
 pub struct CSSErrorReporter {
@@ -22,12 +22,12 @@ pub struct CSSErrorReporter {
 }
 
 impl ParseErrorReporter for CSSErrorReporter {
-    fn report_error(&self,
-                    input: &mut Parser,
-                    position: SourcePosition,
-                    message: &str,
-                    url: &ServoUrl,
-                    line_number_offset: u64) {
+    fn report_error<'a>(&self,
+                        input: &mut Parser,
+                        position: SourcePosition,
+                        error: ContextualParseError<'a>,
+                        url: &ServoUrl,
+                        line_number_offset: u64) {
         let location = input.source_location(position);
         let line_offset = location.line + line_number_offset as usize;
         if log_enabled!(log::LogLevel::Info) {
@@ -35,7 +35,7 @@ impl ParseErrorReporter for CSSErrorReporter {
                   url.as_str(),
                   line_offset,
                   location.column,
-                  message)
+                  error.to_string())
         }
 
         //TODO: report a real filename
@@ -44,6 +44,6 @@ impl ParseErrorReporter for CSSErrorReporter {
                                                     "".to_owned(),
                                                     location.line,
                                                     location.column,
-                                                    message.to_owned()));
+                                                    error.to_string()));
     }
 }

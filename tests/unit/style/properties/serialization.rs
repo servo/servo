@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use properties::parse;
+use properties::{parse, parse_input};
 use style::computed_values::display::T::inline_block;
 use style::properties::{PropertyDeclaration, Importance, PropertyId};
 use style::properties::parse_property_declaration_list;

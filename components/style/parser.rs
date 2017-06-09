@@ -6,8 +6,8 @@
 
 use context::QuirksMode;
 use cssparser::{Parser, SourcePosition, UnicodeRange};
-use error_reporting::ParseErrorReporter;
-use style_traits::OneOrMoreCommaSeparated;
+use error_reporting::{ParseErrorReporter, ContextualParseError};
+use style_traits::{OneOrMoreCommaSeparated, ParseError};
 use stylesheets::{CssRuleType, Origin, UrlExtraData, Namespaces};
 
 bitflags! {
@@ -164,14 +164,14 @@ impl<'a> ParserContext<'a> {
 /// Defaults to a no-op.
 /// Set a `RUST_LOG=style::errors` environment variable
 /// to log CSS parse errors to stderr.
-pub fn log_css_error(input: &mut Parser,
-                     position: SourcePosition,
-                     message: &str,
-                     parsercontext: &ParserContext) {
+pub fn log_css_error<'a>(input: &mut Parser,
+                         position: SourcePosition,
+                         error: ContextualParseError<'a>,
+                         parsercontext: &ParserContext) {
     let url_data = parsercontext.url_data;
     let line_number_offset = parsercontext.line_number_offset;
     parsercontext.error_reporter.report_error(input, position,
-                                              message, url_data,
+                                              error, url_data,
                                               line_number_offset);
 }
 
@@ -183,19 +183,21 @@ pub trait Parse : Sized {
     /// Parse a value of this type.
     ///
     /// Returns an error on failure.
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()>;
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                     -> Result<Self, ParseError<'i>>;
 }
 
 impl<T> Parse for Vec<T> where T: Parse + OneOrMoreCommaSeparated {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                     -> Result<Self, ParseError<'i>> {
         input.parse_comma_separated(|input| T::parse(context, input))
     }
 }
 
 /// Parse a non-empty space-separated or comma-separated list of objects parsed by parse_one
-pub fn parse_space_or_comma_separated<F, T>(input: &mut Parser, mut parse_one: F)
-        -> Result<Vec<T>, ()>
-        where F: FnMut(&mut Parser) -> Result<T, ()> {
+pub fn parse_space_or_comma_separated<'i, 't, F, T>(input: &mut Parser<'i, 't>, mut parse_one: F)
+        -> Result<Vec<T>, ParseError<'i>>
+        where F: for<'ii, 'tt> FnMut(&mut Parser<'ii, 'tt>) -> Result<T, ParseError<'ii>> {
     let first = parse_one(input)?;
     let mut vec = vec![first];
     loop {
@@ -209,7 +211,8 @@ pub fn parse_space_or_comma_separated<F, T>(input: &mut Parser, mut parse_one: F
     Ok(vec)
 }
 impl Parse for UnicodeRange {
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        UnicodeRange::parse(input)
+    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                     -> Result<Self, ParseError<'i>> {
+        UnicodeRange::parse(input).map_err(|e| e.into())
     }
 }

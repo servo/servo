@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::Parser;
+use cssparser::{Parser, ParserInput};
 use dom::bindings::codegen::Bindings::MediaListBinding;
 use dom::bindings::codegen::Bindings::MediaListBinding::MediaListMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
@@ -71,7 +71,8 @@ impl MediaListMethods for MediaList {
             return;
         }
         // Step 3
-        let mut parser = Parser::new(&value);
+        let mut input = ParserInput::new(&value);
+        let mut parser = Parser::new(&mut input);
         let global = self.global();
         let win = global.as_window();
         let url = win.get_url();
@@ -107,7 +108,8 @@ impl MediaListMethods for MediaList {
     // https://drafts.csswg.org/cssom/#dom-medialist-appendmedium
     fn AppendMedium(&self, medium: DOMString) {
         // Step 1
-        let mut parser = Parser::new(&medium);
+        let mut input = ParserInput::new(&medium);
+        let mut parser = Parser::new(&mut input);
         let global = self.global();
         let win = global.as_window();
         let url = win.get_url();
@@ -135,7 +137,8 @@ impl MediaListMethods for MediaList {
     // https://drafts.csswg.org/cssom/#dom-medialist-deletemedium
     fn DeleteMedium(&self, medium: DOMString) {
         // Step 1
-        let mut parser = Parser::new(&medium);
+        let mut input = ParserInput::new(&medium);
+        let mut parser = Parser::new(&mut input);
         let global = self.global();
         let win = global.as_window();
         let url = win.get_url();

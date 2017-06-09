@@ -8,7 +8,7 @@ use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use style::Atom;
 use style::context::QuirksMode;
-use style::error_reporting::ParseErrorReporter;
+use style::error_reporting::{ParseErrorReporter, ContextualParseError};
 use style::media_queries::*;
 use style::servo::media_queries::*;
 use style::shared_lock::SharedRwLock;
@@ -20,12 +20,12 @@ use style_traits::ToCss;
 pub struct CSSErrorReporterTest;
 
 impl ParseErrorReporter for CSSErrorReporterTest {
-    fn report_error(&self,
-                    _input: &mut Parser,
-                    _position: SourcePosition,
-                    _message: &str,
-                    _url: &ServoUrl,
-                    _line_number_offset: u64) {
+    fn report_error<'a>(&self,
+                        _input: &mut Parser,
+                        _position: SourcePosition,
+                        _error: ContextualParseError<'a>,
+                        _url: &ServoUrl,
+                        _line_number_offset: u64) {
     }
 }
 

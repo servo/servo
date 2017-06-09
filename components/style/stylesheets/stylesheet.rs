@@ -4,8 +4,8 @@
 
 use {Prefix, Namespace};
 use context::QuirksMode;
-use cssparser::{Parser, RuleListParser};
-use error_reporting::ParseErrorReporter;
+use cssparser::{Parser, RuleListParser, ParserInput};
+use error_reporting::{ParseErrorReporter, ContextualParseError};
 use fnv::FnvHashMap;
 use media_queries::{MediaList, Device};
 use parking_lot::RwLock;
@@ -110,7 +110,8 @@ impl Stylesheet {
         line_number_offset: u64
     ) -> (Vec<CssRule>, bool) {
         let mut rules = Vec::new();
-        let mut input = Parser::new(css);
+        let mut input = ParserInput::new(css);
+        let mut input = Parser::new(&mut input);
 
         let context =
             ParserContext::new_with_line_number_offset(
@@ -140,10 +141,11 @@ impl Stylesheet {
             while let Some(result) = iter.next() {
                 match result {
                     Ok(rule) => rules.push(rule),
-                    Err(range) => {
-                        let pos = range.start;
-                        let message = format!("Invalid rule: '{}'", iter.input.slice(range));
-                        log_css_error(iter.input, pos, &*message, iter.parser.context());
+                    Err(err) => {
+                        let pos = err.span.start;
+                        let error = ContextualParseError::InvalidRule(
+                            iter.input.slice(err.span), err.error);
+                        log_css_error(iter.input, pos, error, iter.parser.context());
                     }
                 }
             }

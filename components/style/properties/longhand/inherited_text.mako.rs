@@ -179,7 +179,8 @@ ${helpers.single_keyword("text-align-last",
             MatchParent,
             MozCenterOrInherit,
         }
-        pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                             -> Result<SpecifiedValue, ParseError<'i>> {
             // MozCenterOrInherit cannot be parsed, only set directly on th elements
             if let Ok(key) = input.try(computed_value::T::parse) {
                 Ok(SpecifiedValue::Keyword(key))
@@ -255,7 +256,8 @@ ${helpers.single_keyword("text-align-last",
         use values::computed::ComputedValueAsSpecified;
         impl ComputedValueAsSpecified for SpecifiedValue {}
         pub use self::computed_value::T as SpecifiedValue;
-        pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                             -> Result<SpecifiedValue, ParseError<'i>> {
             computed_value::T::parse(input)
         }
     % endif
@@ -415,7 +417,8 @@ ${helpers.predefined_type("word-spacing",
         pub type T = Shadow;
     }
 
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<specified::Shadow, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<specified::Shadow, ParseError<'i>> {
         specified::Shadow::parse(context, input, true)
     }
 </%helpers:vector_longhand>
@@ -577,7 +580,8 @@ ${helpers.predefined_type("word-spacing",
         }
     }
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(SpecifiedValue::None);
         }
@@ -603,7 +607,7 @@ ${helpers.predefined_type("word-spacing",
             (Some(fill), Ok(shape)) => KeywordValue::FillAndShape(fill,shape),
             (Some(fill), Err(_)) => KeywordValue::Fill(fill),
             (None, Ok(shape)) => KeywordValue::Shape(shape),
-            _ => return Err(()),
+            _ => return Err(StyleParseError::UnspecifiedError.into()),
         };
         Ok(SpecifiedValue::Keyword(keyword_value))
     }
@@ -636,7 +640,8 @@ ${helpers.predefined_type("word-spacing",
         SpecifiedValue(HorizontalWritingModeValue::Over, VerticalWritingModeValue::Right)
     }
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
        if let Ok(horizontal) = input.try(|input| HorizontalWritingModeValue::parse(input)) {
             let vertical = try!(VerticalWritingModeValue::parse(input));
             Ok(SpecifiedValue(horizontal, vertical))

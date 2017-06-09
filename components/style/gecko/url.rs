@@ -11,7 +11,7 @@ use gecko_bindings::sugar::refptr::RefPtr;
 use parser::ParserContext;
 use std::borrow::Cow;
 use std::fmt::{self, Write};
-use style_traits::ToCss;
+use style_traits::{ToCss, ParseError};
 use stylearc::Arc;
 
 /// A specified url() value for gecko. Gecko does not eagerly resolve SpecifiedUrls.
@@ -38,7 +38,7 @@ impl SpecifiedUrl {
     /// Returns `Err` in the case that extra_data is incomplete.
     pub fn parse_from_string<'a>(url: Cow<'a, str>,
                                  context: &ParserContext)
-                                 -> Result<Self, ()> {
+                                 -> Result<Self, ParseError<'a>> {
         Ok(SpecifiedUrl {
             serialization: Arc::new(url.into_owned()),
             extra_data: context.url_data.clone(),

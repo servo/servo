@@ -339,27 +339,32 @@ ${helpers.predefined_type("object-position",
     }
 
     /// [ row | column ] || dense
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         use self::computed_value::AutoFlow;
 
         let mut value = None;
         let mut dense = false;
 
         while !input.is_exhausted() {
-            match_ignore_ascii_case! { &input.expect_ident()?,
+            let ident = input.expect_ident()?;
+            let success = match_ignore_ascii_case! { &ident,
                 "row" if value.is_none() => {
                     value = Some(AutoFlow::Row);
-                    continue
+                    true
                 },
                 "column" if value.is_none() => {
                     value = Some(AutoFlow::Column);
-                    continue
+                    true
                 },
                 "dense" if !dense => {
                     dense = true;
-                    continue
+                    true
                 },
-                _ => return Err(())
+                _ => false
+            };
+            if !success {
+                return Err(SelectorParseError::UnexpectedIdent(ident).into());
             }
         }
 
@@ -369,7 +374,7 @@ ${helpers.predefined_type("object-position",
                 dense: dense,
             })
         } else {
-            Err(())
+            Err(StyleParseError::UnspecifiedError.into())
         }
     }
 
@@ -435,7 +440,8 @@ ${helpers.predefined_type("object-position",
         Either::Second(None_)
     }
 
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         SpecifiedValue::parse(context, input)
     }
 
@@ -457,13 +463,15 @@ ${helpers.predefined_type("object-position",
     impl ComputedValueAsSpecified for TemplateAreas {}
 
     impl Parse for TemplateAreas {
-        fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<Self, ParseError<'i>> {
             let mut strings = vec![];
             while let Ok(string) = input.try(Parser::expect_string) {
                 strings.push(string.into_owned().into_boxed_str());
             }
 
             TemplateAreas::from_vec(strings)
+                .map_err(|()| StyleParseError::UnspecifiedError.into())
         }
     }
 

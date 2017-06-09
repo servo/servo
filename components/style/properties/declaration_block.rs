@@ -7,15 +7,16 @@
 #![deny(missing_docs)]
 
 use context::QuirksMode;
-use cssparser::{DeclarationListParser, parse_important};
+use cssparser::{DeclarationListParser, parse_important, ParserInput};
 use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter};
-use error_reporting::ParseErrorReporter;
+use error_reporting::{ParseErrorReporter, ContextualParseError};
 use parser::{PARSING_MODE_DEFAULT, ParsingMode, ParserContext, log_css_error};
 use properties::animated_properties::AnimationValue;
+use selectors::parser::SelectorParseError;
 use shared_lock::Locked;
 use std::fmt;
 use std::slice::Iter;
-use style_traits::ToCss;
+use style_traits::{ToCss, ParseError, StyleParseError};
 use stylesheets::{CssRuleType, Origin, UrlExtraData};
 use stylesheets::{MallocSizeOf, MallocSizeOfFn};
 use super::*;
@@ -875,7 +876,8 @@ pub fn parse_style_attribute(input: &str,
                                      Some(CssRuleType::Style),
                                      PARSING_MODE_DEFAULT,
                                      quirks_mode);
-    parse_property_declaration_list(&context, &mut Parser::new(input))
+    let mut input = ParserInput::new(input);
+    parse_property_declaration_list(&context, &mut Parser::new(&mut input))
 }
 
 /// Parse a given property declaration. Can result in multiple
@@ -896,10 +898,11 @@ pub fn parse_one_declaration_into(declarations: &mut SourcePropertyDeclaration,
                                      Some(CssRuleType::Style),
                                      parsing_mode,
                                      quirks_mode);
-    Parser::new(input).parse_entirely(|parser| {
+    let mut input = ParserInput::new(input);
+    Parser::new(&mut input).parse_entirely(|parser| {
         PropertyDeclaration::parse_into(declarations, id, &context, parser)
-            .map_err(|_| ())
-    })
+            .map_err(|e| e.into())
+    }).map_err(|_| ())
 }
 
 /// A struct to parse property declarations.
@@ -910,23 +913,26 @@ struct PropertyDeclarationParser<'a, 'b: 'a> {
 
 
 /// Default methods reject all at rules.
-impl<'a, 'b> AtRuleParser for PropertyDeclarationParser<'a, 'b> {
+impl<'a, 'b, 'i> AtRuleParser<'i> for PropertyDeclarationParser<'a, 'b> {
     type Prelude = ();
     type AtRule = Importance;
+    type Error = SelectorParseError<'i, StyleParseError<'i>>;
 }
 
-impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
+impl<'a, 'b, 'i> DeclarationParser<'i> for PropertyDeclarationParser<'a, 'b> {
     type Declaration = Importance;
+    type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-    fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<Importance, ()> {
-        let id = try!(PropertyId::parse(name.into()));
+    fn parse_value<'t>(&mut self, name: Cow<'i, str>, input: &mut Parser<'i, 't>)
+                       -> Result<Importance, ParseError<'i>> {
+        let id = try!(PropertyId::parse(name));
         input.parse_until_before(Delimiter::Bang, |input| {
             PropertyDeclaration::parse_into(self.declarations, id, self.context, input)
-                .map_err(|_| ())
+                .map_err(|e| e.into())
         })?;
         let importance = match input.try(parse_important) {
             Ok(()) => Importance::Important,
-            Err(()) => Importance::Normal,
+            Err(_) => Importance::Normal,
         };
         // In case there is still unparsed text in the declaration, we should roll back.
         input.expect_exhausted()?;
@@ -952,12 +958,12 @@ pub fn parse_property_declaration_list(context: &ParserContext,
             Ok(importance) => {
                 block.extend(iter.parser.declarations.drain(), importance);
             }
-            Err(range) => {
+            Err(err) => {
                 iter.parser.declarations.clear();
-                let pos = range.start;
-                let message = format!("Unsupported property declaration: '{}'",
-                                      iter.input.slice(range));
-                log_css_error(iter.input, pos, &*message, &context);
+                let pos = err.span.start;
+                let error = ContextualParseError::UnsupportedPropertyDeclaration(
+                    iter.input.slice(err.span), err.error);
+                log_css_error(iter.input, pos, error, &context);
             }
         }
     }

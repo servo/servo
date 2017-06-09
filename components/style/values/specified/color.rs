@@ -4,7 +4,7 @@
 
 //! Specified color values.
 
-use cssparser::{Color as CSSParserColor, Parser, RGBA, Token};
+use cssparser::{Color as CSSParserColor, Parser, RGBA, Token, BasicParseError};
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs::nscolor;
 use itoa;
@@ -13,7 +13,7 @@ use parser::{ParserContext, Parse};
 use properties::longhands::color::SystemColor;
 use std::fmt;
 use std::io::Write;
-use style_traits::ToCss;
+use style_traits::{ToCss, ParseError, StyleParseError};
 use super::AllowQuirks;
 use values::computed::{Color as ComputedColor, Context, ToComputedValue};
 
@@ -66,7 +66,7 @@ impl From<RGBA> for Color {
 }
 
 impl Parse for Color {
-    fn parse(_: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         // Currently we only store authored value for color keywords,
         // because all browsers serialize those values as keywords for
         // specified value.
@@ -93,7 +93,7 @@ impl Parse for Color {
                 }
             }
             #[cfg(not(feature = "gecko"))] {
-                Err(())
+                Err(StyleParseError::UnspecifiedError.into())
             }
         }
     }
@@ -157,13 +157,13 @@ impl Color {
     /// Parse a color, with quirks.
     ///
     /// https://quirks.spec.whatwg.org/#the-hashless-hex-color-quirk
-    pub fn parse_quirky(context: &ParserContext,
-                        input: &mut Parser,
-                        allow_quirks: AllowQuirks)
-                        -> Result<Self, ()> {
+    pub fn parse_quirky<'i, 't>(context: &ParserContext,
+                                input: &mut Parser<'i, 't>,
+                                allow_quirks: AllowQuirks)
+                                -> Result<Self, ParseError<'i>> {
         input.try(|i| Self::parse(context, i)).or_else(|_| {
             if !allow_quirks.allowed(context.quirks_mode) {
-                return Err(());
+                return Err(StyleParseError::UnspecifiedError.into());
             }
             Color::parse_quirky_color(input).map(|rgba| Color::rgba(rgba))
         })
@@ -172,7 +172,7 @@ impl Color {
     /// Parse a <quirky-color> value.
     ///
     /// https://quirks.spec.whatwg.org/#the-hashless-hex-color-quirk
-    fn parse_quirky_color(input: &mut Parser) -> Result<RGBA, ()> {
+    fn parse_quirky_color<'i, 't>(input: &mut Parser<'i, 't>) -> Result<RGBA, ParseError<'i>> {
         let (number, dimension) = match input.next()? {
             Token::Number(number) => {
                 (number, None)
@@ -182,17 +182,18 @@ impl Color {
             },
             Token::Ident(ident) => {
                 if ident.len() != 3 && ident.len() != 6 {
-                    return Err(());
+                    return Err(StyleParseError::UnspecifiedError.into());
                 }
-                return parse_hash_color(ident.as_bytes());
+                return parse_hash_color(ident.as_bytes())
+                    .map_err(|()| StyleParseError::UnspecifiedError.into());
             }
-            _ => {
-                return Err(());
+            t => {
+                return Err(BasicParseError::UnexpectedToken(t).into());
             },
         };
-        let value = number.int_value.ok_or(())?;
+        let value = number.int_value.ok_or(StyleParseError::UnspecifiedError)?;
         if value < 0 {
-            return Err(());
+            return Err(StyleParseError::UnspecifiedError.into());
         }
         let length = if value <= 9 {
             1
@@ -207,11 +208,11 @@ impl Color {
         } else if value <= 999999 {
             6
         } else {
-            return Err(())
+            return Err(StyleParseError::UnspecifiedError.into())
         };
         let total = length + dimension.as_ref().map_or(0, |d| d.len());
         if total > 6 {
-            return Err(());
+            return Err(StyleParseError::UnspecifiedError.into());
         }
         let mut serialization = [b'0'; 6];
         let space_padding = 6 - total;
@@ -221,7 +222,7 @@ impl Color {
             written += (&mut serialization[written..]).write(dimension.as_bytes()).unwrap();
         }
         debug_assert!(written == 6);
-        parse_hash_color(&serialization)
+        parse_hash_color(&serialization).map_err(|()| StyleParseError::UnspecifiedError.into())
     }
 
     /// Returns false if the color is completely transparent, and
@@ -306,7 +307,7 @@ pub struct RGBAColor(pub Color);
 no_viewport_percentage!(RGBAColor);
 
 impl Parse for RGBAColor {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         Color::parse(context, input).map(RGBAColor)
     }
 }

@@ -21,7 +21,7 @@ use data::ElementData;
 use dom::{self, DescendantsBit, LayoutIterator, NodeInfo, TElement, TNode, UnsafeNode};
 use dom::{OpaqueNode, PresentationalHintsSynthesizer};
 use element_state::ElementState;
-use error_reporting::RustLogReporter;
+use error_reporting::create_error_reporter;
 use font_metrics::{FontMetrics, FontMetricsProvider, FontMetricsQueryResult};
 use gecko::data::PerDocumentStyleData;
 use gecko::global_style_data::GLOBAL_STYLE_DATA;
@@ -416,7 +416,7 @@ impl<'le> GeckoElement<'le> {
     pub fn parse_style_attribute(value: &str,
                                  url_data: &UrlExtraData,
                                  quirks_mode: QuirksMode) -> PropertyDeclarationBlock {
-        parse_style_attribute(value, url_data, &RustLogReporter, quirks_mode)
+        parse_style_attribute(value, url_data, &create_error_reporter(), quirks_mode)
     }
 
     fn flags(&self) -> u32 {

@@ -32,7 +32,8 @@
         }
     }
 
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         let mut background_color = None;
 
         % for name in "image position_x position_y repeat size attachment origin clip".split():
@@ -42,7 +43,7 @@
             // background-color can only be in the last element, so if it
             // is parsed anywhere before, the value is invalid.
             if background_color.is_some() {
-                return Err(());
+                return Err(StyleParseError::UnspecifiedError.into());
             }
 
             % for name in "image position repeat size attachment origin clip".split():
@@ -107,7 +108,7 @@
                 % endfor
                 Ok(())
             } else {
-                Err(())
+                Err(StyleParseError::UnspecifiedError.into())
             }
         }));
 
@@ -194,7 +195,8 @@
     use values::specified::AllowQuirks;
     use values::specified::position::Position;
 
-    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                               -> Result<Longhands, ParseError<'i>> {
         let mut position_x = background_position_x::SpecifiedValue(Vec::new());
         let mut position_y = background_position_y::SpecifiedValue(Vec::new());
         let mut any = false;
@@ -207,7 +209,7 @@
             Ok(())
         })?;
         if !any {
-            return Err(());
+            return Err(StyleParseError::UnspecifiedError.into());
         }
 
         Ok(expanded! {

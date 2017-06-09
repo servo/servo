@@ -9,7 +9,7 @@ use cssparser::Parser;
 use parser::ParserContext;
 use properties::animated_properties::Animatable;
 use std::fmt;
-use style_traits::ToCss;
+use style_traits::{ToCss, ParseError};
 
 /// A generic value for the `initial-letter` property.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -71,12 +71,12 @@ impl<Value> Spacing<Value> {
 
     /// Parses.
     #[inline]
-    pub fn parse_with<F>(
+    pub fn parse_with<'i, 't, F>(
         context: &ParserContext,
-        input: &mut Parser,
+        input: &mut Parser<'i, 't>,
         parse: F)
-        -> Result<Self, ()>
-        where F: FnOnce(&ParserContext, &mut Parser) -> Result<Value, ()>
+        -> Result<Self, ParseError<'i>>
+        where F: FnOnce(&ParserContext, &mut Parser<'i, 't>) -> Result<Value, ParseError<'i>>
     {
         if input.try(|i| i.expect_ident_matching("normal")).is_ok() {
             return Ok(Spacing::Normal);

@@ -89,7 +89,8 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
             SpecifiedValue::CounterStyle(CounterStyleOrNone::disc())
         }
 
-        pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                             -> Result<SpecifiedValue, ParseError<'i>> {
             Ok(if let Ok(style) = input.try(|i| CounterStyleOrNone::parse(context, i)) {
                 SpecifiedValue::CounterStyle(style)
             } else {
@@ -126,7 +127,8 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
     pub fn get_initial_specified_value() -> SpecifiedValue {
         SpecifiedValue(Either::Second(None_))
     }
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue,ParseError<'i>> {
         % if product == "gecko":
         let mut value = input.try(|input| UrlOrNone::parse(context, input))?;
         if let Either::First(ref mut url) = value {
@@ -142,7 +144,6 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
 
 <%helpers:longhand name="quotes" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-content/#propdef-quotes">
-    use cssparser::Token;
     use std::borrow::Cow;
     use std::fmt;
     use style_traits::ToCss;
@@ -187,7 +188,8 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
         ])
     }
 
-    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+    pub fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue,ParseError<'i>> {
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(SpecifiedValue(Vec::new()))
         }
@@ -196,19 +198,20 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
         loop {
             let first = match input.next() {
                 Ok(Token::QuotedString(value)) => value.into_owned(),
-                Ok(_) => return Err(()),
-                Err(()) => break,
+                Ok(t) => return Err(BasicParseError::UnexpectedToken(t).into()),
+                Err(_) => break,
             };
             let second = match input.next() {
                 Ok(Token::QuotedString(value)) => value.into_owned(),
-                _ => return Err(()),
+                Ok(t) => return Err(BasicParseError::UnexpectedToken(t).into()),
+                Err(e) => return Err(e.into()),
             };
             quotes.push((first, second))
         }
         if !quotes.is_empty() {
             Ok(SpecifiedValue(quotes))
         } else {
-            Err(())
+            Err(StyleParseError::UnspecifiedError.into())
         }
     }
 </%helpers:longhand>

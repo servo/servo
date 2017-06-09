@@ -9,9 +9,10 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
+use selectors::parser::SelectorParseError;
 use std::borrow::Cow;
 use std::fmt;
-use style_traits::ToCss;
+use style_traits::{ToCss, ParseError, StyleParseError};
 use values::generics::basic_shape::{Circle as GenericCircle};
 use values::generics::basic_shape::{ClippingShape as GenericClippingShape, Ellipse as GenericEllipse};
 use values::generics::basic_shape::{FillRule, BasicShape as GenericBasicShape};
@@ -49,7 +50,7 @@ pub type ShapeRadius = GenericShapeRadius<LengthOrPercentage>;
 pub type Polygon = GenericPolygon<LengthOrPercentage>;
 
 impl<ReferenceBox: Parse> Parse for ShapeSource<BasicShape, ReferenceBox> {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if input.try(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(ShapeSource::None)
         }
@@ -80,42 +81,43 @@ impl<ReferenceBox: Parse> Parse for ShapeSource<BasicShape, ReferenceBox> {
             return Ok(ShapeSource::Shape(shp, ref_box))
         }
 
-        ref_box.map(|v| ShapeSource::Box(v)).ok_or(())
+        ref_box.map(|v| ShapeSource::Box(v)).ok_or(StyleParseError::UnspecifiedError.into())
     }
 }
 
 impl Parse for GeometryBox {
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if let Ok(shape_box) = input.try(|i| ShapeBox::parse(i)) {
             return Ok(GeometryBox::ShapeBox(shape_box))
         }
 
-        match_ignore_ascii_case! { &input.expect_ident()?,
+        let ident = input.expect_ident()?;
+        (match_ignore_ascii_case! { &ident,
             "fill-box" => Ok(GeometryBox::FillBox),
             "stroke-box" => Ok(GeometryBox::StrokeBox),
             "view-box" => Ok(GeometryBox::ViewBox),
             _ => Err(())
-        }
+        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
     }
 }
 
 impl Parse for BasicShape {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let function = input.expect_function()?;
-        input.parse_nested_block(|i| {
-            match_ignore_ascii_case! { &function,
-                "inset" => InsetRect::parse_function_arguments(context, i).map(GenericBasicShape::Inset),
-                "circle" => Circle::parse_function_arguments(context, i).map(GenericBasicShape::Circle),
-                "ellipse" => Ellipse::parse_function_arguments(context, i).map(GenericBasicShape::Ellipse),
-                "polygon" => Polygon::parse_function_arguments(context, i).map(GenericBasicShape::Polygon),
+        input.parse_nested_block(move |i| {
+            (match_ignore_ascii_case! { &function,
+                "inset" => return InsetRect::parse_function_arguments(context, i).map(GenericBasicShape::Inset),
+                "circle" => return Circle::parse_function_arguments(context, i).map(GenericBasicShape::Circle),
+                "ellipse" => return Ellipse::parse_function_arguments(context, i).map(GenericBasicShape::Ellipse),
+                "polygon" => return Polygon::parse_function_arguments(context, i).map(GenericBasicShape::Polygon),
                 _ => Err(())
-            }
+            }).map_err(|()| StyleParseError::UnexpectedFunction(function).into())
         })
     }
 }
 
 impl Parse for InsetRect {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         input.expect_function_matching("inset")?;
         input.parse_nested_block(|i| Self::parse_function_arguments(context, i))
     }
@@ -123,7 +125,8 @@ impl Parse for InsetRect {
 
 impl InsetRect {
     /// Parse the inner function arguments of `inset()`
-    pub fn parse_function_arguments(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    pub fn parse_function_arguments<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                            -> Result<Self, ParseError<'i>> {
         let rect = Rect::parse_with(context, input, LengthOrPercentage::parse)?;
         let round = if input.try(|i| i.expect_ident_matching("round")).is_ok() {
             Some(BorderRadius::parse(context, input)?)
@@ -138,7 +141,8 @@ impl InsetRect {
 }
 
 impl Parse for Circle {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                     -> Result<Self, ParseError<'i>> {
         input.expect_function_matching("circle")?;
         input.parse_nested_block(|i| Self::parse_function_arguments(context, i))
     }
@@ -146,7 +150,8 @@ impl Parse for Circle {
 
 impl Circle {
     #[allow(missing_docs)]
-    pub fn parse_function_arguments(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    pub fn parse_function_arguments<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                            -> Result<Self, ParseError<'i>> {
         let radius = input.try(|i| ShapeRadius::parse(context, i)).ok().unwrap_or_default();
         let position = if input.try(|i| i.expect_ident_matching("at")).is_ok() {
             Position::parse(context, input)?
@@ -176,7 +181,7 @@ impl ToCss for Circle {
 }
 
 impl Parse for Ellipse {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         input.expect_function_matching("ellipse")?;
         input.parse_nested_block(|i| Self::parse_function_arguments(context, i))
     }
@@ -184,8 +189,9 @@ impl Parse for Ellipse {
 
 impl Ellipse {
     #[allow(missing_docs)]
-    pub fn parse_function_arguments(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        let (a, b) = input.try(|i| -> Result<_, ()> {
+    pub fn parse_function_arguments<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                            -> Result<Self, ParseError<'i>> {
+        let (a, b) = input.try(|i| -> Result<_, ParseError> {
             Ok((ShapeRadius::parse(context, i)?, ShapeRadius::parse(context, i)?))
         }).ok().unwrap_or_default();
         let position = if input.try(|i| i.expect_ident_matching("at")).is_ok() {
@@ -219,16 +225,18 @@ impl ToCss for Ellipse {
 }
 
 impl Parse for ShapeRadius {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                     -> Result<Self, ParseError<'i>> {
         if let Ok(lop) = input.try(|i| LengthOrPercentage::parse_non_negative(context, i)) {
             return Ok(GenericShapeRadius::Length(lop))
         }
 
-        match_ignore_ascii_case! { &input.expect_ident()?,
+        let ident = input.expect_ident()?;
+        (match_ignore_ascii_case! { &ident,
             "closest-side" => Ok(GenericShapeRadius::ClosestSide),
             "farthest-side" => Ok(GenericShapeRadius::FarthestSide),
             _ => Err(())
-        }
+        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
     }
 }
 
@@ -300,7 +308,7 @@ fn serialize_basicshape_position<W>(position: &Position, dest: &mut W) -> fmt::R
 }
 
 impl Parse for Polygon {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         input.expect_function_matching("polygon")?;
         input.parse_nested_block(|i| Self::parse_function_arguments(context, i))
     }
@@ -308,8 +316,9 @@ impl Parse for Polygon {
 
 impl Polygon {
     /// Parse the inner arguments of a `polygon` function.
-    pub fn parse_function_arguments(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        let fill = input.try(|i| -> Result<_, ()> {
+    pub fn parse_function_arguments<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                            -> Result<Self, ParseError<'i>> {
+        let fill = input.try(|i| -> Result<_, ParseError> {
             let fill = FillRule::parse(i)?;
             i.expect_comma()?;      // only eat the comma if there is something before it
             Ok(fill)

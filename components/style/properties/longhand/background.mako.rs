@@ -128,17 +128,20 @@ ${helpers.predefined_type("background-image", "ImageLayer",
         }
     }
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         let ident = input.expect_ident()?;
-        match_ignore_ascii_case! { &ident,
+        (match_ignore_ascii_case! { &ident,
             "repeat-x" => Ok(SpecifiedValue::RepeatX),
             "repeat-y" => Ok(SpecifiedValue::RepeatY),
-            _ => {
-                let horizontal = try!(RepeatKeyword::from_ident(&ident));
-                let vertical = input.try(RepeatKeyword::parse).ok();
-                Ok(SpecifiedValue::Other(horizontal, vertical))
-            }
-        }
+            _ => Err(()),
+        }).or_else(|()| {
+            let horizontal: Result<_, ParseError> = RepeatKeyword::from_ident(&ident)
+                .map_err(|()| SelectorParseError::UnexpectedIdent(ident).into());
+            let horizontal = try!(horizontal);
+            let vertical = input.try(RepeatKeyword::parse).ok();
+            Ok(SpecifiedValue::Other(horizontal, vertical))
+        })
     }
 </%helpers:vector_longhand>
 

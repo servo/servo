@@ -6,7 +6,7 @@ use cssparser::{Parser, SourcePosition};
 use rayon;
 use servo_url::ServoUrl;
 use style::context::QuirksMode;
-use style::error_reporting::ParseErrorReporter;
+use style::error_reporting::{ParseErrorReporter, ContextualParseError};
 use style::media_queries::MediaList;
 use style::properties::{longhands, Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use style::rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
@@ -17,15 +17,15 @@ use test::{self, Bencher};
 
 struct ErrorringErrorReporter;
 impl ParseErrorReporter for ErrorringErrorReporter {
-    fn report_error(&self,
-                    input: &mut Parser,
-                    position: SourcePosition,
-                    message: &str,
-                    url: &ServoUrl,
-                    line_number_offset: u64) {
+    fn report_error<'a>(&self,
+                        input: &mut Parser,
+                        position: SourcePosition,
+                        error: ContextualParseError<'a>,
+                        url: &ServoUrl,
+                        line_number_offset: u64) {
         let location = input.source_location(position);
         let line_offset = location.line + line_number_offset as usize;
-        panic!("CSS error: {}\t\n{}:{} {}", url.as_str(), line_offset, location.column, message);
+        panic!("CSS error: {}\t\n{}:{} {}", url.as_str(), line_offset, location.column, error.to_string());
     }
 }
 

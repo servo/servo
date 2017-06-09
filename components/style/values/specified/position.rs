@@ -10,7 +10,7 @@
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::fmt;
-use style_traits::{HasViewportPercentage, ToCss};
+use style_traits::{HasViewportPercentage, ToCss, ParseError};
 use values::computed::{CalcLengthOrPercentage, LengthOrPercentage as ComputedLengthOrPercentage};
 use values::computed::{Context, ToComputedValue};
 use values::generics::position::Position as GenericPosition;
@@ -50,17 +50,17 @@ define_css_keyword_enum! { Y:
 add_impls_for_keyword_enum!(Y);
 
 impl Parse for Position {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         Self::parse_quirky(context, input, AllowQuirks::No)
     }
 }
 
 impl Position {
     /// Parses a `<position>`, with quirks.
-    pub fn parse_quirky(context: &ParserContext,
-                        input: &mut Parser,
-                        allow_quirks: AllowQuirks)
-                        -> Result<Self, ()> {
+    pub fn parse_quirky<'i, 't>(context: &ParserContext,
+                                input: &mut Parser<'i, 't>,
+                                allow_quirks: AllowQuirks)
+                                -> Result<Self, ParseError<'i>> {
         match input.try(|i| PositionComponent::parse_quirky(context, i, allow_quirks)) {
             Ok(x_pos @ PositionComponent::Center) => {
                 if let Ok(y_pos) = input.try(|i| PositionComponent::parse_quirky(context, i, allow_quirks)) {
@@ -104,7 +104,7 @@ impl Position {
             Err(_) => {},
         }
         let y_keyword = Y::parse(input)?;
-        let lop_and_x_pos: Result<_, ()> = input.try(|i| {
+        let lop_and_x_pos: Result<_, ParseError> = input.try(|i| {
             let y_lop = i.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks)).ok();
             if let Ok(x_keyword) = i.try(X::parse) {
                 let x_lop = i.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks)).ok();
@@ -167,17 +167,17 @@ impl<S> HasViewportPercentage for PositionComponent<S> {
 }
 
 impl<S: Parse> Parse for PositionComponent<S> {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         Self::parse_quirky(context, input, AllowQuirks::No)
     }
 }
 
 impl<S: Parse> PositionComponent<S> {
     /// Parses a component of a CSS position, with quirks.
-    pub fn parse_quirky(context: &ParserContext,
-                        input: &mut Parser,
-                        allow_quirks: AllowQuirks)
-                        -> Result<Self, ()> {
+    pub fn parse_quirky<'i, 't>(context: &ParserContext,
+                                input: &mut Parser<'i, 't>,
+                                allow_quirks: AllowQuirks)
+                                -> Result<Self, ParseError<'i>> {
         if input.try(|i| i.expect_ident_matching("center")).is_ok() {
             return Ok(PositionComponent::Center);
         }

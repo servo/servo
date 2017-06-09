@@ -6,6 +6,7 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
+use style_traits::ParseError;
 use values::generics::gecko::ScrollSnapPoint as GenericScrollSnapPoint;
 use values::specified::length::LengthOrPercentage;
 
@@ -13,7 +14,7 @@ use values::specified::length::LengthOrPercentage;
 pub type ScrollSnapPoint = GenericScrollSnapPoint<LengthOrPercentage>;
 
 impl Parse for ScrollSnapPoint {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if input.try(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(GenericScrollSnapPoint::None);
         }

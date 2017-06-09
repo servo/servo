@@ -4,8 +4,8 @@
 
 //! Helper types for the `@viewport` rule.
 
-use {CSSPixel, PinchZoomFactor};
-use cssparser::{Parser, ToCss};
+use {CSSPixel, PinchZoomFactor, ParseError};
+use cssparser::{Parser, ToCss, ParseError as CssParseError, BasicParseError};
 use euclid::size::TypedSize2D;
 use std::ascii::AsciiExt;
 use std::fmt;
@@ -140,7 +140,7 @@ impl Zoom {
     /// Parse a zoom value per:
     ///
     /// https://drafts.csswg.org/css-device-adapt/#descdef-viewport-zoom
-    pub fn parse(input: &mut Parser) -> Result<Zoom, ()> {
+    pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Zoom, ParseError<'i>> {
         use cssparser::Token;
 
         match try!(input.next()) {
@@ -150,7 +150,7 @@ impl Zoom {
                 Ok(Zoom::Number(value.value)),
             Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") =>
                 Ok(Zoom::Auto),
-            _ => Err(())
+            t => Err(CssParseError::Basic(BasicParseError::UnexpectedToken(t)))
         }
     }
 

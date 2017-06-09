@@ -8,20 +8,22 @@
 
 use Atom;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser};
-use cssparser::{Parser, Token, serialize_identifier};
+use cssparser::{Parser, Token, serialize_identifier, BasicParseError};
+use error_reporting::ContextualParseError;
 #[cfg(feature = "gecko")] use gecko::rules::CounterStyleDescriptors;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSCounterDesc;
 use parser::{ParserContext, log_css_error, Parse};
+use selectors::parser::SelectorParseError;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::fmt;
 use std::ops::Range;
-use style_traits::{ToCss, OneOrMoreCommaSeparated};
+use style_traits::{ToCss, OneOrMoreCommaSeparated, ParseError, StyleParseError};
 use values::CustomIdent;
 
 /// Parse the prelude of an @counter-style rule
-pub fn parse_counter_style_name(input: &mut Parser) -> Result<CustomIdent, ()> {
+pub fn parse_counter_style_name<'i, 't>(input: &mut Parser<'i, 't>) -> Result<CustomIdent, ParseError<'i>> {
     macro_rules! predefined {
         ($($name: expr,)+) => {
             {
@@ -48,8 +50,8 @@ pub fn parse_counter_style_name(input: &mut Parser) -> Result<CustomIdent, ()> {
 }
 
 /// Parse the body (inside `{}`) of an @counter-style rule
-pub fn parse_counter_style_body(name: CustomIdent, context: &ParserContext, input: &mut Parser)
-                            -> Result<CounterStyleRuleData, ()> {
+pub fn parse_counter_style_body<'i, 't>(name: CustomIdent, context: &ParserContext, input: &mut Parser<'i, 't>)
+                                        -> Result<CounterStyleRuleData, ParseError<'i>> {
     let start = input.position();
     let mut rule = CounterStyleRuleData::empty(name);
     {
@@ -59,11 +61,11 @@ pub fn parse_counter_style_body(name: CustomIdent, context: &ParserContext, inpu
         };
         let mut iter = DeclarationListParser::new(input, parser);
         while let Some(declaration) = iter.next() {
-            if let Err(range) = declaration {
-                let pos = range.start;
-                let message = format!("Unsupported @counter-style descriptor declaration: '{}'",
-                                      iter.input.slice(range));
-                log_css_error(iter.input, pos, &*message, context);
+            if let Err(err) = declaration {
+                let pos = err.span.start;
+                let error = ContextualParseError::UnsupportedCounterStyleDescriptorDeclaration(
+                    iter.input.slice(err.span), err.error);
+                log_css_error(iter.input, pos, error, context);
             }
         }
     }
@@ -75,32 +77,28 @@ pub fn parse_counter_style_body(name: CustomIdent, context: &ParserContext, inpu
         ref system @ System::Numeric
         if rule.symbols.is_none() => {
             let system = system.to_css_string();
-            Some(format!("Invalid @counter-style rule: 'system: {}' without 'symbols'", system))
+            Some(ContextualParseError::InvalidCounterStyleWithoutSymbols(system))
         }
         ref system @ System::Alphabetic |
         ref system @ System::Numeric
         if rule.symbols().unwrap().0.len() < 2 => {
             let system = system.to_css_string();
-            Some(format!("Invalid @counter-style rule: 'system: {}' less than two 'symbols'",
-                         system))
+            Some(ContextualParseError::InvalidCounterStyleNotEnoughSymbols(system))
         }
         System::Additive if rule.additive_symbols.is_none() => {
-            let s = "Invalid @counter-style rule: 'system: additive' without 'additive-symbols'";
-            Some(s.to_owned())
+            Some(ContextualParseError::InvalidCounterStyleWithoutAdditiveSymbols)
         }
         System::Extends(_) if rule.symbols.is_some() => {
-            let s = "Invalid @counter-style rule: 'system: extends …' with 'symbols'";
-            Some(s.to_owned())
+            Some(ContextualParseError::InvalidCounterStyleExtendsWithSymbols)
         }
         System::Extends(_) if rule.additive_symbols.is_some() => {
-            let s = "Invalid @counter-style rule: 'system: extends …' with 'additive-symbols'";
-            Some(s.to_owned())
+            Some(ContextualParseError::InvalidCounterStyleExtendsWithAdditiveSymbols)
         }
         _ => None
     };
-    if let Some(message) = error {
-        log_css_error(input, start, &message, context);
-        Err(())
+    if let Some(error) = error {
+        log_css_error(input, start, error, context);
+        Err(StyleParseError::UnspecifiedError.into())
     } else {
         Ok(rule)
     }
@@ -112,9 +110,10 @@ struct CounterStyleRuleParser<'a, 'b: 'a> {
 }
 
 /// Default methods reject all at rules.
-impl<'a, 'b> AtRuleParser for CounterStyleRuleParser<'a, 'b> {
+impl<'a, 'b, 'i> AtRuleParser<'i> for CounterStyleRuleParser<'a, 'b> {
     type Prelude = ();
     type AtRule = ();
+    type Error = SelectorParseError<'i, StyleParseError<'i>>;
 }
 
 macro_rules! accessor {
@@ -181,11 +180,13 @@ macro_rules! counter_style_descriptors {
             }
         }
 
-       impl<'a, 'b> DeclarationParser for CounterStyleRuleParser<'a, 'b> {
+        impl<'a, 'b, 'i> DeclarationParser<'i> for CounterStyleRuleParser<'a, 'b> {
             type Declaration = ();
+            type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-            fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<(), ()> {
-                match_ignore_ascii_case! { name,
+            fn parse_value<'t>(&mut self, name: Cow<'i, str>, input: &mut Parser<'i, 't>)
+                               -> Result<(), ParseError<'i>> {
+                match_ignore_ascii_case! { &*name,
                     $(
                         $name => {
                             // DeclarationParser also calls parse_entirely
@@ -196,7 +197,7 @@ macro_rules! counter_style_descriptors {
                             self.rule.$ident = Some(value)
                         }
                     )*
-                    _ => return Err(())
+                    _ => return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
                 }
                 Ok(())
             }
@@ -293,8 +294,9 @@ pub enum System {
 }
 
 impl Parse for System {
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        match_ignore_ascii_case! { &input.expect_ident()?,
+    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        let ident = input.expect_ident()?;
+        (match_ignore_ascii_case! { &ident,
             "cyclic" => Ok(System::Cyclic),
             "numeric" => Ok(System::Numeric),
             "alphabetic" => Ok(System::Alphabetic),
@@ -309,7 +311,7 @@ impl Parse for System {
                 Ok(System::Extends(other))
             }
             _ => Err(())
-        }
+        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
     }
 }
 
@@ -349,11 +351,12 @@ pub enum Symbol {
 }
 
 impl Parse for Symbol {
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         match input.next() {
             Ok(Token::QuotedString(s)) => Ok(Symbol::String(s.into_owned())),
             Ok(Token::Ident(s)) => Ok(Symbol::Ident(s.into_owned())),
-            _ => Err(())
+            Ok(t) => Err(BasicParseError::UnexpectedToken(t).into()),
+            Err(e) => Err(e.into()),
         }
     }
 }
@@ -383,7 +386,7 @@ impl Symbol {
 pub struct Negative(pub Symbol, pub Option<Symbol>);
 
 impl Parse for Negative {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         Ok(Negative(
             Symbol::parse(context, input)?,
             input.try(|input| Symbol::parse(context, input)).ok(),
@@ -409,7 +412,7 @@ impl ToCss for Negative {
 pub struct Ranges(pub Vec<Range<Option<i32>>>);
 
 impl Parse for Ranges {
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
             Ok(Ranges(Vec::new()))
         } else {
@@ -418,7 +421,7 @@ impl Parse for Ranges {
                 let opt_end = parse_bound(input)?;
                 if let (Some(start), Some(end)) = (opt_start, opt_end) {
                     if start > end {
-                        return Err(())
+                        return Err(StyleParseError::UnspecifiedError.into())
                     }
                 }
                 Ok(opt_start..opt_end)
@@ -427,11 +430,12 @@ impl Parse for Ranges {
     }
 }
 
-fn parse_bound(input: &mut Parser) -> Result<Option<i32>, ()> {
+fn parse_bound<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Option<i32>, ParseError<'i>> {
     match input.next() {
         Ok(Token::Number(ref v)) if v.int_value.is_some() => Ok(Some(v.int_value.unwrap())),
         Ok(Token::Ident(ref ident)) if ident.eq_ignore_ascii_case("infinite") => Ok(None),
-        _ => Err(())
+        Ok(t) => Err(BasicParseError::UnexpectedToken(t).into()),
+        Err(e) => Err(e.into()),
     }
 }
 
@@ -471,13 +475,13 @@ fn bound_to_css<W>(range: Option<i32>, dest: &mut W) -> fmt::Result where W: fmt
 pub struct Pad(pub u32, pub Symbol);
 
 impl Parse for Pad {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let pad_with = input.try(|input| Symbol::parse(context, input));
         let min_length = input.expect_integer()?;
         if min_length < 0 {
-            return Err(())
+            return Err(StyleParseError::UnspecifiedError.into())
         }
-        let pad_with = pad_with.or_else(|()| Symbol::parse(context, input))?;
+        let pad_with = pad_with.or_else(|_| Symbol::parse(context, input))?;
         Ok(Pad(min_length as u32, pad_with))
     }
 }
@@ -494,7 +498,7 @@ impl ToCss for Pad {
 pub struct Fallback(pub CustomIdent);
 
 impl Parse for Fallback {
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         parse_counter_style_name(input).map(Fallback)
     }
 }
@@ -510,14 +514,14 @@ impl ToCss for Fallback {
 pub struct Symbols(pub Vec<Symbol>);
 
 impl Parse for Symbols {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let mut symbols = Vec::new();
         loop {
             if let Ok(s) = input.try(|input| Symbol::parse(context, input)) {
                 symbols.push(s)
             } else {
                 if symbols.is_empty() {
-                    return Err(())
+                    return Err(StyleParseError::UnspecifiedError.into())
                 } else {
                     return Ok(Symbols(symbols))
                 }
@@ -544,11 +548,11 @@ impl ToCss for Symbols {
 pub struct AdditiveSymbols(pub Vec<AdditiveTuple>);
 
 impl Parse for AdditiveSymbols {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let tuples = Vec::<AdditiveTuple>::parse(context, input)?;
         // FIXME maybe? https://github.com/w3c/csswg-drafts/issues/1220
         if tuples.windows(2).any(|window| window[0].weight <= window[1].weight) {
-            return Err(())
+            return Err(StyleParseError::UnspecifiedError.into())
         }
         Ok(AdditiveSymbols(tuples))
     }
@@ -572,13 +576,13 @@ pub struct AdditiveTuple {
 impl OneOrMoreCommaSeparated for AdditiveTuple {}
 
 impl Parse for AdditiveTuple {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let symbol = input.try(|input| Symbol::parse(context, input));
         let weight = input.expect_integer()?;
         if weight < 0 {
-            return Err(())
+            return Err(StyleParseError::UnspecifiedError.into())
         }
-        let symbol = symbol.or_else(|()| Symbol::parse(context, input))?;
+        let symbol = symbol.or_else(|_| Symbol::parse(context, input))?;
         Ok(AdditiveTuple {
             weight: weight as u32,
             symbol: symbol,
@@ -611,10 +615,11 @@ pub enum SpeakAs {
 }
 
 impl Parse for SpeakAs {
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let mut is_spell_out = false;
-        let result = input.try(|input| {
-            match_ignore_ascii_case! { &input.expect_ident()?,
+        let result: Result<_, ParseError> = input.try(|input| {
+            let ident = input.expect_ident()?;
+            (match_ignore_ascii_case! { &ident,
                 "auto" => Ok(SpeakAs::Auto),
                 "bullets" => Ok(SpeakAs::Bullets),
                 "numbers" => Ok(SpeakAs::Numbers),
@@ -624,14 +629,14 @@ impl Parse for SpeakAs {
                     Err(())
                 }
                 _ => Err(())
-            }
+            }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
         });
         if is_spell_out {
             // spell-out is not supported, but don’t parse it as a <counter-style-name>.
             // See bug 1024178.
-            return Err(())
+            return Err(StyleParseError::UnspecifiedError.into())
         }
-        result.or_else(|()| {
+        result.or_else(|_| {
             Ok(SpeakAs::Other(parse_counter_style_name(input)?))
         })
     }

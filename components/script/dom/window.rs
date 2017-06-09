@@ -5,7 +5,7 @@
 use app_units::Au;
 use base64;
 use bluetooth_traits::BluetoothRequest;
-use cssparser::Parser;
+use cssparser::{Parser, ParserInput};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
@@ -1003,7 +1003,8 @@ impl WindowMethods for Window {
 
     // https://drafts.csswg.org/cssom-view/#dom-window-matchmedia
     fn MatchMedia(&self, query: DOMString) -> Root<MediaQueryList> {
-        let mut parser = Parser::new(&query);
+        let mut input = ParserInput::new(&query);
+        let mut parser = Parser::new(&mut input);
         let url = self.get_url();
         let quirks_mode = self.Document().quirks_mode();
         let context = CssParserContext::new_for_cssom(&url, self.css_error_reporter(), Some(CssRuleType::Media),

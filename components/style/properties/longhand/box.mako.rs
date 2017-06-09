@@ -113,16 +113,17 @@
     }
 
     /// Parse a display value.
-    pub fn parse(_context: &ParserContext, input: &mut Parser)
-                 -> Result<SpecifiedValue, ()> {
-        match_ignore_ascii_case! { &try!(input.expect_ident()),
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
+        let ident = try!(input.expect_ident());
+        (match_ignore_ascii_case! { &ident,
             % for value in values:
                 "${value}" => {
                     Ok(computed_value::T::${to_rust_ident(value)})
                 },
             % endfor
             _ => Err(())
-        }
+        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
     }
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -292,16 +293,18 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
     }
     /// baseline | sub | super | top | text-top | middle | bottom | text-bottom
     /// | <percentage> | <length>
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         input.try(|i| specified::LengthOrPercentage::parse_quirky(context, i, AllowQuirks::Yes))
         .map(SpecifiedValue::LengthOrPercentage)
         .or_else(|_| {
-            match_ignore_ascii_case! { &try!(input.expect_ident()),
+            let ident = try!(input.expect_ident());
+            (match_ignore_ascii_case! { &ident,
                 % for keyword in vertical_align_keywords:
                     "${keyword}" => Ok(SpecifiedValue::${to_rust_ident(keyword)}),
                 % endfor
                 _ => Err(())
-            }
+            }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
         })
     }
 
@@ -500,17 +503,19 @@ ${helpers.predefined_type("transition-delay",
     }
 
     impl Parse for SpecifiedValue {
-        fn parse(context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
+        fn parse<'i, 't>(context: &ParserContext, input: &mut ::cssparser::Parser<'i, 't>)
+                         -> Result<Self, ParseError<'i>> {
             if let Ok(name) = input.try(|input| KeyframesName::parse(context, input)) {
                 Ok(SpecifiedValue(Some(name)))
             } else {
-                input.expect_ident_matching("none").map(|()| SpecifiedValue(None))
+                input.expect_ident_matching("none").map(|_| SpecifiedValue(None)).map_err(|e| e.into())
             }
         }
     }
     no_viewport_percentage!(SpecifiedValue);
 
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue,ParseError<'i>> {
         SpecifiedValue::parse(context, input)
     }
 
@@ -560,14 +565,15 @@ ${helpers.predefined_type("animation-timing-function",
     }
 
     impl Parse for SpecifiedValue {
-        fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
+        fn parse<'i, 't>(_context: &ParserContext, input: &mut ::cssparser::Parser<'i, 't>)
+                         -> Result<Self, ParseError<'i>> {
             if input.try(|input| input.expect_ident_matching("infinite")).is_ok() {
                 return Ok(SpecifiedValue::Infinite)
             }
 
             let number = try!(input.expect_number());
             if number < 0.0 {
-                return Err(());
+                return Err(StyleParseError::UnspecifiedError.into());
             }
 
             Ok(SpecifiedValue::Number(number))
@@ -587,7 +593,8 @@ ${helpers.predefined_type("animation-timing-function",
     }
 
     #[inline]
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         SpecifiedValue::parse(context, input)
     }
 
@@ -948,8 +955,8 @@ ${helpers.predefined_type("scroll-snap-coordinate",
     }
 
     // Allow unitless zero angle for rotate() and skew() to align with gecko
-    fn parse_internal(context: &ParserContext, input: &mut Parser, prefixed: bool)
-        -> Result<SpecifiedValue,()> {
+    fn parse_internal<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>, prefixed: bool)
+        -> Result<SpecifiedValue,ParseError<'i>> {
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(SpecifiedValue(Vec::new()))
         }
@@ -960,7 +967,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                 Ok(name) => name,
                 Err(_) => break,
             };
-            match_ignore_ascii_case! {
+            let valid_fn = match_ignore_ascii_case! {
                 &name,
                 "matrix" => {
                     try!(input.parse_nested_block(|input| {
@@ -970,7 +977,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                                 specified::parse_number(context, input)
                             }));
                             if values.len() != 6 {
-                                return Err(())
+                                return Err(StyleParseError::UnspecifiedError.into())
                             }
 
                             result.push(SpecifiedOperation::Matrix {
@@ -981,7 +988,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                                 e: values[4],
                                 f: values[5],
                             });
-                            return Ok(());
+                            return Ok(true);
                         }
 
                         // Non-standard prefixed matrix parsing.
@@ -1014,7 +1021,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                             e: lengths[0].clone(),
                             f: lengths[1].clone(),
                         });
-                        Ok(())
+                        Ok(true)
                     }))
                 },
                 "matrix3d" => {
@@ -1023,7 +1030,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                         if !prefixed {
                             let values = try!(input.parse_comma_separated(|i| specified::parse_number(context, i)));
                             if values.len() != 16 {
-                                return Err(())
+                                return Err(StyleParseError::UnspecifiedError.into())
                             }
 
                             result.push(SpecifiedOperation::Matrix3D {
@@ -1032,7 +1039,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                                 m31: values[ 8], m32: values[ 9], m33: values[10], m34: values[11],
                                 m41: values[12], m42: values[13], m43: values[14], m44: values[15]
                             });
-                            return Ok(());
+                            return Ok(true);
                         }
 
                         // Non-standard prefixed matrix3d parsing.
@@ -1069,7 +1076,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                             m41: lops[0].clone(), m42: lops[1].clone(), m43: length_or_number.unwrap(),
                             m44: values[12]
                         });
-                        Ok(())
+                        Ok(true)
                     }))
                 },
                 "translate" => {
@@ -1081,28 +1088,28 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                         } else {
                             result.push(SpecifiedOperation::Translate(sx, None));
                         }
-                        Ok(())
+                        Ok(true)
                     }))
                 },
                 "translatex" => {
                     try!(input.parse_nested_block(|input| {
                         let tx = try!(specified::LengthOrPercentage::parse(context, input));
                         result.push(SpecifiedOperation::TranslateX(tx));
-                        Ok(())
+                        Ok(true)
                     }))
                 },
                 "translatey" => {
                     try!(input.parse_nested_block(|input| {
                         let ty = try!(specified::LengthOrPercentage::parse(context, input));
                         result.push(SpecifiedOperation::TranslateY(ty));
-                        Ok(())
+                        Ok(true)
                     }))
                 },
                 "translatez" => {
                     try!(input.parse_nested_block(|input| {
                         let tz = try!(specified::Length::parse(context, input));
                         result.push(SpecifiedOperation::TranslateZ(tz));
-                        Ok(())
+                        Ok(true)
                     }))
                 },
                 "translate3d" => {
@@ -1113,7 +1120,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                         try!(input.expect_comma());
                         let tz = try!(specified::Length::parse(context, input));
                         result.push(SpecifiedOperation::Translate3D(tx, ty, tz));
-                        Ok(())
+                        Ok(true)
                     }))
                 },
                 "scale" => {
@@ -1125,28 +1132,28 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                         } else {
                             result.push(SpecifiedOperation::Scale(sx, None));
                         }
-                        Ok(())
+                        Ok(true)
                     }))
                 },
                 "scalex" => {
                     try!(input.parse_nested_block(|input| {
                         let sx = try!(specified::parse_number(context, input));
                         result.push(SpecifiedOperation::ScaleX(sx));
-                        Ok(())
+                        Ok(true)
                     }))
                 },
                 "scaley" => {
                     try!(input.parse_nested_block(|input| {
                         let sy = try!(specified::parse_number(context, input));
                         result.push(SpecifiedOperation::ScaleY(sy));
-                        Ok(())
+                        Ok(true)
                     }))
                 },
                 "scalez" => {
                     try!(input.parse_nested_block(|input| {
                         let sz = try!(specified::parse_number(context, input));
                         result.push(SpecifiedOperation::ScaleZ(sz));
-                        Ok(())
+                        Ok(true)
                     }))
                 },
                 "scale3d" => {
@@ -1157,35 +1164,35 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                         try!(input.expect_comma());
                         let sz = try!(specified::parse_number(context, input));
                         result.push(SpecifiedOperation::Scale3D(sx, sy, sz));
-                        Ok(())
+                        Ok(true)
                     }))
                 },
                 "rotate" => {
                     try!(input.parse_nested_block(|input| {
                         let theta = try!(specified::Angle::parse_with_unitless(context, input));
                         result.push(SpecifiedOperation::Rotate(theta));
-                        Ok(())
+                        Ok(true)
                     }))
                 },
                 "rotatex" => {
                     try!(input.parse_nested_block(|input| {
                         let theta = try!(specified::Angle::parse_with_unitless(context, input));
                         result.push(SpecifiedOperation::RotateX(theta));
-                        Ok(())
+                        Ok(true)
                     }))
                 },
                 "rotatey" => {
                     try!(input.parse_nested_block(|input| {
                         let theta = try!(specified::Angle::parse_with_unitless(context, input));
                         result.push(SpecifiedOperation::RotateY(theta));
-                        Ok(())
+                        Ok(true)
                     }))
                 },
                 "rotatez" => {
                     try!(input.parse_nested_block(|input| {
                         let theta = try!(specified::Angle::parse_with_unitless(context, input));
                         result.push(SpecifiedOperation::RotateZ(theta));
-                        Ok(())
+                        Ok(true)
                     }))
                 },
                 "rotate3d" => {
@@ -1199,7 +1206,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                         let theta = try!(specified::Angle::parse_with_unitless(context, input));
                         // TODO(gw): Check the axis can be normalized!!
                         result.push(SpecifiedOperation::Rotate3D(ax, ay, az, theta));
-                        Ok(())
+                        Ok(true)
                     }))
                 },
                 "skew" => {
@@ -1211,51 +1218,56 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                         } else {
                             result.push(SpecifiedOperation::Skew(theta_x, None));
                         }
-                        Ok(())
+                        Ok(true)
                     }))
                 },
                 "skewx" => {
                     try!(input.parse_nested_block(|input| {
                         let theta_x = try!(specified::Angle::parse_with_unitless(context, input));
                         result.push(SpecifiedOperation::SkewX(theta_x));
-                        Ok(())
+                        Ok(true)
                     }))
                 },
                 "skewy" => {
                     try!(input.parse_nested_block(|input| {
                         let theta_y = try!(specified::Angle::parse_with_unitless(context, input));
                         result.push(SpecifiedOperation::SkewY(theta_y));
-                        Ok(())
+                        Ok(true)
                     }))
                 },
                 "perspective" => {
                     try!(input.parse_nested_block(|input| {
                         let d = try!(specified::Length::parse_non_negative(context, input));
                         result.push(SpecifiedOperation::Perspective(d));
-                        Ok(())
+                        Ok(true)
                     }))
                 },
-                _ => return Err(())
+                _ => false
+            };
+            if !valid_fn {
+                return Err(StyleParseError::UnexpectedFunction(name).into());
             }
         }
 
         if !result.is_empty() {
             Ok(SpecifiedValue(result))
         } else {
-            Err(())
+            Err(StyleParseError::UnspecifiedError.into())
         }
     }
 
     /// Parses `transform` property.
     #[inline]
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue,ParseError<'i>> {
         parse_internal(context, input, false)
     }
 
     /// Parses `-moz-transform` property. This prefixed property also accepts LengthOrPercentage
     /// in the nondiagonal homogeneous components of matrix and matrix3d.
     #[inline]
-    pub fn parse_prefixed(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+    pub fn parse_prefixed<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                                  -> Result<SpecifiedValue,ParseError<'i>> {
         parse_internal(context, input, true)
     }
 
@@ -1771,7 +1783,8 @@ ${helpers.predefined_type("transform-origin",
     }
 
     /// none | strict | content | [ size || layout || style || paint ]
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         let mut result = SpecifiedValue::empty();
 
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
@@ -1784,21 +1797,22 @@ ${helpers.predefined_type("transform-origin",
 
         while let Ok(name) = input.try(|input| input.expect_ident()) {
             let flag = match_ignore_ascii_case! { &name,
-                "layout" => LAYOUT,
-                "style" => STYLE,
-                "paint" => PAINT,
-                _ => return Err(())
+                "layout" => Some(LAYOUT),
+                "style" => Some(STYLE),
+                "paint" => Some(PAINT),
+                _ => None
             };
-            if result.contains(flag) {
-                return Err(())
-            }
+            let flag = match flag {
+                Some(flag) if !result.contains(flag) => flag,
+                _ => return Err(SelectorParseError::UnexpectedIdent(name).into())
+            };
             result.insert(flag);
         }
 
         if !result.is_empty() {
             Ok(result)
         } else {
-            Err(())
+            Err(StyleParseError::UnspecifiedError.into())
         }
     }
 </%helpers:longhand>
@@ -1900,18 +1914,23 @@ ${helpers.single_keyword("-moz-orient",
     }
 
     /// auto | <animateable-feature>#
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
             Ok(computed_value::T::Auto)
         } else {
             input.parse_comma_separated(|i| {
                 let ident = i.expect_ident()?;
-                match_ignore_ascii_case! { &ident,
+                let bad_keyword = match_ignore_ascii_case! { &ident,
                     "will-change" | "none" | "all" | "auto" |
-                    "initial" | "inherit" | "unset" | "default" => return Err(()),
-                    _ => {},
+                    "initial" | "inherit" | "unset" | "default" => true,
+                    _ => false,
+                };
+                if bad_keyword {
+                    Err(SelectorParseError::UnexpectedIdent(ident.into()).into())
+                } else {
+                    Ok(Atom::from(ident))
                 }
-                Ok((Atom::from(ident)))
             }).map(SpecifiedValue::AnimateableFeatures)
         }
     }
@@ -1976,9 +1995,10 @@ ${helpers.predefined_type("shape-outside", "basic_shape::FloatAreaShape",
         TOUCH_ACTION_AUTO
     }
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         let ident = input.expect_ident()?;
-        match_ignore_ascii_case! { &ident,
+        (match_ignore_ascii_case! { &ident,
             "auto" => Ok(TOUCH_ACTION_AUTO),
             "none" => Ok(TOUCH_ACTION_NONE),
             "manipulation" => Ok(TOUCH_ACTION_MANIPULATION),
@@ -1997,7 +2017,7 @@ ${helpers.predefined_type("shape-outside", "basic_shape::FloatAreaShape",
                 }
             },
             _ => Err(()),
-        }
+        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
     }
 
     #[cfg(feature = "gecko")]

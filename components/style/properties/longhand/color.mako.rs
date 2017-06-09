@@ -43,7 +43,8 @@
     pub fn get_initial_value() -> computed_value::T {
         RGBA::new(0, 0, 0, 255) // black
     }
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         Color::parse_quirky(context, input, AllowQuirks::Yes).map(SpecifiedValue)
     }
 
@@ -118,7 +119,7 @@
         }
 
         impl SystemColor {
-            pub fn parse(input: &mut Parser) -> Result<Self, ()> {
+            pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
                 #[cfg(feature = "gecko")]
                 use std::ascii::AsciiExt;
                 static PARSE_ARRAY: &'static [(&'static str, SystemColor); ${len(system_colors)}] = &[
@@ -133,7 +134,7 @@
                         return Ok(color)
                     }
                 }
-                Err(())
+                Err(SelectorParseError::UnexpectedIdent(ident).into())
             }
         }
     % endif

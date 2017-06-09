@@ -76,11 +76,12 @@ ${helpers.single_keyword("-moz-window-shadow", "none default menu tooltip sheet"
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         match try!(input.expect_integer()) {
             0 => Ok(computed_value::T(false)),
             1 => Ok(computed_value::T(true)),
-            _ => Err(()),
+            _ => Err(StyleParseError::UnspecifiedError.into()),
         }
     }
 

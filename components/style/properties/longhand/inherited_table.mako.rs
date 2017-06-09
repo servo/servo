@@ -113,11 +113,12 @@ ${helpers.single_keyword("caption-side", "top bottom",
         }
     }
 
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue,ParseError<'i>> {
         let mut first = None;
         let mut second = None;
         match Length::parse_non_negative_quirky(context, input, AllowQuirks::Yes) {
-            Err(()) => (),
+            Err(_) => (),
             Ok(length) => {
                 first = Some(length);
                 if let Ok(len) = input.try(|i| Length::parse_non_negative_quirky(context, i, AllowQuirks::Yes)) {
@@ -126,7 +127,7 @@ ${helpers.single_keyword("caption-side", "top bottom",
             }
         }
         match (first, second) {
-            (None, None) => Err(()),
+            (None, None) => Err(StyleParseError::UnspecifiedError.into()),
             (Some(length), None) => {
                 Ok(SpecifiedValue {
                     horizontal: length,

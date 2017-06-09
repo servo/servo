@@ -7,6 +7,7 @@
 use {Namespace, Prefix};
 use counter_style::{parse_counter_style_body, parse_counter_style_name};
 use cssparser::{AtRuleParser, AtRuleType, Parser, QualifiedRuleParser, RuleListParser, SourceLocation};
+use error_reporting::ContextualParseError;
 use font_face::parse_font_face_block;
 use media_queries::{parse_media_query_list, MediaList};
 use parking_lot::RwLock;
@@ -14,9 +15,12 @@ use parser::{Parse, ParserContext, log_css_error};
 use properties::parse_property_declaration_list;
 use selector_parser::{SelectorImpl, SelectorParser};
 use selectors::SelectorList;
+use selectors::parser::SelectorParseError;
 use shared_lock::{Locked, SharedRwLock};
+use std::borrow::Cow;
 use std::sync::atomic::AtomicBool;
 use str::starts_with_ignore_ascii_case;
+use style_traits::{StyleParseError, ParseError};
 use stylearc::Arc;
 use stylesheets::{CssRule, CssRules, CssRuleType, Origin, StylesheetLoader};
 use stylesheets::{DocumentRule, ImportRule, KeyframesRule, MediaRule, NamespaceRule, PageRule};
@@ -132,22 +136,24 @@ fn register_namespace(_: &Namespace) -> Result<(), ()> {
     Ok(()) // servo doesn't use namespace ids
 }
 
-impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
+impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
     type Prelude = AtRulePrelude;
     type AtRule = CssRule;
+    type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-    fn parse_prelude(
+    fn parse_prelude<'t>(
         &mut self,
-        name: &str,
-        input: &mut Parser
-    ) -> Result<AtRuleType<AtRulePrelude, CssRule>, ()> {
+        name: Cow<'i, str>,
+        input: &mut Parser<'i, 't>
+    ) -> Result<AtRuleType<AtRulePrelude, CssRule>, ParseError<'i>> {
         let location = get_location_with_offset(input.current_source_location(),
                                                 self.context.line_number_offset);
-        match_ignore_ascii_case! { name,
+        match_ignore_ascii_case! { &*name,
             "import" => {
                 if self.state > State::Imports {
                     self.state = State::Invalid;
-                    return Err(())  // "@import must be before any rule but @charset"
+                    // "@import must be before any rule but @charset"
+                    return Err(StyleParseError::UnexpectedImportRule.into())
                 }
 
                 self.state = State::Imports;
@@ -190,14 +196,16 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
             "namespace" => {
                 if self.state > State::Namespaces {
                     self.state = State::Invalid;
-                    return Err(())  // "@namespace must be before any rule but @charset and @import"
+                    // "@namespace must be before any rule but @charset and @import"
+                    return Err(StyleParseError::UnexpectedNamespaceRule.into())
                 }
                 self.state = State::Namespaces;
 
                 let prefix_result = input.try(|input| input.expect_ident());
                 let url = Namespace::from(try!(input.expect_url_or_string()));
 
-                let id = register_namespace(&url)?;
+                let id = register_namespace(&url)
+                    .map_err(|()| StyleParseError::UnspecifiedError)?;
 
                 let mut namespaces = self.namespaces.as_mut().unwrap();
 
@@ -222,13 +230,13 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
             },
             // @charset is removed by rust-cssparser if it’s the first rule in the stylesheet
             // anything left is invalid.
-            "charset" => return Err(()), // (insert appropriate error message)
+            "charset" => return Err(StyleParseError::UnexpectedCharsetRule.into()),
             _ => {}
         }
         // Don't allow starting with an invalid state
         if self.state > State::Body {
             self.state = State::Invalid;
-            return Err(());
+            return Err(StyleParseError::UnspecifiedError.into());
         }
         self.state = State::Body;
 
@@ -242,18 +250,21 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
     }
 
     #[inline]
-    fn parse_block(&mut self, prelude: AtRulePrelude, input: &mut Parser) -> Result<CssRule, ()> {
+    fn parse_block<'t>(&mut self, prelude: AtRulePrelude, input: &mut Parser<'i, 't>)
+                       -> Result<CssRule, ParseError<'i>> {
         AtRuleParser::parse_block(&mut self.nested(), prelude, input)
     }
 }
 
 
-impl<'a> QualifiedRuleParser for TopLevelRuleParser<'a> {
+impl<'a, 'i> QualifiedRuleParser<'i> for TopLevelRuleParser<'a> {
     type Prelude = SelectorList<SelectorImpl>;
     type QualifiedRule = CssRule;
+    type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
     #[inline]
-    fn parse_prelude(&mut self, input: &mut Parser) -> Result<SelectorList<SelectorImpl>, ()> {
+    fn parse_prelude<'t>(&mut self, input: &mut Parser<'i, 't>)
+                         -> Result<SelectorList<SelectorImpl>, ParseError<'i>> {
         self.state = State::Body;
 
         // "Freeze" the namespace map (no more namespace rules can be parsed
@@ -267,11 +278,11 @@ impl<'a> QualifiedRuleParser for TopLevelRuleParser<'a> {
     }
 
     #[inline]
-    fn parse_block(
+    fn parse_block<'t>(
         &mut self,
         prelude: SelectorList<SelectorImpl>,
-        input: &mut Parser
-    ) -> Result<CssRule, ()> {
+        input: &mut Parser<'i, 't>
+    ) -> Result<CssRule, ParseError<'i>> {
         QualifiedRuleParser::parse_block(&mut self.nested(), prelude, input)
     }
 }
@@ -302,10 +313,11 @@ impl<'a, 'b> NestedRuleParser<'a, 'b> {
         while let Some(result) = iter.next() {
             match result {
                 Ok(rule) => rules.push(rule),
-                Err(range) => {
-                    let pos = range.start;
-                    let message = format!("Unsupported rule: '{}'", iter.input.slice(range));
-                    log_css_error(iter.input, pos, &*message, self.context);
+                Err(err) => {
+                    let pos = err.span.start;
+                    let error = ContextualParseError::UnsupportedRule(
+                        iter.input.slice(err.span), err.error);
+                    log_css_error(iter.input, pos, error, self.context);
                 }
             }
         }
@@ -324,22 +336,23 @@ fn is_viewport_enabled() -> bool {
     false // Gecko doesn't support @viewport.
 }
 
-impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
+impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
     type Prelude = AtRulePrelude;
     type AtRule = CssRule;
+    type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-    fn parse_prelude(
+    fn parse_prelude<'t>(
         &mut self,
-        name: &str,
-        input: &mut Parser
-    ) -> Result<AtRuleType<AtRulePrelude, CssRule>, ()> {
+        name: Cow<'i, str>,
+        input: &mut Parser<'i, 't>
+    ) -> Result<AtRuleType<AtRulePrelude, CssRule>, ParseError<'i>> {
         let location =
             get_location_with_offset(
                 input.current_source_location(),
                 self.context.line_number_offset
             );
 
-        match_ignore_ascii_case! { name,
+        match_ignore_ascii_case! { &*name,
             "media" => {
                 let media_queries = parse_media_query_list(self.context, input);
                 let arc = Arc::new(self.shared_lock.wrap(media_queries));
@@ -355,14 +368,14 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
             "counter-style" => {
                 if !cfg!(feature = "gecko") {
                     // Support for this rule is not fully implemented in Servo yet.
-                    return Err(())
+                    return Err(StyleParseError::UnsupportedAtRule(name.clone()).into())
                 }
                 let name = parse_counter_style_name(input)?;
                 // ASCII-case-insensitive matches for "decimal" are already
                 // lower-cased by `parse_counter_style_name`, so we can use ==
                 // here.
                 if name.0 == atom!("decimal") {
-                    return Err(())
+                    return Err(StyleParseError::UnspecifiedError.into())
                 }
                 Ok(AtRuleType::WithBlock(AtRulePrelude::CounterStyle(name)))
             },
@@ -370,13 +383,13 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                 if is_viewport_enabled() {
                     Ok(AtRuleType::WithBlock(AtRulePrelude::Viewport))
                 } else {
-                    Err(())
+                    Err(StyleParseError::UnsupportedAtRule(name.clone()).into())
                 }
             },
             "keyframes" | "-webkit-keyframes" | "-moz-keyframes" => {
-                let prefix = if starts_with_ignore_ascii_case(name, "-webkit-") {
+                let prefix = if starts_with_ignore_ascii_case(&*name, "-webkit-") {
                     Some(VendorPrefix::WebKit)
-                } else if starts_with_ignore_ascii_case(name, "-moz-") {
+                } else if starts_with_ignore_ascii_case(&*name, "-moz-") {
                     Some(VendorPrefix::Moz)
                 } else {
                     None
@@ -384,7 +397,7 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                 if cfg!(feature = "servo") &&
                    prefix.as_ref().map_or(false, |p| matches!(*p, VendorPrefix::Moz)) {
                     // Servo should not support @-moz-keyframes.
-                    return Err(())
+                    return Err(StyleParseError::UnsupportedAtRule(name.clone()).into())
                 }
                 let name = KeyframesName::parse(self.context, input)?;
 
@@ -394,7 +407,7 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                 if cfg!(feature = "gecko") {
                     Ok(AtRuleType::WithBlock(AtRulePrelude::Page(location)))
                 } else {
-                    Err(())
+                    Err(StyleParseError::UnsupportedAtRule(name.clone()).into())
                 }
             },
             "-moz-document" => {
@@ -402,18 +415,18 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                     let cond = DocumentCondition::parse(self.context, input)?;
                     Ok(AtRuleType::WithBlock(AtRulePrelude::Document(cond, location)))
                 } else {
-                    Err(())
+                    Err(StyleParseError::UnsupportedAtRule(name.clone()).into())
                 }
             },
-            _ => Err(())
+            _ => Err(StyleParseError::UnsupportedAtRule(name.clone()).into())
         }
     }
 
-    fn parse_block(
+    fn parse_block<'t>(
         &mut self,
         prelude: AtRulePrelude,
-        input: &mut Parser
-    ) -> Result<CssRule, ()> {
+        input: &mut Parser<'i, 't>
+    ) -> Result<CssRule, ParseError<'i>> {
         match prelude {
             AtRulePrelude::FontFace(location) => {
                 let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::FontFace));
@@ -478,11 +491,13 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
     }
 }
 
-impl<'a, 'b> QualifiedRuleParser for NestedRuleParser<'a, 'b> {
+impl<'a, 'b, 'i> QualifiedRuleParser<'i> for NestedRuleParser<'a, 'b> {
     type Prelude = SelectorList<SelectorImpl>;
     type QualifiedRule = CssRule;
+    type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-    fn parse_prelude(&mut self, input: &mut Parser) -> Result<SelectorList<SelectorImpl>, ()> {
+    fn parse_prelude<'t>(&mut self, input: &mut Parser<'i, 't>)
+                         -> Result<SelectorList<SelectorImpl>, ParseError<'i>> {
         let selector_parser = SelectorParser {
             stylesheet_origin: self.stylesheet_origin,
             namespaces: self.context.namespaces.unwrap(),
@@ -491,11 +506,11 @@ impl<'a, 'b> QualifiedRuleParser for NestedRuleParser<'a, 'b> {
         SelectorList::parse(&selector_parser, input)
     }
 
-    fn parse_block(
+    fn parse_block<'t>(
         &mut self,
         prelude: SelectorList<SelectorImpl>,
-        input: &mut Parser
-    ) -> Result<CssRule, ()> {
+        input: &mut Parser<'i, 't>
+    ) -> Result<CssRule, ParseError<'i>> {
         let location = get_location_with_offset(input.current_source_location(),
                                                 self.context.line_number_offset);
         let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::Style));

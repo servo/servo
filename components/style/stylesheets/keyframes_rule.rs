@@ -4,18 +4,20 @@
 
 //! Keyframes: https://drafts.csswg.org/css-animations/#keyframes
 
-use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, RuleListParser};
+use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, RuleListParser, ParserInput};
 use cssparser::{DeclarationListParser, DeclarationParser, parse_one_rule, SourceLocation};
-use error_reporting::NullReporter;
+use error_reporting::{NullReporter, ContextualParseError};
 use parser::{PARSING_MODE_DEFAULT, ParserContext, log_css_error};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
 use properties::{PropertyDeclarationId, LonghandId, SourcePropertyDeclaration};
 use properties::LonghandIdSet;
 use properties::animated_properties::TransitionProperty;
 use properties::longhands::transition_timing_function::single_value::SpecifiedValue as SpecifiedTimingFunction;
+use selectors::parser::SelectorParseError;
 use shared_lock::{DeepCloneWithLock, SharedRwLock, SharedRwLockReadGuard, Locked, ToCssWithGuard};
+use std::borrow::Cow;
 use std::fmt;
-use style_traits::ToCss;
+use style_traits::{ToCss, ParseError, StyleParseError};
 use stylearc::Arc;
 use stylesheets::{CssRuleType, Stylesheet};
 use stylesheets::rule_parser::VendorPrefix;
@@ -61,7 +63,8 @@ impl KeyframesRule {
     /// Related spec:
     /// https://drafts.csswg.org/css-animations-1/#interface-csskeyframesrule-findrule
     pub fn find_rule(&self, guard: &SharedRwLockReadGuard, selector: &str) -> Option<usize> {
-        if let Ok(selector) = Parser::new(selector).parse_entirely(KeyframeSelector::parse) {
+        let mut input = ParserInput::new(selector);
+        if let Ok(selector) = Parser::new(&mut input).parse_entirely(KeyframeSelector::parse) {
             for (i, keyframe) in self.keyframes.iter().enumerate().rev() {
                 if keyframe.read_with(guard).selector == selector {
                     return Some(i);
@@ -120,7 +123,7 @@ impl KeyframePercentage {
         KeyframePercentage(value)
     }
 
-    fn parse(input: &mut Parser) -> Result<KeyframePercentage, ()> {
+    fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<KeyframePercentage, ParseError<'i>> {
         let percentage = if input.try(|input| input.expect_ident_matching("from")).is_ok() {
             KeyframePercentage::new(0.)
         } else if input.try(|input| input.expect_ident_matching("to")).is_ok() {
@@ -130,7 +133,7 @@ impl KeyframePercentage {
             if percentage >= 0. && percentage <= 1. {
                 KeyframePercentage::new(percentage)
             } else {
-                return Err(());
+                return Err(StyleParseError::UnspecifiedError.into());
             }
         };
 
@@ -168,7 +171,7 @@ impl KeyframeSelector {
     }
 
     /// Parse a keyframe selector from CSS input.
-    pub fn parse(input: &mut Parser) -> Result<Self, ()> {
+    pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         input.parse_comma_separated(KeyframePercentage::parse)
              .map(KeyframeSelector)
     }
@@ -200,8 +203,8 @@ impl ToCssWithGuard for Keyframe {
 
 impl Keyframe {
     /// Parse a CSS keyframe.
-    pub fn parse(css: &str, parent_stylesheet: &Stylesheet)
-                 -> Result<Arc<Locked<Self>>, ()> {
+    pub fn parse<'i>(css: &'i str, parent_stylesheet: &Stylesheet)
+                     -> Result<Arc<Locked<Self>>, ParseError<'i>> {
         let error_reporter = NullReporter;
         let context = ParserContext::new(parent_stylesheet.origin,
                                          &parent_stylesheet.url_data,
@@ -209,7 +212,8 @@ impl Keyframe {
                                          Some(CssRuleType::Keyframe),
                                          PARSING_MODE_DEFAULT,
                                          parent_stylesheet.quirks_mode);
-        let mut input = Parser::new(css);
+        let mut input = ParserInput::new(css);
+        let mut input = Parser::new(&mut input);
 
         let mut declarations = SourcePropertyDeclaration::new();
         let mut rule_parser = KeyframeListParser {
@@ -445,29 +449,31 @@ pub fn parse_keyframe_list(context: &ParserContext, input: &mut Parser, shared_l
 }
 
 enum Void {}
-impl<'a> AtRuleParser for KeyframeListParser<'a> {
+impl<'a, 'i> AtRuleParser<'i> for KeyframeListParser<'a> {
     type Prelude = Void;
     type AtRule = Arc<Locked<Keyframe>>;
+    type Error = SelectorParseError<'i, StyleParseError<'i>>;
 }
 
-impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
+impl<'a, 'i> QualifiedRuleParser<'i> for KeyframeListParser<'a> {
     type Prelude = KeyframeSelector;
     type QualifiedRule = Arc<Locked<Keyframe>>;
+    type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-    fn parse_prelude(&mut self, input: &mut Parser) -> Result<Self::Prelude, ()> {
+    fn parse_prelude<'t>(&mut self, input: &mut Parser<'i, 't>) -> Result<Self::Prelude, ParseError<'i>> {
         let start = input.position();
         match KeyframeSelector::parse(input) {
             Ok(sel) => Ok(sel),
-            Err(()) => {
-                let message = format!("Invalid keyframe rule: '{}'", input.slice_from(start));
-                log_css_error(input, start, &message, self.context);
-                Err(())
+            Err(e) => {
+                let error = ContextualParseError::InvalidKeyframeRule(input.slice_from(start), e.clone());
+                log_css_error(input, start, error, self.context);
+                Err(e)
             }
         }
     }
 
-    fn parse_block(&mut self, prelude: Self::Prelude, input: &mut Parser)
-                   -> Result<Self::QualifiedRule, ()> {
+    fn parse_block<'t>(&mut self, prelude: Self::Prelude, input: &mut Parser<'i, 't>)
+                       -> Result<Self::QualifiedRule, ParseError<'i>> {
         let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::Keyframe));
         let parser = KeyframeDeclarationParser {
             context: &context,
@@ -480,12 +486,12 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
                 Ok(()) => {
                     block.extend(iter.parser.declarations.drain(), Importance::Normal);
                 }
-                Err(range) => {
+                Err(err) => {
                     iter.parser.declarations.clear();
-                    let pos = range.start;
-                    let message = format!("Unsupported keyframe property declaration: '{}'",
-                                          iter.input.slice(range));
-                    log_css_error(iter.input, pos, &*message, &context);
+                    let pos = err.span.start;
+                    let error = ContextualParseError::UnsupportedKeyframePropertyDeclaration(
+                        iter.input.slice(err.span), err.error);
+                    log_css_error(iter.input, pos, error, &context);
                 }
             }
             // `parse_important` is not called here, `!important` is not allowed in keyframe blocks.
@@ -503,22 +509,25 @@ struct KeyframeDeclarationParser<'a, 'b: 'a> {
 }
 
 /// Default methods reject all at rules.
-impl<'a, 'b> AtRuleParser for KeyframeDeclarationParser<'a, 'b> {
+impl<'a, 'b, 'i> AtRuleParser<'i> for KeyframeDeclarationParser<'a, 'b> {
     type Prelude = ();
     type AtRule = ();
+    type Error = SelectorParseError<'i, StyleParseError<'i>>;
 }
 
-impl<'a, 'b> DeclarationParser for KeyframeDeclarationParser<'a, 'b> {
+impl<'a, 'b, 'i> DeclarationParser<'i> for KeyframeDeclarationParser<'a, 'b> {
     type Declaration = ();
+    type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-    fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<(), ()> {
+    fn parse_value<'t>(&mut self, name: Cow<'i, str>, input: &mut Parser<'i, 't>)
+                       -> Result<(), ParseError<'i>> {
         let id = try!(PropertyId::parse(name.into()));
         match PropertyDeclaration::parse_into(self.declarations, id, self.context, input) {
             Ok(()) => {
                 // In case there is still unparsed text in the declaration, we should roll back.
-                input.expect_exhausted()
+                input.expect_exhausted().map_err(|e| e.into())
             }
-            Err(_) => Err(())
+            Err(_e) => Err(StyleParseError::UnspecifiedError.into())
         }
     }
 }

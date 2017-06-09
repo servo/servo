@@ -7,6 +7,8 @@
 use cssparser::Parser;
 use euclid::Point2D;
 use parser::{Parse, ParserContext};
+use selectors::parser::SelectorParseError;
+use style_traits::{ParseError, StyleParseError};
 use values::computed::{LengthOrPercentage as ComputedLengthOrPercentage, Context, ToComputedValue};
 use values::computed::transform::TimingFunction as ComputedTimingFunction;
 use values::generics::transform::{StepPosition, TimingFunction as GenericTimingFunction};
@@ -34,7 +36,7 @@ pub enum OriginComponent<S> {
 pub type TimingFunction = GenericTimingFunction<Integer, Number>;
 
 impl Parse for TransformOrigin {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let parse_depth = |input: &mut Parser| {
             input.try(|i| Length::parse(context, i)).unwrap_or(Length::from_px(0.))
         };
@@ -85,7 +87,7 @@ impl Parse for TransformOrigin {
 impl<S> Parse for OriginComponent<S>
     where S: Parse,
 {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if input.try(|i| i.expect_ident_matching("center")).is_ok() {
             return Ok(OriginComponent::Center);
         }
@@ -123,7 +125,7 @@ impl<S> ToComputedValue for OriginComponent<S>
 }
 
 impl Parse for TimingFunction {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if let Ok(keyword) = input.try(TimingKeyword::parse) {
             return Ok(GenericTimingFunction::Keyword(keyword));
         }
@@ -131,13 +133,13 @@ impl Parse for TimingFunction {
             let position = match_ignore_ascii_case! { &ident,
                 "step-start" => StepPosition::Start,
                 "step-end" => StepPosition::End,
-                _ => return Err(()),
+                _ => return Err(SelectorParseError::UnexpectedIdent(ident.clone()).into()),
             };
             return Ok(GenericTimingFunction::Steps(Integer::new(1), position));
         }
         let function = input.expect_function()?;
-        input.parse_nested_block(|i| {
-            match_ignore_ascii_case! { &function,
+        input.parse_nested_block(move |i| {
+            (match_ignore_ascii_case! { &function,
                 "cubic-bezier" => {
                     let p1x = Number::parse(context, i)?;
                     i.expect_comma()?;
@@ -148,7 +150,7 @@ impl Parse for TimingFunction {
                     let p2y = Number::parse(context, i)?;
 
                     if p1x.get() < 0.0 || p1x.get() > 1.0 || p2x.get() < 0.0 || p2x.get() > 1.0 {
-                        return Err(());
+                        return Err(StyleParseError::UnspecifiedError.into());
                     }
 
                     let (p1, p2) = (Point2D::new(p1x, p1y), Point2D::new(p2x, p2y));
@@ -167,7 +169,7 @@ impl Parse for TimingFunction {
                     Ok(GenericTimingFunction::Frames(frames))
                 },
                 _ => Err(()),
-            }
+            }).map_err(|()| StyleParseError::UnexpectedFunction(function).into())
         })
     }
 }

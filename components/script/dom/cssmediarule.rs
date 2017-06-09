@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::Parser;
+use cssparser::{Parser, ParserInput};
 use dom::bindings::codegen::Bindings::CSSMediaRuleBinding;
 use dom::bindings::codegen::Bindings::CSSMediaRuleBinding::CSSMediaRuleMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
@@ -69,7 +69,8 @@ impl CSSMediaRule {
 
     /// https://drafts.csswg.org/css-conditional-3/#the-cssmediarule-interface
     pub fn set_condition_text(&self, text: DOMString) {
-        let mut input = Parser::new(&text);
+        let mut input = ParserInput::new(&text);
+        let mut input = Parser::new(&mut input);
         let global = self.global();
         let win = global.as_window();
         let url = win.get_url();

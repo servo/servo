@@ -7,7 +7,7 @@
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::fmt;
-use style_traits::ToCss;
+use style_traits::{ToCss, ParseError};
 
 /// A CSS value made of four components, where its `ToCss` impl will try to
 /// serialize as few components as possible, like for example in `border-width`.
@@ -26,12 +26,12 @@ impl<T> Rect<T>
     where T: Clone
 {
     /// Parses a new `Rect<T>` value with the given parse function.
-    pub fn parse_with<Parse>(
+    pub fn parse_with<'i, 't, Parse>(
         context: &ParserContext,
-        input: &mut Parser,
+        input: &mut Parser<'i, 't>,
         parse: Parse)
-        -> Result<Self, ()>
-        where Parse: Fn(&ParserContext, &mut Parser) -> Result<T, ()>
+        -> Result<Self, ParseError<'i>>
+        where Parse: Fn(&ParserContext, &mut Parser<'i, 't>) -> Result<T, ParseError<'i>>
     {
         let first = parse(context, input)?;
         let second = if let Ok(second) = input.try(|i| parse(context, i)) { second } else {
@@ -64,7 +64,7 @@ impl<T> Parse for Rect<T>
     where T: Clone + Parse
 {
     #[inline]
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         Self::parse_with(context, input, T::parse)
     }
 }

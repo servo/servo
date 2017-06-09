@@ -4,7 +4,7 @@
 
 #[test]
 fn smoke_restyle_hints() {
-    use cssparser::Parser;
+    use cssparser::{Parser, ParserInput};
     use selectors::parser::SelectorList;
     use style::restyle_hints::DependencySet;
     use style::selector_parser::SelectorParser;
@@ -17,7 +17,8 @@ fn smoke_restyle_hints() {
 
     let mut dependencies = DependencySet::new();
 
-    let mut p = Parser::new(":not(:active) ~ label");
+    let mut input = ParserInput::new(":not(:active) ~ label");
+    let mut p = Parser::new(&mut input);
     let selectors = SelectorList::parse(&parser, &mut p).unwrap();
     assert_eq!((selectors.0).len(), 1);
 

@@ -174,7 +174,8 @@ ${helpers.single_keyword("image-rendering",
     }
 
     // from-image | <angle> | [<angle>? flip]
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         if input.try(|input| input.expect_ident_matching("from-image")).is_ok() {
             // Handle from-image
             Ok(SpecifiedValue { angle: None, flipped: false })
@@ -185,7 +186,7 @@ ${helpers.single_keyword("image-rendering",
             // Handle <angle> | <angle> flip
             let angle = input.try(|input| Angle::parse(context, input)).ok();
             if angle.is_none() {
-                return Err(());
+                return Err(StyleParseError::UnspecifiedError.into());
             }
 
             let flipped = input.try(|input| input.expect_ident_matching("flip")).is_ok();

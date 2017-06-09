@@ -92,7 +92,7 @@ macro_rules! impl_gecko_keyword_from_trait {
         use cssparser::{CssStringWriter, Parser, serialize_identifier};
         use std::fmt::{self, Write};
         use Atom;
-        use style_traits::ToCss;
+        use style_traits::{ToCss, ParseError};
         pub use self::FontFamily as SingleComputedValue;
 
         #[derive(Debug, PartialEq, Eq, Clone, Hash)]
@@ -154,7 +154,7 @@ macro_rules! impl_gecko_keyword_from_trait {
             }
 
             /// Parse a font-family value
-            pub fn parse(input: &mut Parser) -> Result<Self, ()> {
+            pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
                 if let Ok(value) = input.try(|input| input.expect_string()) {
                     return Ok(FontFamily::FamilyName(FamilyName {
                         name: Atom::from(&*value),
@@ -294,7 +294,8 @@ macro_rules! impl_gecko_keyword_from_trait {
     /// <family-name>#
     /// <family-name> = <string> | [ <ident>+ ]
     /// TODO: <generic-family>
-    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         SpecifiedValue::parse(input)
     }
 
@@ -348,7 +349,7 @@ macro_rules! impl_gecko_keyword_from_trait {
             }
         }
 
-        pub fn parse(input: &mut Parser) -> Result<Self, ()> {
+        pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
             input.parse_comma_separated(|input| FontFamily::parse(input)).map(SpecifiedValue::Values)
         }
     }
@@ -374,11 +375,11 @@ macro_rules! impl_gecko_keyword_from_trait {
     /// `FamilyName::parse` is based on `FontFamily::parse` and not the other way around
     /// because we want the former to exclude generic family keywords.
     impl Parse for FamilyName {
-        fn parse(_: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
             match FontFamily::parse(input) {
                 Ok(FontFamily::FamilyName(name)) => Ok(name),
-                Ok(FontFamily::Generic(_)) |
-                Err(()) => Err(())
+                Ok(FontFamily::Generic(_)) => Err(StyleParseError::UnspecifiedError.into()),
+                Err(e) => Err(e)
             }
         }
     }
@@ -444,17 +445,21 @@ ${helpers.single_keyword_system("font-variant-caps",
     }
 
     /// normal | bold | bolder | lighter | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        input.try(|input| {
-            match_ignore_ascii_case! { &try!(input.expect_ident()),
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
+        let result: Result<_, ParseError> = input.try(|input| {
+            let ident = try!(input.expect_ident());
+            (match_ignore_ascii_case! { &ident,
                 "normal" => Ok(SpecifiedValue::Normal),
                 "bold" => Ok(SpecifiedValue::Bold),
                 "bolder" => Ok(SpecifiedValue::Bolder),
                 "lighter" => Ok(SpecifiedValue::Lighter),
                 _ => Err(())
-            }
-        }).or_else(|()| {
+            }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
+        });
+        result.or_else(|_| {
             SpecifiedValue::from_int(input.expect_integer()?)
+                .map_err(|()| StyleParseError::UnspecifiedError.into())
         })
     }
 
@@ -489,7 +494,7 @@ ${helpers.single_keyword_system("font-variant-caps",
 
     /// Used in @font-face, where relative keywords are not allowed.
     impl Parse for computed_value::T {
-        fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
             match parse(context, input)? {
                 % for weight in range(100, 901, 100):
                     SpecifiedValue::Weight${weight} => Ok(computed_value::T::Weight${weight}),
@@ -497,7 +502,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                 SpecifiedValue::Normal => Ok(computed_value::T::Weight400),
                 SpecifiedValue::Bold => Ok(computed_value::T::Weight700),
                 SpecifiedValue::Bolder |
-                SpecifiedValue::Lighter => Err(()),
+                SpecifiedValue::Lighter => Err(StyleParseError::UnspecifiedError.into()),
                 SpecifiedValue::System(..) => unreachable!(),
             }
         }
@@ -683,17 +688,18 @@ ${helpers.single_keyword_system("font-variant-caps",
     pub use self::KeywordSize::*;
 
     impl KeywordSize {
-        pub fn parse(input: &mut Parser) -> Result<Self, ()> {
-            Ok(match_ignore_ascii_case! {&*input.expect_ident()?,
-                "xx-small" => XXSmall,
-                "x-small" => XSmall,
-                "small" => Small,
-                "medium" => Medium,
-                "large" => Large,
-                "x-large" => XLarge,
-                "xx-large" => XXLarge,
-                _ => return Err(())
-            })
+        pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+            let ident = input.expect_ident()?;
+            (match_ignore_ascii_case! {&*ident,
+                "xx-small" => Ok(XXSmall),
+                "x-small" => Ok(XSmall),
+                "small" => Ok(Small),
+                "medium" => Ok(Medium),
+                "large" => Ok(Large),
+                "x-large" => Ok(XLarge),
+                "xx-large" => Ok(XXLarge),
+                _ => Err(())
+            }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
         }
     }
 
@@ -906,15 +912,16 @@ ${helpers.single_keyword_system("font-variant-caps",
     }
 
     /// <length> | <percentage> | <absolute-size> | <relative-size>
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         parse_quirky(context, input, AllowQuirks::No)
     }
 
     /// Parses a font-size, with quirks.
-    pub fn parse_quirky(context: &ParserContext,
-                        input: &mut Parser,
-                        allow_quirks: AllowQuirks)
-                        -> Result<SpecifiedValue, ()> {
+    pub fn parse_quirky<'i, 't>(context: &ParserContext,
+                                input: &mut Parser<'i, 't>,
+                                allow_quirks: AllowQuirks)
+                                -> Result<SpecifiedValue, ParseError<'i>> {
         use self::specified::LengthOrPercentage;
         if let Ok(lop) = input.try(|i| LengthOrPercentage::parse_non_negative_quirky(context, i, allow_quirks)) {
             return Ok(SpecifiedValue::Length(lop))
@@ -924,11 +931,12 @@ ${helpers.single_keyword_system("font-variant-caps",
             return Ok(SpecifiedValue::Keyword(kw, 1.))
         }
 
-        match_ignore_ascii_case! {&*input.expect_ident()?,
+        let ident = input.expect_ident()?;
+        (match_ignore_ascii_case! {&*ident,
             "smaller" => Ok(SpecifiedValue::Smaller),
             "larger" => Ok(SpecifiedValue::Larger),
             _ => Err(())
-        }
+        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
     }
 
     impl SpecifiedValue {
@@ -1150,7 +1158,8 @@ ${helpers.single_keyword_system("font-variant-caps",
     }
 
     /// none | <number>
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         use values::specified::Number;
 
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
@@ -1200,9 +1209,11 @@ ${helpers.single_keyword_system("font-variant-caps",
         SpecifiedValue { weight: true, style: true }
     }
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         let mut result = SpecifiedValue { weight: false, style: false };
-        match_ignore_ascii_case! { &try!(input.expect_ident()),
+        let ident = try!(input.expect_ident());
+        (match_ignore_ascii_case! { &ident,
             "none" => Ok(result),
             "weight" => {
                 result.weight = true;
@@ -1219,7 +1230,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                 Ok(result)
             },
             _ => Err(())
-        }
+        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
     }
 
     #[cfg(feature = "gecko")]
@@ -1364,7 +1375,8 @@ ${helpers.single_keyword_system("font-kerning",
     ///    swash(<feature-value-name>)               ||
     ///    ornaments(<feature-value-name>)           ||
     ///    annotation(<feature-value-name>) ]
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         let mut result = VariantAlternates::empty();
 
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
@@ -1373,25 +1385,26 @@ ${helpers.single_keyword_system("font-kerning",
 
         while let Ok(ident) = input.try(|input| input.expect_ident()) {
             let flag = match_ignore_ascii_case! { &ident,
-                "stylistic" => STYLISTIC,
-                "historical-forms" => HISTORICAL_FORMS,
-                "styleset" => STYLESET,
-                "character-variant" => CHARACTER_VARIANT,
-                "swash" => SWASH,
-                "ornaments" => ORNAMENTS,
-                "annotation" => ANNOTATION,
-                _ => return Err(()),
+                "stylistic" => Some(STYLISTIC),
+                "historical-forms" => Some(HISTORICAL_FORMS),
+                "styleset" => Some(STYLESET),
+                "character-variant" => Some(CHARACTER_VARIANT),
+                "swash" => Some(SWASH),
+                "ornaments" => Some(ORNAMENTS),
+                "annotation" => Some(ANNOTATION),
+                _ => None,
             };
-            if result.intersects(flag) {
-                return Err(())
-            }
+            let flag = match flag {
+                Some(flag) if !result.intersects(flag) => flag,
+                _ => return Err(SelectorParseError::UnexpectedIdent(ident).into()),
+            };
             result.insert(flag);
         }
 
         if !result.is_empty() {
             Ok(SpecifiedValue::Value(result))
         } else {
-            Err(())
+            Err(StyleParseError::UnspecifiedError.into())
         }
     }
 </%helpers:longhand>
@@ -1400,9 +1413,9 @@ ${helpers.single_keyword_system("font-kerning",
 macro_rules! exclusive_value {
     (($value:ident, $set:expr) => $ident:ident) => {
         if $value.intersects($set) {
-            return Err(())
+            None
         } else {
-            $ident
+            Some($ident)
         }
     }
 }
@@ -1507,7 +1520,8 @@ macro_rules! exclusive_value {
     /// <east-asian-width-values>   = [ full-width | proportional-width ]
     <% east_asian_variant_values = "JIS78 | JIS83 | JIS90 | JIS04 | SIMPLIFIED | TRADITIONAL" %>
     <% east_asian_width_values = "FULL_WIDTH | PROPORTIONAL_WIDTH" %>
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         let mut result = VariantEastAsian::empty();
 
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
@@ -1534,7 +1548,11 @@ macro_rules! exclusive_value {
                     exclusive_value!((result, ${east_asian_width_values}) => PROPORTIONAL_WIDTH),
                 "ruby" =>
                     exclusive_value!((result, RUBY) => RUBY),
-                _ => return Err(()),
+                _ => None,
+            };
+            let flag = match flag {
+                Some(flag) => flag,
+                None => return Err(SelectorParseError::UnexpectedIdent(ident).into()),
             };
             result.insert(flag);
         }
@@ -1542,7 +1560,7 @@ macro_rules! exclusive_value {
         if !result.is_empty() {
             Ok(SpecifiedValue::Value(result))
         } else {
-            Err(())
+            Err(StyleParseError::UnspecifiedError.into())
         }
     }
 
@@ -1659,7 +1677,8 @@ macro_rules! exclusive_value {
     <% discretionary_lig_values = "DISCRETIONARY_LIGATURES | NO_DISCRETIONARY_LIGATURES" %>
     <% historical_lig_values = "HISTORICAL_LIGATURES | NO_HISTORICAL_LIGATURES" %>
     <% contextual_alt_values = "CONTEXTUAL | NO_CONTEXTUAL" %>
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         let mut result = VariantLigatures::empty();
 
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
@@ -1687,7 +1706,11 @@ macro_rules! exclusive_value {
                     exclusive_value!((result, ${contextual_alt_values}) => CONTEXTUAL),
                 "no-contextual" =>
                     exclusive_value!((result, ${contextual_alt_values}) => NO_CONTEXTUAL),
-                _ => return Err(()),
+                _ => None,
+            };
+            let flag = match flag {
+                Some(flag) => flag,
+                None => return Err(SelectorParseError::UnexpectedIdent(ident).into()),
             };
             result.insert(flag);
         }
@@ -1695,7 +1718,7 @@ macro_rules! exclusive_value {
         if !result.is_empty() {
             Ok(SpecifiedValue::Value(result))
         } else {
-            Err(())
+            Err(StyleParseError::UnspecifiedError.into())
         }
     }
 
@@ -1808,7 +1831,8 @@ macro_rules! exclusive_value {
     <% numeric_figure_values = "LINING_NUMS | OLDSTYLE_NUMS" %>
     <% numeric_spacing_values = "PROPORTIONAL_NUMS | TABULAR_NUMS" %>
     <% numeric_fraction_values = "DIAGONAL_FRACTIONS | STACKED_FRACTIONS" %>
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         let mut result = VariantNumeric::empty();
 
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
@@ -1824,16 +1848,20 @@ macro_rules! exclusive_value {
                 "lining-nums" =>
                     exclusive_value!((result, ${numeric_figure_values}) => LINING_NUMS ),
                 "oldstyle-nums" =>
-                    exclusive_value!((result, ${numeric_figure_values}) => OLDSTYLE_NUMS ),
+                    exclusive_value!((result, ${numeric_figure_values}) => OLDSTYLE_NUMS),
                 "proportional-nums" =>
-                    exclusive_value!((result, ${numeric_spacing_values}) => PROPORTIONAL_NUMS ),
+                    exclusive_value!((result, ${numeric_spacing_values}) => PROPORTIONAL_NUMS),
                 "tabular-nums" =>
-                    exclusive_value!((result, ${numeric_spacing_values}) => TABULAR_NUMS ),
+                    exclusive_value!((result, ${numeric_spacing_values}) => TABULAR_NUMS),
                 "diagonal-fractions" =>
-                    exclusive_value!((result, ${numeric_fraction_values}) => DIAGONAL_FRACTIONS ),
+                    exclusive_value!((result, ${numeric_fraction_values}) => DIAGONAL_FRACTIONS),
                 "stacked-fractions" =>
-                    exclusive_value!((result, ${numeric_fraction_values}) => STACKED_FRACTIONS ),
-                _ => return Err(()),
+                    exclusive_value!((result, ${numeric_fraction_values}) => STACKED_FRACTIONS),
+                _ => None,
+            };
+            let flag = match flag {
+                Some(flag) => flag,
+                None => return Err(SelectorParseError::UnexpectedIdent(ident).into()),
             };
             result.insert(flag);
         }
@@ -1841,7 +1869,7 @@ macro_rules! exclusive_value {
         if !result.is_empty() {
             Ok(SpecifiedValue::Value(result))
         } else {
-            Err(())
+            Err(StyleParseError::UnspecifiedError.into())
         }
     }
 
@@ -1890,7 +1918,8 @@ ${helpers.single_keyword_system("font-variant-position",
     }
 
     /// normal | <feature-tag-value>#
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         computed_value::T::parse(context, input).map(SpecifiedValue::Value)
     }
 </%helpers:longhand>
@@ -1924,7 +1953,8 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
     }
 
     /// normal | <feature-tag-value>#
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         computed_value::T::parse(context, input)
     }
 </%helpers:longhand>
@@ -2054,13 +2084,14 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
     }
 
     /// normal | <string>
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
             Ok(SpecifiedValue::Normal)
         } else {
             input.expect_string().map(|cow| {
                 SpecifiedValue::Override(cow.into_owned())
-            })
+            }).map_err(|e| e.into())
         }
     }
 
@@ -2108,9 +2139,10 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
         computed_value::T(atom!(""))
     }
 
-    pub fn parse(_context: &ParserContext, _input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, _input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         debug_assert!(false, "Should be set directly by presentation attributes only.");
-        Err(())
+        Err(StyleParseError::UnspecifiedError.into())
     }
 </%helpers:longhand>
 
@@ -2133,9 +2165,10 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
         ::gecko_bindings::structs::NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER as f32
     }
 
-    pub fn parse(_context: &ParserContext, _input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, _input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         debug_assert!(false, "Should be set directly by presentation attributes only.");
-        Err(())
+        Err(StyleParseError::UnspecifiedError.into())
     }
 </%helpers:longhand>
 
@@ -2206,7 +2239,8 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
         }
     }
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         if let Ok(i) = input.try(|i| i.expect_integer()) {
             return Ok(SpecifiedValue::Relative(i))
         }
@@ -2281,9 +2315,10 @@ ${helpers.single_keyword("-moz-math-variant",
         Au((NS_MATHML_DEFAULT_SCRIPT_MIN_SIZE_PT as f32 * AU_PER_PT) as i32)
     }
 
-    pub fn parse(_context: &ParserContext, _input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse<'i, 't>(_context: &ParserContext, _input: &mut Parser<'i, 't>)
+                         -> Result<SpecifiedValue, ParseError<'i>> {
         debug_assert!(false, "Should be set directly by presentation attributes only.");
-        Err(())
+        Err(StyleParseError::UnspecifiedError.into())
     }
 </%helpers:longhand>
 
@@ -2308,7 +2343,9 @@ ${helpers.single_keyword("-moz-math-variant",
         use app_units::Au;
         use cssparser::Parser;
         use properties::longhands;
+        use selectors::parser::SelectorParseError;
         use std::hash::{Hash, Hasher};
+        use style_traits::ParseError;
         use values::computed::{ToComputedValue, Context};
         <%
             system_fonts = """caption icon menu message-box small-caption status-bar
@@ -2427,13 +2464,14 @@ ${helpers.single_keyword("-moz-math-variant",
         }
 
         impl SystemFont {
-            pub fn parse(input: &mut Parser) -> Result<Self, ()> {
-                Ok(match_ignore_ascii_case! { &*input.expect_ident()?,
+            pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+                let ident = input.expect_ident()?;
+                (match_ignore_ascii_case! { &*ident,
                     % for font in system_fonts:
-                        "${font}" => SystemFont::${to_camel_case(font)},
+                        "${font}" => Ok(SystemFont::${to_camel_case(font)}),
                     % endfor
-                    _ => return Err(())
-                })
+                    _ => Err(())
+                }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
             }
         }
     }

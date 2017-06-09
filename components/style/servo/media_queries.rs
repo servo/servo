@@ -13,9 +13,10 @@ use media_queries::MediaType;
 use parser::ParserContext;
 use properties::{ComputedValues, StyleBuilder};
 use properties::longhands::font_size;
+use selectors::parser::SelectorParseError;
 use std::fmt;
 use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
-use style_traits::{CSSPixel, ToCss};
+use style_traits::{CSSPixel, ToCss, ParseError};
 use style_traits::viewport::ViewportConstraints;
 use values::computed::{self, ToComputedValue};
 use values::specified;
@@ -151,7 +152,8 @@ impl Expression {
     /// ```
     ///
     /// Only supports width and width ranges for now.
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<Self, ParseError<'i>> {
         try!(input.expect_parenthesis_block());
         input.parse_nested_block(|input| {
             let name = try!(input.expect_ident());
@@ -167,7 +169,7 @@ impl Expression {
                 "width" => {
                     ExpressionKind::Width(Range::Eq(try!(specified::Length::parse_non_negative(context, input))))
                 },
-                _ => return Err(())
+                _ => return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
             }))
         })
     }

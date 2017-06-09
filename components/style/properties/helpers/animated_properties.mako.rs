@@ -27,12 +27,13 @@ use properties::longhands::transform::computed_value::T as TransformList;
 use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
 use properties::longhands::visibility::computed_value::T as Visibility;
 #[cfg(feature = "gecko")] use properties::{PropertyDeclarationId, LonghandId};
+use selectors::parser::SelectorParseError;
 #[cfg(feature = "servo")] use servo_atoms::Atom;
 use smallvec::SmallVec;
 use std::cmp;
 #[cfg(feature = "gecko")] use std::collections::HashMap;
 use std::fmt;
-use style_traits::ToCss;
+use style_traits::{ToCss, ParseError};
 use super::ComputedValues;
 use values::CSSFloat;
 use values::{Auto, Either};
@@ -99,9 +100,9 @@ impl TransitionProperty {
     }
 
     /// Parse a transition-property value.
-    pub fn parse(input: &mut Parser) -> Result<Self, ()> {
+    pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let ident = try!(input.expect_ident());
-        match_ignore_ascii_case! { &ident,
+        (match_ignore_ascii_case! { &ident,
             "all" => Ok(TransitionProperty::All),
             % for prop in data.longhands:
                 % if prop.animatable:
@@ -118,7 +119,7 @@ impl TransitionProperty {
                     None => Ok(TransitionProperty::Unsupported((&*ident).into()))
                 }
             }
-        }
+        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident.into()).into())
     }
 
     /// Get a transition property from a property declaration.
@@ -476,7 +477,7 @@ impl AnimationValue {
     /// Construct an AnimationValue from a property declaration
     pub fn from_declaration(decl: &PropertyDeclaration, context: &mut Context,
                             initial: &ComputedValues) -> Option<Self> {
-        use error_reporting::RustLogReporter;
+        use error_reporting::create_error_reporter;
         use properties::LonghandId;
         use properties::DeclaredValue;
 
@@ -539,7 +540,7 @@ impl AnimationValue {
             },
             PropertyDeclaration::WithVariables(id, ref variables) => {
                 let custom_props = context.style().custom_properties();
-                let reporter = RustLogReporter;
+                let reporter = create_error_reporter();
                 match id {
                     % for prop in data.longhands:
                     % if prop.animatable:
