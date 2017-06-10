@@ -2,10 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::error::{report_pending_exception, throw_dom_exception};
 use dom::bindings::js::Root;
+use dom::bindings::reflector::DomObject;
 use dom::document::Document;
 use dom::element::Element;
 use dom::element::ElementCreator;
+use dom::globalscope::GlobalScope;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlappletelement::HTMLAppletElement;
 use dom::htmlareaelement::HTMLAreaElement;
@@ -77,6 +80,7 @@ use dom::htmlunknownelement::HTMLUnknownElement;
 use dom::htmlvideoelement::HTMLVideoElement;
 use dom::svgsvgelement::SVGSVGElement;
 use html5ever::{QualName, Prefix};
+use js::jsapi::JSAutoCompartment;
 use servo_config::prefs::PREFS;
 
 fn create_svg_element(name: QualName,
@@ -106,11 +110,42 @@ fn create_svg_element(name: QualName,
     }
 }
 
+// https://dom.spec.whatwg.org/#concept-create-element
+#[allow(unsafe_code)]
 fn create_html_element(name: QualName,
                        prefix: Option<Prefix>,
                        document: &Document,
                        creator: ElementCreator)
                        -> Root<Element> {
+    assert!(name.ns == ns!(html));
+
+    // Step 4
+    let definition = document.lookup_custom_element_definition(name.local.clone(), None);
+
+    if let Some(definition) = definition {
+        // TODO: Handle customized built-in elements. Relies on CE upgrades.
+        if definition.is_autonomous() {
+            let local_name = name.local.clone();
+            return match definition.create_element(document) {
+                Ok(element) => element,
+                Err(error) => {
+                    // Step 6. Recovering from exception.
+                    let global = GlobalScope::current().unwrap_or_else(|| document.global());
+
+                    // Step 6.1.1
+                    unsafe {
+                        let _ac = JSAutoCompartment::new(global.get_cx(), global.reflector().get_jsobject().get());
+                        throw_dom_exception(global.get_cx(), &global, error);
+                        report_pending_exception(global.get_cx(), true);
+                    }
+
+                    // Step 6.1.2
+                    Root::upcast(HTMLUnknownElement::new(local_name, prefix, document))
+                },
+            };
+        }
+    }
+
     create_native_html_element(name, prefix, document, creator)
 }
 
