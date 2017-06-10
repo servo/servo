@@ -195,15 +195,12 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
             let mut pos = 0;
 
             loop {
-
                 let result: Result<_, ParseError> = input.try(|i| {
-                    let ident = i.expect_ident()?;
-                    (match_ignore_ascii_case! { &ident,
+                    try_match_ident_ignore_ascii_case! { i.expect_ident()?,
                         "fill" => Ok(FILL),
                         "stroke" => Ok(STROKE),
                         "markers" => Ok(MARKERS),
-                        _ => Err(())
-                    }).map_err(|()| SelectorParseError::UnexpectedIdent(ident.into()).into())
+                    }
                 });
 
                 match result {

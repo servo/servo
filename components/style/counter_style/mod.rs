@@ -295,8 +295,7 @@ pub enum System {
 
 impl Parse for System {
     fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        let ident = input.expect_ident()?;
-        (match_ignore_ascii_case! { &ident,
+        try_match_ident_ignore_ascii_case! { input.expect_ident()?,
             "cyclic" => Ok(System::Cyclic),
             "numeric" => Ok(System::Numeric),
             "alphabetic" => Ok(System::Alphabetic),
@@ -310,8 +309,7 @@ impl Parse for System {
                 let other = parse_counter_style_name(input)?;
                 Ok(System::Extends(other))
             }
-            _ => Err(())
-        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
+        }
     }
 }
 
@@ -617,9 +615,9 @@ pub enum SpeakAs {
 impl Parse for SpeakAs {
     fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let mut is_spell_out = false;
-        let result: Result<_, ParseError> = input.try(|input| {
-            let ident = input.expect_ident()?;
-            (match_ignore_ascii_case! { &ident,
+        let result = input.try(|input| {
+            let ident = input.expect_ident().map_err(|_| ())?;
+            match_ignore_ascii_case! { &*ident,
                 "auto" => Ok(SpeakAs::Auto),
                 "bullets" => Ok(SpeakAs::Bullets),
                 "numbers" => Ok(SpeakAs::Numbers),
@@ -628,8 +626,8 @@ impl Parse for SpeakAs {
                     is_spell_out = true;
                     Err(())
                 }
-                _ => Err(())
-            }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
+                _ => Err(()),
+            }
         });
         if is_spell_out {
             // spell-out is not supported, but don’t parse it as a <counter-style-name>.

@@ -15,9 +15,7 @@
                                -> Result<Longhands, ParseError<'i>> {
         % if product == "gecko":
             let moz_kw_found = input.try(|i| {
-                let ident = i.expect_ident()?;
-                (match_ignore_ascii_case! {
-                    &ident,
+                try_match_ident_ignore_ascii_case! { i.expect_ident()?,
                     "-moz-scrollbars-horizontal" => {
                         Ok(expanded! {
                             overflow_x: SpecifiedValue::scroll,
@@ -36,14 +34,13 @@
                             overflow_y: SpecifiedValue::hidden,
                         })
                     }
-                    _ => Err(())
-                }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
+                }
             });
             if moz_kw_found.is_ok() {
                 return moz_kw_found
             }
         % endif
-        let overflow = try!(parse_overflow(context, input));
+        let overflow = parse_overflow(context, input)?;
         Ok(expanded! {
             overflow_x: overflow,
             overflow_y: overflow,

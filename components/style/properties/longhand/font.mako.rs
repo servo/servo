@@ -5,8 +5,7 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 <% from data import Method, to_camel_case, to_rust_ident, to_camel_case_lower, SYSTEM_FONT_LONGHANDS %>
 
-<% data.new_style_struct("Font",
-                         inherited=True) %>
+<% data.new_style_struct("Font", inherited=True) %>
 
 <%def name="nongecko_unreachable()">
     %if product == "gecko":
@@ -447,15 +446,15 @@ ${helpers.single_keyword_system("font-variant-caps",
     /// normal | bold | bolder | lighter | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
     pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue, ParseError<'i>> {
-        let result: Result<_, ParseError> = input.try(|input| {
-            let ident = try!(input.expect_ident());
-            (match_ignore_ascii_case! { &ident,
+        let result = input.try(|input| {
+            let ident = input.expect_ident().map_err(|_| ())?;
+            match_ignore_ascii_case! { &ident,
                 "normal" => Ok(SpecifiedValue::Normal),
                 "bold" => Ok(SpecifiedValue::Bold),
                 "bolder" => Ok(SpecifiedValue::Bolder),
                 "lighter" => Ok(SpecifiedValue::Lighter),
                 _ => Err(())
-            }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
+            }
         });
         result.or_else(|_| {
             SpecifiedValue::from_int(input.expect_integer()?)
@@ -689,8 +688,7 @@ ${helpers.single_keyword_system("font-variant-caps",
 
     impl KeywordSize {
         pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-            let ident = input.expect_ident()?;
-            (match_ignore_ascii_case! {&*ident,
+            try_match_ident_ignore_ascii_case! { input.expect_ident()?,
                 "xx-small" => Ok(XXSmall),
                 "x-small" => Ok(XSmall),
                 "small" => Ok(Small),
@@ -698,8 +696,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                 "large" => Ok(Large),
                 "x-large" => Ok(XLarge),
                 "xx-large" => Ok(XXLarge),
-                _ => Err(())
-            }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
+            }
         }
     }
 
@@ -931,12 +928,10 @@ ${helpers.single_keyword_system("font-variant-caps",
             return Ok(SpecifiedValue::Keyword(kw, 1.))
         }
 
-        let ident = input.expect_ident()?;
-        (match_ignore_ascii_case! {&*ident,
+        try_match_ident_ignore_ascii_case! { input.expect_ident()?,
             "smaller" => Ok(SpecifiedValue::Smaller),
             "larger" => Ok(SpecifiedValue::Larger),
-            _ => Err(())
-        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
+        }
     }
 
     impl SpecifiedValue {
@@ -1212,8 +1207,7 @@ ${helpers.single_keyword_system("font-variant-caps",
     pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue, ParseError<'i>> {
         let mut result = SpecifiedValue { weight: false, style: false };
-        let ident = try!(input.expect_ident());
-        (match_ignore_ascii_case! { &ident,
+        try_match_ident_ignore_ascii_case! { input.expect_ident()?,
             "none" => Ok(result),
             "weight" => {
                 result.weight = true;
@@ -1229,8 +1223,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                 }
                 Ok(result)
             },
-            _ => Err(())
-        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
+        }
     }
 
     #[cfg(feature = "gecko")]
@@ -2343,7 +2336,6 @@ ${helpers.single_keyword("-moz-math-variant",
         use app_units::Au;
         use cssparser::Parser;
         use properties::longhands;
-        use selectors::parser::SelectorParseError;
         use std::hash::{Hash, Hasher};
         use style_traits::ParseError;
         use values::computed::{ToComputedValue, Context};
@@ -2465,13 +2457,11 @@ ${helpers.single_keyword("-moz-math-variant",
 
         impl SystemFont {
             pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-                let ident = input.expect_ident()?;
-                (match_ignore_ascii_case! { &*ident,
+                try_match_ident_ignore_ascii_case! { input.expect_ident()?,
                     % for font in system_fonts:
                         "${font}" => Ok(SystemFont::${to_camel_case(font)}),
                     % endfor
-                    _ => Err(())
-                }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
+                }
             }
         }
     }

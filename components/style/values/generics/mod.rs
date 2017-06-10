@@ -8,7 +8,6 @@
 use counter_style::{Symbols, parse_counter_style_name};
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
-use selectors::parser::SelectorParseError;
 use std::fmt;
 use style_traits::{OneOrMoreCommaSeparated, ToCss, ParseError, StyleParseError};
 use super::CustomIdent;
@@ -328,13 +327,11 @@ impl<ColorType> SVGPaint<ColorType> {
 impl<ColorType> SVGPaintKind<ColorType> {
     /// Parse a keyword value only
     fn parse_ident<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        let ident = input.expect_ident()?;
-        (match_ignore_ascii_case! { &ident,
+        try_match_ident_ignore_ascii_case! { input.expect_ident()?,
             "none" => Ok(SVGPaintKind::None),
             "context-fill" => Ok(SVGPaintKind::ContextFill),
             "context-stroke" => Ok(SVGPaintKind::ContextStroke),
-            _ => Err(())
-        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
+        }
     }
 }
 

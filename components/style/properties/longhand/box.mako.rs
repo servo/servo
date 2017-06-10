@@ -115,15 +115,13 @@
     /// Parse a display value.
     pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue, ParseError<'i>> {
-        let ident = try!(input.expect_ident());
-        (match_ignore_ascii_case! { &ident,
+        try_match_ident_ignore_ascii_case! { input.expect_ident()?,
             % for value in values:
                 "${value}" => {
                     Ok(computed_value::T::${to_rust_ident(value)})
                 },
             % endfor
-            _ => Err(())
-        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
+        }
     }
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -295,17 +293,15 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
     /// | <percentage> | <length>
     pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue, ParseError<'i>> {
-        input.try(|i| specified::LengthOrPercentage::parse_quirky(context, i, AllowQuirks::Yes))
-        .map(SpecifiedValue::LengthOrPercentage)
-        .or_else(|_| {
-            let ident = try!(input.expect_ident());
-            (match_ignore_ascii_case! { &ident,
-                % for keyword in vertical_align_keywords:
-                    "${keyword}" => Ok(SpecifiedValue::${to_rust_ident(keyword)}),
-                % endfor
-                _ => Err(())
-            }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
-        })
+        if let Ok(lop) = input.try(|i| specified::LengthOrPercentage::parse_quirky(context, i, AllowQuirks::Yes)) {
+            return Ok(SpecifiedValue::LengthOrPercentage(lop));
+        }
+
+        try_match_ident_ignore_ascii_case! { input.expect_ident()?,
+            % for keyword in vertical_align_keywords:
+                "${keyword}" => Ok(SpecifiedValue::${to_rust_ident(keyword)}),
+            % endfor
+        }
     }
 
     /// The computed value for `vertical-align`.
@@ -1997,8 +1993,7 @@ ${helpers.predefined_type("shape-outside", "basic_shape::FloatAreaShape",
 
     pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue, ParseError<'i>> {
-        let ident = input.expect_ident()?;
-        (match_ignore_ascii_case! { &ident,
+        try_match_ident_ignore_ascii_case! { input.expect_ident()?,
             "auto" => Ok(TOUCH_ACTION_AUTO),
             "none" => Ok(TOUCH_ACTION_NONE),
             "manipulation" => Ok(TOUCH_ACTION_MANIPULATION),
@@ -2016,8 +2011,7 @@ ${helpers.predefined_type("shape-outside", "basic_shape::FloatAreaShape",
                     Ok(TOUCH_ACTION_PAN_Y)
                 }
             },
-            _ => Err(()),
-        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
+        }
     }
 
     #[cfg(feature = "gecko")]

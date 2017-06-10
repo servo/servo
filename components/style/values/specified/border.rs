@@ -7,7 +7,6 @@
 use app_units::Au;
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
-use selectors::parser::SelectorParseError;
 use style_traits::ParseError;
 use values::computed::{Context, ToComputedValue};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
@@ -58,13 +57,11 @@ impl BorderSideWidth {
         if let Ok(length) = input.try(|i| Length::parse_non_negative_quirky(context, i, allow_quirks)) {
             return Ok(BorderSideWidth::Length(length));
         }
-        let ident = input.expect_ident()?;
-        (match_ignore_ascii_case! { &ident,
+        try_match_ident_ignore_ascii_case! { input.expect_ident()?,
             "thin" => Ok(BorderSideWidth::Thin),
             "medium" => Ok(BorderSideWidth::Medium),
             "thick" => Ok(BorderSideWidth::Thick),
-            _ => Err(())
-        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
+        }
     }
 }
 
