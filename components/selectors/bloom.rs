@@ -7,10 +7,13 @@
 use fnv::FnvHasher;
 use std::hash::{Hash, Hasher};
 
+// The top 12 bits of the 32-bit hash value are not used by the bloom filter.
+// Consumers may rely on this to pack hashes more efficiently.
+pub const BLOOM_HASH_MASK: u32 = 0x00ffffff;
 const KEY_SIZE: usize = 12;
+
 const ARRAY_SIZE: usize = 1 << KEY_SIZE;
 const KEY_MASK: u32 = (1 << KEY_SIZE) - 1;
-const KEY_SHIFT: usize = 16;
 
 /// A counting Bloom filter with 8-bit counters.  For now we assume
 /// that having two hash functions is enough, but we may revisit that
@@ -183,7 +186,7 @@ fn hash1(hash: u32) -> u32 {
 
 #[inline]
 fn hash2(hash: u32) -> u32 {
-    (hash >> KEY_SHIFT) & KEY_MASK
+    (hash >> KEY_SIZE) & KEY_MASK
 }
 
 #[test]
