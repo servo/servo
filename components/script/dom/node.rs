@@ -428,6 +428,11 @@ impl Node {
         self.preceding_siblings().count() as u32
     }
 
+    /// Returns true if this node has a parent.
+    pub fn has_parent(&self) -> bool {
+        self.parent_node.get().is_some()
+    }
+
     pub fn children_count(&self) -> u32 {
         self.children_count.get()
     }
