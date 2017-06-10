@@ -37,7 +37,7 @@ size_of_test!(test_size_of_element_data, ElementData, 56);
 
 size_of_test!(test_size_of_property_declaration, style::properties::PropertyDeclaration, 32);
 
-size_of_test!(test_size_of_application_declaration_block, ApplicableDeclarationBlock, 32);
+size_of_test!(test_size_of_application_declaration_block, ApplicableDeclarationBlock, 24);
 
 // This is huge, but we allocate it on the stack and then never move it,
 // we only pass `&mut SourcePropertyDeclaration` references around.
