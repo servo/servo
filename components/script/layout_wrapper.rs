@@ -802,12 +802,6 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
         }
     }
 
-    fn in_quirks_mode_document(&self) -> bool {
-        unsafe {
-            self.element.in_quirks_mode_document_for_layout()
-        }
-    }
-
     fn is_html_element_in_html_document(&self) -> bool {
         unsafe {
             self.element.html_element_in_html_document_for_layout()
@@ -1208,11 +1202,6 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
     fn is_html_element_in_html_document(&self) -> bool {
         debug!("ServoThreadSafeLayoutElement::is_html_element_in_html_document called");
         true
-    }
-
-    fn in_quirks_mode_document(&self) -> bool {
-        debug!("ServoThreadSafeLayoutElement::in_quirks_mode_document called");
-        false
     }
 
     #[inline]

@@ -113,6 +113,16 @@ pub enum QuirksMode {
     NoQuirks,
 }
 
+impl QuirksMode {
+    pub fn classes_and_ids_case_sensitivity(self) -> CaseSensitivity {
+        match self {
+            QuirksMode::NoQuirks |
+            QuirksMode::LimitedQuirks => CaseSensitivity::CaseSensitive,
+            QuirksMode::Quirks => CaseSensitivity::AsciiCaseInsensitive,
+        }
+    }
+}
+
 /// Data associated with the matching process for a element.  This context is
 /// used across many selectors for an element, so it's not appropriate for
 /// transient data that applies to only a single selector.
@@ -656,20 +666,10 @@ fn matches_simple_selector<E, F>(
             element.get_namespace() == ns.borrow()
         }
         Component::ID(ref id) => {
-            let case_sensitivity = if element.in_quirks_mode_document() {
-                CaseSensitivity::AsciiCaseInsensitive
-            } else {
-                CaseSensitivity::CaseSensitive
-            };
-            element.has_id(id, case_sensitivity)
+            element.has_id(id, context.shared.quirks_mode.classes_and_ids_case_sensitivity())
         }
         Component::Class(ref class) => {
-            let case_sensitivity = if element.in_quirks_mode_document() {
-                CaseSensitivity::AsciiCaseInsensitive
-            } else {
-                CaseSensitivity::CaseSensitive
-            };
-            element.has_class(class, case_sensitivity)
+            element.has_class(class, context.shared.quirks_mode.classes_and_ids_case_sensitivity())
         }
         Component::AttributeInNoNamespaceExists { ref local_name, ref local_name_lower } => {
             let is_html = element.is_html_element_in_html_document();

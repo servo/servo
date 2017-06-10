@@ -346,8 +346,6 @@ impl RawLayoutElementHelpers for Element {
 
 pub trait LayoutElementHelpers {
     #[allow(unsafe_code)]
-    unsafe fn in_quirks_mode_document_for_layout(&self) -> bool;
-    #[allow(unsafe_code)]
     unsafe fn has_class_for_layout(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool;
     #[allow(unsafe_code)]
     unsafe fn get_classes_for_layout(&self) -> Option<&'static [Atom]>;
@@ -374,12 +372,6 @@ pub trait LayoutElementHelpers {
 }
 
 impl LayoutElementHelpers for LayoutJS<Element> {
-    #[allow(unsafe_code)]
-    #[inline]
-    unsafe fn in_quirks_mode_document_for_layout(&self) -> bool {
-        self.upcast::<Node>().owner_doc_for_layout().quirks_mode() == QuirksMode::Quirks
-    }
-
     #[allow(unsafe_code)]
     #[inline]
     unsafe fn has_class_for_layout(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
@@ -2512,10 +2504,6 @@ impl<'a> ::selectors::Element for Root<Element> {
 
     fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         Element::has_class(&**self, name, case_sensitivity)
-    }
-
-    fn in_quirks_mode_document(&self) -> bool {
-        document_from_node(&**self).quirks_mode() == QuirksMode::Quirks
     }
 
     fn is_html_element_in_html_document(&self) -> bool {
