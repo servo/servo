@@ -1021,7 +1021,8 @@ pub trait MatchMethods : TElement {
         let mut matching_context =
             MatchingContext::new_for_visited(MatchingMode::Normal,
                                              Some(bloom_filter),
-                                             visited_handling);
+                                             visited_handling,
+                                             context.shared.quirks_mode);
 
         {
             let smil_override = data.get_smil_override();
@@ -1117,7 +1118,8 @@ pub trait MatchMethods : TElement {
         let mut matching_context =
             MatchingContext::new_for_visited(MatchingMode::ForStatelessPseudoElement,
                                              Some(bloom_filter),
-                                             visited_handling);
+                                             visited_handling,
+                                             context.shared.quirks_mode);
 
         // Compute rule nodes for eagerly-cascaded pseudo-elements.
         let mut matches_different_pseudos = false;

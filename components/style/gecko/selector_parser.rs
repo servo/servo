@@ -237,6 +237,12 @@ impl ::selectors::SelectorImpl for SelectorImpl {
 
     type PseudoElement = PseudoElement;
     type NonTSPseudoClass = NonTSPseudoClass;
+
+    #[inline]
+    fn is_active_or_hover(pseudo_class: &Self::NonTSPseudoClass) -> bool {
+        matches!(*pseudo_class, NonTSPseudoClass::Active |
+                                NonTSPseudoClass::Hover)
+    }
 }
 
 impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {

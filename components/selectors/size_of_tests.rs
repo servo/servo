@@ -34,6 +34,11 @@ impl SelectorImpl for Impl {
     type BorrowedNamespaceUrl = Atom;
     type NonTSPseudoClass = PseudoClass;
     type PseudoElement = gecko_like_types::PseudoElement;
+
+    #[inline]
+    fn is_active_or_hover(_pseudo_class: &Self::NonTSPseudoClass) -> bool {
+        unimplemented!()
+    }
 }
 
 impl SelectorMethods for PseudoClass {
