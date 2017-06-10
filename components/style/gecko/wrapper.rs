@@ -1592,10 +1592,6 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         self.get_state().intersects(NonTSPseudoClass::AnyLink.state_flag())
     }
 
-    fn in_quirks_mode_document(&self) -> bool {
-        self.as_node().owner_doc().mCompatMode == structs::nsCompatibility::eCompatibility_NavQuirks
-    }
-
     fn has_id(&self, id: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         self.get_id().map_or(false, |atom| case_sensitivity.eq_atom(&atom, id))
     }

@@ -821,10 +821,6 @@ impl<'a, E> Element for ElementWrapper<'a, E>
         }
     }
 
-    fn in_quirks_mode_document(&self) -> bool {
-        self.element.in_quirks_mode_document()
-    }
-
     fn has_id(&self, id: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         match self.snapshot() {
             Some(snapshot) if snapshot.has_attrs() => {

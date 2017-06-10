@@ -15,10 +15,8 @@ use dom::node::{Node, document_from_node};
 use dom::window::Window;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, QualName};
-use selectors::attr::CaseSensitivity;
 use servo_atoms::Atom;
 use std::cell::Cell;
-use style::context::QuirksMode;
 use style::str::split_html_space_chars;
 
 pub trait CollectionFilter : JSTraceable {
@@ -201,11 +199,9 @@ impl HTMLCollection {
         }
         impl CollectionFilter for ClassNameFilter {
             fn filter(&self, elem: &Element, _root: &Node) -> bool {
-                let case_sensitivity = match document_from_node(elem).quirks_mode() {
-                    QuirksMode::NoQuirks |
-                    QuirksMode::LimitedQuirks => CaseSensitivity::CaseSensitive,
-                    QuirksMode::Quirks => CaseSensitivity::AsciiCaseInsensitive,
-                };
+                let case_sensitivity = document_from_node(elem)
+                    .quirks_mode()
+                    .classes_and_ids_case_sensitivity();
                 self.classes.iter().all(|class| elem.has_class(class, case_sensitivity))
             }
         }

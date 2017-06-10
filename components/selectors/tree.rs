@@ -63,11 +63,6 @@ pub trait Element: Sized + Debug {
     /// Whether this element is a `link`.
     fn is_link(&self) -> bool;
 
-    /// Whether this element is in a document that is in quirks mode.
-    ///
-    /// https://dom.spec.whatwg.org/#concept-document-quirks
-    fn in_quirks_mode_document(&self) -> bool;
-
     fn has_id(&self,
               id: &<Self::Impl as SelectorImpl>::Identifier,
               case_sensitivity: CaseSensitivity)
