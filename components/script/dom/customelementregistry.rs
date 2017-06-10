@@ -7,23 +7,32 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CustomElementRegistryBinding;
 use dom::bindings::codegen::Bindings::CustomElementRegistryBinding::CustomElementRegistryMethods;
 use dom::bindings::codegen::Bindings::CustomElementRegistryBinding::ElementDefinitionOptions;
+use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use dom::bindings::error::{Error, ErrorResult};
+use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
+use dom::bindings::conversions::{ConversionResult, FromJSValConvertible};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
+use dom::document::Document;
 use dom::domexception::{DOMErrorName, DOMException};
+use dom::element::Element;
 use dom::globalscope::GlobalScope;
+use dom::htmlelement::HTMLElement;
+use dom::node::Node;
 use dom::promise::Promise;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use html5ever::LocalName;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::{IsConstructor, HandleObject, JS_GetProperty, JSAutoCompartment, JSContext};
-use js::jsval::{JSVal, UndefinedValue};
+use js::jsapi::{Construct1, IsConstructor, HandleValueArray, HandleObject};
+use js::jsapi::{JS_GetProperty, JSAutoCompartment, JSContext};
+use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use std::cell::Cell;
 use std::collections::HashMap;
+use std::ptr;
 use std::rc::Rc;
 
 /// https://html.spec.whatwg.org/multipage/#customelementregistry
@@ -34,12 +43,12 @@ pub struct CustomElementRegistry {
     window: JS<Window>,
 
     #[ignore_heap_size_of = "Rc"]
-    when_defined: DOMRefCell<HashMap<DOMString, Rc<Promise>>>,
+    when_defined: DOMRefCell<HashMap<LocalName, Rc<Promise>>>,
 
     element_definition_is_running: Cell<bool>,
 
     #[ignore_heap_size_of = "Rc"]
-    definitions: DOMRefCell<HashMap<DOMString, Rc<CustomElementDefinition>>>,
+    definitions: DOMRefCell<HashMap<LocalName, Rc<CustomElementDefinition>>>,
 }
 
 impl CustomElementRegistry {
@@ -63,6 +72,18 @@ impl CustomElementRegistry {
     /// https://github.com/servo/servo/issues/15318
     pub fn teardown(&self) {
         self.when_defined.borrow_mut().clear()
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#look-up-a-custom-element-definition
+    pub fn lookup_definition(&self,
+                             local_name: LocalName,
+                             is: Option<LocalName>)
+                             -> Option<Rc<CustomElementDefinition>> {
+        self.definitions.borrow().values().find(|definition| {
+            // Step 4-5
+            definition.local_name == local_name &&
+                (definition.name == local_name || Some(&definition.name) == is.as_ref())
+        }).cloned()
     }
 
     pub fn lookup_definition_by_constructor(&self, constructor: HandleObject) -> Option<Rc<CustomElementDefinition>> {
@@ -101,6 +122,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
     fn Define(&self, name: DOMString, constructor_: Rc<Function>, options: &ElementDefinitionOptions) -> ErrorResult {
         let global_scope = self.window.upcast::<GlobalScope>();
         rooted!(in(global_scope.get_cx()) let constructor = constructor_.callback());
+        let name = LocalName::from(&*name);
 
         // Step 1
         if unsafe { !IsConstructor(constructor.get()) } {
@@ -137,10 +159,10 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
                 return Err(Error::NotSupported)
             }
 
-            extended_name
+            LocalName::from(&**extended_name)
         } else {
             // Step 7.3
-            &name
+            name.clone()
         };
 
         // Step 8
@@ -165,8 +187,8 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         result?;
 
         // Step 11
-        let definition = CustomElementDefinition::new(LocalName::from(&*name),
-                                                      LocalName::from(&**local_name),
+        let definition = CustomElementDefinition::new(name.clone(),
+                                                      local_name,
                                                       constructor_);
 
         // Step 12
@@ -188,7 +210,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
     /// https://html.spec.whatwg.org/multipage/#dom-customelementregistry-get
     #[allow(unsafe_code)]
     unsafe fn Get(&self, cx: *mut JSContext, name: DOMString) -> JSVal {
-        match self.definitions.borrow().get(&name) {
+        match self.definitions.borrow().get(&LocalName::from(&*name)) {
             Some(definition) => {
                 rooted!(in(cx) let mut constructor = UndefinedValue());
                 definition.constructor.to_jsval(cx, constructor.handle_mut());
@@ -202,6 +224,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
     #[allow(unrooted_must_root)]
     fn WhenDefined(&self, name: DOMString) -> Rc<Promise> {
         let global_scope = self.window.upcast::<GlobalScope>();
+        let name = LocalName::from(&*name);
 
         // Step 1
         if !is_valid_custom_element_name(&name) {
@@ -255,6 +278,71 @@ impl CustomElementDefinition {
     /// https://html.spec.whatwg.org/multipage/#autonomous-custom-element
     pub fn is_autonomous(&self) -> bool {
         self.name == self.local_name
+    }
+
+    /// https://dom.spec.whatwg.org/#interface-element Step 6.1
+    #[allow(unsafe_code)]
+    pub fn create_element(&self, document: &Document) -> Fallible<Root<Element>> {
+        let window = document.window();
+        let cx = window.get_cx();
+        // Step 2
+        rooted!(in(cx) let constructor = ObjectValue(self.constructor.callback()));
+        rooted!(in(cx) let mut element = ptr::null_mut());
+        {
+            // Go into the constructor's compartment
+            let _ac = JSAutoCompartment::new(cx, constructor.to_object());
+            let args = HandleValueArray::new();
+            if unsafe { !Construct1(cx, constructor.handle(), &args, element.handle_mut()) } {
+                return Err(Error::JSFailed);
+            }
+        }
+
+        rooted!(in(cx) let element_val = ObjectValue(element.get()));
+        let element = unsafe {
+            Root::from_jsval(cx, element_val.handle(), ()).unwrap()
+        };
+
+        let element: Root<Element> = match element {
+            ConversionResult::Success(element) => element,
+            ConversionResult::Failure(..) => return Err(Error::NotSupported),
+        };
+
+        // Step 3
+        if !element.is::<HTMLElement>() {
+            return Err(Error::NotSupported);
+        }
+
+        // Step 4
+        if element.HasAttributes() {
+            return Err(Error::NotSupported);
+        }
+
+        // Step 5
+        if element.Children().Length() > 0 {
+            return Err(Error::NotSupported);
+        }
+
+        // Step 6
+        if element.upcast::<Node>().has_parent() {
+            return Err(Error::NotSupported);
+        }
+
+        // Step 7
+        if &*element.upcast::<Node>().owner_doc() != document {
+            return Err(Error::NotSupported);
+        }
+
+        // Step 8
+        if *element.namespace() != ns!(html) {
+            return Err(Error::NotSupported);
+        }
+
+        // Step 9
+        if *element.local_name() != self.local_name {
+            return Err(Error::NotSupported);
+        }
+
+        Ok(element)
     }
 }
 

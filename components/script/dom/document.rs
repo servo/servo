@@ -36,6 +36,7 @@ use dom::bindings::xmlname::{namespace_from_domstring, validate_and_extract, xml
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
 use dom::closeevent::CloseEvent;
 use dom::comment::Comment;
+use dom::customelementregistry::CustomElementDefinition;
 use dom::customevent::CustomEvent;
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
@@ -1977,6 +1978,22 @@ impl Document {
         };
 
         self.window.layout().nodes_from_point_response()
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#look-up-a-custom-element-definition
+    pub fn lookup_custom_element_definition(&self,
+                                            local_name: LocalName,
+                                            is: Option<LocalName>)
+                                            -> Option<Rc<CustomElementDefinition>> {
+        // Step 2
+        if !self.has_browsing_context {
+            return None;
+        }
+
+        // Step 3
+        let registry = self.window.CustomElements();
+
+        registry.lookup_definition(local_name, is)
     }
 }
 
