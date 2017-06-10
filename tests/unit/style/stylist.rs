@@ -45,7 +45,7 @@ fn get_mock_rules(css_selectors: &[&str]) -> (Vec<Vec<Rule>>, SharedRwLock) {
         let guard = shared_lock.read();
         let rule = locked.read_with(&guard);
         rule.selectors.0.iter().map(|s| {
-            Rule::new(s.selector.clone(), s.hashes.clone(), locked.clone(), i)
+            Rule::new(s.selector.clone(), s.hashes.clone(), locked.clone(), i as u32)
         }).collect()
     }).collect(), shared_lock)
 }

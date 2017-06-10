@@ -121,7 +121,7 @@ pub struct Stylist {
 
     /// A monotonically increasing counter to represent the order on which a
     /// style rule appears in a stylesheet, needed to sort them by source order.
-    rules_source_order: usize,
+    rules_source_order: u32,
 
     /// Selector dependencies used to compute restyle hints.
     dependencies: DependencySet,
@@ -1497,11 +1497,11 @@ pub struct Rule {
     /// The ancestor hashes associated with the selector.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "No heap data")]
     pub hashes: AncestorHashes,
+    /// The source order this style rule appears in.
+    pub source_order: u32,
     /// The actual style rule.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     pub style_rule: Arc<Locked<StyleRule>>,
-    /// The source order this style rule appears in.
-    pub source_order: usize,
 }
 
 impl SelectorMapEntry for Rule {
@@ -1537,7 +1537,7 @@ impl Rule {
     pub fn new(selector: Selector<SelectorImpl>,
                hashes: AncestorHashes,
                style_rule: Arc<Locked<StyleRule>>,
-               source_order: usize)
+               source_order: u32)
                -> Self
     {
         Rule {
@@ -1561,7 +1561,7 @@ pub struct ApplicableDeclarationBlock {
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     pub source: StyleSource,
     /// The source order of this block.
-    pub source_order: usize,
+    pub source_order: u32,
     /// The specificity of the selector this block is represented by.
     pub specificity: u32,
     /// The cascade level this applicable declaration block is in.
