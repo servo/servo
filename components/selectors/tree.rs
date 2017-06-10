@@ -6,7 +6,7 @@
 //! between layout and style.
 
 use attr::{AttrSelectorOperation, NamespaceConstraint};
-use matching::{ElementSelectorFlags, MatchingContext, RelevantLinkStatus};
+use matching::{ElementSelectorFlags, LocalMatchingContext, MatchingContext, RelevantLinkStatus};
 use parser::SelectorImpl;
 use std::fmt::Debug;
 
@@ -50,7 +50,7 @@ pub trait Element: Sized + Debug {
 
     fn match_non_ts_pseudo_class<F>(&self,
                                     pc: &<Self::Impl as SelectorImpl>::NonTSPseudoClass,
-                                    context: &mut MatchingContext,
+                                    context: &mut LocalMatchingContext<Self::Impl>,
                                     relevant_link: &RelevantLinkStatus,
                                     flags_setter: &mut F) -> bool
         where F: FnMut(&Self, ElementSelectorFlags);

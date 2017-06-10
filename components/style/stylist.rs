@@ -88,6 +88,7 @@ pub struct Stylist {
     effective_media_query_results: EffectiveMediaQueryResults,
 
     /// If true, the quirks-mode stylesheet is applied.
+    #[cfg_attr(feature = "servo", ignore_heap_size_of = "defined in selectors")]
     quirks_mode: QuirksMode,
 
     /// If true, the device has changed, and the stylist needs to be updated.
@@ -735,7 +736,9 @@ impl Stylist {
         // Bug 1364242: We need to add visited support for lazy pseudos
         let mut declarations = ApplicableDeclarationList::new();
         let mut matching_context =
-            MatchingContext::new(MatchingMode::ForStatelessPseudoElement, None);
+            MatchingContext::new(MatchingMode::ForStatelessPseudoElement,
+                                 None,
+                                 self.quirks_mode);
         self.push_applicable_declarations(element,
                                           Some(&pseudo),
                                           None,
@@ -927,7 +930,7 @@ impl Stylist {
               V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock>,
     {
         let mut matching_context =
-            MatchingContext::new(MatchingMode::Normal, None);
+            MatchingContext::new(MatchingMode::Normal, None, self.quirks_mode);
         let mut dummy_flag_setter = |_: &E, _: ElementSelectorFlags| {};
 
         self.element_map.author.get_all_matching_rules(element,
@@ -1156,7 +1159,7 @@ impl Stylist {
         // NB: `MatchingMode` doesn't really matter, given we don't share style
         // between pseudos.
         let mut matching_context =
-            MatchingContext::new(MatchingMode::Normal, bloom);
+            MatchingContext::new(MatchingMode::Normal, bloom, self.quirks_mode);
 
         // Note that, by the time we're revalidating, we're guaranteed that the
         // candidate and the entry have the same id, classes, and local name.

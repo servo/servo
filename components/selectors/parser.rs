@@ -103,6 +103,11 @@ macro_rules! with_all_bounds {
 
             /// pseudo-elements
             type PseudoElement: $($CommonBounds)* + PseudoElement<Impl = Self>;
+
+            /// Returns whether the selector matches conditions for the :active and
+            /// :hover quirk.
+            #[inline]
+            fn is_active_or_hover(pseudo_class: &Self::NonTSPseudoClass) -> bool;
         }
     }
 }
@@ -427,7 +432,7 @@ impl<Impl: SelectorImpl> Selector<Impl> {
 
     pub fn iter_from(&self, offset: usize) -> SelectorIter<Impl> {
         // Note: selectors are stored left-to-right but logical order is right-to-left.
-        let iter = self.0.slice[..(self.0.slice.len() - offset)].iter().rev();
+        let iter = self.0.slice[..(self.len() - offset)].iter().rev();
         SelectorIter {
             iter: iter,
             next_combinator: None,
@@ -451,6 +456,11 @@ impl<Impl: SelectorImpl> Selector<Impl> {
         let header = HeaderWithLength::new(SpecificityAndFlags(specificity_and_flags), vec.len());
         Selector(Arc::into_thin(Arc::from_header_and_iter(header, vec.into_iter())))
     }
+
+    /// Returns count of simple selectors and combinators in the Selector.
+    pub fn len(&self) -> usize {
+        self.0.slice.len()
+    }
 }
 
 #[derive(Clone)]
@@ -464,6 +474,11 @@ impl<'a, Impl: 'a + SelectorImpl> SelectorIter<'a, Impl> {
     /// returning the combinator if the sequence was found.
     pub fn next_sequence(&mut self) -> Option<Combinator> {
         self.next_combinator.take()
+    }
+
+    /// Returns remaining count of the simple selectors and combinators in the Selector.
+    pub fn selector_length(&self) -> usize {
+        self.iter.len()
     }
 }
 

@@ -33,6 +33,8 @@ use time;
 use timer::Timer;
 use traversal::{DomTraversal, TraversalFlags};
 
+pub use selectors::matching::QuirksMode;
+
 /// This structure is used to create a local style context from a shared one.
 #[cfg(feature = "servo")]
 pub struct ThreadLocalStyleContextCreationInfo {
@@ -47,20 +49,6 @@ impl ThreadLocalStyleContextCreationInfo {
             new_animations_sender: animations_sender,
         }
     }
-}
-
-/// Which quirks mode is this document in.
-///
-/// See: https://quirks.spec.whatwg.org/
-#[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum QuirksMode {
-    /// Quirks mode.
-    Quirks,
-    /// Limited quirks mode.
-    LimitedQuirks,
-    /// No quirks mode.
-    NoQuirks,
 }
 
 /// A global options structure for the style system. We use this instead of

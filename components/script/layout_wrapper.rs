@@ -50,7 +50,8 @@ use script_layout_interface::{OpaqueStyleAndLayoutData, StyleData};
 use script_layout_interface::wrapper_traits::{DangerousThreadSafeLayoutNode, GetLayoutData, LayoutNode};
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint};
-use selectors::matching::{ElementSelectorFlags, MatchingContext, RelevantLinkStatus, VisitedHandlingMode};
+use selectors::matching::{ElementSelectorFlags, LocalMatchingContext, MatchingContext, RelevantLinkStatus};
+use selectors::matching::VisitedHandlingMode;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::fmt;
@@ -721,7 +722,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
 
     fn match_non_ts_pseudo_class<F>(&self,
                                     pseudo_class: &NonTSPseudoClass,
-                                    _: &mut MatchingContext,
+                                    _: &mut LocalMatchingContext<Self::Impl>,
                                     _: &RelevantLinkStatus,
                                     _: &mut F)
                                     -> bool
@@ -1232,7 +1233,7 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
 
     fn match_non_ts_pseudo_class<F>(&self,
                                     _: &NonTSPseudoClass,
-                                    _: &mut MatchingContext,
+                                    _: &mut LocalMatchingContext<Self::Impl>,
                                     _: &RelevantLinkStatus,
                                     _: &mut F)
                                     -> bool
