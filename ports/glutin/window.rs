@@ -463,7 +463,13 @@ impl Window {
     fn handle_window_event(&self, event: glutin::Event) -> bool {
         match event {
             Event::ReceivedCharacter(ch) => {
-                self.handle_received_character(ch)
+                //For CTRL + Key event, we receive the escaped unicode of the combination.
+                //However:
+                // 1. It's useless: we already store the information about the CTRL keypress with toggle_keyboard_modifiers()
+                // 2. In order to match CTRL+key shortcuts, we need `ch` to hold the actual character, not the ctrl+key combination
+                //As a result, we need to convert ctrl+key escaped unicodes to the actual character being pressed
+                let clean_ch = ctrl_key_to_key(ch);
+                self.handle_received_character(clean_ch);
             }
             Event::KeyboardInput(element_state, _scan_code, Some(virtual_key_code)) => {
                 self.handle_keyboard_input(element_state, _scan_code, virtual_key_code);
@@ -1394,6 +1400,44 @@ fn filter_nonprintable(ch: char, key_code: VirtualKeyCode) -> Option<char> {
         Some(ch)
     } else {
         None
+    }
+}
+
+fn ctrl_key_to_key(ch: char) -> char {
+    match ch {
+        '\u{0}' => '@',
+        '\u{1}' => 'a',
+        '\u{2}' => 'b',
+        '\u{3}' => 'c',
+        '\u{4}' => 'd',
+        '\u{5}' => 'e',
+        '\u{6}' => 'f',
+        '\u{7}' => 'g',
+        '\u{8}' => 'h',
+        '\t' => 'i',
+        '\n' => 'j',
+        '\u{b}' => 'k',
+        '\u{c}' => 'l',
+        '\r' => 'm',
+        '\u{e}' => 'n',
+        '\u{f}' => 'o',
+        '\u{10}' => 'p',
+        '\u{11}' => 'q',
+        '\u{12}' => 'r',
+        '\u{13}' => 's',
+        '\u{14}' => 't',
+        '\u{15}' => 'u',
+        '\u{16}' => 'v',
+        '\u{17}' => 'w',
+        '\u{18}' => 'x',
+        '\u{19}' => 'y',
+        '\u{1a}' => 'z',
+        '\u{1b}' => '[',
+        '\u{1c}' => '\\', //Need to escape \
+        '\u{1d}' => ']',
+        '\u{1e}' => '^',
+        '\u{1f}' => '_',
+        _ => ch
     }
 }
 
