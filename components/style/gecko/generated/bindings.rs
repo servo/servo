@@ -1875,6 +1875,10 @@ extern "C" {
      -> bool;
 }
 extern "C" {
+    pub fn Servo_StyleSet_CompatModeChanged(raw_data:
+                                                RawServoStyleSetBorrowed);
+}
+extern "C" {
     pub fn Servo_StyleSet_AppendStyleSheet(set: RawServoStyleSetBorrowed,
                                            sheet: RawServoStyleSheetBorrowed,
                                            unique_id: u64);
