@@ -201,23 +201,6 @@ impl<Impl: SelectorImpl> SelectorList<Impl> {
     pub fn from_vec(v: Vec<Selector<Impl>>) -> Self {
         SelectorList(v.into_iter().map(SelectorAndHashes::new).collect())
     }
-
-    pub fn to_css_from_index<W>(&self, from_index: usize, dest: &mut W)
-        -> fmt::Result where W: fmt::Write {
-        let mut iter = self.0.iter().skip(from_index);
-
-        let first = match iter.next() {
-            Some(f) => f,
-            None => return Ok(()),
-        };
-
-        first.selector.to_css(dest)?;
-        for selector_and_hashes in iter {
-            dest.write_str(", ")?;
-            selector_and_hashes.selector.to_css(dest)?;
-        }
-        Ok(())
-    }
 }
 
 /// Copied from Gecko, who copied it from WebKit. Note that increasing the
@@ -714,7 +697,15 @@ impl<Impl: SelectorImpl> Debug for LocalName<Impl> {
 
 impl<Impl: SelectorImpl> ToCss for SelectorList<Impl> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        self.to_css_from_index(/* from_index = */ 0, dest)
+        let mut iter = self.0.iter();
+        let first = iter.next()
+            .expect("Empty SelectorList, should contain at least one selector");
+        first.selector.to_css(dest)?;
+        for selector_and_hashes in iter {
+            dest.write_str(", ")?;
+            selector_and_hashes.selector.to_css(dest)?;
+        }
+        Ok(())
     }
 }
 

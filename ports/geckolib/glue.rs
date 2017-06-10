@@ -1187,14 +1187,15 @@ pub extern "C" fn Servo_StyleRule_GetSelectorText(rule: RawServoStyleRuleBorrowe
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleRule_GetSelectorTextFromIndex(rule: RawServoStyleRuleBorrowed,
-                                                           aSelectorIndex: u32,
-                                                           result: *mut nsAString) {
+pub extern "C" fn Servo_StyleRule_GetSelectorTextAtIndex(rule: RawServoStyleRuleBorrowed,
+                                                         index: u32,
+                                                         result: *mut nsAString) {
     read_locked_arc(rule, |rule: &StyleRule| {
-        rule.selectors.to_css_from_index(
-            aSelectorIndex as usize,
-            unsafe { result.as_mut().unwrap() }
-        ).unwrap();
+        let index = index as usize;
+        if index >= rule.selectors.0.len() {
+            return;
+        }
+        rule.selectors.0[index].selector.to_css(unsafe { result.as_mut().unwrap() }).unwrap();
     })
 }
 
@@ -1202,6 +1203,21 @@ pub extern "C" fn Servo_StyleRule_GetSelectorTextFromIndex(rule: RawServoStyleRu
 pub extern "C" fn Servo_StyleRule_GetSelectorCount(rule: RawServoStyleRuleBorrowed, count: *mut u32) {
     read_locked_arc(rule, |rule: &StyleRule| {
         *unsafe { count.as_mut().unwrap() } = rule.selectors.0.len() as u32;
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleRule_GetSpecificityAtIndex(rule: RawServoStyleRuleBorrowed,
+                                                        index: u32,
+                                                        specificity: *mut u64) {
+    read_locked_arc(rule, |rule: &StyleRule| {
+        let mut specificity =  unsafe { specificity.as_mut().unwrap() };
+        let index = index as usize;
+        if index >= rule.selectors.0.len() {
+            *specificity = 0;
+            return;
+        }
+        *specificity = rule.selectors.0[index].selector.specificity() as u64;
     })
 }
 
