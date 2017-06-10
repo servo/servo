@@ -81,6 +81,7 @@ use style::gecko_bindings::structs::StyleRuleInclusion;
 use style::gecko_bindings::structs::URLExtraData;
 use style::gecko_bindings::structs::nsCSSValueSharedList;
 use style::gecko_bindings::structs::nsCompatibility;
+use style::gecko_bindings::structs::nsIDocument;
 use style::gecko_bindings::structs::nsStyleTransformMatrix::MatrixTransformOperator;
 use style::gecko_bindings::structs::nsresult;
 use style::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasFFI, HasArcFFI, HasBoxFFI};
@@ -1544,6 +1545,21 @@ pub extern "C" fn Servo_StyleSet_Clear(raw_data: RawServoStyleSetBorrowed) {
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_Drop(data: RawServoStyleSetOwned) {
     let _ = data.into_box::<PerDocumentStyleData>();
+}
+
+
+/// Updating the stylesheets and redoing selector matching is always happens
+/// before the document element is inserted. Therefore we don't need to call
+/// `force_dirty` here.
+#[no_mangle]
+pub extern "C" fn Servo_StyleSet_CompatModeChanged(raw_data: RawServoStyleSetBorrowed) {
+    let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
+    let quirks_mode = unsafe {
+        (*(*data.stylist.device().pres_context).mDocument
+                                               .raw::<nsIDocument>()).mCompatMode
+    };
+
+    data.stylist.set_quirks_mode(quirks_mode.into());
 }
 
 fn parse_property_into(declarations: &mut SourcePropertyDeclaration,

@@ -20,7 +20,7 @@ use selector_map::{SelectorMap, SelectorMapEntry};
 use selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl, Snapshot, SnapshotMap, AttrValue};
 use selectors::Element;
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint};
-use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode};
+use selectors::matching::{ElementSelectorFlags, LocalMatchingContext, MatchingContext, MatchingMode};
 use selectors::matching::{RelevantLinkStatus, VisitedHandlingMode, matches_selector};
 use selectors::parser::{AncestorHashes, Combinator, Component};
 use selectors::parser::{Selector, SelectorAndHashes, SelectorIter, SelectorMethods};
@@ -664,7 +664,7 @@ impl<'a, E> Element for ElementWrapper<'a, E>
 
     fn match_non_ts_pseudo_class<F>(&self,
                                     pseudo_class: &NonTSPseudoClass,
-                                    context: &mut MatchingContext,
+                                    context: &mut LocalMatchingContext<Self::Impl>,
                                     relevant_link: &RelevantLinkStatus,
                                     _setter: &mut F)
                                     -> bool
@@ -707,10 +707,10 @@ impl<'a, E> Element for ElementWrapper<'a, E>
             // state directly.  Instead, we use the `relevant_link` to determine if
             // they match.
             NonTSPseudoClass::Link => {
-                return relevant_link.is_unvisited(self, context);
+                return relevant_link.is_unvisited(self, context.shared);
             }
             NonTSPseudoClass::Visited => {
-                return relevant_link.is_visited(self, context);
+                return relevant_link.is_visited(self, context.shared);
             }
 
             #[cfg(feature = "gecko")]
@@ -767,11 +767,7 @@ impl<'a, E> Element for ElementWrapper<'a, E>
     }
 
     fn is_link(&self) -> bool {
-        let mut context = MatchingContext::new(MatchingMode::Normal, None);
-        self.match_non_ts_pseudo_class(&NonTSPseudoClass::AnyLink,
-                                       &mut context,
-                                       &RelevantLinkStatus::default(),
-                                       &mut |_, _| {})
+        self.element.is_link()
     }
 
     fn parent_element(&self) -> Option<Self> {
@@ -1202,7 +1198,8 @@ impl DependencySet {
             // not clear we _need_ it right now.
             let mut then_context =
                 MatchingContext::new_for_visited(MatchingMode::Normal, None,
-                                                 VisitedHandlingMode::AllLinksUnvisited);
+                                                 VisitedHandlingMode::AllLinksUnvisited,
+                                                 shared_context.quirks_mode);
             let matched_then =
                 matches_selector(&dep.selector,
                                  dep.selector_offset,
@@ -1212,7 +1209,8 @@ impl DependencySet {
                                  &mut |_, _| {});
             let mut now_context =
                 MatchingContext::new_for_visited(MatchingMode::Normal, bloom_filter,
-                                                 VisitedHandlingMode::AllLinksUnvisited);
+                                                 VisitedHandlingMode::AllLinksUnvisited,
+                                                 shared_context.quirks_mode);
             let matches_now =
                 matches_selector(&dep.selector,
                                  dep.selector_offset,

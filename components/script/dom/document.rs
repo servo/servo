@@ -209,6 +209,7 @@ pub struct Document {
     is_html_document: bool,
     activity: Cell<DocumentActivity>,
     url: DOMRefCell<ServoUrl>,
+    #[ignore_heap_size_of = "defined in selectors"]
     quirks_mode: Cell<QuirksMode>,
     /// Caches for the getElement methods
     id_map: DOMRefCell<HashMap<Atom, Vec<JS<Element>>>>,

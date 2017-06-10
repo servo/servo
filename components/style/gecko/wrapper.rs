@@ -72,7 +72,7 @@ use rule_tree::CascadeLevel as ServoCascadeLevel;
 use selector_parser::{AttrValue, ElementExt, PseudoClassStringArg};
 use selectors::Element;
 use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator, CaseSensitivity, NamespaceConstraint};
-use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode};
+use selectors::matching::{ElementSelectorFlags, LocalMatchingContext, MatchingContext};
 use selectors::matching::{RelevantLinkStatus, VisitedHandlingMode};
 use shared_lock::Locked;
 use sink::Push;
@@ -1424,7 +1424,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
 
     fn match_non_ts_pseudo_class<F>(&self,
                                     pseudo_class: &NonTSPseudoClass,
-                                    context: &mut MatchingContext,
+                                    context: &mut LocalMatchingContext<Self::Impl>,
                                     relevant_link: &RelevantLinkStatus,
                                     flags_setter: &mut F)
                                     -> bool
@@ -1432,10 +1432,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     {
         use selectors::matching::*;
         match *pseudo_class {
-            NonTSPseudoClass::AnyLink |
-            NonTSPseudoClass::Active |
             NonTSPseudoClass::Focus |
-            NonTSPseudoClass::Hover |
             NonTSPseudoClass::Enabled |
             NonTSPseudoClass::Disabled |
             NonTSPseudoClass::Checked |
@@ -1477,12 +1474,19 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozMeterSubSubOptimum |
             NonTSPseudoClass::MozAutofill |
             NonTSPseudoClass::MozAutofillPreview => {
-                // NB: It's important to use `intersect` instead of `contains`
-                // here, to handle `:any-link` correctly.
                 self.get_state().intersects(pseudo_class.state_flag())
             },
-            NonTSPseudoClass::Link => relevant_link.is_unvisited(self, context),
-            NonTSPseudoClass::Visited => relevant_link.is_visited(self, context),
+            NonTSPseudoClass::AnyLink => self.is_link(),
+            NonTSPseudoClass::Link => relevant_link.is_unvisited(self, context.shared),
+            NonTSPseudoClass::Visited => relevant_link.is_visited(self, context.shared),
+            NonTSPseudoClass::Active |
+            NonTSPseudoClass::Hover => {
+                if context.active_hover_quirk_matches() && !self.is_link() {
+                    false
+                } else {
+                    self.get_state().contains(pseudo_class.state_flag())
+                }
+            },
             NonTSPseudoClass::MozFirstNode => {
                 flags_setter(self, HAS_EDGE_CHILD_SELECTOR);
                 let mut elem = self.as_node();
@@ -1522,9 +1526,13 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             }
             NonTSPseudoClass::MozPlaceholder => false,
             NonTSPseudoClass::MozAny(ref sels) => {
-                sels.iter().any(|s| {
+                let old_value = context.within_functional_pseudo_class_argument;
+                context.within_functional_pseudo_class_argument = true;
+                let result = sels.iter().any(|s| {
                     matches_complex_selector(s, 0, self, context, flags_setter)
-                })
+                });
+                context.within_functional_pseudo_class_argument = old_value;
+                result
             }
             NonTSPseudoClass::Lang(ref lang_arg) => {
                 self.match_element_lang(None, lang_arg)
@@ -1563,11 +1571,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
 
     #[inline]
     fn is_link(&self) -> bool {
-        let mut context = MatchingContext::new(MatchingMode::Normal, None);
-        self.match_non_ts_pseudo_class(&NonTSPseudoClass::AnyLink,
-                                       &mut context,
-                                       &RelevantLinkStatus::default(),
-                                       &mut |_, _| {})
+        self.get_state().intersects(NonTSPseudoClass::AnyLink.state_flag())
     }
 
     fn get_id(&self) -> Option<Atom> {
