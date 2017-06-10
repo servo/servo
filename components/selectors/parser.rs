@@ -4,6 +4,7 @@
 
 use attr::{AttrSelectorWithNamespace, ParsedAttrSelectorOperation, AttrSelectorOperator};
 use attr::{ParsedCaseSensitivity, SELECTOR_WHITESPACE, NamespaceConstraint};
+use bloom::BLOOM_HASH_MASK;
 use cssparser::{ParseError, BasicParseError};
 use cssparser::{Token, Parser as CssParser, parse_nth, ToCss, serialize_identifier, CssStringWriter};
 use precomputed_hash::PrecomputedHash;
@@ -203,16 +204,25 @@ impl<Impl: SelectorImpl> SelectorList<Impl> {
     }
 }
 
-/// Copied from Gecko, who copied it from WebKit. Note that increasing the
-/// number of hashes here will adversely affect the cache hit when fast-
-/// rejecting long lists of Rules with inline hashes.
-const NUM_ANCESTOR_HASHES: usize = 4;
-
 /// Ancestor hashes for the bloom filter. We precompute these and store them
 /// inline with selectors to optimize cache performance during matching.
 /// This matters a lot.
+///
+/// We use 4 hashes, which is copied from Gecko, who copied it from WebKit.
+/// Note that increasing the number of hashes here will adversely affect the
+/// cache hit when fast-rejecting long lists of Rules with inline hashes.
+///
+/// Because the bloom filter only uses the bottom 24 bits of the hash, we pack
+/// the fourth hash into the upper bits of the first three hashes in order to
+/// shrink Rule (whose size matters a lot). This scheme minimizes the runtime
+/// overhead of the packing for the first three hashes (we just need to mask
+/// off the upper bits) at the expense of making the fourth somewhat more
+/// complicated to assemble, because we often bail out before checking all the
+/// hashes.
 #[derive(Eq, PartialEq, Clone, Debug)]
-pub struct AncestorHashes(pub [u32; NUM_ANCESTOR_HASHES]);
+pub struct AncestorHashes {
+    pub packed_hashes: [u32; 3],
+}
 
 impl AncestorHashes {
     pub fn new<Impl: SelectorImpl>(s: &Selector<Impl>) -> Self {
@@ -220,20 +230,38 @@ impl AncestorHashes {
     }
 
     pub fn from_iter<Impl: SelectorImpl>(iter: SelectorIter<Impl>) -> Self {
-        let mut hashes = [0; NUM_ANCESTOR_HASHES];
         // Compute ancestor hashes for the bloom filter.
+        let mut hashes = [0u32; 4];
         let mut hash_iter = AncestorIter::new(iter)
                              .map(|x| x.ancestor_hash())
                              .filter(|x| x.is_some())
                              .map(|x| x.unwrap());
-        for i in 0..NUM_ANCESTOR_HASHES {
+        for i in 0..4 {
             hashes[i] = match hash_iter.next() {
-                Some(x) => x,
+                Some(x) => x & BLOOM_HASH_MASK,
                 None => break,
             }
         }
 
-        AncestorHashes(hashes)
+        // Now, pack the fourth hash (if it exists) into the upper byte of each of
+        // the other three hashes.
+        let fourth = hashes[3];
+        if fourth != 0 {
+            hashes[0] |= (fourth & 0x000000ff) << 24;
+            hashes[1] |= (fourth & 0x0000ff00) << 16;
+            hashes[2] |= (fourth & 0x00ff0000) << 8;
+        }
+
+        AncestorHashes {
+            packed_hashes: [hashes[0], hashes[1], hashes[2]],
+        }
+    }
+
+    /// Returns the fourth hash, reassembled from parts.
+    pub fn fourth_hash(&self) -> u32 {
+        ((self.packed_hashes[0] & 0xff000000) >> 24) |
+        ((self.packed_hashes[1] & 0xff000000) >> 16) |
+        ((self.packed_hashes[2] & 0xff000000) >> 8)
     }
 }
 
