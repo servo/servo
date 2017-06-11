@@ -647,3 +647,28 @@ impl ToCss for LineNameList {
 
 impl ComputedValueAsSpecified for LineNameList {}
 no_viewport_percentage!(LineNameList);
+
+/// Variants for `<grid-template-rows> | <grid-template-columns>`
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum GridTemplateComponent<L> {
+    /// `none` value.
+    None,
+    /// The grid `<track-list>`
+    TrackList(TrackList<L>),
+    /// A `subgrid <line-name-list>?`
+    Subgrid(LineNameList),
+}
+
+impl<L: ToCss> ToCss for GridTemplateComponent<L> {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            GridTemplateComponent::None => dest.write_str("none"),
+            GridTemplateComponent::TrackList(ref l) => l.to_css(dest),
+            GridTemplateComponent::Subgrid(ref n) => {
+                dest.write_str("subgrid")?;
+                n.to_css(dest)
+            },
+        }
+    }
+}

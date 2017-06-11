@@ -1040,6 +1040,11 @@ extern "C" {
                                                   track_sizes: u32);
 }
 extern "C" {
+    pub fn Gecko_SetGridTemplateLineNamesLength(grid_template:
+                                                    *mut nsStyleGridTemplate,
+                                                track_sizes: u32);
+}
+extern "C" {
     pub fn Gecko_CopyStyleGridTemplateValues(grid_template:
                                                  *mut nsStyleGridTemplate,
                                              other:
