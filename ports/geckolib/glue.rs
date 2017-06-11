@@ -263,9 +263,11 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
 
     let traversal_flags = match (root_behavior, restyle_behavior) {
         (Root::Normal, Restyle::Normal) |
+        (Root::Normal, Restyle::ForNewlyBoundElement) |
         (Root::Normal, Restyle::ForAnimationOnly)
             => TraversalFlags::empty(),
         (Root::UnstyledChildrenOnly, Restyle::Normal) |
+        (Root::UnstyledChildrenOnly, Restyle::ForNewlyBoundElement) |
         (Root::UnstyledChildrenOnly, Restyle::ForAnimationOnly)
             => UNSTYLED_CHILDREN_ONLY,
         (Root::Normal, Restyle::ForCSSRuleChanges) => FOR_CSS_RULE_CHANGES,
@@ -290,6 +292,14 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
                      raw_data,
                      traversal_flags,
                      unsafe { &*snapshots });
+
+    if restyle_behavior == Restyle::ForNewlyBoundElement {
+        // In this mode, we only ever restyle new elements, so there is no
+        // need for a post-traversal, and the borrow_data().unwrap() call below
+        // could panic, so we don't bother computing whether a post-traversal
+        // is required.
+        return false;
+    }
 
     element.has_dirty_descendants() || element.borrow_data().unwrap().has_restyle()
 }
