@@ -26,6 +26,7 @@ extern crate webrender_api;
 
 pub use compositor_thread::CompositorProxy;
 pub use compositor::IOCompositor;
+pub use compositor::ShutdownState;
 use euclid::TypedSize2D;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
