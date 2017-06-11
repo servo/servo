@@ -38,7 +38,6 @@ use std::mem;
 use std::os::raw::c_void;
 use std::ptr;
 use std::rc::Rc;
-use std::sync::mpsc::{Sender, channel};
 use style_traits::cursor::Cursor;
 #[cfg(target_os = "windows")]
 use user32;
