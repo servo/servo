@@ -23,6 +23,30 @@ use webrender;
 use webrender_traits;
 
 
+pub trait EmbedderProxy : 'static + Send {
+    /// Sends a message to the compositor.
+    fn send(&self, msg: Msg);
+    /// Clones the compositor proxy.
+    fn clone_embedder_proxy(&self) -> Box<EmbedderProxy + 'static + Send>;
+}
+
+pub trait EmbedderReceiver : 'static {
+    /// Receives the next message inbound for the compositor. This must not block.
+    fn try_recv_embedder_msg(&mut self) -> Option<Msg>;
+    /// Synchronously waits for, and returns, the next message inbound for the compositor.
+    fn recv_embedder_msg(&mut self) -> Msg;
+}
+
+/// A convenience implementation of `EmbedderReceiver` for a plain old Rust `Receiver`.
+impl EmbedderReceiver for Receiver<Msg> {
+    fn try_recv_embedder_msg(&mut self) -> Option<Msg> {
+        self.try_recv().ok()
+    }
+    fn recv_embedder_msg(&mut self) -> Msg {
+        self.recv().unwrap()
+    }
+}
+
 /// Used to wake up the event loop, provided by the servo port/embedder.
 pub trait EventLoopWaker : 'static + Send {
     fn clone(&self) -> Box<EventLoopWaker + Send>;

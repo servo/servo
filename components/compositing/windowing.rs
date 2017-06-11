@@ -4,7 +4,7 @@
 
 //! Abstract windowing methods. The concrete implementations of these can be found in `platform/`.
 
-use compositor_thread::EventLoopWaker;
+use compositor_thread::{EmbedderProxy, EmbedderReceiver, EventLoopWaker};
 use euclid::{Point2D, Size2D};
 use euclid::point::TypedPoint2D;
 use euclid::rect::TypedRect;
@@ -146,6 +146,9 @@ pub trait WindowMethods {
 
     /// Returns a thread-safe object to wake up the window's event loop.
     fn create_event_loop_waker(&self) -> Box<EventLoopWaker>;
+
+    /// Returns a channel to the embedder.
+    fn create_embedder_channel(&self) -> (Box<EmbedderProxy + Send>, Box<EmbedderReceiver>);
 
     /// Requests that the window system prepare a composite. Typically this will involve making
     /// some type of platform-specific graphics context current. Returns true if the composite may
