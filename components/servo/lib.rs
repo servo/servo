@@ -69,7 +69,9 @@ fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) { }
 use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
 use compositing::IOCompositor;
-use compositing::compositor_thread::{self, CompositorProxy, CompositorReceiver, InitialCompositorState};
+use compositing::compositor_thread::{self, CompositorProxy, CompositorReceiver};
+use compositing::compositor_thread::{EmbedderProxy, EmbedderReceiver};
+use compositing::compositor_thread::InitialCompositorState;
 use compositing::windowing::WindowEvent;
 use compositing::windowing::WindowMethods;
 use constellation::{Constellation, InitialConstellationState, UnprivilegedPipelineContent};
@@ -135,6 +137,8 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         // to deliver the message.
         let (compositor_proxy, compositor_receiver) =
             create_compositor_channel(window.create_event_loop_waker());
+        let (embedder_sender, embedder_receiver) =
+            create_embedder_channel(window.create_event_loop_waker());
         let supports_clipboard = window.supports_clipboard();
         let time_profiler_chan = profile_time::Profiler::create(&opts.time_profiling,
                                                                 opts.time_profiler_trace_path.clone());
@@ -271,6 +275,18 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
             Box::new(logger)
         }).expect("Failed to set logger.")
     }
+}
+
+fn create_embedder_channel(event_loop_waker: Box<compositor_thread::EventLoopWaker>)
+    -> (EmbedderProxy, EmbedderReceiver) {
+    let (sender, receiver) = channel();
+    (EmbedderProxy {
+         sender: sender,
+         event_loop_waker: event_loop_waker,
+        },
+     EmbedderReceiver {
+         receiver: receiver
+     })
 }
 
 fn create_compositor_channel(event_loop_waker: Box<compositor_thread::EventLoopWaker>)
