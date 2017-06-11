@@ -68,9 +68,9 @@ fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) { }
 
 use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
-use compositing::IOCompositor;
+use compositing::{IOCompositor, ShutdownState};
 use compositing::compositor_thread::{self, CompositorProxy, CompositorReceiver};
-use compositing::compositor_thread::{EmbedderProxy, EmbedderReceiver};
+use compositing::compositor_thread::{EmbedderMsg, EmbedderProxy, EmbedderReceiver};
 use compositing::compositor_thread::InitialCompositorState;
 use compositing::windowing::WindowEvent;
 use compositing::windowing::WindowMethods;
@@ -248,6 +248,14 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
     }
 
     pub fn handle_events(&mut self, events: Vec<WindowEvent>) -> bool {
+        while let Some(msg) = self.embedder_receiver.try_recv_embedder_msg() {
+            match (msg, self.compositor.shutdown_state) {
+                (EmbedderMsg::Status(message), ShutdownState::NotShuttingDown) => {
+                    self.compositor.window.status(message);
+                },
+                (_, _) => {},
+            }
+        }
         self.compositor.handle_events(events)
     }
 
