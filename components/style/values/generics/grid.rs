@@ -5,7 +5,7 @@
 //! Generic types for the handling of
 //! [grids](https://drafts.csswg.org/css-grid/).
 
-use cssparser::{Parser, serialize_identifier};
+use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::{fmt, mem, usize};
 use style_traits::{ToCss, ParseError, StyleParseError};
@@ -307,15 +307,15 @@ impl<L: ToComputedValue> ToComputedValue for TrackSize<L> {
 /// Helper function for serializing identifiers with a prefix and suffix, used
 /// for serializing <line-names> (in grid).
 pub fn concat_serialize_idents<W>(prefix: &str, suffix: &str,
-                                  slice: &[String], sep: &str, dest: &mut W) -> fmt::Result
+                                  slice: &[CustomIdent], sep: &str, dest: &mut W) -> fmt::Result
     where W: fmt::Write
 {
     if let Some((ref first, rest)) = slice.split_first() {
         dest.write_str(prefix)?;
-        serialize_identifier(first, dest)?;
+        first.to_css(dest)?;
         for thing in rest {
             dest.write_str(sep)?;
-            serialize_identifier(thing, dest)?;
+            thing.to_css(dest)?;
         }
 
         dest.write_str(suffix)?;
@@ -372,7 +372,7 @@ pub struct TrackRepeat<L> {
     /// If there's no `<line-names>`, then it's represented by an empty vector.
     /// For N `<track-size>` values, there will be N+1 `<line-names>`, and so this vector's
     /// length is always one value more than that of the `<track-size>`.
-    pub line_names: Vec<Vec<String>>,
+    pub line_names: Vec<Vec<CustomIdent>>,
     /// `<track-size>` values.
     pub track_sizes: Vec<TrackSize<L>>,
 }
@@ -502,7 +502,7 @@ pub struct TrackList<T> {
     /// If there's no `<line-names>`, then it's represented by an empty vector.
     /// For N values, there will be N+1 `<line-names>`, and so this vector's
     /// length is always one value more than that of the `<track-size>`.
-    pub line_names: Vec<Vec<String>>,
+    pub line_names: Vec<Vec<CustomIdent>>,
     /// `<auto-repeat>` value after computation. This field is necessary, because
     /// the `values` field (after computation) will only contain `<track-size>` values, and
     /// we need something to represent this function.

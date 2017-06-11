@@ -81,16 +81,13 @@ impl Parse for TrackSize<LengthOrPercentage> {
 /// Parse the grid line names into a vector of owned strings.
 ///
 /// https://drafts.csswg.org/css-grid/#typedef-line-names
-pub fn parse_line_names<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Vec<String>, ParseError<'i>> {
+pub fn parse_line_names<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Vec<CustomIdent>, ParseError<'i>> {
     input.expect_square_bracket_block()?;
     input.parse_nested_block(|input| {
         let mut values = vec![];
         while let Ok(ident) = input.try(|i| i.expect_ident()) {
-            if CustomIdent::from_ident((&*ident).into(), &["span"]).is_err() {
-                return Err(StyleParseError::UnspecifiedError.into())
-            }
-
-            values.push(ident.into_owned());
+            let ident = CustomIdent::from_ident(ident, &["span"])?;
+            values.push(ident);
         }
 
         Ok(values)
