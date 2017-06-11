@@ -5,7 +5,7 @@
 //! A windowing implementation using glutin.
 
 use NestedEventLoopListener;
-use compositing::compositor_thread::EventLoopWaker;
+use compositing::compositor_thread::{self, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
 use compositing::windowing::{AnimationState, MouseWindowEvent, WindowNavigateMsg};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use euclid::{Point2D, Size2D, TypedPoint2D, TypedVector2D, TypedRect, ScaleFactor, TypedSize2D};
@@ -38,6 +38,7 @@ use std::mem;
 use std::os::raw::c_void;
 use std::ptr;
 use std::rc::Rc;
+use std::sync::mpsc::{Sender, channel};
 use style_traits::cursor::Cursor;
 #[cfg(target_os = "windows")]
 use user32;
@@ -1052,6 +1053,38 @@ impl WindowMethods for Window {
             }
             WindowKind::Headless(..) => {}
         }
+    }
+
+    fn create_embedder_channel(&self) -> (Box<EmbedderProxy + Send>, Box<EmbedderReceiver>) {
+        struct GlutinEmbedderProxy {
+            sender: Sender<compositor_thread::Msg>,
+            window_proxy: Option<glutin::WindowProxy>,
+        }
+
+        impl EmbedderProxy for GlutinEmbedderProxy {
+            fn send(&self, msg: compositor_thread::Msg) {
+                // Send a message and kick the OS event loop awake.
+                if let Err(err) = self.sender.send(msg) {
+                    warn!("Failed to send response ({}).", err);
+                }
+                if let Some(ref window_proxy) = self.window_proxy {
+                    window_proxy.wakeup_event_loop()
+                }
+            }
+            fn clone_embedder_proxy(&self) -> Box<EmbedderProxy + Send> {
+                box GlutinEmbedderProxy {
+                    sender: self.sender.clone(),
+                    window_proxy: self.window_proxy.clone(),
+                } as Box<EmbedderProxy + Send>
+            }
+        }
+        let window_proxy = create_window_proxy(self);
+        let (sender, receiver) = channel();
+        (box GlutinEmbedderProxy {
+                     sender: sender,
+                     window_proxy: window_proxy,
+                 } as Box<EmbedderProxy + Send>,
+                 box receiver as Box<EmbedderReceiver>)
     }
 
     fn create_event_loop_waker(&self) -> Box<EventLoopWaker> {
