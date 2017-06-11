@@ -7,7 +7,6 @@
 
 use cssparser::{Parser, serialize_identifier};
 use parser::{Parse, ParserContext};
-use selectors::parser::SelectorParseError;
 use std::{fmt, mem, usize};
 use style_traits::{ToCss, ParseError, StyleParseError};
 use values::{CSSFloat, CustomIdent};
@@ -350,12 +349,10 @@ impl Parse for RepeatCount {
                 Err(StyleParseError::UnspecifiedError.into())
             }
         } else {
-            let ident = input.expect_ident()?;
-            (match_ignore_ascii_case! { &ident,
+            try_match_ident_ignore_ascii_case! { input.expect_ident()?,
                 "auto-fill" => Ok(RepeatCount::AutoFill),
                 "auto-fit" => Ok(RepeatCount::AutoFit),
-                _ => Err(()),
-            }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
+            }
         }
     }
 }

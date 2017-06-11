@@ -9,7 +9,6 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
-use selectors::parser::SelectorParseError;
 use std::borrow::Cow;
 use std::fmt;
 use style_traits::{ToCss, ParseError, StyleParseError};
@@ -91,13 +90,11 @@ impl Parse for GeometryBox {
             return Ok(GeometryBox::ShapeBox(shape_box))
         }
 
-        let ident = input.expect_ident()?;
-        (match_ignore_ascii_case! { &ident,
+        try_match_ident_ignore_ascii_case! { input.expect_ident()?,
             "fill-box" => Ok(GeometryBox::FillBox),
             "stroke-box" => Ok(GeometryBox::StrokeBox),
             "view-box" => Ok(GeometryBox::ViewBox),
-            _ => Err(())
-        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
+        }
     }
 }
 
@@ -231,12 +228,10 @@ impl Parse for ShapeRadius {
             return Ok(GenericShapeRadius::Length(lop))
         }
 
-        let ident = input.expect_ident()?;
-        (match_ignore_ascii_case! { &ident,
+        try_match_ident_ignore_ascii_case! { input.expect_ident()?,
             "closest-side" => Ok(GenericShapeRadius::ClosestSide),
             "farthest-side" => Ok(GenericShapeRadius::FarthestSide),
-            _ => Err(())
-        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
+        }
     }
 }
 

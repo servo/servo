@@ -4,6 +4,24 @@
 
 //! Various macro helpers.
 
+/// A macro to parse an identifier, or return an `UnexpectedIndent` error
+/// otherwise.
+///
+/// FIXME(emilio): The fact that `UnexpectedIdent` is a `SelectorParseError`
+/// doesn't make a lot of sense to me.
+macro_rules! try_match_ident_ignore_ascii_case {
+    ($ident:expr, $( $match_body:tt )*) => {
+        let __ident = $ident;
+        (match_ignore_ascii_case! { &*__ident,
+            $( $match_body )*
+            _ => Err(()),
+        })
+        .map_err(|()| {
+            ::selectors::parser::SelectorParseError::UnexpectedIdent(__ident).into()
+        })
+    }
+}
+
 macro_rules! define_numbered_css_keyword_enum {
     ($name: ident: $( $css: expr => $variant: ident = $value: expr ),+,) => {
         define_numbered_css_keyword_enum!($name: $( $css => $variant = $value ),+);
@@ -21,11 +39,9 @@ macro_rules! define_numbered_css_keyword_enum {
             fn parse<'i, 't>(_context: &$crate::parser::ParserContext,
                              input: &mut ::cssparser::Parser<'i, 't>)
                              -> Result<$name, ::style_traits::ParseError<'i>> {
-                let ident = try!(input.expect_ident());
-                (match_ignore_ascii_case! { &ident,
+                try_match_ident_ignore_ascii_case! { input.expect_ident()?,
                     $( $css => Ok($name::$variant), )+
-                    _ => Err(())
-                }).map_err(|()| ::selectors::parser::SelectorParseError::UnexpectedIdent(ident).into())
+                }
             }
         }
 

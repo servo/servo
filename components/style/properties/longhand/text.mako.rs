@@ -106,7 +106,7 @@
     }
     pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue, ParseError<'i>> {
-        let first = try!(Side::parse(context, input));
+        let first = Side::parse(context, input)?;
         let second = input.try(|input| Side::parse(context, input)).ok();
         Ok(SpecifiedValue {
             first: first,
@@ -116,14 +116,17 @@
     impl Parse for Side {
         fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<Side, ParseError<'i>> {
-            if let Ok(ident) = input.try(|input| input.expect_ident()) {
-                (match_ignore_ascii_case! { &ident,
-                    "clip" => Ok(Side::Clip),
-                    "ellipsis" => Ok(Side::Ellipsis),
-                    _ => Err(())
-                }).map_err(|()| SelectorParseError::UnexpectedIdent(ident).into())
-            } else {
-                Ok(Side::String(try!(input.expect_string()).into_owned().into_boxed_str()))
+            match input.next()? {
+                Token::Ident(ident) => {
+                    try_match_ident_ignore_ascii_case! { ident,
+                        "clip" => Ok(Side::Clip),
+                        "ellipsis" => Ok(Side::Ellipsis),
+                    }
+                }
+                Token::QuotedString(v) => {
+                    Ok(Side::String(v.into_owned().into_boxed_str()))
+                }
+                other => Err(BasicParseError::UnexpectedToken(other).into()),
             }
         }
     }
