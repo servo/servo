@@ -650,3 +650,17 @@ impl ToCss for LineNameList {
 
 impl ComputedValueAsSpecified for LineNameList {}
 no_viewport_percentage!(LineNameList);
+
+/// Variants for `<grid-template-rows> | <grid-template-columns>`
+/// Subgrid deferred to Level 2 spec due to lack of implementation.
+/// But it's implemented in gecko, so we have to as well.
+#[derive(Clone, PartialEq, Debug, ToCss)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum GridTemplateComponent<L> {
+    /// `none` value.
+    None,
+    /// The grid `<track-list>`
+    TrackList(TrackList<L>),
+    /// A `subgrid <line-name-list>?`
+    Subgrid(LineNameList),
+}

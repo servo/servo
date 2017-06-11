@@ -191,12 +191,18 @@ fn test_grid_template_rows_columns() {
     // <track-size> with <track-breadth> as <length-percentage>
     assert_roundtrip_with_context!(grid_template_rows::parse, "calc(4em + 5px)");
     // <track-size> with <length> followed by <track-repeat> with `<track-size>{3}` (<flex>, auto, minmax)
-    assert_roundtrip_with_context!(grid_template_rows::parse, "10px repeat(2, 1fr auto minmax(200px, 1fr))");
+    assert_roundtrip_with_context!(grid_template_rows::parse,
+                                   "10px repeat(2, 1fr auto minmax(200px, 1fr))",
+                                   "10px 1fr auto minmax(200px, 1fr) 1fr auto minmax(200px, 1fr)");
     // <track-repeat> with `<track-size> <line-names>` followed by <track-size>
-    assert_roundtrip_with_context!(grid_template_rows::parse, "repeat(4, 10px [col-start] 250px [col-end]) 10px");
+    assert_roundtrip_with_context!(grid_template_rows::parse,
+                                   "repeat(2, 10px [col-start] 250px [col-end]) 10px",
+                                   "10px [col-start] 250px [col-end] 10px [col-start] 250px [col-end] 10px");
     // mixture of <track-size>, <track-repeat> and <line-names>
     assert_roundtrip_with_context!(grid_template_rows::parse,
-        "[a] auto [b] minmax(min-content, 1fr) [b c d] repeat(2, [e] 40px) repeat(5, [f g] auto [h]) [i]");
+                                   "[a] auto [b] minmax(min-content, 1fr) [b c d] repeat(2, 40px [e] 30px) [i]",
+                                   "[a] auto [b] minmax(min-content, 1fr) [b c d] 40px [e] 30px 40px [e] 30px [i]");
+    assert!(parse(grid_template_rows::parse, "subgrid").is_ok());
 
     // no span allowed in <line-names>
     assert!(parse(grid_template_rows::parse, "[a span] 10px").is_err());
@@ -232,4 +238,11 @@ fn test_computed_grid_template_rows_colums() {
     assert_computed_serialization(grid_template_rows::parse,
         "10px repeat(2, 1fr auto minmax(200px, 1fr))",
         "10px minmax(auto, 1fr) auto minmax(200px, 1fr) minmax(auto, 1fr) auto minmax(200px, 1fr)");
+
+    assert_computed_serialization(grid_template_rows::parse,
+        "subgrid [a] [] repeat(auto-fill, [])", "subgrid [a] [] repeat(auto-fill, [])");
+
+    assert_computed_serialization(grid_template_rows::parse,
+        "subgrid [a] [b] repeat(2, [c d] [] [e]) [] repeat(auto-fill, [])",
+        "subgrid [a] [b] [c d] [] [e] [c d] [] [e] [] repeat(auto-fill, [])");
 }

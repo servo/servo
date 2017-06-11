@@ -276,11 +276,9 @@ ${helpers.predefined_type("object-position",
                               products="gecko",
                               boxed=True)}
 
-    // NOTE: The spec lists only `none | <track-list> | <auto-track-list>`, but gecko seems to support
-    // `subgrid <line-name-list>?` in addition to this (probably old spec). We should support it soon.
     ${helpers.predefined_type("grid-template-%ss" % kind,
-                              "TrackListOrNone",
-                              "Either::Second(None_)",
+                              "GridTemplateComponent",
+                              "specified::GenericGridTemplateComponent::None",
                               products="gecko",
                               spec="https://drafts.csswg.org/css-grid/#propdef-grid-template-%ss" % kind,
                               boxed=True,
