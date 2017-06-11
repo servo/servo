@@ -1239,26 +1239,20 @@ fn static_assert() {
         <% self_grid = "self.gecko.mGridTemplate%s" % kind.title() %>
         use gecko::values::GeckoStyleCoordConvertible;
         use gecko_bindings::structs::{nsTArray, nsStyleGridLine_kMaxLine};
-        use nsstring::{nsCString, nsStringRepr};
+        use nsstring::nsStringRepr;
         use std::usize;
+        use values::CustomIdent;
         use values::generics::grid::TrackListType::Auto;
         use values::generics::grid::{RepeatCount, TrackSize};
 
         #[inline]
-        fn set_bitfield(bitfield: &mut u8, pos: u8, val: bool) {
-            let mask = 1 << (pos - 1);
-            *bitfield &= !mask;
-            *bitfield |= (val as u8) << (pos - 1);
-        }
-
-        #[inline]
-        fn set_line_names(servo_names: &[String], gecko_names: &mut nsTArray<nsStringRepr>) {
+        fn set_line_names(servo_names: &[CustomIdent], gecko_names: &mut nsTArray<nsStringRepr>) {
             unsafe {
                 bindings::Gecko_ResizeTArrayForStrings(gecko_names, servo_names.len() as u32);
             }
 
             for (servo_name, gecko_name) in servo_names.iter().zip(gecko_names.iter_mut()) {
-                gecko_name.assign_utf8(&nsCString::from(&*servo_name));
+                gecko_name.assign(servo_name.0.as_slice());
             }
         }
 
@@ -1283,8 +1277,8 @@ fn static_assert() {
 
         // Set defaults
         ${self_grid}.mRepeatAutoIndex = -1;
-        set_bitfield(&mut ${self_grid}._bitfield_1, 1, false);   // mIsAutoFill
-        set_bitfield(&mut ${self_grid}._bitfield_1, 2, false);   // mIsSubgrid
+        ${self_grid}.set_mIsAutoFill(false);
+        ${self_grid}.set_mIsSubgrid(false);
         // FIXME: mIsSubgrid is false only for <none>, but we don't support subgrid name lists at the moment.
 
         match v {
@@ -1296,7 +1290,7 @@ fn static_assert() {
                     let auto_repeat = track.auto_repeat.as_ref().expect("expected <auto-track-repeat> value");
 
                     if auto_repeat.count == RepeatCount::AutoFill {
-                        set_bitfield(&mut ${self_grid}._bitfield_1, 1, true);
+                        ${self_grid}.set_mIsAutoFill(true);
                     }
 
                     ${self_grid}.mRepeatAutoIndex = idx as i16;
