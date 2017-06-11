@@ -12,8 +12,8 @@ use std::ascii::AsciiExt;
 use style_traits::{HasViewportPercentage, ParseError, StyleParseError};
 use values::{CSSFloat, CustomIdent, Either};
 use values::computed::{self, Context, ToComputedValue};
-use values::generics::grid::{RepeatCount, TrackBreadth, TrackKeyword, TrackRepeat};
-use values::generics::grid::{TrackSize, TrackList, TrackListType};
+use values::generics::grid::{GridTemplateComponent, RepeatCount, TrackBreadth, TrackKeyword, TrackRepeat};
+use values::generics::grid::{LineNameList, TrackSize, TrackList, TrackListType};
 use values::specified::LengthOrPercentage;
 
 /// Parse a single flexible length.
@@ -346,6 +346,54 @@ impl ToComputedValue for TrackList<TrackSizeOrRepeat> {
             values: values,
             line_names: computed.line_names.clone(),
             auto_repeat: None,
+        }
+    }
+}
+
+impl Parse for GridTemplateComponent<TrackSizeOrRepeat> {   // FIXME: Derive Parse (probably with None_)
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+            return Ok(GridTemplateComponent::None)
+        }
+
+        if let Ok(t) = input.try(|i| TrackList::parse(context, i)) {
+            return Ok(GridTemplateComponent::TrackList(t))
+        }
+
+        LineNameList::parse(context, input).map(GridTemplateComponent::Subgrid)
+    }
+}
+
+impl HasViewportPercentage for GridTemplateComponent<TrackSizeOrRepeat> {
+    #[inline]
+    fn has_viewport_percentage(&self) -> bool {
+        match *self {
+            GridTemplateComponent::TrackList(ref l) => l.has_viewport_percentage(),
+            _ => false,
+        }
+    }
+}
+
+impl ToComputedValue for GridTemplateComponent<TrackSizeOrRepeat> {
+    type ComputedValue = GridTemplateComponent<TrackSize<computed::LengthOrPercentage>>;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        match *self {
+            GridTemplateComponent::None => GridTemplateComponent::None,
+            GridTemplateComponent::TrackList(ref l) => GridTemplateComponent::TrackList(l.to_computed_value(context)),
+            GridTemplateComponent::Subgrid(ref n) => GridTemplateComponent::Subgrid(n.to_computed_value(context)),
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        match *computed {
+            GridTemplateComponent::None => GridTemplateComponent::None,
+            GridTemplateComponent::TrackList(ref l) =>
+                GridTemplateComponent::TrackList(ToComputedValue::from_computed_value(l)),
+            GridTemplateComponent::Subgrid(ref n) =>
+                GridTemplateComponent::Subgrid(ToComputedValue::from_computed_value(n)),
         }
     }
 }
