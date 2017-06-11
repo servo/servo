@@ -245,15 +245,16 @@
     use properties::longhands::grid_template_areas::TemplateAreas;
     use values::{Either, None_};
     use values::generics::grid::{TrackSize, TrackList, TrackListType, concat_serialize_idents};
-    use values::specified::TrackListOrNone;
+    use values::specified::{GridTemplateComponent, GenericGridTemplateComponent};
     use values::specified::grid::parse_line_names;
 
     /// Parsing for `<grid-template>` shorthand (also used by `grid` shorthand).
     pub fn parse_grid_template<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                       -> Result<(TrackListOrNone, TrackListOrNone, Either<TemplateAreas, None_>),
-                                                 ParseError<'i>> {
+                                       -> Result<(GridTemplateComponent,
+                                                  GridTemplateComponent,
+                                                  Either<TemplateAreas, None_>), ParseError<'i>> {
         if input.try(|i| i.expect_ident_matching("none")).is_ok() {
-            return Ok((Either::Second(None_), Either::Second(None_), Either::Second(None_)))
+            return Ok((GenericGridTemplateComponent::None, GenericGridTemplateComponent::None, Either::Second(None_)))
         }
 
         let first_line_names = input.try(parse_line_names).unwrap_or(vec![]);
@@ -296,20 +297,23 @@
             };
 
             let template_cols = if input.try(|i| i.expect_delim('/')).is_ok() {
-                let track_list = TrackList::parse(context, input)?;
-                if track_list.list_type != TrackListType::Explicit {
-                    return Err(StyleParseError::UnspecifiedError.into())
+                let value = GridTemplateComponent::parse(context, input)?;
+                if let GenericGridTemplateComponent::TrackList(ref list) = value {
+                    if list.list_type != TrackListType::Explicit {
+                        return Err(StyleParseError::UnspecifiedError.into())
+                    }
                 }
 
-                Either::First(track_list)
+                value
             } else {
-                Either::Second(None_)
+                GenericGridTemplateComponent::None
             };
 
-            Ok((Either::First(template_rows), template_cols, Either::First(template_areas)))
+            Ok((GenericGridTemplateComponent::TrackList(template_rows),
+                template_cols, Either::First(template_areas)))
         } else {
             let mut template_rows = grid_template_rows::parse(context, input)?;
-            if let Either::First(ref mut list) = template_rows {
+            if let GenericGridTemplateComponent::TrackList(ref mut list) = template_rows {
                 list.line_names[0] = first_line_names;      // won't panic
             }
 
@@ -329,14 +333,14 @@
     }
 
     /// Serialization for `<grid-template>` shorthand (also used by `grid` shorthand).
-    pub fn serialize_grid_template<W>(template_rows: &TrackListOrNone,
-                                      template_columns: &TrackListOrNone,
+    pub fn serialize_grid_template<W>(template_rows: &GridTemplateComponent,
+                                      template_columns: &GridTemplateComponent,
                                       template_areas: &Either<TemplateAreas, None_>,
                                       dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *template_areas {
             Either::Second(_none) => {
-                if template_rows == &Either::Second(None_) &&
-                   template_columns == &Either::Second(None_) {
+                if template_rows == &GenericGridTemplateComponent::None &&
+                   template_columns == &GenericGridTemplateComponent::None {
                     dest.write_str("none")
                 } else {
                     template_rows.to_css(dest)?;
@@ -346,8 +350,8 @@
             },
             Either::First(ref areas) => {
                 let track_list = match *template_rows {
-                    Either::First(ref list) => list,
-                    Either::Second(_none) => unreachable!(),    // should exist!
+                    GenericGridTemplateComponent::TrackList(ref list) => list,
+                    _ => unreachable!(),        // should exist!
                 };
 
                 let mut names_iter = track_list.line_names.iter();
@@ -371,7 +375,7 @@
                     concat_serialize_idents(" [", "]", names, " ", dest)?;
                 }
 
-                if let Either::First(ref list) = *template_columns {
+                if let GenericGridTemplateComponent::TrackList(ref list) = *template_columns {
                     dest.write_str(" / ")?;
                     list.to_css(dest)?;
                 }
@@ -401,12 +405,13 @@
     use properties::longhands::{grid_template_columns, grid_template_rows};
     use properties::longhands::grid_auto_flow::computed_value::{AutoFlow, T as SpecifiedAutoFlow};
     use values::{Either, None_};
+    use values::generics::grid::GridTemplateComponent;
     use values::specified::{LengthOrPercentage, TrackSize};
 
     pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                -> Result<Longhands, ParseError<'i>> {
-        let mut temp_rows = Either::Second(None_);
-        let mut temp_cols = Either::Second(None_);
+        let mut temp_rows = GridTemplateComponent::None;
+        let mut temp_cols = GridTemplateComponent::None;
         let mut temp_areas = Either::Second(None_);
         let mut auto_rows = TrackSize::default();
         let mut auto_cols = TrackSize::default();

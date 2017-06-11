@@ -197,6 +197,7 @@ fn test_grid_template_rows_columns() {
     // mixture of <track-size>, <track-repeat> and <line-names>
     assert_roundtrip_with_context!(grid_template_rows::parse,
         "[a] auto [b] minmax(min-content, 1fr) [b c d] repeat(2, [e] 40px) repeat(5, [f g] auto [h]) [i]");
+    assert!(parse(grid_template_rows::parse, "subgrid").is_ok());
 
     // no span allowed in <line-names>
     assert!(parse(grid_template_rows::parse, "[a span] 10px").is_err());
@@ -232,4 +233,11 @@ fn test_computed_grid_template_rows_colums() {
     assert_computed_serialization(grid_template_rows::parse,
         "10px repeat(2, 1fr auto minmax(200px, 1fr))",
         "10px minmax(auto, 1fr) auto minmax(200px, 1fr) minmax(auto, 1fr) auto minmax(200px, 1fr)");
+
+    assert_computed_serialization(grid_template_rows::parse,
+        "subgrid [a] [] repeat(auto-fill, [])", "subgrid [a] repeat(auto-fill, [])");
+
+    assert_computed_serialization(grid_template_rows::parse,
+        "subgrid [a] [b] repeat(2, [c d] [] [e]) [] repeat(auto-fill, [])",
+        "subgrid [a] [b] [c d] [] [e] [c d] [] [e] repeat(auto-fill, [])");
 }
