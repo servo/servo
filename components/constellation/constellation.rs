@@ -74,7 +74,7 @@ use canvas::webgl_paint_thread::WebGLPaintThread;
 use canvas_traits::CanvasMsg;
 use clipboard::{ClipboardContext, ClipboardProvider};
 use compositing::SendableFrameTree;
-use compositing::compositor_thread::CompositorProxy;
+use compositing::compositor_thread::{CompositorProxy, EmbedderProxy};
 use compositing::compositor_thread::Msg as ToCompositorMsg;
 use debugger;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
@@ -169,6 +169,8 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// A channel for the constellation to receive messages from the compositor thread.
     compositor_receiver: Receiver<FromCompositorMsg>,
+
+    embedder_proxy: EmbedderProxy,
 
     /// A channel (the implementation of which is port-specific) for the
     /// constellation to send messages to the compositor thread.
@@ -298,6 +300,8 @@ pub struct Constellation<Message, LTF, STF> {
 
 /// State needed to construct a constellation.
 pub struct InitialConstellationState {
+    pub embedder_proxy: EmbedderProxy,
+
     /// A channel through which messages can be sent to the compositor.
     pub compositor_proxy: CompositorProxy,
 
@@ -521,6 +525,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 layout_receiver: layout_receiver,
                 network_listener_sender: network_listener_sender,
                 network_listener_receiver: network_listener_receiver,
+                embedder_proxy: state.embedder_proxy,
                 compositor_proxy: state.compositor_proxy,
                 debugger_chan: state.debugger_chan,
                 devtools_chan: state.devtools_chan,

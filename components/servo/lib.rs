@@ -121,6 +121,7 @@ pub use servo_url as url;
 pub struct Browser<Window: WindowMethods + 'static> {
     compositor: IOCompositor<Window>,
     constellation_chan: Sender<ConstellationMsg>,
+    embedder_receiver: EmbedderReceiver
 }
 
 impl<Window> Browser<Window> where Window: WindowMethods + 'static {
@@ -137,7 +138,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         // to deliver the message.
         let (compositor_proxy, compositor_receiver) =
             create_compositor_channel(window.create_event_loop_waker());
-        let (embedder_sender, embedder_receiver) =
+        let (embedder_proxy, embedder_receiver) =
             create_embedder_channel(window.create_event_loop_waker());
         let supports_clipboard = window.supports_clipboard();
         let time_profiler_chan = profile_time::Profiler::create(&opts.time_profiling,
@@ -208,6 +209,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         let (constellation_chan, sw_senders) = create_constellation(opts.user_agent.clone(),
                                                                     opts.config_dir.clone(),
                                                                     target_url,
+                                                                    embedder_proxy.clone_embedder_proxy(),
                                                                     compositor_proxy.clone_compositor_proxy(),
                                                                     time_profiler_chan.clone(),
                                                                     mem_profiler_chan.clone(),
@@ -241,6 +243,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         Browser {
             compositor: compositor,
             constellation_chan: constellation_chan,
+            embedder_receiver: embedder_receiver
         }
     }
 
@@ -304,6 +307,7 @@ fn create_compositor_channel(event_loop_waker: Box<compositor_thread::EventLoopW
 fn create_constellation(user_agent: Cow<'static, str>,
                         config_dir: Option<PathBuf>,
                         url: ServoUrl,
+                        embedder_proxy: EmbedderProxy,
                         compositor_proxy: CompositorProxy,
                         time_profiler_chan: time::ProfilerChan,
                         mem_profiler_chan: mem::ProfilerChan,
@@ -326,6 +330,7 @@ fn create_constellation(user_agent: Cow<'static, str>,
     let resource_sender = public_resource_threads.sender();
 
     let initial_state = InitialConstellationState {
+        embedder_proxy: embedder_proxy,
         compositor_proxy: compositor_proxy,
         debugger_chan: debugger_chan,
         devtools_chan: devtools_chan,
