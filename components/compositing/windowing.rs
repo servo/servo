@@ -4,7 +4,7 @@
 
 //! Abstract windowing methods. The concrete implementations of these can be found in `platform/`.
 
-use compositor_thread::{EmbedderProxy, EmbedderReceiver, EventLoopWaker};
+use compositor_thread::EventLoopWaker;
 use euclid::{Point2D, Size2D};
 use euclid::point::TypedPoint2D;
 use euclid::rect::TypedRect;
