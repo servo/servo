@@ -31,12 +31,12 @@ pub trait EventLoopWaker : 'static + Send {
 
 /// Sends messages to the compositor.
 pub struct EmbedderProxy {
-    pub sender: Sender<Msg>,
+    pub sender: Sender<EmbedderMsg>,
     pub event_loop_waker: Box<EventLoopWaker>,
 }
 
 impl EmbedderProxy {
-    pub fn send(&self, msg: Msg) {
+    pub fn send(&self, msg: EmbedderMsg) {
         // Send a message and kick the OS event loop awake.
         if let Err(err) = self.sender.send(msg) {
             warn!("Failed to send response ({}).", err);
@@ -53,14 +53,14 @@ impl EmbedderProxy {
 
 /// The port that the compositor receives messages on.
 pub struct EmbedderReceiver {
-    pub receiver: Receiver<Msg>
+    pub receiver: Receiver<EmbedderMsg>
 }
 
 impl EmbedderReceiver {
-    pub fn try_recv_embedder_msg(&mut self) -> Option<Msg> {
+    pub fn try_recv_embedder_msg(&mut self) -> Option<EmbedderMsg> {
         self.receiver.try_recv().ok()
     }
-    pub fn recv_embedder_msg(&mut self) -> Msg {
+    pub fn recv_embedder_msg(&mut self) -> EmbedderMsg {
         self.receiver.recv().unwrap()
     }
 }
@@ -111,6 +111,11 @@ impl RenderListener for CompositorProxy {
     }
 }
 
+pub enum EmbedderMsg {
+    /// A status message to be displayed by the browser chrome.
+    Status(Option<String>),
+}
+
 /// Messages from the painting thread and the constellation thread to the compositor thread.
 pub enum Msg {
     /// Requests that the compositor shut down.
@@ -157,8 +162,6 @@ pub enum Msg {
     NewFavicon(ServoUrl),
     /// <head> tag finished parsing
     HeadParsed,
-    /// A status message to be displayed by the browser chrome.
-    Status(Option<String>),
     /// Get Window Informations size and position
     GetClientWindow(IpcSender<(Size2D<u32>, Point2D<i32>)>),
     /// Move the window to a point
@@ -207,7 +210,6 @@ impl Debug for Msg {
             Msg::IsReadyToSaveImageReply(..) => write!(f, "IsReadyToSaveImageReply"),
             Msg::NewFavicon(..) => write!(f, "NewFavicon"),
             Msg::HeadParsed => write!(f, "HeadParsed"),
-            Msg::Status(..) => write!(f, "Status"),
             Msg::GetClientWindow(..) => write!(f, "GetClientWindow"),
             Msg::MoveTo(..) => write!(f, "MoveTo"),
             Msg::ResizeTo(..) => write!(f, "ResizeTo"),
@@ -216,6 +218,14 @@ impl Debug for Msg {
             Msg::NewScrollFrameReady(..) => write!(f, "NewScrollFrameReady"),
             Msg::Dispatch(..) => write!(f, "Dispatch"),
             Msg::SetFullscreenState(..) => write!(f, "SetFullscreenState"),
+        }
+    }
+}
+
+impl Debug for EmbedderMsg {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        match *self {
+            EmbedderMsg::Status(..) => write!(f, "Status"),
         }
     }
 }

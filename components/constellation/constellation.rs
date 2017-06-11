@@ -74,7 +74,7 @@ use canvas::webgl_paint_thread::WebGLPaintThread;
 use canvas_traits::CanvasMsg;
 use clipboard::{ClipboardContext, ClipboardProvider};
 use compositing::SendableFrameTree;
-use compositing::compositor_thread::{CompositorProxy, EmbedderProxy};
+use compositing::compositor_thread::{CompositorProxy, EmbedderMsg, EmbedderProxy};
 use compositing::compositor_thread::Msg as ToCompositorMsg;
 use debugger;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
@@ -1130,7 +1130,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
             FromScriptMsg::NodeStatus(message) => {
                 debug!("constellation got NodeStatus message");
-                self.compositor_proxy.send(ToCompositorMsg::Status(message));
+                self.embedder_proxy.send(EmbedderMsg::Status(message));
             }
             FromScriptMsg::SetDocumentState(pipeline_id, state) => {
                 debug!("constellation got SetDocumentState message");

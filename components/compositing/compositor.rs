@@ -100,7 +100,7 @@ enum LayerPixel {}
 /// NB: Never block on the constellation, because sometimes the constellation blocks on us.
 pub struct IOCompositor<Window: WindowMethods> {
     /// The application window.
-    window: Rc<Window>,
+    pub window: Rc<Window>,
 
     /// The port on which we receive messages.
     port: CompositorReceiver,
@@ -146,7 +146,7 @@ pub struct IOCompositor<Window: WindowMethods> {
 
     /// Tracks whether we are in the process of shutting down, or have shut down and should close
     /// the compositor.
-    shutdown_state: ShutdownState,
+    pub shutdown_state: ShutdownState,
 
     /// Tracks the last composite time.
     last_composite_time: u64,
@@ -156,6 +156,11 @@ pub struct IOCompositor<Window: WindowMethods> {
 
     /// The time of the last zoom action has started.
     zoom_time: f64,
+
+    /// Whether the page being rendered has loaded completely.
+    /// Differs from ReadyState because we can finish loading (ready)
+    /// many times for a single page.
+    got_load_complete_message: bool,
 
     /// The current frame tree ID (used to reject old paint buffers)
     frame_tree_id: FrameTreeId,
@@ -216,7 +221,7 @@ enum CompositionRequest {
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
-enum ShutdownState {
+pub enum ShutdownState {
     NotShuttingDown,
     ShuttingDown,
     FinishedShuttingDown,
@@ -380,6 +385,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             max_viewport_zoom: None,
             zoom_action: false,
             zoom_time: 0f64,
+            got_load_complete_message: false,
             frame_tree_id: FrameTreeId(0),
             constellation_chan: state.constellation_chan,
             time_profiler_chan: state.time_profiler_chan,
@@ -501,15 +507,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 }
             }
 
-            (Msg::Status(message), ShutdownState::NotShuttingDown) => {
-                self.window.status(message);
-            }
-
             (Msg::LoadStart, ShutdownState::NotShuttingDown) => {
                 self.window.load_start();
             }
 
             (Msg::LoadComplete, ShutdownState::NotShuttingDown) => {
+                self.got_load_complete_message = true;
+
                 // If we're painting in headless mode, schedule a recomposite.
                 if opts::get().output_file.is_some() || opts::get().exit_after_load {
                     self.composite_if_necessary(CompositingReason::Headless);
@@ -893,6 +897,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn on_load_url_window_event(&mut self, url_string: String) {
         debug!("osmain: loading URL `{}`", url_string);
+        self.got_load_complete_message = false;
         match ServoUrl::parse(&url_string) {
             Ok(url) => {
                 let msg = match self.root_pipeline {
