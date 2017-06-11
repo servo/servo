@@ -20,7 +20,9 @@ cp etc/doc.servo.org/* target/doc/
 
 ./mach cargo-geckolib doc
 mkdir target/doc/geckolib
-cp target/geckolib/doc/* target/doc/geckolib/
+# Use recursive copy here to avoid `cp` returning an error code
+# when it encounters directories.
+cp -r target/geckolib/doc/* target/doc/geckolib/
 
 python components/style/properties/build.py servo html regular
 
