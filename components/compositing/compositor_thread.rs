@@ -23,34 +23,46 @@ use webrender;
 use webrender_traits;
 
 
-pub trait EmbedderProxy : 'static + Send {
-    /// Sends a message to the compositor.
-    fn send(&self, msg: Msg);
-    /// Clones the compositor proxy.
-    fn clone_embedder_proxy(&self) -> Box<EmbedderProxy + 'static + Send>;
-}
-
-pub trait EmbedderReceiver : 'static {
-    /// Receives the next message inbound for the compositor. This must not block.
-    fn try_recv_embedder_msg(&mut self) -> Option<Msg>;
-    /// Synchronously waits for, and returns, the next message inbound for the compositor.
-    fn recv_embedder_msg(&mut self) -> Msg;
-}
-
-/// A convenience implementation of `EmbedderReceiver` for a plain old Rust `Receiver`.
-impl EmbedderReceiver for Receiver<Msg> {
-    fn try_recv_embedder_msg(&mut self) -> Option<Msg> {
-        self.try_recv().ok()
-    }
-    fn recv_embedder_msg(&mut self) -> Msg {
-        self.recv().unwrap()
-    }
-}
-
 /// Used to wake up the event loop, provided by the servo port/embedder.
 pub trait EventLoopWaker : 'static + Send {
     fn clone(&self) -> Box<EventLoopWaker + Send>;
     fn wake(&self);
+}
+
+/// Sends messages to the compositor.
+pub struct EmbedderProxy {
+    pub sender: Sender<Msg>,
+    pub event_loop_waker: Box<EventLoopWaker>,
+}
+
+impl EmbedderProxy {
+    pub fn send(&self, msg: Msg) {
+        // Send a message and kick the OS event loop awake.
+        if let Err(err) = self.sender.send(msg) {
+            warn!("Failed to send response ({}).", err);
+        }
+        self.event_loop_waker.wake();
+    }
+    pub fn clone_embedder_proxy(&self) -> EmbedderProxy {
+        EmbedderProxy {
+            sender: self.sender.clone(),
+            event_loop_waker: self.event_loop_waker.clone(),
+        }
+    }
+}
+
+/// The port that the compositor receives messages on.
+pub struct EmbedderReceiver {
+    pub receiver: Receiver<Msg>
+}
+
+impl EmbedderReceiver {
+    pub fn try_recv_embedder_msg(&mut self) -> Option<Msg> {
+        self.receiver.try_recv().ok()
+    }
+    pub fn recv_embedder_msg(&mut self) -> Msg {
+        self.receiver.recv().unwrap()
+    }
 }
 
 /// Sends messages to the compositor.
