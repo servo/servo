@@ -6,7 +6,7 @@
 
 //! Servo's selector parser.
 
-use {Atom, Prefix, Namespace, LocalName};
+use {Atom, Prefix, Namespace, LocalName, CaseSensitivityExt};
 use attr::{AttrIdentifier, AttrValue};
 use cssparser::{Parser as CssParser, ToCss, serialize_identifier};
 use dom::{OpaqueNode, TElement, TNode};
@@ -15,7 +15,7 @@ use fnv::FnvHashMap;
 use restyle_hints::ElementSnapshot;
 use selector_parser::{AttrValue as SelectorAttrValue, ElementExt, PseudoElementCascadeType, SelectorParser};
 use selectors::Element;
-use selectors::attr::{AttrSelectorOperation, NamespaceConstraint};
+use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
 use selectors::parser::{SelectorMethods, SelectorParseError};
 use selectors::visitor::SelectorVisitor;
 use std::ascii::AsciiExt;
@@ -584,9 +584,9 @@ impl ElementSnapshot for ServoElementSnapshot {
         self.get_attr(&ns!(), &local_name!("id")).map(|v| v.as_atom().clone())
     }
 
-    fn has_class(&self, name: &Atom) -> bool {
+    fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         self.get_attr(&ns!(), &local_name!("class"))
-            .map_or(false, |v| v.as_tokens().iter().any(|atom| atom == name))
+            .map_or(false, |v| v.as_tokens().iter().any(|atom| case_sensitivity.eq_atom(atom, name)))
     }
 
     fn each_class<F>(&self, mut callback: F)

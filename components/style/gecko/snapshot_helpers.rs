@@ -4,7 +4,10 @@
 
 //! Element an snapshot common logic.
 
+use CaseSensitivityExt;
 use gecko_bindings::structs::nsIAtom;
+use gecko_string_cache::WeakAtom;
+use selectors::attr::CaseSensitivity;
 use std::{ptr, slice};
 use string_cache::Atom;
 
@@ -16,6 +19,7 @@ pub type ClassOrClassList<T> = unsafe extern fn (T, *mut *mut nsIAtom, *mut *mut
 /// element has the class that `name` represents.
 pub fn has_class<T>(item: T,
                     name: &Atom,
+                    case_sensitivity: CaseSensitivity,
                     getter: ClassOrClassList<T>) -> bool
 {
     unsafe {
@@ -24,10 +28,10 @@ pub fn has_class<T>(item: T,
         let length = getter(item, &mut class, &mut list);
         match length {
             0 => false,
-            1 => name.as_ptr() == class,
+            1 => case_sensitivity.eq_atom(name, WeakAtom::new(class)),
             n => {
                 let classes = slice::from_raw_parts(list, n as usize);
-                classes.iter().any(|ptr| name.as_ptr() == *ptr)
+                classes.iter().any(|ptr| case_sensitivity.eq_atom(name, WeakAtom::new(*ptr)))
             }
         }
     }

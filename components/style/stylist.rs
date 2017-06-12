@@ -477,15 +477,18 @@ impl Stylist {
                             self.element_map.borrow_for_origin(&stylesheet.origin)
                         };
 
-                        map.insert(Rule::new(selector_and_hashes.selector.clone(),
-                                             selector_and_hashes.hashes.clone(),
-                                             locked.clone(),
-                                             self.rules_source_order));
+                        map.insert(
+                            Rule::new(selector_and_hashes.selector.clone(),
+                                      selector_and_hashes.hashes.clone(),
+                                      locked.clone(),
+                                      self.rules_source_order),
+                            self.quirks_mode);
 
-                        self.dependencies.note_selector(selector_and_hashes);
+                        self.dependencies.note_selector(selector_and_hashes, self.quirks_mode);
                         if needs_revalidation(&selector_and_hashes.selector) {
                             self.selectors_for_cache_revalidation.insert(
-                                RevalidationSelectorAndHashes::new(&selector_and_hashes));
+                                RevalidationSelectorAndHashes::new(&selector_and_hashes),
+                                self.quirks_mode);
                         }
                         selector_and_hashes.selector.visit(&mut AttributeAndStateDependencyVisitor {
                             attribute_dependencies: &mut self.attribute_dependencies,
@@ -946,6 +949,7 @@ impl Stylist {
                                                        element,
                                                        applicable_declarations,
                                                        &mut matching_context,
+                                                       self.quirks_mode,
                                                        &mut dummy_flag_setter,
                                                        CascadeLevel::XBL);
     }
@@ -1006,6 +1010,7 @@ impl Stylist {
                                               &rule_hash_target,
                                               applicable_declarations,
                                               context,
+                                              self.quirks_mode,
                                               flags_setter,
                                               CascadeLevel::UANormal);
         debug!("UA normal: {:?}", context.relations);
@@ -1045,6 +1050,7 @@ impl Stylist {
                                             &rule_hash_target,
                                             applicable_declarations,
                                             context,
+                                            self.quirks_mode,
                                             flags_setter,
                                             CascadeLevel::UserNormal);
             debug!("user normal: {:?}", context.relations);
@@ -1066,6 +1072,7 @@ impl Stylist {
                                                   &rule_hash_target,
                                                   applicable_declarations,
                                                   context,
+                                              self.quirks_mode,
                                                   flags_setter,
                                                   CascadeLevel::AuthorNormal);
                 debug!("author normal: {:?}", context.relations);
@@ -1176,15 +1183,17 @@ impl Stylist {
         // the lookups, which means that the bitvecs are comparable. We verify
         // this in the caller by asserting that the bitvecs are same-length.
         let mut results = BitVec::new();
-        self.selectors_for_cache_revalidation.lookup(*element, &mut |selector_and_hashes| {
-            results.push(matches_selector(&selector_and_hashes.selector,
-                                          selector_and_hashes.selector_offset,
-                                          &selector_and_hashes.hashes,
-                                          element,
-                                          &mut matching_context,
-                                          flags_setter));
-            true
-        });
+        self.selectors_for_cache_revalidation.lookup(
+            *element, self.quirks_mode, &mut |selector_and_hashes| {
+                results.push(matches_selector(&selector_and_hashes.selector,
+                                              selector_and_hashes.selector_offset,
+                                              &selector_and_hashes.hashes,
+                                              element,
+                                              &mut matching_context,
+                                              flags_setter));
+                true
+            }
+        );
 
         results
     }

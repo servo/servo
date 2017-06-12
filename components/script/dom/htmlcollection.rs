@@ -11,7 +11,7 @@ use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::xmlname::namespace_from_domstring;
 use dom::element::Element;
-use dom::node::Node;
+use dom::node::{Node, document_from_node};
 use dom::window::Window;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, QualName};
@@ -199,7 +199,10 @@ impl HTMLCollection {
         }
         impl CollectionFilter for ClassNameFilter {
             fn filter(&self, elem: &Element, _root: &Node) -> bool {
-                self.classes.iter().all(|class| elem.has_class(class))
+                let case_sensitivity = document_from_node(elem)
+                    .quirks_mode()
+                    .classes_and_ids_case_sensitivity();
+                self.classes.iter().all(|class| elem.has_class(class, case_sensitivity))
             }
         }
         let filter = ClassNameFilter {

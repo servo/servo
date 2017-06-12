@@ -7,9 +7,10 @@
 #![deny(missing_docs)]
 
 use Atom;
+use CaseSensitivityExt;
 use LocalName;
 use Namespace;
-use context::{SharedStyleContext, ThreadLocalStyleContext};
+use context::{SharedStyleContext, ThreadLocalStyleContext, QuirksMode};
 use dom::TElement;
 use element_state::*;
 #[cfg(feature = "gecko")]
@@ -19,7 +20,7 @@ use heapsize::HeapSizeOf;
 use selector_map::{SelectorMap, SelectorMapEntry};
 use selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl, Snapshot, SnapshotMap, AttrValue};
 use selectors::Element;
-use selectors::attr::{AttrSelectorOperation, NamespaceConstraint};
+use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
 use selectors::matching::{ElementSelectorFlags, LocalMatchingContext, MatchingContext, MatchingMode};
 use selectors::matching::{RelevantLinkStatus, VisitedHandlingMode, matches_selector};
 use selectors::parser::{AncestorHashes, Combinator, Component};
@@ -549,7 +550,7 @@ pub trait ElementSnapshot : Sized {
 
     /// Whether this snapshot contains the class `name`. Should only be called
     /// if `has_attrs()` returns true.
-    fn has_class(&self, name: &Atom) -> bool;
+    fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool;
 
     /// A callback that should be called for each class of the snapshot. Should
     /// only be called if `has_attrs()` returns true.
@@ -820,19 +821,21 @@ impl<'a, E> Element for ElementWrapper<'a, E>
         }
     }
 
-    fn get_id(&self) -> Option<Atom> {
+    fn has_id(&self, id: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         match self.snapshot() {
-            Some(snapshot) if snapshot.has_attrs()
-                => snapshot.id_attr(),
-            _   => self.element.get_id()
+            Some(snapshot) if snapshot.has_attrs() => {
+                snapshot.id_attr().map_or(false, |atom| case_sensitivity.eq_atom(&atom, id))
+            }
+            _ => self.element.has_id(id, case_sensitivity)
         }
     }
 
-    fn has_class(&self, name: &Atom) -> bool {
+    fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         match self.snapshot() {
-            Some(snapshot) if snapshot.has_attrs()
-                => snapshot.has_class(name),
-            _   => self.element.has_class(name)
+            Some(snapshot) if snapshot.has_attrs() => {
+                snapshot.has_class(name, case_sensitivity)
+            }
+            _ => self.element.has_class(name, case_sensitivity)
         }
     }
 
@@ -1006,7 +1009,8 @@ pub enum HintComputationContext<'a, E: 'a>
 
 impl DependencySet {
     /// Adds a selector to this `DependencySet`.
-    pub fn note_selector(&mut self, selector_and_hashes: &SelectorAndHashes<SelectorImpl>) {
+    pub fn note_selector(&mut self, selector_and_hashes: &SelectorAndHashes<SelectorImpl>,
+                         quirks_mode: QuirksMode) {
         let mut combinator = None;
         let mut iter = selector_and_hashes.selector.iter();
         let mut index = 0;
@@ -1073,7 +1077,7 @@ impl DependencySet {
                     selector: selector_and_hashes.selector.clone(),
                     selector_offset: sequence_start,
                     hashes: hashes,
-                });
+                }, quirks_mode);
             }
 
             combinator = iter.next_sequence();
@@ -1149,7 +1153,7 @@ impl DependencySet {
             }
 
             snapshot.each_class(|c| {
-                if !el.has_class(c) {
+                if !el.has_class(c, CaseSensitivity::CaseSensitive) {
                     additional_classes.push(c.clone())
                 }
             });
@@ -1172,8 +1176,9 @@ impl DependencySet {
             *el
         };
 
-        self.dependencies
-            .lookup_with_additional(lookup_element, additional_id, &additional_classes, &mut |dep| {
+        self.dependencies.lookup_with_additional(
+            lookup_element, shared_context.quirks_mode, additional_id, &additional_classes,
+            &mut |dep| {
             trace!("scanning dependency: {:?}", dep);
 
             if !dep.sensitivities.sensitive_to(attrs_changed,

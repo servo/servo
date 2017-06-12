@@ -9,25 +9,12 @@ use parser::{Selector, SelectorImpl, SelectorIter, SelectorList};
 use std::borrow::Borrow;
 use tree::Element;
 
+pub use context::*;
+
 // The bloom filter for descendant CSS selectors will have a <1% false
 // positive rate until it has this many selectors in it, then it will
 // rapidly increase.
 pub static RECOMMENDED_SELECTOR_BLOOM_FILTER_SIZE: usize = 4096;
-
-bitflags! {
-    /// Set of flags that determine the different kind of elements affected by
-    /// the selector matching process.
-    ///
-    /// This is used to implement efficient sharing.
-    #[derive(Default)]
-    pub flags StyleRelations: usize {
-        /// Whether this element is affected by presentational hints. This is
-        /// computed externally (that is, in Servo).
-        const AFFECTED_BY_PRESENTATIONAL_HINTS = 1 << 0,
-        /// Whether this element has pseudo-element styles. Computed externally.
-        const AFFECTED_BY_PSEUDO_ELEMENTS = 1 << 1,
-    }
-}
 
 bitflags! {
     /// Set of flags that are set on either the element or its parent (depending
@@ -63,111 +50,6 @@ impl ElementSelectorFlags {
     /// Returns the subset of flags that apply to the parent.
     pub fn for_parent(self) -> ElementSelectorFlags {
         self & (HAS_SLOW_SELECTOR | HAS_SLOW_SELECTOR_LATER_SIBLINGS | HAS_EDGE_CHILD_SELECTOR)
-    }
-}
-
-/// What kind of selector matching mode we should use.
-///
-/// There are two modes of selector matching. The difference is only noticeable
-/// in presence of pseudo-elements.
-#[derive(Debug, PartialEq, Copy, Clone)]
-pub enum MatchingMode {
-    /// Don't ignore any pseudo-element selectors.
-    Normal,
-
-    /// Ignores any stateless pseudo-element selectors in the rightmost sequence
-    /// of simple selectors.
-    ///
-    /// This is useful, for example, to match against ::before when you aren't a
-    /// pseudo-element yourself.
-    ///
-    /// For example, in presence of `::before:hover`, it would never match, but
-    /// `::before` would be ignored as in "matching".
-    ///
-    /// It's required for all the selectors you match using this mode to have a
-    /// pseudo-element.
-    ForStatelessPseudoElement,
-}
-
-/// The mode to use when matching unvisited and visited links.
-#[derive(PartialEq, Eq, Copy, Clone, Debug)]
-pub enum VisitedHandlingMode {
-    /// All links are matched as if they are unvisted.
-    AllLinksUnvisited,
-    /// A element's "relevant link" is the element being matched if it is a link
-    /// or the nearest ancestor link. The relevant link is matched as though it
-    /// is visited, and all other links are matched as if they are unvisited.
-    RelevantLinkVisited,
-}
-
-/// Which quirks mode is this document in.
-///
-/// See: https://quirks.spec.whatwg.org/
-#[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
-pub enum QuirksMode {
-    /// Quirks mode.
-    Quirks,
-    /// Limited quirks mode.
-    LimitedQuirks,
-    /// No quirks mode.
-    NoQuirks,
-}
-
-/// Data associated with the matching process for a element.  This context is
-/// used across many selectors for an element, so it's not appropriate for
-/// transient data that applies to only a single selector.
-#[derive(Clone)]
-pub struct MatchingContext<'a> {
-    /// Output that records certains relations between elements noticed during
-    /// matching (and also extended after matching).
-    pub relations: StyleRelations,
-    /// Input with the matching mode we should use when matching selectors.
-    pub matching_mode: MatchingMode,
-    /// Input with the bloom filter used to fast-reject selectors.
-    pub bloom_filter: Option<&'a BloomFilter>,
-    /// Input that controls how matching for links is handled.
-    pub visited_handling: VisitedHandlingMode,
-    /// Output that records whether we encountered a "relevant link" while
-    /// matching _any_ selector for this element. (This differs from
-    /// `RelevantLinkStatus` which tracks the status for the _current_ selector
-    /// only.)
-    pub relevant_link_found: bool,
-    /// The quirks mode of the document.
-    pub quirks_mode: QuirksMode,
-}
-
-impl<'a> MatchingContext<'a> {
-    /// Constructs a new `MatchingContext`.
-    pub fn new(matching_mode: MatchingMode,
-               bloom_filter: Option<&'a BloomFilter>,
-               quirks_mode: QuirksMode)
-               -> Self
-    {
-        Self {
-            relations: StyleRelations::empty(),
-            matching_mode: matching_mode,
-            bloom_filter: bloom_filter,
-            visited_handling: VisitedHandlingMode::AllLinksUnvisited,
-            relevant_link_found: false,
-            quirks_mode: quirks_mode,
-        }
-    }
-
-    /// Constructs a new `MatchingContext` for use in visited matching.
-    pub fn new_for_visited(matching_mode: MatchingMode,
-                           bloom_filter: Option<&'a BloomFilter>,
-                           visited_handling: VisitedHandlingMode,
-                           quirks_mode: QuirksMode)
-                           -> Self
-    {
-        Self {
-            relations: StyleRelations::empty(),
-            matching_mode: matching_mode,
-            bloom_filter: bloom_filter,
-            visited_handling: visited_handling,
-            relevant_link_found: false,
-            quirks_mode: quirks_mode,
-        }
     }
 }
 
@@ -208,7 +90,7 @@ impl<'a, 'b, Impl> LocalMatchingContext<'a, 'b, Impl>
     /// Updates offset of Selector to show new compound selector.
     /// To be able to correctly re-synthesize main SelectorIter.
     pub fn note_next_sequence(&mut self, selector_iter: &SelectorIter<Impl>) {
-        if let QuirksMode::Quirks = self.shared.quirks_mode {
+        if let QuirksMode::Quirks = self.shared.quirks_mode() {
             self.offset = self.selector.len() - selector_iter.selector_length();
         }
     }
@@ -216,7 +98,7 @@ impl<'a, 'b, Impl> LocalMatchingContext<'a, 'b, Impl>
     /// Returns true if current compound selector matches :active and :hover quirk.
     /// https://quirks.spec.whatwg.org/#the-active-and-hover-quirk
     pub fn active_hover_quirk_matches(&mut self) -> bool {
-        if self.shared.quirks_mode != QuirksMode::Quirks ||
+        if self.shared.quirks_mode() != QuirksMode::Quirks ||
            self.within_functional_pseudo_class_argument {
             return false;
         }
@@ -666,12 +548,11 @@ fn matches_simple_selector<E, F>(
             let ns = ::parser::namespace_empty_string::<E::Impl>();
             element.get_namespace() == ns.borrow()
         }
-        // TODO: case-sensitivity depends on the document type and quirks mode
         Component::ID(ref id) => {
-            element.get_id().map_or(false, |attr| attr == *id)
+            element.has_id(id, context.shared.classes_and_ids_case_sensitivity())
         }
         Component::Class(ref class) => {
-            element.has_class(class)
+            element.has_class(class, context.shared.classes_and_ids_case_sensitivity())
         }
         Component::AttributeInNoNamespaceExists { ref local_name, ref local_name_lower } => {
             let is_html = element.is_html_element_in_html_document();

@@ -85,7 +85,7 @@ use net_traits::request::CorsSettings;
 use ref_filter_map::ref_filter_map;
 use script_layout_interface::message::ReflowQueryType;
 use script_thread::Runnable;
-use selectors::attr::{AttrSelectorOperation, NamespaceConstraint};
+use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
 use selectors::matching::{ElementSelectorFlags, LocalMatchingContext, MatchingContext, MatchingMode};
 use selectors::matching::{HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
 use selectors::matching::{RelevantLinkStatus, matches_selector_list};
@@ -97,6 +97,7 @@ use std::convert::TryFrom;
 use std::default::Default;
 use std::fmt;
 use std::rc::Rc;
+use style::CaseSensitivityExt;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::{QuirksMode, ReflowGoal};
@@ -345,7 +346,7 @@ impl RawLayoutElementHelpers for Element {
 
 pub trait LayoutElementHelpers {
     #[allow(unsafe_code)]
-    unsafe fn has_class_for_layout(&self, name: &Atom) -> bool;
+    unsafe fn has_class_for_layout(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool;
     #[allow(unsafe_code)]
     unsafe fn get_classes_for_layout(&self) -> Option<&'static [Atom]>;
 
@@ -373,9 +374,9 @@ pub trait LayoutElementHelpers {
 impl LayoutElementHelpers for LayoutJS<Element> {
     #[allow(unsafe_code)]
     #[inline]
-    unsafe fn has_class_for_layout(&self, name: &Atom) -> bool {
+    unsafe fn has_class_for_layout(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         get_attr_for_layout(&*self.unsafe_get(), &ns!(), &local_name!("class")).map_or(false, |attr| {
-            attr.value_tokens_forever().unwrap().iter().any(|atom| atom == name)
+            attr.value_tokens_forever().unwrap().iter().any(|atom| case_sensitivity.eq_atom(atom, name))
         })
     }
 
@@ -1158,16 +1159,10 @@ impl Element {
         })
     }
 
-    pub fn has_class(&self, name: &Atom) -> bool {
-        let quirks_mode = document_from_node(self).quirks_mode();
-        let is_equal = |lhs: &Atom, rhs: &Atom| {
-            match quirks_mode {
-                QuirksMode::NoQuirks | QuirksMode::LimitedQuirks => lhs == rhs,
-                QuirksMode::Quirks => lhs.eq_ignore_ascii_case(&rhs),
-            }
-        };
-        self.get_attribute(&ns!(), &local_name!("class"))
-            .map_or(false, |attr| attr.value().as_tokens().iter().any(|atom| is_equal(name, atom)))
+    pub fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
+        self.get_attribute(&ns!(), &local_name!("class")).map_or(false, |attr| {
+            attr.value().as_tokens().iter().any(|atom| case_sensitivity.eq_atom(name, atom))
+        })
     }
 
     pub fn set_atomic_attribute(&self, local_name: &LocalName, value: DOMString) {
@@ -2503,12 +2498,12 @@ impl<'a> ::selectors::Element for Root<Element> {
         }
     }
 
-    fn get_id(&self) -> Option<Atom> {
-        self.id_attribute.borrow().clone()
+    fn has_id(&self, id: &Atom, case_sensitivity: CaseSensitivity) -> bool {
+        self.id_attribute.borrow().as_ref().map_or(false, |atom| case_sensitivity.eq_atom(id, atom))
     }
 
-    fn has_class(&self, name: &Atom) -> bool {
-        Element::has_class(&**self, name)
+    fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
+        Element::has_class(&**self, name, case_sensitivity)
     }
 
     fn is_html_element_in_html_document(&self) -> bool {

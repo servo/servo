@@ -12,6 +12,7 @@ use data::StoredRestyleHint;
 use dom::{TElement, TNode};
 use fnv::FnvHashSet;
 use selector_parser::SelectorImpl;
+use selectors::attr::CaseSensitivity;
 use selectors::parser::{Component, Selector};
 use shared_lock::SharedRwLockReadGuard;
 use stylesheets::{CssRule, Stylesheet};
@@ -37,7 +38,7 @@ impl InvalidationScope {
     {
         match *self {
             InvalidationScope::Class(ref class) => {
-                element.has_class(class)
+                element.has_class(class, CaseSensitivity::CaseSensitive)
             }
             InvalidationScope::ID(ref id) => {
                 match element.get_id() {

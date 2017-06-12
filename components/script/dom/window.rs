@@ -84,7 +84,7 @@ use script_traits::{ConstellationControlMsg, DocumentState, LoadData, MozBrowser
 use script_traits::{ScriptMsg as ConstellationMsg, ScrollState, TimerEvent, TimerEventId};
 use script_traits::{TimerSchedulerMsg, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
-use servo_atoms::Atom;
+use selectors::attr::CaseSensitivity;
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_geometry::{f32_rect_to_au_rect, max_rect};
@@ -1365,7 +1365,7 @@ impl Window {
             // See http://testthewebforward.org/docs/reftests.html
             let html_element = document.GetDocumentElement();
             let reftest_wait = html_element.map_or(false, |elem| {
-                elem.has_class(&Atom::from("reftest-wait"))
+                elem.has_class(&atom!("reftest-wait"), CaseSensitivity::CaseSensitive)
             });
 
             let ready_state = document.ReadyState();

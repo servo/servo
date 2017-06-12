@@ -14,6 +14,7 @@
 //! style system it's kind of pointless in the Stylo case, and only Servo forces
 //! the separation between the style system implementation and everything else.
 
+use CaseSensitivityExt;
 use app_units::Au;
 use applicable_declarations::ApplicableDeclarationBlock;
 use atomic_refcell::AtomicRefCell;
@@ -741,6 +742,23 @@ impl<'le> TElement for GeckoElement<'le> {
             bindings::Gecko_HasAttr(self.0,
                                     namespace.0.as_ptr(),
                                     attr.as_ptr())
+        }
+    }
+
+    fn get_id(&self) -> Option<Atom> {
+        if !self.has_id() {
+            return None
+        }
+
+        let ptr = unsafe {
+            bindings::Gecko_AtomAttrValue(self.0,
+                                          atom!("id").as_ptr())
+        };
+
+        if ptr.is_null() {
+            None
+        } else {
+            Some(Atom::from(ptr))
         }
     }
 
@@ -1574,30 +1592,30 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         self.get_state().intersects(NonTSPseudoClass::AnyLink.state_flag())
     }
 
-    fn get_id(&self) -> Option<Atom> {
+    fn has_id(&self, id: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         if !self.has_id() {
-            return None;
+            return false
         }
 
-        let ptr = unsafe {
-            bindings::Gecko_AtomAttrValue(self.0,
-                                          atom!("id").as_ptr())
-        };
+        unsafe {
+            let ptr = bindings::Gecko_AtomAttrValue(self.0, atom!("id").as_ptr());
 
-        if ptr.is_null() {
-            None
-        } else {
-            Some(Atom::from(ptr))
+            if ptr.is_null() {
+                false
+            } else {
+                case_sensitivity.eq_atom(WeakAtom::new(ptr), id)
+            }
         }
     }
 
-    fn has_class(&self, name: &Atom) -> bool {
+    fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         if !self.may_have_class() {
             return false;
         }
 
         snapshot_helpers::has_class(self.0,
                                     name,
+                                    case_sensitivity,
                                     Gecko_ClassOrClassList)
     }
 
