@@ -97,8 +97,8 @@ pub struct MatchingContext<'a> {
     /// `RelevantLinkStatus` which tracks the status for the _current_ selector
     /// only.)
     pub relevant_link_found: bool,
-    /// The quirks mode of the document.
-    pub quirks_mode: QuirksMode,
+
+    quirks_mode: QuirksMode,
 }
 
 impl<'a> MatchingContext<'a> {
@@ -133,5 +133,11 @@ impl<'a> MatchingContext<'a> {
             relevant_link_found: false,
             quirks_mode: quirks_mode,
         }
+    }
+
+    /// The quirks mode of the document.
+    #[inline]
+    pub fn quirks_mode(&self) -> QuirksMode {
+        self.quirks_mode
     }
 }
