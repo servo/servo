@@ -499,7 +499,7 @@ unsafe extern "C" fn throw_dom_exception_callback(cx: *mut JSContext) {
 }
 
 unsafe extern "C" fn is_frame_id(cx: *mut JSContext, obj: *mut JSObject, id_arg: jsid) -> bool {
-    println!("is frame id");
+    // println!("is frame id");
     /*if IsWrapper(obj) {
         return false;
     } 
