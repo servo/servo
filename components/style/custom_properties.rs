@@ -66,7 +66,7 @@ pub struct BorrowedSpecifiedValue<'a> {
 
 /// A computed value is just a set of tokens as well, until we resolve variables
 /// properly.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct ComputedValue {
     css: String,

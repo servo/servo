@@ -64,7 +64,16 @@ impl ServoRestyleDamage {
                                     new: &ServoComputedValues)
                                     -> StyleDifference {
         let damage = compute_damage(old, new);
-        let change = if damage.is_empty() { StyleChange::Unchanged } else { StyleChange::Changed };
+        // If computed values for custom properties changed, we should cascade these changes to
+        // children (custom properties are all inherited).
+        // https://www.w3.org/TR/css-variables/#defining-variables
+        // (With Properties & Values, not all custom properties will be inherited!)
+        let variable_values_changed = old.get_custom_properties() != new.get_custom_properties();
+        let change = if damage.is_empty() && !variable_values_changed {
+            StyleChange::Unchanged
+        } else {
+            StyleChange::Changed
+        };
         StyleDifference::new(damage, change)
     }
 
