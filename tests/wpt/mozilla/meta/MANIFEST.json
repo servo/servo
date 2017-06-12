@@ -6449,6 +6449,18 @@
      {}
     ]
    ],
+   "mozilla/canvas/set_dimensions.html": [
+    [
+     "/_mozilla/mozilla/canvas/set_dimensions.html",
+     [
+      [
+       "/_mozilla/mozilla/canvas/set_dimensions_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "mozilla/details_ui_closed.html": [
     [
      "/_mozilla/mozilla/details_ui_closed.html",
@@ -9566,6 +9578,11 @@
     ]
    ],
    "mozilla/bluetooth/bluetooth-helpers.js": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/canvas/set_dimensions_ref.html": [
     [
      {}
     ]
@@ -25492,6 +25509,14 @@
   "mozilla/canvas/fill_and_stroke_getters_setters.html": [
    "794dd75566d0e2086deb0dcfc727dfe1834ca17e",
    "testharness"
+  ],
+  "mozilla/canvas/set_dimensions.html": [
+   "db6e4fa9b3480609a9a3a582430c64fb49b2b047",
+   "reftest"
+  ],
+  "mozilla/canvas/set_dimensions_ref.html": [
+   "dd9ab8e1a360063d40e5155c1228e69154fa0966",
+   "support"
   ],
   "mozilla/caption.html": [
    "51ed2927d2f3910fb9c2dc4bb1ea4d41c261c8c1",

@@ -291,13 +291,17 @@ impl WebGLPaintThread {
     #[allow(unsafe_code)]
     fn recreate(&mut self, size: Size2D<i32>) -> Result<(), &'static str> {
         match self.data {
-            WebGLPaintTaskData::Readback(ref mut context, _, _) => {
+            WebGLPaintTaskData::Readback(ref mut context, ref webrender_api, ref mut image_key) => {
                 if size.width > self.size.width ||
                    size.height > self.size.height {
                     self.size = try!(context.resize(size));
                 } else {
                     self.size = size;
                     context.gl().scissor(0, 0, size.width, size.height);
+                }
+                // Webrender doesn't let images change size, so we clear the webrender image key.
+                if let Some(image_key) = image_key.take() {
+                    webrender_api.delete_image(image_key);
                 }
             }
             WebGLPaintTaskData::WebRender(ref api, id) => {
