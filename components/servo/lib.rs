@@ -21,6 +21,7 @@ extern crate env_logger;
 #[cfg(not(target_os = "windows"))]
 extern crate gaol;
 extern crate gleam;
+#[macro_use]
 extern crate log;
 
 pub extern crate bluetooth;
@@ -243,7 +244,23 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         Browser {
             compositor: compositor,
             constellation_chan: constellation_chan,
-            embedder_receiver: embedder_receiver
+            embedder_receiver: embedder_receiver,
+        }
+    }
+
+    fn handle_window_event(&mut self, event: WindowEvent) {
+        match event {
+            WindowEvent::Reload => {
+                let top_level_browsing_context_id = match self.compositor.root_pipeline {
+                    Some(ref pipeline) => pipeline.top_level_browsing_context_id,
+                    None => return warn!("Window reload without root pipeline."),
+                };
+                let msg = ConstellationMsg::Reload(top_level_browsing_context_id);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending reload to constellation failed ({}).", e);
+                }
+            },
+            _ => {},
         }
     }
 
@@ -263,6 +280,9 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 },
                 (_, _) => {},
             }
+        }
+        for event in events.clone() {
+            self.handle_window_event(event);
         }
         self.compositor.handle_events(events)
     }
