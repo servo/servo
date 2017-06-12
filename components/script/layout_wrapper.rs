@@ -61,6 +61,7 @@ use std::marker::PhantomData;
 use std::mem::transmute;
 use std::sync::atomic::Ordering;
 use style;
+use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::AttrValue;
 use style::computed_values::display;
 use style::context::{QuirksMode, SharedStyleContext};
@@ -76,7 +77,6 @@ use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocke
 use style::sink::Push;
 use style::str::is_whitespace;
 use style::stylearc::Arc;
-use style::stylist::ApplicableDeclarationBlock;
 
 #[derive(Copy, Clone)]
 pub struct ServoLayoutNode<'a> {

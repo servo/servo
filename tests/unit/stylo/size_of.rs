@@ -6,11 +6,11 @@ use selectors::gecko_like_types as dummies;
 use servo_arc::Arc;
 use std::mem::{size_of, align_of};
 use style;
+use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::data::{ComputedStyle, ElementData, ElementStyles};
 use style::gecko::selector_parser as real;
 use style::properties::ComputedValues;
 use style::rule_tree::StrongRuleNode;
-use style::stylist::ApplicableDeclarationBlock;
 
 #[test]
 fn size_of_selectors_dummy_types() {

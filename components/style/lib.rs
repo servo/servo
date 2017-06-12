@@ -91,6 +91,7 @@ extern crate unicode_segmentation;
 mod macros;
 
 pub mod animation;
+pub mod applicable_declarations;
 #[allow(missing_docs)] // TODO.
 #[cfg(feature = "servo")] pub mod attr;
 pub mod bezier;

@@ -6,6 +6,7 @@
 
 //! The rule tree.
 
+use applicable_declarations::ApplicableDeclarationList;
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
 use properties::{AnimationRules, Importance, LonghandIdSet, PropertyDeclarationBlock};
@@ -17,7 +18,6 @@ use std::ptr;
 use std::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
 use stylearc::{Arc, NonZeroPtrMut};
 use stylesheets::StyleRule;
-use stylist::ApplicableDeclarationList;
 use thread_state;
 
 /// The rule tree, the structure servo uses to preserve the results of selector
@@ -230,7 +230,7 @@ impl RuleTree {
                              guards: &StylesheetGuards)
                              -> StrongRuleNode
     {
-        let rules = applicable_declarations.drain().map(|d| d.source_and_level());
+        let rules = applicable_declarations.drain().map(|d| d.order_and_level());
         let rule_node = self.insert_ordered_rules_with_important(rules, guards);
         rule_node
     }

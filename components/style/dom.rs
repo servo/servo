@@ -8,6 +8,7 @@
 #![deny(missing_docs)]
 
 use {Atom, Namespace, LocalName};
+use applicable_declarations::ApplicableDeclarationBlock;
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 #[cfg(feature = "gecko")] use context::UpdateAnimationsTasks;
 use data::ElementData;
@@ -29,7 +30,6 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Deref;
 use stylearc::Arc;
-use stylist::ApplicableDeclarationBlock;
 use thread_state;
 
 pub use style_traits::UnsafeNode;

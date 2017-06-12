@@ -7,6 +7,7 @@
 #![allow(unsafe_code)]
 #![deny(missing_docs)]
 
+use applicable_declarations::ApplicableDeclarationList;
 use cascade_info::CascadeInfo;
 use context::{SelectorFlagsMap, SharedStyleContext, StyleContext};
 use data::{ComputedStyle, ElementData, RestyleData};
@@ -25,7 +26,7 @@ use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode, S
 use selectors::matching::{VisitedHandlingMode, AFFECTED_BY_PSEUDO_ELEMENTS};
 use sharing::StyleSharingBehavior;
 use stylearc::Arc;
-use stylist::{ApplicableDeclarationList, RuleInclusion};
+use stylist::RuleInclusion;
 
 /// The way a style should be inherited.
 enum InheritMode {
