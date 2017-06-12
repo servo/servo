@@ -155,6 +155,11 @@ impl StylesheetInvalidationSet {
             return true;
         }
 
+        if self.invalid_scopes.is_empty() {
+            debug!("process_invalidations_in_subtree: empty invalidation set");
+            return false;
+        }
+
         for scope in &self.invalid_scopes {
             if scope.matches(element) {
                 debug!("process_invalidations_in_subtree: {:?} matched {:?}",
