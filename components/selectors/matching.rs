@@ -549,10 +549,10 @@ fn matches_simple_selector<E, F>(
             element.get_namespace() == ns.borrow()
         }
         Component::ID(ref id) => {
-            element.has_id(id, context.shared.quirks_mode().classes_and_ids_case_sensitivity())
+            element.has_id(id, context.shared.classes_and_ids_case_sensitivity())
         }
         Component::Class(ref class) => {
-            element.has_class(class, context.shared.quirks_mode().classes_and_ids_case_sensitivity())
+            element.has_class(class, context.shared.classes_and_ids_case_sensitivity())
         }
         Component::AttributeInNoNamespaceExists { ref local_name, ref local_name_lower } => {
             let is_html = element.is_html_element_in_html_document();

@@ -99,6 +99,7 @@ pub struct MatchingContext<'a> {
     pub relevant_link_found: bool,
 
     quirks_mode: QuirksMode,
+    classes_and_ids_case_sensitivity: CaseSensitivity,
 }
 
 impl<'a> MatchingContext<'a> {
@@ -115,6 +116,7 @@ impl<'a> MatchingContext<'a> {
             visited_handling: VisitedHandlingMode::AllLinksUnvisited,
             relevant_link_found: false,
             quirks_mode: quirks_mode,
+            classes_and_ids_case_sensitivity: quirks_mode.classes_and_ids_case_sensitivity(),
         }
     }
 
@@ -132,6 +134,7 @@ impl<'a> MatchingContext<'a> {
             visited_handling: visited_handling,
             relevant_link_found: false,
             quirks_mode: quirks_mode,
+            classes_and_ids_case_sensitivity: quirks_mode.classes_and_ids_case_sensitivity(),
         }
     }
 
@@ -139,5 +142,11 @@ impl<'a> MatchingContext<'a> {
     #[inline]
     pub fn quirks_mode(&self) -> QuirksMode {
         self.quirks_mode
+    }
+
+    /// The case-sensitivity for class and ID selectors
+    #[inline]
+    pub fn classes_and_ids_case_sensitivity(&self) -> CaseSensitivity {
+        self.classes_and_ids_case_sensitivity
     }
 }
