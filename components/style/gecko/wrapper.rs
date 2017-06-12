@@ -1593,7 +1593,19 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     }
 
     fn has_id(&self, id: &Atom, case_sensitivity: CaseSensitivity) -> bool {
-        self.get_id().map_or(false, |atom| case_sensitivity.eq_atom(&atom, id))
+        if !self.has_id() {
+            return false
+        }
+
+        unsafe {
+            let ptr = bindings::Gecko_AtomAttrValue(self.0, atom!("id").as_ptr());
+
+            if ptr.is_null() {
+                false
+            } else {
+                case_sensitivity.eq_atom(WeakAtom::new(ptr), id)
+            }
+        }
     }
 
     fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
