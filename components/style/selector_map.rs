@@ -6,6 +6,7 @@
 //! name, ids and hash.
 
 use {Atom, LocalName};
+use applicable_declarations::ApplicableDeclarationBlock;
 use dom::TElement;
 use fnv::FnvHashMap;
 use pdqsort::sort_by;
@@ -18,7 +19,7 @@ use smallvec::VecLike;
 use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::hash::Hash;
-use stylist::{ApplicableDeclarationBlock, Rule};
+use stylist::Rule;
 
 /// A trait to abstract over a given selector map entry.
 pub trait SelectorMapEntry : Sized + Clone {
@@ -163,7 +164,7 @@ impl SelectorMap<Rule> {
 
         // Sort only the rules we just added.
         sort_by_key(&mut matching_rules_list[init_len..],
-                    |block| (block.specificity, block.source_order));
+                    |block| (block.specificity, block.source_order()));
     }
 
     /// Check whether we have rules for the given id
@@ -190,7 +191,7 @@ impl SelectorMap<Rule> {
         }
 
         sort_by_key(&mut rules_list,
-                    |block| (block.specificity, block.source_order));
+                    |block| (block.specificity, block.source_order()));
 
         rules_list
     }

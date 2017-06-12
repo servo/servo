@@ -5,6 +5,7 @@
 //! Selector matching.
 
 use {Atom, LocalName, Namespace};
+use applicable_declarations::{ApplicableDeclarationBlock, ApplicableDeclarationList};
 use bit_vec::BitVec;
 use context::{QuirksMode, SharedStyleContext};
 use data::ComputedStyle;
@@ -33,7 +34,8 @@ use selectors::parser::{SelectorIter, SelectorMethods};
 use selectors::visitor::SelectorVisitor;
 use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use sink::Push;
-use smallvec::{SmallVec, VecLike};
+use smallvec::VecLike;
+use std::fmt::Debug;
 #[cfg(feature = "servo")]
 use std::marker::PhantomData;
 use style_traits::viewport::ViewportConstraints;
@@ -47,15 +49,6 @@ use stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
 use thread_state;
 
 pub use ::fnv::FnvHashMap;
-
-/// List of applicable declaration. This is a transient structure that shuttles
-/// declarations between selector matching and inserting into the rule tree, and
-/// therefore we want to avoid heap-allocation where possible.
-///
-/// In measurements on wikipedia, we pretty much never have more than 8 applicable
-/// declarations, so we could consider making this 8 entries instead of 16.
-/// However, it may depend a lot on workload, and stack space is cheap.
-pub type ApplicableDeclarationList = SmallVec<[ApplicableDeclarationBlock; 16]>;
 
 /// This structure holds all the selectors and device characteristics
 /// for a given document. The selectors are converted into `Rule`s
@@ -121,7 +114,7 @@ pub struct Stylist {
 
     /// A monotonically increasing counter to represent the order on which a
     /// style rule appears in a stylesheet, needed to sort them by source order.
-    rules_source_order: usize,
+    rules_source_order: u32,
 
     /// Selector dependencies used to compute restyle hints.
     dependencies: DependencySet,
@@ -584,7 +577,7 @@ impl Stylist {
                 // FIXME(emilio): When we've taken rid of the cascade we can just
                 // use into_iter.
                 self.rule_tree.insert_ordered_rules_with_important(
-                    declarations.into_iter().map(|a| (a.source.clone(), a.level)),
+                    declarations.into_iter().map(|a| (a.source.clone(), a.level())),
                     guards)
             }
             None => self.rule_tree.root(),
@@ -770,7 +763,7 @@ impl Stylist {
 
         let rule_node =
             self.rule_tree.insert_ordered_rules_with_important(
-                declarations.into_iter().map(|a| (a.source, a.level)),
+                declarations.into_iter().map(|a| a.order_and_level()),
                 guards);
         if rule_node == self.rule_tree.root() {
             None
@@ -975,7 +968,7 @@ impl Stylist {
                                         context: &mut MatchingContext,
                                         flags_setter: &mut F)
         where E: TElement,
-              V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock> + ::std::fmt::Debug,
+              V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock> + Debug,
               F: FnMut(&E, ElementSelectorFlags),
     {
         debug_assert!(!self.is_device_dirty);
@@ -1027,7 +1020,7 @@ impl Stylist {
             if applicable_declarations.len() != length_before_preshints {
                 if cfg!(debug_assertions) {
                     for declaration in &applicable_declarations[length_before_preshints..] {
-                        assert_eq!(declaration.level, CascadeLevel::PresHints);
+                        assert_eq!(declaration.level(), CascadeLevel::PresHints);
                     }
                 }
                 // Note the existence of presentational attributes so that the
@@ -1222,7 +1215,7 @@ impl Stylist {
                                                           CascadeLevel::StyleAttributeNormal)
         ];
         let rule_node =
-            self.rule_tree.insert_ordered_rules(v.into_iter().map(|a| (a.source, a.level)));
+            self.rule_tree.insert_ordered_rules(v.into_iter().map(|a| a.order_and_level()));
 
         // This currently ignores visited styles.  It appears to be used for
         // font styles in <canvas> via Servo_StyleSet_ResolveForDeclarations.
@@ -1513,11 +1506,13 @@ pub struct Rule {
     /// The ancestor hashes associated with the selector.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "No heap data")]
     pub hashes: AncestorHashes,
+    /// The source order this style rule appears in. Note that we only use
+    /// three bytes to store this value in ApplicableDeclarationsBlock, so
+    /// we could repurpose that storage here if we needed to.
+    pub source_order: u32,
     /// The actual style rule.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     pub style_rule: Arc<Locked<StyleRule>>,
-    /// The source order this style rule appears in.
-    pub source_order: usize,
 }
 
 impl SelectorMapEntry for Rule {
@@ -1541,19 +1536,18 @@ impl Rule {
     pub fn to_applicable_declaration_block(&self,
                                            level: CascadeLevel)
                                            -> ApplicableDeclarationBlock {
-        ApplicableDeclarationBlock {
-            source: StyleSource::Style(self.style_rule.clone()),
-            source_order: self.source_order,
-            specificity: self.specificity(),
-            level: level,
-        }
+        let source = StyleSource::Style(self.style_rule.clone());
+        ApplicableDeclarationBlock::new(source,
+                                        self.source_order,
+                                        level,
+                                        self.specificity())
     }
 
     /// Creates a new Rule.
     pub fn new(selector: Selector<SelectorImpl>,
                hashes: AncestorHashes,
                style_rule: Arc<Locked<StyleRule>>,
-               source_order: usize)
+               source_order: u32)
                -> Self
     {
         Rule {
@@ -1561,41 +1555,6 @@ impl Rule {
             hashes: hashes,
             style_rule: style_rule,
             source_order: source_order,
-        }
-    }
-}
-
-/// A property declaration together with its precedence among rules of equal
-/// specificity so that we can sort them.
-///
-/// This represents the declarations in a given declaration block for a given
-/// importance.
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Debug, Clone, PartialEq)]
-pub struct ApplicableDeclarationBlock {
-    /// The style source, either a style rule, or a property declaration block.
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    pub source: StyleSource,
-    /// The source order of this block.
-    pub source_order: usize,
-    /// The specificity of the selector this block is represented by.
-    pub specificity: u32,
-    /// The cascade level this applicable declaration block is in.
-    pub level: CascadeLevel,
-}
-
-impl ApplicableDeclarationBlock {
-    /// Constructs an applicable declaration block from a given property
-    /// declaration block and importance.
-    #[inline]
-    pub fn from_declarations(declarations: Arc<Locked<PropertyDeclarationBlock>>,
-                             level: CascadeLevel)
-                             -> Self {
-        ApplicableDeclarationBlock {
-            source: StyleSource::Declarations(declarations),
-            source_order: 0,
-            specificity: 0,
-            level: level,
         }
     }
 }

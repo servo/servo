@@ -65,6 +65,7 @@
 //! elements makes sense.
 
 use Atom;
+use applicable_declarations::ApplicableDeclarationBlock;
 use bit_vec::BitVec;
 use bloom::StyleBloom;
 use cache::{LRUCache, LRUCacheMutIterator};
@@ -78,7 +79,7 @@ use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode, StyleRelati
 use smallvec::SmallVec;
 use std::mem;
 use std::ops::Deref;
-use stylist::{ApplicableDeclarationBlock, Stylist};
+use stylist::Stylist;
 
 mod checks;
 

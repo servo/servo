@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use attr::{ParsedAttrSelectorOperation, AttrSelectorOperation, NamespaceConstraint};
-use bloom::BloomFilter;
+use bloom::{BLOOM_HASH_MASK, BloomFilter};
 use parser::{AncestorHashes, Combinator, Component, LocalName};
 use parser::{Selector, SelectorImpl, SelectorIter, SelectorList};
 use std::borrow::Borrow;
@@ -279,19 +279,30 @@ fn may_match<E>(hashes: &AncestorHashes,
                 -> bool
     where E: Element,
 {
-    // Check against the list of precomputed hashes.
-    for hash in hashes.0.iter() {
-        // If we hit the 0 sentinel hash, that means the rest are zero as well.
-        if *hash == 0 {
-            break;
+    // Check the first three hashes. Note that we can check for zero before
+    // masking off the high bits, since if any of the first three hashes is
+    // zero the fourth will be as well. We also take care to avoid the
+    // special-case complexity of the fourth hash until we actually reach it,
+    // because we usually don't.
+    //
+    // To be clear: this is all extremely hot.
+    for i in 0..3 {
+        let packed = hashes.packed_hashes[i];
+        if packed == 0 {
+            // No more hashes left - unable to fast-reject.
+            return true;
         }
 
-        if !bf.might_contain_hash(*hash) {
+        if !bf.might_contain_hash(packed & BLOOM_HASH_MASK) {
+            // Hooray! We fast-rejected on this hash.
             return false;
         }
     }
 
-    true
+    // Now do the slighty-more-complex work of synthesizing the fourth hash,
+    // and check it against the filter if it exists.
+    let fourth = hashes.fourth_hash();
+    fourth == 0 || bf.might_contain_hash(fourth)
 }
 
 /// Tracks whether we are currently looking for relevant links for a given
