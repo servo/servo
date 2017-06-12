@@ -382,17 +382,19 @@ impl<'lb> GeckoXBLBinding<'lb> {
     // Implements Gecko's nsXBLBinding::WalkRules().
     fn get_declarations_for<E, V>(&self,
                                   element: &E,
+                                  pseudo_element: Option<&PseudoElement>,
                                   applicable_declarations: &mut V)
         where E: TElement,
               V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock> {
         if let Some(base_binding) = self.base_binding() {
-            base_binding.get_declarations_for(element, applicable_declarations);
+            base_binding.get_declarations_for(element, pseudo_element, applicable_declarations);
         }
 
         let raw_data = unsafe { bindings::Gecko_XBLBinding_GetRawServoStyleSet(self.0) };
         if let Some(raw_data) = raw_data {
             let data = PerDocumentStyleData::from_ffi(&*raw_data).borrow();
             data.stylist.push_applicable_declarations_as_xbl_only_stylist(element,
+                                                                          pseudo_element,
                                                                           applicable_declarations);
         }
     }
@@ -942,6 +944,7 @@ impl<'le> TElement for GeckoElement<'le> {
     // Implements Gecko's nsBindingManager::WalkRules(). Returns whether to cut off the
     // inheritance.
     fn get_declarations_from_xbl_bindings<V>(&self,
+                                             pseudo_element: Option<&PseudoElement>,
                                              applicable_declarations: &mut V)
                                              -> bool
         where V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock> {
@@ -951,7 +954,9 @@ impl<'le> TElement for GeckoElement<'le> {
 
         while let Some(element) = current {
             if let Some(binding) = element.get_xbl_binding() {
-                binding.get_declarations_for(self, applicable_declarations);
+                binding.get_declarations_for(self,
+                                             pseudo_element,
+                                             applicable_declarations);
 
                 // If we're not looking at our original element, allow the binding to cut off
                 // style inheritance.
