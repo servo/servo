@@ -434,33 +434,33 @@ interface TestBinding {
   sequence<sequence<long>> returnSequenceSequence();
   void passUnionSequenceSequence((long or sequence<sequence<long>>) seq);
 
-  void passMozMap(MozMap<long> arg);
-  void passNullableMozMap(MozMap<long>? arg);
-  void passMozMapOfNullableInts(MozMap<long?> arg);
-  void passOptionalMozMapOfNullableInts(optional MozMap<long?> arg);
-  void passOptionalNullableMozMapOfNullableInts(optional MozMap<long?>? arg);
-  void passCastableObjectMozMap(MozMap<TestBinding> arg);
-  void passNullableCastableObjectMozMap(MozMap<TestBinding?> arg);
-  void passCastableObjectNullableMozMap(MozMap<TestBinding>? arg);
-  void passNullableCastableObjectNullableMozMap(MozMap<TestBinding?>? arg);
-  void passOptionalMozMap(optional MozMap<long> arg);
-  void passOptionalNullableMozMap(optional MozMap<long>? arg);
-  void passOptionalNullableMozMapWithDefaultValue(optional MozMap<long>? arg = null);
-  void passOptionalObjectMozMap(optional MozMap<TestBinding> arg);
-  void passStringMozMap(MozMap<DOMString> arg);
-  void passByteStringMozMap(MozMap<ByteString> arg);
-  void passMozMapOfMozMaps(MozMap<MozMap<long>> arg);
+  void passMozMap(record<DOMString, long> arg);
+  void passNullableMozMap(record<DOMString, long>? arg);
+  void passMozMapOfNullableInts(record<DOMString, long?> arg);
+  void passOptionalMozMapOfNullableInts(optional record<DOMString, long?> arg);
+  void passOptionalNullableMozMapOfNullableInts(optional record<DOMString, long?>? arg);
+  void passCastableObjectMozMap(record<DOMString, TestBinding> arg);
+  void passNullableCastableObjectMozMap(record<DOMString, TestBinding?> arg);
+  void passCastableObjectNullableMozMap(record<DOMString, TestBinding>? arg);
+  void passNullableCastableObjectNullableMozMap(record<DOMString, TestBinding?>? arg);
+  void passOptionalMozMap(optional record<DOMString, long> arg);
+  void passOptionalNullableMozMap(optional record<DOMString, long>? arg);
+  void passOptionalNullableMozMapWithDefaultValue(optional record<DOMString, long>? arg = null);
+  void passOptionalObjectMozMap(optional record<DOMString, TestBinding> arg);
+  void passStringMozMap(record<DOMString, DOMString> arg);
+  void passByteStringMozMap(record<DOMString, ByteString> arg);
+  void passMozMapOfMozMaps(record<DOMString, record<DOMString, long>> arg);
 
-  void passMozMapUnion((long or MozMap<ByteString>) init);
-  void passMozMapUnion2((TestBinding or MozMap<ByteString>) init);
-  void passMozMapUnion3((TestBinding or sequence<sequence<ByteString>> or MozMap<ByteString>) init);
+  void passMozMapUnion((long or record<DOMString, ByteString>) init);
+  void passMozMapUnion2((TestBinding or record<DOMString, ByteString>) init);
+  void passMozMapUnion3((TestBinding or sequence<sequence<ByteString>> or record<DOMString, ByteString>) init);
 
-  MozMap<long> receiveMozMap();
-  MozMap<long>? receiveNullableMozMap();
-  MozMap<long?> receiveMozMapOfNullableInts();
-  MozMap<long?>? receiveNullableMozMapOfNullableInts();
-  MozMap<MozMap<long>> receiveMozMapOfMozMaps();
-  MozMap<any> receiveAnyMozMap();
+  record<DOMString, long> receiveMozMap();
+  record<DOMString, long>? receiveNullableMozMap();
+  record<DOMString, long?> receiveMozMapOfNullableInts();
+  record<DOMString, long?>? receiveNullableMozMapOfNullableInts();
+  record<DOMString, record<DOMString, long>> receiveMozMapOfMozMaps();
+  record<DOMString, any> receiveAnyMozMap();
 
   static attribute boolean booleanAttributeStatic;
   static void receiveVoidStatic();
@@ -519,7 +519,6 @@ interface TestBinding {
   Promise<any> returnRejectedPromise(any value);
   readonly attribute Promise<boolean> promiseAttribute;
   void acceptPromise(Promise<DOMString> string);
-  void acceptNullablePromise(Promise<DOMString>? string);
   Promise<any> promiseNativeHandler(SimpleCallback? resolve, SimpleCallback? reject);
   void promiseResolveNative(Promise<any> p, any value);
   void promiseRejectNative(Promise<any> p, any value);
