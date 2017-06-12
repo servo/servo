@@ -15,6 +15,7 @@ extern crate smallvec;
 
 pub mod attr;
 pub mod bloom;
+pub mod context;
 pub mod matching;
 pub mod parser;
 #[cfg(test)] mod size_of_tests;
