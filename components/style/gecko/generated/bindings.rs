@@ -2112,10 +2112,16 @@ extern "C" {
                                            result: *mut nsAString);
 }
 extern "C" {
-    pub fn Servo_StyleRule_GetSelectorTextFromIndex(rule:
+    pub fn Servo_StyleRule_GetSelectorTextAtIndex(rule:
                                                         RawServoStyleRuleBorrowed,
                                                     index: u32,
                                                     result: *mut nsAString);
+}
+extern "C" {
+    pub fn Servo_StyleRule_GetSpecificityAtIndex(rule:
+                                                     RawServoStyleRuleBorrowed,
+                                                 index: u32,
+                                                 specificity: *mut u64);
 }
 extern "C" {
     pub fn Servo_StyleRule_GetSelectorCount(rule: RawServoStyleRuleBorrowed,
