@@ -10,7 +10,7 @@ use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::data::{ComputedStyle, ElementData, ElementStyles};
 use style::gecko::selector_parser as real;
 use style::properties::ComputedValues;
-use style::rule_tree::StrongRuleNode;
+use style::rule_tree::{RuleNode, StrongRuleNode};
 
 #[test]
 fn size_of_selectors_dummy_types() {
@@ -38,6 +38,10 @@ size_of_test!(test_size_of_element_data, ElementData, 56);
 size_of_test!(test_size_of_property_declaration, style::properties::PropertyDeclaration, 32);
 
 size_of_test!(test_size_of_application_declaration_block, ApplicableDeclarationBlock, 24);
+
+// FIXME(bholley): This can shrink with a little bit of work.
+// See https://github.com/servo/servo/issues/17280
+size_of_test!(test_size_of_rule_node, RuleNode, 96);
 
 // This is huge, but we allocate it on the stack and then never move it,
 // we only pass `&mut SourcePropertyDeclaration` references around.
