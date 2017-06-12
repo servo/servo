@@ -41,7 +41,7 @@ from servo.util import delete
 
 PACKAGES = {
     'android': [
-        'target/arm-linux-androideabi/release/servo.apk',
+        'target/armv7-linux-androideabi/release/servo.apk',
     ],
     'linux': [
         'target/release/servo-tech-demo.tar.gz',
