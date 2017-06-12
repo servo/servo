@@ -253,6 +253,14 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 (EmbedderMsg::Status(message), ShutdownState::NotShuttingDown) => {
                     self.compositor.window.status(message);
                 },
+                (EmbedderMsg::ChangePageTitle(pipeline_id, title), ShutdownState::NotShuttingDown) => {
+                    let set_title = self.compositor.root_pipeline.as_ref().map_or(false, |root_pipeline| {
+                        root_pipeline.id == pipeline_id
+                    });
+                    if set_title {
+                        self.compositor.window.set_page_title(title);
+                    }
+                },
                 (_, _) => {},
             }
         }

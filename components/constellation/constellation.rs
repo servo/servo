@@ -1166,7 +1166,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
 
             FromScriptMsg::SetTitle(pipeline_id, title) => {
-                self.compositor_proxy.send(ToCompositorMsg::ChangePageTitle(pipeline_id, title))
+                self.embedder_proxy.send(EmbedderMsg::ChangePageTitle(pipeline_id, title))
             }
 
             FromScriptMsg::SendKeyEvent(ch, key, key_state, key_modifiers) => {
@@ -1923,7 +1923,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     fn handle_get_pipeline_title_msg(&mut self, pipeline_id: PipelineId) {
         let result = match self.pipelines.get(&pipeline_id) {
-            None => return self.compositor_proxy.send(ToCompositorMsg::ChangePageTitle(pipeline_id, None)),
+            None => return self.embedder_proxy.send(EmbedderMsg::ChangePageTitle(pipeline_id, None)),
             Some(pipeline) => pipeline.event_loop.send(ConstellationControlMsg::GetTitle(pipeline_id)),
         };
         if let Err(e) = result {
