@@ -803,16 +803,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 }
             }
 
-            WindowEvent::Reload => {
-                let top_level_browsing_context_id = match self.root_pipeline {
-                    Some(ref pipeline) => pipeline.top_level_browsing_context_id,
-                    None => return warn!("Window reload without root pipeline."),
-                };
-                let msg = ConstellationMsg::Reload(top_level_browsing_context_id);
-                if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Sending reload to constellation failed ({}).", e);
-                }
-            }
+            WindowEvent::Reload => {}
         }
     }
 
