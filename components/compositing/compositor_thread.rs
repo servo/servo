@@ -114,6 +114,8 @@ impl RenderListener for CompositorProxy {
 pub enum EmbedderMsg {
     /// A status message to be displayed by the browser chrome.
     Status(Option<String>),
+    /// Alerts the compositor that the current page has changed its title.
+    ChangePageTitle(PipelineId, Option<String>),
 }
 
 /// Messages from the painting thread and the constellation thread to the compositor thread.
@@ -128,8 +130,6 @@ pub enum Msg {
 
     /// Scroll a page in a window
     ScrollFragmentPoint(webrender_traits::ClipId, Point2D<f32>, bool),
-    /// Alerts the compositor that the current page has changed its title.
-    ChangePageTitle(PipelineId, Option<String>),
     /// Alerts the compositor that the given pipeline has changed whether it is running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Replaces the current frame tree, typically called during main frame navigation.
@@ -194,7 +194,6 @@ impl Debug for Msg {
             Msg::ShutdownComplete => write!(f, "ShutdownComplete"),
             Msg::ScrollFragmentPoint(..) => write!(f, "ScrollFragmentPoint"),
             Msg::ChangeRunningAnimationsState(..) => write!(f, "ChangeRunningAnimationsState"),
-            Msg::ChangePageTitle(..) => write!(f, "ChangePageTitle"),
             Msg::SetFrameTree(..) => write!(f, "SetFrameTree"),
             Msg::LoadComplete => write!(f, "LoadComplete"),
             Msg::AllowNavigation(..) => write!(f, "AllowNavigation"),
@@ -226,6 +225,7 @@ impl Debug for EmbedderMsg {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         match *self {
             EmbedderMsg::Status(..) => write!(f, "Status"),
+            EmbedderMsg::ChangePageTitle(..) => write!(f, "ChangePageTitle"),
         }
     }
 }

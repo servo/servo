@@ -106,7 +106,7 @@ pub struct IOCompositor<Window: WindowMethods> {
     port: CompositorReceiver,
 
     /// The root pipeline.
-    root_pipeline: Option<CompositionPipeline>,
+    pub root_pipeline: Option<CompositionPipeline>,
 
     /// Tracks details about each active pipeline that the compositor knows about.
     pipeline_details: HashMap<PipelineId, PipelineDetails>,
@@ -467,10 +467,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.change_running_animations_state(pipeline_id, animation_state);
             }
 
-            (Msg::ChangePageTitle(pipeline_id, title), ShutdownState::NotShuttingDown) => {
-                self.change_page_title(pipeline_id, title);
-            }
-
             (Msg::SetFrameTree(frame_tree, response_chan),
              ShutdownState::NotShuttingDown) => {
                 self.set_frame_tree(&frame_tree, response_chan);
@@ -679,15 +675,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 warn!("Compositor layer has an unknown pipeline ({:?}).", pipeline_id);
                 None
             }
-        }
-    }
-
-    fn change_page_title(&mut self, pipeline_id: PipelineId, title: Option<String>) {
-        let set_title = self.root_pipeline.as_ref().map_or(false, |root_pipeline| {
-            root_pipeline.id == pipeline_id
-        });
-        if set_title {
-            self.window.set_page_title(title);
         }
     }
 
