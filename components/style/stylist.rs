@@ -1077,9 +1077,13 @@ impl Stylist {
                                                   CascadeLevel::AuthorNormal);
                 debug!("author normal: {:?}", context.relations);
             } else {
-                debug!("Skipping author normal rules due to cut off inheritance");
+                debug!("skipping author normal rules due to cut off inheritance");
             }
+        } else {
+            debug!("skipping author normal rules");
+        }
 
+        if !only_default_rules {
             // Step 4: Normal style attributes.
             if let Some(sa) = style_attribute {
                 Push::push(
@@ -1087,7 +1091,6 @@ impl Stylist {
                     ApplicableDeclarationBlock::from_declarations(sa.clone(),
                                                                   CascadeLevel::StyleAttributeNormal));
             }
-
             debug!("style attr: {:?}", context.relations);
 
             // Step 5: SMIL override.
@@ -1111,7 +1114,7 @@ impl Stylist {
             }
             debug!("animation: {:?}", context.relations);
         } else {
-            debug!("skipping non-agent rules");
+            debug!("skipping style attr and SMIL & animation rules");
         }
 
         //
