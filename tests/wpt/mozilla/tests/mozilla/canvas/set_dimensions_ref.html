@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset=utf-8>
+        <title>Resizing a canvas reference</title>
+    </head>
+
+    <body>
+        <canvas width="100px" height="100px"></canvas>
+        <script>
+            var canvas = document.getElementsByTagName('canvas')[0];
+            var ctx = canvas.getContext('2d');
+            ctx.fillStyle = "green";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        </script>
+    </body>
+</html>
