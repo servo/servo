@@ -715,11 +715,12 @@ impl ToCss for Percentage {
 
 impl Percentage {
     /// Parse a specific kind of percentage.
-    pub fn parse_with_clamping_mode<'i, 't>(input: &mut Parser<'i, 't>,
-                                            context: AllowedNumericType)
+    pub fn parse_with_clamping_mode<'i, 't>(context: &ParserContext,
+                                            input: &mut Parser<'i, 't>,
+                                            num_context: AllowedNumericType)
                                             -> Result<Self, ParseError<'i>> {
         match try!(input.next()) {
-            Token::Percentage(ref value) if context.is_ok(value.unit_value) => {
+            Token::Percentage(ref value) if num_context.is_ok(context.parsing_mode, value.unit_value) => {
                 Ok(Percentage(value.unit_value))
             }
             t => Err(BasicParseError::UnexpectedToken(t).into())
@@ -727,8 +728,10 @@ impl Percentage {
     }
 
     /// Parses a percentage token, but rejects it if it's negative.
-    pub fn parse_non_negative<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        Self::parse_with_clamping_mode(input, AllowedNumericType::NonNegative)
+    pub fn parse_non_negative<'i, 't>(context: &ParserContext,
+                                      input: &mut Parser<'i, 't>)
+                                      -> Result<Self, ParseError<'i>> {
+        Self::parse_with_clamping_mode(context, input, AllowedNumericType::NonNegative)
     }
 
     /// 0%
@@ -746,8 +749,8 @@ impl Percentage {
 
 impl Parse for Percentage {
     #[inline]
-    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        Self::parse_with_clamping_mode(input, AllowedNumericType::All)
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        Self::parse_with_clamping_mode(context, input, AllowedNumericType::All)
     }
 }
 
