@@ -60,7 +60,7 @@ impl ImageResponder {
 }
 
 /// The returned image.
-#[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub enum ImageResponse {
     /// The requested image was loaded.
     Loaded(Arc<Image>, ServoUrl),
@@ -84,7 +84,7 @@ pub enum ImageState {
 #[derive(Copy, Clone, PartialEq, Eq, Deserialize, Serialize, HeapSizeOf, Hash, Debug)]
 pub struct PendingImageId(pub u64);
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct PendingImageResponse {
     pub response: ImageResponse,
     pub id: PendingImageId,

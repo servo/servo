@@ -9,12 +9,19 @@ use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use script_thread::{MainThreadScriptMsg, Runnable, RunnableWrapper, ScriptThread};
 use servo_atoms::Atom;
+use std::fmt;
 use std::result::Result;
 use std::sync::mpsc::Sender;
 use task_source::TaskSource;
 
 #[derive(JSTraceable, Clone)]
 pub struct UserInteractionTaskSource(pub Sender<MainThreadScriptMsg>);
+
+impl fmt::Debug for UserInteractionTaskSource {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "UserInteractionTaskSource(...)")
+    }
+}
 
 impl TaskSource for UserInteractionTaskSource {
     fn queue_with_wrapper<T>(&self,
@@ -46,6 +53,12 @@ impl UserInteractionTaskSource {
 }
 
 pub struct UserInteractionTask(pub Box<Runnable + Send>);
+
+impl fmt::Debug for UserInteractionTask {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "UserInteractionTask(...)")
+    }
+}
 
 impl UserInteractionTask {
     pub fn handle_task(self, script_thread: &ScriptThread) {
