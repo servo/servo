@@ -257,22 +257,26 @@ pub unsafe fn html_constructor<T>(window: &Window, call_args: &CallArgs) -> Fall
 
     {
         let _ac = JSAutoCompartment::new(window.get_cx(), callee.get());
+        rooted!(in(window.get_cx()) let mut constructor = ptr::null_mut());
+        rooted!(in(window.get_cx()) let global_object = CurrentGlobalOrNull(window.get_cx()));
 
         if definition.is_autonomous() {
             // Step 4
             // Since this element is autonomous, its active function object must be the HTMLElement
 
             // Retrieve the constructor object for HTMLElement
-            rooted!(in(window.get_cx()) let mut constructor = ptr::null_mut());
-            rooted!(in(window.get_cx()) let global_object = CurrentGlobalOrNull(window.get_cx()));
             HTMLElementBinding::GetConstructorObject(window.get_cx(), global_object.handle(), constructor.handle_mut());
 
-            // Callee must be the same constructor object as HTMLElement
-            if constructor.get() != callee.get() {
-                return Err(Error::Type("Active function object is not HTMLElement".to_owned()));
-            }
         } else {
-            // TODO: Step 5
+            // Step 5
+            get_constructor_object_from_local_name(definition.local_name.clone(),
+                                                   window.get_cx(),
+                                                   global_object.handle(),
+                                                   constructor.handle_mut());
+        }
+        // Callee must be the same as the element interface's constructor object.
+        if constructor.get() != callee.get() {
+            return Err(Error::Type("Custom element does not extend the proper interface".to_owned()));
         }
     }
 
