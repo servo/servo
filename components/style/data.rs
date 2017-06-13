@@ -357,19 +357,12 @@ pub struct RestyleData {
     /// for this element, its children, and its descendants.
     pub hint: RestyleHint,
 
+    /// Whether we reframed/reconstructed any ancestor or self.
+    pub reconstructed_ancestor: bool,
+
     /// The restyle damage, indicating what kind of layout changes are required
     /// afte restyling.
     pub damage: RestyleDamage,
-
-    /// The restyle damage that has already been handled by our ancestors, and does
-    /// not need to be applied again at this element. Only non-empty during the
-    /// traversal, once ancestor damage has been calculated.
-    ///
-    /// Note that this optimization mostly makes sense in terms of Gecko's top-down
-    /// frame constructor and change list processing model. We don't bother with it
-    /// for Servo for now.
-    #[cfg(feature = "gecko")]
-    pub damage_handled: RestyleDamage,
 }
 
 impl RestyleData {
@@ -377,28 +370,6 @@ impl RestyleData {
     pub fn has_invalidations(&self) -> bool {
         self.hint.has_self_invalidations()
     }
-
-    /// Returns damage handled.
-    #[cfg(feature = "gecko")]
-    pub fn damage_handled(&self) -> RestyleDamage {
-        self.damage_handled
-    }
-
-    /// Returns damage handled (always empty for servo).
-    #[cfg(feature = "servo")]
-    pub fn damage_handled(&self) -> RestyleDamage {
-        RestyleDamage::empty()
-    }
-
-    /// Sets damage handled.
-    #[cfg(feature = "gecko")]
-    pub fn set_damage_handled(&mut self, d: RestyleDamage) {
-        self.damage_handled = d;
-    }
-
-    /// Sets damage handled. No-op for Servo.
-    #[cfg(feature = "servo")]
-    pub fn set_damage_handled(&mut self, _: RestyleDamage) {}
 }
 
 /// Style system data associated with an Element.

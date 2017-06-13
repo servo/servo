@@ -697,8 +697,8 @@ trait PrivateMatchMethods: TElement {
         // for followup work to make the optimization here more optimal by considering
         // each bit individually.
         let skip_applying_damage =
-            restyle.damage_handled.contains(RestyleDamage::reconstruct()) ||
-            restyle.damage.contains(RestyleDamage::reconstruct());
+            restyle.damage.contains(RestyleDamage::reconstruct()) ||
+            restyle.reconstructed_ancestor;
 
         let difference = self.compute_style_difference(&old_values,
                                                        &new_values,

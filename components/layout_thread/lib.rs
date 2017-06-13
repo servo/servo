@@ -111,9 +111,9 @@ use std::thread;
 use style::animation::Animation;
 use style::context::{QuirksMode, ReflowGoal, SharedStyleContext};
 use style::context::{StyleSystemOptions, ThreadLocalStyleContextCreationInfo};
-use style::data::StoredRestyleHint;
 use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
 use style::error_reporting::{NullReporter, RustLogReporter};
+use style::invalidation::element::restyle_hints::RestyleHint;
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::selector_parser::SnapshotMap;
@@ -1119,7 +1119,7 @@ impl LayoutThread {
                         let el = node.as_element().unwrap();
                         if let Some(mut d) = element.mutate_data() {
                             if d.has_styles() {
-                                d.ensure_restyle().hint.insert(StoredRestyleHint::subtree());
+                                d.ensure_restyle().hint.insert(RestyleHint::restyle_subtree());
                             }
                         }
                         if let Some(p) = el.parent_element() {
@@ -1155,7 +1155,7 @@ impl LayoutThread {
         if needs_dirtying {
             if let Some(mut d) = element.mutate_data() {
                 if d.has_styles() {
-                    d.ensure_restyle().hint.insert(StoredRestyleHint::subtree());
+                    d.ensure_restyle().hint.insert(RestyleHint::restyle_subtree());
                 }
             }
         }
