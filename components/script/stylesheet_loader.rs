@@ -160,7 +160,7 @@ impl FetchResponseListener for StylesheetContext {
                                                   &data,
                                                   protocol_encoding_label,
                                                   Some(environment_encoding),
-                                                  &final_url,
+                                                  final_url,
                                                   Some(&loader),
                                                   win.css_error_reporter());
                 }

@@ -76,7 +76,7 @@ fn test_parse_stylesheet() {
         media: Arc::new(stylesheet.shared_lock.wrap(MediaList::empty())),
         shared_lock: stylesheet.shared_lock.clone(),
         namespaces: RwLock::new(namespaces),
-        url_data: url,
+        url_data: RwLock::new(url),
         dirty_on_viewport_size_change: AtomicBool::new(false),
         disabled: AtomicBool::new(false),
         quirks_mode: QuirksMode::NoQuirks,

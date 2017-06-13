@@ -205,9 +205,10 @@ impl Keyframe {
     /// Parse a CSS keyframe.
     pub fn parse<'i>(css: &'i str, parent_stylesheet: &Stylesheet)
                      -> Result<Arc<Locked<Self>>, ParseError<'i>> {
+        let url_data = parent_stylesheet.url_data.read();
         let error_reporter = NullReporter;
         let context = ParserContext::new(parent_stylesheet.origin,
-                                         &parent_stylesheet.url_data,
+                                         &url_data,
                                          &error_reporter,
                                          Some(CssRuleType::Keyframe),
                                          PARSING_MODE_DEFAULT,

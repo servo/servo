@@ -801,7 +801,7 @@ pub extern "C" fn Servo_StyleSheet_ClearAndUpdate(stylesheet: RawServoStyleSheet
     };
 
     let sheet = Stylesheet::as_arc(&stylesheet);
-    Stylesheet::update_from_str(&sheet, input, url_data, loader,
+    Stylesheet::update_from_str(&sheet, input, url_data.clone(), loader,
                                 &RustLogReporter, line_number_offset as u64);
 }
 
