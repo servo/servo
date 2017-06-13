@@ -5,7 +5,7 @@
 //! Traversing the DOM tree; the bloom filter.
 
 use atomic_refcell::AtomicRefCell;
-use context::{SharedStyleContext, StyleContext, ThreadLocalStyleContext};
+use context::{ElementCascadeInputs, StyleContext, SharedStyleContext, ThreadLocalStyleContext};
 use data::{ElementData, ElementStyles};
 use dom::{DirtyDescendants, NodeInfo, OpaqueNode, TElement, TNode};
 use invalidation::element::restyle_hints::{RECASCADE_SELF, RECASCADE_DESCENDANTS, RestyleHint};
@@ -228,7 +228,7 @@ pub trait DomTraversal<E: TElement> : Sync {
                       "must not specify FOR_RECONSTRUCT in combination with UNSTYLED_CHILDREN_ONLY");
 
         if traversal_flags.for_unstyled_children_only() {
-            if root.borrow_data().map_or(true, |d| d.has_styles() && d.styles().is_display_none()) {
+            if root.borrow_data().map_or(true, |d| d.has_styles() && d.styles.is_display_none()) {
                 return PreTraverseToken {
                     traverse: false,
                     unstyled_children_only: false,
@@ -303,7 +303,7 @@ pub trait DomTraversal<E: TElement> : Sync {
                     if pseudo.is_before_or_after() {
                         is_before_or_after_pseudo = true;
                         let still_match =
-                            parent_data.styles().pseudos.get(&pseudo).is_some();
+                            parent_data.styles.pseudos.get(&pseudo).is_some();
 
                         if !still_match {
                             debug_assert!(going_to_reframe,
@@ -404,7 +404,7 @@ pub trait DomTraversal<E: TElement> : Sync {
         debug_assert!(cfg!(feature = "gecko") || parent.has_current_styles(parent_data));
 
         // If the parent computed display:none, we don't style the subtree.
-        if parent_data.styles().is_display_none() {
+        if parent_data.styles.is_display_none() {
             if log.allow() { debug!("Parent {:?} is display:none, culling traversal", parent); }
             return false;
         }
@@ -431,7 +431,7 @@ pub trait DomTraversal<E: TElement> : Sync {
         // recursively drops Servo ElementData when the XBL insertion parent of
         // an Element is changed.
         if cfg!(feature = "gecko") && thread_local.is_initial_style() &&
-           parent_data.styles().primary.values().has_moz_binding() {
+           parent_data.styles.primary().has_moz_binding() {
             if log.allow() { debug!("Parent {:?} has XBL binding, deferring traversal", parent); }
             return false;
         }
@@ -515,7 +515,7 @@ fn resolve_style_internal<E, F>(context: &mut StyleContext<E>,
     let mut display_none_root = None;
 
     // If the Element isn't styled, we need to compute its style.
-    if data.get_styles().is_none() {
+    if !data.has_styles() {
         // Compute the parent style if necessary.
         let parent = element.traversal_parent();
         if let Some(p) = parent {
@@ -549,7 +549,7 @@ fn resolve_style_internal<E, F>(context: &mut StyleContext<E>,
 
     // If we're display:none and none of our ancestors are, we're the root
     // of a display:none subtree.
-    if display_none_root.is_none() && data.styles().is_display_none() {
+    if display_none_root.is_none() && data.styles.is_display_none() {
         display_none_root = Some(element);
     }
 
@@ -576,7 +576,7 @@ pub fn resolve_style<E, F, G, H>(context: &mut StyleContext<E>, element: E,
     // Make them available for the scope of the callback. The callee may use the
     // argument, or perform any other processing that requires the styles to exist
     // on the Element.
-    callback(element.borrow_data().unwrap().styles());
+    callback(&element.borrow_data().unwrap().styles);
 
     // Clear any styles in display:none subtrees or subtrees not in the document,
     // to leave the tree in a valid state.  For display:none subtrees, we leave
@@ -635,7 +635,7 @@ pub fn resolve_default_style<E, F, G, H>(context: &mut StyleContext<E>,
     // Make them available for the scope of the callback. The callee may use the
     // argument, or perform any other processing that requires the styles to exist
     // on the Element.
-    callback(element.borrow_data().unwrap().styles());
+    callback(&element.borrow_data().unwrap().styles);
 
     // Swap the old element data back into the element and its ancestors.
     for entry in old_data {
@@ -685,7 +685,7 @@ pub fn recalc_style_at<E, D>(traversal: &D,
 
         // If we're restyling this element to display:none, throw away all style
         // data in the subtree, notify the caller to early-return.
-        if data.styles().is_display_none() {
+        if data.styles.is_display_none() {
             debug!("{:?} style is display:none - clearing data from descendants.",
                    element);
             clear_descendant_data(element, &|e| unsafe { D::clear_element_data(&e) });
@@ -709,7 +709,7 @@ pub fn recalc_style_at<E, D>(traversal: &D,
     trace!("propagated_hint={:?} \
             is_display_none={:?}, implementing_pseudo={:?}",
            propagated_hint,
-           data.styles().is_display_none(),
+           data.styles.is_display_none(),
            element.implemented_pseudo_element());
     debug_assert!(element.has_current_styles(data) ||
                   context.shared.traversal_flags.for_animation_only(),
@@ -769,7 +769,7 @@ pub fn recalc_style_at<E, D>(traversal: &D,
     // The second case is when we are in a restyle for reconstruction,
     // where we won't need to perform a post-traversal to pick up any
     // change hints.
-    if data.styles().is_display_none() ||
+    if data.styles.is_display_none() ||
        context.shared.traversal_flags.for_reconstruct() {
         unsafe { element.unset_dirty_descendants(); }
     }
@@ -829,7 +829,11 @@ fn compute_style<E, D>(_traversal: &D,
             )
         }
         CascadeWithReplacements(flags) => {
-            let important_rules_changed = element.replace_rules(flags, context, data);
+            // Skipping full matching, load cascade inputs from previous values.
+            context.thread_local.current_element_info
+                   .as_mut().unwrap()
+                   .cascade_inputs = ElementCascadeInputs::new_from_element_data(data);
+            let important_rules_changed = element.replace_rules(flags, context);
             element.cascade_primary_and_pseudos(
                 context,
                 data,
@@ -837,6 +841,10 @@ fn compute_style<E, D>(_traversal: &D,
             )
         }
         CascadeOnly => {
+            // Skipping full matching, load cascade inputs from previous values.
+            context.thread_local.current_element_info
+                   .as_mut().unwrap()
+                   .cascade_inputs = ElementCascadeInputs::new_from_element_data(data);
             element.cascade_primary_and_pseudos(
                 context,
                 data,

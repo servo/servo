@@ -10,7 +10,7 @@ use app_units::Au;
 use arrayvec::ArrayVec;
 use bloom::StyleBloom;
 use cache::LRUCache;
-use data::ElementData;
+use data::{EagerPseudoStyles, ElementData};
 use dom::{OpaqueNode, TNode, TElement, SendElement};
 use error_reporting::ParseErrorReporter;
 use euclid::Size2D;
@@ -19,7 +19,6 @@ use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")] use gecko_bindings::structs;
 #[cfg(feature = "servo")] use parking_lot::RwLock;
 use properties::ComputedValues;
-use properties::longhands::display::computed_value as display;
 use rule_tree::StrongRuleNode;
 use selector_parser::{EAGER_PSEUDO_COUNT, PseudoElement, SnapshotMap};
 use selectors::matching::{ElementSelectorFlags, VisitedHandlingMode};
@@ -144,19 +143,18 @@ impl<'a> SharedStyleContext<'a> {
     }
 }
 
-/// The structure that represents the result of style computation. This is
-/// effectively a tuple of rules and computed values, that is, the rule node,
-/// and the result of computing that rule node's rules, the `ComputedValues`.
+/// The structure holds various intermediate inputs that are eventually used by
+/// by the cascade.
+///
+/// The matching and cascading process stores them in this format temporarily
+/// within the `CurrentElementInfo`. At the end of the cascade, they are folded
+/// down into the main `ComputedValues` to reduce memory usage per element while
+/// still remaining accessible.
 #[derive(Clone)]
-pub struct ComputedStyle {
+pub struct CascadeInputs {
     /// The rule node representing the ordered list of rules matched for this
     /// node.
-    pub rules: StrongRuleNode,
-
-    /// The computed values for each property obtained by cascading the
-    /// matched rules. This can only be none during a transient interval of
-    /// the styling algorithm, and callers can safely unwrap it.
-    pub values: Option<Arc<ComputedValues>>,
+    rules: Option<StrongRuleNode>,
 
     /// The rule node representing the ordered list of rules matched for this
     /// node if visited, only computed if there's a relevant link for this
@@ -174,35 +172,74 @@ pub struct ComputedStyle {
     visited_values: Option<Arc<ComputedValues>>,
 }
 
-impl ComputedStyle {
-    /// Trivially construct a new `ComputedStyle`.
-    pub fn new(rules: StrongRuleNode, values: Arc<ComputedValues>) -> Self {
-        ComputedStyle {
-            rules: rules,
-            values: Some(values),
+impl Default for CascadeInputs {
+    fn default() -> Self {
+        CascadeInputs {
+            rules: None,
             visited_rules: None,
             visited_values: None,
         }
     }
+}
 
-    /// Constructs a partial ComputedStyle, whose ComputedVaues will be filled
-    /// in later.
-    pub fn new_partial(rules: StrongRuleNode) -> Self {
-        ComputedStyle {
-            rules: rules,
-            values: None,
-            visited_rules: None,
+impl CascadeInputs {
+    /// Construct inputs from previous cascade results, if any.
+    fn new_from_style(style: &Arc<ComputedValues>) -> Self {
+        CascadeInputs {
+            rules: style.rules.clone(),
+            visited_rules: style.get_visited_style().and_then(|v| v.rules.clone()),
+            // Values will be re-cascaded if necessary, so this can be None.
             visited_values: None,
         }
     }
 
-    /// Returns a reference to the ComputedValues. The values can only be null during
-    /// the styling algorithm, so this is safe to call elsewhere.
-    pub fn values(&self) -> &Arc<ComputedValues> {
-        self.values.as_ref().unwrap()
+    /// Whether there are any rules.  Rules will be present after unvisited
+    /// matching or pulled from a previous cascade if no matching is expected.
+    pub fn has_rules(&self) -> bool {
+        self.rules.is_some()
     }
 
-    /// Whether there are any visited rules.
+    /// Gets a mutable reference to the rule node, if any.
+    pub fn get_rules_mut(&mut self) -> Option<&mut StrongRuleNode> {
+        self.rules.as_mut()
+    }
+
+    /// Gets a reference to the rule node. Panic if the element does not have
+    /// rule node.
+    pub fn rules(&self) -> &StrongRuleNode {
+        self.rules.as_ref().unwrap()
+    }
+
+    /// Sets the rule node depending on visited mode.
+    /// Returns whether the rules changed.
+    pub fn set_rules(&mut self,
+                     visited_handling: VisitedHandlingMode,
+                     rules: StrongRuleNode)
+                     -> bool {
+        match visited_handling {
+            VisitedHandlingMode::AllLinksVisitedAndUnvisited => {
+                unreachable!("We should never try to selector match with \
+                             AllLinksVisitedAndUnvisited");
+            },
+            VisitedHandlingMode::AllLinksUnvisited => self.set_unvisited_rules(rules),
+            VisitedHandlingMode::RelevantLinkVisited => self.set_visited_rules(rules),
+        }
+    }
+
+    /// Sets the unvisited rule node, and returns whether it changed.
+    fn set_unvisited_rules(&mut self, rules: StrongRuleNode) -> bool {
+        if let Some(ref old_rules) = self.rules {
+            if *old_rules == rules {
+                return false
+            }
+        }
+        self.rules = Some(rules);
+        true
+    }
+
+    /// Whether there are any visited rules.  Visited rules will be present
+    /// after visited matching or pulled from a previous cascade (assuming there
+    /// was a relevant link at the time) if no matching is expected.
     pub fn has_visited_rules(&self) -> bool {
         self.visited_rules.is_some()
     }
@@ -220,11 +257,11 @@ impl ComputedStyle {
     /// Gets a reference to the visited rule node. Panic if the element does not
     /// have visited rule node.
     pub fn visited_rules(&self) -> &StrongRuleNode {
-        self.get_visited_rules().unwrap()
+        self.visited_rules.as_ref().unwrap()
     }
 
     /// Sets the visited rule node, and returns whether it changed.
-    pub fn set_visited_rules(&mut self, rules: StrongRuleNode) -> bool {
+    fn set_visited_rules(&mut self, rules: StrongRuleNode) -> bool {
         if let Some(ref old_rules) = self.visited_rules {
             if *old_rules == rules {
                 return false
@@ -262,52 +299,81 @@ impl ComputedStyle {
     }
 }
 
-// We manually implement Debug for ComputedStyle so that we can avoid the
+// We manually implement Debug for CascadeInputs so that we can avoid the
 // verbose stringification of ComputedValues for normal logging.
-impl fmt::Debug for ComputedStyle {
+impl fmt::Debug for CascadeInputs {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "ComputedStyle {{ rules: {:?}, values: {{..}} }}", self.rules)
+        write!(f, "CascadeInputs {{ rules: {:?}, visited_rules: {:?}, .. }}",
+               self.rules, self.visited_rules)
     }
 }
 
-/// A list of styles for eagerly-cascaded pseudo-elements. Lazily-allocated.
-#[derive(Clone, Debug)]
-pub struct EagerPseudoStyles(Option<Box<[Option<ComputedStyle>]>>);
+/// A list of cascade inputs for eagerly-cascaded pseudo-elements.
+/// The list is stored inline.
+#[derive(Debug)]
+pub struct EagerPseudoCascadeInputs(Option<[Option<CascadeInputs>; EAGER_PSEUDO_COUNT]>);
 
-impl EagerPseudoStyles {
-    /// Returns whether there are any pseudo styles.
+// Manually implement `Clone` here because the derived impl of `Clone` for
+// array types assumes the value inside is `Copy`.
+impl Clone for EagerPseudoCascadeInputs {
+    fn clone(&self) -> Self {
+        if self.0.is_none() {
+            return EagerPseudoCascadeInputs(None)
+        }
+        let self_inputs = self.0.as_ref().unwrap();
+        let mut inputs: [Option<CascadeInputs>; EAGER_PSEUDO_COUNT] = Default::default();
+        for i in 0..EAGER_PSEUDO_COUNT {
+            inputs[i] = self_inputs[i].clone();
+        }
+        EagerPseudoCascadeInputs(Some(inputs))
+    }
+}
+
+impl EagerPseudoCascadeInputs {
+    /// Construct inputs from previous cascade results, if any.
+    fn new_from_style(styles: &EagerPseudoStyles) -> Self {
+        EagerPseudoCascadeInputs(styles.0.as_ref().map(|styles| {
+            let mut inputs: [Option<CascadeInputs>; EAGER_PSEUDO_COUNT] = Default::default();
+            for i in 0..EAGER_PSEUDO_COUNT {
+                inputs[i] = styles[i].as_ref().map(|s| CascadeInputs::new_from_style(s));
+            }
+            inputs
+        }))
+    }
+
+    /// Returns whether there are any pseudo inputs.
     pub fn is_empty(&self) -> bool {
         self.0.is_none()
     }
 
-    /// Returns a reference to the style for a given eager pseudo, if it exists.
-    pub fn get(&self, pseudo: &PseudoElement) -> Option<&ComputedStyle> {
+    /// Returns a reference to the inputs for a given eager pseudo, if they exist.
+    pub fn get(&self, pseudo: &PseudoElement) -> Option<&CascadeInputs> {
         debug_assert!(pseudo.is_eager());
         self.0.as_ref().and_then(|p| p[pseudo.eager_index()].as_ref())
     }
 
-    /// Returns a mutable reference to the style for a given eager pseudo, if it exists.
-    pub fn get_mut(&mut self, pseudo: &PseudoElement) -> Option<&mut ComputedStyle> {
+    /// Returns a mutable reference to the inputs for a given eager pseudo, if they exist.
+    pub fn get_mut(&mut self, pseudo: &PseudoElement) -> Option<&mut CascadeInputs> {
         debug_assert!(pseudo.is_eager());
         self.0.as_mut().and_then(|p| p[pseudo.eager_index()].as_mut())
     }
 
-    /// Returns true if the EagerPseudoStyles has a ComputedStyle for |pseudo|.
+    /// Returns true if the EagerPseudoCascadeInputs has a inputs for |pseudo|.
     pub fn has(&self, pseudo: &PseudoElement) -> bool {
         self.get(pseudo).is_some()
     }
 
     /// Inserts a pseudo-element. The pseudo-element must not already exist.
-    pub fn insert(&mut self, pseudo: &PseudoElement, style: ComputedStyle) {
+    pub fn insert(&mut self, pseudo: &PseudoElement, inputs: CascadeInputs) {
         debug_assert!(!self.has(pseudo));
         if self.0.is_none() {
-            self.0 = Some(vec![None; EAGER_PSEUDO_COUNT].into_boxed_slice());
+            self.0 = Some(Default::default());
         }
-        self.0.as_mut().unwrap()[pseudo.eager_index()] = Some(style);
+        self.0.as_mut().unwrap()[pseudo.eager_index()] = Some(inputs);
     }
 
-    /// Removes a pseudo-element style if it exists, and returns it.
-    fn take(&mut self, pseudo: &PseudoElement) -> Option<ComputedStyle> {
+    /// Removes a pseudo-element inputs if they exist, and returns it.
+    pub fn take(&mut self, pseudo: &PseudoElement) -> Option<CascadeInputs> {
         let result = match self.0.as_mut() {
             None => return None,
             Some(arr) => arr[pseudo.eager_index()].take(),
@@ -340,11 +406,13 @@ impl EagerPseudoStyles {
                            pseudo: &PseudoElement,
                            rules: StrongRuleNode)
                            -> bool {
-        if let Some(mut style) = self.get_mut(pseudo) {
-            style.rules = rules;
+        if let Some(mut inputs) = self.get_mut(pseudo) {
+            inputs.set_unvisited_rules(rules);
             return false
         }
-        self.insert(pseudo, ComputedStyle::new_partial(rules));
+        let mut inputs = CascadeInputs::default();
+        inputs.set_unvisited_rules(rules);
+        self.insert(pseudo, inputs);
         true
     }
 
@@ -358,7 +426,7 @@ impl EagerPseudoStyles {
     }
 
     /// Adds the visited rule node for a given pseudo-element.  It is assumed to
-    /// already exist because unvisited styles should have been added first.
+    /// already exist because unvisited inputs should have been added first.
     ///
     /// Returns true if the pseudo-element is new.  (Always false, but returns a
     /// bool for parity with `add_unvisited_rules`.)
@@ -367,8 +435,8 @@ impl EagerPseudoStyles {
                          rules: StrongRuleNode)
                          -> bool {
         debug_assert!(self.has(pseudo));
-        let mut style = self.get_mut(pseudo).unwrap();
-        style.set_visited_rules(rules);
+        let mut inputs = self.get_mut(pseudo).unwrap();
+        inputs.set_visited_rules(rules);
         false
     }
 
@@ -378,8 +446,8 @@ impl EagerPseudoStyles {
     /// Returns true if the psuedo-element was removed. (Always false, but
     /// returns a bool for parity with `remove_unvisited_rules`.)
     fn remove_visited_rules(&mut self, pseudo: &PseudoElement) -> bool {
-        if let Some(mut style) = self.get_mut(pseudo) {
-            style.take_visited_rules();
+        if let Some(mut inputs) = self.get_mut(pseudo) {
+            inputs.take_visited_rules();
         }
         false
     }
@@ -428,50 +496,67 @@ impl EagerPseudoStyles {
             },
         }
     }
-
-    /// Returns whether this EagerPseudoStyles has the same set of
-    /// pseudos as the given one.
-    pub fn has_same_pseudos_as(&self, other: &EagerPseudoStyles) -> bool {
-        // We could probably just compare self.keys() to other.keys(), but that
-        // seems like it'll involve a bunch more moving stuff around and
-        // whatnot.
-        match (&self.0, &other.0) {
-            (&Some(ref our_arr), &Some(ref other_arr)) => {
-                for i in 0..EAGER_PSEUDO_COUNT {
-                    if our_arr[i].is_some() != other_arr[i].is_some() {
-                        return false
-                    }
-                }
-                true
-            },
-            (&None, &None) => true,
-            _ => false,
-        }
-    }
 }
 
-/// The styles associated with a node, including the styles for any
+/// The cascade inputs associated with a node, including those for any
 /// pseudo-elements.
+///
+/// The matching and cascading process stores them in this format temporarily
+/// within the `CurrentElementInfo`. At the end of the cascade, they are folded
+/// down into the main `ComputedValues` to reduce memory usage per element while
+/// still remaining accessible.
 #[derive(Clone, Debug)]
-pub struct ElementStyles {
-    /// The element's style.
-    pub primary: ComputedStyle,
-    /// A list of the styles for the element's eagerly-cascaded pseudo-elements.
-    pub pseudos: EagerPseudoStyles,
+pub struct ElementCascadeInputs {
+    /// The element's cascade inputs.
+    pub primary: Option<CascadeInputs>,
+    /// A list of the inputs for the element's eagerly-cascaded pseudo-elements.
+    pub pseudos: EagerPseudoCascadeInputs,
 }
 
-impl ElementStyles {
-    /// Trivially construct a new `ElementStyles`.
-    pub fn new(primary: ComputedStyle) -> Self {
-        ElementStyles {
-            primary: primary,
-            pseudos: EagerPseudoStyles(None),
+impl Default for ElementCascadeInputs {
+    /// Construct an empty `ElementCascadeInputs`.
+    fn default() -> Self {
+        ElementCascadeInputs {
+            primary: None,
+            pseudos: EagerPseudoCascadeInputs(None),
+        }
+    }
+}
+
+impl ElementCascadeInputs {
+    /// Construct inputs from previous cascade results, if any.
+    pub fn new_from_element_data(data: &ElementData) -> Self {
+        if !data.has_styles() {
+            return ElementCascadeInputs::default()
+        }
+        ElementCascadeInputs {
+            primary: Some(CascadeInputs::new_from_style(data.styles.primary())),
+            pseudos: EagerPseudoCascadeInputs::new_from_style(&data.styles.pseudos),
         }
     }
 
-    /// Whether this element `display` value is `none`.
-    pub fn is_display_none(&self) -> bool {
-        self.primary.values().get_box().clone_display() == display::T::none
+    /// Returns whether we have primary inputs.
+    pub fn has_primary(&self) -> bool {
+        self.primary.is_some()
+    }
+
+    /// Gets the primary inputs. Panic if unavailable.
+    pub fn primary(&self) -> &CascadeInputs {
+        self.primary.as_ref().unwrap()
+    }
+
+    /// Gets the mutable primary inputs. Panic if unavailable.
+    pub fn primary_mut(&mut self) -> &mut CascadeInputs {
+        self.primary.as_mut().unwrap()
+    }
+
+    /// Ensure primary inputs exist and create them if they do not.
+    /// Returns a mutable reference to the primary inputs.
+    pub fn ensure_primary(&mut self) -> &mut CascadeInputs {
+        if self.primary.is_none() {
+            self.primary = Some(CascadeInputs::default());
+        }
+        self.primary.as_mut().unwrap()
     }
 }
 
@@ -491,6 +576,11 @@ pub struct CurrentElementInfo {
     /// A Vec of possibly expired animations. Used only by Servo.
     #[allow(dead_code)]
     pub possibly_expired_animations: Vec<PropertyAnimation>,
+    /// Temporary storage for various intermediate inputs that are eventually
+    /// used by by the cascade. At the end of the cascade, they are folded down
+    /// into the main `ComputedValues` to reduce memory usage per element while
+    /// still remaining accessible.
+    pub cascade_inputs: ElementCascadeInputs,
 }
 
 /// Statistics gathered during the traversal. We gather statistics on each
@@ -788,6 +878,7 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
             is_initial_style: !data.has_styles(),
             validation_data: ValidationData::default(),
             possibly_expired_animations: Vec::new(),
+            cascade_inputs: ElementCascadeInputs::default(),
         });
     }
 
@@ -830,6 +921,24 @@ pub struct StyleContext<'a, E: TElement + 'a> {
     pub shared: &'a SharedStyleContext<'a>,
     /// The thread-local style context (mutable) reference.
     pub thread_local: &'a mut ThreadLocalStyleContext<E>,
+}
+
+impl<'a, E: TElement + 'a> StyleContext<'a, E> {
+    /// Returns a reference to the cascade inputs.  Panics if there is no
+    /// `CurrentElementInfo`.
+    pub fn cascade_inputs(&self) -> &ElementCascadeInputs {
+        &self.thread_local.current_element_info
+             .as_ref().unwrap()
+             .cascade_inputs
+    }
+
+    /// Returns a mutable reference to the cascade inputs.  Panics if there is
+    /// no `CurrentElementInfo`.
+    pub fn cascade_inputs_mut(&mut self) -> &mut ElementCascadeInputs {
+        &mut self.thread_local.current_element_info
+                 .as_mut().unwrap()
+                 .cascade_inputs
+    }
 }
 
 /// Why we're doing reflow.

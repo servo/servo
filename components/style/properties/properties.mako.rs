@@ -1810,7 +1810,7 @@ pub type ServoComputedValues = ComputedValues;
 ///
 /// When needed, the structs may be copied in order to get mutated.
 #[cfg(feature = "servo")]
-#[cfg_attr(feature = "servo", derive(Clone, Debug))]
+#[cfg_attr(feature = "servo", derive(Clone))]
 pub struct ComputedValues {
     % for style_struct in data.active_style_structs():
         ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
@@ -1821,6 +1821,10 @@ pub struct ComputedValues {
     /// The keyword behind the current font-size property, if any
     pub font_computation_data: FontComputationData,
 
+    /// The rule node representing the ordered list of rules matched for this
+    /// node.  Can be None for default values and text nodes.  This is
+    /// essentially an optimization to avoid referencing the root rule node.
+    pub rules: Option<StrongRuleNode>,
     /// The element's computed values if visited, only computed if there's a
     /// relevant link for this element. A element's "relevant link" is the
     /// element being matched if it is a link or the nearest ancestor link.
@@ -1833,6 +1837,7 @@ impl ComputedValues {
     pub fn new(custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
                writing_mode: WritingMode,
                font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+               rules: Option<StrongRuleNode>,
                visited_style: Option<Arc<ComputedValues>>,
             % for style_struct in data.active_style_structs():
                ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
@@ -1842,6 +1847,7 @@ impl ComputedValues {
             custom_properties: custom_properties,
             writing_mode: writing_mode,
             font_computation_data: FontComputationData::new(font_size_keyword),
+            rules: rules,
             visited_style: visited_style,
         % for style_struct in data.active_style_structs():
             ${style_struct.ident}: ${style_struct.ident},
@@ -1878,19 +1884,23 @@ impl ComputedValues {
         }
     % endfor
 
-    /// Gets a reference to the visited computed values, if any.
+    /// Gets a reference to the rule node. Panic if no rule node exists.
+    pub fn rules(&self) -> &StrongRuleNode {
+        self.rules.as_ref().unwrap()
+    }
+
+    /// Gets a reference to the visited style, if any.
     pub fn get_visited_style(&self) -> Option<<&Arc<ComputedValues>> {
         self.visited_style.as_ref()
     }
 
-    /// Gets a reference to the visited computed values. Panic if the element
-    /// does not have visited computed values.
+    /// Gets a reference to the visited style. Panic if no visited style exists.
     pub fn visited_style(&self) -> &Arc<ComputedValues> {
         self.get_visited_style().unwrap()
     }
 
-    /// Clone the visited computed values Arc.  Used for inheriting parent styles
-    /// in StyleBuilder::for_inheritance.
+    /// Clone the visited style.  Used for inheriting parent styles in
+    /// StyleBuilder::for_inheritance.
     pub fn clone_visited_style(&self) -> Option<Arc<ComputedValues>> {
         self.visited_style.clone()
     }
@@ -2138,6 +2148,14 @@ impl ComputedValues {
     }
 }
 
+// We manually implement Debug for ComputedValues so that we can avoid the
+// verbose stringification of every property and instead focus on a few values.
+impl fmt::Debug for ComputedValues {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "ComputedValues {{ rules: {:?}, .. }}", self.rules)
+    }
+}
+
 /// Return a WritingMode bitflags from the relevant CSS properties.
 pub fn get_writing_mode(inheritedbox_style: &style_structs::InheritedBox) -> WritingMode {
     use logical_geometry;
@@ -2277,6 +2295,9 @@ impl<'a, T: 'a> Deref for StyleStructRef<'a, T> {
 /// actually cloning them, until we either build the style, or mutate the
 /// inherited value.
 pub struct StyleBuilder<'a> {
+    /// The rule node representing the ordered list of rules matched for this
+    /// node.
+    rules: Option<StrongRuleNode>,
     custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
     /// The writing mode flags.
     ///
@@ -2296,6 +2317,7 @@ pub struct StyleBuilder<'a> {
 impl<'a> StyleBuilder<'a> {
     /// Trivially construct a `StyleBuilder`.
     pub fn new(
+        rules: Option<StrongRuleNode>,
         custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
         writing_mode: WritingMode,
         font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
@@ -2305,6 +2327,7 @@ impl<'a> StyleBuilder<'a> {
         % endfor
     ) -> Self {
         StyleBuilder {
+            rules: rules,
             custom_properties: custom_properties,
             writing_mode: writing_mode,
             font_size_keyword: font_size_keyword,
@@ -2324,7 +2347,8 @@ impl<'a> StyleBuilder<'a> {
     /// Inherits style from the parent element, accounting for the default
     /// computed values that need to be provided as well.
     pub fn for_inheritance(parent: &'a ComputedValues, default: &'a ComputedValues) -> Self {
-        Self::new(parent.custom_properties(),
+        Self::new(/* rules = */ None,
+                  parent.custom_properties(),
                   parent.writing_mode,
                   parent.font_computation_data.font_size_keyword,
                   parent.clone_visited_style(),
@@ -2400,6 +2424,7 @@ impl<'a> StyleBuilder<'a> {
         ComputedValues::new(self.custom_properties,
                             self.writing_mode,
                             self.font_size_keyword,
+                            self.rules,
                             self.visited_style,
                             % for style_struct in data.active_style_structs():
                             self.${style_struct.ident}.build(),
@@ -2443,6 +2468,7 @@ mod lazy_static_module {
             custom_properties: None,
             writing_mode: WritingMode::empty(),
             font_computation_data: FontComputationData::default_values(),
+            rules: None,
             visited_style: None,
         };
     }
@@ -2560,6 +2586,7 @@ pub fn cascade(device: &Device,
         })
     };
     apply_declarations(device,
+                       rule_node,
                        iter_declarations,
                        inherited_style,
                        layout_parent_style,
@@ -2575,6 +2602,7 @@ pub fn cascade(device: &Device,
 /// first.
 #[allow(unused_mut)] // conditionally compiled code for "position"
 pub fn apply_declarations<'a, F, I>(device: &Device,
+                                    rules: &StrongRuleNode,
                                     iter_declarations: F,
                                     inherited_style: &ComputedValues,
                                     layout_parent_style: &ComputedValues,
@@ -2604,8 +2632,12 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
         ::custom_properties::finish_cascade(
             custom_properties, &inherited_custom_properties);
 
+    // We'd really like to own the rules here to avoid refcount traffic, but
+    // animation's usage of `apply_declarations` make this tricky. See bug
+    // 1375525.
     let builder = if !flags.contains(INHERIT_ALL) {
-        StyleBuilder::new(custom_properties,
+        StyleBuilder::new(Some(rules.clone()),
+                          custom_properties,
                           WritingMode::empty(),
                           inherited_style.font_computation_data.font_size_keyword,
                           visited_style,
@@ -2618,7 +2650,8 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                           % endfor
                           )
     } else {
-        StyleBuilder::new(custom_properties,
+        StyleBuilder::new(Some(rules.clone()),
+                          custom_properties,
                           WritingMode::empty(),
                           inherited_style.font_computation_data.font_size_keyword,
                           visited_style,

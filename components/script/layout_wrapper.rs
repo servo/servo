@@ -902,7 +902,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     fn parent_style(&self) -> Arc<ComputedValues> {
         let parent = self.node.parent_node().unwrap().as_element().unwrap();
         let parent_data = parent.get_data().unwrap().borrow();
-        parent_data.styles().primary.values().clone()
+        parent_data.styles.primary().clone()
     }
 
     fn debug_id(self) -> usize {
