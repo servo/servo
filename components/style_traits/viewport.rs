@@ -9,7 +9,6 @@ use cssparser::{Parser, ToCss, ParseError as CssParseError, BasicParseError};
 use euclid::size::TypedSize2D;
 use std::ascii::AsciiExt;
 use std::fmt;
-use values::specified::AllowedLengthType;
 
 define_css_keyword_enum!(UserZoom:
                          "zoom" => Zoom,
@@ -141,12 +140,14 @@ impl Zoom {
     ///
     /// https://drafts.csswg.org/css-device-adapt/#descdef-viewport-zoom
     pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Zoom, ParseError<'i>> {
+        use PARSING_MODE_DEFAULT;
         use cssparser::Token;
+        use values::specified::AllowedLengthType::NonNegative;
 
         match try!(input.next()) {
-            Token::Percentage(ref value) if AllowedLengthType::NonNegative.is_ok(value.unit_value) =>
+            Token::Percentage(ref value) if NonNegative.is_ok(PARSING_MODE_DEFAULT, value.unit_value) =>
                 Ok(Zoom::Percentage(value.unit_value)),
-            Token::Number(ref value) if AllowedLengthType::NonNegative.is_ok(value.value) =>
+            Token::Number(ref value) if NonNegative.is_ok(PARSING_MODE_DEFAULT, value.value) =>
                 Ok(Zoom::Number(value.value)),
             Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") =>
                 Ok(Zoom::Auto),

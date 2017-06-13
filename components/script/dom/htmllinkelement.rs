@@ -32,10 +32,11 @@ use std::cell::Cell;
 use std::default::Default;
 use style::attr::AttrValue;
 use style::media_queries::parse_media_query_list;
-use style::parser::{PARSING_MODE_DEFAULT, ParserContext as CssParserContext};
+use style::parser::ParserContext as CssParserContext;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylearc::Arc;
 use style::stylesheets::{CssRuleType, Stylesheet};
+use style_traits::PARSING_MODE_DEFAULT;
 use stylesheet_loader::{StylesheetLoader, StylesheetContextSource, StylesheetOwner};
 
 unsafe_no_jsmanaged_fields!(Stylesheet);

@@ -91,7 +91,7 @@ use style::gecko_properties::{self, style_structs};
 use style::invalidation::element::restyle_hints::{self, RestyleHint};
 use style::media_queries::{MediaList, parse_media_query_list};
 use style::parallel;
-use style::parser::{PARSING_MODE_DEFAULT, ParserContext};
+use style::parser::ParserContext;
 use style::properties::{CascadeFlags, ComputedValues, Importance, SourcePropertyDeclaration};
 use style::properties::{LonghandIdSet, PropertyDeclaration, PropertyDeclarationBlock, PropertyId, StyleBuilder};
 use style::properties::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
@@ -118,7 +118,7 @@ use style::traversal::{FOR_DEFAULT_STYLES, TraversalDriver, TraversalFlags, UNST
 use style::traversal::{resolve_style, resolve_default_style};
 use style::values::{CustomIdent, KeyframesName};
 use style::values::computed::Context;
-use style_traits::ToCss;
+use style_traits::{PARSING_MODE_DEFAULT, ToCss};
 use super::stylesheet_loader::StylesheetLoader;
 
 /*
@@ -1594,7 +1594,7 @@ fn parse_property_into(declarations: &mut SourcePropertyDeclaration,
                        data: *mut URLExtraData,
                        parsing_mode: structs::ParsingMode,
                        quirks_mode: QuirksMode) -> Result<(), ()> {
-    use style::parser::ParsingMode;
+    use style_traits::ParsingMode;
     let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
     let url_data = unsafe { RefPtr::from_ptr_ref(&data) };
     let parsing_mode = ParsingMode::from_bits_truncate(parsing_mode);

@@ -6,12 +6,12 @@ use cssparser::{Parser, ParserInput};
 use media_queries::CSSErrorReporterTest;
 use parsing::parse;
 use style::context::QuirksMode;
-use style::parser::{PARSING_MODE_ALLOW_UNITLESS_LENGTH, Parse, ParserContext};
+use style::parser::{Parse, ParserContext};
 use style::stylesheets::{CssRuleType, Origin};
 use style::values::Either;
 use style::values::specified::{LengthOrPercentageOrNumber, Number};
 use style::values::specified::length::{AbsoluteLength, Length, NoCalcLength};
-use style_traits::ToCss;
+use style_traits::{PARSING_MODE_ALLOW_UNITLESS_LENGTH, ToCss};
 
 #[test]
 fn test_calc() {
