@@ -401,7 +401,7 @@ impl CounterStyleOrNone {
         use gecko_bindings::bindings::Gecko_SetCounterStyleToName as set_name;
         use gecko_bindings::bindings::Gecko_SetCounterStyleToSymbols as set_symbols;
         match self {
-            CounterStyleOrNone::None_ => unsafe {
+            CounterStyleOrNone::None => unsafe {
                 set_name(gecko_value, atom!("none").into_addrefed());
             },
             CounterStyleOrNone::Name(name) => unsafe {

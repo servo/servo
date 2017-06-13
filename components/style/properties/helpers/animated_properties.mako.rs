@@ -1246,7 +1246,14 @@ impl Animatable for LengthOrPercentageOrNone {
             (LengthOrPercentageOrNone::None, LengthOrPercentageOrNone::None) => {
                 Ok(LengthOrPercentageOrNone::None)
             }
-            _ => Err(())
+            (this, other) => {
+                let this = <Option<CalcLengthOrPercentage>>::from(this);
+                let other = <Option<CalcLengthOrPercentage>>::from(other);
+                match this.add_weighted(&other, self_portion, other_portion) {
+                    Ok(Some(result)) => Ok(LengthOrPercentageOrNone::Calc(result)),
+                    _ => Err(()),
+                }
+            },
         }
     }
 
@@ -1273,7 +1280,12 @@ impl Animatable for LengthOrPercentageOrNone {
              LengthOrPercentageOrNone::Percentage(ref other)) => {
                 this.compute_distance(other)
             },
-            _ => Err(())
+            (this, other) => {
+                // If one of the element is Auto, Option<> will be None, and the returned distance is Err(())
+                let this = <Option<CalcLengthOrPercentage>>::from(this);
+                let other = <Option<CalcLengthOrPercentage>>::from(other);
+                this.compute_distance(&other)
+            },
         }
     }
 }

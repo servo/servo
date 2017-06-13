@@ -54,13 +54,14 @@ impl SymbolsType {
 ///
 /// Since wherever <counter-style> is used, 'none' is a valid value as
 /// well, we combine them into one type to make code simpler.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq, ToCss)]
 pub enum CounterStyleOrNone {
-    /// none
-    None_,
-    /// <counter-style-name>
+    /// `none`
+    None,
+    /// `<counter-style-name>`
     Name(CustomIdent),
-    /// symbols()
+    /// `symbols()`
+    #[css(function)]
     Symbols(SymbolsType, Symbols),
 }
 
@@ -84,7 +85,7 @@ impl Parse for CounterStyleOrNone {
             return Ok(CounterStyleOrNone::Name(name));
         }
         if input.try(|i| i.expect_ident_matching("none")).is_ok() {
-            return Ok(CounterStyleOrNone::None_);
+            return Ok(CounterStyleOrNone::None);
         }
         if input.try(|i| i.expect_function_matching("symbols")).is_ok() {
             return input.parse_nested_block(|input| {
@@ -105,23 +106,6 @@ impl Parse for CounterStyleOrNone {
             });
         }
         Err(StyleParseError::UnspecifiedError.into())
-    }
-}
-
-impl ToCss for CounterStyleOrNone {
-    #[inline]
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match self {
-            &CounterStyleOrNone::None_ => dest.write_str("none"),
-            &CounterStyleOrNone::Name(ref name) => name.to_css(dest),
-            &CounterStyleOrNone::Symbols(ref symbols_type, ref symbols) => {
-                dest.write_str("symbols(")?;
-                symbols_type.to_css(dest)?;
-                dest.write_str(" ")?;
-                symbols.to_css(dest)?;
-                dest.write_str(")")
-            }
-        }
     }
 }
 

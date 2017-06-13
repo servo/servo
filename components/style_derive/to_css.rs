@@ -16,24 +16,61 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
 
     let style = synstructure::BindStyle::Ref.into();
     let match_body = synstructure::each_variant(&input, &style, |bindings, variant| {
-        if bindings.is_empty() {
-            let identifier = to_css_identifier(variant.ident.as_ref());
-            return Some(quote! {
+        let mut identifier = to_css_identifier(variant.ident.as_ref());
+        let mut expr = if bindings.is_empty() {
+            quote! {
                 ::std::fmt::Write::write_str(dest, #identifier)
-            });
-        }
-        let (first, rest) = bindings.split_first().expect("unit variants are not yet supported");
-        where_clause.predicates.push(where_predicate(first.field.ty.clone()));
-        let mut expr = quote! {
-            ::style_traits::ToCss::to_css(#first, dest)
-        };
-        for binding in rest {
-            where_clause.predicates.push(where_predicate(binding.field.ty.clone()));
-            expr = quote! {
-                #expr?;
-                ::std::fmt::Write::write_str(dest, " ")?;
-                ::style_traits::ToCss::to_css(#binding, dest)
+            }
+        } else {
+            let (first, rest) = bindings.split_first().expect("unit variants are not yet supported");
+            where_clause.predicates.push(where_predicate(first.field.ty.clone()));
+            let mut expr = quote! {
+                ::style_traits::ToCss::to_css(#first, dest)
             };
+            for binding in rest {
+                where_clause.predicates.push(where_predicate(binding.field.ty.clone()));
+                expr = quote! {
+                    #expr?;
+                    ::std::fmt::Write::write_str(dest, " ")?;
+                    ::style_traits::ToCss::to_css(#binding, dest)
+                };
+            }
+            expr
+        };
+        let mut css_attrs = variant.attrs.iter().filter(|attr| attr.name() == "css");
+        let is_function = css_attrs.next().map_or(false, |attr| {
+            match attr.value {
+                syn::MetaItem::List(ref ident, ref items) if ident.as_ref() == "css" => {
+                    let mut nested = items.iter();
+                    let is_function = nested.next().map_or(false, |attr| {
+                        match *attr {
+                            syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(ref ident)) => {
+                                if ident.as_ref() != "function" {
+                                    panic!("only `#[css(function)]` is supported for now")
+                                }
+                                true
+                            },
+                            _ => panic!("only `#[css(<ident>)]` is supported for now"),
+                        }
+                    });
+                    if nested.next().is_some() {
+                        panic!("only `#[css()]` or `#[css(<ident>)]` is supported for now")
+                    }
+                    is_function
+                },
+                _ => panic!("only `#[css(...)]` is supported for now"),
+            }
+        });
+        if css_attrs.next().is_some() {
+            panic!("only a single `#[css(...)]` attribute is supported for now");
+        }
+        if is_function {
+            identifier.push_str("(");
+            expr = quote! {
+                ::std::fmt::Write::write_str(dest, #identifier)?;
+                #expr?;
+                ::std::fmt::Write::write_str(dest, ")")
+            }
         }
         Some(expr)
     });

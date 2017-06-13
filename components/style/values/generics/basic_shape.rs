@@ -92,7 +92,7 @@ pub struct Ellipse<H, V, LengthOrPercentage> {
 /// https://drafts.csswg.org/css-shapes/#typedef-shape-radius
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, ToComputedValue)]
+#[derive(Clone, Copy, Debug, PartialEq, ToComputedValue, ToCss)]
 pub enum ShapeRadius<LengthOrPercentage> {
     Length(LengthOrPercentage),
     ClosestSide,
@@ -159,17 +159,6 @@ impl<L> ToCss for InsetRect<L>
 impl<L> Default for ShapeRadius<L> {
     #[inline]
     fn default() -> Self { ShapeRadius::ClosestSide }
-}
-
-impl<L: ToCss> ToCss for ShapeRadius<L> {
-    #[inline]
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            ShapeRadius::Length(ref lop) => lop.to_css(dest),
-            ShapeRadius::ClosestSide => dest.write_str("closest-side"),
-            ShapeRadius::FarthestSide => dest.write_str("farthest-side"),
-        }
-    }
 }
 
 impl<L: ToCss> ToCss for Polygon<L> {
