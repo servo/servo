@@ -218,8 +218,7 @@ fn fmt_with_data_and_primary_values<N: TNode>(f: &mut fmt::Formatter, n: N) -> f
     if let Some(el) = n.as_element() {
         let dd = el.has_dirty_descendants();
         let data = el.borrow_data();
-        let styles = data.as_ref().and_then(|d| d.get_styles());
-        let values = styles.map(|s| s.primary.values());
+        let values = data.as_ref().and_then(|d| d.styles.get_primary());
         write!(f, "{:?} dd={} data={:?} values={:?}", el, dd, &data, values)
     } else {
         write!(f, "{:?}", n)

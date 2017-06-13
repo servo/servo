@@ -8,7 +8,6 @@ use {Atom, LocalName, Namespace};
 use applicable_declarations::{ApplicableDeclarationBlock, ApplicableDeclarationList};
 use bit_vec::BitVec;
 use context::QuirksMode;
-use data::ComputedStyle;
 use dom::TElement;
 use element_state::ElementState;
 use error_reporting::create_error_reporter;
@@ -588,7 +587,7 @@ impl Stylist {
                                          parent: Option<&Arc<ComputedValues>>,
                                          cascade_flags: CascadeFlags,
                                          font_metrics: &FontMetricsProvider)
-                                         -> ComputedStyle {
+                                         -> Arc<ComputedValues> {
         debug_assert!(pseudo.is_precomputed());
 
         let rule_node = match self.precomputed_pseudo_element_decls.get(pseudo) {
@@ -628,7 +627,7 @@ impl Stylist {
                                 font_metrics,
                                 cascade_flags,
                                 self.quirks_mode);
-        ComputedStyle::new(rule_node, Arc::new(computed))
+        Arc::new(computed)
     }
 
     /// Returns the style for an anonymous box of the given type.
@@ -666,7 +665,6 @@ impl Stylist {
         }
         self.precomputed_values_for_pseudo(guards, &pseudo, Some(parent_style), cascade_flags,
                                            &ServoMetricsProvider)
-            .values.unwrap()
     }
 
     /// Computes a pseudo-element style lazily during layout.
@@ -683,7 +681,7 @@ impl Stylist {
                                                   rule_inclusion: RuleInclusion,
                                                   parent_style: &ComputedValues,
                                                   font_metrics: &FontMetricsProvider)
-                                                  -> Option<ComputedStyle>
+                                                  -> Option<Arc<ComputedValues>>
         where E: TElement,
     {
         let rule_node =
@@ -710,7 +708,7 @@ impl Stylist {
                                 CascadeFlags::empty(),
                                 self.quirks_mode);
 
-        Some(ComputedStyle::new(rule_node, Arc::new(computed)))
+        Some(Arc::new(computed))
     }
 
     /// Computes the rule node for a lazily-cascaded pseudo-element.

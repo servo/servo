@@ -276,7 +276,7 @@ impl ToComputedValue for Color {
                     let wrap = GeckoElement(body);
                     let borrow = wrap.borrow_data();
                     ComputedColor::rgba(borrow.as_ref().unwrap()
-                                              .styles().primary.values()
+                                              .styles.primary()
                                               .get_color()
                                               .clone_color())
                 } else {
