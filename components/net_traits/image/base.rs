@@ -4,9 +4,10 @@
 
 use ipc_channel::ipc::IpcSharedMemory;
 use piston_image::{self, DynamicImage, ImageFormat};
+use std::fmt;
 use webrender_traits;
 
-#[derive(Clone, Copy, Deserialize, Eq, PartialEq, Serialize, HeapSizeOf)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, HeapSizeOf)]
 pub enum PixelFormat {
     /// Luminance channel only
     K8,
@@ -29,7 +30,14 @@ pub struct Image {
     pub id: Option<webrender_traits::ImageKey>,
 }
 
-#[derive(Clone, Deserialize, Eq, PartialEq, Serialize, HeapSizeOf)]
+impl fmt::Debug for Image {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Image {{ width: {}, height: {}, format: {:?}, ..., id: {:?} }}",
+               self.width, self.height, self.format, self.id)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, HeapSizeOf)]
 pub struct ImageMetadata {
     pub width: u32,
     pub height: u32,

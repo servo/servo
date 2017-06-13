@@ -9,12 +9,19 @@ use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use script_thread::{MainThreadScriptMsg, Runnable, RunnableWrapper, ScriptThread};
 use servo_atoms::Atom;
+use std::fmt;
 use std::result::Result;
 use std::sync::mpsc::Sender;
 use task_source::TaskSource;
 
 #[derive(JSTraceable, Clone)]
 pub struct DOMManipulationTaskSource(pub Sender<MainThreadScriptMsg>);
+
+impl fmt::Debug for DOMManipulationTaskSource {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "DOMManipulationTaskSource(...)")
+    }
+}
 
 impl TaskSource for DOMManipulationTaskSource {
     fn queue_with_wrapper<T>(&self,
@@ -55,6 +62,12 @@ impl DOMManipulationTaskSource {
 }
 
 pub struct DOMManipulationTask(pub Box<Runnable + Send>);
+
+impl fmt::Debug for DOMManipulationTask {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "DOMManipulationTask(...)")
+    }
+}
 
 impl DOMManipulationTask {
     pub fn handle_task(self, script_thread: &ScriptThread) {

@@ -451,11 +451,11 @@ pub enum TimerSchedulerMsg {
 /// Notifies the script thread to fire due timers.
 /// `TimerSource` must be `FromWindow` when dispatched to `ScriptThread` and
 /// must be `FromWorker` when dispatched to a `DedicatedGlobalWorkerScope`
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct TimerEvent(pub TimerSource, pub TimerEventId);
 
 /// Describes the thread that requested the TimerEvent.
-#[derive(Copy, Clone, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Copy, Clone, Debug, HeapSizeOf, Deserialize, Serialize)]
 pub enum TimerSource {
     /// The event was requested from a window (ScriptThread).
     FromWindow(PipelineId),

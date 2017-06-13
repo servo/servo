@@ -27,6 +27,7 @@ use script_thread::{Runnable, STACK_ROOTS, trace_thread};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use std::cell::Cell;
+use std::fmt;
 use std::io::{Write, stdout};
 use std::marker::PhantomData;
 use std::os;
@@ -43,6 +44,15 @@ pub enum CommonScriptMsg {
     CollectReports(ReportsChan),
     /// Generic message that encapsulates event handling.
     RunnableMsg(ScriptThreadEventCategory, Box<Runnable + Send>),
+}
+
+impl fmt::Debug for CommonScriptMsg {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            CommonScriptMsg::CollectReports(_) => write!(f, "CollectReports(...)"),
+            CommonScriptMsg::RunnableMsg(category, _) => write!(f, "RunnableMsg({:?}, ...)", category),
+        }
+    }
 }
 
 /// A cloneable interface for communicating with an event loop.

@@ -232,6 +232,7 @@ pub trait Runnable {
     fn main_thread_handler(self: Box<Self>, _script_thread: &ScriptThread) { self.handler(); }
 }
 
+#[derive(Debug)]
 enum MixedMessage {
     FromConstellation(ConstellationControlMsg),
     FromScript(MainThreadScriptMsg),
@@ -241,6 +242,7 @@ enum MixedMessage {
 }
 
 /// Messages used to control the script event loop
+#[derive(Debug)]
 pub enum MainThreadScriptMsg {
     /// Common variants associated with the script messages
     Common(CommonScriptMsg),
@@ -983,6 +985,7 @@ impl ScriptThread {
 
         // Process the gathered events.
         for msg in sequential {
+            debug!("Processing event {:?}.", msg);
             let category = self.categorize_msg(&msg);
 
             let result = self.profile_event(category, move || {
