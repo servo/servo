@@ -28,6 +28,18 @@ test(function () {
 }, 'HTMLElement constructor must throw TypeError when it has not been defined by customElements.define');
 
 test(function () {
+    class SomeCustomElement extends HTMLParagraphElement {};
+    customElements.define('some-custom-element', SomeCustomElement);
+    assert_throws({'name': 'TypeError'}, function () { new SomeCustomElement(); });
+}, 'Custom element constructor must throw TypeError when it does not extend HTMLElement');
+
+test(function () {
+    class SomeCustomButtonElement extends HTMLButtonElement {};
+    customElements.define('some-custom-button-element', SomeCustomButtonElement, { extends: "p" });
+    assert_throws({'name': 'TypeError'}, function () { new SomeCustomButtonElement(); });
+}, 'Custom element constructor must throw TypeError when it does not extend the proper element interface');
+
+test(function () {
     class CustomElementWithInferredTagName extends HTMLElement {};
     customElements.define('inferred-name', CustomElementWithInferredTagName);
 
