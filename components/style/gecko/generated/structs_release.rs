@@ -6500,9 +6500,10 @@ pub mod root {
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
         pub enum TraversalRestyleBehavior {
             Normal = 0,
-            ForReconstruct = 1,
-            ForAnimationOnly = 2,
-            ForCSSRuleChanges = 3,
+            ForNewlyBoundElement = 1,
+            ForReconstruct = 2,
+            ForAnimationOnly = 3,
+            ForCSSRuleChanges = 4,
         }
         #[repr(i32)]
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -10169,6 +10170,12 @@ pub mod root {
             eFloatID_SpellCheckerUnderlineRelativeSize = 1,
             eFloatID_CaretAspectRatio = 2,
         }
+        pub const LookAndFeel_FontID_FontID_MINIMUM:
+                  root::mozilla::LookAndFeel_FontID =
+            LookAndFeel_FontID::eFont_Caption;
+        pub const LookAndFeel_FontID_FontID_MAXIMUM:
+                  root::mozilla::LookAndFeel_FontID =
+            LookAndFeel_FontID::eFont_Widget;
         #[repr(u32)]
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
         pub enum LookAndFeel_FontID {
@@ -33852,7 +33859,7 @@ pub mod root {
                    root::nsCharTraits ) ));
     }
     #[test]
-    fn __bindgen_test_layout__bindgen_ty_id_211327_instantiation_98() {
+    fn __bindgen_test_layout__bindgen_ty_id_211345_instantiation_98() {
         assert_eq!(::std::mem::size_of::<u8>() , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u8 )
                    ));
@@ -33861,7 +33868,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout__bindgen_ty_id_211363_instantiation_99() {
+    fn __bindgen_test_layout__bindgen_ty_id_211381_instantiation_99() {
         assert_eq!(::std::mem::size_of::<u8>() , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u8 )
                    ));
