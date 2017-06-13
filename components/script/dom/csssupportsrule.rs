@@ -13,12 +13,12 @@ use dom::cssrule::SpecificCSSRule;
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use style::parser::{PARSING_MODE_DEFAULT, ParserContext};
+use style::parser::ParserContext;
 use style::shared_lock::{Locked, ToCssWithGuard};
 use style::stylearc::Arc;
 use style::stylesheets::{CssRuleType, SupportsRule};
 use style::stylesheets::supports_rule::SupportsCondition;
-use style_traits::ToCss;
+use style_traits::{PARSING_MODE_DEFAULT, ToCss};
 
 #[dom_struct]
 pub struct CSSSupportsRule {

@@ -14,11 +14,11 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use style::media_queries::{MediaQuery, parse_media_query_list};
 use style::media_queries::MediaList as StyleMediaList;
-use style::parser::{PARSING_MODE_DEFAULT, ParserContext};
+use style::parser::ParserContext;
 use style::shared_lock::{SharedRwLock, Locked};
 use style::stylearc::Arc;
 use style::stylesheets::CssRuleType;
-use style_traits::ToCss;
+use style_traits::{PARSING_MODE_DEFAULT, ToCss};
 
 #[dom_struct]
 pub struct MediaList {

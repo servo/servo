@@ -10,11 +10,11 @@ use media_queries::CSSErrorReporterTest;
 use style::context::QuirksMode;
 use style::font_metrics::ServoMetricsProvider;
 use style::media_queries::{Device, MediaType};
-use style::parser::{PARSING_MODE_DEFAULT, ParserContext};
+use style::parser::ParserContext;
 use style::properties::{ComputedValues, StyleBuilder};
 use style::stylesheets::{CssRuleType, Origin};
 use style::values::computed::{Context, ToComputedValue};
-use style_traits::{ToCss, ParseError};
+use style_traits::{PARSING_MODE_DEFAULT, ToCss, ParseError};
 
 fn parse<T, F>(f: F, s: &'static str) -> Result<T, ParseError<'static>>
 where F: for<'t> Fn(&ParserContext, &mut Parser<'static, 't>) -> Result<T, ParseError<'static>> {

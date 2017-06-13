@@ -6,10 +6,10 @@ use app_units::Au;
 use cssparser::{Parser, ParserInput};
 use media_queries::CSSErrorReporterTest;
 use style::context::QuirksMode;
-use style::parser::{PARSING_MODE_ALLOW_ALL_NUMERIC_VALUES, ParserContext};
+use style::parser::ParserContext;
 use style::stylesheets::{CssRuleType, Origin};
 use style::values::specified::{AbsoluteLength, NoCalcLength, Number, ViewportPercentageLength};
-use style_traits::HasViewportPercentage;
+use style_traits::{PARSING_MODE_ALLOW_ALL_NUMERIC_VALUES, HasViewportPercentage};
 
 #[test]
 fn length_has_viewport_percentage() {

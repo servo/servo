@@ -5,9 +5,9 @@
 use cssparser::{Parser, ParserInput};
 use media_queries::CSSErrorReporterTest;
 use style::context::QuirksMode;
-use style::parser::{PARSING_MODE_DEFAULT, ParserContext};
+use style::parser::ParserContext;
 use style::stylesheets::{CssRuleType, Origin};
-use style_traits::ParseError;
+use style_traits::{PARSING_MODE_DEFAULT, ParseError};
 
 fn parse<T, F>(f: F, s: &'static str) -> Result<T, ParseError<'static>>
 where F: for<'t> Fn(&ParserContext, &mut Parser<'static, 't>) -> Result<T, ParseError<'static>> {
