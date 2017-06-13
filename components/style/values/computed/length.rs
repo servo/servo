@@ -157,6 +157,25 @@ impl From<LengthOrPercentageOrAuto> for Option<CalcLengthOrPercentage> {
     }
 }
 
+impl From<LengthOrPercentageOrNone> for Option<CalcLengthOrPercentage> {
+    fn from(len: LengthOrPercentageOrNone) -> Option<CalcLengthOrPercentage> {
+        match len {
+            LengthOrPercentageOrNone::Percentage(this) => {
+                Some(CalcLengthOrPercentage::new(Au(0), Some(this)))
+            }
+            LengthOrPercentageOrNone::Length(this) => {
+                Some(CalcLengthOrPercentage::new(this, None))
+            }
+            LengthOrPercentageOrNone::Calc(this) => {
+                Some(this)
+            }
+            LengthOrPercentageOrNone::None => {
+                None
+            }
+        }
+    }
+}
+
 impl ToCss for CalcLengthOrPercentage {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match (self.length, self.percentage) {
