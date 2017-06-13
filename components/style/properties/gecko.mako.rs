@@ -3434,6 +3434,15 @@ fn static_assert() {
         }
     }
 
+    <%
+    # This array is several filter function which has percentage or
+    # number value for function of clone / set.
+    # The setting / cloning process of other function(e.g. Blur / HueRotate) is
+    # different from these function. So this array don't include such function.
+    FILTER_FUNCTIONS = [ 'Brightness', 'Contrast', 'Grayscale', 'Invert',
+                         'Opacity', 'Saturate', 'Sepia' ]
+     %>
+
     pub fn set_filter(&mut self, v: longhands::filter::computed_value::T) {
         use properties::longhands::filter::computed_value::Filter::*;
         use gecko_bindings::structs::nsCSSShadowArray;
@@ -3460,35 +3469,20 @@ fn static_assert() {
         debug_assert!(v.filters.len() == self.gecko.mFilters.len());
 
         for (servo, gecko_filter) in v.filters.into_iter().zip(self.gecko.mFilters.iter_mut()) {
-            //TODO: URL, drop-shadow
             match servo {
-                Blur(len)          => fill_filter(NS_STYLE_FILTER_BLUR,
-                                                  CoordDataValue::Coord(len.0),
-                                                  gecko_filter),
-                Brightness(factor) => fill_filter(NS_STYLE_FILTER_BRIGHTNESS,
-                                                  CoordDataValue::Factor(factor),
-                                                  gecko_filter),
-                Contrast(factor)   => fill_filter(NS_STYLE_FILTER_CONTRAST,
-                                                  CoordDataValue::Factor(factor),
-                                                  gecko_filter),
-                Grayscale(factor)  => fill_filter(NS_STYLE_FILTER_GRAYSCALE,
-                                                  CoordDataValue::Factor(factor),
-                                                  gecko_filter),
-                HueRotate(angle)   => fill_filter(NS_STYLE_FILTER_HUE_ROTATE,
-                                                  CoordDataValue::from(angle),
-                                                  gecko_filter),
-                Invert(factor)     => fill_filter(NS_STYLE_FILTER_INVERT,
-                                                  CoordDataValue::Factor(factor),
-                                                  gecko_filter),
-                Opacity(factor)    => fill_filter(NS_STYLE_FILTER_OPACITY,
-                                                  CoordDataValue::Factor(factor),
-                                                  gecko_filter),
-                Saturate(factor)   => fill_filter(NS_STYLE_FILTER_SATURATE,
-                                                  CoordDataValue::Factor(factor),
-                                                  gecko_filter),
-                Sepia(factor)      => fill_filter(NS_STYLE_FILTER_SEPIA,
-                                                  CoordDataValue::Factor(factor),
-                                                  gecko_filter),
+                % for func in FILTER_FUNCTIONS:
+                ${func}(factor) => fill_filter(NS_STYLE_FILTER_${func.upper()},
+                                               CoordDataValue::Factor(factor),
+                                               gecko_filter),
+                % endfor
+                Blur(length) => fill_filter(NS_STYLE_FILTER_BLUR,
+                                            CoordDataValue::Coord(length.0),
+                                            gecko_filter),
+
+                HueRotate(angle) => fill_filter(NS_STYLE_FILTER_HUE_ROTATE,
+                                                CoordDataValue::from(angle),
+                                                gecko_filter),
+
                 DropShadow(shadow) => {
                     gecko_filter.mType = NS_STYLE_FILTER_DROP_SHADOW;
 
@@ -3504,12 +3498,12 @@ fn static_assert() {
 
                     let mut gecko_shadow = init_shadow(gecko_filter);
                     gecko_shadow.mArray[0].set_from_shadow(shadow);
-                }
+                },
                 Url(ref url) => {
                     unsafe {
                         bindings::Gecko_nsStyleFilter_SetURLValue(gecko_filter, url.for_ffi());
                     }
-                }
+                },
             }
         }
     }
@@ -3519,6 +3513,58 @@ fn static_assert() {
             Gecko_CopyFiltersFrom(&other.gecko as *const _ as *mut _, &mut self.gecko);
         }
     }
+
+    pub fn clone_filter(&self) -> longhands::filter::computed_value::T {
+        use properties::longhands::filter::computed_value::Filter::*;
+        use values::specified::url::SpecifiedUrl;
+        use gecko_bindings::structs::NS_STYLE_FILTER_BLUR;
+        use gecko_bindings::structs::NS_STYLE_FILTER_BRIGHTNESS;
+        use gecko_bindings::structs::NS_STYLE_FILTER_CONTRAST;
+        use gecko_bindings::structs::NS_STYLE_FILTER_GRAYSCALE;
+        use gecko_bindings::structs::NS_STYLE_FILTER_INVERT;
+        use gecko_bindings::structs::NS_STYLE_FILTER_OPACITY;
+        use gecko_bindings::structs::NS_STYLE_FILTER_SATURATE;
+        use gecko_bindings::structs::NS_STYLE_FILTER_SEPIA;
+        use gecko_bindings::structs::NS_STYLE_FILTER_HUE_ROTATE;
+        use gecko_bindings::structs::NS_STYLE_FILTER_DROP_SHADOW;
+        use gecko_bindings::structs::NS_STYLE_FILTER_URL;
+
+        let mut filters = Vec::new();
+        for filter in self.gecko.mFilters.iter(){
+            match filter.mType {
+                % for func in FILTER_FUNCTIONS:
+                NS_STYLE_FILTER_${func.upper()} => {
+                    filters.push(${func}(
+                        GeckoStyleCoordConvertible::from_gecko_style_coord(
+                            &filter.mFilterParameter).unwrap()));
+                },
+                % endfor
+                NS_STYLE_FILTER_BLUR => {
+                    filters.push(Blur(Au::from_gecko_style_coord(
+                        &filter.mFilterParameter).unwrap()));
+                },
+                NS_STYLE_FILTER_HUE_ROTATE => {
+                    filters.push(HueRotate(
+                        GeckoStyleCoordConvertible::from_gecko_style_coord(
+                            &filter.mFilterParameter).unwrap()));
+                },
+                NS_STYLE_FILTER_DROP_SHADOW => {
+                    filters.push(unsafe {
+                        DropShadow((**filter.__bindgen_anon_1.mDropShadow.as_ref()).mArray[0].to_shadow())
+                    });
+                },
+                NS_STYLE_FILTER_URL => {
+                    filters.push(unsafe {
+                        (Url(SpecifiedUrl::from_url_value_data(
+                            &(**filter.__bindgen_anon_1.mURL.as_ref())._base).unwrap()))
+                    });
+                }
+                _ => {},
+            }
+        }
+        longhands::filter::computed_value::T::new(filters)
+    }
+
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="InheritedBox"
