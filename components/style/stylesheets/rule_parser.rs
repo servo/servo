@@ -180,7 +180,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                             media: media,
                             shared_lock: self.shared_lock.clone(),
                             origin: self.context.stylesheet_origin,
-                            url_data: self.context.url_data.clone(),
+                            url_data: RwLock::new(self.context.url_data.clone()),
                             namespaces: RwLock::new(Namespaces::default()),
                             dirty_on_viewport_size_change: AtomicBool::new(false),
                             disabled: AtomicBool::new(false),
