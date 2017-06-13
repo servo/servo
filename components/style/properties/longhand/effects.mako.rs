@@ -41,8 +41,7 @@ ${helpers.predefined_type("clip",
                           allow_quirks=True,
                           spec="https://drafts.fxtf.org/css-masking/#clip-property")}
 
-// FIXME: This prop should be animatable
-<%helpers:longhand name="filter" animation_value_type="none" extra_prefixes="webkit"
+<%helpers:longhand name="filter" animation_value_type="IntermediateFilters" extra_prefixes="webkit"
                    flags="CREATES_STACKING_CONTEXT FIXPOS_CB"
                    spec="https://drafts.fxtf.org/filters/#propdef-filter">
     //pub use self::computed_value::T as SpecifiedValue;
