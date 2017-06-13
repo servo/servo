@@ -13,13 +13,14 @@ use context::{SelectorFlagsMap, SharedStyleContext, StyleContext};
 use data::{ComputedStyle, ElementData, RestyleData};
 use dom::{TElement, TNode};
 use font_metrics::FontMetricsProvider;
+use invalidation::element::restyle_hints::{RESTYLE_CSS_ANIMATIONS, RESTYLE_CSS_TRANSITIONS};
+use invalidation::element::restyle_hints::{RESTYLE_SMIL, RESTYLE_STYLE_ATTRIBUTE};
+use invalidation::element::restyle_hints::RestyleHint;
 use log::LogLevel::Trace;
 use properties::{ALLOW_SET_ROOT_FONT_SIZE, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP};
 use properties::{AnimationRules, CascadeFlags, ComputedValues};
 use properties::{VISITED_DEPENDENT_ONLY, cascade};
 use properties::longhands::display::computed_value as display;
-use restyle_hints::{RESTYLE_CSS_ANIMATIONS, RESTYLE_CSS_TRANSITIONS, RestyleReplacements};
-use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RESTYLE_SMIL};
 use rule_tree::{CascadeLevel, StrongRuleNode};
 use selector_parser::{PseudoElement, RestyleDamage, SelectorImpl};
 use selectors::matching::{ElementSelectorFlags, MatchingContext, MatchingMode, StyleRelations};
@@ -990,6 +991,10 @@ pub trait MatchMethods : TElement {
                                                    &context.shared.guards);
 
                 let rules_changed = match visited_handling {
+                    VisitedHandlingMode::AllLinksVisitedAndUnvisited => {
+                        unreachable!("We should never try to selector match with \
+                                     AllLinksVisitedAndUnvisited");
+                    },
                     VisitedHandlingMode::AllLinksUnvisited => {
                         data.set_primary_rules(rules)
                     },
@@ -1069,6 +1074,10 @@ pub trait MatchMethods : TElement {
             );
 
         let rules_changed = match visited_handling {
+            VisitedHandlingMode::AllLinksVisitedAndUnvisited => {
+                unreachable!("We should never try to selector match with \
+                             AllLinksVisitedAndUnvisited");
+            },
             VisitedHandlingMode::AllLinksUnvisited => {
                 data.set_primary_rules(primary_rule_node)
             },
@@ -1276,11 +1285,12 @@ pub trait MatchMethods : TElement {
     /// the rule tree.
     ///
     /// Returns true if an !important rule was replaced.
-    fn replace_rules(&self,
-                     replacements: RestyleReplacements,
-                     context: &StyleContext<Self>,
-                     data: &mut ElementData)
-                     -> bool {
+    fn replace_rules(
+        &self,
+        replacements: RestyleHint,
+        context: &StyleContext<Self>,
+        data: &mut ElementData
+    ) -> bool {
         let mut result = false;
         result |= self.replace_rules_internal(replacements, context, data,
                                               CascadeVisitedMode::Unvisited);
@@ -1295,14 +1305,18 @@ pub trait MatchMethods : TElement {
     /// the rule tree, for a specific visited mode.
     ///
     /// Returns true if an !important rule was replaced.
-    fn replace_rules_internal(&self,
-                              replacements: RestyleReplacements,
-                              context: &StyleContext<Self>,
-                              data: &mut ElementData,
-                              cascade_visited: CascadeVisitedMode)
-                              -> bool {
+    fn replace_rules_internal(
+        &self,
+        replacements: RestyleHint,
+        context: &StyleContext<Self>,
+        data: &mut ElementData,
+        cascade_visited: CascadeVisitedMode
+    ) -> bool {
         use properties::PropertyDeclarationBlock;
         use shared_lock::Locked;
+
+        debug_assert!(replacements.intersects(RestyleHint::replacements()) &&
+                      (replacements & !RestyleHint::replacements()).is_empty());
 
         let element_styles = &mut data.styles_mut();
         let primary_rules = match cascade_visited.get_rules_mut(&mut element_styles.primary) {
@@ -1344,7 +1358,7 @@ pub trait MatchMethods : TElement {
         //
         // Non-animation restyle hints will be processed in a subsequent
         // normal traversal.
-        if replacements.intersects(RestyleReplacements::for_animations()) {
+        if replacements.intersects(RestyleHint::for_animations()) {
             debug_assert!(context.shared.traversal_flags.for_animation_only());
 
             if replacements.contains(RESTYLE_SMIL) {

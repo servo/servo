@@ -102,9 +102,9 @@ use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::{QuirksMode, ReflowGoal};
 use style::element_state::*;
+use style::invalidation::element::restyle_hints::RESTYLE_SELF;
 use style::properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
 use style::properties::longhands::{self, background_image, border_spacing, font_family, font_size, overflow_x};
-use style::restyle_hints::RestyleHint;
 use style::rule_tree::CascadeLevel;
 use style::selector_parser::{NonTSPseudoClass, PseudoElement, RestyleDamage, SelectorImpl, SelectorParser};
 use style::selector_parser::extended_filtering;
@@ -253,7 +253,7 @@ impl Element {
 
         // FIXME(bholley): I think we should probably only do this for
         // NodeStyleDamaged, but I'm preserving existing behavior.
-        restyle.hint.insert(RestyleHint::for_self());
+        restyle.hint.insert(RESTYLE_SELF);
 
         if damage == NodeDamage::OtherNodeDamage {
             restyle.damage = RestyleDamage::rebuild_and_reflow();

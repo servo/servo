@@ -449,16 +449,34 @@ impl<Impl: SelectorImpl> Selector<Impl> {
         }
     }
 
-    /// Returns an iterator over the entire sequence of simple selectors and combinators,
-    /// from right to left.
+    /// Returns the combinator at index `index`, or panics if the component is
+    /// not a combinator.
+    pub fn combinator_at(&self, index: usize) -> Combinator {
+        match self.0.slice[self.0.slice.len() - index] {
+            Component::Combinator(c) => c,
+            ref other => {
+                panic!("Not a combinator: {:?}, {:?}, index: {}",
+                       other, self, index)
+            }
+        }
+    }
+
+    /// Returns an iterator over the entire sequence of simple selectors and
+    /// combinators, from right to left.
     pub fn iter_raw(&self) -> Rev<slice::Iter<Component<Impl>>> {
         self.iter_raw_rev().rev()
     }
 
-    /// Returns an iterator over the entire sequence of simple selectors and combinators,
-    /// from left to right.
+    /// Returns an iterator over the entire sequence of simple selectors and
+    /// combinators, from left to right.
     pub fn iter_raw_rev(&self) -> slice::Iter<Component<Impl>> {
         self.0.slice.iter()
+    }
+
+    /// Returns an iterator over the sequence of simple selectors and
+    /// combinators after `offset`, from left to right.
+    pub fn iter_raw_rev_from(&self, offset: usize) -> slice::Iter<Component<Impl>> {
+        self.0.slice[(self.0.slice.len() - offset)..].iter()
     }
 
     /// Creates a Selector from a vec of Components. Used in tests.

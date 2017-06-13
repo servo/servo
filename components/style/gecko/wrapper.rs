@@ -408,6 +408,24 @@ impl<'le> fmt::Debug for GeckoElement<'le> {
         if let Some(id) = self.get_id() {
             try!(write!(f, " id={}", id));
         }
+
+        let mut first = true;
+        let mut any = false;
+        self.each_class(|c| {
+            if first {
+                first = false;
+                any = true;
+                let _ = f.write_str(" class=\"");
+            } else {
+                let _ = f.write_str(" ");
+            }
+            let _ = write!(f, "{}", c);
+        });
+
+        if any {
+            f.write_str("\"")?;
+        }
+
         write!(f, "> ({:#x})", self.as_node().opaque().0)
     }
 }
@@ -1240,6 +1258,10 @@ impl<'le> PresentationalHintsSynthesizer for GeckoElement<'le> {
             // Unvisited vs. visited styles are computed up-front based on the
             // visited mode (not the element's actual state).
             let declarations = match visited_handling {
+                VisitedHandlingMode::AllLinksVisitedAndUnvisited => {
+                    unreachable!("We should never try to selector match with \
+                                 AllLinksVisitedAndUnvisited");
+                },
                 VisitedHandlingMode::AllLinksUnvisited => unsafe {
                     Gecko_GetUnvisitedLinkAttrDeclarationBlock(self.0)
                 },
@@ -1547,7 +1569,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                 let old_value = context.within_functional_pseudo_class_argument;
                 context.within_functional_pseudo_class_argument = true;
                 let result = sels.iter().any(|s| {
-                    matches_complex_selector(s, 0, self, context, flags_setter)
+                    matches_complex_selector(s.iter(), self, context, flags_setter)
                 });
                 context.within_functional_pseudo_class_argument = old_value;
                 result

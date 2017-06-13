@@ -253,6 +253,10 @@ impl RelevantLinkStatus {
             return false
         }
 
+        if context.visited_handling == VisitedHandlingMode::AllLinksVisitedAndUnvisited {
+            return true;
+        }
+
         // Non-relevant links are always unvisited.
         if *self != RelevantLinkStatus::Found {
             return false
@@ -272,6 +276,10 @@ impl RelevantLinkStatus {
     {
         if !element.is_link() {
             return false
+        }
+
+        if context.visited_handling == VisitedHandlingMode::AllLinksVisitedAndUnvisited {
+            return true;
         }
 
         // Non-relevant links are always unvisited.
@@ -335,9 +343,9 @@ enum SelectorMatchingResult {
 
 /// Matches a selector, fast-rejecting against a bloom filter.
 ///
-/// We accept an offset to allow consumers to represent and match against partial
-/// selectors (indexed from the right). We use this API design, rather than
-/// having the callers pass a SelectorIter, because creating a SelectorIter
+/// We accept an offset to allow consumers to represent and match against
+/// partial selectors (indexed from the right). We use this API design, rather
+/// than having the callers pass a SelectorIter, because creating a SelectorIter
 /// requires dereferencing the selector to get the length, which adds an
 /// unncessary cache miss for cases when we can fast-reject with AncestorHashes
 /// (which the caller can store inline with the selector pointer).
@@ -360,12 +368,74 @@ pub fn matches_selector<E, F>(selector: &Selector<E::Impl>,
     }
 
     let mut local_context = LocalMatchingContext::new(context, selector);
-    matches_complex_selector(&selector, offset, element, &mut local_context, flags_setter)
+    let iter = if offset == 0 {
+        selector.iter()
+    } else {
+        selector.iter_from(offset)
+    };
+    matches_complex_selector(iter, element, &mut local_context, flags_setter)
+}
+
+/// Whether a compound selector matched, and whether it was the rightmost
+/// selector inside the complex selector.
+pub enum CompoundSelectorMatchingResult {
+    /// The compound selector matched, and the next combinator offset is
+    /// `next_combinator_offset`.
+    ///
+    /// If the next combinator offset is zero, it means that it's the rightmost
+    /// selector.
+    Matched { next_combinator_offset: usize, },
+    /// The selector didn't match.
+    NotMatched,
+}
+
+/// Matches a compound selector belonging to `selector`, starting at offset
+/// `from_offset`, matching left to right.
+///
+/// Requires that `from_offset` points to a `Combinator`.
+///
+/// NOTE(emilio): This doesn't allow to match in the leftmost sequence of the
+/// complex selector, but it happens to be the case we don't need it.
+pub fn matches_compound_selector<E>(
+    selector: &Selector<E::Impl>,
+    mut from_offset: usize,
+    context: &mut MatchingContext,
+    element: &E,
+) -> CompoundSelectorMatchingResult
+where
+    E: Element
+{
+    if cfg!(debug_assertions) {
+        selector.combinator_at(from_offset); // This asserts.
+    }
+
+    let mut local_context = LocalMatchingContext::new(context, selector);
+    for component in selector.iter_raw_rev_from(from_offset - 1) {
+        if matches!(*component, Component::Combinator(..)) {
+            return CompoundSelectorMatchingResult::Matched {
+                next_combinator_offset: from_offset - 1,
+            }
+        }
+
+        if !matches_simple_selector(
+            component,
+            element,
+            &mut local_context,
+            &RelevantLinkStatus::NotLooking,
+            &mut |_, _| {}) {
+            return CompoundSelectorMatchingResult::NotMatched;
+        }
+
+        from_offset -= 1;
+    }
+
+    return CompoundSelectorMatchingResult::Matched {
+        next_combinator_offset: 0,
+    }
 }
 
 /// Matches a complex selector.
-pub fn matches_complex_selector<E, F>(complex_selector: &Selector<E::Impl>,
-                                      offset: usize,
+pub fn matches_complex_selector<E, F>(mut iter: SelectorIter<E::Impl>,
                                       element: &E,
                                       mut context: &mut LocalMatchingContext<E::Impl>,
                                       flags_setter: &mut F)
@@ -373,12 +443,6 @@ pub fn matches_complex_selector<E, F>(complex_selector: &Selector<E::Impl>,
     where E: Element,
           F: FnMut(&E, ElementSelectorFlags),
 {
-    let mut iter = if offset == 0 {
-        complex_selector.iter()
-    } else {
-        complex_selector.iter_from(offset)
-    };
-
     if cfg!(debug_assertions) {
         if context.shared.matching_mode == MatchingMode::ForStatelessPseudoElement {
             assert!(iter.clone().any(|c| {

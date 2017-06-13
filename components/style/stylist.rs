@@ -7,7 +7,7 @@
 use {Atom, LocalName, Namespace};
 use applicable_declarations::{ApplicableDeclarationBlock, ApplicableDeclarationList};
 use bit_vec::BitVec;
-use context::{QuirksMode, SharedStyleContext};
+use context::QuirksMode;
 use data::ComputedStyle;
 use dom::TElement;
 use element_state::ElementState;
@@ -15,13 +15,13 @@ use error_reporting::create_error_reporter;
 use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs::{nsIAtom, StyleRuleInclusion};
+use invalidation::element::invalidation_map::InvalidationMap;
 use invalidation::media_queries::EffectiveMediaQueryResults;
 use media_queries::Device;
 use properties::{self, CascadeFlags, ComputedValues};
 use properties::{AnimationRules, PropertyDeclarationBlock};
 #[cfg(feature = "servo")]
 use properties::INHERIT_ALL;
-use restyle_hints::{HintComputationContext, DependencySet, RestyleHint};
 use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
 use selector_map::{SelectorMap, SelectorMapEntry};
 use selector_parser::{SelectorImpl, PseudoElement};
@@ -116,8 +116,8 @@ pub struct Stylist {
     /// style rule appears in a stylesheet, needed to sort them by source order.
     rules_source_order: u32,
 
-    /// Selector dependencies used to compute restyle hints.
-    dependencies: DependencySet,
+    /// The invalidation map for this document.
+    invalidation_map: InvalidationMap,
 
     /// The attribute local names that appear in attribute selectors.  Used
     /// to avoid taking element snapshots when an irrelevant attribute changes.
@@ -249,7 +249,7 @@ impl Stylist {
             precomputed_pseudo_element_decls: Default::default(),
             rules_source_order: 0,
             rule_tree: RuleTree::new(),
-            dependencies: DependencySet::new(),
+            invalidation_map: InvalidationMap::new(),
             attribute_dependencies: BloomFilter::new(),
             style_attribute_dependency: false,
             state_dependencies: ElementState::empty(),
@@ -284,14 +284,14 @@ impl Stylist {
         self.num_rebuilds
     }
 
-    /// Returns the number of dependencies in the DependencySet.
-    pub fn num_dependencies(&self) -> usize {
-        self.dependencies.len()
-    }
-
     /// Returns the number of revalidation_selectors.
     pub fn num_revalidation_selectors(&self) -> usize {
         self.selectors_for_cache_revalidation.len()
+    }
+
+    /// Gets a reference to the invalidation map.
+    pub fn invalidation_map(&self) -> &InvalidationMap {
+        &self.invalidation_map
     }
 
     /// Clear the stylist's state, effectively resetting it to more or less
@@ -324,7 +324,7 @@ impl Stylist {
         self.precomputed_pseudo_element_decls = Default::default();
         self.rules_source_order = 0;
         // We want to keep rule_tree around across stylist rebuilds.
-        self.dependencies.clear();
+        self.invalidation_map.clear();
         self.attribute_dependencies.clear();
         self.style_attribute_dependency = false;
         self.state_dependencies = ElementState::empty();
@@ -484,7 +484,7 @@ impl Stylist {
                                       self.rules_source_order),
                             self.quirks_mode);
 
-                        self.dependencies.note_selector(selector_and_hashes, self.quirks_mode);
+                        self.invalidation_map.note_selector(selector_and_hashes, self.quirks_mode);
                         if needs_revalidation(&selector_and_hashes.selector) {
                             self.selectors_for_cache_revalidation.insert(
                                 RevalidationSelectorAndHashes::new(&selector_and_hashes),
@@ -1199,19 +1199,6 @@ impl Stylist {
         );
 
         results
-    }
-
-    /// Given an element, and a snapshot table that represents a previous state
-    /// of the tree, compute the appropriate restyle hint, that is, the kind of
-    /// restyle we need to do.
-    pub fn compute_restyle_hint<'a, E>(&self,
-                                       element: &E,
-                                       shared_context: &SharedStyleContext,
-                                       context: HintComputationContext<'a, E>)
-                                       -> RestyleHint
-        where E: TElement,
-    {
-        self.dependencies.compute_hint(element, shared_context, context)
     }
 
     /// Computes styles for a given declaration with parent_style.
