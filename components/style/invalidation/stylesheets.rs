@@ -8,9 +8,9 @@
 #![deny(unsafe_code)]
 
 use Atom;
-use data::StoredRestyleHint;
 use dom::{TElement, TNode};
 use fnv::FnvHashSet;
+use invalidation::element::restyle_hints::RestyleHint;
 use selector_parser::SelectorImpl;
 use selectors::attr::CaseSensitivity;
 use selectors::parser::{Component, Selector};
@@ -134,7 +134,7 @@ impl StylesheetInvalidationSet {
             if self.fully_invalid {
                 debug!("process_invalidations: fully_invalid({:?})",
                        element);
-                data.ensure_restyle().hint.insert(StoredRestyleHint::subtree());
+                data.ensure_restyle().hint.insert(RestyleHint::restyle_subtree());
                 return true;
             }
         }
@@ -177,7 +177,7 @@ impl StylesheetInvalidationSet {
             if scope.matches(element) {
                 debug!("process_invalidations_in_subtree: {:?} matched {:?}",
                        element, scope);
-                data.ensure_restyle().hint.insert(StoredRestyleHint::subtree());
+                data.ensure_restyle().hint.insert(RestyleHint::restyle_subtree());
                 return true;
             }
         }

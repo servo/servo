@@ -6,7 +6,7 @@
 
 use atomic_refcell::AtomicRefCell;
 use context::{SharedStyleContext, StyleContext, ThreadLocalStyleContext};
-use data::{ElementData, ElementStyles, StoredRestyleHint};
+use data::{ElementData, ElementStyles};
 use dom::{DirtyDescendants, NodeInfo, OpaqueNode, TElement, TNode};
 use invalidation::element::restyle_hints::{RECASCADE_SELF, RECASCADE_DESCENDANTS, RestyleHint};
 use matching::{ChildCascadeRequirement, MatchMethods};
@@ -691,7 +691,7 @@ pub fn recalc_style_at<E, D>(traversal: &D,
     // Now that matching and cascading is done, clear the bits corresponding to
     // those operations and compute the propagated restyle hint.
     let mut propagated_hint = match data.get_restyle_mut() {
-        None => StoredRestyleHint::empty(),
+        None => RestyleHint::empty(),
         Some(r) => {
             debug_assert!(context.shared.traversal_flags.for_animation_only() ||
                           !r.hint.has_animation_hint(),
@@ -842,7 +842,7 @@ fn compute_style<E, D>(_traversal: &D,
 
 fn preprocess_children<E, D>(context: &mut StyleContext<E>,
                              element: E,
-                             propagated_hint: StoredRestyleHint,
+                             propagated_hint: RestyleHint,
                              damage_handled: RestyleDamage)
     where E: TElement,
           D: DomTraversal<E>,
