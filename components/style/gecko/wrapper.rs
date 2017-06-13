@@ -1547,7 +1547,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                 let old_value = context.within_functional_pseudo_class_argument;
                 context.within_functional_pseudo_class_argument = true;
                 let result = sels.iter().any(|s| {
-                    matches_complex_selector(s, 0, self, context, flags_setter)
+                    matches_complex_selector(s.iter(), self, context, flags_setter)
                 });
                 context.within_functional_pseudo_class_argument = old_value;
                 result
