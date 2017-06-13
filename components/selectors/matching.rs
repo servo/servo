@@ -66,11 +66,12 @@ pub struct LocalMatchingContext<'a, 'b: 'a, Impl: SelectorImpl> {
     /// been advanced partway through the current compound selector, and the callee may need
     /// the whole thing.
     offset: usize,
-    /// Holds a bool flag to see if LocalMatchingContext is within a functional
-    /// pseudo class argument. This is used for pseudo classes like
-    /// `:-moz-any` or `:not`. If this flag is true, :active and :hover
-    /// quirk shouldn't match.
-    pub within_functional_pseudo_class_argument: bool,
+    /// Holds a bool flag to see whether :active and :hover quirk should try to
+    /// match or not. This flag can only be true in these two cases:
+    /// - LocalMatchingContext is currently within a functional pseudo class
+    /// like `:-moz-any` or `:not`.
+    /// - PseudoElements are encountered when matching mode is ForStatelessPseudoElement.
+    pub hover_active_quirk_disabled: bool,
 }
 
 impl<'a, 'b, Impl> LocalMatchingContext<'a, 'b, Impl>
@@ -83,7 +84,8 @@ impl<'a, 'b, Impl> LocalMatchingContext<'a, 'b, Impl>
             shared: shared,
             selector: selector,
             offset: 0,
-            within_functional_pseudo_class_argument: false,
+            // We flip this off once third sequence is reached.
+            hover_active_quirk_disabled: selector.has_pseudo_element(),
         }
     }
 
@@ -91,6 +93,13 @@ impl<'a, 'b, Impl> LocalMatchingContext<'a, 'b, Impl>
     /// To be able to correctly re-synthesize main SelectorIter.
     pub fn note_next_sequence(&mut self, selector_iter: &SelectorIter<Impl>) {
         if let QuirksMode::Quirks = self.shared.quirks_mode() {
+            if self.selector.has_pseudo_element() && self.offset != 0 {
+                // This is the _second_ call to note_next_sequence,
+                // which means we've moved past the compound
+                // selector adjacent to the pseudo-element.
+                self.hover_active_quirk_disabled = false;
+            }
+
             self.offset = self.selector.len() - selector_iter.selector_length();
         }
     }
@@ -99,7 +108,7 @@ impl<'a, 'b, Impl> LocalMatchingContext<'a, 'b, Impl>
     /// https://quirks.spec.whatwg.org/#the-active-and-hover-quirk
     pub fn active_hover_quirk_matches(&mut self) -> bool {
         if self.shared.quirks_mode() != QuirksMode::Quirks ||
-           self.within_functional_pseudo_class_argument {
+           self.hover_active_quirk_disabled {
             return false;
         }
 
@@ -717,13 +726,13 @@ fn matches_simple_selector<E, F>(
             matches_generic_nth_child(element, 0, 1, true, true, flags_setter)
         }
         Component::Negation(ref negated) => {
-            let old_value = context.within_functional_pseudo_class_argument;
-            context.within_functional_pseudo_class_argument = true;
+            let old_value = context.hover_active_quirk_disabled;
+            context.hover_active_quirk_disabled = true;
             let result = !negated.iter().all(|ss| {
                 matches_simple_selector(ss, element, context,
                                         relevant_link, flags_setter)
             });
-            context.within_functional_pseudo_class_argument = old_value;
+            context.hover_active_quirk_disabled = old_value;
             result
         }
     }

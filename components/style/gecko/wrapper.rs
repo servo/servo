@@ -1566,12 +1566,12 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             }
             NonTSPseudoClass::MozPlaceholder => false,
             NonTSPseudoClass::MozAny(ref sels) => {
-                let old_value = context.within_functional_pseudo_class_argument;
-                context.within_functional_pseudo_class_argument = true;
+                let old_value = context.hover_active_quirk_disabled;
+                context.hover_active_quirk_disabled = true;
                 let result = sels.iter().any(|s| {
                     matches_complex_selector(s.iter(), self, context, flags_setter)
                 });
-                context.within_functional_pseudo_class_argument = old_value;
+                context.hover_active_quirk_disabled = old_value;
                 result
             }
             NonTSPseudoClass::Lang(ref lang_arg) => {
