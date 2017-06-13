@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! Different bits of code related to invalidating style.
+//! Invalidation of element styles due to attribute or style changes.
 
-pub mod element;
-pub mod media_queries;
-pub mod stylesheets;
+pub mod element_wrapper;
+pub mod invalidation_map;
+pub mod invalidator;
+pub mod restyle_hints;

@@ -13,7 +13,7 @@ use gecko_bindings::bindings;
 use gecko_bindings::structs::ServoElementSnapshot;
 use gecko_bindings::structs::ServoElementSnapshotFlags as Flags;
 use gecko_bindings::structs::ServoElementSnapshotTable;
-use restyle_hints::ElementSnapshot;
+use invalidation::element::element_wrapper::ElementSnapshot;
 use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator, CaseSensitivity, NamespaceConstraint};
 use string_cache::{Atom, Namespace};
 

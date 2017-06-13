@@ -250,7 +250,8 @@ impl TraversalStatistics {
         self.traversal_time_ms = (time::precise_time_s() - start) * 1000.0;
         self.selectors = traversal.shared_context().stylist.num_selectors() as u32;
         self.revalidation_selectors = traversal.shared_context().stylist.num_revalidation_selectors() as u32;
-        self.dependency_selectors = traversal.shared_context().stylist.num_dependencies() as u32;
+        self.dependency_selectors =
+            traversal.shared_context().stylist.invalidation_map().len() as u32;
         self.declarations = traversal.shared_context().stylist.num_declarations() as u32;
         self.stylist_rebuilds = traversal.shared_context().stylist.num_rebuilds() as u32;
     }

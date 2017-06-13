@@ -331,7 +331,7 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
     pub fn lookup_with_additional<E, F>(&self,
                                         element: E,
                                         quirks_mode: QuirksMode,
-                                        additional_id: Option<Atom>,
+                                        additional_id: Option<&Atom>,
                                         additional_classes: &[Atom],
                                         f: &mut F)
                                         -> bool
@@ -345,7 +345,7 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
 
         // Check the additional id.
         if let Some(id) = additional_id {
-            if let Some(v) = self.id_hash.get(&id, quirks_mode) {
+            if let Some(v) = self.id_hash.get(id, quirks_mode) {
                 for entry in v.iter() {
                     if !f(&entry) {
                         return false;
@@ -466,6 +466,16 @@ impl<V> MaybeCaseInsensitiveHashMap<Atom, V> {
             key = key.to_ascii_lowercase()
         }
         self.0.entry(key)
+    }
+
+    /// HashMap::iter
+    pub fn iter(&self) -> hash_map::Iter<Atom, V> {
+        self.0.iter()
+    }
+
+    /// HashMap::clear
+    pub fn clear(&mut self) {
+        self.0.clear()
     }
 
     /// HashMap::get
