@@ -2863,7 +2863,7 @@ create_noncallback_interface_object(cx,
                                     %(length)s,
                                     interface.handle_mut());
 assert!(!interface.is_null());""" % properties))
-            if self.descriptor.hasDescendants():
+            if self.descriptor.shouldCacheConstructor():
                 code.append(CGGeneric("""\
 assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
 (*cache)[PrototypeList::Constructor::%(id)s as usize] = interface.get();
