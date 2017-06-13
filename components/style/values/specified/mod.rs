@@ -36,7 +36,7 @@ pub use self::rect::LengthOrNumberRect;
 #[cfg(feature = "gecko")]
 pub use self::gecko::ScrollSnapPoint;
 pub use self::image::{ColorStop, EndingShape as GradientEndingShape, Gradient};
-pub use self::image::{GradientItem, GradientKind, Image, ImageRect, ImageLayer};
+pub use self::image::{GradientItem, GradientKind, Image, MozImageRect, ImageLayer};
 pub use self::length::AbsoluteLength;
 pub use self::length::{FontRelativeLength, ViewportPercentageLength, CharacterWidth, Length, CalcLengthOrPercentage};
 pub use self::length::{Percentage, LengthOrNone, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};

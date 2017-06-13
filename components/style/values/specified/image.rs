@@ -21,9 +21,8 @@ use values::{Either, None_};
 use values::generics::image::{Circle, CompatMode, Ellipse, ColorStop as GenericColorStop};
 use values::generics::image::{EndingShape as GenericEndingShape, Gradient as GenericGradient};
 use values::generics::image::{GradientItem as GenericGradientItem, GradientKind as GenericGradientKind};
-use values::generics::image::{Image as GenericImage, ImageRect as GenericImageRect};
-use values::generics::image::{LineDirection as GenericsLineDirection, ShapeExtent};
-use values::generics::image::PaintWorklet;
+use values::generics::image::{Image as GenericImage, LineDirection as GenericsLineDirection};
+use values::generics::image::{MozImageRect as GenericMozImageRect, PaintWorklet, ShapeExtent};
 use values::generics::position::Position as GenericPosition;
 use values::specified::{Angle, Color, Length, LengthOrPercentage};
 use values::specified::{Number, NumberOrPercentage, Percentage, RGBAColor};
@@ -35,7 +34,7 @@ pub type ImageLayer = Either<None_, Image>;
 
 /// Specified values for an image according to CSS-IMAGES.
 /// https://drafts.csswg.org/css-images/#image-values
-pub type Image = GenericImage<Gradient, ImageRect>;
+pub type Image = GenericImage<Gradient, MozImageRect>;
 
 /// Specified values for a CSS gradient.
 /// https://drafts.csswg.org/css-images/#gradients
@@ -80,7 +79,7 @@ pub type ColorStop = GenericColorStop<RGBAColor, LengthOrPercentage>;
 
 /// Specified values for `moz-image-rect`
 /// -moz-image-rect(<uri>, top, right, bottom, left);
-pub type ImageRect = GenericImageRect<NumberOrPercentage>;
+pub type MozImageRect = GenericMozImageRect<NumberOrPercentage>;
 
 impl Parse for Image {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Image, ParseError<'i>> {
@@ -108,14 +107,14 @@ impl Parse for Image {
         }
         #[cfg(feature = "gecko")]
         {
-            if let Ok(mut image_rect) = input.try(|input| ImageRect::parse(context, input)) {
+            if let Ok(mut image_rect) = input.try(|input| MozImageRect::parse(context, input)) {
                 image_rect.url.build_image_value();
                 return Ok(GenericImage::Rect(image_rect));
             }
         }
         #[cfg(feature = "servo")]
         {
-            if let Ok(image_rect) = input.try(|input| ImageRect::parse(context, input)) {
+            if let Ok(image_rect) = input.try(|input| MozImageRect::parse(context, input)) {
                 return Ok(GenericImage::Rect(image_rect));
             }
         }
@@ -705,7 +704,7 @@ impl Parse for PaintWorklet {
     }
 }
 
-impl Parse for ImageRect {
+impl Parse for MozImageRect {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         input.try(|i| i.expect_function_matching("-moz-image-rect"))?;
         input.parse_nested_block(|i| {
@@ -720,7 +719,7 @@ impl Parse for ImageRect {
             i.expect_comma()?;
             let left = NumberOrPercentage::parse_non_negative(context, i)?;
 
-            Ok(ImageRect {
+            Ok(MozImageRect {
                 url: url,
                 top: top,
                 right: right,

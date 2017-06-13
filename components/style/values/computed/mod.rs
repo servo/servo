@@ -28,7 +28,7 @@ pub use self::background::BackgroundSize;
 pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderCornerRadius};
 pub use self::color::{Color, RGBAColor};
-pub use self::image::{Gradient, GradientItem, ImageLayer, LineDirection, Image, ImageRect};
+pub use self::image::{Gradient, GradientItem, ImageLayer, LineDirection, Image, MozImageRect};
 #[cfg(feature = "gecko")]
 pub use self::gecko::ScrollSnapPoint;
 pub use self::rect::LengthOrNumberRect;
