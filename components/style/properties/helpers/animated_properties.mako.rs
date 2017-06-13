@@ -3365,6 +3365,27 @@ fn add_weighted_filter_function(from: Option<<&IntermediateFilter>,
     }
 }
 
+fn compute_filter_square_distance(from: &IntermediateFilter,
+                                  to: &IntermediateFilter)
+                                  -> Result<f64, ()> {
+    match (from, to) {
+        % for func in FILTER_FUNCTIONS :
+            (&IntermediateFilter::${func}(f),
+             &IntermediateFilter::${func}(t)) => {
+                Ok(try!(f.compute_squared_distance(&t)))
+            },
+        % endfor
+        % if product == "gecko":
+            (&IntermediateFilter::DropShadow(f),
+             &IntermediateFilter::DropShadow(t)) => {
+                Ok(try!(f.compute_squared_distance(&t)))
+            },
+        % endif
+        _ => {
+            Err(())
+        }
+    }
+}
 
 impl Animatable for IntermediateFilters {
     #[inline]
@@ -3398,5 +3419,45 @@ impl Animatable for IntermediateFilters {
         let filters: IntermediateFilters =
             vec![&from_list[..], &to_list[..]].concat();
         Ok(filters)
+    }
+
+    #[inline]
+    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+        self.compute_squared_distance(other).map(|sd| sd.sqrt())
+    }
+
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
+        let mut square_distance: f64 = 0.0;
+        let mut from_iter = self.iter();
+        let mut to_iter = (&other).iter();
+
+        let mut from = from_iter.next();
+        let mut to = to_iter.next();
+        while (from,to) != (None, None) {
+            let current_square_distance: f64 ;
+            if from == None {
+                let none = try!(add_weighted_filter_function(to, to, 0.0, 0.0));
+                current_square_distance =
+                    compute_filter_square_distance(&none, &(to.unwrap())).unwrap();
+
+                to = to_iter.next();
+            } else if to == None {
+                let none = try!(add_weighted_filter_function(from, from, 0.0, 0.0));
+                current_square_distance =
+                    compute_filter_square_distance(&none, &(from.unwrap())).unwrap();
+
+                from = from_iter.next();
+            } else {
+                current_square_distance =
+                    compute_filter_square_distance(&(from.unwrap()),
+                                                   &(to.unwrap())).unwrap();
+
+                from = from_iter.next();
+                to = to_iter.next();
+            }
+            square_distance += current_square_distance;
+        }
+        Ok(square_distance.sqrt())
     }
 }
