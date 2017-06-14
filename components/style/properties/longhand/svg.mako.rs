@@ -23,7 +23,7 @@ ${helpers.predefined_type(
     "stop-color", "RGBAColor",
     "RGBA::new(0, 0, 0, 255)",
     products="gecko",
-    animation_value_type="none",
+    animation_value_type="IntermediateRGBA",
     spec="https://www.w3.org/TR/SVGTiny12/painting.html#StopColorProperty")}
 
 ${helpers.predefined_type("stop-opacity", "Opacity", "1.0",
@@ -37,7 +37,7 @@ ${helpers.predefined_type(
     "flood-color", "RGBAColor",
     "RGBA::new(0, 0, 0, 255)",
     products="gecko",
-    animation_value_type="none",
+    animation_value_type="IntermediateRGBA",
     spec="https://www.w3.org/TR/SVG/filters.html#FloodColorProperty")}
 
 ${helpers.predefined_type("flood-opacity", "Opacity",
@@ -48,7 +48,7 @@ ${helpers.predefined_type(
     "lighting-color", "RGBAColor",
     "RGBA::new(255, 255, 255, 255)",
     products="gecko",
-    animation_value_type="none",
+    animation_value_type="IntermediateRGBA",
     spec="https://www.w3.org/TR/SVG/filters.html#LightingColorProperty")}
 
 // CSS Masking Module Level 1
