@@ -13,7 +13,8 @@ use profile_traits::mem::ReportsChan;
 use rpc::LayoutRPC;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{ScrollState, UntrustedNodeAddress, WindowSizeData};
-use script_traits::PaintWorkletExecutor;
+use script_traits::Painter;
+use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender};
@@ -86,7 +87,7 @@ pub enum Msg {
     UpdateScrollStateFromScript(ScrollState),
 
     /// Tells layout that script has added some paint worklet modules.
-    SetPaintWorkletExecutor(Arc<PaintWorkletExecutor>),
+    RegisterPaint(Atom, Vec<Atom>, Arc<Painter>),
 }
 
 

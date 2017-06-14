@@ -79,7 +79,7 @@ use net_traits::request::{CredentialsMode, Destination, RedirectMode, RequestIni
 use net_traits::storage_thread::StorageType;
 use profile_traits::mem::{self, OpaqueSender, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, ProfilerCategory, profile};
-use script_layout_interface::message::{self, NewLayoutThreadInfo, ReflowQueryType};
+use script_layout_interface::message::{self, Msg, NewLayoutThreadInfo, ReflowQueryType};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use script_runtime::{ScriptPort, StackRootTLS, get_reports, new_rt_and_cx};
 use script_traits::{CompositorEvent, ConstellationControlMsg};
@@ -718,8 +718,8 @@ impl ScriptThread {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
             script_thread.worklet_thread_pool.borrow_mut().get_or_insert_with(|| {
-                let chan = script_thread.chan.0.clone();
                 let init = WorkletGlobalScopeInit {
+                    script_sender: script_thread.chan.0.clone(),
                     resource_threads: script_thread.resource_threads.clone(),
                     mem_profiler_chan: script_thread.mem_profiler_chan.clone(),
                     time_profiler_chan: script_thread.time_profiler_chan.clone(),
@@ -728,9 +728,18 @@ impl ScriptThread {
                     scheduler_chan: script_thread.scheduler_chan.clone(),
                     image_cache: script_thread.image_cache.clone(),
                 };
-                Rc::new(WorkletThreadPool::spawn(chan, init))
+                Rc::new(WorkletThreadPool::spawn(init))
             }).clone()
         })
+    }
+
+    pub fn send_to_layout(&self, pipeline_id: PipelineId, msg: Msg) {
+        let window = self.documents.borrow().find_window(pipeline_id);
+        let window = match window {
+            Some(window) => window,
+            None => return warn!("Message sent to layout after pipeline {} closed.", pipeline_id),
+        };
+        let _ = window.layout_chan().send(msg);
     }
 
     /// Creates a new script thread.

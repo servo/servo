@@ -4,6 +4,7 @@
 
 //! Data needed by the layout thread.
 
+use fnv::FnvHashMap;
 use fnv::FnvHasher;
 use gfx::display_list::{WebRenderImageInfo, OpaqueNode};
 use gfx::font_cache_thread::FontCacheThread;
@@ -15,8 +16,9 @@ use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use opaque_node::OpaqueNodeMethods;
 use parking_lot::RwLock;
 use script_layout_interface::{PendingImage, PendingImageState};
-use script_traits::PaintWorkletExecutor;
+use script_traits::Painter;
 use script_traits::UntrustedNodeAddress;
+use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
@@ -24,6 +26,7 @@ use std::hash::BuildHasherDefault;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use style::context::SharedStyleContext;
+use style::properties::PropertyId;
 
 thread_local!(static FONT_CONTEXT_KEY: RefCell<Option<FontContext>> = RefCell::new(None));
 
@@ -69,8 +72,8 @@ pub struct LayoutContext<'a> {
                                                   WebRenderImageInfo,
                                                   BuildHasherDefault<FnvHasher>>>>,
 
-    /// The executor for worklets
-    pub paint_worklet_executor: Option<Arc<PaintWorkletExecutor>>,
+    /// Paint worklets
+    pub registered_painters: Arc<RwLock<FnvHashMap<Atom, RegisteredPainter>>>,
 
     /// A list of in-progress image loads to be shared with the script thread.
     /// A None value means that this layout was not initiated by the script thread.
@@ -174,4 +177,11 @@ impl<'a> LayoutContext<'a> {
             None | Some(ImageOrMetadataAvailable::MetadataAvailable(_)) => None,
         }
     }
+}
+
+/// A registered paint worklet.
+pub struct RegisteredPainter {
+    pub name: Atom,
+    pub properties: FnvHashMap<Atom, PropertyId>,
+    pub painter: Arc<Painter>,
 }
