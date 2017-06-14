@@ -551,6 +551,42 @@ impl LonghandId {
         }
     }
 
+    fn shorthands(&self) -> &'static [ShorthandId] {
+        // first generate longhand to shorthands lookup map
+        //
+        // NOTE(emilio): This currently doesn't exclude the "all" shorthand. It
+        // could potentially do so, which would speed up serialization
+        // algorithms and what not, I guess.
+        <%
+            longhand_to_shorthand_map = {}
+            for shorthand in data.shorthands:
+                for sub_property in shorthand.sub_properties:
+                    if sub_property.ident not in longhand_to_shorthand_map:
+                        longhand_to_shorthand_map[sub_property.ident] = []
+
+                    longhand_to_shorthand_map[sub_property.ident].append(shorthand.camel_case)
+
+            for shorthand_list in longhand_to_shorthand_map.itervalues():
+                shorthand_list.sort()
+        %>
+
+        // based on lookup results for each longhand, create result arrays
+        % for property in data.longhands:
+            static ${property.ident.upper()}: &'static [ShorthandId] = &[
+                % for shorthand in longhand_to_shorthand_map.get(property.ident, []):
+                    ShorthandId::${shorthand},
+                % endfor
+            ];
+        % endfor
+
+        match *self {
+            % for property in data.longhands:
+                LonghandId::${property.camel_case} => ${property.ident.upper()},
+            % endfor
+        }
+    }
+
+
     /// If this is a logical property, return the corresponding physical one in the given writing mode.
     /// Otherwise, return unchanged.
     pub fn to_physical(&self, wm: WritingMode) -> Self {
@@ -885,7 +921,7 @@ impl<'a> PropertyDeclarationId<'a> {
             PropertyDeclarationId::Longhand(id) => {
                 match *other {
                     PropertyId::Longhand(other_id) => id == other_id,
-                    PropertyId::Shorthand(shorthand) => shorthand.longhands().contains(&id),
+                    PropertyId::Shorthand(shorthand) => self.is_longhand_of(shorthand),
                     PropertyId::Custom(_) => false,
                 }
             }
@@ -899,7 +935,7 @@ impl<'a> PropertyDeclarationId<'a> {
     /// shorthand.
     pub fn is_longhand_of(&self, shorthand: ShorthandId) -> bool {
         match *self {
-            PropertyDeclarationId::Longhand(ref id) => shorthand.longhands().contains(id),
+            PropertyDeclarationId::Longhand(ref id) => id.shorthands().contains(&shorthand),
             _ => false,
         }
     }
@@ -1308,40 +1344,9 @@ impl PropertyDeclaration {
 
     /// The shorthands that this longhand is part of.
     pub fn shorthands(&self) -> &'static [ShorthandId] {
-        // first generate longhand to shorthands lookup map
-        <%
-            longhand_to_shorthand_map = {}
-            for shorthand in data.shorthands:
-                for sub_property in shorthand.sub_properties:
-                    if sub_property.ident not in longhand_to_shorthand_map:
-                        longhand_to_shorthand_map[sub_property.ident] = []
-
-                    longhand_to_shorthand_map[sub_property.ident].append(shorthand.camel_case)
-
-            for shorthand_list in longhand_to_shorthand_map.itervalues():
-                shorthand_list.sort()
-        %>
-
-        // based on lookup results for each longhand, create result arrays
-        % for property in data.longhands:
-            static ${property.ident.upper()}: &'static [ShorthandId] = &[
-                % for shorthand in longhand_to_shorthand_map.get(property.ident, []):
-                    ShorthandId::${shorthand},
-                % endfor
-            ];
-        % endfor
-
-        match *self {
-            % for property in data.longhands:
-                PropertyDeclaration::${property.camel_case}(_) => ${property.ident.upper()},
-            % endfor
-            PropertyDeclaration::CSSWideKeyword(id, _) |
-            PropertyDeclaration::WithVariables(id, _) => match id {
-                % for property in data.longhands:
-                    LonghandId::${property.camel_case} => ${property.ident.upper()},
-                % endfor
-            },
-            PropertyDeclaration::Custom(_, _) => &[]
+        match self.id() {
+            PropertyDeclarationId::Longhand(id) => id.shorthands(),
+            PropertyDeclarationId::Custom(..) => &[],
         }
     }
 
