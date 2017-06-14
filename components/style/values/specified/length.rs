@@ -611,9 +611,9 @@ impl Length {
                               -> Result<Length, ParseError<'i>> {
         let token = try!(input.next());
         match token {
-            Token::Dimension(ref value, ref unit) if num_context.is_ok(value.value) =>
+            Token::Dimension(ref value, ref unit) if num_context.is_ok(context.parsing_mode, value.value) =>
                 Length::parse_dimension(context, value.value, unit),
-            Token::Number(ref value) if num_context.is_ok(value.value) => {
+            Token::Number(ref value) if num_context.is_ok(context.parsing_mode, value.value) => {
                 if value.value != 0. &&
                    !context.parsing_mode.allows_unitless_lengths() &&
                    !allow_quirks.allowed(context.quirks_mode) {
@@ -801,11 +801,11 @@ impl LengthOrPercentage {
     {
         let token = try!(input.next());
         match token {
-            Token::Dimension(ref value, ref unit) if num_context.is_ok(value.value) =>
+            Token::Dimension(ref value, ref unit) if num_context.is_ok(context.parsing_mode, value.value) =>
                 NoCalcLength::parse_dimension(context, value.value, unit).map(LengthOrPercentage::Length),
-            Token::Percentage(ref value) if num_context.is_ok(value.unit_value) =>
+            Token::Percentage(ref value) if num_context.is_ok(context.parsing_mode, value.unit_value) =>
                 return Ok(LengthOrPercentage::Percentage(Percentage(value.unit_value))),
-            Token::Number(value) if num_context.is_ok(value.value) => {
+            Token::Number(value) if num_context.is_ok(context.parsing_mode, value.value) => {
                 if value.value != 0. &&
                    !context.parsing_mode.allows_unitless_lengths() &&
                    !allow_quirks.allowed(context.quirks_mode) {
@@ -935,11 +935,11 @@ impl LengthOrPercentageOrAuto {
                               -> Result<Self, ParseError<'i>> {
         let token = try!(input.next());
         match token {
-            Token::Dimension(ref value, ref unit) if num_context.is_ok(value.value) =>
+            Token::Dimension(ref value, ref unit) if num_context.is_ok(context.parsing_mode, value.value) =>
                 NoCalcLength::parse_dimension(context, value.value, unit).map(LengthOrPercentageOrAuto::Length),
-            Token::Percentage(ref value) if num_context.is_ok(value.unit_value) =>
+            Token::Percentage(ref value) if num_context.is_ok(context.parsing_mode, value.unit_value) =>
                 Ok(LengthOrPercentageOrAuto::Percentage(Percentage(value.unit_value))),
-            Token::Number(ref value) if num_context.is_ok(value.value) => {
+            Token::Number(ref value) if num_context.is_ok(context.parsing_mode, value.value) => {
                 if value.value != 0. &&
                    !context.parsing_mode.allows_unitless_lengths() &&
                    !allow_quirks.allowed(context.quirks_mode) {
@@ -1031,11 +1031,11 @@ impl LengthOrPercentageOrNone {
     {
         let token = try!(input.next());
         match token {
-            Token::Dimension(ref value, ref unit) if num_context.is_ok(value.value) =>
+            Token::Dimension(ref value, ref unit) if num_context.is_ok(context.parsing_mode, value.value) =>
                 NoCalcLength::parse_dimension(context, value.value, unit).map(LengthOrPercentageOrNone::Length),
-            Token::Percentage(ref value) if num_context.is_ok(value.unit_value) =>
+            Token::Percentage(ref value) if num_context.is_ok(context.parsing_mode, value.unit_value) =>
                 Ok(LengthOrPercentageOrNone::Percentage(Percentage(value.unit_value))),
-            Token::Number(value) if num_context.is_ok(value.value) => {
+            Token::Number(value) if num_context.is_ok(context.parsing_mode, value.value) => {
                 if value.value != 0. && !context.parsing_mode.allows_unitless_lengths() &&
                    !allow_quirks.allowed(context.quirks_mode) {
                     return Err(StyleParseError::UnspecifiedError.into())
@@ -1113,10 +1113,10 @@ impl LengthOrPercentageOrAutoOrContent {
         let num_context = AllowedLengthType::NonNegative;
         let token = try!(input.next());
         match token {
-            Token::Dimension(ref value, ref unit) if num_context.is_ok(value.value) =>
+            Token::Dimension(ref value, ref unit) if num_context.is_ok(context.parsing_mode, value.value) =>
                 NoCalcLength::parse_dimension(context, value.value, unit)
                              .map(LengthOrPercentageOrAutoOrContent::Length),
-            Token::Percentage(ref value) if num_context.is_ok(value.unit_value) =>
+            Token::Percentage(ref value) if num_context.is_ok(context.parsing_mode, value.unit_value) =>
                 Ok(LengthOrPercentageOrAutoOrContent::Percentage(Percentage(value.unit_value))),
             Token::Number(ref value) if value.value == 0. =>
                 Ok(Self::zero()),
