@@ -828,11 +828,11 @@ impl From<RecvTimeoutError> for PaintWorkletError {
 }
 
 /// Execute paint code in the worklet thread pool.
-pub trait PaintWorkletExecutor: Sync + Send {
+pub trait Painter: Sync + Send {
     /// https://drafts.css-houdini.org/css-paint-api/#draw-a-paint-image
     fn draw_a_paint_image(&self,
-                          name: Atom,
                           concrete_object_size: Size2D<Au>,
+                          properties: Vec<(Atom, String)>,
                           sender: IpcSender<CanvasData>);
 }
 
