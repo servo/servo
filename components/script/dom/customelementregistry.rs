@@ -133,7 +133,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
             }
 
             // Step 7.2
-            if !is_known_element_interface(extended_name) {
+            if !is_extendable_element_interface(extended_name) {
                 return Err(Error::NotSupported)
             }
 
@@ -319,12 +319,11 @@ fn is_potential_custom_element_char(c: char) -> bool {
     (c >= '\u{10000}' && c <= '\u{EFFFF}')
 }
 
-fn is_known_element_interface(element: &str) -> bool {
+fn is_extendable_element_interface(element: &str) -> bool {
     element == "a" ||
     element == "abbr" ||
     element == "acronym" ||
     element == "address" ||
-    element == "applet" ||
     element == "area" ||
     element == "article" ||
     element == "aside" ||
