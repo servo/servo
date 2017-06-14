@@ -344,6 +344,8 @@
                         <%
                             maybe_wm = ", wm" if property.logical else ""
                             maybe_cacheable = ", cacheable" if property.has_uncacheable_values == "True" else ""
+                            props_need_device = "content list_style_type".split() if product == "gecko" else []
+                            maybe_device = ", context.device" if property.ident in props_need_device else ""
                         %>
                         match *value {
                             DeclaredValue::Value(ref specified_value) => {
@@ -375,7 +377,8 @@
                                                                                            inherited_style.get_font());
                                     % else:
                                         context.mutate_style().mutate_${data.current_style_struct.name_lower}()
-                                               .set_${property.ident}(computed ${maybe_cacheable} ${maybe_wm});
+                                               .set_${property.ident}(computed ${maybe_device}
+                                                                      ${maybe_cacheable} ${maybe_wm});
                                     % endif
                                 % endif
                             }

@@ -906,7 +906,9 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_SetCounterStyleToName(ptr: *mut CounterStylePtr,
-                                       name: *mut nsIAtom);
+                                       name: *mut nsIAtom,
+                                       pres_context:
+                                           RawGeckoPresContextBorrowed);
 }
 extern "C" {
     pub fn Gecko_SetCounterStyleToSymbols(ptr: *mut CounterStylePtr,
