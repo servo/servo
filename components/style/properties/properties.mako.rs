@@ -2536,10 +2536,12 @@ pub fn cascade(device: &Device,
     let iter_declarations = || {
         rule_node.self_and_ancestors().flat_map(|node| {
             let cascade_level = node.cascade_level();
-            let declarations = match node.style_source() {
-                Some(source) => source.read(cascade_level.guard(guards)).declarations(),
+            let source = node.style_source();
+            let declarations = if source.is_some() {
+                source.read(cascade_level.guard(guards)).declarations()
+            } else {
                 // The root node has no style source.
-                None => &[]
+                &[]
             };
             let node_importance = node.importance();
             declarations
