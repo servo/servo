@@ -1376,21 +1376,21 @@ ${helpers.single_keyword_system("font-kerning",
             return Ok(SpecifiedValue::Value(result))
         }
 
-        while let Ok(ident) = input.try(|input| input.expect_ident()) {
-            let flag = match_ignore_ascii_case! { &ident,
-                "stylistic" => Some(STYLISTIC),
-                "historical-forms" => Some(HISTORICAL_FORMS),
-                "styleset" => Some(STYLESET),
-                "character-variant" => Some(CHARACTER_VARIANT),
-                "swash" => Some(SWASH),
-                "ornaments" => Some(ORNAMENTS),
-                "annotation" => Some(ANNOTATION),
-                _ => None,
-            };
-            let flag = match flag {
-                Some(flag) if !result.intersects(flag) => flag,
-                _ => return Err(SelectorParseError::UnexpectedIdent(ident).into()),
-            };
+        while let Ok(flag) = input.try(|input| {
+            Ok(match_ignore_ascii_case! { &input.expect_ident().map_err(|_| ())?,
+                "stylistic" => STYLISTIC,
+                "historical-forms" => HISTORICAL_FORMS,
+                "styleset" => STYLESET,
+                "character-variant" => CHARACTER_VARIANT,
+                "swash" => SWASH,
+                "ornaments" => ORNAMENTS,
+                "annotation" => ANNOTATION,
+                _ => return Err(()),
+            })
+        }) {
+            if result.intersects(flag) {
+                return Err(StyleParseError::UnspecifiedError.into())
+            }
             result.insert(flag);
         }
 
@@ -1406,9 +1406,9 @@ ${helpers.single_keyword_system("font-kerning",
 macro_rules! exclusive_value {
     (($value:ident, $set:expr) => $ident:ident) => {
         if $value.intersects($set) {
-            None
+            return Err(())
         } else {
-            Some($ident)
+            $ident
         }
     }
 }
@@ -1521,8 +1521,8 @@ macro_rules! exclusive_value {
             return Ok(SpecifiedValue::Value(result))
         }
 
-        while let Ok(ident) = input.try(|input| input.expect_ident()) {
-            let flag = match_ignore_ascii_case! { &ident,
+        while let Ok(flag) = input.try(|input| {
+            Ok(match_ignore_ascii_case! { &input.expect_ident().map_err(|_| ())?,
                 "jis78" =>
                     exclusive_value!((result, ${east_asian_variant_values}) => JIS78),
                 "jis83" =>
@@ -1541,12 +1541,9 @@ macro_rules! exclusive_value {
                     exclusive_value!((result, ${east_asian_width_values}) => PROPORTIONAL_WIDTH),
                 "ruby" =>
                     exclusive_value!((result, RUBY) => RUBY),
-                _ => None,
-            };
-            let flag = match flag {
-                Some(flag) => flag,
-                None => return Err(SelectorParseError::UnexpectedIdent(ident).into()),
-            };
+                _ => return Err(()),
+            })
+        }) {
             result.insert(flag);
         }
 
@@ -1656,6 +1653,10 @@ macro_rules! exclusive_value {
     pub fn get_initial_specified_value() -> SpecifiedValue {
         SpecifiedValue::Value(VariantLigatures::empty())
     }
+    #[inline]
+    pub fn get_none_specified_value() -> SpecifiedValue {
+        SpecifiedValue::Value(NONE)
+    }
 
     /// normal | none |
     /// [ <common-lig-values> ||
@@ -1681,8 +1682,8 @@ macro_rules! exclusive_value {
             return Ok(SpecifiedValue::Value(NONE))
         }
 
-        while let Ok(ident) = input.try(|input| input.expect_ident()) {
-            let flag = match_ignore_ascii_case! { &ident,
+        while let Ok(flag) = input.try(|input| {
+            Ok(match_ignore_ascii_case! { &input.expect_ident().map_err(|_| ())?,
                 "common-ligatures" =>
                     exclusive_value!((result, ${common_lig_values}) => COMMON_LIGATURES),
                 "no-common-ligatures" =>
@@ -1699,12 +1700,9 @@ macro_rules! exclusive_value {
                     exclusive_value!((result, ${contextual_alt_values}) => CONTEXTUAL),
                 "no-contextual" =>
                     exclusive_value!((result, ${contextual_alt_values}) => NO_CONTEXTUAL),
-                _ => None,
-            };
-            let flag = match flag {
-                Some(flag) => flag,
-                None => return Err(SelectorParseError::UnexpectedIdent(ident).into()),
-            };
+                _ => return Err(()),
+            })
+        }) {
             result.insert(flag);
         }
 
@@ -1832,14 +1830,14 @@ macro_rules! exclusive_value {
             return Ok(SpecifiedValue::Value(result))
         }
 
-        while let Ok(ident) = input.try(|input| input.expect_ident()) {
-            let flag = match_ignore_ascii_case! { &ident,
+        while let Ok(flag) = input.try(|input| {
+            Ok(match_ignore_ascii_case! { &input.expect_ident().map_err(|_| ())?,
                 "ordinal" =>
                     exclusive_value!((result, ORDINAL) => ORDINAL),
                 "slashed-zero" =>
                     exclusive_value!((result, SLASHED_ZERO) => SLASHED_ZERO),
                 "lining-nums" =>
-                    exclusive_value!((result, ${numeric_figure_values}) => LINING_NUMS ),
+                    exclusive_value!((result, ${numeric_figure_values}) => LINING_NUMS),
                 "oldstyle-nums" =>
                     exclusive_value!((result, ${numeric_figure_values}) => OLDSTYLE_NUMS),
                 "proportional-nums" =>
@@ -1850,12 +1848,9 @@ macro_rules! exclusive_value {
                     exclusive_value!((result, ${numeric_fraction_values}) => DIAGONAL_FRACTIONS),
                 "stacked-fractions" =>
                     exclusive_value!((result, ${numeric_fraction_values}) => STACKED_FRACTIONS),
-                _ => None,
-            };
-            let flag = match flag {
-                Some(flag) => flag,
-                None => return Err(SelectorParseError::UnexpectedIdent(ident).into()),
-            };
+                _ => return Err(()),
+            })
+        }) {
             result.insert(flag);
         }
 
