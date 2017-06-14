@@ -29,7 +29,7 @@ use app_units::Au;
 use block::{BlockFlow, FormattingContextType};
 use context::LayoutContext;
 use display_list_builder::DisplayListBuildState;
-use euclid::{Matrix4D, Point2D, Rect, Size2D};
+use euclid::{Transform3D, Point2D, Vector2D, Rect, Size2D};
 use flex::FlexFlow;
 use floats::{Floats, SpeculatedFloatPlacement};
 use flow_list::{FlowList, MutFlowListIterator};
@@ -260,7 +260,7 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
         match self.class() {
             FlowClass::Block | FlowClass::TableCaption | FlowClass::TableCell => {}
             _ => {
-                overflow.translate(&position.origin);
+                overflow.translate(&position.origin.to_vector());
                 return overflow;
             }
         }
@@ -285,7 +285,7 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
 
         if !self.as_block().fragment.establishes_stacking_context() ||
            self.as_block().fragment.style.get_box().transform.0.is_none() {
-            overflow.translate(&position.origin);
+            overflow.translate(&position.origin.to_vector());
             return overflow;
         }
 
@@ -294,7 +294,7 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
         let transform_2d = self.as_block()
                                .fragment
                                .transform_matrix(&position)
-                               .unwrap_or(Matrix4D::identity())
+                               .unwrap_or(Transform3D::identity())
                                .to_2d();
         let transformed_overflow = Overflow {
             paint: f32_rect_to_au_rect(transform_2d.transform_rect(
@@ -308,7 +308,7 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
         // unnecessary once we are taking into account 3D transformations above.
         overflow.union(&transformed_overflow);
 
-        overflow.translate(&position.origin);
+        overflow.translate(&position.origin.to_vector());
         overflow
     }
 
@@ -917,7 +917,7 @@ pub struct BaseFlow {
 
     /// The position of this flow relative to the start of the nearest ancestor stacking context.
     /// This is computed during the top-down pass of display list construction.
-    pub stacking_relative_position: Point2D<Au>,
+    pub stacking_relative_position: Vector2D<Au>,
 
     /// Details about descendants with position 'absolute' or 'fixed' for which we are the
     /// containing block. This is in tree order. This includes any direct children.
@@ -1098,7 +1098,7 @@ impl BaseFlow {
             parallel: FlowParallelInfo::new(),
             floats: Floats::new(writing_mode),
             collapsible_margins: CollapsibleMargins::new(),
-            stacking_relative_position: Point2D::zero(),
+            stacking_relative_position: Vector2D::zero(),
             abs_descendants: AbsoluteDescendants::new(),
             speculated_float_placement_in: SpeculatedFloatPlacement::zero(),
             speculated_float_placement_out: SpeculatedFloatPlacement::zero(),

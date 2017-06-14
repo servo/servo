@@ -14,7 +14,7 @@ use app_units::{AU_PER_PX, Au};
 use block::{BlockFlow, BlockStackingContextType};
 use canvas_traits::{CanvasData, CanvasMsg, FromLayoutMsg};
 use context::LayoutContext;
-use euclid::{Matrix4D, Point2D, Rect, SideOffsets2D, Size2D, TypedSize2D};
+use euclid::{Transform3D, Point2D, Vector2D, Rect, SideOffsets2D, Size2D, TypedSize2D};
 use flex::FlexFlow;
 use flow::{BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
 use flow_ref::FlowRef;
@@ -501,7 +501,7 @@ pub trait FragmentDisplayListBuilding {
     /// * `clip`: The region to clip the display items to.
     fn build_display_list(&mut self,
                           state: &mut DisplayListBuildState,
-                          stacking_relative_flow_origin: &Point2D<Au>,
+                          stacking_relative_flow_origin: &Vector2D<Au>,
                           relative_containing_block_size: &LogicalSize<Au>,
                           relative_containing_block_mode: WritingMode,
                           border_painting_mode: BorderPaintingMode,
@@ -1223,8 +1223,8 @@ impl FragmentDisplayListBuilding for Fragment {
 
         // This is the vector between the center and the ending point; i.e. half
         // of the distance between the starting point and the ending point.
-        let delta = Point2D::new(Au::from_f32_px(dir.x * inv_dir_length * line_length / 2.0),
-                                 Au::from_f32_px(dir.y * inv_dir_length * line_length / 2.0));
+        let delta = Vector2D::new(Au::from_f32_px(dir.x * inv_dir_length * line_length / 2.0),
+                                  Au::from_f32_px(dir.y * inv_dir_length * line_length / 2.0));
 
         // This is the length of the gradient line.
         let length = Au::from_f32_px(
@@ -1347,8 +1347,8 @@ impl FragmentDisplayListBuilding for Fragment {
         // NB: According to CSS-BACKGROUNDS, box shadows render in *reverse* order (front to back).
         for box_shadow in style.get_effects().box_shadow.0.iter().rev() {
             let bounds =
-                shadow_bounds(&absolute_bounds.translate(&Point2D::new(box_shadow.offset_x,
-                                                                       box_shadow.offset_y)),
+                shadow_bounds(&absolute_bounds.translate(&Vector2D::new(box_shadow.offset_x,
+                                                                        box_shadow.offset_y)),
                               box_shadow.blur_radius,
                               box_shadow.spread_radius);
 
@@ -1362,7 +1362,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 base: base,
                 box_bounds: *absolute_bounds,
                 color: style.resolve_color(box_shadow.color).to_gfx_color(),
-                offset: Point2D::new(box_shadow.offset_x, box_shadow.offset_y),
+                offset: Vector2D::new(box_shadow.offset_x, box_shadow.offset_y),
                 blur_radius: box_shadow.blur_radius,
                 spread_radius: box_shadow.spread_radius,
                 border_radius: model::specified_border_radius(style.get_border()
@@ -1707,7 +1707,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
     fn build_display_list(&mut self,
                           state: &mut DisplayListBuildState,
-                          stacking_relative_flow_origin: &Point2D<Au>,
+                          stacking_relative_flow_origin: &Vector2D<Au>,
                           relative_containing_block_size: &LogicalSize<Au>,
                           relative_containing_block_mode: WritingMode,
                           border_painting_mode: BorderPaintingMode,
@@ -2001,7 +2001,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let border_box_offset =
             border_box.translate(&-base_flow.stacking_relative_position).origin;
         // Then, using that, compute our overflow region relative to our border box.
-        let overflow = base_flow.overflow.paint.translate(&-border_box_offset);
+        let overflow = base_flow.overflow.paint.translate(&-border_box_offset.to_vector());
 
         // Create the filter pipeline.
         let effects = self.style().get_effects();
@@ -2046,7 +2046,7 @@ impl FragmentDisplayListBuilding for Fragment {
         } else {
             self.style().get_color().color
         };
-        let offset = text_shadow.map(|s| Point2D::new(s.offset_x, s.offset_y)).unwrap_or_else(Point2D::zero);
+        let offset = text_shadow.map(|s| Vector2D::new(s.offset_x, s.offset_y)).unwrap_or_else(Vector2D::zero);
         let shadow_blur_radius = text_shadow.map(|s| s.blur_radius).unwrap_or(Au(0));
 
         // Determine the orientation and cursor to use.
@@ -2068,7 +2068,7 @@ impl FragmentDisplayListBuilding for Fragment {
             LogicalPoint::new(self.style.writing_mode,
                               Au(0),
                               metrics.ascent).to_physical(self.style.writing_mode,
-                                                          container_size);
+                                                          container_size).to_vector();
 
         // Create the text display item.
         let base = state.create_base_display_item(&stacking_relative_content_box,
@@ -2158,7 +2158,7 @@ impl FragmentDisplayListBuilding for Fragment {
             base: base,
             box_bounds: stacking_relative_box,
             color: color.to_gfx_color(),
-            offset: Point2D::zero(),
+            offset: Vector2D::zero(),
             blur_radius: blur_radius,
             spread_radius: Au(0),
             border_radius: Au(0),
@@ -2300,7 +2300,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         };
 
         let perspective = self.fragment.perspective_matrix(&border_box)
-                                       .unwrap_or_else(Matrix4D::identity);
+                                       .unwrap_or_else(Transform3D::identity);
         let transform = transform.pre_mul(&perspective).inverse();
 
         let origin = &border_box.origin;
@@ -2818,7 +2818,7 @@ impl BaseFlowDisplayListBuilding for BaseFlow {
 
         let thread_id = self.thread_id;
         let stacking_context_relative_bounds =
-            Rect::new(self.stacking_relative_position,
+            Rect::new(self.stacking_relative_position.to_point(),
                       self.position.size.to_physical(self.writing_mode));
 
         let mut color = THREAD_TINT_COLORS[thread_id as usize % THREAD_TINT_COLORS.len()];

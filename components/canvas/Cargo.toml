@@ -13,11 +13,11 @@ path = "lib.rs"
 azure = {git = "https://github.com/servo/rust-azure"}
 canvas_traits = {path = "../canvas_traits"}
 cssparser = "0.14.0"
-euclid = "0.13"
+euclid = "0.14.4"
 gleam = "0.4"
 ipc-channel = "0.7"
 log = "0.3.5"
 num-traits = "0.1.32"
-offscreen_gl_context = "0.8"
+offscreen_gl_context = { version = "0.9", features = ["serde"] }
 servo_config = {path = "../config"}
 webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}

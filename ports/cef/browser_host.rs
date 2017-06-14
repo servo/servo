@@ -12,8 +12,7 @@ use webrender_traits::ScrollLocation;
 use wrappers::CefWrap;
 
 use compositing::windowing::{WindowEvent, MouseWindowEvent};
-use euclid::point::TypedPoint2D;
-use euclid::size::TypedSize2D;
+use euclid::{TypedPoint2D, TypedVector2D, TypedSize2D};
 use libc::{c_double, c_int};
 use msg::constellation_msg::{self, KeyModifiers, KeyState};
 use script_traits::{MouseButton, TouchEventType};
@@ -470,7 +469,7 @@ full_cef_class_impl! {
             let event: &cef_mouse_event = event;
             let delta_x: c_int = delta_x;
             let delta_y: c_int = delta_y;
-            let delta = TypedPoint2D::new(delta_x as f32, delta_y as f32);
+            let delta = TypedVector2D::new(delta_x as f32, delta_y as f32);
             let origin = TypedPoint2D::new((*event).x as i32, (*event).y as i32);
             this.downcast().send_window_event(WindowEvent::Scroll(ScrollLocation::Delta(delta),
                                                                   origin,

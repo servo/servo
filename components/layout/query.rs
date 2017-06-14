@@ -7,9 +7,7 @@
 use app_units::Au;
 use construct::ConstructionResult;
 use context::LayoutContext;
-use euclid::point::Point2D;
-use euclid::rect::Rect;
-use euclid::size::Size2D;
+use euclid::{Point2D, Vector2D, Rect, Size2D};
 use flow::{self, Flow};
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use gfx::display_list::{DisplayItemMetadata, DisplayList, OpaqueNode, ScrollOffsetMap};
@@ -613,7 +611,7 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
 
                 Some(ParentBorderBoxInfo {
                     node_address: fragment.node,
-                    origin: border_box.origin + Point2D::new(border_width.left, border_width.top),
+                    origin: border_box.origin + Vector2D::new(border_width.left, border_width.top),
                 })
             } else {
                 None
@@ -774,7 +772,7 @@ fn process_resolved_style_request_internal<'a, N>(requested_node: N,
         let position = maybe_data.map_or(Point2D::zero(), |data| {
             match (*data).flow_construction_result {
                 ConstructionResult::Flow(ref flow_ref, _) =>
-                    flow::base(flow_ref.deref()).stacking_relative_position,
+                    flow::base(flow_ref.deref()).stacking_relative_position.to_point(),
                 // TODO(dzbarsky) search parents until we find node with a flow ref.
                 // https://github.com/servo/servo/issues/8307
                 _ => Point2D::zero()
@@ -852,7 +850,7 @@ pub fn process_offset_parent_query<N: LayoutNode>(requested_node: N, layout_root
     let parent_info = iterator.parent_nodes.into_iter().rev().filter_map(|info| info).next();
     match (node_offset_box, parent_info) {
         (Some(node_offset_box), Some(parent_info)) => {
-            let origin = node_offset_box.offset - parent_info.origin;
+            let origin = node_offset_box.offset - parent_info.origin.to_vector();
             let size = node_offset_box.rectangle.size;
             OffsetParentResponse {
                 node_address: Some(parent_info.node_address.to_untrusted_node_address()),

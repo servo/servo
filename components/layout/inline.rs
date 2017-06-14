@@ -1600,11 +1600,11 @@ impl Flow for InlineFlow {
                         block_flow.base
                                   .late_absolute_position_info
                                   .stacking_relative_position_of_absolute_containing_block =
-                            stacking_relative_position + *padding_box_origin;
+                            *padding_box_origin + stacking_relative_position;
                     }
 
                     block_flow.base.stacking_relative_position =
-                        stacking_relative_content_box.origin;
+                        stacking_relative_content_box.origin.to_vector();
 
                     // Write the clip in our coordinate system into the child flow. (The kid will
                     // fix it up to be in its own coordinate system if necessary.)
@@ -1617,7 +1617,7 @@ impl Flow for InlineFlow {
                         self.base.late_absolute_position_info;
 
                     block_flow.base.stacking_relative_position =
-                        stacking_relative_border_box.origin;
+                        stacking_relative_border_box.origin.to_vector();
 
                     // As above, this is in our coordinate system for now.
                     block_flow.base.clip = self.base.clip.clone()
@@ -1633,10 +1633,10 @@ impl Flow for InlineFlow {
                     block_flow.base
                               .late_absolute_position_info
                               .stacking_relative_position_of_absolute_containing_block =
-                        stacking_relative_position + *padding_box_origin;
+                        *padding_box_origin + stacking_relative_position;
 
                     block_flow.base.stacking_relative_position =
-                        stacking_relative_border_box.origin;
+                        stacking_relative_border_box.origin.to_vector();
 
                     // As above, this is in our coordinate system for now.
                     block_flow.base.clip = self.base.clip.clone()
@@ -1694,7 +1694,7 @@ impl Flow for InlineFlow {
                                                                     relative_containing_block_size,
                                                                     relative_containing_block_mode,
                                                                     CoordinateSystem::Own)
-                                      .translate(stacking_context_position))
+                                      .translate(&stacking_context_position.to_vector()))
         }
     }
 

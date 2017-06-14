@@ -40,10 +40,7 @@ extern crate style;
 extern crate webrender_traits;
 
 use app_units::Au;
-use euclid::point::Point2D;
-use euclid::rect::Rect;
-use euclid::scale_factor::ScaleFactor;
-use euclid::size::Size2D;
+use euclid::{Point2D, Rect, Size2D, ScaleFactor};
 use fnv::FnvHashMap;
 use gfx::display_list::{OpaqueNode, WebRenderImageInfo};
 use gfx::font;
@@ -910,7 +907,7 @@ impl LayoutThread {
                 || {
             flow::mut_base(layout_root).stacking_relative_position =
                 LogicalPoint::zero(writing_mode).to_physical(writing_mode,
-                                                             self.viewport_size);
+                                                             self.viewport_size).to_vector();
 
             flow::mut_base(layout_root).clip = data.page_clip_rect;
 

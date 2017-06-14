@@ -10,10 +10,7 @@ use azure::azure_hl::{ExtendMode, GradientStop, LinearGradientPattern, RadialGra
 use azure::azure_hl::SurfacePattern;
 use canvas_traits::*;
 use cssparser::RGBA;
-use euclid::matrix2d::Matrix2D;
-use euclid::point::Point2D;
-use euclid::rect::Rect;
-use euclid::size::Size2D;
+use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D};
 use ipc_channel::ipc::{self, IpcSender};
 use num_traits::ToPrimitive;
 use std::borrow::ToOwned;
@@ -71,7 +68,7 @@ struct CanvasPaintState<'a> {
     stroke_style: Pattern,
     stroke_opts: StrokeOptions<'a>,
     /// The current 2D transform matrix.
-    transform: Matrix2D<f32>,
+    transform: Transform2D<f32>,
     shadow_offset_x: f64,
     shadow_offset_y: f64,
     shadow_blur: f64,
@@ -91,7 +88,7 @@ impl<'a> CanvasPaintState<'a> {
             fill_style: Pattern::Color(ColorPattern::new(Color::black())),
             stroke_style: Pattern::Color(ColorPattern::new(Color::black())),
             stroke_opts: StrokeOptions::new(1.0, JoinStyle::MiterOrBevel, CapStyle::Butt, 10.0, &[]),
-            transform: Matrix2D::identity(),
+            transform: Transform2D::identity(),
             shadow_offset_x: 0.0,
             shadow_offset_y: 0.0,
             shadow_blur: 0.0,
@@ -528,7 +525,7 @@ impl<'a> CanvasPaintThread<'a> {
         self.state.stroke_opts.miter_limit = limit;
     }
 
-    fn set_transform(&mut self, transform: &Matrix2D<f32>) {
+    fn set_transform(&mut self, transform: &Transform2D<f32>) {
         self.state.transform = transform.clone();
         self.drawtarget.set_transform(transform)
     }
@@ -606,7 +603,7 @@ impl<'a> CanvasPaintThread<'a> {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
     fn put_image_data(&mut self, imagedata: Vec<u8>,
-                      offset: Point2D<f64>,
+                      offset: Vector2D<f64>,
                       image_data_size: Size2D<f64>,
                       mut dirty_rect: Rect<f64>) {
         if image_data_size.width <= 0.0 || image_data_size.height <= 0.0 {
@@ -720,9 +717,8 @@ impl<'a> CanvasPaintThread<'a> {
         let draw_target = self.drawtarget.create_similar_draw_target(&Size2D::new(source_rect.size.width as i32,
                                                                                   source_rect.size.height as i32),
                                                                      self.drawtarget.get_format());
-        let matrix = Matrix2D::identity()
-            .pre_translated(-source_rect.origin.x as AzFloat,
-                            -source_rect.origin.y as AzFloat)
+        let matrix = Transform2D::identity()
+            .pre_translate(-source_rect.origin.to_vector().cast().unwrap())
             .pre_mul(&self.state.transform);
         draw_target.set_transform(&matrix);
         draw_target
@@ -738,8 +734,8 @@ impl<'a> CanvasPaintThread<'a> {
                                                  &Point2D::new(shadow_src_rect.origin.x as AzFloat,
                                                                shadow_src_rect.origin.y as AzFloat),
                                                  &self.state.shadow_color,
-                                                 &Point2D::new(self.state.shadow_offset_x as AzFloat,
-                                                               self.state.shadow_offset_y as AzFloat),
+                                                 &Vector2D::new(self.state.shadow_offset_x as AzFloat,
+                                                                self.state.shadow_offset_y as AzFloat),
                                                  (self.state.shadow_blur / 2.0f64) as AzFloat,
                                                  self.state.draw_options.composition);
     }
@@ -1001,7 +997,7 @@ impl ToAzurePattern for FillOrStrokeStyle {
                     &Point2D::new(linear_gradient_style.x0 as AzFloat, linear_gradient_style.y0 as AzFloat),
                     &Point2D::new(linear_gradient_style.x1 as AzFloat, linear_gradient_style.y1 as AzFloat),
                     drawtarget.create_gradient_stops(&gradient_stops, ExtendMode::Clamp),
-                    &Matrix2D::identity())))
+                    &Transform2D::identity())))
             },
             FillOrStrokeStyle::RadialGradient(ref radial_gradient_style) => {
                 let gradient_stops: Vec<GradientStop> = radial_gradient_style.stops.iter().map(|s| {
@@ -1016,7 +1012,7 @@ impl ToAzurePattern for FillOrStrokeStyle {
                     &Point2D::new(radial_gradient_style.x1 as AzFloat, radial_gradient_style.y1 as AzFloat),
                     radial_gradient_style.r0 as AzFloat, radial_gradient_style.r1 as AzFloat,
                     drawtarget.create_gradient_stops(&gradient_stops, ExtendMode::Clamp),
-                    &Matrix2D::identity())))
+                    &Transform2D::identity())))
             },
             FillOrStrokeStyle::Surface(ref surface_style) => {
                 drawtarget.create_source_surface_from_data(&surface_style.surface_data,
@@ -1028,7 +1024,7 @@ impl ToAzurePattern for FillOrStrokeStyle {
                         source_surface.azure_source_surface,
                         surface_style.repeat_x,
                         surface_style.repeat_y,
-                        &Matrix2D::identity()))
+                        &Transform2D::identity()))
                     })
             }
         }

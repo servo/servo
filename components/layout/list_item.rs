@@ -197,7 +197,7 @@ impl Flow for ListItemFlow {
                                                              .early_absolute_position_info
                                                              .relative_containing_block_mode,
                                                          CoordinateSystem::Own)
-                           .translate(stacking_context_position));
+                           .translate(&stacking_context_position.to_vector()));
             }
         }
     }

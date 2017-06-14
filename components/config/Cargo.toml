@@ -10,7 +10,7 @@ name = "servo_config"
 path = "lib.rs"
 
 [dependencies]
-euclid = "0.13"
+euclid = "0.14.4"
 getopts = "0.2.11"
 lazy_static = "0.2"
 log = "0.3.5"

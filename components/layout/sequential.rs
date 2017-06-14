@@ -7,7 +7,7 @@
 use app_units::Au;
 use context::LayoutContext;
 use display_list_builder::DisplayListBuildState;
-use euclid::point::Point2D;
+use euclid::{Point2D, Vector2D};
 use floats::SpeculatedFloatPlacement;
 use flow::{self, Flow, ImmutableFlowUtils, InorderFlowTraversal, MutableFlowUtils};
 use flow::{PostorderFlowTraversal, PreorderFlowTraversal};
@@ -109,16 +109,16 @@ pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut Flow, iterator
             if kid.is_block_flow() && kid.as_block().fragment.establishes_stacking_context() {
                 stacking_context_position = Point2D::new(kid.as_block().fragment.margin.inline_start, Au(0)) +
                                             flow::base(kid).stacking_relative_position +
-                                            stacking_context_position;
+                                            stacking_context_position.to_vector();
                 let relative_position = kid.as_block()
                     .stacking_relative_position(CoordinateSystem::Own);
                 if let Some(matrix) = kid.as_block()
                        .fragment
                        .transform_matrix(&relative_position) {
-                    let transform_matrix = matrix.transform_point(&Point2D::zero());
+                    let transform_matrix = matrix.transform_point2d(&Point2D::zero());
                     stacking_context_position = stacking_context_position +
-                                                Point2D::new(Au::from_f32_px(transform_matrix.x),
-                                                             Au::from_f32_px(transform_matrix.y))
+                                                Vector2D::new(Au::from_f32_px(transform_matrix.x),
+                                                              Au::from_f32_px(transform_matrix.y))
                 }
             }
             doit(kid, level + 1, iterator, &stacking_context_position);

@@ -8,7 +8,7 @@
 
 #![deny(missing_docs)]
 
-use euclid::point::Point2D;
+use euclid::Point2D;
 
 const NEWTON_METHOD_ITERATIONS: u8 = 8;
 

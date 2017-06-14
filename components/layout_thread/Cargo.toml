@@ -11,7 +11,7 @@ path = "lib.rs"
 
 [dependencies]
 app_units = "0.4.1"
-euclid = "0.13"
+euclid = "0.14.4"
 fnv = "1.0"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}

@@ -19,7 +19,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
-use euclid::point::Point2D;
+use euclid::Point2D;
 use html5ever::{LocalName, Prefix};
 use net_traits::ReferrerPolicy;
 use std::default::Default;

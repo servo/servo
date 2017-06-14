@@ -16,10 +16,7 @@ extern crate ipc_channel;
 extern crate webrender_traits;
 
 use cssparser::RGBA;
-use euclid::matrix2d::Matrix2D;
-use euclid::point::Point2D;
-use euclid::rect::Rect;
-use euclid::size::Size2D;
+use euclid::{Transform2D, Point2D, Vector2D, Rect, Size2D};
 use ipc_channel::ipc::IpcSender;
 use std::default::Default;
 use std::str::FromStr;
@@ -87,7 +84,7 @@ pub enum Canvas2dMsg {
     IsPointInPath(f64, f64, FillRule, IpcSender<bool>),
     LineTo(Point2D<f32>),
     MoveTo(Point2D<f32>),
-    PutImageData(Vec<u8>, Point2D<f64>, Size2D<f64>, Rect<f64>),
+    PutImageData(Vec<u8>, Vector2D<f64>, Size2D<f64>, Rect<f64>),
     QuadraticCurveTo(Point2D<f32>, Point2D<f32>),
     Rect(Rect<f32>),
     RestoreContext,
@@ -102,7 +99,7 @@ pub enum Canvas2dMsg {
     SetMiterLimit(f32),
     SetGlobalAlpha(f32),
     SetGlobalComposition(CompositionOrBlending),
-    SetTransform(Matrix2D<f32>),
+    SetTransform(Transform2D<f32>),
     SetShadowOffsetX(f64),
     SetShadowOffsetY(f64),
     SetShadowBlur(f64),
