@@ -19,3 +19,7 @@ opt-level = 3
 # crate, add that here. Use the form:
 #
 #     "<crate>:<version>" = { path = "/path/to/local/checkout" }
+
+"https://github.com/servo/webrender#0.40.0" = { git = "https://github.com/gankro/webrender", rev = "d45a17c64fc3c86555eb490d8f17374de098eeae" }
+
+"https://github.com/servo/webrender#webrender_traits:0.40.0" = { git = "https://github.com/gankro/webrender", rev = "d45a17c64fc3c86555eb490d8f17374de098eeae" }
