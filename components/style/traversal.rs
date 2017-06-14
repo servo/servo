@@ -786,10 +786,15 @@ fn compute_style<E, D>(_traversal: &D,
     use sharing::StyleSharingResult::*;
 
     context.thread_local.statistics.elements_styled += 1;
-    let kind = data.restyle_kind();
+    let kind = data.restyle_kind(context.shared);
+
+    debug!("compute_style: {:?} (kind={:?})", element, kind);
 
     match kind {
         MatchAndCascade => {
+            debug_assert!(!context.shared.traversal_flags.for_animation_only(),
+                          "MatchAndCascade shouldn't be processed during \
+                           animation-only traversal");
             // Ensure the bloom filter is up to date.
             context.thread_local.bloom_filter
                    .insert_parents_recovering(element,

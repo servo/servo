@@ -509,6 +509,7 @@ pub struct ElementData {
 }
 
 /// The kind of restyle that a single element should do.
+#[derive(Debug)]
 pub enum RestyleKind {
     /// We need to run selector matching plus re-cascade, that is, a full
     /// restyle.
@@ -573,22 +574,38 @@ impl ElementData {
 
     /// Returns the kind of restyling that we're going to need to do on this
     /// element, based of the stored restyle hint.
-    pub fn restyle_kind(&self) -> RestyleKind {
+    pub fn restyle_kind(&self,
+                        shared_context: &SharedStyleContext)
+                        -> RestyleKind {
         debug_assert!(!self.has_styles() || self.has_invalidations(),
                       "Should've stopped earlier");
         if !self.has_styles() {
+            debug_assert!(!shared_context.traversal_flags.for_animation_only(),
+                          "Unstyled element shouldn't be traversed during \
+                           animation-only traversal");
             return RestyleKind::MatchAndCascade;
         }
 
         debug_assert!(self.restyle.is_some());
         let restyle_data = self.restyle.as_ref().unwrap();
-
         let hint = restyle_data.hint.0;
+
+        if shared_context.traversal_flags.for_animation_only() {
+            // return either CascadeWithReplacements or CascadeOnly in case of
+            // animation-only restyle.
+            if hint.has_animation_hint() {
+                return RestyleKind::CascadeWithReplacements(hint & RestyleHint::for_animations());
+            }
+            return RestyleKind::CascadeOnly;
+        }
+
         if hint.match_self() {
             return RestyleKind::MatchAndCascade;
         }
 
         if hint.has_replacements() {
+            debug_assert!(!hint.has_animation_hint(),
+                          "Animation only restyle hint should have already processed");
             return RestyleKind::CascadeWithReplacements(hint & RestyleHint::replacements());
         }
 
