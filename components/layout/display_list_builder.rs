@@ -1165,17 +1165,24 @@ impl FragmentDisplayListBuilding for Fragment {
         let size = unbordered_box.size.to_physical(style.writing_mode);
         let name = paint_worklet.name.clone();
 
-        // If the script thread has not added any paint worklet modules, there is nothing to do!
-        let executor = match state.layout_context.paint_worklet_executor {
-            Some(ref executor) => executor,
-            None => return debug!("Worklet {} called before any paint modules are added.", name),
+        // Get the painter, and the computed values for its properties.
+        let (properties, painter) = match state.layout_context.registered_painters.read().get(&name) {
+            Some(registered_painter) => (
+                registered_painter.properties
+                    .iter()
+                    .filter_map(|(name, id)| id.as_shorthand().err().map(|id| (name, id)))
+                    .map(|(name, id)| (name.clone(), style.computed_value_to_string(id)))
+                    .collect(),
+                registered_painter.painter.clone()
+            ),
+            None => return debug!("Worklet {} called before registration.", name),
         };
 
         // TODO: add a one-place cache to avoid drawing the paint image every time.
         // https://github.com/servo/servo/issues/17369
         debug!("Drawing a paint image {}({},{}).", name, size.width.to_px(), size.height.to_px());
         let (sender, receiver) = ipc::channel().unwrap();
-        executor.draw_a_paint_image(name, size, sender);
+        painter.draw_a_paint_image(size, properties, sender);
 
         // TODO: timeout
         let webrender_image = match receiver.recv() {

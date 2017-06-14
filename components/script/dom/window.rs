@@ -386,10 +386,7 @@ impl Window {
 
     fn new_paint_worklet(&self) -> Root<Worklet> {
         debug!("Creating new paint worklet.");
-        let worklet = Worklet::new(self, WorkletGlobalScopeType::Paint);
-        let executor = Arc::new(worklet.executor());
-        let _ = self.layout_chan.send(Msg::SetPaintWorkletExecutor(executor));
-        worklet
+        Worklet::new(self, WorkletGlobalScopeType::Paint)
     }
 
     pub fn permission_state_invocation_results(&self) -> &DOMRefCell<HashMap<String, PermissionState>> {
