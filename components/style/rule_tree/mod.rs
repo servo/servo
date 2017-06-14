@@ -106,7 +106,10 @@ impl StyleSource {
 
     /// Indicates if this StyleSource has no value
     pub fn is_none(&self) -> bool {
-        *self == StyleSource::None
+        match *self {
+            StyleSource::None => true,
+            _ => false
+        }
     }
 
     /// Indicates if this StyleSource has a value
@@ -724,7 +727,7 @@ impl HeapSizeOf for StrongRuleNode {
 
 impl StrongRuleNode {
     fn new(n: Box<RuleNode>) -> Self {
-        debug_assert!(n.parent.is_none() && n.source == StyleSource::None);
+        debug_assert!(n.parent.is_none() == n.source.is_none());
 
         let ptr = Box::into_raw(n);
 
@@ -765,7 +768,7 @@ impl StrongRuleNode {
         for child in self.get().iter_children() {
             let child_node = unsafe { &*child.ptr() };
             if child.get().level == level &&
-                (&child.get().source).ptr_equals(&source) {
+                child.get().source.ptr_equals(&source) {
                 return child.upgrade();
             }
             last = Some(child);
