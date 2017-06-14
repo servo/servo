@@ -1444,7 +1444,7 @@ pub extern "C" fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
     match get_pseudo_style(&guard, element, &pseudo, RuleInclusion::All,
-                           data.styles(), doc_data) {
+                           data.styles(), &*doc_data.borrow()) {
         Some(values) => values.into_strong(),
         // FIXME(emilio): This looks pretty wrong! Shouldn't it be at least an
         // empty style inheriting from the element?
@@ -1478,28 +1478,29 @@ fn get_pseudo_style(guard: &SharedRwLockReadGuard,
                     pseudo: &PseudoElement,
                     rule_inclusion: RuleInclusion,
                     styles: &ElementStyles,
-                    doc_data: &PerDocumentStyleData)
+                    doc_data: &PerDocumentStyleDataImpl)
                     -> Option<Arc<ComputedValues>>
 {
     match pseudo.cascade_type() {
         PseudoElementCascadeType::Eager => styles.pseudos.get(&pseudo).map(|s| s.values().clone()),
         PseudoElementCascadeType::Precomputed => unreachable!("No anonymous boxes"),
         PseudoElementCascadeType::Lazy => {
-            let d = doc_data.borrow_mut();
             let base = if pseudo.inherits_from_default_values() {
-                d.default_computed_values()
+                doc_data.default_computed_values()
             } else {
                 styles.primary.values()
             };
             let guards = StylesheetGuards::same(guard);
             let metrics = get_metrics_provider_for_product();
-            d.stylist.lazily_compute_pseudo_element_style(&guards,
-                                                          &element,
-                                                          &pseudo,
-                                                          rule_inclusion,
-                                                          base,
-                                                          &metrics)
-                     .map(|s| s.values().clone())
+            doc_data.stylist
+                .lazily_compute_pseudo_element_style(
+                    &guards,
+                    &element,
+                    &pseudo,
+                    rule_inclusion,
+                    base,
+                    &metrics)
+                .map(|s| s.values().clone())
         },
     }
 }
@@ -2565,10 +2566,11 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
     let guard = global_style_data.shared_lock.read();
     let element = GeckoElement(element);
     let doc_data = PerDocumentStyleData::from_ffi(raw_data);
+    let data = doc_data.borrow();
     let rule_inclusion = RuleInclusion::from(rule_inclusion);
     let finish = |styles: &ElementStyles| -> Arc<ComputedValues> {
         PseudoElement::from_pseudo_type(pseudo_type).and_then(|ref pseudo| {
-            get_pseudo_style(&guard, element, pseudo, rule_inclusion, styles, doc_data)
+            get_pseudo_style(&guard, element, pseudo, rule_inclusion, styles, &*data)
         }).unwrap_or_else(|| styles.primary.values().clone())
     };
 
@@ -2589,7 +2591,6 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
 
     // We don't have the style ready. Go ahead and compute it as necessary.
     let mut result = None;
-    let data = doc_data.borrow();
     let shared = create_shared_context(&global_style_data,
                                        &guard,
                                        &data,
