@@ -2490,7 +2490,7 @@ pub extern "C" fn Servo_Element_GetStyleRuleList(element: RawGeckoElementBorrowe
     };
     let mut result = vec![];
     for rule_node in computed.rules.self_and_ancestors() {
-        if let Some(&StyleSource::Style(ref rule)) = rule_node.style_source() {
+        if let &StyleSource::Style(ref rule) = rule_node.style_source() {
             result.push(Locked::<StyleRule>::arc_as_borrowed(&rule));
         }
     }

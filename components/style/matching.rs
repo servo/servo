@@ -1068,7 +1068,8 @@ pub trait MatchMethods : TElement {
         if log_enabled!(Trace) {
             trace!("Matched rules:");
             for rn in primary_rule_node.self_and_ancestors() {
-                if let Some(source) = rn.style_source() {
+                let source = rn.style_source();
+                if source.is_some() {
                     trace!(" > {:?}", source);
                 }
             }
