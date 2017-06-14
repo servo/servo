@@ -42,7 +42,6 @@ use servo::servo_url::ServoUrl;
 use std::env;
 use std::panic;
 use std::process;
-use std::rc::Rc;
 use std::thread;
 
 pub mod platform {
@@ -163,8 +162,6 @@ fn main() {
 
     browser.browser.setup_logging();
 
-    register_glutin_resize_handler(&window, &mut browser);
-
     browser.browser.handle_events(vec![WindowEvent::InitializeCompositing]);
 
     // Feed events from the window to the browser until the browser
@@ -176,41 +173,11 @@ fn main() {
         }
     }
 
-    unregister_glutin_resize_handler(&window);
-
     platform::deinit()
-}
-
-fn register_glutin_resize_handler(window: &Rc<app::window::Window>, browser: &mut BrowserWrapper) {
-    unsafe {
-        window.set_nested_event_loop_listener(browser);
-    }
-}
-
-fn unregister_glutin_resize_handler(window: &Rc<app::window::Window>) {
-    unsafe {
-        window.remove_nested_event_loop_listener();
-    }
 }
 
 struct BrowserWrapper {
     browser: Browser<app::window::Window>,
-}
-
-impl app::NestedEventLoopListener for BrowserWrapper {
-    fn handle_event_from_nested_event_loop(&mut self, event: WindowEvent) -> bool {
-        let is_resize = match event {
-            WindowEvent::Resize(..) => true,
-            _ => false,
-        };
-        if !self.browser.handle_events(vec![event]) {
-            return false;
-        }
-        if is_resize {
-            self.browser.repaint_synchronously()
-        }
-        true
-    }
 }
 
 #[cfg(target_os = "android")]
