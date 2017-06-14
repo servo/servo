@@ -12,6 +12,7 @@ use euclid::{Point2D, Size2D, TypedPoint2D};
 use euclid::rect::TypedRect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
+use tinyfiledialogs;
 #[cfg(target_os = "windows")]
 use gdi32;
 use gleam::gl;
@@ -32,7 +33,7 @@ use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_config::resource_files;
 use servo_geometry::DeviceIndependentPixel;
-use servo_url::ServoUrl;
+use servo_url::{ParseError, ServoUrl};
 use std::cell::{Cell, RefCell};
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use std::ffi::CString;
@@ -1277,12 +1278,33 @@ impl WindowMethods for Window {
                     self.event_queue.borrow_mut().push(WindowEvent::Reload);
                 }
             }
+            //On windows 8.1 when pressing ctrl + anything, ch = Some('\u{unicode_value}')
+            //so matching ch with Some('l') doesn't work here
+            //Instead we match with what's inside the key variable
+            (CMD_OR_CONTROL, _, Key::L) => {
+                if let Some(true) = PREFS.get("shell.builtin-key-shortcuts.enabled").as_boolean() {
+                    let fallback_url: String = if let Some(ref current_url) = *self.current_url.borrow() {
+                        current_url.to_string()
+                    } else {
+                        String::from("Your URL here")
+                    };
+                    //TODO: 
+                    // 1) make it work when clicking on "validate" button - Currently only works when pressing enter
+                    // 2) Erratic behavior - sometime the dialog reloads empty after pressing enter
+                    // (windows 8.1)
+                    if let Some(user_input) = tinyfiledialogs::input_box("Enter a URL", "URL:", &fallback_url)  {
+                        if let Ok(sanitized_url) = sanitize_and_parse_url(user_input) {
+                            //Maybe need to change WindowEvent::LoadUrl() to accept a ServoUrl instead of a String?
+                            self.event_queue.borrow_mut().push(WindowEvent::LoadUrl(sanitized_url.to_string()));
+                        }
+                    }
+                }
+            }
             (CMD_OR_CONTROL, Some('q'), _) => {
                 if let Some(true) = PREFS.get("shell.builtin-key-shortcuts.enabled").as_boolean() {
                     self.event_queue.borrow_mut().push(WindowEvent::Quit);
                 }
             }
-
             _ => {
                 self.platform_handle_key(key, mods);
             }
@@ -1386,6 +1408,10 @@ fn is_printable(key_code: VirtualKeyCode) -> bool {
         WebStop => false,
         _ => true,
     }
+}
+
+fn sanitize_and_parse_url(url: String) -> Result<ServoUrl, ParseError> {
+    ServoUrl::parse(url.trim())
 }
 
 #[cfg(not(target_os = "windows"))]
