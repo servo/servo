@@ -10,6 +10,7 @@ use dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use dom::paintworkletglobalscope::PaintWorkletTask;
 use dom::testworkletglobalscope::TestWorkletGlobalScope;
 use dom::testworkletglobalscope::TestWorkletTask;
+use dom::worklet::WorkletExecutor;
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use ipc_channel::ipc::IpcSender;
@@ -23,12 +24,19 @@ use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
 use profile_traits::mem;
 use profile_traits::time;
+use script_layout_interface::message::Msg;
+use script_runtime::CommonScriptMsg;
+use script_runtime::ScriptThreadEventCategory;
+use script_thread::MainThreadScriptMsg;
+use script_thread::Runnable;
+use script_thread::ScriptThread;
 use script_traits::ScriptMsg;
 use script_traits::TimerSchedulerMsg;
 use servo_url::ImmutableOrigin;
 use servo_url::MutableOrigin;
 use servo_url::ServoUrl;
 use std::sync::Arc;
+use std::sync::mpsc::Sender;
 
 #[dom_struct]
 /// https://drafts.css-houdini.org/worklets/#workletglobalscope
@@ -39,12 +47,18 @@ pub struct WorkletGlobalScope {
     base_url: ServoUrl,
     /// The microtask queue for this worklet
     microtask_queue: MicrotaskQueue,
+    /// Sender back to the script thread
+    #[ignore_heap_size_of = "channels are hard"]
+    script_sender: Sender<MainThreadScriptMsg>,
+    /// Worklet task executor
+    executor: WorkletExecutor,
 }
 
 impl WorkletGlobalScope {
     /// Create a new stack-allocated `WorkletGlobalScope`.
     pub fn new_inherited(pipeline_id: PipelineId,
                          base_url: ServoUrl,
+                         executor: WorkletExecutor,
                          init: &WorkletGlobalScopeInit)
                          -> WorkletGlobalScope {
         // Any timer events fired on this global are ignored.
@@ -61,6 +75,8 @@ impl WorkletGlobalScope {
                                                     MutableOrigin::new(ImmutableOrigin::new_opaque())),
             base_url: base_url,
             microtask_queue: MicrotaskQueue::default(),
+            script_sender: init.script_sender.clone(),
+            executor: executor,
         }
     }
 
@@ -76,9 +92,35 @@ impl WorkletGlobalScope {
         self.globalscope.evaluate_js_on_global_with_result(&*script, rval.handle_mut())
     }
 
+    /// Run a runnable in the main script thread.
+    pub fn run_in_script_thread<R>(&self, runnable: R) where
+        R: 'static + Send + Runnable,
+    {
+        let msg = CommonScriptMsg::RunnableMsg(ScriptThreadEventCategory::WorkletEvent, box runnable);
+        let msg = MainThreadScriptMsg::Common(msg);
+        self.script_sender.send(msg).expect("Worklet thread outlived script thread.");
+    }
+
+    /// Send a message to layout.
+    pub fn send_to_layout(&self, msg: Msg) {
+        struct RunnableMsg(PipelineId, Msg);
+        impl Runnable for RunnableMsg {
+            fn main_thread_handler(self: Box<Self>, script_thread: &ScriptThread) {
+                script_thread.send_to_layout(self.0, self.1);
+            }
+        }
+        let pipeline_id = self.globalscope.pipeline_id();
+        self.run_in_script_thread(RunnableMsg(pipeline_id, msg));
+    }
+
     /// The base URL of this global.
     pub fn base_url(&self) -> ServoUrl {
         self.base_url.clone()
+    }
+
+    /// The worklet executor.
+    pub fn executor(&self) -> WorkletExecutor {
+        self.executor.clone()
     }
 
     /// Queue up a microtask to be executed in this global.
@@ -113,6 +155,8 @@ impl WorkletGlobalScope {
 /// Resources required by workletglobalscopes
 #[derive(Clone)]
 pub struct WorkletGlobalScopeInit {
+    /// Channel to the main script thread
+    pub script_sender: Sender<MainThreadScriptMsg>,
     /// Channel to a resource thread
     pub resource_threads: ResourceThreads,
     /// Channel to the memory profiler
@@ -144,14 +188,15 @@ impl WorkletGlobalScopeType {
                runtime: &Runtime,
                pipeline_id: PipelineId,
                base_url: ServoUrl,
+               executor: WorkletExecutor,
                init: &WorkletGlobalScopeInit)
                -> Root<WorkletGlobalScope>
     {
         match *self {
             WorkletGlobalScopeType::Test =>
-                Root::upcast(TestWorkletGlobalScope::new(runtime, pipeline_id, base_url, init)),
+                Root::upcast(TestWorkletGlobalScope::new(runtime, pipeline_id, base_url, executor, init)),
             WorkletGlobalScopeType::Paint =>
-                Root::upcast(PaintWorkletGlobalScope::new(runtime, pipeline_id, base_url, init)),
+                Root::upcast(PaintWorkletGlobalScope::new(runtime, pipeline_id, base_url, executor, init)),
         }
     }
 }

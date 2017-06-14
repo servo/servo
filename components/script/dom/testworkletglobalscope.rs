@@ -7,6 +7,7 @@ use dom::bindings::codegen::Bindings::TestWorkletGlobalScopeBinding;
 use dom::bindings::codegen::Bindings::TestWorkletGlobalScopeBinding::TestWorkletGlobalScopeMethods;
 use dom::bindings::js::Root;
 use dom::bindings::str::DOMString;
+use dom::worklet::WorkletExecutor;
 use dom::workletglobalscope::WorkletGlobalScope;
 use dom::workletglobalscope::WorkletGlobalScopeInit;
 use dom_struct::dom_struct;
@@ -31,12 +32,13 @@ impl TestWorkletGlobalScope {
     pub fn new(runtime: &Runtime,
                pipeline_id: PipelineId,
                base_url: ServoUrl,
+               executor: WorkletExecutor,
                init: &WorkletGlobalScopeInit)
                -> Root<TestWorkletGlobalScope>
     {
         debug!("Creating test worklet global scope for pipeline {}.", pipeline_id);
         let global = box TestWorkletGlobalScope {
-            worklet_global: WorkletGlobalScope::new_inherited(pipeline_id, base_url, init),
+            worklet_global: WorkletGlobalScope::new_inherited(pipeline_id, base_url, executor, init),
             lookup_table: Default::default(),
         };
         unsafe { TestWorkletGlobalScopeBinding::Wrap(runtime.cx(), global) }
