@@ -265,7 +265,10 @@ pub mod specified {
     impl AllowedNumericType {
         /// Whether the value fits the rules of this numeric type.
         #[inline]
-        pub fn is_ok(&self, val: f32) -> bool {
+        pub fn is_ok(&self, parsing_mode: ParsingMode, val: f32) -> bool {
+            if parsing_mode.allows_all_numeric_values() {
+                return true;
+            }
             match *self {
                 AllowedNumericType::All => true,
                 AllowedNumericType::NonNegative => val >= 0.0,
