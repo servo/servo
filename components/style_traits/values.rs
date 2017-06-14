@@ -204,6 +204,7 @@ macro_rules! __define_css_keyword_enum__actual {
 
 /// Helper types for the handling of specified values.
 pub mod specified {
+    use ParsingMode;
     use app_units::Au;
     use std::cmp;
 
@@ -228,7 +229,10 @@ pub mod specified {
     impl AllowedLengthType {
         /// Whether value is valid for this allowed length type.
         #[inline]
-        pub fn is_ok(&self, value: f32) -> bool {
+        pub fn is_ok(&self, parsing_mode: ParsingMode, value: f32) -> bool {
+            if parsing_mode.allows_all_numeric_values() {
+                return true;
+            }
             match *self {
                 AllowedLengthType::All => true,
                 AllowedLengthType::NonNegative => value >= 0.,
@@ -261,7 +265,10 @@ pub mod specified {
     impl AllowedNumericType {
         /// Whether the value fits the rules of this numeric type.
         #[inline]
-        pub fn is_ok(&self, val: f32) -> bool {
+        pub fn is_ok(&self, parsing_mode: ParsingMode, val: f32) -> bool {
+            if parsing_mode.allows_all_numeric_values() {
+                return true;
+            }
             match *self {
                 AllowedNumericType::All => true,
                 AllowedNumericType::NonNegative => val >= 0.0,

@@ -7,36 +7,10 @@
 use context::QuirksMode;
 use cssparser::{Parser, SourcePosition, UnicodeRange};
 use error_reporting::{ParseErrorReporter, ContextualParseError};
-use style_traits::{OneOrMoreCommaSeparated, ParseError};
+use style_traits::{OneOrMoreCommaSeparated, ParseError, ParsingMode};
+#[cfg(feature = "gecko")]
+use style_traits::{PARSING_MODE_DEFAULT, PARSING_MODE_ALLOW_UNITLESS_LENGTH, PARSING_MODE_ALLOW_ALL_NUMERIC_VALUES};
 use stylesheets::{CssRuleType, Origin, UrlExtraData, Namespaces};
-
-bitflags! {
-    /// The mode to use when parsing values.
-    pub flags ParsingMode: u8 {
-        /// In CSS, lengths must have units, except for zero values, where the unit can be omitted.
-        /// https://www.w3.org/TR/css3-values/#lengths
-        const PARSING_MODE_DEFAULT = 0x00,
-        /// In SVG, a coordinate or length value without a unit identifier (e.g., "25") is assumed
-        /// to be in user units (px).
-        /// https://www.w3.org/TR/SVG/coords.html#Units
-        const PARSING_MODE_ALLOW_UNITLESS_LENGTH = 0x01,
-        /// In SVG, out-of-range values are not treated as an error in parsing.
-        /// https://www.w3.org/TR/SVG/implnote.html#RangeClamping
-        const PARSING_MODE_ALLOW_ALL_NUMERIC_VALUES = 0x02,
-    }
-}
-
-impl ParsingMode {
-    /// Whether the parsing mode allows unitless lengths for non-zero values to be intpreted as px.
-    pub fn allows_unitless_lengths(&self) -> bool {
-        self.intersects(PARSING_MODE_ALLOW_UNITLESS_LENGTH)
-    }
-
-    /// Whether the parsing mode allows all numeric values.
-    pub fn allows_all_numeric_values(&self) -> bool {
-      self.intersects(PARSING_MODE_ALLOW_ALL_NUMERIC_VALUES)
-    }
-}
 
 /// Asserts that all ParsingMode flags have a matching ParsingMode value in gecko.
 #[cfg(feature = "gecko")]

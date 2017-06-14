@@ -9,7 +9,7 @@ use servo_config::prefs::{PREFS, PrefValue};
 use servo_url::ServoUrl;
 use style::context::QuirksMode;
 use style::media_queries::{Device, MediaList, MediaType};
-use style::parser::{PARSING_MODE_DEFAULT, Parse, ParserContext};
+use style::parser::{Parse, ParserContext};
 use style::shared_lock::SharedRwLock;
 use style::stylearc::Arc;
 use style::stylesheets::{CssRuleType, Stylesheet, Origin};
@@ -17,7 +17,7 @@ use style::stylesheets::viewport_rule::*;
 use style::values::specified::LengthOrPercentageOrAuto::{self, Auto};
 use style::values::specified::NoCalcLength::{self, ViewportPercentage};
 use style::values::specified::ViewportPercentageLength::Vw;
-use style_traits::PinchZoomFactor;
+use style_traits::{PARSING_MODE_DEFAULT, PinchZoomFactor};
 use style_traits::viewport::*;
 
 macro_rules! stylesheet {

@@ -16,6 +16,7 @@ gecko = []
 
 [dependencies]
 app_units = "0.4.1"
+bitflags = "0.7"
 cssparser = "0.14.0"
 euclid = "0.13"
 heapsize = {version = "0.4", optional = true}

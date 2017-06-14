@@ -120,7 +120,7 @@ pub fn parse_number_with_clamping_mode<'i, 't>(context: &ParserContext,
                                                clamping_mode: AllowedNumericType)
                                                -> Result<Number, ParseError<'i>> {
     match try!(input.next()) {
-        Token::Number(ref value) if clamping_mode.is_ok(value.value) => {
+        Token::Number(ref value) if clamping_mode.is_ok(context.parsing_mode, value.value) => {
             Ok(Number {
                 value: value.value.min(f32::MAX).max(f32::MIN),
                 calc_clamping_mode: None,
@@ -364,14 +364,21 @@ impl Time {
                                         input: &mut Parser<'i, 't>,
                                         clamping_mode: AllowedNumericType)
                                         -> Result<Self, ParseError<'i>> {
+        use style_traits::PARSING_MODE_DEFAULT;
+
         match input.next() {
-            Ok(Token::Dimension(ref value, ref unit)) if clamping_mode.is_ok(value.value) => {
+            // Note that we generally pass ParserContext to is_ok() to check
+            // that the ParserMode of the ParserContext allows all numeric
+            // values for SMIL regardless of clamping_mode, but in this Time
+            // value case, the value does not animate for SMIL at all, so we use
+            // PARSING_MODE_DEFAULT directly.
+            Ok(Token::Dimension(ref value, ref unit)) if clamping_mode.is_ok(PARSING_MODE_DEFAULT, value.value) => {
                 Time::parse_dimension(value.value, &unit, /* from_calc = */ false)
                     .map_err(|()| StyleParseError::UnspecifiedError.into())
             }
             Ok(Token::Function(ref name)) if name.eq_ignore_ascii_case("calc") => {
                 match input.parse_nested_block(|i| CalcNode::parse_time(context, i)) {
-                    Ok(time) if clamping_mode.is_ok(time.seconds) => Ok(time),
+                    Ok(time) if clamping_mode.is_ok(PARSING_MODE_DEFAULT, time.seconds) => Ok(time),
                     _ => Err(StyleParseError::UnspecifiedError.into()),
                 }
             }
@@ -457,21 +464,13 @@ impl Number {
     #[allow(missing_docs)]
     pub fn parse_non_negative<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                       -> Result<Number, ParseError<'i>> {
-        if context.parsing_mode.allows_all_numeric_values() {
-            parse_number(context, input)
-        } else {
-            parse_number_with_clamping_mode(context, input, AllowedNumericType::NonNegative)
-        }
+        parse_number_with_clamping_mode(context, input, AllowedNumericType::NonNegative)
     }
 
     #[allow(missing_docs)]
     pub fn parse_at_least_one<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                       -> Result<Number, ParseError<'i>> {
-        if context.parsing_mode.allows_all_numeric_values() {
-            parse_number(context, input)
-        } else {
-            parse_number_with_clamping_mode(context, input, AllowedNumericType::AtLeastOne)
-        }
+        parse_number_with_clamping_mode(context, input, AllowedNumericType::AtLeastOne)
     }
 }
 
@@ -522,7 +521,7 @@ impl NumberOrPercentage {
                                         input: &mut Parser<'i, 't>,
                                         type_: AllowedNumericType)
                                         -> Result<Self, ParseError<'i>> {
-        if let Ok(per) = input.try(|i| Percentage::parse_with_clamping_mode(i, type_)) {
+        if let Ok(per) = input.try(|i| Percentage::parse_with_clamping_mode(context, i, type_)) {
             return Ok(NumberOrPercentage::Percentage(per));
         }
 
