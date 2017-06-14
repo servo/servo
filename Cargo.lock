@@ -2972,6 +2972,7 @@ name = "style_traits"
 version = "0.0.1"
 dependencies = [
  "app_units 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",

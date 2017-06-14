@@ -23,9 +23,10 @@ use net_traits::ReferrerPolicy;
 use script_layout_interface::message::Msg;
 use std::cell::Cell;
 use style::media_queries::parse_media_query_list;
-use style::parser::{PARSING_MODE_DEFAULT, ParserContext as CssParserContext};
+use style::parser::ParserContext as CssParserContext;
 use style::stylearc::Arc;
 use style::stylesheets::{CssRuleType, Stylesheet, Origin};
+use style_traits::PARSING_MODE_DEFAULT;
 use stylesheet_loader::{StylesheetLoader, StylesheetOwner};
 
 #[dom_struct]
