@@ -257,15 +257,19 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
     }
 }
 
+pub struct QualifiedRuleParserPrelude {
+    selectors: SelectorList<SelectorImpl>,
+    source_location: SourceLocation,
+}
 
 impl<'a, 'i> QualifiedRuleParser<'i> for TopLevelRuleParser<'a> {
-    type Prelude = SelectorList<SelectorImpl>;
+    type Prelude = QualifiedRuleParserPrelude;
     type QualifiedRule = CssRule;
     type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
     #[inline]
     fn parse_prelude<'t>(&mut self, input: &mut Parser<'i, 't>)
-                         -> Result<SelectorList<SelectorImpl>, ParseError<'i>> {
+                         -> Result<QualifiedRuleParserPrelude, ParseError<'i>> {
         self.state = State::Body;
 
         // "Freeze" the namespace map (no more namespace rules can be parsed
@@ -281,7 +285,7 @@ impl<'a, 'i> QualifiedRuleParser<'i> for TopLevelRuleParser<'a> {
     #[inline]
     fn parse_block<'t>(
         &mut self,
-        prelude: SelectorList<SelectorImpl>,
+        prelude: QualifiedRuleParserPrelude,
         input: &mut Parser<'i, 't>
     ) -> Result<CssRule, ParseError<'i>> {
         QualifiedRuleParser::parse_block(&mut self.nested(), prelude, input)
@@ -482,33 +486,38 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
 }
 
 impl<'a, 'b, 'i> QualifiedRuleParser<'i> for NestedRuleParser<'a, 'b> {
-    type Prelude = SelectorList<SelectorImpl>;
+    type Prelude = QualifiedRuleParserPrelude;
     type QualifiedRule = CssRule;
     type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
     fn parse_prelude<'t>(&mut self, input: &mut Parser<'i, 't>)
-                         -> Result<SelectorList<SelectorImpl>, ParseError<'i>> {
+                         -> Result<QualifiedRuleParserPrelude, ParseError<'i>> {
         let selector_parser = SelectorParser {
             stylesheet_origin: self.stylesheet_origin,
             namespaces: self.context.namespaces.unwrap(),
         };
 
-        SelectorList::parse(&selector_parser, input)
+        let location = get_location_with_offset(input.current_source_location(),
+                                                self.context.line_number_offset);
+        let selectors = SelectorList::parse(&selector_parser, input)?;
+
+        Ok(QualifiedRuleParserPrelude {
+            selectors: selectors,
+            source_location: location,
+        })
     }
 
     fn parse_block<'t>(
         &mut self,
-        prelude: SelectorList<SelectorImpl>,
+        prelude: QualifiedRuleParserPrelude,
         input: &mut Parser<'i, 't>
     ) -> Result<CssRule, ParseError<'i>> {
-        let location = get_location_with_offset(input.current_source_location(),
-                                                self.context.line_number_offset);
         let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::Style));
         let declarations = parse_property_declaration_list(&context, input);
         Ok(CssRule::Style(Arc::new(self.shared_lock.wrap(StyleRule {
-            selectors: prelude,
+            selectors: prelude.selectors,
             block: Arc::new(self.shared_lock.wrap(declarations)),
-            source_location: location,
+            source_location: prelude.source_location,
         }))))
     }
 }
