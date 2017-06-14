@@ -35,7 +35,7 @@ use servo::Browser;
 use servo::compositing::windowing::WindowEvent;
 #[cfg(target_os = "android")]
 use servo::config;
-use servo::config::opts::{self, ArgumentParsingResult};
+use servo::config::opts::{self, ArgumentParsingResult, parse_url_or_filename};
 use servo::config::servo_version;
 use servo::servo_config::prefs::PREFS;
 use servo::servo_url::ServoUrl;
@@ -147,9 +147,13 @@ fn main() {
 
     // If the url is not provided, we fallback to the homepage in PREFS,
     // or a blank page in case the homepage is not set either.
-    let target_url = opts::get().url.clone()
-                .unwrap_or(ServoUrl::parse(PREFS.get("shell.homepage").as_string()
-                    .unwrap_or("about:blank")).unwrap());
+    let cwd = env::current_dir().unwrap();
+    let cmdline_url = opts::get().url.clone();
+    let pref_url = PREFS.get("shell.homepage").as_string()
+        .and_then(|str| parse_url_or_filename(&cwd, str).ok());
+    let blank_url = ServoUrl::parse("about:blank").ok();
+
+    let target_url = cmdline_url.or(pref_url).or(blank_url).unwrap();
 
     // Our wrapper around `Browser` that also implements some
     // callbacks required by the glutin window implementation.
