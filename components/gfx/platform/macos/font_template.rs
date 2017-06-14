@@ -128,12 +128,12 @@ impl Serialize for CachedCTFont {
     }
 }
 
-impl Deserialize for CachedCTFont {
+impl<'de> Deserialize<'de> for CachedCTFont {
     fn deserialize<D>(deserializer: D) -> Result<CachedCTFont, D::Error>
-                      where D: Deserializer {
+                      where D: Deserializer<'de> {
         struct NoneOptionVisitor;
 
-        impl Visitor for NoneOptionVisitor {
+        impl<'de> Visitor<'de> for NoneOptionVisitor {
             type Value = CachedCTFont;
 
             fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {

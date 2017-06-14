@@ -17,7 +17,7 @@ hyper = "0.10"
 hyper_serde = "0.6"
 ipc-channel = "0.7"
 msg = {path = "../msg"}
-serde = "0.9"
-serde_derive = "0.9"
+serde = "1.0"
+serde_derive = "1.0"
 servo_url = {path = "../url"}
 time = "0.1"

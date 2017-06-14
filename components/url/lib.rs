@@ -209,9 +209,9 @@ impl serde::Serialize for ServoUrl {
     }
 }
 
-impl serde::Deserialize for ServoUrl {
+impl<'de> serde::Deserialize<'de> for ServoUrl {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where D: serde::Deserializer,
+        where D: serde::Deserializer<'de>,
     {
         url_serde::deserialize(deserializer).map(Self::from_url)
     }
