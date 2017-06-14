@@ -16,7 +16,7 @@ path = "lib.rs"
 doctest = false
 
 [features]
-gecko = ["nsstring_vendor", "rayon/unstable", "num_cpus", "style_traits/gecko"]
+gecko = ["nsstring_vendor", "num_cpus", "style_traits/gecko"]
 use_bindgen = ["bindgen", "regex", "toml"]
 servo = ["serde", "serde_derive", "heapsize", "heapsize_derive",
          "style_traits/servo", "servo_atoms", "servo_config", "html5ever",
@@ -25,7 +25,7 @@ servo = ["serde", "serde_derive", "heapsize", "heapsize_derive",
          # FIXME: Uncomment when https://github.com/servo/servo/pull/16953 has landed:
          #"arrayvec/use_union"
 
-         "rayon/unstable", "servo_url"]
+         "servo_url"]
 testing = []
 gecko_debug = ["nsstring_vendor/gecko_debug"]
 
@@ -57,7 +57,7 @@ ordered-float = "0.4"
 parking_lot = "0.3.3"
 pdqsort = "0.1.0"
 precomputed-hash = "0.1"
-rayon = "0.7.1"
+rayon = "0.8"
 selectors = { path = "../selectors" }
 serde = {version = "0.9", optional = true}
 serde_derive = {version = "0.9", optional = true}
