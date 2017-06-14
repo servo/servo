@@ -3202,12 +3202,12 @@ fn static_assert() {
         unsafe { Gecko_CopyListStyleImageFrom(&mut self.gecko, &other.gecko); }
     }
 
-    pub fn set_list_style_type(&mut self, v: longhands::list_style_type::computed_value::T) {
+    pub fn set_list_style_type(&mut self, v: longhands::list_style_type::computed_value::T, device: &Device) {
         use gecko_bindings::bindings::Gecko_SetCounterStyleToString;
         use nsstring::{nsACString, nsCString};
         use self::longhands::list_style_type::computed_value::T;
         match v {
-            T::CounterStyle(s) => s.to_gecko_value(&mut self.gecko.mCounterStyle),
+            T::CounterStyle(s) => s.to_gecko_value(&mut self.gecko.mCounterStyle, device),
             T::String(s) => unsafe {
                 Gecko_SetCounterStyleToString(&mut self.gecko.mCounterStyle,
                                               &nsCString::from(s) as &nsACString)
@@ -4254,7 +4254,7 @@ clip-path
         self.gecko.mContents.is_empty()
     }
 
-    pub fn set_content(&mut self, v: longhands::content::computed_value::T) {
+    pub fn set_content(&mut self, v: longhands::content::computed_value::T, device: &Device) {
         use properties::longhands::content::computed_value::T;
         use properties::longhands::content::computed_value::ContentItem;
         use values::generics::CounterStyleOrNone;
@@ -4275,7 +4275,8 @@ clip-path
 
         fn set_counter_function(data: &mut nsStyleContentData,
                                 content_type: nsStyleContentType,
-                                name: &str, sep: &str, style: CounterStyleOrNone) {
+                                name: &str, sep: &str,
+                                style: CounterStyleOrNone, device: &Device) {
             debug_assert!(content_type == eStyleContentType_Counter ||
                           content_type == eStyleContentType_Counters);
             let counter_func = unsafe {
@@ -4285,7 +4286,7 @@ clip-path
             if content_type == eStyleContentType_Counters {
                 counter_func.mSeparator.assign_utf8(sep);
             }
-            style.to_gecko_value(&mut counter_func.mCounterStyle);
+            style.to_gecko_value(&mut counter_func.mCounterStyle, device);
         }
 
         match v {
@@ -4349,11 +4350,11 @@ clip-path
                             => self.gecko.mContents[i].mType = eStyleContentType_NoCloseQuote,
                         ContentItem::Counter(name, style) => {
                             set_counter_function(&mut self.gecko.mContents[i],
-                                                 eStyleContentType_Counter, &name, "", style);
+                                                 eStyleContentType_Counter, &name, "", style, device);
                         }
                         ContentItem::Counters(name, sep, style) => {
                             set_counter_function(&mut self.gecko.mContents[i],
-                                                 eStyleContentType_Counters, &name, &sep, style);
+                                                 eStyleContentType_Counters, &name, &sep, style, device);
                         }
                         ContentItem::Url(ref url) => {
                             unsafe {
