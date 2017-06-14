@@ -853,6 +853,7 @@ impl <T> Animatable for Option<T>
             (&Some(ref this), &Some(ref other)) => {
                 this.compute_squared_distance(other)
             },
+            (&None, &None) => Ok(0.0),
             _ => Err(()),
         }
     }
