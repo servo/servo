@@ -24,7 +24,7 @@ impl ParseErrorReporter for ErrorringErrorReporter {
                         url: &ServoUrl,
                         line_number_offset: u64) {
         let location = input.source_location(position);
-        let line_offset = location.line + line_number_offset as usize;
+        let line_offset = location.line + line_number_offset as u32;
         panic!("CSS error: {}\t\n{}:{} {}", url.as_str(), line_offset, location.column, error.to_string());
     }
 }

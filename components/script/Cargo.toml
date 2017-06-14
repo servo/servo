@@ -18,14 +18,14 @@ debugmozjs = ['js/debugmozjs']
 cmake = "0.1"
 phf_codegen = "0.7.18"
 phf_shared = "0.7.18"
-serde_json = "0.9"
+serde_json = "1.0"
 
 [target.'cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))'.dependencies]
 tinyfiledialogs = "2.5.9"
 
 [dependencies]
 angle = {git = "https://github.com/servo/angle", branch = "servo"}
-app_units = "0.4.1"
+app_units = "0.5"
 audio-video-metadata = "0.1.2"
 atomic_refcell = "0.1"
 base64 = "0.5.2"
@@ -35,24 +35,24 @@ byteorder = "1.0"
 canvas_traits = {path = "../canvas_traits"}
 caseless = "0.1.0"
 cookie = "0.6"
-cssparser = "0.14.0"
+cssparser = "0.15"
 deny_public_fields = {path = "../deny_public_fields"}
 devtools_traits = {path = "../devtools_traits"}
 dom_struct = {path = "../dom_struct"}
 domobject_derive = {path = "../domobject_derive"}
 encoding = "0.2"
-euclid = "0.14.4"
+euclid = "0.15"
 fnv = "1.0"
 gleam = "0.4"
 gfx_traits = {path = "../gfx_traits"}
 half = "1.0"
 heapsize = "0.4"
 heapsize_derive = "0.1"
-html5ever = {version = "0.17", features = ["heap_size", "unstable"]}
+html5ever = {version = "0.18", features = ["heap_size", "unstable"]}
 hyper = "0.10"
-hyper_serde = "0.6"
+hyper_serde = "0.7"
 image = "0.12"
-ipc-channel = "0.7"
+ipc-channel = "0.8"
 js = {git = "https://github.com/servo/rust-mozjs", features = ["promises"]}
 jstraceable_derive = {path = "../jstraceable_derive"}
 lazy_static = "0.2"
@@ -63,7 +63,7 @@ mime_guess = "1.8.0"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 num-traits = "0.1.32"
-offscreen_gl_context = { version = "0.9", features = ["serde"] }
+offscreen_gl_context = { version = "0.11", features = ["serde"] }
 open = "1.1.1"
 parking_lot = "0.3"
 phf = "0.7.18"
@@ -76,7 +76,7 @@ script_layout_interface = {path = "../script_layout_interface"}
 script_plugins = {path = "../script_plugins"}
 script_traits = {path = "../script_traits"}
 selectors = { path = "../selectors" }
-serde = "0.9"
+serde = "1.0"
 servo_atoms = {path = "../atoms"}
 servo_config = {path = "../config"}
 servo_geometry = {path = "../geometry" }
@@ -90,8 +90,8 @@ time = "0.1.12"
 unicode-segmentation = "1.1.0"
 url = {version = "1.2", features = ["heap_size", "query_encoding"]}
 utf-8 = "0.7"
-uuid = {version = "0.4", features = ["v4"]}
-xml5ever = {version = "0.7", features = ["unstable"]}
+uuid = {version = "0.5", features = ["v4"]}
+xml5ever = {version = "0.8", features = ["unstable"]}
 webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webvr = {path = "../webvr"}
 webvr_traits = {path = "../webvr_traits"}

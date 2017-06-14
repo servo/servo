@@ -43,8 +43,8 @@ pub struct DevtoolsPageInfo {
 #[derive(Debug, Deserialize, HeapSizeOf, Serialize, Clone)]
 pub struct CSSError {
     pub filename: String,
-    pub line: usize,
-    pub column: usize,
+    pub line: u32,
+    pub column: u32,
     pub msg: String
 }
 

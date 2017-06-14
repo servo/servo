@@ -479,7 +479,7 @@ const WARNINGS_BUFFER_SIZE: usize = 32;
 /// but does not panic on deserializtion errors.
 fn route_ipc_receiver_to_new_mpsc_receiver_preserving_errors<T>(ipc_receiver: IpcReceiver<T>)
     -> Receiver<Result<T, IpcError>>
-    where T: Deserialize + Serialize + Send + 'static
+    where T: for<'de> Deserialize<'de> + Serialize + Send + 'static
 {
         let (mpsc_sender, mpsc_receiver) = channel();
         ROUTER.add_route(ipc_receiver.to_opaque(), Box::new(move |message| {

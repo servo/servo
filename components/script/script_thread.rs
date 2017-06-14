@@ -2322,7 +2322,7 @@ impl ScriptThread {
     }
 
     fn handle_css_error_reporting(&self, pipeline_id: PipelineId, filename: String,
-                                  line: usize, column: usize, msg: String) {
+                                  line: u32, column: u32, msg: String) {
         let sender = match self.devtools_chan {
             Some(ref sender) => sender,
             None => return,

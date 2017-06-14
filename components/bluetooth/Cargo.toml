@@ -13,10 +13,10 @@ path = "lib.rs"
 bitflags = "0.7"
 bluetooth_traits = {path = "../bluetooth_traits"}
 device = {git = "https://github.com/servo/devices", features = ["bluetooth-test"]}
-ipc-channel = "0.7"
+ipc-channel = "0.8"
 servo_config = {path = "../config"}
 servo_rand = {path = "../rand"}
-uuid = {version = "0.4", features = ["v4"]}
+uuid = {version = "0.5", features = ["v4"]}
 
 [target.'cfg(target_os = "linux")'.dependencies]
 tinyfiledialogs = "2.5.9"
