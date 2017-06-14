@@ -16,7 +16,6 @@ use selectors::matching::VisitedHandlingMode;
 use shared_lock::{Locked, StylesheetGuards};
 use std::fmt;
 use stylearc::Arc;
-use traversal::TraversalFlags;
 
 /// The structure that represents the result of style computation. This is
 /// effectively a tuple of rules and computed values, that is, the rule node,
@@ -349,97 +348,6 @@ impl ElementStyles {
     }
 }
 
-/// Restyle hint for storing on ElementData.
-///
-/// We wrap it in a newtype to force the encapsulation of the complexity of
-/// handling the correct invalidations in this file.
-///
-/// TODO(emilio): This will probably be a non-issue in a bit.
-#[derive(Clone, Copy, Debug)]
-pub struct StoredRestyleHint(pub RestyleHint);
-
-impl StoredRestyleHint {
-    /// Propagates this restyle hint to a child element.
-    pub fn propagate(&mut self, traversal_flags: &TraversalFlags) -> Self {
-        use std::mem;
-
-        // In the middle of an animation only restyle, we don't need to
-        // propagate any restyle hints, and we need to remove ourselves.
-        if traversal_flags.for_animation_only() {
-            self.0.remove_animation_hints();
-            return Self::empty();
-        }
-
-        debug_assert!(!self.0.has_animation_hint(),
-                      "There should not be any animation restyle hints \
-                       during normal traversal");
-
-        // Else we should clear ourselves, and return the propagated hint.
-        let new_hint = mem::replace(&mut self.0, RestyleHint::empty())
-                       .propagate_for_non_animation_restyle();
-        StoredRestyleHint(new_hint)
-    }
-
-    /// Creates an empty `StoredRestyleHint`.
-    pub fn empty() -> Self {
-        StoredRestyleHint(RestyleHint::empty())
-    }
-
-    /// Creates a restyle hint that forces the whole subtree to be restyled,
-    /// including the element.
-    pub fn subtree() -> Self {
-        StoredRestyleHint(RestyleHint::restyle_subtree())
-    }
-
-    /// Creates a restyle hint that indicates the element must be recascaded.
-    pub fn recascade_self() -> Self {
-        StoredRestyleHint(RestyleHint::recascade_self())
-    }
-
-    /// Returns true if the hint indicates that our style may be invalidated.
-    pub fn has_self_invalidations(&self) -> bool {
-        self.0.affects_self()
-    }
-
-    /// Whether the restyle hint is empty (nothing requires to be restyled).
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-
-    /// Insert another restyle hint, effectively resulting in the union of both.
-    pub fn insert(&mut self, other: Self) {
-        self.0.insert(other.0)
-    }
-
-    /// Contains whether the whole subtree is invalid.
-    pub fn contains_subtree(&self) -> bool {
-        self.0.contains(RestyleHint::restyle_subtree())
-    }
-
-    /// Returns true if the hint has animation-only restyle.
-    pub fn has_animation_hint(&self) -> bool {
-        self.0.has_animation_hint()
-    }
-
-    /// Returns true if the hint indicates the current element must be
-    /// recascaded.
-    pub fn has_recascade_self(&self) -> bool {
-        self.0.has_recascade_self()
-    }
-}
-
-impl Default for StoredRestyleHint {
-    fn default() -> Self {
-        Self::empty()
-    }
-}
-
-impl From<RestyleHint> for StoredRestyleHint {
-    fn from(hint: RestyleHint) -> Self {
-        StoredRestyleHint(hint)
-    }
-}
-
 /// Transient data used by the restyle algorithm. This structure is instantiated
 /// either before or during restyle traversal, and is cleared at the end of node
 /// processing.
@@ -447,21 +355,14 @@ impl From<RestyleHint> for StoredRestyleHint {
 pub struct RestyleData {
     /// The restyle hint, which indicates whether selectors need to be rematched
     /// for this element, its children, and its descendants.
-    pub hint: StoredRestyleHint,
+    pub hint: RestyleHint,
+
+    /// Whether we reframed/reconstructed any ancestor or self.
+    pub reconstructed_ancestor: bool,
 
     /// The restyle damage, indicating what kind of layout changes are required
     /// afte restyling.
     pub damage: RestyleDamage,
-
-    /// The restyle damage that has already been handled by our ancestors, and does
-    /// not need to be applied again at this element. Only non-empty during the
-    /// traversal, once ancestor damage has been calculated.
-    ///
-    /// Note that this optimization mostly makes sense in terms of Gecko's top-down
-    /// frame constructor and change list processing model. We don't bother with it
-    /// for Servo for now.
-    #[cfg(feature = "gecko")]
-    pub damage_handled: RestyleDamage,
 }
 
 impl RestyleData {
@@ -469,28 +370,6 @@ impl RestyleData {
     pub fn has_invalidations(&self) -> bool {
         self.hint.has_self_invalidations()
     }
-
-    /// Returns damage handled.
-    #[cfg(feature = "gecko")]
-    pub fn damage_handled(&self) -> RestyleDamage {
-        self.damage_handled
-    }
-
-    /// Returns damage handled (always empty for servo).
-    #[cfg(feature = "servo")]
-    pub fn damage_handled(&self) -> RestyleDamage {
-        RestyleDamage::empty()
-    }
-
-    /// Sets damage handled.
-    #[cfg(feature = "gecko")]
-    pub fn set_damage_handled(&mut self, d: RestyleDamage) {
-        self.damage_handled = d;
-    }
-
-    /// Sets damage handled. No-op for Servo.
-    #[cfg(feature = "servo")]
-    pub fn set_damage_handled(&mut self, _: RestyleDamage) {}
 }
 
 /// Style system data associated with an Element.
@@ -588,8 +467,8 @@ impl ElementData {
 
         debug_assert!(self.restyle.is_some());
         let restyle_data = self.restyle.as_ref().unwrap();
-        let hint = restyle_data.hint.0;
 
+        let hint = restyle_data.hint;
         if shared_context.traversal_flags.for_animation_only() {
             // return either CascadeWithReplacements or CascadeOnly in case of
             // animation-only restyle.

@@ -6,7 +6,7 @@
 
 use atomic_refcell::AtomicRefCell;
 use context::{SharedStyleContext, StyleContext, ThreadLocalStyleContext};
-use data::{ElementData, ElementStyles, StoredRestyleHint};
+use data::{ElementData, ElementStyles};
 use dom::{DirtyDescendants, NodeInfo, OpaqueNode, TElement, TNode};
 use invalidation::element::restyle_hints::{RECASCADE_SELF, RECASCADE_DESCENDANTS, RestyleHint};
 use matching::{ChildCascadeRequirement, MatchMethods};
@@ -297,8 +297,8 @@ pub trait DomTraversal<E: TElement> : Sync {
             if let Some(parent) = el.traversal_parent() {
                 let parent_data = parent.borrow_data().unwrap();
                 let going_to_reframe = parent_data.get_restyle().map_or(false, |r| {
-                    (r.damage | r.damage_handled())
-                        .contains(RestyleDamage::reconstruct())
+                    r.reconstructed_ancestor ||
+                    r.damage.contains(RestyleDamage::reconstruct())
                 });
 
                 let mut is_before_or_after_pseudo = false;
@@ -691,7 +691,7 @@ pub fn recalc_style_at<E, D>(traversal: &D,
     // Now that matching and cascading is done, clear the bits corresponding to
     // those operations and compute the propagated restyle hint.
     let mut propagated_hint = match data.get_restyle_mut() {
-        None => StoredRestyleHint::empty(),
+        None => RestyleHint::empty(),
         Some(r) => {
             debug_assert!(context.shared.traversal_flags.for_animation_only() ||
                           !r.hint.has_animation_hint(),
@@ -730,14 +730,16 @@ pub fn recalc_style_at<E, D>(traversal: &D,
                                           DontLog) &&
         (has_dirty_descendants_for_this_restyle ||
          !propagated_hint.is_empty()) {
-        let damage_handled = data.get_restyle().map_or(RestyleDamage::empty(), |r| {
-            r.damage_handled() | r.damage.handled_for_descendants()
+        let reconstructed_ancestor = data.get_restyle().map_or(false, |r| {
+            r.reconstructed_ancestor ||
+            r.damage.contains(RestyleDamage::reconstruct())
         });
-
-        preprocess_children::<E, D>(context,
-                                    element,
-                                    propagated_hint,
-                                    damage_handled);
+        preprocess_children::<E, D>(
+            context,
+            element,
+            propagated_hint,
+            reconstructed_ancestor,
+        )
     }
 
     // If we are in a restyle for reconstruction, drop the existing restyle
@@ -840,12 +842,15 @@ fn compute_style<E, D>(_traversal: &D,
     }
 }
 
-fn preprocess_children<E, D>(context: &mut StyleContext<E>,
-                             element: E,
-                             propagated_hint: StoredRestyleHint,
-                             damage_handled: RestyleDamage)
-    where E: TElement,
-          D: DomTraversal<E>,
+fn preprocess_children<E, D>(
+    context: &mut StyleContext<E>,
+    element: E,
+    propagated_hint: RestyleHint,
+    reconstructed_ancestor: bool,
+)
+where
+    E: TElement,
+    D: DomTraversal<E>,
 {
     trace!("preprocess_children: {:?}", element);
 
@@ -880,9 +885,7 @@ fn preprocess_children<E, D>(context: &mut StyleContext<E>,
         // If the child doesn't have pre-existing RestyleData and we don't have
         // any reason to create one, avoid the useless allocation and move on to
         // the next child.
-        if propagated_hint.is_empty() &&
-            damage_handled.is_empty() &&
-            !child_data.has_restyle() {
+        if !reconstructed_ancestor && propagated_hint.is_empty() && !child_data.has_restyle() {
             continue;
         }
 
@@ -890,10 +893,8 @@ fn preprocess_children<E, D>(context: &mut StyleContext<E>,
 
         // Propagate the parent restyle hint, that may make us restyle the whole
         // subtree.
+        restyle_data.reconstructed_ancestor = reconstructed_ancestor;
         restyle_data.hint.insert(propagated_hint);
-
-        // Store the damage already handled by ancestors.
-        restyle_data.set_damage_handled(damage_handled);
     }
 }
 

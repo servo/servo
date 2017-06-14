@@ -6,6 +6,7 @@
 
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs::nsRestyleHint;
+use traversal::TraversalFlags;
 
 bitflags! {
     /// The kind of restyle we need to do for a given element.
@@ -57,9 +58,40 @@ impl RestyleHint {
         RECASCADE_SELF | RECASCADE_DESCENDANTS
     }
 
+    /// Returns whether this hint invalidates the element and all its
+    /// descendants.
+    pub fn contains_subtree(&self) -> bool {
+        self.contains(RESTYLE_SELF | RESTYLE_DESCENDANTS)
+    }
+
+    /// Returns whether we need to restyle this element.
+    pub fn has_self_invalidations(&self) -> bool {
+        self.intersects(RESTYLE_SELF | RECASCADE_SELF | Self::replacements())
+    }
+
+    /// Propagates this restyle hint to a child element.
+    pub fn propagate(&mut self, traversal_flags: &TraversalFlags) -> Self {
+        use std::mem;
+
+        // In the middle of an animation only restyle, we don't need to
+        // propagate any restyle hints, and we need to remove ourselves.
+        if traversal_flags.for_animation_only() {
+            self.remove_animation_hints();
+            return Self::empty();
+        }
+
+        debug_assert!(!self.has_animation_hint(),
+                      "There should not be any animation restyle hints \
+                       during normal traversal");
+
+        // Else we should clear ourselves, and return the propagated hint.
+        mem::replace(self, Self::empty())
+            .propagate_for_non_animation_restyle()
+    }
+
     /// Returns a new `CascadeHint` appropriate for children of the current
     /// element.
-    pub fn propagate_for_non_animation_restyle(&self) -> Self {
+    fn propagate_for_non_animation_restyle(&self) -> Self {
         if self.contains(RESTYLE_DESCENDANTS) {
             return Self::restyle_subtree()
         }
@@ -84,13 +116,6 @@ impl RestyleHint {
     #[inline]
     pub fn for_animations() -> Self {
         RESTYLE_SMIL | RESTYLE_CSS_ANIMATIONS | RESTYLE_CSS_TRANSITIONS
-    }
-
-    /// Returns whether the hint specifies that some work must be performed on
-    /// the current element.
-    #[inline]
-    pub fn affects_self(&self) -> bool {
-        self.intersects(RESTYLE_SELF | RECASCADE_SELF | Self::replacements())
     }
 
     /// Returns whether the hint specifies that the currently element must be
@@ -142,6 +167,12 @@ impl RestyleHint {
         // RECASCADE_SELF_ANIMATIONS flags to make it clear, but this isn't
         // currently necessary.)
         self.remove(RECASCADE_SELF);
+    }
+}
+
+impl Default for RestyleHint {
+    fn default() -> Self {
+        Self::empty()
     }
 }
 
