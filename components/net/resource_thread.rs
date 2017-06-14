@@ -214,7 +214,7 @@ impl ResourceChannelManager {
 }
 
 pub fn read_json_from_file<T>(data: &mut T, config_dir: &Path, filename: &str)
-    where T: Deserialize
+    where T: for<'de> Deserialize<'de>
 {
     let path = config_dir.join(filename);
     let display = path.display();

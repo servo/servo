@@ -96,8 +96,8 @@ impl Serialize for UntrustedNodeAddress {
     }
 }
 
-impl Deserialize for UntrustedNodeAddress {
-    fn deserialize<D: Deserializer>(d: D) -> Result<UntrustedNodeAddress, D::Error> {
+impl<'de> Deserialize<'de> for UntrustedNodeAddress {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<UntrustedNodeAddress, D::Error> {
         let value: usize = try!(Deserialize::deserialize(d));
         Ok(UntrustedNodeAddress::from_id(value))
     }

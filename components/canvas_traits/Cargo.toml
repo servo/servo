@@ -15,6 +15,6 @@ euclid = "0.14.4"
 heapsize = "0.4"
 heapsize_derive = "0.1"
 ipc-channel = "0.7"
-serde = "0.9"
-serde_derive = "0.9"
+serde = "1.0"
+serde_derive = "1.0"
 webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}

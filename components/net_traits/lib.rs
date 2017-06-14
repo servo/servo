@@ -270,7 +270,7 @@ pub type IpcSendResult = Result<(), IpcError>;
 /// used by net_traits::ResourceThreads to ease the use its IpcSender sub-fields
 /// XXX: If this trait will be used more in future, some auto derive might be appealing
 pub trait IpcSend<T>
-    where T: serde::Serialize + serde::Deserialize,
+    where T: serde::Serialize + for<'de> serde::Deserialize<'de>,
 {
     /// send message T
     fn send(&self, T) -> IpcSendResult;
