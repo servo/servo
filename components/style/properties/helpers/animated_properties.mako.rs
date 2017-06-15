@@ -18,6 +18,8 @@ use properties::{CSSWideKeyword, PropertyDeclaration};
 use properties::longhands;
 use properties::longhands::background_size::computed_value::T as BackgroundSizeList;
 use properties::longhands::font_weight::computed_value::T as FontWeight;
+use properties::longhands::font_weight::computed_value::Weight as FontWeightEnum;
+use properties::longhands::font_weight::SpecifiedValue as FontWeightKeyword;
 use properties::longhands::font_stretch::computed_value::T as FontStretch;
 use properties::longhands::text_shadow::computed_value::T as TextShadowList;
 use properties::longhands::box_shadow::computed_value::T as BoxShadowList;
@@ -1388,38 +1390,70 @@ impl Animatable for MaxLength {
 impl Animatable for FontWeight {
     #[inline]
     fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        let a = (*self as u32) as f64;
-        let b = (*other as u32) as f64;
+        let a = ((*self).value as u32) as f64;
+        let b = ((*other).value as u32) as f64;
         const NORMAL: f64 = 400.;
         let weight = (a - NORMAL) * self_portion + (b - NORMAL) * other_portion + NORMAL;
         Ok(if weight < 150. {
-            FontWeight::Weight100
+            FontWeight {
+                keyword: FontWeightKeyword::Weight100,
+                value: FontWeightEnum::Weight100,
+            }
         } else if weight < 250. {
-            FontWeight::Weight200
+            FontWeight {
+                keyword: FontWeightKeyword::Weight200,
+                value: FontWeightEnum::Weight200,
+            }
         } else if weight < 350. {
-            FontWeight::Weight300
+            FontWeight {
+                keyword: FontWeightKeyword::Weight300,
+                value: FontWeightEnum::Weight300,
+            }
         } else if weight < 450. {
-            FontWeight::Weight400
+            FontWeight {
+                keyword: FontWeightKeyword::Weight400,
+                value: FontWeightEnum::Weight400,
+            }
         } else if weight < 550. {
-            FontWeight::Weight500
+            FontWeight {
+                keyword: FontWeightKeyword::Weight500,
+                value: FontWeightEnum::Weight500,
+            }
         } else if weight < 650. {
-            FontWeight::Weight600
+            FontWeight {
+                keyword: FontWeightKeyword::Weight600,
+                value: FontWeightEnum::Weight600,
+            }
         } else if weight < 750. {
-            FontWeight::Weight700
+            FontWeight {
+                keyword: FontWeightKeyword::Weight700,
+                value: FontWeightEnum::Weight700,
+            }
         } else if weight < 850. {
-            FontWeight::Weight800
+            FontWeight {
+                keyword: FontWeightKeyword::Weight800,
+                value: FontWeightEnum::Weight800,
+            }
         } else {
-            FontWeight::Weight900
+            FontWeight {
+                keyword: FontWeightKeyword::Weight900,
+                value: FontWeightEnum::Weight900,
+            }
         })
     }
 
     #[inline]
-    fn get_zero_value(&self) -> Option<Self> { Some(FontWeight::Weight400) }
+    fn get_zero_value(&self) -> Option<Self> {
+        Some(FontWeight {
+            keyword: FontWeightKeyword::Normal,
+            value: FontWeightEnum::Weight400,
+        })
+    }
 
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
-        let a = (*self as u32) as f64;
-        let b = (*other as u32) as f64;
+        let a = ((*self).value as u32) as f64;
+        let b = ((*other).value as u32) as f64;
         a.compute_distance(&b)
     }
 }

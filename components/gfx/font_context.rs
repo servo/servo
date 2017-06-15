@@ -126,7 +126,7 @@ impl FontContext {
         // TODO: The font context holds a strong ref to the cached fonts
         // so they will never be released. Find out a good time to drop them.
 
-        let desc = FontTemplateDescriptor::new(style.font_weight,
+        let desc = FontTemplateDescriptor::new(style.font_weight.value,
                                                style.font_stretch,
                                                style.font_style == font_style::T::italic ||
                                                 style.font_style == font_style::T::oblique);

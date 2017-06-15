@@ -94,7 +94,7 @@ fn get_family_face_indices(records: &[truetype::naming_table::Record]) -> Option
 struct FontInfo {
     family_name: String,
     face_name: String,
-    weight: font_weight::T,
+    weight: font_weight::Weight,
     stretch: font_stretch::T,
     style: FontStyle,
 }
@@ -156,15 +156,15 @@ impl FontInfo {
         };
 
         let weight = match min(9, max(1, weight_val / 100)) {
-            1 => font_weight::T::Weight100,
-            2 => font_weight::T::Weight200,
-            3 => font_weight::T::Weight300,
-            4 => font_weight::T::Weight400,
-            5 => font_weight::T::Weight500,
-            6 => font_weight::T::Weight600,
-            7 => font_weight::T::Weight700,
-            8 => font_weight::T::Weight800,
-            9 => font_weight::T::Weight900,
+            1 => font_weight::Weight::Weight100,
+            2 => font_weight::Weight::Weight200,
+            3 => font_weight::Weight::Weight300,
+            4 => font_weight::Weight::Weight400,
+            5 => font_weight::Weight::Weight500,
+            6 => font_weight::Weight::Weight600,
+            7 => font_weight::Weight::Weight700,
+            8 => font_weight::Weight::Weight800,
+            9 => font_weight::Weight::Weight900,
             _ => return Err(()),
         };
 
@@ -199,19 +199,19 @@ impl FontInfo {
     fn new_from_font(font: &Font) -> Result<FontInfo, ()> {
         let style = font.style();
         let weight = match font.weight() {
-            FontWeight::Thin => font_weight::T::Weight100,
-            FontWeight::ExtraLight => font_weight::T::Weight200,
-            FontWeight::Light => font_weight::T::Weight300,
+            FontWeight::Thin => font_weight::Weight::Weight100,
+            FontWeight::ExtraLight => font_weight::Weight::Weight200,
+            FontWeight::Light => font_weight::Weight::Weight300,
             // slightly grayer gray
-            FontWeight::SemiLight => font_weight::T::Weight300,
-            FontWeight::Regular => font_weight::T::Weight400,
-            FontWeight::Medium => font_weight::T::Weight500,
-            FontWeight::SemiBold => font_weight::T::Weight600,
-            FontWeight::Bold => font_weight::T::Weight700,
-            FontWeight::ExtraBold => font_weight::T::Weight800,
-            FontWeight::Black => font_weight::T::Weight900,
+            FontWeight::SemiLight => font_weight::Weight::Weight300,
+            FontWeight::Regular => font_weight::Weight::Weight400,
+            FontWeight::Medium => font_weight::Weight::Weight500,
+            FontWeight::SemiBold => font_weight::Weight::Weight600,
+            FontWeight::Bold => font_weight::Weight::Weight700,
+            FontWeight::ExtraBold => font_weight::Weight::Weight800,
+            FontWeight::Black => font_weight::Weight::Weight900,
             // slightly blacker black
-            FontWeight::ExtraBlack => font_weight::T::Weight900,
+            FontWeight::ExtraBlack => font_weight::Weight::Weight900,
         };
         let stretch = match font.stretch() {
             FontStretch::Undefined => font_stretch::T::normal,
@@ -310,7 +310,7 @@ impl FontHandleMethods for FontHandle {
         }
     }
 
-    fn boldness(&self) -> font_weight::T {
+    fn boldness(&self) -> font_weight::Weight {
         self.info.weight
     }
 

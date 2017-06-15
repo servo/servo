@@ -15,6 +15,7 @@ use gecko_bindings::structs::{self, nsCSSFontFaceRule, nsCSSValue};
 use gecko_bindings::structs::{nsCSSCounterDesc, nsCSSCounterStyleRule};
 use gecko_bindings::sugar::ns_css_value::ToNsCssValue;
 use gecko_bindings::sugar::refptr::{RefPtr, UniqueRefPtr};
+use properties::longhands::font_weight::SpecifiedValue as FontWeight;
 use shared_lock::{ToCssWithGuard, SharedRwLockReadGuard};
 use std::{fmt, str};
 use values::generics::FontSettings;
@@ -30,7 +31,17 @@ impl ToNsCssValue for FamilyName {
 
 impl ToNsCssValue for font_weight::T {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
-        nscssvalue.set_integer(self as i32)
+        match self.keyword {
+            FontWeight::Normal =>
+                nscssvalue.set_enum(structs::NS_STYLE_FONT_WEIGHT_NORMAL as i32),
+            FontWeight::Bold =>
+                nscssvalue.set_enum(structs::NS_STYLE_FONT_WEIGHT_BOLD as i32),
+            FontWeight::Bolder =>
+                nscssvalue.set_enum(structs::NS_STYLE_FONT_WEIGHT_BOLDER as i32),
+            FontWeight::Lighter =>
+                nscssvalue.set_enum(structs::NS_STYLE_FONT_WEIGHT_LIGHTER as i32),
+            _ => nscssvalue.set_integer(self.value as i32),
+        }
     }
 }
 

@@ -19,14 +19,14 @@ use style::computed_values::{font_stretch, font_weight};
 /// NB: If you change this, you will need to update `style::properties::compute_font_hash()`.
 #[derive(Clone, Copy, Eq, Hash, Deserialize, Serialize, Debug)]
 pub struct FontTemplateDescriptor {
-    pub weight: font_weight::T,
+    pub weight: font_weight::Weight,
     pub stretch: font_stretch::T,
     pub italic: bool,
 }
 
 impl FontTemplateDescriptor {
     #[inline]
-    pub fn new(weight: font_weight::T, stretch: font_stretch::T, italic: bool)
+    pub fn new(weight: font_weight::Weight, stretch: font_stretch::T, italic: bool)
                -> FontTemplateDescriptor {
         FontTemplateDescriptor {
             weight: weight,
