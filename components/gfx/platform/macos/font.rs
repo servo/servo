@@ -210,7 +210,7 @@ impl FontHandleMethods for FontHandle {
         self.ctfont.symbolic_traits().is_italic()
     }
 
-    fn boldness(&self) -> font_weight::T {
+    fn boldness(&self) -> font_weight::Weight {
         let normalized = self.ctfont.all_traits().normalized_weight();  // [-1.0, 1.0]
         let normalized = if normalized <= 0.0 {
             4.0 + normalized * 3.0  // [1.0, 4.0]
@@ -218,15 +218,15 @@ impl FontHandleMethods for FontHandle {
             4.0 + normalized * 5.0  // [4.0, 9.0]
         }; // [1.0, 9.0], centered on 4.0
         match normalized.round() as u32 {
-            1 => font_weight::T::Weight100,
-            2 => font_weight::T::Weight200,
-            3 => font_weight::T::Weight300,
-            4 => font_weight::T::Weight400,
-            5 => font_weight::T::Weight500,
-            6 => font_weight::T::Weight600,
-            7 => font_weight::T::Weight700,
-            8 => font_weight::T::Weight800,
-            _ => font_weight::T::Weight900,
+            1 => font_weight::Weight::Weight100,
+            2 => font_weight::Weight::Weight200,
+            3 => font_weight::Weight::Weight300,
+            4 => font_weight::Weight::Weight400,
+            5 => font_weight::Weight::Weight500,
+            6 => font_weight::Weight::Weight600,
+            7 => font_weight::Weight::Weight700,
+            8 => font_weight::Weight::Weight800,
+            _ => font_weight::Weight::Weight900,
         }
     }
 

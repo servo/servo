@@ -1777,7 +1777,7 @@ fn static_assert() {
     }
 
     pub fn set_font_weight(&mut self, v: longhands::font_weight::computed_value::T) {
-        self.gecko.mFont.weight = v as u16;
+        self.gecko.mFont.weight = v.value as u16;
     }
     ${impl_simple_copy('font_weight', 'mFont.weight')}
 
@@ -1785,7 +1785,8 @@ fn static_assert() {
         debug_assert!(self.gecko.mFont.weight >= 100);
         debug_assert!(self.gecko.mFont.weight <= 900);
         debug_assert!(self.gecko.mFont.weight % 10 == 0);
-        unsafe { transmute(self.gecko.mFont.weight) }
+        let value = unsafe { transmute(self.gecko.mFont.weight) };
+        longhands::font_weight::computed_value::T::from_gecko_weight(value)
     }
 
     ${impl_simple_type_with_conversion("font_synthesis", "mFont.synthesis")}

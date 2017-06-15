@@ -50,7 +50,7 @@ pub trait FontHandleMethods: Sized {
     fn family_name(&self) -> String;
     fn face_name(&self) -> Option<String>;
     fn is_italic(&self) -> bool;
-    fn boldness(&self) -> font_weight::T;
+    fn boldness(&self) -> font_weight::Weight;
     fn stretchiness(&self) -> font_stretch::T;
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId>;
