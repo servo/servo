@@ -253,7 +253,7 @@ impl Flow for TableFlow {
                         LengthOrPercentageOrAuto::Auto |
                         LengthOrPercentageOrAuto::Calc(_) |
                         LengthOrPercentageOrAuto::Length(_) => 0.0,
-                        LengthOrPercentageOrAuto::Percentage(percentage) => percentage,
+                        LengthOrPercentageOrAuto::Percentage(percentage) => percentage.0,
                     },
                     preferred: Au(0),
                     constrained: false,

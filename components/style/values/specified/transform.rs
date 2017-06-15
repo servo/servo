@@ -14,7 +14,7 @@ use values::computed::transform::TimingFunction as ComputedTimingFunction;
 use values::generics::transform::{StepPosition, TimingFunction as GenericTimingFunction};
 use values::generics::transform::{TimingKeyword, TransformOrigin as GenericTransformOrigin};
 use values::specified::{Integer, Number};
-use values::specified::length::{Length, LengthOrPercentage};
+use values::specified::length::{Length, LengthOrPercentage, Percentage};
 use values::specified::position::{Side, X, Y};
 
 /// The specified value of a CSS `<transform-origin>`
@@ -107,13 +107,13 @@ impl<S> ToComputedValue for OriginComponent<S>
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
             OriginComponent::Center => {
-                ComputedLengthOrPercentage::Percentage(0.5)
+                ComputedLengthOrPercentage::Percentage(Percentage(0.5))
             },
             OriginComponent::Length(ref length) => {
                 length.to_computed_value(context)
             },
             OriginComponent::Side(ref keyword) => {
-                let p = if keyword.is_start() { 0. } else { 1. };
+                let p = Percentage(if keyword.is_start() { 0. } else { 1. });
                 ComputedLengthOrPercentage::Percentage(p)
             },
         }

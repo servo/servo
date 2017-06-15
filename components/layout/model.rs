@@ -144,7 +144,7 @@ impl MarginCollapseInfo {
                         LengthOrPercentageOrAuto::Auto => true,
                         LengthOrPercentageOrAuto::Length(Au(v)) => v == 0,
                         LengthOrPercentageOrAuto::Percentage(v) => {
-                            v == 0. || containing_block_size.is_none()
+                            v.0 == 0. || containing_block_size.is_none()
                         }
                         LengthOrPercentageOrAuto::Calc(_) => false,
                     };
@@ -154,7 +154,7 @@ impl MarginCollapseInfo {
                         LengthOrPercentage::Length(Au(0)) => {
                             FinalMarginState::MarginsCollapseThrough
                         },
-                        LengthOrPercentage::Percentage(v) if v == 0. => {
+                        LengthOrPercentage::Percentage(v) if v.0 == 0. => {
                             FinalMarginState::MarginsCollapseThrough
                         },
                         _ => {
@@ -408,7 +408,7 @@ impl MaybeAuto {
         match length {
             LengthOrPercentageOrAuto::Auto => MaybeAuto::Auto,
             LengthOrPercentageOrAuto::Percentage(percent) => {
-                MaybeAuto::Specified(containing_length.scale_by(percent))
+                MaybeAuto::Specified(containing_length.scale_by(percent.0))
             }
             LengthOrPercentageOrAuto::Calc(calc) => {
                 MaybeAuto::from_option(calc.to_used_value(Some(containing_length)))

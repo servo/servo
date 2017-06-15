@@ -224,22 +224,22 @@ impl<S: Side> ToComputedValue for PositionComponent<S> {
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
             PositionComponent::Center => {
-                ComputedLengthOrPercentage::Percentage(0.5)
+                ComputedLengthOrPercentage::Percentage(Percentage(0.5))
             },
             PositionComponent::Side(ref keyword, None) => {
-                let p = if keyword.is_start() { 0. } else { 1. };
+                let p = Percentage(if keyword.is_start() { 0. } else { 1. });
                 ComputedLengthOrPercentage::Percentage(p)
             },
             PositionComponent::Side(ref keyword, Some(ref length)) if !keyword.is_start() => {
                 match length.to_computed_value(context) {
                     ComputedLengthOrPercentage::Length(length) => {
-                        ComputedLengthOrPercentage::Calc(CalcLengthOrPercentage::new(-length, Some(1.0)))
+                        ComputedLengthOrPercentage::Calc(CalcLengthOrPercentage::new(-length, Some(Percentage(1.0))))
                     },
                     ComputedLengthOrPercentage::Percentage(p) => {
-                        ComputedLengthOrPercentage::Percentage(1.0 - p)
+                        ComputedLengthOrPercentage::Percentage(Percentage(1.0 - p.0))
                     },
                     ComputedLengthOrPercentage::Calc(calc) => {
-                        let p = 1. - calc.percentage.unwrap_or(0.);
+                        let p = Percentage(1. - calc.percentage.map_or(0., |p| p.0));
                         ComputedLengthOrPercentage::Calc(CalcLengthOrPercentage::new(-calc.unclamped_length(), Some(p)))
                     },
                 }

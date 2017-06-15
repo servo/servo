@@ -65,6 +65,7 @@ use stylearc::Arc;
 use std::cmp;
 use values::{Auto, CustomIdent, Either, KeyframesName};
 use values::computed::{Shadow, ToComputedValue};
+use values::specified::length::Percentage;
 use computed_values::border_style;
 
 pub mod style_structs {
@@ -4045,7 +4046,7 @@ clip-path
                 CoordDataValue::Coord(coord) =>
                     vec.push(Either::Second(LengthOrPercentage::Length(Au(coord)))),
                 CoordDataValue::Percent(p) =>
-                    vec.push(Either::Second(LengthOrPercentage::Percentage(p))),
+                    vec.push(Either::Second(LengthOrPercentage::Percentage(Percentage(p)))),
                 CoordDataValue::Calc(calc) =>
                     vec.push(Either::Second(LengthOrPercentage::Calc(calc.into()))),
                 _ => unreachable!(),
@@ -4068,7 +4069,7 @@ clip-path
         match self.gecko.mStrokeDashoffset.as_value() {
             CoordDataValue::Factor(number) => Either::First(number),
             CoordDataValue::Coord(coord) => Either::Second(LengthOrPercentage::Length(Au(coord))),
-            CoordDataValue::Percent(p) => Either::Second(LengthOrPercentage::Percentage(p)),
+            CoordDataValue::Percent(p) => Either::Second(LengthOrPercentage::Percentage(Percentage(p))),
             CoordDataValue::Calc(calc) => Either::Second(LengthOrPercentage::Calc(calc.into())),
             _ => unreachable!(),
         }
@@ -4088,7 +4089,7 @@ clip-path
         match self.gecko.mStrokeWidth.as_value() {
             CoordDataValue::Factor(number) => Either::First(number),
             CoordDataValue::Coord(coord) => Either::Second(LengthOrPercentage::Length(Au(coord))),
-            CoordDataValue::Percent(p) => Either::Second(LengthOrPercentage::Percentage(p)),
+            CoordDataValue::Percent(p) => Either::Second(LengthOrPercentage::Percentage(Percentage(p))),
             CoordDataValue::Calc(calc) => Either::Second(LengthOrPercentage::Calc(calc.into())),
             _ => unreachable!(),
         }

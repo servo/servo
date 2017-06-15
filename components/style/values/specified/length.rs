@@ -701,7 +701,7 @@ impl<T: Parse> Either<Length, T> {
 /// As of today, only `-moz-image-rect` supports percentages without length.
 /// This is not a regression, and that's a non-standard extension anyway, so I'm
 /// not implementing it for now.
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Percentage(pub CSSFloat);
 

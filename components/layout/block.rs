@@ -322,7 +322,7 @@ impl CandidateBSizeIterator {
 
         let block_size = match (fragment.style.content_block_size(), block_container_block_size) {
             (LengthOrPercentageOrAuto::Percentage(percent), Some(block_container_block_size)) => {
-                MaybeAuto::Specified(block_container_block_size.scale_by(percent))
+                MaybeAuto::Specified(block_container_block_size.scale_by(percent.0))
             }
             (LengthOrPercentageOrAuto::Calc(calc), _) => {
                 MaybeAuto::from_option(calc.to_used_value(block_container_block_size))
@@ -333,7 +333,7 @@ impl CandidateBSizeIterator {
         };
         let max_block_size = match (fragment.style.max_block_size(), block_container_block_size) {
             (LengthOrPercentageOrNone::Percentage(percent), Some(block_container_block_size)) => {
-                Some(block_container_block_size.scale_by(percent))
+                Some(block_container_block_size.scale_by(percent.0))
             }
             (LengthOrPercentageOrNone::Calc(calc), _) => {
                 calc.to_used_value(block_container_block_size)
@@ -344,7 +344,7 @@ impl CandidateBSizeIterator {
         };
         let min_block_size = match (fragment.style.min_block_size(), block_container_block_size) {
             (LengthOrPercentage::Percentage(percent), Some(block_container_block_size)) => {
-                block_container_block_size.scale_by(percent)
+                block_container_block_size.scale_by(percent.0)
             }
             (LengthOrPercentage::Calc(calc), _) => {
                 calc.to_used_value(block_container_block_size).unwrap_or(Au(0))
@@ -1178,7 +1178,7 @@ impl BlockFlow {
             }
             (LengthOrPercentageOrAuto::Length(length), _) => Some(length),
             (LengthOrPercentageOrAuto::Percentage(percent), Some(container_size)) => {
-                Some(container_size.scale_by(percent))
+                Some(container_size.scale_by(percent.0))
             }
             (LengthOrPercentageOrAuto::Percentage(_), None) |
             (LengthOrPercentageOrAuto::Auto, None) => {

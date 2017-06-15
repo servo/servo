@@ -41,6 +41,7 @@ use values::computed::{LengthOrPercentage, MaxLength, MozLength, Shadow, ToCompu
 use values::generics::{SVGPaint, SVGPaintKind};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::position as generic_position;
+use values::specified::length::Percentage;
 
 
 /// A longhand property whose animation type is not "none".
@@ -941,6 +942,22 @@ impl Animatable for Angle {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-percentage
+impl Animatable for Percentage {
+    #[inline]
+    fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
+        Ok(Percentage((self.0 as f64 * self_portion + other.0 as f64 * other_portion) as f32))
+    }
+
+    #[inline]
+    fn get_zero_value(&self) -> Option<Self> { Some(Percentage(0.)) }
+
+    #[inline]
+    fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
+        Ok((self.0 as f64 - other.0 as f64).abs())
+    }
+}
+
 /// https://drafts.csswg.org/css-transitions/#animtype-visibility
 impl Animatable for Visibility {
     #[inline]
@@ -1150,7 +1167,7 @@ impl Animatable for LengthOrPercentage {
             },
             (LengthOrPercentage::Percentage(ref this),
              LengthOrPercentage::Percentage(ref other)) => {
-                let diff = (this - other) as f64;
+                let diff = this.0 as f64 - other.0 as f64;
                 Ok(diff * diff)
             },
             (this, other) => {
@@ -1235,7 +1252,7 @@ impl Animatable for LengthOrPercentageOrAuto {
             },
             (LengthOrPercentageOrAuto::Percentage(ref this),
              LengthOrPercentageOrAuto::Percentage(ref other)) => {
-                let diff = (this - other) as f64;
+                let diff = this.0 as f64 - other.0 as f64;
                 Ok(diff * diff)
             },
             (this, other) => {

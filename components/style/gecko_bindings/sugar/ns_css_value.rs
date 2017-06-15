@@ -15,6 +15,7 @@ use std::mem;
 use std::ops::{Index, IndexMut};
 use std::slice;
 use values::computed::{Angle, LengthOrPercentage};
+use values::specified::length::Percentage;
 use values::specified::url::SpecifiedUrl;
 
 impl nsCSSValue {
@@ -79,7 +80,7 @@ impl nsCSSValue {
                 bindings::Gecko_CSSValue_SetAbsoluteLength(self, au.0)
             }
             LengthOrPercentage::Percentage(pc) => {
-                bindings::Gecko_CSSValue_SetPercentage(self, pc)
+                bindings::Gecko_CSSValue_SetPercentage(self, pc.0)
             }
             LengthOrPercentage::Calc(calc) => {
                 bindings::Gecko_CSSValue_SetCalc(self, calc.into())
@@ -94,7 +95,7 @@ impl nsCSSValue {
                 LengthOrPercentage::Length(Au(bindings::Gecko_CSSValue_GetAbsoluteLength(self)))
             },
             nsCSSUnit::eCSSUnit_Percent => {
-                LengthOrPercentage::Percentage(bindings::Gecko_CSSValue_GetPercentage(self))
+                LengthOrPercentage::Percentage(Percentage(bindings::Gecko_CSSValue_GetPercentage(self)))
             },
             nsCSSUnit::eCSSUnit_Calc => {
                 LengthOrPercentage::Calc(bindings::Gecko_CSSValue_GetCalc(self).into())
