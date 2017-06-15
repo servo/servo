@@ -1866,9 +1866,9 @@ ${helpers.single_keyword("-moz-orient",
 
 <%helpers:longhand name="will-change" products="gecko" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-will-change/#will-change">
-    use cssparser::serialize_identifier;
     use std::fmt;
     use style_traits::ToCss;
+    use values::CustomIdent;
     use values::computed::ComputedValueAsSpecified;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -1882,7 +1882,7 @@ ${helpers.single_keyword("-moz-orient",
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Auto,
-        AnimateableFeatures(Vec<Atom>),
+        AnimateableFeatures(Vec<CustomIdent>),
     }
 
     impl ToCss for SpecifiedValue {
@@ -1891,12 +1891,10 @@ ${helpers.single_keyword("-moz-orient",
                 SpecifiedValue::Auto => dest.write_str("auto"),
                 SpecifiedValue::AnimateableFeatures(ref features) => {
                     let (first, rest) = features.split_first().unwrap();
-                    // handle head element
-                    serialize_identifier(&*first.to_string(), dest)?;
-                    // handle tail, precede each with a delimiter
+                    first.to_css(dest)?;
                     for feature in rest {
                         dest.write_str(", ")?;
-                        serialize_identifier(&*feature.to_string(), dest)?;
+                        feature.to_css(dest)?;
                     }
                     Ok(())
                 }
@@ -1916,17 +1914,12 @@ ${helpers.single_keyword("-moz-orient",
             Ok(computed_value::T::Auto)
         } else {
             input.parse_comma_separated(|i| {
-                let ident = i.expect_ident()?;
-                let bad_keyword = match_ignore_ascii_case! { &ident,
-                    "will-change" | "none" | "all" | "auto" |
-                    "initial" | "inherit" | "unset" | "default" => true,
-                    _ => false,
-                };
-                if bad_keyword {
-                    Err(SelectorParseError::UnexpectedIdent(ident.into()).into())
-                } else {
-                    Ok(Atom::from(ident))
-                }
+                CustomIdent::from_ident(i.expect_ident()?, &[
+                    "will-change",
+                    "none",
+                    "all",
+                    "auto",
+                ])
             }).map(SpecifiedValue::AnimateableFeatures)
         }
     }
