@@ -7,6 +7,7 @@ use servo_atoms::Atom;
 use style::properties::animated_properties::TransitionProperty;
 use style::properties::longhands::transition_property;
 use style::properties::shorthands::transition;
+use style::values::CustomIdent;
 use style_traits::ToCss;
 
 #[test]
@@ -19,12 +20,15 @@ fn test_longhand_properties() {
     assert_roundtrip_with_context!(transition_property::parse, "-other-unsupported-property");
     assert_roundtrip_with_context!(transition_property::parse, "--var");
 
-    assert_eq!(parse_longhand!(transition_property, "margin-left, transition-delay, width, --var"),
-               transition_property::SpecifiedValue(
-                   vec![TransitionProperty::MarginLeft,
-                        TransitionProperty::Unsupported(Atom::from("transition-delay")),
-                        TransitionProperty::Width,
-                        TransitionProperty::Unsupported(Atom::from("--var"))]));
+    assert_eq!(
+        parse_longhand!(transition_property, "margin-left, transition-delay, width, --var"),
+        transition_property::SpecifiedValue(vec![
+            TransitionProperty::MarginLeft,
+            TransitionProperty::Unsupported(CustomIdent(Atom::from("transition-delay"))),
+            TransitionProperty::Width,
+            TransitionProperty::Unsupported(CustomIdent(Atom::from("--var"))),
+        ])
+    );
 
     assert!(parse(transition_property::parse, ".width").is_err());
     assert!(parse(transition_property::parse, "1width").is_err());
