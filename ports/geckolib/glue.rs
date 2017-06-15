@@ -380,18 +380,6 @@ pub extern "C" fn Servo_AnimationValues_ComputeDistance(from: RawServoAnimationV
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_AnimationValueMap_Push(value_map: RawServoAnimationValueMapBorrowedMut,
-                                               property: nsCSSPropertyID,
-                                               value: RawServoAnimationValueBorrowed)
-{
-    use style::properties::animated_properties::AnimationValueMap;
-
-    let value_map = AnimationValueMap::from_ffi_mut(value_map);
-    let value = AnimationValue::as_arc(&value).as_ref();
-    value_map.insert(property.into(), value.clone());
-}
-
-#[no_mangle]
 pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMapBorrowedMut,
                                          base_values: *mut ::std::os::raw::c_void,
                                          css_property: nsCSSPropertyID,
