@@ -46,8 +46,8 @@ use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::position as generic_position;
 
 
-/// A given transition property, that is either `All`, or an animatable
-/// property.
+/// A given transition property, that is either `All`, an animatable longhand property,
+/// a shorthand with at least one animatable longhand component, or an unsupported property.
 // NB: This needs to be here because it needs all the longhands generated
 // beforehand.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -55,17 +55,11 @@ use values::generics::position as generic_position;
 pub enum TransitionProperty {
     /// All, any animatable property changing should generate a transition.
     All,
-    % for prop in data.longhands:
+    % for prop in data.longhands + data.shorthands_except_all():
         % if prop.animatable:
             /// ${prop.name}
             ${prop.camel_case},
         % endif
-    % endfor
-    // Shorthand properties may or may not contain any animatable property. Either should still be
-    // parsed properly.
-    % for prop in data.shorthands_except_all():
-        /// ${prop.name}
-        ${prop.camel_case},
     % endfor
     /// Unrecognized property which could be any non-animatable, custom property, or
     /// unknown property.
@@ -104,13 +98,10 @@ impl TransitionProperty {
         let ident = try!(input.expect_ident());
         (match_ignore_ascii_case! { &ident,
             "all" => Ok(TransitionProperty::All),
-            % for prop in data.longhands:
+            % for prop in data.longhands + data.shorthands_except_all():
                 % if prop.animatable:
                     "${prop.name}" => Ok(TransitionProperty::${prop.camel_case}),
                 % endif
-            % endfor
-            % for prop in data.shorthands_except_all():
-                "${prop.name}" => Ok(TransitionProperty::${prop.camel_case}),
             % endfor
             "none" => Err(()),
             _ => {
@@ -164,17 +155,21 @@ impl TransitionProperty {
     /// Return animatable longhands of this shorthand TransitionProperty, except for "all".
     pub fn longhands(&self) -> &'static [TransitionProperty] {
         % for prop in data.shorthands_except_all():
-            static ${prop.ident.upper()}: &'static [TransitionProperty] = &[
-                % for sub in prop.sub_properties:
-                    % if sub.animatable:
-                        TransitionProperty::${sub.camel_case},
-                    % endif
-                % endfor
-            ];
+            % if prop.animatable:
+                static ${prop.ident.upper()}: &'static [TransitionProperty] = &[
+                    % for sub in prop.sub_properties:
+                        % if sub.animatable:
+                            TransitionProperty::${sub.camel_case},
+                        % endif
+                    % endfor
+                ];
+            % endif
         % endfor
         match *self {
             % for prop in data.shorthands_except_all():
-                TransitionProperty::${prop.camel_case} => ${prop.ident.upper()},
+                % if prop.animatable:
+                    TransitionProperty::${prop.camel_case} => ${prop.ident.upper()},
+                % endif
             % endfor
             _ => panic!("Not allowed to call longhands() for this TransitionProperty")
         }
@@ -184,7 +179,9 @@ impl TransitionProperty {
     pub fn is_shorthand(&self) -> bool {
         match *self {
             % for prop in data.shorthands_except_all():
-                TransitionProperty::${prop.camel_case} => true,
+                % if prop.animatable:
+                    TransitionProperty::${prop.camel_case} => true,
+                % endif
             % endfor
             _ => false
         }
@@ -210,13 +207,10 @@ impl ToCss for TransitionProperty {
     {
         match *self {
             TransitionProperty::All => dest.write_str("all"),
-            % for prop in data.longhands:
+            % for prop in data.longhands + data.shorthands_except_all():
                 % if prop.animatable:
                     TransitionProperty::${prop.camel_case} => dest.write_str("${prop.name}"),
                 % endif
-            % endfor
-            % for prop in data.shorthands_except_all():
-                TransitionProperty::${prop.camel_case} => dest.write_str("${prop.name}"),
             % endfor
             #[cfg(feature = "gecko")]
             TransitionProperty::Unsupported(ref atom) => serialize_identifier(&atom.to_string(),
@@ -233,15 +227,11 @@ impl ToCss for TransitionProperty {
 impl<'a> From< &'a TransitionProperty> for nsCSSPropertyID {
     fn from(transition_property: &'a TransitionProperty) -> nsCSSPropertyID {
         match *transition_property {
-            % for prop in data.longhands:
+            % for prop in data.longhands + data.shorthands_except_all():
                 % if prop.animatable:
                     TransitionProperty::${prop.camel_case}
                         => ${helpers.to_nscsspropertyid(prop.ident)},
                 % endif
-            % endfor
-            % for prop in data.shorthands_except_all():
-                TransitionProperty::${prop.camel_case}
-                    => ${helpers.to_nscsspropertyid(prop.ident)},
             % endfor
             TransitionProperty::All => nsCSSPropertyID::eCSSPropertyExtra_all_properties,
             _ => panic!("Unconvertable Servo transition property: {:?}", transition_property),
@@ -255,7 +245,7 @@ impl<'a> From< &'a TransitionProperty> for nsCSSPropertyID {
 impl From<nsCSSPropertyID> for TransitionProperty {
     fn from(property: nsCSSPropertyID) -> TransitionProperty {
         match property {
-            % for prop in data.longhands:
+            % for prop in data.longhands + data.shorthands_except_all():
                 % if prop.animatable:
                     ${helpers.to_nscsspropertyid(prop.ident)}
                         => TransitionProperty::${prop.camel_case},
@@ -263,10 +253,6 @@ impl From<nsCSSPropertyID> for TransitionProperty {
                     ${helpers.to_nscsspropertyid(prop.ident)}
                         => TransitionProperty::Unsupported(Atom::from("${prop.ident}")),
                 % endif
-            % endfor
-            % for prop in data.shorthands_except_all():
-                ${helpers.to_nscsspropertyid(prop.ident)}
-                    => TransitionProperty::${prop.camel_case},
             % endfor
             nsCSSPropertyID::eCSSPropertyExtra_all_properties => TransitionProperty::All,
             _ => panic!("Unconvertable nsCSSPropertyID: {:?}", property),
