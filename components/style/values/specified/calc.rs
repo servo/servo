@@ -15,7 +15,8 @@ use style_traits::{HasViewportPercentage, ToCss, ParseError, StyleParseError};
 use style_traits::values::specified::AllowedLengthType;
 use values::{CSSInteger, CSSFloat};
 use values::specified::{Angle, Time};
-use values::specified::length::{FontRelativeLength, NoCalcLength, ViewportPercentageLength};
+use values::specified::length::{FontRelativeLength, NoCalcLength};
+use values::specified::length::{Percentage, ViewportPercentageLength};
 
 /// A node inside a `Calc` expression's AST.
 #[derive(Clone, Debug)]
@@ -74,7 +75,7 @@ pub struct CalcLengthOrPercentage {
     pub ex: Option<CSSFloat>,
     pub ch: Option<CSSFloat>,
     pub rem: Option<CSSFloat>,
-    pub percentage: Option<CSSFloat>,
+    pub percentage: Option<Percentage>,
     #[cfg(feature = "gecko")]
     pub mozmm: Option<CSSFloat>,
 }
@@ -128,7 +129,7 @@ impl ToCss for CalcLengthOrPercentage {
 
         if let Some(val) = self.percentage {
             first_value_check!();
-            try!(write!(dest, "{}%", val * 100.));
+            val.to_css(dest)?;
         }
 
         write!(dest, ")")
@@ -298,7 +299,9 @@ impl CalcNode {
     {
         match *self {
             CalcNode::Percentage(pct) => {
-                ret.percentage = Some(ret.percentage.unwrap_or(0.) + pct * factor)
+                ret.percentage = Some(Percentage(
+                    ret.percentage.map_or(0., |p| p.0) + pct * factor,
+                ));
             }
             CalcNode::Length(ref l) => {
                 match *l {

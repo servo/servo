@@ -19,13 +19,14 @@ use stylesheets::{Origin, RulesMutateError};
 use values::computed::{Angle, CalcLengthOrPercentage, Gradient, Image};
 use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use values::generics::image::{CompatMode, Image as GenericImage, GradientItem};
+use values::specified::length::Percentage;
 
 impl From<CalcLengthOrPercentage> for nsStyleCoord_CalcValue {
     fn from(other: CalcLengthOrPercentage) -> nsStyleCoord_CalcValue {
         let has_percentage = other.percentage.is_some();
         nsStyleCoord_CalcValue {
             mLength: other.unclamped_length().0,
-            mPercent: other.percentage.unwrap_or(0.0),
+            mPercent: other.percentage.map_or(0., |p| p.0),
             mHasPercent: has_percentage,
         }
     }
@@ -34,7 +35,7 @@ impl From<CalcLengthOrPercentage> for nsStyleCoord_CalcValue {
 impl From<nsStyleCoord_CalcValue> for CalcLengthOrPercentage {
     fn from(other: nsStyleCoord_CalcValue) -> CalcLengthOrPercentage {
         let percentage = if other.mHasPercent {
-            Some(other.mPercent)
+            Some(Percentage(other.mPercent))
         } else {
             None
         };
@@ -55,7 +56,7 @@ impl From<LengthOrPercentage> for nsStyleCoord_CalcValue {
             LengthOrPercentage::Percentage(pc) => {
                 nsStyleCoord_CalcValue {
                     mLength: 0,
-                    mPercent: pc,
+                    mPercent: pc.0,
                     mHasPercent: true,
                 }
             },
@@ -78,7 +79,7 @@ impl LengthOrPercentageOrAuto {
             LengthOrPercentageOrAuto::Percentage(pc) => {
                 Some(nsStyleCoord_CalcValue {
                     mLength: 0,
-                    mPercent: pc,
+                    mPercent: pc.0,
                     mHasPercent: true,
                 })
             },
@@ -92,7 +93,7 @@ impl From<nsStyleCoord_CalcValue> for LengthOrPercentage {
     fn from(other: nsStyleCoord_CalcValue) -> LengthOrPercentage {
         match (other.mHasPercent, other.mLength) {
             (false, _) => LengthOrPercentage::Length(Au(other.mLength)),
-            (true, 0) => LengthOrPercentage::Percentage(other.mPercent),
+            (true, 0) => LengthOrPercentage::Percentage(Percentage(other.mPercent)),
             _ => LengthOrPercentage::Calc(other.into()),
         }
     }

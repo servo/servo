@@ -505,7 +505,7 @@ impl SpeculatedFloatPlacement {
                 // might flow around this float.
                 if let LengthOrPercentageOrAuto::Percentage(percentage) =
                         flow.as_block().fragment.style.content_inline_size() {
-                    if percentage > 0.0 {
+                    if percentage.0 > 0.0 {
                         float_inline_size = Au::from_px(1)
                     }
                 }

@@ -2234,7 +2234,7 @@ impl Fragment {
                 }
                 vertical_align::T::LengthOrPercentage(LengthOrPercentage::Percentage(
                         percentage)) => {
-                    offset -= minimum_line_metrics.space_needed().scale_by(percentage)
+                    offset -= minimum_line_metrics.space_needed().scale_by(percentage.0)
                 }
                 vertical_align::T::LengthOrPercentage(LengthOrPercentage::Calc(formula)) => {
                     offset -= formula.to_used_value(Some(minimum_line_metrics.space_needed())).unwrap()

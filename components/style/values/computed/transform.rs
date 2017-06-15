@@ -8,6 +8,7 @@ use properties::animated_properties::Animatable;
 use values::computed::{Length, LengthOrPercentage, Number};
 use values::generics::transform::TimingFunction as GenericTimingFunction;
 use values::generics::transform::TransformOrigin as GenericTransformOrigin;
+use values::specified::length::Percentage;
 
 /// The computed value of a CSS `<transform-origin>`
 pub type TransformOrigin = GenericTransformOrigin<LengthOrPercentage, LengthOrPercentage, Length>;
@@ -20,9 +21,9 @@ impl TransformOrigin {
     #[inline]
     pub fn initial_value() -> Self {
         Self::new(
-            LengthOrPercentage::Percentage(0.5),
-            LengthOrPercentage::Percentage(0.5),
-            Length::from_px(0)
+            LengthOrPercentage::Percentage(Percentage(0.5)),
+            LengthOrPercentage::Percentage(Percentage(0.5)),
+            Length::from_px(0),
         )
     }
 }

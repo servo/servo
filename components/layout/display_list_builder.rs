@@ -65,6 +65,7 @@ use style::values::generics::image::{Circle, Ellipse, EndingShape as GenericEndi
 use style::values::generics::image::{GradientItem as GenericGradientItem, GradientKind};
 use style::values::generics::image::{Image, ShapeExtent};
 use style::values::generics::image::PaintWorklet;
+use style::values::specified::length::Percentage;
 use style::values::specified::position::{X, Y};
 use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
@@ -653,14 +654,14 @@ fn convert_gradient_stops(gradient_items: &[GradientItem],
     {
         let first = stop_items.first_mut().unwrap();
         if first.position.is_none() {
-            first.position = Some(LengthOrPercentage::Percentage(0.0));
+            first.position = Some(LengthOrPercentage::Percentage(Percentage(0.0)));
         }
     }
     // If the last color stop does not have a position, set its position to 100%.
     {
         let last = stop_items.last_mut().unwrap();
         if last.position.is_none() {
-            last.position = Some(LengthOrPercentage::Percentage(1.0));
+            last.position = Some(LengthOrPercentage::Percentage(Percentage(1.0)));
         }
     }
 
@@ -2871,7 +2872,7 @@ struct StopRun {
 fn position_to_offset(position: LengthOrPercentage, total_length: Au) -> f32 {
     match position {
         LengthOrPercentage::Length(Au(length)) => length as f32 / total_length.0 as f32,
-        LengthOrPercentage::Percentage(percentage) => percentage as f32,
+        LengthOrPercentage::Percentage(percentage) => percentage.0 as f32,
         LengthOrPercentage::Calc(calc) => {
             calc.to_used_value(Some(total_length)).unwrap().0 as f32 / total_length.0 as f32
         },
