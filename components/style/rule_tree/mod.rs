@@ -1196,7 +1196,7 @@ impl StrongRuleNode {
         match *self.style_source() {
             StyleSource::Declarations(ref block) => block,
             StyleSource::Style(_) => unreachable!("animating style should not be a style rule"),
-            StyleSource::None => unreachable!(""),
+            StyleSource::None => unreachable!("animating style should not be none"),
         }
     }
 
