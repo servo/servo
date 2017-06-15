@@ -1650,6 +1650,13 @@ impl ScriptThread {
             let load = self.incomplete_loads.borrow_mut().remove(idx);
             load.layout_chan.clone()
         } else if let Some(document) = self.documents.borrow_mut().remove(id) {
+            // We don't want to dispatch `mouseout` event pointing to non-existing element
+            if let Some(target) = self.topmost_mouse_over_target.get() {
+                if target.upcast::<Node>().owner_doc() == document {
+                    self.topmost_mouse_over_target.set(None);
+                }
+            }
+
             let window = document.window();
             if discard_bc == DiscardBrowsingContext::Yes {
                 window.window_proxy().discard_browsing_context();
