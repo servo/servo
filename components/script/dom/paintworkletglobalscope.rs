@@ -63,7 +63,7 @@ pub struct PaintWorkletGlobalScope {
     /// https://drafts.css-houdini.org/css-paint-api/#paint-definitions
     paint_definitions: DOMRefCell<HashMap<Atom, PaintDefinition>>,
     /// https://drafts.css-houdini.org/css-paint-api/#paint-class-instances
-    paint_class_instances: DOMRefCell<HashMap<Atom, Heap<JSVal>>>,
+    paint_class_instances: DOMRefCell<HashMap<Atom, Box<Heap<JSVal>>>>,
 }
 
 impl PaintWorkletGlobalScope {
@@ -152,7 +152,11 @@ impl PaintWorkletGlobalScope {
                     return self.send_invalid_image(size, sender);
                 }
                 // Step 5.4
-                entry.insert(Heap::new(paint_instance.get()));
+                // To make sure the heap doesn't move after it is set, we box it.
+                // https://github.com/servo/rust-mozjs/issues/343
+                let boxed = Box::new(Heap::default());
+                boxed.set(paint_instance.get());
+                entry.insert(boxed);
             }
         };
 
