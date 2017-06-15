@@ -356,7 +356,10 @@ fn get_animated_properties(keyframes: &[Arc<Locked<Keyframe>>], guard: &SharedRw
             assert!(!importance.important());
 
             if let Some(property) = AnimatableLonghand::from_declaration(declaration) {
-                if !seen.has_animatable_longhand_bit(&property) {
+                // Skip the 'display' property because although it is animatable from SMIL,
+                // it should not be animatable from CSS Animations or Web Animations.
+                if property != AnimatableLonghand::Display &&
+                   !seen.has_animatable_longhand_bit(&property) {
                     seen.set_animatable_longhand_bit(&property);
                     ret.push(property);
                 }

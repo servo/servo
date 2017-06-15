@@ -2938,7 +2938,10 @@ pub extern "C" fn Servo_StyleSet_GetKeyframesForName(raw_data: RawServoStyleSetB
                 let mut index = unsafe { (*keyframe).mPropertyValues.len() };
                 for &(ref declaration, _) in animatable {
                     let property = AnimatableLonghand::from_declaration(declaration).unwrap();
-                    if !properties_set_at_current_offset.has_animatable_longhand_bit(&property) {
+                    // Skip the 'display' property because although it is animatable from SMIL,
+                    // it should not be animatable from CSS Animations.
+                    if property != AnimatableLonghand::Display &&
+                        !properties_set_at_current_offset.has_animatable_longhand_bit(&property) {
                         properties_set_at_current_offset.set_animatable_longhand_bit(&property);
                         if current_offset == 0.0 {
                             properties_set_at_start.set_animatable_longhand_bit(&property);
