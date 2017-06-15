@@ -8,6 +8,7 @@
 use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use dom::bindings::js::{RootCollection, RootCollectionPtr, trace_roots};
 use dom::bindings::refcounted::{LiveDOMReferences, trace_refcounted_objects};
+use dom::bindings::reflector::DomObject;
 use dom::bindings::settings_stack;
 use dom::bindings::trace::{JSTraceable, trace_traceables};
 use dom::bindings::utils::DOM_CALLBACKS;
@@ -130,6 +131,14 @@ unsafe extern "C" fn enqueue_job(cx: *mut jsapi::JSContext,
     }), false)
 }
 
+extern "C" fn get_incumbent_global(_cx: *mut jsapi::JSContext) -> *mut jsapi::JSObject {
+    if let Some(g) = settings_stack::incumbent_global() {
+        return g.reflector().get_jsobject().get();
+    }
+
+    ptr::null_mut()
+}
+
 #[allow(unsafe_code)]
 pub unsafe fn new_rt_and_cx() -> Runtime {
     LiveDOMReferences::initialize();
@@ -154,6 +163,7 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
     jsapi::JS::DisableIncrementalGC(runtime.cx());
 
     jsapi::JS::SetEnqueuePromiseJobCallback(runtime.cx(), Some(enqueue_job), ptr::null_mut());
+    jsapi::JS::SetGetIncumbentGlobalCallback(runtime.cx(), Some(get_incumbent_global));
 
     set_gc_zeal_options(runtime.rt());
 
