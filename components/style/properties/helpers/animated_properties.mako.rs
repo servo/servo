@@ -46,6 +46,20 @@ use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
 use values::generics::position as generic_position;
 
 
+/// A longhand property whose animation type is not "none".
+///
+/// NOTE: This includes the 'display' property since it is animatable from SMIL even though it is
+/// not animatable from CSS animations or Web Animations. CSS transitions also does not allow
+/// animating 'display', but for CSS transitions we have the separate TransitionProperty type.
+pub enum AnimatableLonghand {
+    % for prop in data.longhands:
+        % if prop.animatable:
+            /// ${prop.name}
+            ${prop.camel_case},
+        % endif
+    % endfor
+}
+
 /// A given transition property, that is either `All`, an animatable longhand property,
 /// a shorthand with at least one animatable longhand component, or an unsupported property.
 // NB: This needs to be here because it needs all the longhands generated
