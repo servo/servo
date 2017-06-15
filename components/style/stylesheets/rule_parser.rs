@@ -509,6 +509,7 @@ impl<'a, 'b, 'i> QualifiedRuleParser<'i> for NestedRuleParser<'a, 'b> {
             selectors: prelude,
             block: Arc::new(self.shared_lock.wrap(declarations)),
             source_location: location,
+            gecko_rule: Default::default(),
         }))))
     }
 }

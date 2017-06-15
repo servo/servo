@@ -9338,6 +9338,11 @@ pub mod root {
             }
         }
         #[repr(C)]
+        #[derive(Debug, Copy, Clone)]
+        pub struct ServoStyleRule {
+            _unused: [u8; 0],
+        }
+        #[repr(C)]
         #[derive(Debug)]
         pub struct AnimationPropertySegment {
             pub mFromKey: f32,
@@ -32875,11 +32880,6 @@ pub mod root {
     }
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
-    pub struct RawServoStyleRule {
-        _unused: [u8; 0],
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
     pub struct RawServoAnimationValue {
         _unused: [u8; 0],
     }
@@ -32914,7 +32914,7 @@ pub mod root {
         root::mozilla::AnimationPropertySegment;
     pub type RawGeckoComputedTiming = root::mozilla::ComputedTiming;
     pub type RawGeckoServoStyleRuleList =
-        root::nsTArray<*const root::RawServoStyleRule>;
+        root::nsTArray<*const root::mozilla::ServoStyleRule>;
     pub type RawGeckoCSSPropertyIDList =
         root::nsTArray<root::nsCSSPropertyID>;
     pub type RawGeckoGfxMatrix4x4 = [root::mozilla::gfx::Float; 16usize];

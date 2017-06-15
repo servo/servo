@@ -40,6 +40,7 @@ fn get_mock_rules(css_selectors: &[&str]) -> (Vec<Vec<Rule>>, SharedRwLock) {
                 line: 0,
                 column: 0,
             },
+            gecko_rule: Default::default(),
         }));
 
         let guard = shared_lock.read();

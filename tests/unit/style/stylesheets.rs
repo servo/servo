@@ -118,6 +118,7 @@ fn test_parse_stylesheet() {
                     line: 3,
                     column: 31,
                 },
+                gecko_rule: Default::default(),
             }))),
             CssRule::Style(Arc::new(stylesheet.shared_lock.wrap(StyleRule {
                 selectors: SelectorList::from_vec(vec!(
@@ -145,6 +146,7 @@ fn test_parse_stylesheet() {
                     line: 11,
                     column: 27,
                 },
+                gecko_rule: Default::default(),
             }))),
             CssRule::Style(Arc::new(stylesheet.shared_lock.wrap(StyleRule {
                 selectors: SelectorList::from_vec(vec!(
@@ -207,6 +209,7 @@ fn test_parse_stylesheet() {
                     line: 15,
                     column: 20,
                 },
+                gecko_rule: Default::default(),
             }))),
             CssRule::Keyframes(Arc::new(stylesheet.shared_lock.wrap(KeyframesRule {
                 name: KeyframesName::Ident(CustomIdent("foo".into())),

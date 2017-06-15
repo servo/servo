@@ -5,6 +5,8 @@
 //! A style rule.
 
 use cssparser::SourceLocation;
+#[cfg(feature = "gecko")]
+use gecko_bindings::structs::ServoStyleRule;
 use properties::PropertyDeclarationBlock;
 use selector_parser::SelectorImpl;
 use selectors::SelectorList;
@@ -13,6 +15,28 @@ use std::fmt;
 use style_traits::ToCss;
 use stylearc::Arc;
 use stylesheets::{MallocSizeOf, MallocSizeOfFn, MallocSizeOfWithGuard};
+
+#[cfg(feature = "gecko")]
+#[derive(Debug)]
+pub struct GeckoStyleRule(pub *const ServoStyleRule);
+
+// Pointers don't implement these traits automatically, but StyleRule is
+// required to have them. Don't try to dereference the pointer in Rust.
+#[cfg(feature = "gecko")]
+unsafe impl Send for GeckoStyleRule {}
+#[cfg(feature = "gecko")]
+unsafe impl Sync for GeckoStyleRule {}
+
+#[cfg(feature = "gecko")]
+impl Default for GeckoStyleRule {
+    fn default() -> Self {
+        GeckoStyleRule(::std::ptr::null())
+    }
+}
+
+#[cfg(not(feature = "gecko"))]
+#[derive(Debug, Default)]
+pub struct GeckoStyleRule;
 
 /// A style rule, with selectors and declarations.
 #[derive(Debug)]
@@ -23,6 +47,10 @@ pub struct StyleRule {
     pub block: Arc<Locked<PropertyDeclarationBlock>>,
     /// The location in the sheet where it was found.
     pub source_location: SourceLocation,
+    /// The reverse pointer to Gecko's wrapper rule object of this rule.
+    /// It may be null if the corresponding wrapper object hasn't been
+    /// constructed in the Gecko side.
+    pub gecko_rule: GeckoStyleRule,
 }
 
 impl DeepCloneWithLock for StyleRule {
@@ -36,6 +64,7 @@ impl DeepCloneWithLock for StyleRule {
             selectors: self.selectors.clone(),
             block: Arc::new(lock.wrap(self.block.read_with(guard).clone())),
             source_location: self.source_location.clone(),
+            gecko_rule: Default::default(),
         }
     }
 }

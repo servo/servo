@@ -37,6 +37,7 @@ use style::gecko_bindings::bindings::{RawServoMediaList, RawServoMediaListBorrow
 use style::gecko_bindings::bindings::{RawServoMediaRule, RawServoMediaRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoNamespaceRule, RawServoNamespaceRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoPageRule, RawServoPageRuleBorrowed};
+use style::gecko_bindings::bindings::{RawServoStyleRule, RawServoStyleRuleBorrowed};
 use style::gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSetOwned};
 use style::gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedValuesBorrowed};
 use style::gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedValuesStrong};
@@ -59,7 +60,6 @@ use style::gecko_bindings::bindings::RawGeckoServoStyleRuleListBorrowedMut;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueMapBorrowedMut;
 use style::gecko_bindings::bindings::RawServoAnimationValueStrong;
-use style::gecko_bindings::bindings::RawServoStyleRuleBorrowed;
 use style::gecko_bindings::bindings::RawServoStyleSheet;
 use style::gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
@@ -68,7 +68,7 @@ use style::gecko_bindings::bindings::nsTimingFunctionBorrowedMut;
 use style::gecko_bindings::structs;
 use style::gecko_bindings::structs::{CSSPseudoElementType, CompositeOperation};
 use style::gecko_bindings::structs::{Loader, LoaderReusableStyleSheets};
-use style::gecko_bindings::structs::{RawServoStyleRule, ServoStyleSheet};
+use style::gecko_bindings::structs::{ServoStyleRule, ServoStyleSheet};
 use style::gecko_bindings::structs::{SheetParsingMode, nsIAtom, nsCSSPropertyID};
 use style::gecko_bindings::structs::{nsCSSFontFaceRule, nsCSSCounterStyleRule};
 use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint, PropertyValuePair};
@@ -1232,6 +1232,15 @@ pub extern "C" fn Servo_StyleRule_GetSpecificityAtIndex(rule: RawServoStyleRuleB
             return;
         }
         *specificity = rule.selectors.0[index].selector.specificity() as u64;
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleRule_SetGeckoRulePointer(rule: RawServoStyleRuleBorrowed,
+                                                      ptr: *const ServoStyleRule) {
+    write_locked_arc(rule, |rule: &mut StyleRule| {
+        debug_assert_eq!(rule.gecko_rule.0, ptr::null());
+        rule.gecko_rule.0 = ptr;
     })
 }
 
@@ -2466,26 +2475,33 @@ unsafe fn maybe_restyle<'a>(data: &'a mut AtomicRefMut<ElementData>,
 
 #[no_mangle]
 pub extern "C" fn Servo_Element_GetStyleRuleList(element: RawGeckoElementBorrowed,
-                                                 rules: RawGeckoServoStyleRuleListBorrowedMut) {
+                                                 rules: RawGeckoServoStyleRuleListBorrowedMut) -> bool {
     let element = GeckoElement(element);
     let data = match element.borrow_data() {
         Some(element_data) => element_data,
-        None => return,
+        None => return true,
     };
     let computed = match data.get_styles() {
         Some(styles) => &styles.primary,
-        None => return,
+        None => return true,
     };
     let mut result = vec![];
+    let global_style_data = &*GLOBAL_STYLE_DATA;
+    let guard = global_style_data.shared_lock.read();
     for rule_node in computed.rules.self_and_ancestors() {
         if let Some(&StyleSource::Style(ref rule)) = rule_node.style_source() {
-            result.push(Locked::<StyleRule>::arc_as_borrowed(&rule));
+            let gecko_rule = rule.read_with(&guard).gecko_rule.0;
+            if gecko_rule.is_null() {
+                return false;
+            }
+            result.push(gecko_rule);
         }
     }
     unsafe { rules.set_len(result.len() as u32) };
-    for (&src, dest) in result.into_iter().zip(rules.iter_mut()) {
+    for (src, dest) in result.into_iter().zip(rules.iter_mut()) {
         *dest = src;
     }
+    true
 }
 
 #[no_mangle]
