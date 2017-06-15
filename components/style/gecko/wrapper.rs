@@ -1135,17 +1135,18 @@ impl<'le> TElement for GeckoElement<'le> {
             return false;
         }
 
+        // |property| should be an animatable longhand
+        let animatable_longhand = AnimatableLonghand::from_transition_property(property).unwrap();
+
         if existing_transitions.contains_key(property) {
             // If there is an existing transition, update only if the end value differs.
             // If the end value has not changed, we should leave the currently running
             // transition as-is since we don't want to interrupt its timing function.
             let after_value =
-                Arc::new(AnimationValue::from_computed_values(property, after_change_style));
+                Arc::new(AnimationValue::from_computed_values(&animatable_longhand,
+                                                              after_change_style));
             return existing_transitions.get(property).unwrap() != &after_value;
         }
-
-        // |property| should be an animatable longhand
-        let animatable_longhand = AnimatableLonghand::from_transition_property(property).unwrap();
 
         combined_duration > 0.0f32 &&
         AnimatedProperty::from_animatable_longhand(&animatable_longhand,

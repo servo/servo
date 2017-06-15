@@ -621,15 +621,14 @@ impl AnimationValue {
         }
     }
 
-    /// Get an AnimationValue for a TransitionProperty from a given computed values.
-    pub fn from_computed_values(transition_property: &TransitionProperty,
+    /// Get an AnimationValue for an AnimatableLonghand from a given computed values.
+    pub fn from_computed_values(property: &AnimatableLonghand,
                                 computed_values: &ComputedValues)
                                 -> Self {
-        match *transition_property {
-            TransitionProperty::All => panic!("Can't use TransitionProperty::All here."),
+        match *property {
             % for prop in data.longhands:
                 % if prop.animatable:
-                    TransitionProperty::${prop.camel_case} => {
+                    AnimatableLonghand::${prop.camel_case} => {
                         AnimationValue::${prop.camel_case}(
                         % if prop.is_animatable_with_computed_value:
                             computed_values.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}())
@@ -640,7 +639,6 @@ impl AnimationValue {
                     }
                 % endif
             % endfor
-            ref other => panic!("Can't use TransitionProperty::{:?} here.", other),
         }
     }
 }
