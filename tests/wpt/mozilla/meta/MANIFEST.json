@@ -13193,6 +13193,12 @@
      {}
     ]
    ],
+   "mozilla/img_async_src_set_before_window_load.html": [
+    [
+     "/_mozilla/mozilla/img_async_src_set_before_window_load.html",
+     {}
+    ]
+   ],
    "mozilla/img_find_non_sibling_map.html": [
     [
      "/_mozilla/mozilla/img_find_non_sibling_map.html",
@@ -25860,6 +25866,10 @@
   ],
   "mozilla/iframe_replacement.html": [
    "3c4f36abed83367c851d943b1f25b8394de6fe75",
+   "testharness"
+  ],
+  "mozilla/img_async_src_set_before_window_load.html": [
+   "ef8a1a0623d6f6743bd27e47df4dd77535da0d3e",
    "testharness"
   ],
   "mozilla/img_find_non_sibling_map.html": [
