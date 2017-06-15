@@ -63,8 +63,8 @@ use std::mem::{forget, transmute, zeroed};
 use std::ptr;
 use stylearc::Arc;
 use std::cmp;
+use values::{Auto, CustomIdent, Either, KeyframesName};
 use values::computed::{Shadow, ToComputedValue};
-use values::{Either, Auto, KeyframesName};
 use computed_values::border_style;
 
 pub mod style_structs {
@@ -2430,8 +2430,8 @@ fn static_assert() {
             self.gecko.mTransitionPropertyCount = v.len() as u32;
             for (servo, gecko) in v.zip(self.gecko.mTransitions.iter_mut()) {
                 match servo {
-                    TransitionProperty::Unsupported(ref atom) => unsafe {
-                        Gecko_StyleTransition_SetUnsupportedProperty(gecko, atom.as_ptr())
+                    TransitionProperty::Unsupported(ref ident) => unsafe {
+                        Gecko_StyleTransition_SetUnsupportedProperty(gecko, ident.0.as_ptr())
                     },
                     _ => gecko.mProperty = (&servo).into(),
                 }
@@ -2466,11 +2466,11 @@ fn static_assert() {
         if property == eCSSProperty_UNKNOWN || property == eCSSPropertyExtra_variable {
             let atom = self.gecko.mTransitions[index].mUnknownProperty.raw::<nsIAtom>();
             debug_assert!(!atom.is_null());
-            TransitionProperty::Unsupported(atom.into())
+            TransitionProperty::Unsupported(CustomIdent(atom.into()))
         } else if property == eCSSPropertyExtra_no_properties {
             // Actually, we don't expect TransitionProperty::Unsupported also represents "none",
             // but if the caller wants to convert it, it is fine. Please use it carefully.
-            TransitionProperty::Unsupported(atom!("none"))
+            TransitionProperty::Unsupported(CustomIdent(atom!("none")))
         } else {
             property.into()
         }
