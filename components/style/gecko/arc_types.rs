@@ -10,12 +10,11 @@
 
 use gecko_bindings::bindings::{RawServoKeyframe, RawServoKeyframesRule};
 use gecko_bindings::bindings::{RawServoMediaList, RawServoMediaRule};
-use gecko_bindings::bindings::{RawServoNamespaceRule, RawServoPageRule};
+use gecko_bindings::bindings::{RawServoNamespaceRule, RawServoPageRule, RawServoStyleRule};
 use gecko_bindings::bindings::{RawServoRuleNode, RawServoRuleNodeStrong, RawServoDocumentRule};
 use gecko_bindings::bindings::{RawServoStyleSheet, RawServoImportRule, RawServoSupportsRule};
 use gecko_bindings::bindings::{ServoComputedValues, ServoCssRules};
-use gecko_bindings::structs::{RawServoDeclarationBlock, RawServoStyleRule};
-use gecko_bindings::structs::RawServoAnimationValue;
+use gecko_bindings::structs::{RawServoAnimationValue, RawServoDeclarationBlock};
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI};
 use media_queries::MediaList;
 use properties::{ComputedValues, PropertyDeclarationBlock};
