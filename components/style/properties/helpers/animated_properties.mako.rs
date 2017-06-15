@@ -195,20 +195,10 @@ impl TransitionProperty {
 #[cfg(feature = "gecko")]
 pub fn nscsspropertyid_is_animatable(property: nsCSSPropertyID) -> bool {
     match property {
-        % for prop in data.longhands:
+        % for prop in data.longhands + data.shorthands_except_all():
             % if prop.animatable:
                 ${helpers.to_nscsspropertyid(prop.ident)} => true,
             % endif
-        % endfor
-        % for prop in data.shorthands_except_all():
-            <%
-                animatable = "false"
-                for sub in prop.sub_properties:
-                    if sub.animatable:
-                        animatable = "true"
-                        break
-            %>
-            ${helpers.to_nscsspropertyid(prop.ident)} => ${animatable},
         % endfor
         _ => false
     }

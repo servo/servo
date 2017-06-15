@@ -234,6 +234,16 @@ class Shorthand(object):
         self.allowed_in_keyframe_block = allowed_in_keyframe_block \
             and allowed_in_keyframe_block != "False"
 
+    def get_animatable(self):
+        animatable = False
+        for sub in self.sub_properties:
+            if sub.animatable:
+                animatable = True
+                break
+        return animatable
+
+    animatable = property(get_animatable)
+
 
 class Method(object):
     def __init__(self, name, return_type=None, arg_types=None, is_mut=False):
