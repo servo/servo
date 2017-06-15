@@ -96,7 +96,6 @@ use style::properties::{CascadeFlags, ComputedValues, Importance, SourceProperty
 use style::properties::{LonghandIdSet, PropertyDeclaration, PropertyDeclarationBlock, PropertyId, StyleBuilder};
 use style::properties::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
 use style::properties::animated_properties::{Animatable, AnimatableLonghand, AnimationValue};
-use style::properties::animated_properties::TransitionProperty;
 use style::properties::parse_one_declaration_into;
 use style::rule_tree::StyleSource;
 use style::selector_parser::PseudoElementCascadeType;
@@ -705,8 +704,10 @@ pub extern "C" fn Servo_Property_IsAnimatable(property: nsCSSPropertyID) -> bool
 
 #[no_mangle]
 pub extern "C" fn Servo_Property_IsDiscreteAnimatable(property: nsCSSPropertyID) -> bool {
-    let property: TransitionProperty = property.into();
-    property.is_discrete()
+    match AnimatableLonghand::from_nscsspropertyid(property) {
+        Some(longhand) => longhand.is_discrete(),
+        None => false
+    }
 }
 
 #[no_mangle]

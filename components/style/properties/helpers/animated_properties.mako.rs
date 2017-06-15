@@ -63,6 +63,18 @@ pub enum AnimatableLonghand {
 }
 
 impl AnimatableLonghand {
+    /// Returns true if this AnimatableLonghand is one of the discretely animatable properties.
+    pub fn is_discrete(&self) -> bool {
+        match *self {
+            % for prop in data.longhands:
+                % if prop.animation_value_type == "discrete":
+                    AnimatableLonghand::${prop.camel_case} => true,
+                % endif
+            % endfor
+            _ => false
+        }
+    }
+
     /// Converts from an nsCSSPropertyID. Returns None if nsCSSPropertyID is not an animatable
     /// longhand in Servo.
     #[cfg(feature = "gecko")]
@@ -222,19 +234,6 @@ impl TransitionProperty {
                 }
             }
         }).map_err(|()| SelectorParseError::UnexpectedIdent(ident.into()).into())
-    }
-
-    /// Returns true if this TransitionProperty is one of the discrete animatable properties and
-    /// this TransitionProperty should be a longhand property.
-    pub fn is_discrete(&self) -> bool {
-        match *self {
-            % for prop in data.longhands:
-                % if prop.animation_value_type == "discrete":
-                    TransitionProperty::${prop.camel_case} => true,
-                % endif
-            % endfor
-            _ => false
-        }
     }
 
     /// Return animatable longhands of this shorthand TransitionProperty, except for "all".

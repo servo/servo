@@ -1130,13 +1130,13 @@ impl<'le> TElement for GeckoElement<'le> {
                                              -> bool {
         use properties::animated_properties::AnimatedProperty;
 
-        // We don't allow transitions on properties that are not interpolable.
-        if property.is_discrete() {
-            return false;
-        }
-
         // |property| should be an animatable longhand
         let animatable_longhand = AnimatableLonghand::from_transition_property(property).unwrap();
+
+        // We don't allow transitions on properties that are not interpolable.
+        if animatable_longhand.is_discrete() {
+            return false;
+        }
 
         if existing_transitions.contains_key(property) {
             // If there is an existing transition, update only if the end value differs.
