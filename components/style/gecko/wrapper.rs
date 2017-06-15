@@ -1040,7 +1040,6 @@ impl<'le> TElement for GeckoElement<'le> {
                                 after_change_style: &ComputedValues)
                                 -> bool {
         use gecko_bindings::structs::nsCSSPropertyID;
-        use properties::{PropertyId, animated_properties};
         use std::collections::HashSet;
 
         debug_assert!(self.might_need_transitions_update(Some(before_change_style),
@@ -1075,6 +1074,8 @@ impl<'le> TElement for GeckoElement<'le> {
                 continue;
             }
 
+            let transition_property: TransitionProperty = property.into();
+
             let mut property_check_helper = |property: &TransitionProperty| -> bool {
                 if self.needs_transitions_update_per_property(property,
                                                               combined_duration,
@@ -1091,26 +1092,25 @@ impl<'le> TElement for GeckoElement<'le> {
                 }
                 false
             };
-            if property == nsCSSPropertyID::eCSSPropertyExtra_all_properties {
-                if TransitionProperty::any(property_check_helper) {
-                    return true;
-                }
-            } else {
-                let is_shorthand = PropertyId::from_nscsspropertyid(property).ok().map_or(false, |p| {
-                        p.as_shorthand().is_ok()
-                });
-                if is_shorthand {
-                    let shorthand: TransitionProperty = property.into();
+
+            match transition_property {
+                TransitionProperty::All => {
+                    if TransitionProperty::any(property_check_helper) {
+                        return true;
+                    }
+                },
+                TransitionProperty::Unsupported(_) => { },
+                ref shorthand if shorthand.is_shorthand() => {
                     if shorthand.longhands().iter().any(|p| property_check_helper(p)) {
                         return true;
                     }
-                } else {
-                    if animated_properties::nscsspropertyid_is_animatable(property) &&
-                       property_check_helper(&property.into()) {
+                },
+                ref longhand => {
+                    if property_check_helper(longhand) {
                         return true;
                     }
-                }
-            }
+                },
+            };
         }
 
         // Check if we have to cancel the running transition because this is not a matching
@@ -1132,11 +1132,6 @@ impl<'le> TElement for GeckoElement<'le> {
 
         // |property| should be an animatable longhand
         let animatable_longhand = AnimatableLonghand::from_transition_property(property).unwrap();
-
-        // We don't allow transitions on properties that are not interpolable.
-        if animatable_longhand.is_discrete() {
-            return false;
-        }
 
         if existing_transitions.contains_key(property) {
             // If there is an existing transition, update only if the end value differs.

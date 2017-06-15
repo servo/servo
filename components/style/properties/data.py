@@ -194,12 +194,15 @@ class Longhand(object):
         self.animation_value_type = animation_value_type
 
         self.animatable = animation_value_type != "none"
+        self.transitionable = animation_value_type != "none" \
+            and animation_value_type != "discrete"
         self.is_animatable_with_computed_value = animation_value_type == "ComputedValue" \
             or animation_value_type == "discrete"
         if self.logical:
             # Logical properties will be animatable (i.e. the animation type is
             # discrete). For now, it is still non-animatable.
             self.animatable = False
+            self.transitionable = False
             self.animation_type = None
         # NB: Animatable implies clone because a property animation requires a
         # copy of the computed value.
@@ -242,7 +245,16 @@ class Shorthand(object):
                 break
         return animatable
 
+    def get_transitionable(self):
+        transitionable = False
+        for sub in self.sub_properties:
+            if sub.transitionable:
+                transitionable = True
+                break
+        return transitionable
+
     animatable = property(get_animatable)
+    transitionable = property(get_transitionable)
 
 
 class Method(object):
