@@ -68,8 +68,7 @@ impl<'a, 'b, C> Iterator for RulesIterator<'a, 'b, C>
             }
 
             let rule;
-            let sub_iter;
-            {
+            let sub_iter = {
                 let mut nested_iter = self.stack.last_mut().unwrap();
                 rule = match nested_iter.next() {
                     Some(r) => r,
@@ -79,7 +78,16 @@ impl<'a, 'b, C> Iterator for RulesIterator<'a, 'b, C>
                     }
                 };
 
-                sub_iter = match *rule {
+                match *rule {
+                    CssRule::Namespace(_) |
+                    CssRule::Style(_) |
+                    CssRule::FontFace(_) |
+                    CssRule::CounterStyle(_) |
+                    CssRule::Viewport(_) |
+                    CssRule::Keyframes(_) |
+                    CssRule::Page(_) => {
+                        return Some(rule)
+                    },
                     CssRule::Import(ref import_rule) => {
                         let import_rule = import_rule.read_with(self.guard);
                         if !C::process_import(self.guard,
@@ -88,7 +96,7 @@ impl<'a, 'b, C> Iterator for RulesIterator<'a, 'b, C>
                                               import_rule) {
                             continue;
                         }
-                        Some(import_rule.stylesheet.rules.read_with(self.guard).0.iter())
+                        import_rule.stylesheet.rules.read_with(self.guard).0.iter()
                     }
                     CssRule::Document(ref doc_rule) => {
                         let doc_rule = doc_rule.read_with(self.guard);
@@ -98,7 +106,7 @@ impl<'a, 'b, C> Iterator for RulesIterator<'a, 'b, C>
                                                 doc_rule) {
                             continue;
                         }
-                        Some(doc_rule.rules.read_with(self.guard).0.iter())
+                        doc_rule.rules.read_with(self.guard).0.iter()
                     }
                     CssRule::Media(ref lock) => {
                         let media_rule = lock.read_with(self.guard);
@@ -108,7 +116,7 @@ impl<'a, 'b, C> Iterator for RulesIterator<'a, 'b, C>
                                              media_rule) {
                             continue;
                         }
-                        Some(media_rule.rules.read_with(self.guard).0.iter())
+                        media_rule.rules.read_with(self.guard).0.iter()
                     }
                     CssRule::Supports(ref lock) => {
                         let supports_rule = lock.read_with(self.guard);
@@ -118,22 +126,12 @@ impl<'a, 'b, C> Iterator for RulesIterator<'a, 'b, C>
                                                 supports_rule) {
                             continue;
                         }
-                        Some(supports_rule.rules.read_with(self.guard).0.iter())
+                        supports_rule.rules.read_with(self.guard).0.iter()
                     }
-                    CssRule::Namespace(_) |
-                    CssRule::Style(_) |
-                    CssRule::FontFace(_) |
-                    CssRule::CounterStyle(_) |
-                    CssRule::Viewport(_) |
-                    CssRule::Keyframes(_) |
-                    CssRule::Page(_) => None,
-                };
-            }
+                }
+            };
 
-            if let Some(sub_iter) = sub_iter {
-                self.stack.push(sub_iter);
-            }
-
+            self.stack.push(sub_iter);
             return Some(rule);
         }
 
