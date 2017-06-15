@@ -144,7 +144,7 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
 
 <%helpers:longhand name="quotes" animation_value_type="none"
                    spec="https://drafts.csswg.org/css-content/#propdef-quotes">
-    use std::borrow::Cow;
+    use cssparser::serialize_string;
     use std::fmt;
     use style_traits::ToCss;
     use values::computed::ComputedValueAsSpecified;
@@ -169,12 +169,12 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
             let mut first = true;
             for pair in &self.0 {
                 if !first {
-                    try!(dest.write_str(" "));
+                    dest.write_str(" ")?;
                 }
                 first = false;
-                try!(Token::QuotedString(Cow::from(&*pair.0)).to_css(dest));
-                try!(dest.write_str(" "));
-                try!(Token::QuotedString(Cow::from(&*pair.1)).to_css(dest));
+                serialize_string(&*pair.0, dest)?;
+                dest.write_str(" ")?;
+                serialize_string(&*pair.1, dest)?;
             }
             Ok(())
         }

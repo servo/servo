@@ -19,8 +19,8 @@ use values::specified::LengthOrPercentage;
 /// Parse a single flexible length.
 pub fn parse_flex<'i, 't>(input: &mut Parser<'i, 't>) -> Result<CSSFloat, ParseError<'i>> {
     match input.next()? {
-        Token::Dimension(ref value, ref unit) if unit.eq_ignore_ascii_case("fr") && value.value.is_sign_positive()
-            => Ok(value.value),
+        Token::Dimension { value, ref unit, .. } if unit.eq_ignore_ascii_case("fr") && value.is_sign_positive()
+            => Ok(value),
         t => Err(BasicParseError::UnexpectedToken(t).into()),
     }
 }

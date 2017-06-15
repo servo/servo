@@ -40,13 +40,14 @@ macro_rules! assert_roundtrip_with_context {
         }, $input).unwrap();
 
         let mut input = ::cssparser::ParserInput::new(&serialized);
-        parse_input(|context, i| {
+        let unwrapped = parse_input(|context, i| {
             let re_parsed = $fun(context, i)
                             .expect(&format!("Failed to parse serialization {}", $input));
             let re_serialized = ToCss::to_css_string(&re_parsed);
             assert_eq!(serialized, re_serialized);
             Ok(())
-        }, &mut input).unwrap()
+        }, &mut input).unwrap();
+        unwrapped
     }}
 }
 

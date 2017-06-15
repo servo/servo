@@ -306,8 +306,8 @@ ${helpers.predefined_type("clip",
     fn parse_factor<'i, 't>(input: &mut Parser<'i, 't>) -> Result<::values::CSSFloat, ParseError<'i>> {
         use cssparser::Token;
         match input.next() {
-            Ok(Token::Number(value)) if value.value.is_sign_positive() => Ok(value.value),
-            Ok(Token::Percentage(value)) if value.unit_value.is_sign_positive() => Ok(value.unit_value),
+            Ok(Token::Number { value, .. }) if value.is_sign_positive() => Ok(value),
+            Ok(Token::Percentage { unit_value, .. }) if unit_value.is_sign_positive() => Ok(unit_value),
             Ok(t) => Err(BasicParseError::UnexpectedToken(t).into()),
             Err(e) => Err(e.into())
         }

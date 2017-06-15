@@ -13,6 +13,7 @@ use parser::{ParserContext, Parse};
 use self::grid::TrackSizeOrRepeat;
 use self::url::SpecifiedUrl;
 use std::ascii::AsciiExt;
+use std::borrow::Cow;
 use std::f32;
 use std::fmt;
 use style_traits::{ToCss, ParseError, StyleParseError};
@@ -79,7 +80,7 @@ pub use ::gecko::url::*;
 impl Parse for SpecifiedUrl {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let url = try!(input.expect_url());
-        Self::parse_from_string(url, context)
+        Self::parse_from_string(url.into_owned(), context)
     }
 }
 
@@ -95,7 +96,7 @@ no_viewport_percentage!(SpecifiedUrl);
 pub fn parse_integer<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                              -> Result<Integer, ParseError<'i>> {
     match try!(input.next()) {
-        Token::Number(ref value) => value.int_value.ok_or(StyleParseError::UnspecifiedError.into()).map(Integer::new),
+        Token::Number { int_value: Some(v), .. } => Ok(Integer::new(v)),
         Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
             let result = try!(input.parse_nested_block(|i| {
                 CalcNode::parse_integer(context, i)
@@ -120,9 +121,9 @@ pub fn parse_number_with_clamping_mode<'i, 't>(context: &ParserContext,
                                                clamping_mode: AllowedNumericType)
                                                -> Result<Number, ParseError<'i>> {
     match try!(input.next()) {
-        Token::Number(ref value) if clamping_mode.is_ok(context.parsing_mode, value.value) => {
+        Token::Number { value, .. } if clamping_mode.is_ok(context.parsing_mode, value) => {
             Ok(Number {
-                value: value.value.min(f32::MAX).max(f32::MIN),
+                value: value.min(f32::MAX).max(f32::MIN),
                 calc_clamping_mode: None,
             })
         },
@@ -226,10 +227,8 @@ impl Parse for Angle {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let token = try!(input.next());
         match token {
-            Token::Dimension(ref value, ref unit) => {
-                Angle::parse_dimension(value.value,
-                                       unit,
-                                       /* from_calc = */ false)
+            Token::Dimension { value, ref unit, .. } => {
+                Angle::parse_dimension(value, unit, /* from_calc = */ false)
             }
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 return input.parse_nested_block(|i| CalcNode::parse_angle(context, i))
@@ -268,12 +267,10 @@ impl Angle {
                                        -> Result<Self, ParseError<'i>> {
         let token = try!(input.next());
         match token {
-            Token::Dimension(ref value, ref unit) => {
-                Angle::parse_dimension(value.value,
-                                       unit,
-                                       /* from_calc = */ false)
+            Token::Dimension { value, ref unit, .. } => {
+                Angle::parse_dimension(value, unit, /* from_calc = */ false)
             }
-            Token::Number(ref value) if value.value == 0. => Ok(Angle::zero()),
+            Token::Number { value, .. } if value == 0. => Ok(Angle::zero()),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 return input.parse_nested_block(|i| CalcNode::parse_angle(context, i))
             }
@@ -372,8 +369,8 @@ impl Time {
             // values for SMIL regardless of clamping_mode, but in this Time
             // value case, the value does not animate for SMIL at all, so we use
             // PARSING_MODE_DEFAULT directly.
-            Ok(Token::Dimension(ref value, ref unit)) if clamping_mode.is_ok(PARSING_MODE_DEFAULT, value.value) => {
-                Time::parse_dimension(value.value, &unit, /* from_calc = */ false)
+            Ok(Token::Dimension { value, ref unit, .. }) if clamping_mode.is_ok(PARSING_MODE_DEFAULT, value) => {
+                Time::parse_dimension(value, unit, /* from_calc = */ false)
                     .map_err(|()| StyleParseError::UnspecifiedError.into())
             }
             Ok(Token::Function(ref name)) if name.eq_ignore_ascii_case("calc") => {
@@ -1106,7 +1103,7 @@ impl Attr {
             };
 
             let ns_with_id = if let Some(ns) = first {
-                let ns: Namespace = ns.into();
+                let ns = Namespace::from(Cow::from(ns));
                 let id: Result<_, ParseError> =
                     get_id_for_namespace(&ns, context)
                     .map_err(|()| StyleParseError::UnspecifiedError.into());

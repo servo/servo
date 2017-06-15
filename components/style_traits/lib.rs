@@ -22,8 +22,8 @@ extern crate euclid;
 extern crate selectors;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde;
 
+use cssparser::CompactCowStr;
 use selectors::parser::SelectorParseError;
-use std::borrow::Cow;
 
 /// Opaque type stored in type-unsafe work queues for parallel layout.
 /// Must be transmutable to and from `TNode`.
@@ -95,11 +95,11 @@ pub enum StyleParseError<'i> {
     /// A property declaration value had input remaining after successfully parsing.
     PropertyDeclarationValueNotExhausted,
     /// An unexpected dimension token was encountered.
-    UnexpectedDimension(Cow<'i, str>),
+    UnexpectedDimension(CompactCowStr<'i>),
     /// A media query using a ranged expression with no value was encountered.
     RangedExpressionWithNoValue,
     /// A function was encountered that was not expected.
-    UnexpectedFunction(Cow<'i, str>),
+    UnexpectedFunction(CompactCowStr<'i>),
     /// @namespace must be before any rule but @charset and @import
     UnexpectedNamespaceRule,
     /// @import must be before any rule but @charset
@@ -107,7 +107,7 @@ pub enum StyleParseError<'i> {
     /// Unexpected @charset rule encountered.
     UnexpectedCharsetRule,
     /// Unsupported @ rule
-    UnsupportedAtRule(Cow<'i, str>),
+    UnsupportedAtRule(CompactCowStr<'i>),
     /// A placeholder for many sources of errors that require more specific variants.
     UnspecifiedError,
 }

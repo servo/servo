@@ -7,7 +7,6 @@ use cssparser::{Parser, ParserInput};
 use cssparser::ToCss as ParserToCss;
 use env_logger::LogBuilder;
 use selectors::Element;
-use std::borrow::Cow;
 use std::env;
 use std::fmt::Write;
 use std::ptr;
@@ -1652,7 +1651,9 @@ pub extern "C" fn Servo_ParseEasing(easing: *const nsAString,
                                      QuirksMode::NoQuirks);
     let easing = unsafe { (*easing).to_string() };
     let mut input = ParserInput::new(&easing);
-    match transition_timing_function::single_value::parse(&context, &mut Parser::new(&mut input)) {
+    let mut parser = Parser::new(&mut input);
+    let result = transition_timing_function::single_value::parse(&context, &mut parser);
+    match result {
         Ok(parsed_easing) => {
             *output = parsed_easing.into();
             true
@@ -1826,7 +1827,7 @@ pub extern "C" fn Servo_DeclarationBlock_GetNthProperty(declarations: RawServoDe
 macro_rules! get_property_id_from_property {
     ($property: ident, $ret: expr) => {{
         let property = unsafe { $property.as_ref().unwrap().as_str_unchecked() };
-        match PropertyId::parse(Cow::Borrowed(property)) {
+        match PropertyId::parse(property.into()) {
             Ok(property_id) => property_id,
             Err(_) => { return $ret; }
         }
@@ -2351,7 +2352,8 @@ pub extern "C" fn Servo_DeclarationBlock_SetFontFamily(declarations:
     let string = unsafe { (*value).to_string() };
     let mut input = ParserInput::new(&string);
     let mut parser = Parser::new(&mut input);
-    if let Ok(family) = FontFamily::parse(&mut parser) {
+    let result = FontFamily::parse(&mut parser);
+    if let Ok(family) = result {
         if parser.is_exhausted() {
             let decl = PropertyDeclaration::FontFamily(Box::new(family));
             write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
