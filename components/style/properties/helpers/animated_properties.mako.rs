@@ -34,8 +34,7 @@ use selectors::parser::SelectorParseError;
 use smallvec::SmallVec;
 use std::cmp;
 #[cfg(feature = "gecko")] use std::collections::HashMap;
-use std::fmt;
-use style_traits::{ToCss, ParseError};
+use style_traits::ParseError;
 use super::ComputedValues;
 use values::{Auto, CSSFloat, CustomIdent, Either};
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
@@ -181,8 +180,8 @@ pub fn nscsspropertyid_is_animatable(property: nsCSSPropertyID) -> bool {
 /// a shorthand with at least one transitionable longhand component, or an unsupported property.
 // NB: This needs to be here because it needs all the longhands generated
 // beforehand.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, ToCss)]
 pub enum TransitionProperty {
     /// All, any transitionable property changing should generate a transition.
     All,
@@ -277,22 +276,6 @@ impl TransitionProperty {
                 % endif
             % endfor
             _ => false
-        }
-    }
-}
-
-impl ToCss for TransitionProperty {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
-    {
-        match *self {
-            TransitionProperty::All => dest.write_str("all"),
-            % for prop in data.longhands + data.shorthands_except_all():
-                % if prop.transitionable:
-                    TransitionProperty::${prop.camel_case} => dest.write_str("${prop.name}"),
-                % endif
-            % endfor
-            TransitionProperty::Unsupported(ref ident) => ident.to_css(dest),
         }
     }
 }
