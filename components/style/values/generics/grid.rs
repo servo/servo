@@ -24,7 +24,7 @@ pub struct GridLine {
     /// A custom identifier for named lines.
     ///
     /// https://drafts.csswg.org/css-grid/#grid-placement-slot
-    pub ident: Option<String>,
+    pub ident: Option<CustomIdent>,
     /// Denotes the nth grid line from grid item's placement.
     pub line_num: Option<Integer>,
 }
@@ -62,7 +62,7 @@ impl ToCss for GridLine {
 
         if let Some(ref s) = self.ident {
             dest.write_str(" ")?;
-            serialize_identifier(s, dest)?;
+            s.to_css(dest)?;
         }
 
         Ok(())
@@ -100,12 +100,10 @@ impl Parse for GridLine {
 
                 grid_line.line_num = Some(i);
             } else if let Ok(name) = input.try(|i| i.expect_ident()) {
-                if val_before_span || grid_line.ident.is_some() ||
-                   CustomIdent::from_ident((&*name).into(), &[]).is_err() {
-                    return Err(StyleParseError::UnspecifiedError.into())
+                if val_before_span || grid_line.ident.is_some() {
+                    return Err(StyleParseError::UnspecifiedError.into());
                 }
-
-                grid_line.ident = Some(name.into_owned());
+                grid_line.ident = Some(CustomIdent::from_ident(name, &[])?);
             } else {
                 break
             }
