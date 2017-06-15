@@ -493,6 +493,7 @@ impl HTMLImageElement {
         request.image = None;
         request.metadata = None;
         let document = document_from_node(self);
+        LoadBlocker::terminate(&mut request.blocker);
         request.blocker = Some(LoadBlocker::new(&*document, LoadType::Image(url.clone())));
     }
 
