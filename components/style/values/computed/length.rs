@@ -233,9 +233,9 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
     }
 }
 
-#[derive(PartialEq, Clone, Copy)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, PartialEq, ToCss)]
 pub enum LengthOrPercentage {
     Length(Au),
     Percentage(Percentage),
@@ -343,19 +343,9 @@ impl ToComputedValue for specified::LengthOrPercentage {
     }
 }
 
-impl ToCss for LengthOrPercentage {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            LengthOrPercentage::Length(length) => length.to_css(dest),
-            LengthOrPercentage::Percentage(percentage) => percentage.to_css(dest),
-            LengthOrPercentage::Calc(calc) => calc.to_css(dest),
-        }
-    }
-}
-
-#[derive(PartialEq, Clone, Copy)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, PartialEq, ToCss)]
 pub enum LengthOrPercentageOrAuto {
     Length(Au),
     Percentage(Percentage),
@@ -431,20 +421,9 @@ impl ToComputedValue for specified::LengthOrPercentageOrAuto {
     }
 }
 
-impl ToCss for LengthOrPercentageOrAuto {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            LengthOrPercentageOrAuto::Length(length) => length.to_css(dest),
-            LengthOrPercentageOrAuto::Percentage(percentage) => percentage.to_css(dest),
-            LengthOrPercentageOrAuto::Auto => dest.write_str("auto"),
-            LengthOrPercentageOrAuto::Calc(calc) => calc.to_css(dest),
-        }
-    }
-}
-
-#[derive(PartialEq, Clone, Copy)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, PartialEq, ToCss)]
 pub enum LengthOrPercentageOrAutoOrContent {
     Length(Au),
     Percentage(Percentage),
@@ -516,21 +495,9 @@ impl ToComputedValue for specified::LengthOrPercentageOrAutoOrContent {
     }
 }
 
-impl ToCss for LengthOrPercentageOrAutoOrContent {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            LengthOrPercentageOrAutoOrContent::Length(length) => length.to_css(dest),
-            LengthOrPercentageOrAutoOrContent::Percentage(percentage) => percentage.to_css(dest),
-            LengthOrPercentageOrAutoOrContent::Calc(calc) => calc.to_css(dest),
-            LengthOrPercentageOrAutoOrContent::Auto => dest.write_str("auto"),
-            LengthOrPercentageOrAutoOrContent::Content => dest.write_str("content")
-        }
-    }
-}
-
-#[derive(PartialEq, Clone, Copy)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, PartialEq, ToCss)]
 pub enum LengthOrPercentageOrNone {
     Length(Au),
     Percentage(Percentage),
@@ -599,17 +566,6 @@ impl ToComputedValue for specified::LengthOrPercentageOrNone {
                     Box::new(ToComputedValue::from_computed_value(&calc))
                 )
             }
-        }
-    }
-}
-
-impl ToCss for LengthOrPercentageOrNone {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            LengthOrPercentageOrNone::Length(length) => length.to_css(dest),
-            LengthOrPercentageOrNone::Percentage(percentage) => percentage.to_css(dest),
-            LengthOrPercentageOrNone::Calc(calc) => calc.to_css(dest),
-            LengthOrPercentageOrNone::None => dest.write_str("none"),
         }
     }
 }
