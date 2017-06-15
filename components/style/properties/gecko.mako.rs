@@ -2683,19 +2683,19 @@ fn static_assert() {
                 }
 
                 for feature in features.iter() {
-                    if feature == &atom!("scroll-position") {
+                    if feature.0 == atom!("scroll-position") {
                         self.gecko.mWillChangeBitField |= NS_STYLE_WILL_CHANGE_SCROLL as u8;
-                    } else if feature == &atom!("opacity") {
+                    } else if feature.0 == atom!("opacity") {
                         self.gecko.mWillChangeBitField |= NS_STYLE_WILL_CHANGE_OPACITY as u8;
-                    } else if feature == &atom!("transform") {
+                    } else if feature.0 == atom!("transform") {
                         self.gecko.mWillChangeBitField |= NS_STYLE_WILL_CHANGE_TRANSFORM as u8;
                     }
 
                     unsafe {
-                        Gecko_AppendWillChange(&mut self.gecko, feature.as_ptr());
+                        Gecko_AppendWillChange(&mut self.gecko, feature.0.as_ptr());
                     }
 
-                    if let Ok(prop_id) = PropertyId::parse(feature.to_string().into()) {
+                    if let Ok(prop_id) = PropertyId::parse(feature.0.to_string().into()) {
                         match prop_id.as_shorthand() {
                             Ok(shorthand) => {
                                 for longhand in shorthand.longhands() {
