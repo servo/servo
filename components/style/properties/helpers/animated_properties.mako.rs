@@ -163,6 +163,19 @@ impl<'a> From<AnimatableLonghand> for PropertyDeclarationId<'a> {
     }
 }
 
+/// Returns true if this nsCSSPropertyID is one of the animatable properties.
+#[cfg(feature = "gecko")]
+pub fn nscsspropertyid_is_animatable(property: nsCSSPropertyID) -> bool {
+    match property {
+        % for prop in data.longhands + data.shorthands_except_all():
+            % if prop.animatable:
+                ${helpers.to_nscsspropertyid(prop.ident)} => true,
+            % endif
+        % endfor
+        _ => false
+    }
+}
+
 /// A given transition property, that is either `All`, a transitionable longhand property,
 /// a shorthand with at least one transitionable longhand component, or an unsupported property.
 // NB: This needs to be here because it needs all the longhands generated
@@ -263,19 +276,6 @@ impl TransitionProperty {
             % endfor
             _ => false
         }
-    }
-}
-
-/// Returns true if this nsCSSPropertyID is one of the animatable properties.
-#[cfg(feature = "gecko")]
-pub fn nscsspropertyid_is_animatable(property: nsCSSPropertyID) -> bool {
-    match property {
-        % for prop in data.longhands + data.shorthands_except_all():
-            % if prop.animatable:
-                ${helpers.to_nscsspropertyid(prop.ident)} => true,
-            % endif
-        % endfor
-        _ => false
     }
 }
 
