@@ -2249,6 +2249,9 @@ extern "C" {
     pub fn Servo_Property_IsAnimatable(property: nsCSSPropertyID) -> bool;
 }
 extern "C" {
+    pub fn Servo_Property_IsTransitionable(property: nsCSSPropertyID) -> bool;
+}
+extern "C" {
     pub fn Servo_Property_IsDiscreteAnimatable(property: nsCSSPropertyID)
      -> bool;
 }

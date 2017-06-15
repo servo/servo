@@ -338,6 +338,19 @@ impl From<nsCSSPropertyID> for TransitionProperty {
     }
 }
 
+/// Returns true if this nsCSSPropertyID is one of the transitionable properties.
+#[cfg(feature = "gecko")]
+pub fn nscsspropertyid_is_transitionable(property: nsCSSPropertyID) -> bool {
+    match property {
+        % for prop in data.longhands + data.shorthands_except_all():
+            % if prop.transitionable:
+                ${helpers.to_nscsspropertyid(prop.ident)} => true,
+            % endif
+        % endfor
+        _ => false
+    }
+}
+
 /// An animated property interpolation between two computed values for that
 /// property.
 #[derive(Clone, Debug, PartialEq)]

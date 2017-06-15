@@ -703,6 +703,12 @@ pub extern "C" fn Servo_Property_IsAnimatable(property: nsCSSPropertyID) -> bool
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_Property_IsTransitionable(property: nsCSSPropertyID) -> bool {
+    use style::properties::animated_properties;
+    animated_properties::nscsspropertyid_is_transitionable(property)
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_Property_IsDiscreteAnimatable(property: nsCSSPropertyID) -> bool {
     match AnimatableLonghand::from_nscsspropertyid(property) {
         Some(longhand) => longhand.is_discrete(),
