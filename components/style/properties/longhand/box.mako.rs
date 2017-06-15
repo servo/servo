@@ -12,7 +12,7 @@
 // TODO(SimonSapin): don't parse `inline-table`, since we don't support it
 <%helpers:longhand name="display"
                    need_clone="True"
-                   animation_value_type="none"
+                   animation_value_type="discrete"
                    custom_cascade="${product == 'servo'}"
                    spec="https://drafts.csswg.org/css-display/#propdef-display">
     <%

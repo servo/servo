@@ -12,7 +12,7 @@ use dom::OpaqueNode;
 use euclid::Point2D;
 use font_metrics::FontMetricsProvider;
 use properties::{self, CascadeFlags, ComputedValues, Importance};
-use properties::animated_properties::{AnimatedProperty, TransitionProperty};
+use properties::animated_properties::{AnimatableLonghand, AnimatedProperty, TransitionProperty};
 use properties::longhands::animation_direction::computed_value::single_value::T as AnimationDirection;
 use properties::longhands::animation_iteration_count::single_value::computed_value::T as AnimationIterationCount;
 use properties::longhands::animation_play_state::computed_value::single_value::T as AnimationPlayState;
@@ -330,7 +330,27 @@ impl PropertyAnimation {
                                 -> Option<PropertyAnimation> {
         debug_assert!(!transition_property.is_shorthand() &&
                       transition_property != &TransitionProperty::All);
-        let animated_property = AnimatedProperty::from_transition_property(transition_property,
+
+        // We're not expecting |transition_property| to be a shorthand (including 'all') and
+        // all other transitionable properties should be animatable longhands (since transitionable
+        // is a subset of animatable).
+        let animatable_longhand =
+            AnimatableLonghand::from_transition_property(transition_property).unwrap();
+
+        PropertyAnimation::from_animatable_longhand(&animatable_longhand,
+                                                    timing_function,
+                                                    duration,
+                                                    old_style,
+                                                    new_style)
+    }
+
+    fn from_animatable_longhand(animatable_longhand: &AnimatableLonghand,
+                                timing_function: TimingFunction,
+                                duration: Time,
+                                old_style: &ComputedValues,
+                                new_style: &ComputedValues)
+                                -> Option<PropertyAnimation> {
+        let animated_property = AnimatedProperty::from_animatable_longhand(animatable_longhand,
                                                                            old_style,
                                                                            new_style);
 
@@ -743,22 +763,22 @@ pub fn update_style_for_animation(context: &SharedStyleContext,
 
             let mut new_style = (*style).clone();
 
-            for transition_property in &animation.properties_changed {
+            for property in &animation.properties_changed {
                 debug!("update_style_for_animation: scanning prop {:?} for animation \"{}\"",
-                       transition_property, name);
-                match PropertyAnimation::from_transition_property(transition_property,
+                       property, name);
+                match PropertyAnimation::from_animatable_longhand(property,
                                                                   timing_function,
                                                                   Time::from_seconds(relative_duration as f32),
                                                                   &from_style,
                                                                   &target_style) {
                     Some(property_animation) => {
-                        debug!("update_style_for_animation: got property animation for prop {:?}", transition_property);
+                        debug!("update_style_for_animation: got property animation for prop {:?}", property);
                         debug!("update_style_for_animation: {:?}", property_animation);
                         property_animation.update(Arc::make_mut(&mut new_style), relative_progress);
                     }
                     None => {
                         debug!("update_style_for_animation: property animation {:?} not animating",
-                               transition_property);
+                               property);
                     }
                 }
             }

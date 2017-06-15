@@ -32,7 +32,7 @@ use font_metrics::FontMetricsProvider;
 use logical_geometry::WritingMode;
 use media_queries::Device;
 use parser::{Parse, ParserContext};
-use properties::animated_properties::TransitionProperty;
+use properties::animated_properties::AnimatableLonghand;
 #[cfg(feature = "gecko")] use properties::longhands::system_font::SystemFont;
 use selectors::parser::SelectorParseError;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
@@ -300,29 +300,25 @@ impl LonghandIdSet {
         }
     }
 
-    /// Set the corresponding bit of TransitionProperty.
-    /// This function will panic if TransitionProperty::All is given.
-    pub fn set_transition_property_bit(&mut self, property: &TransitionProperty) {
+    /// Set the corresponding bit of AnimatableLonghand.
+    pub fn set_animatable_longhand_bit(&mut self, property: &AnimatableLonghand) {
         match *property {
             % for prop in data.longhands:
                 % if prop.animatable:
-                    TransitionProperty::${prop.camel_case} => self.insert(LonghandId::${prop.camel_case}),
+                    AnimatableLonghand::${prop.camel_case} => self.insert(LonghandId::${prop.camel_case}),
                 % endif
             % endfor
-            ref other => unreachable!("Tried to set TransitionProperty::{:?} in a PropertyBitfield", other),
         }
     }
 
-    /// Return true if the corresponding bit of TransitionProperty is set.
-    /// This function will panic if TransitionProperty::All is given.
-    pub fn has_transition_property_bit(&self, property: &TransitionProperty) -> bool {
+    /// Return true if the corresponding bit of AnimatableLonghand is set.
+    pub fn has_animatable_longhand_bit(&self, property: &AnimatableLonghand) -> bool {
         match *property {
             % for prop in data.longhands:
                 % if prop.animatable:
-                    TransitionProperty::${prop.camel_case} => self.contains(LonghandId::${prop.camel_case}),
+                    AnimatableLonghand::${prop.camel_case} => self.contains(LonghandId::${prop.camel_case}),
                 % endif
             % endfor
-            ref other => unreachable!("Tried to get TransitionProperty::{:?} in a PropertyBitfield", other),
         }
     }
 }

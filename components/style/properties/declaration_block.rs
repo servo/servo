@@ -126,7 +126,7 @@ impl<'a, 'cx, 'cx_a:'cx> AnimationValueIterator<'a, 'cx, 'cx_a> {
 }
 
 impl<'a, 'cx, 'cx_a:'cx> Iterator for AnimationValueIterator<'a, 'cx, 'cx_a> {
-    type Item = (TransitionProperty, AnimationValue);
+    type Item = (AnimatableLonghand, AnimationValue);
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         use properties::Importance;
@@ -136,11 +136,11 @@ impl<'a, 'cx, 'cx_a:'cx> Iterator for AnimationValueIterator<'a, 'cx, 'cx_a> {
             match next {
                 Some(&(ref decl, importance)) => {
                     if importance == Importance::Normal {
-                        let property = TransitionProperty::from_declaration(decl);
+                        let property = AnimatableLonghand::from_declaration(decl);
                         let animation = AnimationValue::from_declaration(decl, &mut self.context,
                                                                          self.default_values);
                         debug_assert!(property.is_none() == animation.is_none(),
-                                      "The failure condition of TransitionProperty::from_declaration \
+                                      "The failure condition of AnimatableLonghand::from_declaration \
                                        and AnimationValue::from_declaration should be the same");
                         // Skip the property if either ::from_declaration fails.
                         match (property, animation) {
@@ -201,7 +201,7 @@ impl PropertyDeclarationBlock {
         }
     }
 
-    /// Return an iterator of (TransitionProperty, AnimationValue).
+    /// Return an iterator of (AnimatableLonghand, AnimationValue).
     pub fn to_animation_value_iter<'a, 'cx, 'cx_a:'cx>(&'a self,
                                                        context: &'cx mut Context<'cx_a>,
                                                        default_values: &'a Arc<ComputedValues>)
@@ -554,7 +554,7 @@ impl PropertyDeclarationBlock {
         let mut longhands = LonghandIdSet::new();
 
         for (property, animation_value) in animation_value_map.iter() {
-          longhands.set_transition_property_bit(property);
+          longhands.set_animatable_longhand_bit(property);
           declarations.push((animation_value.uncompute(), Importance::Normal));
         }
 

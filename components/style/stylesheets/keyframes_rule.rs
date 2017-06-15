@@ -11,7 +11,7 @@ use parser::{ParserContext, log_css_error};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
 use properties::{PropertyDeclarationId, LonghandId, SourcePropertyDeclaration};
 use properties::LonghandIdSet;
-use properties::animated_properties::TransitionProperty;
+use properties::animated_properties::AnimatableLonghand;
 use properties::longhands::transition_timing_function::single_value::SpecifiedValue as SpecifiedTimingFunction;
 use selectors::parser::SelectorParseError;
 use shared_lock::{DeepCloneWithLock, SharedRwLock, SharedRwLockReadGuard, Locked, ToCssWithGuard};
@@ -337,14 +337,14 @@ pub struct KeyframesAnimation {
     /// The difference steps of the animation.
     pub steps: Vec<KeyframesStep>,
     /// The properties that change in this animation.
-    pub properties_changed: Vec<TransitionProperty>,
+    pub properties_changed: Vec<AnimatableLonghand>,
     /// Vendor prefix type the @keyframes has.
     pub vendor_prefix: Option<VendorPrefix>,
 }
 
 /// Get all the animated properties in a keyframes animation.
 fn get_animated_properties(keyframes: &[Arc<Locked<Keyframe>>], guard: &SharedRwLockReadGuard)
-                           -> Vec<TransitionProperty> {
+                           -> Vec<AnimatableLonghand> {
     let mut ret = vec![];
     let mut seen = LonghandIdSet::new();
     // NB: declarations are already deduplicated, so we don't have to check for
@@ -355,9 +355,12 @@ fn get_animated_properties(keyframes: &[Arc<Locked<Keyframe>>], guard: &SharedRw
         for &(ref declaration, importance) in block.declarations().iter() {
             assert!(!importance.important());
 
-            if let Some(property) = TransitionProperty::from_declaration(declaration) {
-                if !seen.has_transition_property_bit(&property) {
-                    seen.set_transition_property_bit(&property);
+            if let Some(property) = AnimatableLonghand::from_declaration(declaration) {
+                // Skip the 'display' property because although it is animatable from SMIL,
+                // it should not be animatable from CSS Animations or Web Animations.
+                if property != AnimatableLonghand::Display &&
+                   !seen.has_animatable_longhand_bit(&property) {
+                    seen.set_animatable_longhand_bit(&property);
                     ret.push(property);
                 }
             }
@@ -372,7 +375,7 @@ impl KeyframesAnimation {
     ///
     /// This will return a keyframe animation with empty steps and
     /// properties_changed if the list of keyframes is empty, or there are no
-    //  animated properties obtained from the keyframes.
+    /// animated properties obtained from the keyframes.
     ///
     /// Otherwise, this will compute and sort the steps used for the animation,
     /// and return the animation object.

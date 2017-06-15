@@ -2239,13 +2239,6 @@ extern "C" {
                                                RawGeckoComputedKeyframeValuesListBorrowedMut);
 }
 extern "C" {
-    pub fn Servo_AnimationValueMap_Push(arg1:
-                                            RawServoAnimationValueMapBorrowedMut,
-                                        property: nsCSSPropertyID,
-                                        value:
-                                            RawServoAnimationValueBorrowed);
-}
-extern "C" {
     pub fn Servo_ComputedValues_ExtractAnimationValue(computed_values:
                                                           ServoComputedValuesBorrowed,
                                                       property:
@@ -2254,6 +2247,9 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_Property_IsAnimatable(property: nsCSSPropertyID) -> bool;
+}
+extern "C" {
+    pub fn Servo_Property_IsTransitionable(property: nsCSSPropertyID) -> bool;
 }
 extern "C" {
     pub fn Servo_Property_IsDiscreteAnimatable(property: nsCSSPropertyID)
