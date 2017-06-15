@@ -286,21 +286,12 @@ addTest(function() {
  */
 //FIXME fails
 addTest(function() {
-  console.log("absurd");
-  // try {
   for (var prop in C) {
-  //     //console.log("this is nonsense");
-      // console.log(prop);
       assert_unreached("Shouldn't have been able to enumerate " + prop + " on cross-origin Window");
     }
-    // } catch (err) {
-      // console.log(err);
-    // }
-  //   works
-  // for (var prop in C.location) {
-    // assert_unreached("Shouldn't have been able to enumerate " + prop + " on cross-origin Location");
-  // }
-   console.log("finish")
+  for (var prop in C.location) {
+    assert_unreached("Shouldn't have been able to enumerate " + prop + " on cross-origin Location");
+  }
 }, "[[Enumerate]] should return an empty iterator");
 
 
