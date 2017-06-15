@@ -7,7 +7,7 @@
 <% from data import SYSTEM_FONT_LONGHANDS %>
 
 use app_units::Au;
-use cssparser::{Parser, RGBA, serialize_identifier};
+use cssparser::{Parser, RGBA};
 use euclid::{Point2D, Size2D};
 #[cfg(feature = "gecko")] use gecko_bindings::bindings::RawServoAnimationValueMap;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::RawGeckoGfxMatrix4x4;
@@ -28,15 +28,12 @@ use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
 use properties::longhands::visibility::computed_value::T as Visibility;
 #[cfg(feature = "gecko")] use properties::{PropertyDeclarationId, LonghandId};
 use selectors::parser::SelectorParseError;
-#[cfg(feature = "servo")] use servo_atoms::Atom;
 use smallvec::SmallVec;
 use std::cmp;
 #[cfg(feature = "gecko")] use std::collections::HashMap;
-use std::fmt;
-use style_traits::{ToCss, ParseError};
+use style_traits::ParseError;
 use super::ComputedValues;
-use values::CSSFloat;
-use values::{Auto, Either};
+use values::{Auto, CSSFloat, CustomIdent, Either};
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{BorderCornerRadius, ClipRect};
 use values::computed::{CalcLengthOrPercentage, Color, Context, ComputedValueAsSpecified};
@@ -180,8 +177,8 @@ pub fn nscsspropertyid_is_animatable(property: nsCSSPropertyID) -> bool {
 /// a shorthand with at least one transitionable longhand component, or an unsupported property.
 // NB: This needs to be here because it needs all the longhands generated
 // beforehand.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, ToCss)]
 pub enum TransitionProperty {
     /// All, any transitionable property changing should generate a transition.
     All,
@@ -193,7 +190,7 @@ pub enum TransitionProperty {
     % endfor
     /// Unrecognized property which could be any non-transitionable, custom property, or
     /// unknown property.
-    Unsupported(Atom)
+    Unsupported(CustomIdent)
 }
 
 no_viewport_percentage!(TransitionProperty);
@@ -226,21 +223,22 @@ impl TransitionProperty {
     /// Parse a transition-property value.
     pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let ident = try!(input.expect_ident());
-        (match_ignore_ascii_case! { &ident,
-            "all" => Ok(TransitionProperty::All),
+        let supported = match_ignore_ascii_case! { &ident,
+            "all" => Ok(Some(TransitionProperty::All)),
             % for prop in data.longhands + data.shorthands_except_all():
                 % if prop.transitionable:
-                    "${prop.name}" => Ok(TransitionProperty::${prop.camel_case}),
+                    "${prop.name}" => Ok(Some(TransitionProperty::${prop.camel_case})),
                 % endif
             % endfor
             "none" => Err(()),
-            _ => {
-                match CSSWideKeyword::from_ident(&ident) {
-                    Some(_) => Err(()),
-                    None => Ok(TransitionProperty::Unsupported((&*ident).into()))
-                }
-            }
-        }).map_err(|()| SelectorParseError::UnexpectedIdent(ident.into()).into())
+            _ => Ok(None),
+        };
+
+        match supported {
+            Ok(Some(property)) => Ok(property),
+            Ok(None) => CustomIdent::from_ident(ident, &[]).map(TransitionProperty::Unsupported),
+            Err(()) => Err(SelectorParseError::UnexpectedIdent(ident).into()),
+        }
     }
 
     /// Return transitionable longhands of this shorthand TransitionProperty, except for "all".
@@ -279,26 +277,6 @@ impl TransitionProperty {
     }
 }
 
-impl ToCss for TransitionProperty {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
-    {
-        match *self {
-            TransitionProperty::All => dest.write_str("all"),
-            % for prop in data.longhands + data.shorthands_except_all():
-                % if prop.transitionable:
-                    TransitionProperty::${prop.camel_case} => dest.write_str("${prop.name}"),
-                % endif
-            % endfor
-            #[cfg(feature = "gecko")]
-            TransitionProperty::Unsupported(ref atom) => serialize_identifier(&atom.to_string(),
-                                                                              dest),
-            #[cfg(feature = "servo")]
-            TransitionProperty::Unsupported(ref atom) => serialize_identifier(atom, dest),
-        }
-    }
-}
-
 /// Convert to nsCSSPropertyID.
 #[cfg(feature = "gecko")]
 #[allow(non_upper_case_globals)]
@@ -329,7 +307,7 @@ impl From<nsCSSPropertyID> for TransitionProperty {
                         => TransitionProperty::${prop.camel_case},
                 % else:
                     ${helpers.to_nscsspropertyid(prop.ident)}
-                        => TransitionProperty::Unsupported(Atom::from("${prop.ident}")),
+                        => TransitionProperty::Unsupported(CustomIdent(Atom::from("${prop.ident}"))),
                 % endif
             % endfor
             nsCSSPropertyID::eCSSPropertyExtra_all_properties => TransitionProperty::All,

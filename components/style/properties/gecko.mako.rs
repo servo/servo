@@ -63,8 +63,8 @@ use std::mem::{forget, transmute, zeroed};
 use std::ptr;
 use stylearc::Arc;
 use std::cmp;
+use values::{Auto, CustomIdent, Either, KeyframesName};
 use values::computed::{Shadow, ToComputedValue};
-use values::{Either, Auto, KeyframesName};
 use computed_values::border_style;
 
 pub mod style_structs {
@@ -1190,8 +1190,8 @@ fn static_assert() {
     pub fn set_${value.name}(&mut self, v: longhands::${value.name}::computed_value::T) {
         use gecko_bindings::structs::{nsStyleGridLine_kMinLine, nsStyleGridLine_kMaxLine};
 
-        let ident = v.ident.unwrap_or(String::new());
-        self.gecko.${value.gecko}.mLineName.assign_utf8(&ident);
+        let ident = v.ident.as_ref().map_or(&[] as &[_], |ident| ident.0.as_slice());
+        self.gecko.${value.gecko}.mLineName.assign(ident);
         self.gecko.${value.gecko}.mHasSpan = v.is_span;
         self.gecko.${value.gecko}.mInteger = v.line_num.map(|i| {
             // clamping the integer between a range
@@ -2430,8 +2430,8 @@ fn static_assert() {
             self.gecko.mTransitionPropertyCount = v.len() as u32;
             for (servo, gecko) in v.zip(self.gecko.mTransitions.iter_mut()) {
                 match servo {
-                    TransitionProperty::Unsupported(ref atom) => unsafe {
-                        Gecko_StyleTransition_SetUnsupportedProperty(gecko, atom.as_ptr())
+                    TransitionProperty::Unsupported(ref ident) => unsafe {
+                        Gecko_StyleTransition_SetUnsupportedProperty(gecko, ident.0.as_ptr())
                     },
                     _ => gecko.mProperty = (&servo).into(),
                 }
@@ -2466,11 +2466,11 @@ fn static_assert() {
         if property == eCSSProperty_UNKNOWN || property == eCSSPropertyExtra_variable {
             let atom = self.gecko.mTransitions[index].mUnknownProperty.raw::<nsIAtom>();
             debug_assert!(!atom.is_null());
-            TransitionProperty::Unsupported(atom.into())
+            TransitionProperty::Unsupported(CustomIdent(atom.into()))
         } else if property == eCSSPropertyExtra_no_properties {
             // Actually, we don't expect TransitionProperty::Unsupported also represents "none",
             // but if the caller wants to convert it, it is fine. Please use it carefully.
-            TransitionProperty::Unsupported(atom!("none"))
+            TransitionProperty::Unsupported(CustomIdent(atom!("none")))
         } else {
             property.into()
         }
@@ -2683,19 +2683,19 @@ fn static_assert() {
                 }
 
                 for feature in features.iter() {
-                    if feature == &atom!("scroll-position") {
+                    if feature.0 == atom!("scroll-position") {
                         self.gecko.mWillChangeBitField |= NS_STYLE_WILL_CHANGE_SCROLL as u8;
-                    } else if feature == &atom!("opacity") {
+                    } else if feature.0 == atom!("opacity") {
                         self.gecko.mWillChangeBitField |= NS_STYLE_WILL_CHANGE_OPACITY as u8;
-                    } else if feature == &atom!("transform") {
+                    } else if feature.0 == atom!("transform") {
                         self.gecko.mWillChangeBitField |= NS_STYLE_WILL_CHANGE_TRANSFORM as u8;
                     }
 
                     unsafe {
-                        Gecko_AppendWillChange(&mut self.gecko, feature.as_ptr());
+                        Gecko_AppendWillChange(&mut self.gecko, feature.0.as_ptr());
                     }
 
-                    if let Ok(prop_id) = PropertyId::parse(feature.to_string().into()) {
+                    if let Ok(prop_id) = PropertyId::parse(feature.0.to_string().into()) {
                         match prop_id.as_shorthand() {
                             Ok(shorthand) => {
                                 for longhand in shorthand.longhands() {
