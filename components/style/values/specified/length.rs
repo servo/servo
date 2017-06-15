@@ -611,20 +611,22 @@ impl Length {
                               -> Result<Length, ParseError<'i>> {
         let token = try!(input.next());
         match token {
-            Token::Dimension(ref value, ref unit) if num_context.is_ok(context.parsing_mode, value.value) =>
-                Length::parse_dimension(context, value.value, unit),
-            Token::Number(ref value) if num_context.is_ok(context.parsing_mode, value.value) => {
-                if value.value != 0. &&
+            Token::Dimension { value, ref unit, .. } if num_context.is_ok(context.parsing_mode, value) => {
+                Length::parse_dimension(context, value, unit)
+            }
+            Token::Number { value, .. } if num_context.is_ok(context.parsing_mode, value) => {
+                if value != 0. &&
                    !context.parsing_mode.allows_unitless_lengths() &&
                    !allow_quirks.allowed(context.quirks_mode) {
                     return Err(StyleParseError::UnspecifiedError.into())
                 }
-                Ok(Length::NoCalc(NoCalcLength::Absolute(AbsoluteLength::Px(value.value))))
+                Ok(Length::NoCalc(NoCalcLength::Absolute(AbsoluteLength::Px(value))))
             },
-            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") =>
+            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 return input.parse_nested_block(|input| {
                     CalcNode::parse_length(context, input, num_context).map(|calc| Length::Calc(Box::new(calc)))
-                }),
+                })
+            }
             _ => Err(())
         }.map_err(|()| BasicParseError::UnexpectedToken(token).into())
     }
@@ -720,8 +722,8 @@ impl Percentage {
                                             num_context: AllowedNumericType)
                                             -> Result<Self, ParseError<'i>> {
         match try!(input.next()) {
-            Token::Percentage(ref value) if num_context.is_ok(context.parsing_mode, value.unit_value) => {
-                Ok(Percentage(value.unit_value))
+            Token::Percentage { unit_value, .. } if num_context.is_ok(context.parsing_mode, unit_value) => {
+                Ok(Percentage(unit_value))
             }
             t => Err(BasicParseError::UnexpectedToken(t).into())
         }
@@ -804,17 +806,19 @@ impl LengthOrPercentage {
     {
         let token = try!(input.next());
         match token {
-            Token::Dimension(ref value, ref unit) if num_context.is_ok(context.parsing_mode, value.value) =>
-                NoCalcLength::parse_dimension(context, value.value, unit).map(LengthOrPercentage::Length),
-            Token::Percentage(ref value) if num_context.is_ok(context.parsing_mode, value.unit_value) =>
-                return Ok(LengthOrPercentage::Percentage(Percentage(value.unit_value))),
-            Token::Number(value) if num_context.is_ok(context.parsing_mode, value.value) => {
-                if value.value != 0. &&
+            Token::Dimension { value, ref unit, .. } if num_context.is_ok(context.parsing_mode, value) => {
+                NoCalcLength::parse_dimension(context, value, unit).map(LengthOrPercentage::Length)
+            }
+            Token::Percentage { unit_value, .. } if num_context.is_ok(context.parsing_mode, unit_value) => {
+                return Ok(LengthOrPercentage::Percentage(Percentage(unit_value)))
+            }
+            Token::Number { value, .. } if num_context.is_ok(context.parsing_mode, value) => {
+                if value != 0. &&
                    !context.parsing_mode.allows_unitless_lengths() &&
                    !allow_quirks.allowed(context.quirks_mode) {
                     Err(())
                 } else {
-                    return Ok(LengthOrPercentage::Length(NoCalcLength::from_px(value.value)))
+                    return Ok(LengthOrPercentage::Length(NoCalcLength::from_px(value)))
                 }
             }
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
@@ -822,7 +826,7 @@ impl LengthOrPercentage {
                     CalcNode::parse_length_or_percentage(context, i, num_context)
                 }));
                 return Ok(LengthOrPercentage::Calc(Box::new(calc)))
-            },
+            }
             _ => Err(())
         }.map_err(|()| BasicParseError::UnexpectedToken(token).into())
     }
@@ -938,28 +942,31 @@ impl LengthOrPercentageOrAuto {
                               -> Result<Self, ParseError<'i>> {
         let token = try!(input.next());
         match token {
-            Token::Dimension(ref value, ref unit) if num_context.is_ok(context.parsing_mode, value.value) =>
-                NoCalcLength::parse_dimension(context, value.value, unit).map(LengthOrPercentageOrAuto::Length),
-            Token::Percentage(ref value) if num_context.is_ok(context.parsing_mode, value.unit_value) =>
-                Ok(LengthOrPercentageOrAuto::Percentage(Percentage(value.unit_value))),
-            Token::Number(ref value) if num_context.is_ok(context.parsing_mode, value.value) => {
-                if value.value != 0. &&
+            Token::Dimension { value, ref unit, .. } if num_context.is_ok(context.parsing_mode, value) => {
+                NoCalcLength::parse_dimension(context, value, unit).map(LengthOrPercentageOrAuto::Length)
+            }
+            Token::Percentage { unit_value, .. } if num_context.is_ok(context.parsing_mode, unit_value) => {
+                Ok(LengthOrPercentageOrAuto::Percentage(Percentage(unit_value)))
+            }
+            Token::Number { value, .. } if num_context.is_ok(context.parsing_mode, value) => {
+                if value != 0. &&
                    !context.parsing_mode.allows_unitless_lengths() &&
                    !allow_quirks.allowed(context.quirks_mode) {
                     return Err(StyleParseError::UnspecifiedError.into())
                 }
                 Ok(LengthOrPercentageOrAuto::Length(
-                    NoCalcLength::Absolute(AbsoluteLength::Px(value.value))
+                    NoCalcLength::Absolute(AbsoluteLength::Px(value))
                 ))
             }
-            Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") =>
-                Ok(LengthOrPercentageOrAuto::Auto),
+            Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") => {
+                Ok(LengthOrPercentageOrAuto::Auto)
+            }
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 let calc = try!(input.parse_nested_block(|i| {
                     CalcNode::parse_length_or_percentage(context, i, num_context)
                 }));
                 Ok(LengthOrPercentageOrAuto::Calc(Box::new(calc)))
-            },
+            }
             _ => Err(())
         }.map_err(|()| BasicParseError::UnexpectedToken(token).into())
     }
@@ -1034,17 +1041,19 @@ impl LengthOrPercentageOrNone {
     {
         let token = try!(input.next());
         match token {
-            Token::Dimension(ref value, ref unit) if num_context.is_ok(context.parsing_mode, value.value) =>
-                NoCalcLength::parse_dimension(context, value.value, unit).map(LengthOrPercentageOrNone::Length),
-            Token::Percentage(ref value) if num_context.is_ok(context.parsing_mode, value.unit_value) =>
-                Ok(LengthOrPercentageOrNone::Percentage(Percentage(value.unit_value))),
-            Token::Number(value) if num_context.is_ok(context.parsing_mode, value.value) => {
-                if value.value != 0. && !context.parsing_mode.allows_unitless_lengths() &&
+            Token::Dimension { value, ref unit, .. } if num_context.is_ok(context.parsing_mode, value) => {
+                NoCalcLength::parse_dimension(context, value, unit).map(LengthOrPercentageOrNone::Length)
+            }
+            Token::Percentage { unit_value, .. } if num_context.is_ok(context.parsing_mode, unit_value) => {
+                Ok(LengthOrPercentageOrNone::Percentage(Percentage(unit_value)))
+            }
+            Token::Number { value, .. } if num_context.is_ok(context.parsing_mode, value) => {
+                if value != 0. && !context.parsing_mode.allows_unitless_lengths() &&
                    !allow_quirks.allowed(context.quirks_mode) {
                     return Err(StyleParseError::UnspecifiedError.into())
                 }
                 Ok(LengthOrPercentageOrNone::Length(
-                    NoCalcLength::Absolute(AbsoluteLength::Px(value.value))
+                    NoCalcLength::Absolute(AbsoluteLength::Px(value))
                 ))
             }
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
@@ -1052,7 +1061,7 @@ impl LengthOrPercentageOrNone {
                     CalcNode::parse_length_or_percentage(context, i, num_context)
                 }));
                 Ok(LengthOrPercentageOrNone::Calc(Box::new(calc)))
-            },
+            }
             Token::Ident(ref value) if value.eq_ignore_ascii_case("none") =>
                 Ok(LengthOrPercentageOrNone::None),
             _ => Err(())
@@ -1116,23 +1125,28 @@ impl LengthOrPercentageOrAutoOrContent {
         let num_context = AllowedLengthType::NonNegative;
         let token = try!(input.next());
         match token {
-            Token::Dimension(ref value, ref unit) if num_context.is_ok(context.parsing_mode, value.value) =>
-                NoCalcLength::parse_dimension(context, value.value, unit)
-                             .map(LengthOrPercentageOrAutoOrContent::Length),
-            Token::Percentage(ref value) if num_context.is_ok(context.parsing_mode, value.unit_value) =>
-                Ok(LengthOrPercentageOrAutoOrContent::Percentage(Percentage(value.unit_value))),
-            Token::Number(ref value) if value.value == 0. =>
-                Ok(Self::zero()),
-            Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") =>
-                Ok(LengthOrPercentageOrAutoOrContent::Auto),
-            Token::Ident(ref value) if value.eq_ignore_ascii_case("content") =>
-                Ok(LengthOrPercentageOrAutoOrContent::Content),
+            Token::Dimension { value, ref unit, .. } if num_context.is_ok(context.parsing_mode, value) => {
+                NoCalcLength::parse_dimension(context, value, unit)
+                             .map(LengthOrPercentageOrAutoOrContent::Length)
+            }
+            Token::Percentage { unit_value, .. } if num_context.is_ok(context.parsing_mode, unit_value) => {
+                Ok(LengthOrPercentageOrAutoOrContent::Percentage(Percentage(unit_value)))
+            }
+            Token::Number { value, .. } if value == 0. => {
+                Ok(Self::zero())
+            }
+            Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") => {
+                Ok(LengthOrPercentageOrAutoOrContent::Auto)
+            }
+            Token::Ident(ref value) if value.eq_ignore_ascii_case("content") => {
+                Ok(LengthOrPercentageOrAutoOrContent::Content)
+            }
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 let calc = try!(input.parse_nested_block(|i| {
                     CalcNode::parse_length_or_percentage(context, i, num_context)
                 }));
                 Ok(LengthOrPercentageOrAutoOrContent::Calc(Box::new(calc)))
-            },
+            }
             _ => Err(())
         }.map_err(|()| BasicParseError::UnexpectedToken(token).into())
     }

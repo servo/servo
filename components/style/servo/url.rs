@@ -7,7 +7,6 @@
 use cssparser::CssStringWriter;
 use parser::ParserContext;
 use servo_url::ServoUrl;
-use std::borrow::Cow;
 use std::fmt::{self, Write};
 // Note: We use std::sync::Arc rather than stylearc::Arc here because the
 // nonzero optimization is important in keeping the size of SpecifiedUrl below
@@ -41,10 +40,10 @@ impl SpecifiedUrl {
     /// Try to parse a URL from a string value that is a valid CSS token for a
     /// URL. Never fails - the API is only fallible to be compatible with the
     /// gecko version.
-    pub fn parse_from_string<'a>(url: Cow<'a, str>,
+    pub fn parse_from_string<'a>(url: String,
                                  context: &ParserContext)
                                  -> Result<Self, ParseError<'a>> {
-        let serialization = Arc::new(url.into_owned());
+        let serialization = Arc::new(url);
         let resolved = context.url_data.join(&serialization).ok();
         Ok(SpecifiedUrl {
             original: Some(serialization),

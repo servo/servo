@@ -8,7 +8,7 @@
 
 use {Atom, Prefix, Namespace, LocalName, CaseSensitivityExt};
 use attr::{AttrIdentifier, AttrValue};
-use cssparser::{Parser as CssParser, ToCss, serialize_identifier};
+use cssparser::{Parser as CssParser, ToCss, serialize_identifier, CompactCowStr};
 use dom::{OpaqueNode, TElement, TNode};
 use element_state::ElementState;
 use fnv::FnvHashMap;
@@ -311,7 +311,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     type Impl = SelectorImpl;
     type Error = StyleParseError<'i>;
 
-    fn parse_non_ts_pseudo_class(&self, name: Cow<'i, str>)
+    fn parse_non_ts_pseudo_class(&self, name: CompactCowStr<'i>)
                                  -> Result<NonTSPseudoClass, ParseError<'i>> {
         use self::NonTSPseudoClass::*;
         let pseudo_class = match_ignore_ascii_case! { &name,
@@ -344,7 +344,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     }
 
     fn parse_non_ts_functional_pseudo_class<'t>(&self,
-                                                name: Cow<'i, str>,
+                                                name: CompactCowStr<'i>,
                                                 parser: &mut CssParser<'i, 't>)
                                                 -> Result<NonTSPseudoClass, ParseError<'i>> {
         use self::NonTSPseudoClass::*;
@@ -356,7 +356,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
                 if !self.in_user_agent_stylesheet() {
                     return Err(SelectorParseError::UnexpectedIdent(name.clone()).into());
                 }
-                ServoCaseSensitiveTypeAttr(Atom::from(parser.expect_ident()?))
+                ServoCaseSensitiveTypeAttr(Atom::from(Cow::from(parser.expect_ident()?)))
             }
             _ => return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
         };
@@ -364,7 +364,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         Ok(pseudo_class)
     }
 
-    fn parse_pseudo_element(&self, name: Cow<'i, str>) -> Result<PseudoElement, ParseError<'i>> {
+    fn parse_pseudo_element(&self, name: CompactCowStr<'i>) -> Result<PseudoElement, ParseError<'i>> {
         use self::PseudoElement::*;
         let pseudo_element = match_ignore_ascii_case! { &name,
             "before" => Before,

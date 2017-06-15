@@ -6,7 +6,7 @@
 
 #![deny(missing_docs)]
 
-use cssparser::{Parser, SourcePosition, BasicParseError, Token, NumericValue, PercentageValue};
+use cssparser::{Parser, SourcePosition, BasicParseError, Token};
 use cssparser::ParseError as CssParseError;
 use log;
 use style_traits::ParseError;
@@ -54,11 +54,11 @@ impl<'a> ContextualParseError<'a> {
                 Token::QuotedString(ref s) => format!("quoted string \"{}\"", s),
                 Token::UnquotedUrl(ref u) => format!("url {}", u),
                 Token::Delim(ref d) => format!("delimiter {}", d),
-                Token::Number(NumericValue { int_value: Some(i), .. }) => format!("number {}", i),
-                Token::Number(ref n) => format!("number {}", n.value),
-                Token::Percentage(PercentageValue { int_value: Some(i), .. }) => format!("percentage {}", i),
-                Token::Percentage(ref p) => format!("percentage {}", p.unit_value),
-                Token::Dimension(_, ref d) => format!("dimension {}", d),
+                Token::Number { int_value: Some(i), .. } => format!("number {}", i),
+                Token::Number { value, .. } => format!("number {}", value),
+                Token::Percentage { int_value: Some(i), .. } => format!("percentage {}", i),
+                Token::Percentage { unit_value, .. } => format!("percentage {}", unit_value * 100.),
+                Token::Dimension { value, ref unit, .. } => format!("dimension {}{}", value, unit),
                 Token::WhiteSpace(_) => format!("whitespace"),
                 Token::Comment(_) => format!("comment"),
                 Token::Colon => format!("colon (:)"),

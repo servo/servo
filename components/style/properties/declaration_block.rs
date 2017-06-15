@@ -7,7 +7,7 @@
 #![deny(missing_docs)]
 
 use context::QuirksMode;
-use cssparser::{DeclarationListParser, parse_important, ParserInput};
+use cssparser::{DeclarationListParser, parse_important, ParserInput, CompactCowStr};
 use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter};
 use error_reporting::{ParseErrorReporter, ContextualParseError};
 use parser::{ParserContext, log_css_error};
@@ -932,7 +932,7 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for PropertyDeclarationParser<'a, 'b> {
     type Declaration = Importance;
     type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-    fn parse_value<'t>(&mut self, name: Cow<'i, str>, input: &mut Parser<'i, 't>)
+    fn parse_value<'t>(&mut self, name: CompactCowStr<'i>, input: &mut Parser<'i, 't>)
                        -> Result<Importance, ParseError<'i>> {
         let id = try!(PropertyId::parse(name));
         input.parse_until_before(Delimiter::Bang, |input| {
