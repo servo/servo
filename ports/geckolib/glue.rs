@@ -68,7 +68,7 @@ use style::gecko_bindings::bindings::nsTimingFunctionBorrowedMut;
 use style::gecko_bindings::structs;
 use style::gecko_bindings::structs::{CSSPseudoElementType, CompositeOperation};
 use style::gecko_bindings::structs::{Loader, LoaderReusableStyleSheets};
-use style::gecko_bindings::structs::{RawServoStyleRule, ServoStyleSheet};
+use style::gecko_bindings::structs::{RawServoStyleRule, ServoStyleRule, ServoStyleSheet};
 use style::gecko_bindings::structs::{SheetParsingMode, nsIAtom, nsCSSPropertyID};
 use style::gecko_bindings::structs::{nsCSSFontFaceRule, nsCSSCounterStyleRule};
 use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint, PropertyValuePair};
@@ -1228,6 +1228,15 @@ pub extern "C" fn Servo_StyleRule_GetSpecificityAtIndex(rule: RawServoStyleRuleB
             return;
         }
         *specificity = rule.selectors.0[index].selector.specificity() as u64;
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleRule_SetGeckoRulePointer(rule: RawServoStyleRuleBorrowed,
+                                                      ptr: *const ServoStyleRule) {
+    write_locked_arc(rule, |rule: &mut StyleRule| {
+        debug_assert_eq!(rule.gecko_rule.0, ptr::null());
+        rule.gecko_rule.0 = ptr;
     })
 }
 
