@@ -68,7 +68,8 @@ use logical_geometry::WritingMode;
 use media_queries::Device;
 use properties::{ComputedValues, parse_style_attribute};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock};
-use properties::animated_properties::{AnimationValue, AnimationValueMap, TransitionProperty};
+use properties::animated_properties::{AnimatableLonghand, AnimationValue, AnimationValueMap};
+use properties::animated_properties::TransitionProperty;
 use properties::style_structs::Font;
 use rule_tree::CascadeLevel as ServoCascadeLevel;
 use selector_parser::{AttrValue, ElementExt, PseudoClassStringArg};
@@ -1143,8 +1144,11 @@ impl<'le> TElement for GeckoElement<'le> {
             return existing_transitions.get(property).unwrap() != &after_value;
         }
 
+        // |property| should be an animatable longhand
+        let animatable_longhand = AnimatableLonghand::from_transition_property(property).unwrap();
+
         combined_duration > 0.0f32 &&
-        AnimatedProperty::from_transition_property(property,
+        AnimatedProperty::from_animatable_longhand(&animatable_longhand,
                                                    before_change_style,
                                                    after_change_style).does_animate()
     }

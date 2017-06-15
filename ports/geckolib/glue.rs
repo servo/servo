@@ -95,7 +95,8 @@ use style::parser::ParserContext;
 use style::properties::{CascadeFlags, ComputedValues, Importance, SourcePropertyDeclaration};
 use style::properties::{LonghandIdSet, PropertyDeclaration, PropertyDeclarationBlock, PropertyId, StyleBuilder};
 use style::properties::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
-use style::properties::animated_properties::{Animatable, AnimationValue, TransitionProperty};
+use style::properties::animated_properties::{Animatable, AnimatableLonghand, AnimationValue};
+use style::properties::animated_properties::TransitionProperty;
 use style::properties::parse_one_declaration_into;
 use style::rule_tree::StyleSource;
 use style::selector_parser::PseudoElementCascadeType;
@@ -393,7 +394,10 @@ pub extern "C" fn Servo_AnimationCompose(raw_value_map: RawServoAnimationValueMa
     use style::gecko_bindings::bindings::Gecko_GetProgressFromComputedTiming;
     use style::properties::animated_properties::AnimationValueMap;
 
-    let property: TransitionProperty = css_property.into();
+    let property = match AnimatableLonghand::from_nscsspropertyid(css_property) {
+        Some(longhand) => longhand,
+        None => { return (); }
+    };
     let value_map = AnimationValueMap::from_ffi_mut(raw_value_map);
 
     // We will need an underlying value if either of the endpoints is null...
@@ -2683,10 +2687,10 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
             let guard = declarations.read_with(&guard);
 
             for anim in guard.to_animation_value_iter(&mut context, &default_values) {
-                if !seen.has_transition_property_bit(&anim.0) {
+                if !seen.has_animatable_longhand_bit(&anim.0) {
                     // This is safe since we immediately write to the uninitialized values.
                     unsafe { animation_values.set_len((property_index + 1) as u32) };
-                    seen.set_transition_property_bit(&anim.0);
+                    seen.set_animatable_longhand_bit(&anim.0);
                     animation_values[property_index].mProperty = (&anim.0).into();
                     // We only make sure we have enough space for this variable,
                     // but didn't construct a default value for StyleAnimationValue,
@@ -2783,7 +2787,7 @@ pub extern "C" fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed) {
 
 fn append_computed_property_value(keyframe: *mut structs::Keyframe,
                                   style: &ComputedValues,
-                                  property: &TransitionProperty,
+                                  property: &AnimatableLonghand,
                                   shared_lock: &SharedRwLock) {
     let block = style.to_declaration_block(property.clone().into());
     unsafe {
@@ -2802,7 +2806,7 @@ enum Offset {
     One
 }
 
-fn fill_in_missing_keyframe_values(all_properties:  &[TransitionProperty],
+fn fill_in_missing_keyframe_values(all_properties:  &[AnimatableLonghand],
                                    timing_function: nsTimingFunctionBorrowed,
                                    style: &ComputedValues,
                                    properties_set_at_offset: &LonghandIdSet,
@@ -2810,7 +2814,7 @@ fn fill_in_missing_keyframe_values(all_properties:  &[TransitionProperty],
                                    keyframes: RawGeckoKeyframeListBorrowedMut,
                                    shared_lock: &SharedRwLock) {
     let needs_filling = all_properties.iter().any(|ref property| {
-        !properties_set_at_offset.has_transition_property_bit(property)
+        !properties_set_at_offset.has_animatable_longhand_bit(property)
     });
 
     // Return earli if all animated properties are already set.
@@ -2829,7 +2833,7 @@ fn fill_in_missing_keyframe_values(all_properties:  &[TransitionProperty],
 
     // Append properties that have not been set at this offset.
     for ref property in all_properties.iter() {
-        if !properties_set_at_offset.has_transition_property_bit(property) {
+        if !properties_set_at_offset.has_animatable_longhand_bit(property) {
             append_computed_property_value(keyframe,
                                            style,
                                            property,
@@ -2921,17 +2925,17 @@ pub extern "C" fn Servo_StyleSet_GetKeyframesForName(raw_data: RawServoStyleSetB
 
                 let mut index = unsafe { (*keyframe).mPropertyValues.len() };
                 for &(ref declaration, _) in animatable {
-                    let property = TransitionProperty::from_declaration(declaration).unwrap();
-                    if !properties_set_at_current_offset.has_transition_property_bit(&property) {
-                        properties_set_at_current_offset.set_transition_property_bit(&property);
+                    let property = AnimatableLonghand::from_declaration(declaration).unwrap();
+                    if !properties_set_at_current_offset.has_animatable_longhand_bit(&property) {
+                        properties_set_at_current_offset.set_animatable_longhand_bit(&property);
                         if current_offset == 0.0 {
-                            properties_set_at_start.set_transition_property_bit(&property);
+                            properties_set_at_start.set_animatable_longhand_bit(&property);
                         } else if current_offset == 1.0 {
-                            properties_set_at_end.set_transition_property_bit(&property);
+                            properties_set_at_end.set_animatable_longhand_bit(&property);
                         }
 
                         unsafe {
-                            let property = TransitionProperty::from_declaration(declaration).unwrap();
+                            let property = AnimatableLonghand::from_declaration(declaration).unwrap();
                             (*keyframe).mPropertyValues.set_len((index + 1) as u32);
                             (*keyframe).mPropertyValues[index].mProperty = (&property).into();
                             (*keyframe).mPropertyValues[index].mServoDeclarationBlock.set_arc_leaky(

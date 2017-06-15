@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, Importance};
-use style::properties::animated_properties::TransitionProperty;
+use style::properties::animated_properties::AnimatableLonghand;
 use style::shared_lock::SharedRwLock;
 use style::stylearc::Arc;
 use style::stylesheets::keyframes_rule::{Keyframe, KeyframesAnimation, KeyframePercentage,  KeyframeSelector};
@@ -100,7 +100,7 @@ fn test_missing_property_in_initial_keyframe() {
                 declared_timing_function: false,
             },
         ],
-        properties_changed: vec![TransitionProperty::Width, TransitionProperty::Height],
+        properties_changed: vec![AnimatableLonghand::Width, AnimatableLonghand::Height],
         vendor_prefix: None,
     };
 
@@ -160,7 +160,7 @@ fn test_missing_property_in_final_keyframe() {
                 declared_timing_function: false,
             },
         ],
-        properties_changed: vec![TransitionProperty::Width, TransitionProperty::Height],
+        properties_changed: vec![AnimatableLonghand::Width, AnimatableLonghand::Height],
         vendor_prefix: None,
     };
 
@@ -222,7 +222,7 @@ fn test_missing_keyframe_in_both_of_initial_and_final_keyframe() {
                 declared_timing_function: false,
             }
         ],
-        properties_changed: vec![TransitionProperty::Width, TransitionProperty::Height],
+        properties_changed: vec![AnimatableLonghand::Width, AnimatableLonghand::Height],
         vendor_prefix: None,
     };
 
