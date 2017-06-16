@@ -365,10 +365,10 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                     return Err(StyleParseError::UnsupportedAtRule(name.clone()).into())
                 }
                 let name = parse_counter_style_name(input)?;
-                // ASCII-case-insensitive matches for "decimal" are already
-                // lower-cased by `parse_counter_style_name`, so we can use ==
-                // here.
-                if name.0 == atom!("decimal") {
+                // ASCII-case-insensitive matches for "decimal" and "disc".
+                // The name is already lower-cased by `parse_counter_style_name`
+                // so we can use == here.
+                if name.0 == atom!("decimal") || name.0 == atom!("disc") {
                     return Err(StyleParseError::UnspecifiedError.into())
                 }
                 Ok(AtRuleType::WithBlock(AtRulePrelude::CounterStyle(name)))
