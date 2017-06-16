@@ -1462,8 +1462,7 @@ impl Window {
                 None => break,
             }
         }
-        let vp_origin = self.current_viewport.get().origin;
-        Vector2D::new(vp_origin.x.to_f32_px(), vp_origin.y.to_f32_px())
+        Vector2D::new(0.0, 0.0)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scroll
