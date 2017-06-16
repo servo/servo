@@ -122,6 +122,11 @@ impl RuleTree {
         self.root.clone()
     }
 
+    /// Returns true if there are no nodes in the tree aside from the rule node.
+    pub fn is_empty(&self) -> bool {
+        self.root.get().first_child.load(Ordering::Relaxed).is_null()
+    }
+
     fn dump<W: Write>(&self, guards: &StylesheetGuards, writer: &mut W) {
         let _ = writeln!(writer, " + RuleTree");
         self.root.get().dump(guards, writer, 0);

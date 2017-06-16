@@ -1283,10 +1283,10 @@ impl Drop for Stylist {
         // dropped all strong rule node references before now, then we will
         // leak them, since there will be no way to call gc() on the rule tree
         // after this point.
-        //
-        // TODO(emilio): We can at least assert all the elements in the free
-        // list are indeed free.
         unsafe { self.rule_tree.gc(); }
+
+        // Assert against leaks.
+        debug_assert!(self.rule_tree.is_empty());
     }
 }
 
