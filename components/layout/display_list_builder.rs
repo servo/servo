@@ -1156,6 +1156,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // TODO: check that this is the servo equivalent of "concrete object size".
         // https://drafts.css-houdini.org/css-paint-api/#draw-a-paint-image
         // https://drafts.csswg.org/css-images-3/#concrete-object-size
+        // https://github.com/servo/servo/issues/17376
         let size = self.content_box().size.to_physical(style.writing_mode);
         let name = paint_worklet.name.clone();
 
@@ -1166,6 +1167,7 @@ impl FragmentDisplayListBuilding for Fragment {
         };
 
         // TODO: add a one-place cache to avoid drawing the paint image every time.
+        // https://github.com/servo/servo/issues/17369
         debug!("Drawing a paint image {}({},{}).", name, size.width.to_px(), size.height.to_px());
         let mut image = match executor.draw_a_paint_image(name, size) {
             Ok(image) => image,
