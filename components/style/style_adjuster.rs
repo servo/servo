@@ -8,8 +8,6 @@
 use app_units::Au;
 use properties::{self, CascadeFlags, ComputedValues};
 use properties::{SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, StyleBuilder};
-#[cfg(feature = "gecko")]
-use properties::PROHIBIT_DISPLAY_CONTENTS;
 use properties::longhands::display::computed_value::T as display;
 use properties::longhands::float::computed_value::T as float;
 use properties::longhands::overflow_x::computed_value::T as overflow;
@@ -281,6 +279,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// Native anonymous content converts display:contents into display:inline.
     #[cfg(feature = "gecko")]
     fn adjust_for_prohibited_display_contents(&mut self, flags: CascadeFlags) {
+        use properties::PROHIBIT_DISPLAY_CONTENTS;
+
         // TODO: We should probably convert display:contents into display:none
         // in some cases too: https://drafts.csswg.org/css-display/#unbox
         if !flags.contains(PROHIBIT_DISPLAY_CONTENTS) ||
