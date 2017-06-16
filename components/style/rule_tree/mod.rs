@@ -1339,6 +1339,11 @@ impl Drop for StrongRuleNode {
         // This can be relaxed since this pointer won't be read until GC.
         node.next_free.store(old_head, Ordering::Relaxed);
 
+        // Increment the free count. This doesn't need to be an RMU atomic
+        // operation, because the free list is "locked".
+        let old_free_count = root.free_count.load(Ordering::Relaxed);
+        root.free_count.store(old_free_count + 1, Ordering::Relaxed);
+
         // This can be release because of the locking of the free list, that
         // ensures that all the other nodes racing with this one are using
         // `Acquire`.
