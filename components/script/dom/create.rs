@@ -107,10 +107,18 @@ fn create_svg_element(name: QualName,
 }
 
 fn create_html_element(name: QualName,
-                      prefix: Option<Prefix>,
-                      document: &Document,
-                      creator: ElementCreator)
-                      -> Root<Element> {
+                       prefix: Option<Prefix>,
+                       document: &Document,
+                       creator: ElementCreator)
+                       -> Root<Element> {
+    create_native_html_element(name, prefix, document, creator)
+}
+
+pub fn create_native_html_element(name: QualName,
+                                  prefix: Option<Prefix>,
+                                  document: &Document,
+                                  creator: ElementCreator)
+                                  -> Root<Element> {
     assert!(name.ns == ns!(html));
 
     macro_rules! make(

@@ -11,6 +11,7 @@
  */
 
 // https://html.spec.whatwg.org/multipage/#htmlanchorelement
+[HTMLConstructor]
 interface HTMLAnchorElement : HTMLElement {
   attribute DOMString target;
   //       attribute DOMString download;

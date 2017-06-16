@@ -2863,7 +2863,7 @@ create_noncallback_interface_object(cx,
                                     %(length)s,
                                     interface.handle_mut());
 assert!(!interface.is_null());""" % properties))
-            if self.descriptor.hasDescendants():
+            if self.descriptor.shouldCacheConstructor():
                 code.append(CGGeneric("""\
 assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
 (*cache)[PrototypeList::Constructor::%(id)s as usize] = interface.get();
@@ -5301,11 +5301,79 @@ class CGClassConstructHook(CGAbstractExternMethod):
             preamble += "let global = Root::downcast::<dom::types::%s>(global).unwrap();\n" % list(self.exposureSet)[0]
         preamble += """let args = CallArgs::from_vp(vp, argc);\n"""
         preamble = CGGeneric(preamble)
-        name = self.constructor.identifier.name
-        nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
-        callGenerator = CGMethodCall(["&global"], nativeName, True,
-                                     self.descriptor, self.constructor)
-        return CGList([preamble, callGenerator])
+        if self.constructor.isHTMLConstructor():
+            signatures = self.constructor.signatures()
+            assert len(signatures) == 1
+            constructorCall = CGGeneric("""\
+// Step 2 https://html.spec.whatwg.org/multipage/#htmlconstructor
+// The custom element definition cannot use an element interface as its constructor
+
+// The new_target might be a cross-compartment wrapper. Get the underlying object
+// so we can do the spec's object-identity checks.
+rooted!(in(cx) let new_target = UnwrapObject(args.new_target().to_object(), 1));
+if new_target.is_null() {
+    throw_dom_exception(cx, global.upcast::<GlobalScope>(), Error::Type("new.target is null".to_owned()));
+    return false;
+}
+
+if args.callee() == new_target.get() {
+    throw_dom_exception(cx, global.upcast::<GlobalScope>(),
+        Error::Type("new.target must not be the active function object".to_owned()));
+    return false;
+}
+
+// Step 6
+rooted!(in(cx) let mut prototype = ptr::null_mut());
+{
+    rooted!(in(cx) let mut proto_val = UndefinedValue());
+    let _ac = JSAutoCompartment::new(cx, new_target.get());
+    if !JS_GetProperty(cx, new_target.handle(), b"prototype\\0".as_ptr() as *const _, proto_val.handle_mut()) {
+        return false;
+    }
+
+    if !proto_val.is_object() {
+        // Step 7 of https://html.spec.whatwg.org/multipage/#htmlconstructor.
+        // This fallback behavior is designed to match analogous behavior for the
+        // JavaScript built-ins. So we enter the compartment of our underlying
+        // newTarget object and fall back to the prototype object from that global.
+        // XXX The spec says to use GetFunctionRealm(), which is not actually
+        // the same thing as what we have here (e.g. in the case of scripted callable proxies
+        // whose target is not same-compartment with the proxy, or bound functions, etc).
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=1317658
+
+        rooted!(in(cx) let global_object = CurrentGlobalOrNull(cx));
+        GetProtoObject(cx, global_object.handle(), prototype.handle_mut());
+    } else {
+        // Step 6
+        prototype.set(proto_val.to_object());
+    };
+}
+
+// Wrap prototype in this context since it is from the newTarget compartment
+if !JS_WrapObject(cx, prototype.handle_mut()) {
+    return false;
+}
+
+let result: Result<Root<%s>, Error> = html_constructor(&global, &args);
+let result = match result {
+    Ok(result) => result,
+    Err(e) => {
+        throw_dom_exception(cx, global.upcast::<GlobalScope>(), e);
+        return false;
+    },
+};
+
+JS_SetPrototype(cx, result.reflector().get_jsobject(), prototype.handle());
+
+(result).to_jsval(cx, args.rval());
+return true;
+""" % self.descriptor.name)
+        else:
+            name = self.constructor.identifier.name
+            nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
+            constructorCall = CGMethodCall(["&global"], nativeName, True,
+                                           self.descriptor, self.constructor)
+        return CGList([preamble, constructorCall])
 
 
 class CGClassFinalizeHook(CGAbstractClassHook):
@@ -5517,9 +5585,11 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::JS_ObjectIsDate',
         'js::jsapi::JS_SetImmutablePrototype',
         'js::jsapi::JS_SetProperty',
+        'js::jsapi::JS_SetPrototype',
         'js::jsapi::JS_SetReservedSlot',
         'js::jsapi::JS_SplicePrototype',
         'js::jsapi::JS_WrapValue',
+        'js::jsapi::JS_WrapObject',
         'js::jsapi::MutableHandle',
         'js::jsapi::MutableHandleObject',
         'js::jsapi::MutableHandleValue',
@@ -5547,6 +5617,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::glue::RUST_JSID_IS_STRING',
         'js::glue::RUST_SYMBOL_TO_JSID',
         'js::glue::int_to_jsid',
+        'js::glue::UnwrapObject',
         'js::panic::maybe_resume_unwind',
         'js::panic::wrap_panic',
         'js::rust::GCMethods',
@@ -5561,14 +5632,15 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::interface::ConstructorClassHook',
         'dom::bindings::interface::InterfaceConstructorBehavior',
         'dom::bindings::interface::NonCallbackInterfaceObjectClass',
-        'dom::bindings::interface::create_callback_interface_object',
         'dom::bindings::interface::create_global_object',
+        'dom::bindings::interface::create_callback_interface_object',
         'dom::bindings::interface::create_interface_prototype_object',
         'dom::bindings::interface::create_named_constructors',
         'dom::bindings::interface::create_noncallback_interface_object',
         'dom::bindings::interface::define_guarded_constants',
         'dom::bindings::interface::define_guarded_methods',
         'dom::bindings::interface::define_guarded_properties',
+        'dom::bindings::interface::html_constructor',
         'dom::bindings::interface::is_exposed_in',
         'dom::bindings::iterable::Iterable',
         'dom::bindings::iterable::IteratorType',

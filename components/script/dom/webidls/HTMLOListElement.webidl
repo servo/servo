@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlolistelement
+[HTMLConstructor]
 interface HTMLOListElement : HTMLElement {
   //         attribute boolean reversed;
   //         attribute long start;

@@ -18,6 +18,7 @@ use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use html5ever::LocalName;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{IsConstructor, HandleObject, JS_GetProperty, JSAutoCompartment, JSContext};
 use js::jsval::{JSVal, UndefinedValue};
@@ -25,7 +26,7 @@ use std::cell::Cell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-// https://html.spec.whatwg.org/multipage/#customelementregistry
+/// https://html.spec.whatwg.org/multipage/#customelementregistry
 #[dom_struct]
 pub struct CustomElementRegistry {
     reflector_: Reflector,
@@ -37,7 +38,8 @@ pub struct CustomElementRegistry {
 
     element_definition_is_running: Cell<bool>,
 
-    definitions: DOMRefCell<HashMap<DOMString, CustomElementDefinition>>,
+    #[ignore_heap_size_of = "Rc"]
+    definitions: DOMRefCell<HashMap<DOMString, Rc<CustomElementDefinition>>>,
 }
 
 impl CustomElementRegistry {
@@ -57,14 +59,20 @@ impl CustomElementRegistry {
                            CustomElementRegistryBinding::Wrap)
     }
 
-    // Cleans up any active promises
-    // https://github.com/servo/servo/issues/15318
+    /// Cleans up any active promises
+    /// https://github.com/servo/servo/issues/15318
     pub fn teardown(&self) {
         self.when_defined.borrow_mut().clear()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define
-    // Steps 10.1, 10.2
+    pub fn lookup_definition_by_constructor(&self, constructor: HandleObject) -> Option<Rc<CustomElementDefinition>> {
+        self.definitions.borrow().values().find(|definition| {
+            definition.constructor.callback() == constructor.get()
+        }).cloned()
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define
+    /// Steps 10.1, 10.2
     #[allow(unsafe_code)]
     fn check_prototype(&self, constructor: HandleObject) -> ErrorResult {
         let global_scope = self.window.upcast::<GlobalScope>();
@@ -89,7 +97,7 @@ impl CustomElementRegistry {
 
 impl CustomElementRegistryMethods for CustomElementRegistry {
     #[allow(unsafe_code, unrooted_must_root)]
-    // https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define
+    /// https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define
     fn Define(&self, name: DOMString, constructor_: Rc<Function>, options: &ElementDefinitionOptions) -> ErrorResult {
         let global_scope = self.window.upcast::<GlobalScope>();
         rooted!(in(global_scope.get_cx()) let constructor = constructor_.callback());
@@ -125,14 +133,14 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
             }
 
             // Step 7.2
-            if !is_known_element_interface(extended_name) {
+            if !is_extendable_element_interface(extended_name) {
                 return Err(Error::NotSupported)
             }
 
-            extended_name.clone()
+            extended_name
         } else {
             // Step 7.3
-            name.clone()
+            &name
         };
 
         // Step 8
@@ -157,10 +165,12 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         result?;
 
         // Step 11
-        let definition = CustomElementDefinition::new(name.clone(), local_name, constructor_);
+        let definition = CustomElementDefinition::new(LocalName::from(&*name),
+                                                      LocalName::from(&**local_name),
+                                                      constructor_);
 
         // Step 12
-        self.definitions.borrow_mut().insert(name.clone(), definition);
+        self.definitions.borrow_mut().insert(name.clone(), Rc::new(definition));
 
         // TODO: Step 13, 14, 15
         // Handle custom element upgrades
@@ -175,7 +185,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-customelementregistry-get
+    /// https://html.spec.whatwg.org/multipage/#dom-customelementregistry-get
     #[allow(unsafe_code)]
     unsafe fn Get(&self, cx: *mut JSContext, name: DOMString) -> JSVal {
         match self.definitions.borrow().get(&name) {
@@ -188,7 +198,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-customelementregistry-whendefined
+    /// https://html.spec.whatwg.org/multipage/#dom-customelementregistry-whendefined
     #[allow(unrooted_must_root)]
     fn WhenDefined(&self, name: DOMString) -> Rc<Promise> {
         let global_scope = self.window.upcast::<GlobalScope>();
@@ -222,27 +232,33 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
     }
 }
 
-#[derive(HeapSizeOf, JSTraceable)]
-struct CustomElementDefinition {
-    name: DOMString,
+/// https://html.spec.whatwg.org/multipage/#custom-element-definition
+#[derive(HeapSizeOf, JSTraceable, Clone)]
+pub struct CustomElementDefinition {
+    pub name: LocalName,
 
-    local_name: DOMString,
+    pub local_name: LocalName,
 
     #[ignore_heap_size_of = "Rc"]
-    constructor: Rc<Function>,
+    pub constructor: Rc<Function>,
 }
 
 impl CustomElementDefinition {
-    fn new(name: DOMString, local_name: DOMString, constructor: Rc<Function>) -> CustomElementDefinition {
+    fn new(name: LocalName, local_name: LocalName, constructor: Rc<Function>) -> CustomElementDefinition {
         CustomElementDefinition {
             name: name,
             local_name: local_name,
             constructor: constructor,
         }
     }
+
+    /// https://html.spec.whatwg.org/multipage/#autonomous-custom-element
+    pub fn is_autonomous(&self) -> bool {
+        self.name == self.local_name
+    }
 }
 
-// https://html.spec.whatwg.org/multipage/#valid-custom-element-name
+/// https://html.spec.whatwg.org/multipage/#valid-custom-element-name
 fn is_valid_custom_element_name(name: &str) -> bool {
     // Custom elment names must match:
     // PotentialCustomElementName ::= [a-z] (PCENChar)* '-' (PCENChar)*
@@ -284,8 +300,8 @@ fn is_valid_custom_element_name(name: &str) -> bool {
     true
 }
 
-// Check if this character is a PCENChar
-// https://html.spec.whatwg.org/multipage/#prod-pcenchar
+/// Check if this character is a PCENChar
+/// https://html.spec.whatwg.org/multipage/#prod-pcenchar
 fn is_potential_custom_element_char(c: char) -> bool {
     c == '-' || c == '.' || c == '_' || c == '\u{B7}' ||
     (c >= '0' && c <= '9') ||
@@ -303,12 +319,11 @@ fn is_potential_custom_element_char(c: char) -> bool {
     (c >= '\u{10000}' && c <= '\u{EFFFF}')
 }
 
-fn is_known_element_interface(element: &str) -> bool {
+fn is_extendable_element_interface(element: &str) -> bool {
     element == "a" ||
     element == "abbr" ||
     element == "acronym" ||
     element == "address" ||
-    element == "applet" ||
     element == "area" ||
     element == "article" ||
     element == "aside" ||
