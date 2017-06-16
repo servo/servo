@@ -134,6 +134,10 @@ impl PaintWorkletGlobalScope {
         };
 
         // Steps 5.2-5.4
+        // TODO: the spec requires calling the constructor now, but we might want to
+        // prepopulate the paint instance in `RegisterPaint`, to avoid calling it in
+        // the primary worklet thread.
+        // https://github.com/servo/servo/issues/17377
         rooted!(in(cx) let mut paint_instance = UndefinedValue());
         match self.paint_class_instances.borrow_mut().entry(name.clone()) {
             Entry::Occupied(entry) => paint_instance.set(entry.get().get()),
