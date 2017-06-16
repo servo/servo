@@ -14,7 +14,12 @@ pub struct Console(());
 impl Console {
     fn send_to_devtools(global: &GlobalScope, level: LogLevel, message: DOMString) {
         if let Some(chan) = global.devtools_chan() {
-            let console_message = prepare_message(level, message);
+            let group_name = if level == LogLevel::Group || LogLevel::GroupCollapsed {
+                message.clone()
+            } else {
+                DOMString::new()
+            };
+            let console_message = prepare_message(level, message, group_name);
             let worker_id = global.downcast::<WorkerGlobalScope>().map(|worker| {
                 worker.get_worker_id()
             });
@@ -96,9 +101,34 @@ impl Console {
             Self::send_to_devtools(global, LogLevel::Log, message);
         };
     }
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/Console/group
+    pub fn Group(global: &GlobalScope, data: Vec<DOMString>) {
+        let label = if data.len() > 0 {
+            DOMString::from(data.join(" "))
+        } else {
+            DOMString::from("<no group label>")
+        };
+        Self::send_to_devtools(global, LogLevel::Group, label);
+    }
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/Console/groupCollapsed
+    pub fn GroupCollapsed(global: &GlobalScope, data: Vec<DOMString>) {
+        let label = if data.len() > 0 {
+            DOMString::from(data.join(" "))
+        } else {
+            DOMString::from("<no group label>")
+        };
+        Self::send_to_devtools(global, LogLevel::GroupCollapsed, label);
+    }
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/Console/groupEnd
+    pub fn GroupEnd(global: &GlobalScope) {
+        Self::send_to_devtools(global, LogLevel::GroupEnd, DOMString::new());
+    }
 }
 
-fn prepare_message(log_level: LogLevel, message: DOMString) -> ConsoleMessage {
+fn prepare_message(log_level: LogLevel, message: DOMString, group_name: DOMString) -> ConsoleMessage {
     // TODO: Sending fake values for filename, lineNumber and columnNumber in LogMessage; adjust later
     ConsoleMessage {
         message: String::from(message),
@@ -106,5 +136,6 @@ fn prepare_message(log_level: LogLevel, message: DOMString) -> ConsoleMessage {
         filename: "test".to_owned(),
         lineNumber: 1,
         columnNumber: 1,
+        groupName: String::from(group_name),
     }
 }

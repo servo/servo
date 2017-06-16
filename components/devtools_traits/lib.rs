@@ -223,13 +223,16 @@ pub struct Modification {
     pub newValue: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, PartialEq, Serialize)]
 pub enum LogLevel {
     Log,
     Debug,
     Info,
     Warn,
     Error,
+    Group,
+    GroupCollapsed,
+    GroupEnd,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -239,6 +242,7 @@ pub struct ConsoleMessage {
     pub filename: String,
     pub lineNumber: usize,
     pub columnNumber: usize,
+    pub groupName: String,
 }
 
 bitflags! {
