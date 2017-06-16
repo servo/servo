@@ -8,7 +8,7 @@
 
 use Atom;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser};
-use cssparser::{Parser, Token, serialize_identifier, BasicParseError};
+use cssparser::{Parser, Token, serialize_identifier, BasicParseError, CompactCowStr};
 use error_reporting::ContextualParseError;
 #[cfg(feature = "gecko")] use gecko::rules::CounterStyleDescriptors;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSCounterDesc;
@@ -184,7 +184,7 @@ macro_rules! counter_style_descriptors {
             type Declaration = ();
             type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-            fn parse_value<'t>(&mut self, name: Cow<'i, str>, input: &mut Parser<'i, 't>)
+            fn parse_value<'t>(&mut self, name: CompactCowStr<'i>, input: &mut Parser<'i, 't>)
                                -> Result<(), ParseError<'i>> {
                 match_ignore_ascii_case! { &*name,
                     $(
@@ -430,7 +430,7 @@ impl Parse for Ranges {
 
 fn parse_bound<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Option<i32>, ParseError<'i>> {
     match input.next() {
-        Ok(Token::Number(ref v)) if v.int_value.is_some() => Ok(Some(v.int_value.unwrap())),
+        Ok(Token::Number { int_value: Some(v), .. }) => Ok(Some(v)),
         Ok(Token::Ident(ref ident)) if ident.eq_ignore_ascii_case("infinite") => Ok(None),
         Ok(t) => Err(BasicParseError::UnexpectedToken(t).into()),
         Err(e) => Err(e.into()),

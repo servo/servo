@@ -13,6 +13,7 @@ use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseError;
 #[cfg(feature = "servo")]
 use servo_url::ServoUrl;
+use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::f32::consts::PI;
 use std::fmt;
@@ -137,7 +138,7 @@ impl Image {
         input.try(|i| i.expect_function_matching("-moz-element"))?;
         input.parse_nested_block(|i| {
             match i.next()? {
-                Token::IDHash(id) => Ok(Atom::from(id)),
+                Token::IDHash(id) => Ok(Atom::from(Cow::from(id))),
                 t => Err(BasicParseError::UnexpectedToken(t).into()),
             }
         })
@@ -699,7 +700,7 @@ impl Parse for PaintWorklet {
         input.parse_nested_block(|i| {
             let name = i.expect_ident()?;
             Ok(PaintWorklet {
-                name: Atom::from(name),
+                name: Atom::from(Cow::from(name)),
             })
         })
     }
@@ -710,7 +711,7 @@ impl Parse for ImageRect {
         input.try(|i| i.expect_function_matching("-moz-image-rect"))?;
         input.parse_nested_block(|i| {
             let string = i.expect_url_or_string()?;
-            let url = SpecifiedUrl::parse_from_string(string, context)?;
+            let url = SpecifiedUrl::parse_from_string(string.into_owned(), context)?;
             i.expect_comma()?;
             let top = NumberOrPercentage::parse_non_negative(context, i)?;
             i.expect_comma()?;

@@ -173,12 +173,12 @@ impl Color {
     ///
     /// https://quirks.spec.whatwg.org/#the-hashless-hex-color-quirk
     fn parse_quirky_color<'i, 't>(input: &mut Parser<'i, 't>) -> Result<RGBA, ParseError<'i>> {
-        let (number, dimension) = match input.next()? {
-            Token::Number(number) => {
-                (number, None)
+        let (value, unit) = match input.next()? {
+            Token::Number { int_value: Some(integer), .. } => {
+                (integer, None)
             },
-            Token::Dimension(number, dimension) => {
-                (number, Some(dimension))
+            Token::Dimension { int_value: Some(integer), unit, .. } => {
+                (integer, Some(unit))
             },
             Token::Ident(ident) => {
                 if ident.len() != 3 && ident.len() != 6 {
@@ -191,7 +191,6 @@ impl Color {
                 return Err(BasicParseError::UnexpectedToken(t).into());
             },
         };
-        let value = number.int_value.ok_or(StyleParseError::UnspecifiedError)?;
         if value < 0 {
             return Err(StyleParseError::UnspecifiedError.into());
         }
@@ -210,7 +209,7 @@ impl Color {
         } else {
             return Err(StyleParseError::UnspecifiedError.into())
         };
-        let total = length + dimension.as_ref().map_or(0, |d| d.len());
+        let total = length + unit.as_ref().map_or(0, |d| d.len());
         if total > 6 {
             return Err(StyleParseError::UnspecifiedError.into());
         }
@@ -218,8 +217,8 @@ impl Color {
         let space_padding = 6 - total;
         let mut written = space_padding;
         written += itoa::write(&mut serialization[written..], value).unwrap();
-        if let Some(dimension) = dimension {
-            written += (&mut serialization[written..]).write(dimension.as_bytes()).unwrap();
+        if let Some(unit) = unit {
+            written += (&mut serialization[written..]).write(unit.as_bytes()).unwrap();
         }
         debug_assert!(written == 6);
         parse_hash_color(&serialization).map_err(|()| StyleParseError::UnspecifiedError.into())

@@ -12,14 +12,13 @@
 use computed_values::{font_feature_settings, font_stretch, font_style, font_weight};
 use computed_values::font_family::FamilyName;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
-use cssparser::SourceLocation;
+use cssparser::{SourceLocation, CompactCowStr};
 use error_reporting::ContextualParseError;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::CSSFontFaceDescriptors;
 #[cfg(feature = "gecko")] use cssparser::UnicodeRange;
 use parser::{ParserContext, log_css_error, Parse};
 use selectors::parser::SelectorParseError;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
-use std::borrow::Cow;
 use std::fmt;
 use style_traits::{ToCss, OneOrMoreCommaSeparated, ParseError, StyleParseError};
 use values::specified::url::SpecifiedUrl;
@@ -256,7 +255,7 @@ macro_rules! font_face_descriptors_common {
            type Declaration = ();
            type Error = SelectorParseError<'i, StyleParseError<'i>>;
 
-           fn parse_value<'t>(&mut self, name: Cow<'i, str>, input: &mut Parser<'i, 't>)
+           fn parse_value<'t>(&mut self, name: CompactCowStr<'i>, input: &mut Parser<'i, 't>)
                               -> Result<(), ParseError<'i>> {
                 match_ignore_ascii_case! { &*name,
                     $(

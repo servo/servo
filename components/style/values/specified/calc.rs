@@ -150,29 +150,25 @@ impl CalcNode {
         -> Result<Self, ParseError<'i>>
     {
         match (try!(input.next()), expected_unit) {
-            (Token::Number(ref value), _) => Ok(CalcNode::Number(value.value)),
-            (Token::Dimension(ref value, ref unit), CalcUnit::Length) |
-            (Token::Dimension(ref value, ref unit), CalcUnit::LengthOrPercentage) => {
-                NoCalcLength::parse_dimension(context, value.value, unit)
+            (Token::Number { value, .. }, _) => Ok(CalcNode::Number(value)),
+            (Token::Dimension { value, ref unit, .. }, CalcUnit::Length) |
+            (Token::Dimension { value, ref unit, .. }, CalcUnit::LengthOrPercentage) => {
+                NoCalcLength::parse_dimension(context, value, unit)
                     .map(CalcNode::Length)
                     .map_err(|()| StyleParseError::UnspecifiedError.into())
             }
-            (Token::Dimension(ref value, ref unit), CalcUnit::Angle) => {
-                Angle::parse_dimension(value.value,
-                                       unit,
-                                       /* from_calc = */ true)
+            (Token::Dimension { value, ref unit, .. }, CalcUnit::Angle) => {
+                Angle::parse_dimension(value, unit, /* from_calc = */ true)
                     .map(CalcNode::Angle)
                     .map_err(|()| StyleParseError::UnspecifiedError.into())
             }
-            (Token::Dimension(ref value, ref unit), CalcUnit::Time) => {
-                Time::parse_dimension(value.value,
-                                      unit,
-                                      /* from_calc = */ true)
+            (Token::Dimension { value, ref unit, .. }, CalcUnit::Time) => {
+                Time::parse_dimension(value, unit, /* from_calc = */ true)
                     .map(CalcNode::Time)
                     .map_err(|()| StyleParseError::UnspecifiedError.into())
             }
-            (Token::Percentage(ref value), CalcUnit::LengthOrPercentage) => {
-                Ok(CalcNode::Percentage(value.unit_value))
+            (Token::Percentage { unit_value, .. }, CalcUnit::LengthOrPercentage) => {
+                Ok(CalcNode::Percentage(unit_value))
             }
             (Token::ParenthesisBlock, _) => {
                 input.parse_nested_block(|i| {
