@@ -17,12 +17,7 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
     let style = synstructure::BindStyle::Ref.into();
     let match_body = synstructure::each_variant(&input, &style, |bindings, variant| {
         let mut identifier = to_css_identifier(variant.ident.as_ref());
-        let mut expr = if bindings.is_empty() {
-            quote! {
-                ::std::fmt::Write::write_str(dest, #identifier)
-            }
-        } else {
-            let (first, rest) = bindings.split_first().expect("unit variants are not yet supported");
+        let mut expr = if let Some((first, rest)) = bindings.split_first() {
             where_clause.predicates.push(where_predicate(first.field.ty.clone()));
             let mut expr = quote! {
                 ::style_traits::ToCss::to_css(#first, dest)
@@ -36,6 +31,10 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
                 };
             }
             expr
+        } else {
+            quote! {
+                ::std::fmt::Write::write_str(dest, #identifier)
+            }
         };
         let mut css_attrs = variant.attrs.iter().filter(|attr| attr.name() == "css");
         let is_function = css_attrs.next().map_or(false, |attr| {
