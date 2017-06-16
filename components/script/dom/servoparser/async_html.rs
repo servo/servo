@@ -13,7 +13,7 @@ use dom::bindings::trace::JSTraceable;
 use dom::comment::Comment;
 use dom::document::Document;
 use dom::documenttype::DocumentType;
-use dom::element::{Element, ElementCreator};
+use dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use dom::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmltemplateelement::HTMLTemplateElement;
@@ -252,7 +252,8 @@ impl Sink {
                 let elem = Element::create(name,
                                            is,
                                            &*self.document,
-                                           ElementCreator::ParserCreated(self.current_line));
+                                           ElementCreator::ParserCreated(self.current_line),
+                                           CustomElementCreationMode::Synchronous);
                 for attr in attrs {
                     elem.set_attribute_from_parser(attr.name, DOMString::from(String::from(attr.value)), None);
                 }

@@ -42,6 +42,7 @@ use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::domimplementation::DOMImplementation;
 use dom::element::{Element, ElementCreator, ElementPerformFullscreenEnter, ElementPerformFullscreenExit};
+use dom::element::CustomElementCreationMode;
 use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable, EventDefault, EventStatus};
 use dom::eventtarget::EventTarget;
@@ -2854,7 +2855,7 @@ impl DocumentMethods for Document {
 
         let name = QualName::new(None, ns, LocalName::from(local_name));
         let is = options.is.as_ref().map(|is| LocalName::from(&**is));
-        Ok(Element::create(name, is, self, ElementCreator::ScriptCreated))
+        Ok(Element::create(name, is, self, ElementCreator::ScriptCreated, CustomElementCreationMode::Synchronous))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createelementns
@@ -2867,7 +2868,7 @@ impl DocumentMethods for Document {
                                                                         &qualified_name)?;
         let name = QualName::new(prefix, namespace, local_name);
         let is = options.is.as_ref().map(|is| LocalName::from(&**is));
-        Ok(Element::create(name, is, self, ElementCreator::ScriptCreated))
+        Ok(Element::create(name, is, self, ElementCreator::ScriptCreated, CustomElementCreationMode::Synchronous))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createattribute
@@ -3121,7 +3122,11 @@ impl DocumentMethods for Document {
                 Some(elem) => Root::upcast::<Node>(elem),
                 None => {
                     let name = QualName::new(None, ns!(svg), local_name!("title"));
-                    let elem = Element::create(name, None, self, ElementCreator::ScriptCreated);
+                    let elem = Element::create(name,
+                                               None,
+                                               self,
+                                               ElementCreator::ScriptCreated,
+                                               CustomElementCreationMode::Synchronous);
                     let parent = root.upcast::<Node>();
                     let child = elem.upcast::<Node>();
                     parent.InsertBefore(child, parent.GetFirstChild().r())
@@ -3141,7 +3146,8 @@ impl DocumentMethods for Document {
                             let elem = Element::create(name,
                                                        None,
                                                        self,
-                                                       ElementCreator::ScriptCreated);
+                                                       ElementCreator::ScriptCreated,
+                                                       CustomElementCreationMode::Synchronous);
                             head.upcast::<Node>()
                                 .AppendChild(elem.upcast())
                                 .unwrap()

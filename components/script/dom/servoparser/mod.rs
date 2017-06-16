@@ -18,7 +18,7 @@ use dom::characterdata::CharacterData;
 use dom::comment::Comment;
 use dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use dom::documenttype::DocumentType;
-use dom::element::{Element, ElementCreator};
+use dom::element::{Element, ElementCreator, CustomElementCreationMode};
 use dom::globalscope::GlobalScope;
 use dom::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
 use dom::htmlimageelement::HTMLImageElement;
@@ -786,8 +786,11 @@ impl TreeSink for Sink {
                       .find(|attr| attr.name.local.eq_str_ignore_ascii_case("is"))
                       .map(|attr| LocalName::from(&*attr.value));
 
-        let elem = Element::create(name, is, &*self.document,
-                                   ElementCreator::ParserCreated(self.current_line));
+        let elem = Element::create(name,
+                                   is,
+                                   &*self.document,
+                                   ElementCreator::ParserCreated(self.current_line),
+                                   CustomElementCreationMode::Synchronous);
 
         for attr in attrs {
             elem.set_attribute_from_parser(attr.name, DOMString::from(String::from(attr.value)), None);

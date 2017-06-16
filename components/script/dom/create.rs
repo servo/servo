@@ -6,8 +6,7 @@ use dom::bindings::error::{report_pending_exception, throw_dom_exception};
 use dom::bindings::js::Root;
 use dom::bindings::reflector::DomObject;
 use dom::document::Document;
-use dom::element::Element;
-use dom::element::ElementCreator;
+use dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use dom::globalscope::GlobalScope;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlappletelement::HTMLAppletElement;
@@ -116,7 +115,8 @@ fn create_html_element(name: QualName,
                        prefix: Option<Prefix>,
                        is: Option<LocalName>,
                        document: &Document,
-                       creator: ElementCreator)
+                       creator: ElementCreator,
+                       mode: CustomElementCreationMode)
                        -> Root<Element> {
     assert!(name.ns == ns!(html));
 
@@ -125,24 +125,31 @@ fn create_html_element(name: QualName,
 
     if let Some(definition) = definition {
         if definition.is_autonomous() {
-            let local_name = name.local.clone();
-            return match definition.create_element(document) {
-                Ok(element) => element,
-                Err(error) => {
-                    // Step 6. Recovering from exception.
-                    let global = GlobalScope::current().unwrap_or_else(|| document.global());
+            match mode {
+                // TODO: Handle asynchronous CE creation. Relies on CE upgrades.
+                CustomElementCreationMode::Asynchronous => {},
+                CustomElementCreationMode::Synchronous => {
+                    let local_name = name.local.clone();
+                    return match definition.create_element(document) {
+                        Ok(element) => element,
+                        Err(error) => {
+                            // Step 6. Recovering from exception.
+                            let global = GlobalScope::current().unwrap_or_else(|| document.global());
+                            let cx = global.get_cx();
 
-                    // Step 6.1.1
-                    unsafe {
-                        let _ac = JSAutoCompartment::new(global.get_cx(), global.reflector().get_jsobject().get());
-                        throw_dom_exception(global.get_cx(), &global, error);
-                        report_pending_exception(global.get_cx(), true);
-                    }
+                            // Step 6.1.1
+                            unsafe {
+                                let _ac = JSAutoCompartment::new(cx, global.reflector().get_jsobject().get());
+                                throw_dom_exception(cx, &global, error);
+                                report_pending_exception(cx, true);
+                            }
 
-                    // Step 6.1.2
-                    Root::upcast(HTMLUnknownElement::new(local_name, prefix, document))
+                            // Step 6.1.2
+                            Root::upcast(HTMLUnknownElement::new(local_name, prefix, document))
+                        },
+                    };
                 },
-            };
+            }
         } else {
             let element = create_native_html_element(name, prefix, document, creator);
             element.set_is(definition.name.clone());
@@ -323,11 +330,12 @@ pub fn create_native_html_element(name: QualName,
 pub fn create_element(name: QualName,
                       is: Option<LocalName>,
                       document: &Document,
-                      creator: ElementCreator)
+                      creator: ElementCreator,
+                      mode: CustomElementCreationMode)
                       -> Root<Element> {
     let prefix = name.prefix.clone();
     match name.ns {
-        ns!(html)   => create_html_element(name, prefix, is, document, creator),
+        ns!(html)   => create_html_element(name, prefix, is, document, creator, mode),
         ns!(svg)    => create_svg_element(name, prefix, document),
         _           => Element::new(name.local, name.ns, prefix, document)
     }
