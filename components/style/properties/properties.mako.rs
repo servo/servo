@@ -2479,6 +2479,10 @@ bitflags! {
         /// ::backdrop and all NAC will resolve rem units against
         /// the toplevel root element now.
         const ALLOW_SET_ROOT_FONT_SIZE = 0x08,
+        /// Whether to convert display:contents into display:inline.  This
+        /// is used by Gecko to prevent display:contents on generated
+        /// content.
+        const PROHIBIT_DISPLAY_CONTENTS = 0x10,
     }
 }
 
@@ -2851,8 +2855,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
 
     {
         StyleAdjuster::new(&mut style, is_root_element)
-            .adjust(context.layout_parent_style,
-                    flags.contains(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP));
+            .adjust(context.layout_parent_style, flags);
     }
 
     % if product == "gecko":
