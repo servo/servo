@@ -165,6 +165,11 @@ pub enum ElementCreator {
     ScriptCreated,
 }
 
+pub enum CustomElementCreationMode {
+    Synchronous,
+    Asynchronous,
+}
+
 impl ElementCreator {
     pub fn is_parser_created(&self) -> bool {
         match *self {
@@ -208,9 +213,10 @@ impl Element {
     pub fn create(name: QualName,
                   is: Option<LocalName>,
                   document: &Document,
-                  creator: ElementCreator)
+                  creator: ElementCreator,
+                  mode: CustomElementCreationMode)
                   -> Root<Element> {
-        create_element(name, is, document, creator)
+        create_element(name, is, document, creator, mode)
     }
 
     pub fn new_inherited(local_name: LocalName,
@@ -1980,7 +1986,8 @@ impl ElementMethods for Element {
                 let body_elem = Element::create(QualName::new(None, ns!(html), local_name!("body")),
                                                 None,
                                                 &context_document,
-                                                ElementCreator::ScriptCreated);
+                                                ElementCreator::ScriptCreated,
+                                                CustomElementCreationMode::Synchronous);
                 Root::upcast(body_elem)
             },
             _ => context_node.GetParentElement().unwrap()
