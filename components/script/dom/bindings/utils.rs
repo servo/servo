@@ -22,7 +22,7 @@ use js::glue::{RUST_JSID_TO_INT, RUST_JSID_TO_STRING, UnwrapObject};
 use js::heap::Heap;
 use js::jsapi;
 use js::jsval::UndefinedValue;
-use js::rust::{GCMethods, ToString, get_object_class, is_dom_class};
+use js::rust::{GCMethods, ToString, get_object_class, is_dom_class, is_global};
 use libc;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_void};
@@ -376,8 +376,11 @@ unsafe extern "C" fn pre_wrap(cx: *mut jsapi::JSContext,
                               _object_passed_to_wrap: jsapi::JS::HandleObject,
                               rval: jsapi::JS::MutableHandleObject) {
     let _ac = js::ac::AutoCompartment::with_obj(cx, obj.get());
-    rval.set(jsapi::js::detail::ToWindowProxyIfWindowSlow(obj.get()));
-    assert!(!rval.get().is_null());
+    if is_global(obj.get()) {
+        rval.set(jsapi::js::detail::ToWindowProxyIfWindowSlow(obj.get()));
+    } else {
+        rval.set(obj.get());
+    }
 }
 
 /// Callback table for use with jsapi::JS_SetWrapObjectCallbacks
