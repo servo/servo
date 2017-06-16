@@ -303,6 +303,16 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
     element.has_dirty_descendants() || element.borrow_data().unwrap().restyle.contains_restyle_data()
 }
 
+/// Checks whether the rule tree has crossed its threshold for unused nodes, and
+/// if so, frees them.
+#[no_mangle]
+pub extern "C" fn Servo_MaybeGCRuleTree(raw_data: RawServoStyleSetBorrowed) {
+    let per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
+    unsafe {
+        per_doc_data.stylist.rule_tree().maybe_gc();
+    }
+}
+
 #[no_mangle]
 pub extern "C" fn Servo_AnimationValues_Interpolate(from: RawServoAnimationValueBorrowed,
                                                     to: RawServoAnimationValueBorrowed,
