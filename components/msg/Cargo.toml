@@ -13,6 +13,5 @@ path = "lib.rs"
 bitflags = "0.7"
 heapsize = "0.4"
 heapsize_derive = "0.1"
-serde = "0.9"
-serde_derive = "0.9"
+serde = "1.0"
 webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}

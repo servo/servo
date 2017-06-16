@@ -56,10 +56,7 @@ extern crate msg;
 extern crate net_traits;
 extern crate ordered_float;
 extern crate range;
-#[cfg(target_os = "macos")]
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
+#[macro_use] extern crate serde;
 extern crate servo_geometry;
 extern crate servo_url;
 #[macro_use] extern crate servo_atoms;

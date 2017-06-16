@@ -10,8 +10,7 @@ name = "webvr_traits"
 path = "lib.rs"
 
 [dependencies]
-ipc-channel = "0.7"
+ipc-channel = "0.8"
 msg = {path = "../msg"}
-rust-webvr = {version = "0.4", features = ["serde-serialization"]}
-serde = "0.9"
-serde_derive = "0.9"
+rust-webvr = {version = "0.5", features = ["serde-serialization"]}
+serde = "1.0"

@@ -20,9 +20,7 @@ extern crate ipc_channel;
 #[macro_use]
 extern crate log;
 extern crate msg;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
+#[macro_use] extern crate serde;
 extern crate serde_json;
 extern crate time;
 
@@ -514,8 +512,8 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                     message: css_error.msg,
                     logLevel: LogLevel::Warn,
                     filename: css_error.filename,
-                    lineNumber: css_error.line,
-                    columnNumber: css_error.column,
+                    lineNumber: css_error.line as usize,
+                    columnNumber: css_error.column as usize,
                 };
                 handle_console_message(actors.clone(), id, None, console_message,
                                        &actor_pipelines, &actor_workers)

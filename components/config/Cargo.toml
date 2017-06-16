@@ -10,14 +10,13 @@ name = "servo_config"
 path = "lib.rs"
 
 [dependencies]
-euclid = "0.14.4"
+euclid = "0.15"
 getopts = "0.2.11"
 lazy_static = "0.2"
 log = "0.3.5"
 num_cpus = "1.1.0"
 rustc-serialize = "0.3"
-serde = {version = "0.9"}
-serde_derive = {version = "0.9"}
+serde = "1.0"
 servo_geometry = {path = "../geometry"}
 servo_url = {path = "../url"}
 url = "1.2"

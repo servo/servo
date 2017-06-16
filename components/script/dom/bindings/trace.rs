@@ -405,7 +405,7 @@ unsafe impl<A, B> JSTraceable for fn(A) -> B {
     }
 }
 
-unsafe impl<T> JSTraceable for IpcSender<T> where T: Deserialize + Serialize {
+unsafe impl<T> JSTraceable for IpcSender<T> where T: for<'de> Deserialize<'de> + Serialize {
     #[inline]
     unsafe fn trace(&self, _: *mut JSTracer) {
         // Do nothing
@@ -427,7 +427,7 @@ unsafe impl JSTraceable for () {
     }
 }
 
-unsafe impl<T> JSTraceable for IpcReceiver<T> where T: Deserialize + Serialize {
+unsafe impl<T> JSTraceable for IpcReceiver<T> where T: for<'de> Deserialize<'de> + Serialize {
     #[inline]
     unsafe fn trace(&self, _: *mut JSTracer) {
         // Do nothing

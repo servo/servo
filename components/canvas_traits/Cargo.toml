@@ -10,11 +10,10 @@ name = "canvas_traits"
 path = "lib.rs"
 
 [dependencies]
-cssparser = "0.14.0"
-euclid = "0.14.4"
+cssparser = "0.15"
+euclid = "0.15"
 heapsize = "0.4"
 heapsize_derive = "0.1"
-ipc-channel = "0.7"
-serde = "0.9"
-serde_derive = "0.9"
+ipc-channel = "0.8"
+serde = "1.0"
 webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}

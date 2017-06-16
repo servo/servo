@@ -447,11 +447,11 @@ impl<T: HeapSizeOf> HeapSizeOf for Arc<T> {
 }
 
 #[cfg(feature = "servo")]
-impl<T: Deserialize> Deserialize for Arc<T>
+impl<'de, T: Deserialize<'de>> Deserialize<'de> for Arc<T>
 {
     fn deserialize<D>(deserializer: D) -> Result<Arc<T>, D::Error>
     where
-        D: ::serde::de::Deserializer,
+        D: ::serde::de::Deserializer<'de>,
     {
         T::deserialize(deserializer).map(Arc::new)
     }

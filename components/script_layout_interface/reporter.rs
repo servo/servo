@@ -29,7 +29,7 @@ impl ParseErrorReporter for CSSErrorReporter {
                         url: &ServoUrl,
                         line_number_offset: u64) {
         let location = input.source_location(position);
-        let line_offset = location.line + line_number_offset as usize;
+        let line_offset = location.line + line_number_offset as u32;
         if log_enabled!(log::LogLevel::Info) {
             info!("Url:\t{}\n{}:{} {}",
                   url.as_str(),

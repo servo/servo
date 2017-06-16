@@ -10,7 +10,7 @@ name = "webvr"
 path = "lib.rs"
 
 [dependencies]
-ipc-channel = "0.7"
+ipc-channel = "0.8"
 log = "0.3"
 msg = {path = "../msg"}
 script_traits = {path = "../script_traits"}

@@ -10,26 +10,25 @@ name = "script_traits"
 path = "lib.rs"
 
 [dependencies]
-app_units = "0.4"
+app_units = "0.5"
 bluetooth_traits = {path = "../bluetooth_traits"}
 canvas_traits = {path = "../canvas_traits"}
 cookie = "0.6"
 devtools_traits = {path = "../devtools_traits"}
-euclid = "0.14.4"
+euclid = "0.15"
 gfx_traits = {path = "../gfx_traits"}
 heapsize = "0.4"
 heapsize_derive = "0.1"
 hyper = "0.10"
-hyper_serde = "0.6"
-ipc-channel = "0.7"
+hyper_serde = "0.7"
+ipc-channel = "0.8"
 libc = "0.2"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
-offscreen_gl_context = { version = "0.9", features = ["serde"] }
+offscreen_gl_context = { version = "0.11", features = ["serde"] }
 profile_traits = {path = "../profile_traits"}
 rustc-serialize = "0.3.4"
-serde = "0.9"
-serde_derive = "0.9"
+serde = "1.0"
 servo_atoms = {path = "../atoms"}
 servo_url = {path = "../url"}
 style_traits = {path = "../style_traits", features = ["servo"]}

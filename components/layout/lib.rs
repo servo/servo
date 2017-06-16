@@ -36,9 +36,7 @@ extern crate range;
 extern crate rayon;
 extern crate script_layout_interface;
 extern crate script_traits;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
+#[macro_use] extern crate serde;
 extern crate serde_json;
 extern crate servo_config;
 extern crate servo_geometry;

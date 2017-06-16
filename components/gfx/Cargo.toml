@@ -11,16 +11,16 @@ name = "gfx"
 path = "lib.rs"
 
 [dependencies]
-app_units = "0.4.1"
+app_units = "0.5"
 bitflags = "0.7"
-euclid = "0.14.4"
+euclid = "0.15"
 fnv = "1.0"
 fontsan = {git = "https://github.com/servo/fontsan"}
 gfx_traits = {path = "../gfx_traits"}
 harfbuzz-sys = "0.1"
 heapsize = "0.4"
 heapsize_derive = "0.1"
-ipc-channel = "0.7"
+ipc-channel = "0.8"
 lazy_static = "0.2"
 libc = "0.2"
 log = "0.3.5"
@@ -28,8 +28,7 @@ msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 ordered-float = "0.4"
 range = {path = "../range"}
-serde = "0.9"
-serde_derive = "0.9"
+serde = "1.0"
 servo_atoms = {path = "../atoms"}
 servo_geometry = {path = "../geometry"}
 servo_url = {path = "../url"}
@@ -45,8 +44,8 @@ xi-unicode = "0.1.0"
 [target.'cfg(target_os = "macos")'.dependencies]
 byteorder = "1.0"
 core-foundation = "0.3"
-core-graphics = "0.7"
-core-text = "4.0"
+core-graphics = "0.8"
+core-text = "5.0"
 
 [target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
 freetype = "0.2"
@@ -55,11 +54,11 @@ freetype = "0.2"
 servo-fontconfig = "0.2.1"
 
 [target.'cfg(target_os = "android")'.dependencies]
-xml5ever = {version = "0.7", features = ["unstable"]}
+xml5ever = {version = "0.8", features = ["unstable"]}
 
 [target.'cfg(any(target_feature = "sse2", target_feature = "neon"))'.dependencies]
 simd = "0.2.0"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-dwrote = "0.3"
+dwrote = "0.4"
 truetype = "0.26"

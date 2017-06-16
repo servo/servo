@@ -18,7 +18,7 @@ doctest = false
 [features]
 gecko = ["nsstring_vendor", "num_cpus", "style_traits/gecko"]
 use_bindgen = ["bindgen", "regex", "toml"]
-servo = ["serde", "serde_derive", "heapsize", "heapsize_derive",
+servo = ["serde", "heapsize", "heapsize_derive",
          "style_traits/servo", "servo_atoms", "servo_config", "html5ever",
          "cssparser/heapsize", "cssparser/serde", "encoding", "smallvec/heapsizeof",
 
@@ -30,7 +30,7 @@ testing = []
 gecko_debug = ["nsstring_vendor/gecko_debug"]
 
 [dependencies]
-app_units = "0.4.1"
+app_units = "0.5"
 arrayvec = "0.3.20"
 arraydeque = "0.2.3"
 atomic_refcell = "0.1"
@@ -38,14 +38,14 @@ bitflags = "0.7"
 bit-vec = "0.4.3"
 byteorder = "1.0"
 cfg-if = "0.1.0"
-cssparser = "0.14.0"
+cssparser = "0.15"
 encoding = {version = "0.2", optional = true}
-euclid = "0.14.4"
+euclid = "0.15"
 fnv = "1.0"
 heapsize = {version = "0.4", optional = true}
 heapsize_derive = {version = "0.1", optional = true}
 itoa = "0.3"
-html5ever = {version = "0.17", optional = true}
+html5ever = {version = "0.18", optional = true}
 lazy_static = "0.2"
 log = "0.3"
 matches = "0.1"
@@ -59,9 +59,8 @@ pdqsort = "0.1.0"
 precomputed-hash = "0.1"
 rayon = "0.8"
 selectors = { path = "../selectors" }
-serde = {version = "0.9", optional = true}
-serde_derive = {version = "0.9", optional = true}
 servo_arc = { path = "../servo_arc" }
+serde = {version = "1.0", optional = true, features = ["derive"]}
 servo_atoms = {path = "../atoms", optional = true}
 servo_config = {path = "../config", optional = true}
 smallvec = "0.4"

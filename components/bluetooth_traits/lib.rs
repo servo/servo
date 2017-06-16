@@ -4,8 +4,7 @@
 
 extern crate ipc_channel;
 extern crate regex;
-#[macro_use]
-extern crate serde_derive;
+#[macro_use] extern crate serde;
 extern crate servo_config;
 
 pub mod blocklist;

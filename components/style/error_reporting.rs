@@ -169,7 +169,7 @@ impl ParseErrorReporter for RustLogReporter {
                         line_number_offset: u64) {
         if log_enabled!(log::LogLevel::Info) {
             let location = input.source_location(position);
-            let line_offset = location.line + line_number_offset as usize;
+            let line_offset = location.line + line_number_offset as u32;
             info!("Url:\t{}\n{}:{} {}", url.as_str(), line_offset, location.column, error.to_string())
         }
     }

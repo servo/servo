@@ -19,7 +19,7 @@ extern crate heapsize;
 extern crate hyper;
 extern crate ipc_channel;
 extern crate msg;
-#[macro_use] extern crate serde_derive;
+#[macro_use] extern crate serde;
 extern crate servo_url;
 extern crate time;
 
@@ -43,8 +43,8 @@ pub struct DevtoolsPageInfo {
 #[derive(Debug, Deserialize, HeapSizeOf, Serialize, Clone)]
 pub struct CSSError {
     pub filename: String,
-    pub line: usize,
-    pub column: usize,
+    pub line: u32,
+    pub column: u32,
     pub msg: String
 }
 

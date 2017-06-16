@@ -12,10 +12,10 @@ path = "lib.rs"
 [dependencies]
 base64 = "0.5.2"
 cookie = "0.6"
-euclid = "0.14"
+euclid = "0.15"
 hyper = "0.10"
 image = "0.12"
-ipc-channel = "0.7"
+ipc-channel = "0.8"
 log = "0.3.5"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
@@ -25,5 +25,5 @@ script_traits = {path = "../script_traits"}
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
 url = {version = "1.2", features = ["heap_size"]}
-uuid = {version = "0.4", features = ["v4"]}
+uuid = {version = "0.5", features = ["v4"]}
 webdriver = "0.22"

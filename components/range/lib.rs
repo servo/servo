@@ -9,8 +9,7 @@
 extern crate heapsize;
 #[macro_use] extern crate heapsize_derive;
 extern crate num_traits;
-#[macro_use]
-extern crate serde_derive;
+#[macro_use] extern crate serde;
 
 use std::cmp::{self, max, min};
 use std::fmt;

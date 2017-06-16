@@ -20,7 +20,7 @@ debugmozjs = ["libservo/debugmozjs"]
 [dependencies]
 compositing = {path = "../../components/compositing"}
 devtools = {path = "../../components/devtools"}
-euclid = "0.14.4"
+euclid = "0.15"
 gleam = "0.4"
 glutin_app = {path = "../glutin"}
 libc = "0.2"
@@ -37,7 +37,7 @@ webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc
 
 [target.'cfg(target_os="macos")'.dependencies]
 objc = "0.2"
-cocoa = "0.8"
+cocoa = "0.9"
 
 [target.'cfg(target_os="linux")'.dependencies]
 x11 = "2.3"

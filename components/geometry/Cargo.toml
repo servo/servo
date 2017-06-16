@@ -14,6 +14,6 @@ path = "lib.rs"
 servo = ["euclid/unstable"]
 
 [dependencies]
-app_units = "0.4.1"
-euclid = "0.14"
+app_units = "0.5"
+euclid = "0.15"
 heapsize = "0.4"

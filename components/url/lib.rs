@@ -9,8 +9,7 @@
 
 #[macro_use] extern crate heapsize;
 #[macro_use] extern crate heapsize_derive;
-extern crate serde;
-#[macro_use] extern crate serde_derive;
+#[macro_use] extern crate serde;
 extern crate servo_rand;
 extern crate url;
 extern crate url_serde;
@@ -209,9 +208,9 @@ impl serde::Serialize for ServoUrl {
     }
 }
 
-impl serde::Deserialize for ServoUrl {
+impl<'de> serde::Deserialize<'de> for ServoUrl {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where D: serde::Deserializer,
+        where D: serde::Deserializer<'de>,
     {
         url_serde::deserialize(deserializer).map(Self::from_url)
     }

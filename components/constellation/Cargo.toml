@@ -18,22 +18,21 @@ canvas_traits = {path = "../canvas_traits"}
 compositing = {path = "../compositing"}
 debugger = {path = "../debugger"}
 devtools_traits = {path = "../devtools_traits"}
-euclid = "0.14.4"
+euclid = "0.15"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 hyper = "0.10"
-ipc-channel = "0.7"
+ipc-channel = "0.8"
 itertools = "0.5"
 layout_traits = {path = "../layout_traits"}
 log = "0.3.5"
 msg = {path = "../msg"}
 net = {path = "../net"}
 net_traits = {path = "../net_traits"}
-offscreen_gl_context = { version = "0.9", features = ["serde"] }
+offscreen_gl_context = { version = "0.11", features = ["serde"] }
 profile_traits = {path = "../profile_traits"}
 script_traits = {path = "../script_traits"}
-serde = "0.9"
-serde_derive = "0.9"
+serde = "1.0"
 style_traits = {path = "../style_traits"}
 servo_config = {path = "../config"}
 servo_rand = {path = "../rand"}

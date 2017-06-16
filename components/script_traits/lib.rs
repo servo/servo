@@ -28,9 +28,7 @@ extern crate net_traits;
 extern crate offscreen_gl_context;
 extern crate profile_traits;
 extern crate rustc_serialize;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
+#[macro_use] extern crate serde;
 extern crate servo_atoms;
 extern crate servo_url;
 extern crate style_traits;
@@ -96,8 +94,8 @@ impl Serialize for UntrustedNodeAddress {
     }
 }
 
-impl Deserialize for UntrustedNodeAddress {
-    fn deserialize<D: Deserializer>(d: D) -> Result<UntrustedNodeAddress, D::Error> {
+impl<'de> Deserialize<'de> for UntrustedNodeAddress {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<UntrustedNodeAddress, D::Error> {
         let value: usize = try!(Deserialize::deserialize(d));
         Ok(UntrustedNodeAddress::from_id(value))
     }
@@ -295,7 +293,7 @@ pub enum ConstellationControlMsg {
     /// The strings are key, old value and new value.
     DispatchStorageEvent(PipelineId, StorageType, ServoUrl, Option<String>, Option<String>, Option<String>),
     /// Report an error from a CSS parser for the given pipeline
-    ReportCSSError(PipelineId, String, usize, usize, String),
+    ReportCSSError(PipelineId, String, u32, u32, String),
     /// Reload the given page.
     Reload(PipelineId),
     /// Notifies the script thread of WebVR events.

@@ -72,7 +72,7 @@ extern crate pdqsort;
 #[cfg(feature = "gecko")] extern crate precomputed_hash;
 extern crate rayon;
 extern crate selectors;
-#[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;
+#[cfg(feature = "servo")] #[macro_use] extern crate serde;
 pub extern crate servo_arc;
 #[cfg(feature = "servo")] #[macro_use] extern crate servo_atoms;
 #[cfg(feature = "servo")] extern crate servo_config;

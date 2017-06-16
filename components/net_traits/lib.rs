@@ -9,21 +9,16 @@
 
 extern crate cookie as cookie_rs;
 extern crate heapsize;
-#[macro_use]
-extern crate heapsize_derive;
+#[macro_use] extern crate heapsize_derive;
 extern crate hyper;
 extern crate hyper_serde;
 extern crate image as piston_image;
 extern crate ipc_channel;
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
+#[macro_use] extern crate lazy_static;
+#[macro_use] extern crate log;
 extern crate msg;
 extern crate num_traits;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
+#[macro_use] extern crate serde;
 extern crate servo_config;
 extern crate servo_url;
 extern crate url;
@@ -270,7 +265,7 @@ pub type IpcSendResult = Result<(), IpcError>;
 /// used by net_traits::ResourceThreads to ease the use its IpcSender sub-fields
 /// XXX: If this trait will be used more in future, some auto derive might be appealing
 pub trait IpcSend<T>
-    where T: serde::Serialize + serde::Deserialize,
+    where T: serde::Serialize + for<'de> serde::Deserialize<'de>,
 {
     /// send message T
     fn send(&self, T) -> IpcSendResult;
