@@ -33,9 +33,9 @@ interface Document : Node {
   HTMLCollection getElementsByClassName(DOMString classNames);
 
   [NewObject, Throws]
-  Element createElement(DOMString localName);
+  Element createElement(DOMString localName, optional ElementCreationOptions options);
   [NewObject, Throws]
-  Element createElementNS(DOMString? namespace, DOMString qualifiedName);
+  Element createElementNS(DOMString? namespace, DOMString qualifiedName, optional ElementCreationOptions options);
   [NewObject]
   DocumentFragment createDocumentFragment();
   [NewObject]
@@ -74,6 +74,10 @@ Document implements NonElementParentNode;
 Document implements ParentNode;
 
 enum DocumentReadyState { "loading", "interactive", "complete" };
+
+dictionary ElementCreationOptions {
+  DOMString is;
+};
 
 // https://html.spec.whatwg.org/multipage/#the-document-object
 // [OverrideBuiltins]

@@ -13,7 +13,7 @@ use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding;
-use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
+use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState, ElementCreationOptions};
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
@@ -2830,7 +2830,10 @@ impl DocumentMethods for Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createelement
-    fn CreateElement(&self, mut local_name: DOMString) -> Fallible<Root<Element>> {
+    fn CreateElement(&self,
+                     mut local_name: DOMString,
+                     options: &ElementCreationOptions)
+                     -> Fallible<Root<Element>> {
         if xml_name_type(&local_name) == InvalidXMLName {
             debug!("Not a valid element name");
             return Err(Error::InvalidCharacter);
@@ -2846,18 +2849,21 @@ impl DocumentMethods for Document {
         };
 
         let name = QualName::new(None, ns, LocalName::from(local_name));
-        Ok(Element::create(name, self, ElementCreator::ScriptCreated))
+        let is = options.is.as_ref().map(|is| LocalName::from(&**is));
+        Ok(Element::create(name, is, self, ElementCreator::ScriptCreated))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createelementns
     fn CreateElementNS(&self,
                        namespace: Option<DOMString>,
-                       qualified_name: DOMString)
+                       qualified_name: DOMString,
+                       options: &ElementCreationOptions)
                        -> Fallible<Root<Element>> {
         let (namespace, prefix, local_name) = validate_and_extract(namespace,
                                                                         &qualified_name)?;
         let name = QualName::new(prefix, namespace, local_name);
-        Ok(Element::create(name, self, ElementCreator::ScriptCreated))
+        let is = options.is.as_ref().map(|is| LocalName::from(&**is));
+        Ok(Element::create(name, is, self, ElementCreator::ScriptCreated))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createattribute
@@ -3111,7 +3117,7 @@ impl DocumentMethods for Document {
                 Some(elem) => Root::upcast::<Node>(elem),
                 None => {
                     let name = QualName::new(None, ns!(svg), local_name!("title"));
-                    let elem = Element::create(name, self, ElementCreator::ScriptCreated);
+                    let elem = Element::create(name, None, self, ElementCreator::ScriptCreated);
                     let parent = root.upcast::<Node>();
                     let child = elem.upcast::<Node>();
                     parent.InsertBefore(child, parent.GetFirstChild().r())
@@ -3129,6 +3135,7 @@ impl DocumentMethods for Document {
                         Some(head) => {
                             let name = QualName::new(None, ns!(html), local_name!("title"));
                             let elem = Element::create(name,
+                                                       None,
                                                        self,
                                                        ElementCreator::ScriptCreated);
                             head.upcast::<Node>()
