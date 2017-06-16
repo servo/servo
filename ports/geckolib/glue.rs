@@ -301,7 +301,7 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
         return false;
     }
 
-    element.has_dirty_descendants() || element.borrow_data().unwrap().has_restyle()
+    element.has_dirty_descendants() || element.borrow_data().unwrap().restyle.contains_restyle_data()
 }
 
 #[no_mangle]
@@ -2461,7 +2461,7 @@ unsafe fn maybe_restyle<'a>(data: &'a mut AtomicRefMut<ElementData>,
     bindings::Gecko_SetOwnerDocumentNeedsStyleFlush(element.0);
 
     // Ensure and return the RestyleData.
-    Some(data.ensure_restyle())
+    Some(&mut data.restyle)
 }
 
 #[no_mangle]
@@ -2518,13 +2518,16 @@ pub extern "C" fn Servo_NoteExplicitHints(element: RawGeckoElementBorrowed,
 pub extern "C" fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed) -> nsChangeHint
 {
     let element = GeckoElement(element);
-    let damage = if let Some(mut data) = element.mutate_data() {
-        let d = data.get_restyle().map_or(GeckoRestyleDamage::empty(), |r| r.damage);
-        data.clear_restyle();
-        d
-    } else {
-        warn!("Trying to get change hint from unstyled element");
-        GeckoRestyleDamage::empty()
+    let damage = match element.mutate_data() {
+        Some(mut data) => {
+            let damage = data.restyle.damage;
+            data.clear_restyle_state();
+            damage
+        }
+        None => {
+            warn!("Trying to get change hint from unstyled element");
+            GeckoRestyleDamage::empty()
+        }
     };
 
     debug!("Servo_TakeChangeHint: {:?}, damage={:?}", element, damage);

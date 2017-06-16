@@ -377,38 +377,38 @@ impl<E: TElement> StyleSharingTarget<E> {
             // We used to have pseudos (because we had styles).
             // Check for damage from the set of pseudos changing or
             // pseudos being restyled.
-            let (styles, restyle_data) = data.styles_and_restyle_mut();
-            if let Some(restyle_data) = restyle_data {
-                let old_pseudos = &styles.pseudos;
-                let new_pseudos = &shared_style.pseudos;
-                if !old_pseudos.has_same_pseudos_as(new_pseudos) {
-                    restyle_data.damage |= RestyleDamage::reconstruct();
-                } else {
-                    // It's a bit unfortunate that we have to keep
-                    // mapping PseudoElements back to indices
-                    // here....
-                    for pseudo in old_pseudos.keys() {
-                        let old_values =
-                            old_pseudos.get(&pseudo).unwrap().values.as_ref().map(|v| &**v);
-                        let new_values =
-                            new_pseudos.get(&pseudo).unwrap().values();
-                        self.element.accumulate_damage(
-                            &shared_context,
-                            Some(restyle_data),
-                            old_values,
-                            new_values,
-                            Some(&pseudo)
-                        );
-                    }
+            let (styles, mut restyle_data) = data.styles_and_restyle_mut();
+            let old_pseudos = &styles.pseudos;
+            let new_pseudos = &shared_style.pseudos;
+
+            if !old_pseudos.has_same_pseudos_as(new_pseudos) {
+                restyle_data.damage |= RestyleDamage::reconstruct();
+            } else {
+                // It's a bit unfortunate that we have to keep
+                // mapping PseudoElements back to indices
+                // here....
+                for pseudo in old_pseudos.keys() {
+                    let old_values =
+                        old_pseudos.get(&pseudo).unwrap().values.as_ref().map(|v| &**v);
+                    let new_values =
+                        new_pseudos.get(&pseudo).unwrap().values();
+                    self.element.accumulate_damage(
+                        &shared_context,
+                        restyle_data,
+                        old_values,
+                        new_values,
+                        Some(&pseudo)
+                    );
                 }
             }
         }
 
-        let old_values = data.get_styles_mut()
-                             .and_then(|s| s.primary.values.take());
+        let old_values =
+            data.get_styles_mut().and_then(|s| s.primary.values.take());
+
         self.element.accumulate_damage(
             &shared_context,
-            data.get_restyle_mut(),
+            &mut data.restyle,
             old_values.as_ref().map(|v| &**v),
             shared_style.primary.values(),
             None
@@ -597,9 +597,6 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
             match sharing_result {
                 Ok(shared_style) => {
                     // Yay, cache hit. Share the style.
-
-                    debug_assert_eq!(data.has_styles(), data.has_restyle());
-
                     let child_cascade_requirement =
                         target.accumulate_damage_when_sharing(shared_context,
                                                               &shared_style,

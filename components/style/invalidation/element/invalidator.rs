@@ -114,7 +114,7 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
             // We can't just return here because there may also be attribute
             // changes as well that imply additional hints.
             let mut data = self.data.as_mut().unwrap();
-            data.ensure_restyle().hint.insert(RestyleHint::restyle_subtree().into());
+            data.restyle.hint.insert(RestyleHint::restyle_subtree());
         }
 
         let mut classes_removed = SmallVec::<[Atom; 8]>::new();
@@ -211,7 +211,7 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
 
         if invalidated_self {
             if let Some(ref mut data) = self.data {
-                data.ensure_restyle().hint.insert(RESTYLE_SELF.into());
+                data.restyle.hint.insert(RESTYLE_SELF);
             }
         }
 
@@ -287,10 +287,8 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
         match self.data {
             None => return false,
             Some(ref data) => {
-                if let Some(restyle) = data.get_restyle() {
-                    if restyle.hint.contains_subtree() {
-                        return false;
-                    }
+                if data.restyle.hint.contains_subtree() {
+                    return false;
                 }
             }
         }
@@ -494,7 +492,7 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
 
         if invalidated_self {
             if let Some(ref mut data) = self.data {
-                data.ensure_restyle().hint.insert(RESTYLE_SELF.into());
+                data.restyle.hint.insert(RESTYLE_SELF);
             }
         }
 

@@ -567,8 +567,7 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
             Some(d) => d,
             None => return false,
         };
-        return data.get_restyle()
-                   .map_or(false, |r| r.hint.has_animation_hint());
+        return data.restyle.hint.has_animation_hint()
     }
 
     /// Gets declarations from XBL bindings from the element. Only gecko element could have this.

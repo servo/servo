@@ -171,19 +171,14 @@ impl<T: ThreadSafeLayoutNode> ThreadSafeLayoutNodeHelpers for T {
 
         let damage = {
             let data = node.get_raw_data().unwrap();
-            if let Some(r) = data.style_data.element_data.borrow().get_restyle() {
-                // We're reflowing a node that just got a restyle, and so the
-                // damage has been computed and stored in the RestyleData.
-                r.damage
-            } else if !data.layout_data.borrow().flags.contains(::data::HAS_BEEN_TRAVERSED) {
+
+            if !data.layout_data.borrow().flags.contains(::data::HAS_BEEN_TRAVERSED) {
                 // We're reflowing a node that was styled for the first time and
                 // has never been visited by layout. Return rebuild_and_reflow,
                 // because that's what the code expects.
                 RestyleDamage::rebuild_and_reflow()
             } else {
-                // We're reflowing a node whose style data didn't change, but whose
-                // layout may change due to changes in ancestors or descendants.
-                RestyleDamage::empty()
+                data.style_data.element_data.borrow().restyle.damage
             }
         };
 
