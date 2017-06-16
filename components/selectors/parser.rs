@@ -5,12 +5,11 @@
 use attr::{AttrSelectorWithNamespace, ParsedAttrSelectorOperation, AttrSelectorOperator};
 use attr::{ParsedCaseSensitivity, SELECTOR_WHITESPACE, NamespaceConstraint};
 use bloom::BLOOM_HASH_MASK;
-use builder::{HAS_PSEUDO_BIT, SpecificityAndFlags};
-use builder::specificity;
+use builder::{SelectorBuilder, SpecificityAndFlags};
 use cssparser::{ParseError, BasicParseError, CompactCowStr};
 use cssparser::{Token, Parser as CssParser, parse_nth, ToCss, serialize_identifier, CssStringWriter};
 use precomputed_hash::PrecomputedHash;
-use servo_arc::{Arc, HeaderWithLength, ThinArc};
+use servo_arc::ThinArc;
 use sink::Push;
 use smallvec::SmallVec;
 use std::ascii::AsciiExt;
@@ -374,6 +373,14 @@ pub fn namespace_empty_string<Impl: SelectorImpl>() -> Impl::NamespaceUrl {
 /// callers want the higher-level iterator.
 ///
 /// We store compound selectors internally right-to-left (in matching order).
+/// Additionally, we invert the order of top-level compound selectors so that
+/// each one matches left-to-right. This is because matching namespace, local name,
+/// id, and class are all relatively cheap, whereas matching pseudo-classes might
+/// be expensive (depending on the pseudo-class). Since authors tend to put the
+/// pseudo-classes on the right, it's faster to start matching on the left.
+///
+/// This reordering doesn't change the semantics of selector matching, and we
+/// handle it in to_css to make it invisible to serialization.
 #[derive(Clone, Eq, PartialEq)]
 pub struct Selector<Impl: SelectorImpl>(ThinArc<SpecificityAndFlags, Component<Impl>>);
 
@@ -454,12 +461,6 @@ impl<Impl: SelectorImpl> Selector<Impl> {
         self.0.slice.iter()
     }
 
-    /// Returns an iterator over the entire sequence of simple selectors and
-    /// combinators, in parse order (from left to right).
-    pub fn iter_raw_parse_order(&self) -> Rev<slice::Iter<Component<Impl>>> {
-        self.0.slice.iter().rev()
-    }
-
     /// Returns an iterator over the sequence of simple selectors and
     /// combinators, in parse order (from left to right), _starting_
     /// 'offset_from_right' entries from the past-the-end sentinel on
@@ -472,11 +473,18 @@ impl<Impl: SelectorImpl> Selector<Impl> {
         self.0.slice[..offset_from_right].iter().rev()
     }
 
-    /// Creates a Selector from a vec of Components. Used in tests.
-    pub fn from_vec(mut vec: Vec<Component<Impl>>, specificity_and_flags: u32) -> Self {
-        vec.reverse(); // FIXME(bholley): This goes away in the next patch.
-        let header = HeaderWithLength::new(SpecificityAndFlags(specificity_and_flags), vec.len());
-        Selector(Arc::into_thin(Arc::from_header_and_iter(header, vec.into_iter())))
+    /// Creates a Selector from a vec of Components, specified in parse order. Used in tests.
+    pub fn from_vec(vec: Vec<Component<Impl>>, specificity_and_flags: u32) -> Self {
+        let mut builder = SelectorBuilder::default();
+        for component in vec.into_iter() {
+            if let Some(combinator) = component.as_combinator() {
+                builder.push_combinator(combinator);
+            } else {
+                builder.push_simple_selector(component);
+            }
+        }
+        let spec = SpecificityAndFlags(specificity_and_flags);
+        Selector(builder.build_with_specificity_and_flags(spec))
     }
 
     /// Returns count of simple selectors and combinators in the Selector.
@@ -751,9 +759,31 @@ impl<Impl: SelectorImpl> ToCss for SelectorList<Impl> {
 
 impl<Impl: SelectorImpl> ToCss for Selector<Impl> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-       for item in self.iter_raw_parse_order() {
-           item.to_css(dest)?;
-       }
+        // Compound selectors invert the order of their contents, so we need to
+        // undo that during serialization.
+        //
+        // This two-iterator strategy involves walking over the selector twice.
+        // We could do something more clever, but selector serialization probably
+        // isn't hot enough to justify it, and the stringification likely
+        // dominates anyway.
+        //
+        // NB: A parse-order iterator is a Rev<>, which doesn't expose as_slice(),
+        // which we need for |split|. So we split by combinators on a match-order
+        // sequence and then reverse.
+        let mut combinators = self.iter_raw_match_order().rev().filter(|x| x.is_combinator());
+        let compound_selectors = self.iter_raw_match_order().as_slice().split(|x| x.is_combinator()).rev();
+
+        let mut combinators_exhausted = false;
+        for compound in compound_selectors {
+            debug_assert!(!combinators_exhausted);
+            for item in compound.iter() {
+                item.to_css(dest)?;
+            }
+            match combinators.next() {
+                Some(c) => c.to_css(dest)?,
+                None => combinators_exhausted = true,
+            };
+        }
 
        Ok(())
     }
@@ -905,12 +935,6 @@ fn display_to_css_identifier<T: Display, W: fmt::Write>(x: &T, dest: &mut W) -> 
     serialize_identifier(&string, dest)
 }
 
-/// We make this large because the result of parsing a selector is fed into a new
-/// Arc-ed allocation, so any spilled vec would be a wasted allocation. Also,
-/// Components are large enough that we don't have much cache locality benefit
-/// from reserving stack space for fewer of them.
-type ParseVec<Impl> = SmallVec<[Component<Impl>; 32]>;
-
 /// Build up a Selector.
 /// selector : simple_selector_sequence [ combinator simple_selector_sequence ]* ;
 ///
@@ -921,12 +945,12 @@ fn parse_selector<'i, 't, P, E, Impl>(
         -> Result<Selector<Impl>, ParseError<'i, SelectorParseError<'i, E>>>
     where P: Parser<'i, Impl=Impl, Error=E>, Impl: SelectorImpl
 {
-    let mut sequence = ParseVec::new();
+    let mut builder = SelectorBuilder::default();
+
     let mut parsed_pseudo_element;
     'outer_loop: loop {
         // Parse a sequence of simple selectors.
-        parsed_pseudo_element =
-            parse_compound_selector(parser, input, &mut sequence)?;
+        parsed_pseudo_element = parse_compound_selector(parser, input, &mut builder)?;
         if parsed_pseudo_element {
             break;
         }
@@ -962,23 +986,10 @@ fn parse_selector<'i, 't, P, E, Impl>(
                 }
             }
         }
-        sequence.push(Component::Combinator(combinator));
+        builder.push_combinator(combinator);
     }
 
-    let mut spec = SpecificityAndFlags(specificity(SelectorIter {
-        iter: sequence.iter(),
-        next_combinator: None,
-    }));
-    if parsed_pseudo_element {
-        spec.0 |= HAS_PSEUDO_BIT;
-    }
-
-    // FIXME(bholley): This is just temporary to maintain the semantics of this patch.
-    sequence.reverse();
-
-    let header = HeaderWithLength::new(spec, sequence.len());
-    let complex = Selector(Arc::into_thin(Arc::from_header_and_iter(header, sequence.into_iter())));
-    Ok(complex)
+    Ok(Selector(builder.build(parsed_pseudo_element)))
 }
 
 impl<Impl: SelectorImpl> Selector<Impl> {
@@ -1342,7 +1353,7 @@ fn parse_negation<'i, 't, P, E, Impl>(parser: &P,
 fn parse_compound_selector<'i, 't, P, E, Impl>(
     parser: &P,
     input: &mut CssParser<'i, 't>,
-    mut sequence: &mut ParseVec<Impl>)
+    mut builder: &mut SelectorBuilder<Impl>)
     -> Result<bool, ParseError<'i, SelectorParseError<'i, E>>>
     where P: Parser<'i, Impl=Impl, Error=E>, Impl: SelectorImpl
 {
@@ -1355,12 +1366,12 @@ fn parse_compound_selector<'i, 't, P, E, Impl>(
         }
     }
     let mut empty = true;
-    if !parse_type_selector(parser, input, sequence)? {
+    if !parse_type_selector(parser, input, builder)? {
         if let Some(url) = parser.default_namespace() {
             // If there was no explicit type selector, but there is a
             // default namespace, there is an implicit "<defaultns>|*" type
             // selector.
-            sequence.push(Component::DefaultNamespace(url))
+            builder.push_simple_selector(Component::DefaultNamespace(url))
         }
     } else {
         empty = false;
@@ -1371,7 +1382,7 @@ fn parse_compound_selector<'i, 't, P, E, Impl>(
         match parse_one_simple_selector(parser, input, /* inside_negation = */ false)? {
             None => break,
             Some(SimpleSelectorParseResult::SimpleSelector(s)) => {
-                sequence.push(s);
+                builder.push_simple_selector(s);
                 empty = false
             }
             Some(SimpleSelectorParseResult::PseudoElement(p)) => {
@@ -1401,13 +1412,13 @@ fn parse_compound_selector<'i, 't, P, E, Impl>(
                     state_selectors.push(Component::NonTSPseudoClass(pseudo_class));
                 }
 
-                if !sequence.is_empty() {
-                    sequence.push(Component::Combinator(Combinator::PseudoElement));
+                if !builder.is_empty() {
+                    builder.push_combinator(Combinator::PseudoElement);
                 }
 
-                sequence.push(Component::PseudoElement(p));
-                for state_selector in state_selectors {
-                    sequence.push(state_selector);
+                builder.push_simple_selector(Component::PseudoElement(p));
+                for state_selector in state_selectors.into_iter() {
+                    builder.push_simple_selector(state_selector);
                 }
 
                 pseudo = true;
@@ -1558,6 +1569,7 @@ fn parse_simple_pseudo_class<'i, P, E, Impl>(parser: &P, name: CompactCowStr<'i>
 // NB: pub module in order to access the DummyParser
 #[cfg(test)]
 pub mod tests {
+    use builder::HAS_PSEUDO_BIT;
     use cssparser::{Parser as CssParser, ToCss, serialize_identifier, ParserInput};
     use parser;
     use std::borrow::Cow;
