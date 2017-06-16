@@ -9,8 +9,7 @@
 
 #[macro_use] extern crate heapsize;
 #[macro_use] extern crate heapsize_derive;
-extern crate serde;
-#[macro_use] extern crate serde_derive;
+#[macro_use] extern crate serde;
 extern crate servo_rand;
 extern crate url;
 extern crate url_serde;

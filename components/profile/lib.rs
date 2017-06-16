@@ -21,7 +21,7 @@ extern crate profile_traits;
 #[cfg(target_os = "linux")]
 extern crate regex;
 #[macro_use]
-extern crate serde_derive;
+extern crate serde;
 extern crate serde_json;
 extern crate servo_config;
 #[cfg(target_os = "macos")]

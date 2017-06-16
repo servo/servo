@@ -19,7 +19,7 @@ extern crate heapsize;
 extern crate hyper;
 extern crate ipc_channel;
 extern crate msg;
-#[macro_use] extern crate serde_derive;
+#[macro_use] extern crate serde;
 extern crate servo_url;
 extern crate time;
 

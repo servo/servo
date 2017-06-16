@@ -20,7 +20,7 @@ extern crate euclid;
 #[cfg(feature = "servo")] extern crate heapsize;
 #[cfg(feature = "servo")] #[macro_use] extern crate heapsize_derive;
 extern crate selectors;
-#[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;
+#[cfg(feature = "servo")] #[macro_use] extern crate serde;
 
 use selectors::parser::SelectorParseError;
 use std::borrow::Cow;

@@ -12,7 +12,7 @@ extern crate getopts;
 #[macro_use] extern crate log;
 extern crate num_cpus;
 extern crate rustc_serialize;
-#[macro_use] extern crate serde_derive;
+#[macro_use] extern crate serde;
 extern crate servo_geometry;
 extern crate servo_url;
 extern crate url;

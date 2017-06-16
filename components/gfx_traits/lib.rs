@@ -9,10 +9,8 @@
 
 extern crate heapsize;
 #[macro_use] extern crate heapsize_derive;
-#[macro_use]
-extern crate range;
-#[macro_use]
-extern crate serde_derive;
+#[macro_use] extern crate range;
+#[macro_use] extern crate serde;
 
 pub mod print_tree;
 

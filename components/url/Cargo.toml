@@ -13,7 +13,6 @@ path = "lib.rs"
 heapsize = {version = "0.4"}
 heapsize_derive = {version = "0.1"}
 serde = {version = "1.0"}
-serde_derive = {version = "1.0"}
 servo_rand = {path = "../rand"}
 url = {version = "1.2", features = ["heap_size"]}
 url_serde = {version = "0.2"}

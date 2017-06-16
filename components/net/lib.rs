@@ -28,9 +28,7 @@ extern crate net_traits;
 extern crate openssl;
 extern crate parse_hosts;
 extern crate profile_traits;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
+#[macro_use] extern crate serde;
 extern crate serde_json;
 extern crate servo_config;
 extern crate servo_url;

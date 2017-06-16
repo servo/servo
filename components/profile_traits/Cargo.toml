@@ -18,7 +18,6 @@ energymon = {git = "https://github.com/energymon/energymon-rust.git", optional =
 ipc-channel = "0.8"
 log = "0.3.5"
 serde = "1.0"
-serde_derive = "1.0"
 servo_config = {path = "../config"}
 signpost = {git = "https://github.com/pcwalton/signpost.git"}
 time = "0.1.12"

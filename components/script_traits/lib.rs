@@ -28,9 +28,7 @@ extern crate net_traits;
 extern crate offscreen_gl_context;
 extern crate profile_traits;
 extern crate rustc_serialize;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
+#[macro_use] extern crate serde;
 extern crate servo_atoms;
 extern crate servo_url;
 extern crate style_traits;
