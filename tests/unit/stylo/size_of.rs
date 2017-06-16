@@ -42,7 +42,7 @@ size_of_test!(test_size_of_application_declaration_block, ApplicableDeclarationB
 
 // FIXME(bholley): This can shrink with a little bit of work.
 // See https://github.com/servo/servo/issues/17280
-size_of_test!(test_size_of_rule_node, RuleNode, 96);
+size_of_test!(test_size_of_rule_node, RuleNode, 88);
 
 // This is huge, but we allocate it on the stack and then never move it,
 // we only pass `&mut SourcePropertyDeclaration` references around.
