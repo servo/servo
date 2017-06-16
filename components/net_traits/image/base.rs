@@ -16,7 +16,7 @@ pub enum PixelFormat {
     /// RGB, 8 bits per channel
     RGB8,
     /// RGB + alpha, 8 bits per channel
-    RGBA8,
+    BGRA8,
 }
 
 #[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
@@ -83,7 +83,7 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
                     Some(Image {
                         width: rgba.width(),
                         height: rgba.height(),
-                        format: PixelFormat::RGBA8,
+                        format: PixelFormat::BGRA8,
                         bytes: IpcSharedMemory::from_bytes(&*rgba),
                         id: None,
                     })

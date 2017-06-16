@@ -431,7 +431,7 @@ impl CanvasRenderingContext2D {
 
         let image_size = Size2D::new(img.width as i32, img.height as i32);
         let image_data = match img.format {
-            PixelFormat::RGBA8 => img.bytes.to_vec(),
+            PixelFormat::BGRA8 => img.bytes.to_vec(),
             PixelFormat::K8 => panic!("K8 color type not supported"),
             PixelFormat::RGB8 => panic!("RGB8 color type not supported"),
             PixelFormat::KA8 => panic!("KA8 color type not supported"),
