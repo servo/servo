@@ -29,7 +29,7 @@ use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
 use dom::virtualmethods::vtable_for;
 use dom_struct::dom_struct;
-use html5ever::{Attribute, QualName, ExpandedName};
+use html5ever::{Attribute, ExpandedName, LocalName, QualName};
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tendril::{StrTendril, ByteTendril, IncompleteUtf8};
 use html5ever::tree_builder::{NodeOrText, TreeSink, NextParserState, QuirksMode, ElementFlags};
@@ -766,7 +766,11 @@ impl TreeSink for Sink {
 
     fn create_element(&mut self, name: QualName, attrs: Vec<Attribute>, _flags: ElementFlags)
             -> JS<Node> {
-        let elem = Element::create(name, &*self.document,
+        let is = attrs.iter()
+                      .find(|attr| attr.name.local.eq_str_ignore_ascii_case("is"))
+                      .map(|attr| LocalName::from(&*attr.value));
+
+        let elem = Element::create(name, is, &*self.document,
                                    ElementCreator::ParserCreated(self.current_line));
 
         for attr in attrs {

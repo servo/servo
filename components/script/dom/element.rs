@@ -129,6 +129,7 @@ pub struct Element {
     prefix: Option<Prefix>,
     attrs: DOMRefCell<Vec<JS<Attr>>>,
     id_attribute: DOMRefCell<Option<Atom>>,
+    is: DOMRefCell<Option<LocalName>>,
     #[ignore_heap_size_of = "Arc"]
     style_attribute: DOMRefCell<Option<Arc<Locked<PropertyDeclarationBlock>>>>,
     attr_list: MutNullableJS<NamedNodeMap>,
@@ -205,9 +206,11 @@ impl<'a> TryFrom<&'a str> for AdjacentPosition {
 //
 impl Element {
     pub fn create(name: QualName,
-                  document: &Document, creator: ElementCreator)
+                  is: Option<LocalName>,
+                  document: &Document,
+                  creator: ElementCreator)
                   -> Root<Element> {
-        create_element(name, document, creator)
+        create_element(name, is, document, creator)
     }
 
     pub fn new_inherited(local_name: LocalName,
@@ -229,6 +232,7 @@ impl Element {
             prefix: prefix,
             attrs: DOMRefCell::new(vec![]),
             id_attribute: DOMRefCell::new(None),
+            is: DOMRefCell::new(None),
             style_attribute: DOMRefCell::new(None),
             attr_list: Default::default(),
             class_list: Default::default(),
@@ -258,6 +262,14 @@ impl Element {
         if damage == NodeDamage::OtherNodeDamage {
             restyle.damage = RestyleDamage::rebuild_and_reflow();
         }
+    }
+
+    pub fn set_is(&self, is: LocalName) {
+        *self.is.borrow_mut() = Some(is);
+    }
+
+    pub fn get_is(&self) -> Option<LocalName> {
+        self.is.borrow().clone()
     }
 
     // https://drafts.csswg.org/cssom-view/#css-layout-box
@@ -1966,6 +1978,7 @@ impl ElementMethods for Element {
             // Step 4.
             NodeTypeId::DocumentFragment => {
                 let body_elem = Element::create(QualName::new(None, ns!(html), local_name!("body")),
+                                                None,
                                                 &context_document,
                                                 ElementCreator::ScriptCreated);
                 Root::upcast(body_elem)

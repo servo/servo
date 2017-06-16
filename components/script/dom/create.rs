@@ -78,7 +78,7 @@ use dom::htmlulistelement::HTMLUListElement;
 use dom::htmlunknownelement::HTMLUnknownElement;
 use dom::htmlvideoelement::HTMLVideoElement;
 use dom::svgsvgelement::SVGSVGElement;
-use html5ever::{QualName, Prefix};
+use html5ever::{LocalName, Prefix, QualName};
 use js::jsapi::JSAutoCompartment;
 use servo_config::prefs::PREFS;
 
@@ -113,16 +113,16 @@ fn create_svg_element(name: QualName,
 #[allow(unsafe_code)]
 fn create_html_element(name: QualName,
                        prefix: Option<Prefix>,
+                       is: Option<LocalName>,
                        document: &Document,
                        creator: ElementCreator)
                        -> Root<Element> {
     assert!(name.ns == ns!(html));
 
     // Step 4
-    let definition = document.lookup_custom_element_definition(name.local.clone(), None);
+    let definition = document.lookup_custom_element_definition(name.local.clone(), is);
 
     if let Some(definition) = definition {
-        // TODO: Handle customized built-in elements. Relies on CE upgrades.
         if definition.is_autonomous() {
             let local_name = name.local.clone();
             return match definition.create_element(document) {
@@ -142,6 +142,11 @@ fn create_html_element(name: QualName,
                     Root::upcast(HTMLUnknownElement::new(local_name, prefix, document))
                 },
             };
+        } else {
+            let element = create_native_html_element(name, prefix, document, creator);
+            element.set_is(definition.name.clone());
+            // TODO: Enqueue custom element upgrade
+            return element;
         }
     }
 
@@ -315,12 +320,13 @@ pub fn create_native_html_element(name: QualName,
 }
 
 pub fn create_element(name: QualName,
+                      is: Option<LocalName>,
                       document: &Document,
                       creator: ElementCreator)
                       -> Root<Element> {
     let prefix = name.prefix.clone();
     match name.ns {
-        ns!(html)   => create_html_element(name, prefix, document, creator),
+        ns!(html)   => create_html_element(name, prefix, is, document, creator),
         ns!(svg)    => create_svg_element(name, prefix, document),
         _           => Element::new(name.local, name.ns, prefix, document)
     }
