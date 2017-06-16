@@ -20,7 +20,7 @@ use dom::htmltemplateelement::HTMLTemplateElement;
 use dom::node::Node;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::virtualmethods::vtable_for;
-use html5ever::{Attribute, QualName, ExpandedName};
+use html5ever::{Attribute, LocalName, QualName, ExpandedName};
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tendril::StrTendril;
 use html5ever::tokenizer::{Tokenizer as HtmlTokenizer, TokenizerOpts, TokenizerResult};
@@ -249,7 +249,13 @@ impl Sink {
                 self.insert_node(contents, JS::from_ref(template.Content().upcast()));
             }
             ParseOperation::CreateElement(id, name, attrs) => {
-                let elem = Element::create(name, &*self.document,
+                let is = attrs.iter()
+                              .find(|attr| attr.name.local.eq_str_ignore_ascii_case("is"))
+                              .map(|attr| LocalName::from(&*attr.value));
+
+                let elem = Element::create(name,
+                                           is,
+                                           &*self.document,
                                            ElementCreator::ParserCreated(self.current_line));
                 for attr in attrs {
                     elem.set_attribute_from_parser(attr.name, DOMString::from(String::from(attr.value)), None);

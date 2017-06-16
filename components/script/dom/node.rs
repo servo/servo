@@ -1827,7 +1827,7 @@ impl Node {
                     ns: element.namespace().clone(),
                     local: element.local_name().clone()
                 };
-                let element = Element::create(name,
+                let element = Element::create(name, element.get_is(),
                     &document, ElementCreator::ScriptCreated);
                 Root::upcast::<Node>(element)
             },
