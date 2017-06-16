@@ -690,9 +690,9 @@ impl WebGLRenderingContext {
 
                 let size = Size2D::new(img.width as i32, img.height as i32);
 
-                // For now Servo's images are all stored as RGBA8 internally.
+                // For now Servo's images are all stored as BGRA8 internally.
                 let mut data = match img.format {
-                    PixelFormat::RGBA8 => img.bytes.to_vec(),
+                    PixelFormat::BGRA8 => img.bytes.to_vec(),
                     _ => unimplemented!(),
                 };
 

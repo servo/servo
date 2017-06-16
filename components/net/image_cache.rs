@@ -40,7 +40,7 @@ fn convert_format(format: PixelFormat) -> webrender_traits::ImageFormat {
             panic!("Not support by webrender yet");
         }
         PixelFormat::RGB8 => webrender_traits::ImageFormat::RGB8,
-        PixelFormat::RGBA8 => webrender_traits::ImageFormat::RGBA8,
+        PixelFormat::BGRA8 => webrender_traits::ImageFormat::BGRA8,
     }
 }
 
@@ -66,7 +66,7 @@ fn set_webrender_image_key(webrender_api: &webrender_traits::RenderApi, image: &
     let format = convert_format(image.format);
     let mut bytes = Vec::new();
     bytes.extend_from_slice(&*image.bytes);
-    if format == webrender_traits::ImageFormat::RGBA8 {
+    if format == webrender_traits::ImageFormat::BGRA8 {
         premultiply(bytes.as_mut_slice());
     }
     let descriptor = webrender_traits::ImageDescriptor {
@@ -87,7 +87,7 @@ fn set_webrender_image_key(webrender_api: &webrender_traits::RenderApi, image: &
 //           Consider using SIMD to speed this up if it shows in profiles.
 fn is_image_opaque(format: webrender_traits::ImageFormat, bytes: &[u8]) -> bool {
     match format {
-        webrender_traits::ImageFormat::RGBA8 => {
+        webrender_traits::ImageFormat::BGRA8 => {
             let mut is_opaque = true;
             for i in 0..(bytes.len() / 4) {
                 if bytes[i * 4 + 3] != 255 {

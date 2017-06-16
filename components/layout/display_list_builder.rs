@@ -1951,7 +1951,7 @@ impl FragmentDisplayListBuilding for Fragment {
                             webrender_image: WebRenderImageInfo {
                                 width: computed_width as u32,
                                 height: computed_height as u32,
-                                format: PixelFormat::RGBA8,
+                                format: PixelFormat::BGRA8,
                                 key: Some(canvas_data.image_key),
                             },
                             image_data: None,

@@ -564,7 +564,7 @@ impl<'a> CanvasPaintThread<'a> {
                 width: size.width as u32,
                 height: size.height as u32,
                 stride: None,
-                format: webrender_traits::ImageFormat::RGBA8,
+                format: webrender_traits::ImageFormat::BGRA8,
                 offset: 0,
                 is_opaque: false,
             };

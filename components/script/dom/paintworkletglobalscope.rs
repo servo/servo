@@ -75,7 +75,7 @@ impl PaintWorkletGlobalScope {
         let image = Image {
             width: width,
             height: height,
-            format: PixelFormat::RGBA8,
+            format: PixelFormat::BGRA8,
             bytes: IpcSharedMemory::from_bytes(&*self.buffer.borrow()),
             id: None,
         };
