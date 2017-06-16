@@ -54,9 +54,9 @@ pub struct PaintWorkletGlobalScope {
     /// The worklet global for this object
     worklet_global: WorkletGlobalScope,
     /// https://drafts.css-houdini.org/css-paint-api/#paint-definitions
-    paint_definitions: DOMRefCell<HashMap<Atom, PaintDefinition>>,
+    paint_definitions: DOMRefCell<HashMap<Atom, Box<PaintDefinition>>>,
     /// https://drafts.css-houdini.org/css-paint-api/#paint-class-instances
-    paint_class_instances: DOMRefCell<HashMap<Atom, Heap<JSVal>>>,
+    paint_class_instances: DOMRefCell<HashMap<Atom, Box<Heap<JSVal>>>>,
     /// A buffer to draw into
     buffer: DOMRefCell<Vec<u8>>,
 }
@@ -109,9 +109,10 @@ impl PaintWorkletGlobalScope {
         let _ac = JSAutoCompartment::new(cx, self.worklet_global.reflector().get_jsobject().get());
 
         // TODO: Steps 1-2.1.
-        // Step 3.
-        let definition = match self.paint_definitions.borrow().get(&name) {
-            Some(defn) => defn.clone(),
+        // Step 2.2-5.1.
+        rooted!(in(cx) let mut class_constructor = UndefinedValue());
+        rooted!(in(cx) let mut paint_function = UndefinedValue());
+        match self.paint_definitions.borrow().get(&name) {
             None => {
                 // Step 2.2.
                 warn!("Drawing un-registered paint definition {}.", name);
@@ -119,13 +120,9 @@ impl PaintWorkletGlobalScope {
                 let _ = sender.send(Ok(image));
                 return;
             }
-        };
-
-        // Steps 4-5
-        rooted!(in(cx) let mut paint_instance = UndefinedValue());
-        match self.paint_class_instances.borrow_mut().entry(name.clone()) {
-            Entry::Occupied(entry) => paint_instance.set(entry.get().get()),
-            Entry::Vacant(entry) => {
+            Some(definition) => {
+                class_constructor.set(definition.class_constructor.get());
+                paint_function.set(definition.paint_function.get());
                 // Step 5.1
                 if !definition.constructor_valid_flag.get() {
                     debug!("Drawing invalid paint definition {}.", name);
@@ -133,21 +130,31 @@ impl PaintWorkletGlobalScope {
                     let _ = sender.send(Ok(image));
                     return;
                 }
+            }
+        };
+
+        // Steps 5.2-5.4
+        rooted!(in(cx) let mut paint_instance = UndefinedValue());
+        match self.paint_class_instances.borrow_mut().entry(name.clone()) {
+            Entry::Occupied(entry) => paint_instance.set(entry.get().get()),
+            Entry::Vacant(entry) => {
                 // Step 5.2-5.3
                 let args = HandleValueArray::new();
                 rooted!(in(cx) let mut result = null_mut());
-                unsafe { Construct1(cx, definition.class_constructor.handle(), &args, result.handle_mut()); }
+                unsafe { Construct1(cx, class_constructor.handle(), &args, result.handle_mut()); }
                 paint_instance.set(ObjectValue(result.get()));
                 if unsafe { JS_IsExceptionPending(cx) } {
                     debug!("Paint constructor threw an exception {}.", name);
                     unsafe { JS_ClearPendingException(cx); }
-                    definition.constructor_valid_flag.set(false);
+                    self.paint_definitions.borrow_mut().get_mut(&name)
+                        .expect("Vanishing paint definition.")
+                        .constructor_valid_flag.set(false);
                     let image = self.placeholder_image(width, height, [0x00, 0x00, 0xFF, 0xFF]);
                     let _ = sender.send(Ok(image));
                     return;
                 }
                 // Step 5.4
-                entry.insert(Heap::new(paint_instance.get()));
+                entry.insert(Box::new(Heap::default())).set(paint_instance.get());
             }
         };
 
@@ -166,7 +173,7 @@ impl PaintWorkletGlobalScope {
             ObjectValue(paint_size.reflector().get_jsobject().get()),
         ]) };
         rooted!(in(cx) let mut result = UndefinedValue());
-        unsafe { Call(cx, paint_instance.handle(), definition.paint_function.handle(), &args, result.handle_mut()); }
+        unsafe { Call(cx, paint_instance.handle(), paint_function.handle(), &args, result.handle_mut()); }
 
         // Step 13.
         if unsafe { JS_IsExceptionPending(cx) } {
@@ -208,6 +215,7 @@ impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
         let name = Atom::from(name);
         let cx = self.worklet_global.get_cx();
         rooted!(in(cx) let paint_obj = paint_ctor.callback_holder().get());
+        let paint_val = ObjectValue(paint_obj.get());
 
         debug!("Registering paint image name {}.", name);
 
@@ -241,7 +249,7 @@ impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
         debug!("Getting alpha.");
         let alpha: bool =
             unsafe { get_property(cx, paint_obj.handle(), "alpha", ()) }?
-            .unwrap_or_default();
+            .unwrap_or(true);
         debug!("Got {:?}.", alpha);
 
         // Step 14
@@ -269,18 +277,11 @@ impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
             return Err(Error::Type(String::from("Paint function is not callable.")));
         }
 
-        // Step 19.
-        let definition = PaintDefinition {
-            class_constructor: Heap::new(ObjectValue(paint_obj.get())),
-            paint_function: Heap::new(paint_function),
-            constructor_valid_flag: Rc::new(Cell::new(true)),
-            input_properties: input_properties,
-            context_alpha_flag: alpha,
-        };
-
-        // Step 20.
+        // Steps 19-20.
         debug!("Registering definition {}.", name);
-        self.paint_definitions.borrow_mut().insert(name, definition);
+        self.paint_definitions.borrow_mut()
+            .insert(name,
+                    PaintDefinition::new(paint_val, paint_function, input_properties, alpha));
 
         // TODO: Step 21.
 
@@ -295,12 +296,34 @@ pub enum PaintWorkletTask {
 
 /// A paint definition
 /// https://drafts.css-houdini.org/css-paint-api/#paint-definition
-#[derive(Clone, JSTraceable, HeapSizeOf)]
+/// This type is dangerous, because it contains uboxed `Heap<JSVal>` values,
+/// which can't be moved.
+#[derive(JSTraceable, HeapSizeOf)]
+#[must_root]
 struct PaintDefinition {
     class_constructor: Heap<JSVal>,
     paint_function: Heap<JSVal>,
-    #[ignore_heap_size_of = "Rc"]
-    constructor_valid_flag: Rc<Cell<bool>>,
+    constructor_valid_flag: Cell<bool>,
     input_properties: Vec<DOMString>,
     context_alpha_flag: bool,
+}
+
+impl PaintDefinition {
+    fn new(class_constructor: JSVal,
+           paint_function: JSVal,
+           input_properties: Vec<DOMString>,
+           alpha: bool)
+           -> Box<PaintDefinition>
+    {
+        let result = Box::new(PaintDefinition {
+            class_constructor: Heap::default(),
+            paint_function: Heap::default(),
+            constructor_valid_flag: Cell::new(true),
+            input_properties: input_properties,
+            context_alpha_flag: alpha,
+        });
+        result.class_constructor.set(class_constructor);
+        result.paint_function.set(paint_function);
+        result
+    }
 }
