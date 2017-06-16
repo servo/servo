@@ -22,13 +22,35 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
                 ::std::fmt::Write::write_str(dest, #identifier)
             }
         } else {
+            // We allow people to opt out of generating `F: ToCss` for `V(F)`
+            // so that if they have some recursive data type we don't generate
+            // bounds that confuse the compiler, for example,
+            // `E: ToCss if Vec<E>: ToCss`).
+            // It would be cool if we could automatically detect these cases;
+            // that probably just amounts to adding some nice code for
+            // checking if some syntax specifies the same type as some syntax
+            // somewhere else, and then looking at the path segments.
+            let mut omit_to_css_bounds_attrs = variant.attrs.iter().filter(|attr| attr.name() == "omit_to_css_bounds");
+            let bound_fields = match omit_to_css_bounds_attrs.next() {
+                None => true,
+                Some(&syn::Attribute { value: syn::MetaItem::Word(_), .. }) => false,
+                _ => panic!("only `#[omit_to_css_bounds]` is supported")
+            };
+            if omit_to_css_bounds_attrs.next().is_some() {
+                panic!("only a single `#[omit_to_css_bounds]` attribute is supported");
+            }
+
             let (first, rest) = bindings.split_first().expect("unit variants are not yet supported");
-            where_clause.predicates.push(where_predicate(first.field.ty.clone()));
+            if bound_fields {
+                where_clause.predicates.push(where_predicate(first.field.ty.clone()));
+            }
             let mut expr = quote! {
                 ::style_traits::ToCss::to_css(#first, dest)
             };
             for binding in rest {
-                where_clause.predicates.push(where_predicate(binding.field.ty.clone()));
+                if bound_fields {
+                    where_clause.predicates.push(where_predicate(binding.field.ty.clone()));
+                }
                 expr = quote! {
                     #expr?;
                     ::std::fmt::Write::write_str(dest, " ")?;
