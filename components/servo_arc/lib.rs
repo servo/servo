@@ -527,12 +527,16 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
             //
             // To avoid alignment issues, we allocate words rather than bytes,
             // rounding up to the nearest word size.
-            assert!(mem::align_of::<T>() <= mem::align_of::<usize>(),
-                    "We don't handle over-aligned types");
-            let words_to_allocate = divide_rounding_up(size, size_of::<usize>());
-            let mut vec = Vec::<usize>::with_capacity(words_to_allocate);
-            vec.set_len(words_to_allocate);
-            let buffer = Box::into_raw(vec.into_boxed_slice()) as *mut usize as *mut u8;
+            let buffer = if mem::align_of::<T>() <= mem::align_of::<usize>() {
+                Self::allocate_buffer::<usize>(size)
+            } else if mem::align_of::<T>() <= mem::align_of::<u64>() {
+                // On 32-bit platforms <T> may have 8 byte alignment while usize has 4 byte aligment.
+                // Use u64 to avoid over-alignment.
+                // This branch will compile away in optimized builds.
+                Self::allocate_buffer::<u64>(size)
+            } else {
+                panic!("Over-aligned type not handled");
+            };
 
             // Synthesize the fat pointer. We do this by claiming we have a direct
             // pointer to a [T], and then changing the type of the borrow. The key
@@ -563,6 +567,14 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
         // Return the fat Arc.
         assert_eq!(size_of::<Self>(), size_of::<usize>() * 2, "The Arc will be fat");
         Arc { p: NonZeroPtrMut::new(ptr) }
+    }
+
+    #[inline]
+    unsafe fn allocate_buffer<W>(size: usize) -> *mut u8 {
+        let words_to_allocate = divide_rounding_up(size, mem::size_of::<W>());
+        let mut vec = Vec::<W>::with_capacity(words_to_allocate);
+        vec.set_len(words_to_allocate);
+        Box::into_raw(vec.into_boxed_slice()) as *mut W as *mut u8
     }
 }
 
