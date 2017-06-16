@@ -1895,6 +1895,13 @@ impl ComputedValues {
         self.visited_style.clone()
     }
 
+    // Aah! The << in the return type below is not valid syntax, but we must
+    // escape < that way for Mako.
+    /// Gets a reference to the custom properties map (if one exists).
+    pub fn get_custom_properties(&self) -> Option<<&::custom_properties::ComputedValuesMap> {
+        self.custom_properties.as_ref().map(|x| &**x)
+    }
+
     /// Get the custom properties map if necessary.
     ///
     /// Cloning the Arc here is fine because it only happens in the case where

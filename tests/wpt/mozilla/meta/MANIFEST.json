@@ -20015,6 +20015,12 @@
      {}
     ]
    ],
+   "mozilla/upstream/css_variables_setProperty_recompute.html": [
+    [
+     "/_mozilla/mozilla/upstream/css_variables_setProperty_recompute.html",
+     {}
+    ]
+   ],
    "mozilla/variadic-interface.html": [
     [
      "/_mozilla/mozilla/variadic-interface.html",
@@ -31698,6 +31704,10 @@
   ],
   "mozilla/unitless-length.html": [
    "dfb31d3f9c4f24913055924c375f08b990b63e49",
+   "testharness"
+  ],
+  "mozilla/upstream/css_variables_setProperty_recompute.html": [
+   "2e9326948f5115b3b63564fd26bae326bc8e2187",
    "testharness"
   ],
   "mozilla/variadic-interface.html": [
