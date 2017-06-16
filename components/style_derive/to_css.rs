@@ -18,12 +18,16 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
     let match_body = synstructure::each_variant(&input, &style, |bindings, variant| {
         let mut identifier = to_css_identifier(variant.ident.as_ref());
         let mut expr = if let Some((first, rest)) = bindings.split_first() {
-            where_clause.predicates.push(where_predicate(first.field.ty.clone()));
+            if has_free_params(&first.field.ty, &input.generics.ty_params) {
+                where_clause.predicates.push(where_predicate(first.field.ty.clone()));
+            }
             let mut expr = quote! {
                 ::style_traits::ToCss::to_css(#first, dest)
             };
             for binding in rest {
-                where_clause.predicates.push(where_predicate(binding.field.ty.clone()));
+                if has_free_params(&binding.field.ty, &input.generics.ty_params) {
+                    where_clause.predicates.push(where_predicate(binding.field.ty.clone()));
+                }
                 expr = quote! {
                     #expr?;
                     ::std::fmt::Write::write_str(dest, " ")?;
@@ -88,6 +92,31 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
             }
         }
     }
+}
+
+/// Returns whether `ty` is parameterized by any parameter from `params`.
+fn has_free_params(ty: &syn::Ty, params: &[syn::TyParam]) -> bool {
+    use syn::visit::Visitor;
+
+    struct HasFreeParams<'a> {
+        params: &'a [syn::TyParam],
+        has_free: bool,
+    }
+
+    impl<'a> Visitor for HasFreeParams<'a> {
+        fn visit_path(&mut self, path: &syn::Path) {
+            if !path.global && path.segments.len() == 1 {
+                if self.params.iter().any(|param| param.ident == path.segments[0].ident) {
+                    self.has_free = true;
+                }
+            }
+            syn::visit::walk_path(self, path);
+        }
+    }
+
+    let mut visitor = HasFreeParams { params: params, has_free: false };
+    visitor.visit_ty(ty);
+    visitor.has_free
 }
 
 /// `#ty: ::style_traits::ToCss`
