@@ -781,11 +781,11 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             """
             { // Scope for our JSAutoCompartment.
 
-                rooted!(in(cx) let globalObj = CurrentGlobalOrNull(cx));
+                rooted!(in(cx) let globalObj = jsapi::JS::CurrentGlobalOrNull(cx));
                 let promiseGlobal = GlobalScope::from_object_maybe_wrapped(globalObj.handle().get());
 
                 rooted!(in(cx) let mut valueToResolve = $${val}.get());
-                if !JS_WrapValue(cx, valueToResolve.handle_mut()) {
+                if !jsapi::JS_WrapValue(cx, valueToResolve.handle_mut()) {
                 $*{exceptionCode}
                 }
                 match Promise::Resolve(&promiseGlobal, cx, valueToResolve.handle()) {
@@ -5351,8 +5351,8 @@ if args.callee() == new_target.get() {
 rooted!(in(cx) let mut prototype = ptr::null_mut());
 {
     rooted!(in(cx) let mut proto_val = UndefinedValue());
-    let _ac = JSAutoCompartment::new(cx, new_target.get());
-    if !JS_GetProperty(cx, new_target.handle(), b"prototype\\0".as_ptr() as *const _, proto_val.handle_mut()) {
+    let _ac = js::ac::AutoCompartment::with_obj(cx, new_target.get());
+    if !jsapi::JS_GetProperty(cx, new_target.handle(), b"prototype\\0".as_ptr() as *const _, proto_val.handle_mut()) {
         return false;
     }
 
@@ -5375,7 +5375,7 @@ rooted!(in(cx) let mut prototype = ptr::null_mut());
 }
 
 // Wrap prototype in this context since it is from the newTarget compartment
-if !JS_WrapObject(cx, prototype.handle_mut()) {
+if !jsapi::JS_WrapObject(cx, prototype.handle_mut()) {
     return false;
 }
 
@@ -5388,7 +5388,7 @@ let result = match result {
     },
 };
 
-JS_SetPrototype(cx, result.reflector().get_jsobject(), prototype.handle());
+jsapi::JS_SetPrototype(cx, result.reflector().get_jsobject(), prototype.handle());
 
 (result).to_jsval(cx, args.rval());
 return true;

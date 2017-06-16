@@ -20,8 +20,8 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use html5ever::LocalName;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::{IsConstructor, HandleObject, JS_GetProperty, JSAutoCompartment, JSContext};
-use js::jsval::{JSVal, UndefinedValue};
+use js::jsapi;
+use js::jsval::UndefinedValue;
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -74,12 +74,12 @@ impl CustomElementRegistry {
     /// https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define
     /// Steps 10.1, 10.2
     #[allow(unsafe_code)]
-    fn check_prototype(&self, constructor: HandleObject) -> ErrorResult {
+    fn check_prototype(&self, constructor: jsapi::JS::HandleObject) -> ErrorResult {
         let global_scope = self.window.upcast::<GlobalScope>();
         rooted!(in(global_scope.get_cx()) let mut prototype = UndefinedValue());
         unsafe {
             // Step 10.1
-            if !JS_GetProperty(global_scope.get_cx(),
+            if !jsapi::JS_GetProperty(global_scope.get_cx(),
                                constructor,
                                b"prototype\0".as_ptr() as *const _,
                                prototype.handle_mut()) {
@@ -153,7 +153,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
 
         // Steps 10.1 - 10.2
         let result = {
-            let _ac = JSAutoCompartment::new(global_scope.get_cx(), constructor.get());
+            let _ac = js::ac::AutoCompartment::with_obj(global_scope.get_cx(), constructor.get());
             self.check_prototype(constructor.handle())
         };
 
@@ -187,7 +187,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
 
     /// https://html.spec.whatwg.org/multipage/#dom-customelementregistry-get
     #[allow(unsafe_code)]
-    unsafe fn Get(&self, cx: *mut JSContext, name: DOMString) -> JSVal {
+    unsafe fn Get(&self, cx: *mut jsapi::JSContext, name: DOMString) -> jsapi::JS::Value {
         match self.definitions.borrow().get(&name) {
             Some(definition) => {
                 rooted!(in(cx) let mut constructor = UndefinedValue());

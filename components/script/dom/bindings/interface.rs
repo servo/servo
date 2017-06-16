@@ -87,7 +87,7 @@ use html5ever::LocalName;
 use html5ever::interface::QualName;
 use js;
 use js::error::throw_type_error;
-use js::glue::{RUST_SYMBOL_TO_JSID, UncheckedUnwrapObject};
+use js::glue::{RUST_SYMBOL_TO_JSID, UncheckedUnwrapObject, UnwrapObject};
 use js::jsapi;
 use js::jsval::PrivateValue;
 use js::rust::{define_methods, define_properties, get_object_class};
@@ -226,8 +226,11 @@ pub unsafe fn create_global_object(
 }
 
 // https://html.spec.whatwg.org/multipage/#htmlconstructor
-pub unsafe fn html_constructor<T>(window: &Window, call_args: &CallArgs) -> Fallible<Root<T>>
-                                  where T: DerivedFrom<Element> {
+pub unsafe fn html_constructor<T>(window: &Window,
+                                  call_args: &jsapi::JS::CallArgs)
+                                  -> Fallible<Root<T>>
+    where T: DerivedFrom<Element>
+{
     let document = window.Document();
 
     // Step 1
@@ -248,9 +251,9 @@ pub unsafe fn html_constructor<T>(window: &Window, call_args: &CallArgs) -> Fall
     }
 
     {
-        let _ac = JSAutoCompartment::new(window.get_cx(), callee.get());
+        let _ac = js::ac::AutoCompartment::with_obj(window.get_cx(), callee.get());
         rooted!(in(window.get_cx()) let mut constructor = ptr::null_mut());
-        rooted!(in(window.get_cx()) let global_object = CurrentGlobalOrNull(window.get_cx()));
+        rooted!(in(window.get_cx()) let global_object = jsapi::JS::CurrentGlobalOrNull(window.get_cx()));
 
         if definition.is_autonomous() {
             // Step 4
@@ -612,9 +615,9 @@ unsafe extern "C" fn non_new_constructor(
 /// Returns the constructor object for the element associated with the given local name.
 /// This list should only include elements marked with the [HTMLConstructor] extended attribute.
 pub fn get_constructor_object_from_local_name(name: LocalName,
-                                              cx: *mut JSContext,
-                                              global: HandleObject,
-                                              rval: MutableHandleObject)
+                                              cx: *mut jsapi::JSContext,
+                                              global: jsapi::JS::HandleObject,
+                                              rval: jsapi::JS::MutableHandleObject)
                                               -> bool {
     macro_rules! get_constructor(
         ($binding:ident) => ({

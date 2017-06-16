@@ -478,7 +478,7 @@ unsafe impl JSTraceable for Point2D<f32> {
 
 unsafe impl JSTraceable for Vector2D<f32> {
     #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
+    unsafe fn trace(&self, _trc: *mut jsapi::JSTracer) {
         // Do nothing
     }
 }
