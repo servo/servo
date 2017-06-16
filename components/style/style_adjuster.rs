@@ -6,7 +6,10 @@
 //! for it to adhere to the CSS spec.
 
 use app_units::Au;
-use properties::{self, ComputedValues, StyleBuilder};
+use properties::{self, CascadeFlags, ComputedValues};
+use properties::{SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, StyleBuilder};
+#[cfg(feature = "gecko")]
+use properties::PROHIBIT_DISPLAY_CONTENTS;
 use properties::longhands::display::computed_value::T as display;
 use properties::longhands::float::computed_value::T as float;
 use properties::longhands::overflow_x::computed_value::T as overflow;
@@ -54,7 +57,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// https://drafts.csswg.org/css2/visuren.html#dis-pos-flo
     fn blockify_if_necessary(&mut self,
                              layout_parent_style: &ComputedValues,
-                             skip_root_and_element_display_fixup: bool) {
+                             flags: CascadeFlags) {
         let mut blockify = false;
         macro_rules! blockify_if {
             ($if_what:expr) => {
@@ -64,7 +67,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             }
         }
 
-        if !skip_root_and_element_display_fixup {
+        if !flags.contains(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP) {
             blockify_if!(self.is_root_element);
             blockify_if!(layout_parent_style.get_box().clone_display().is_item_container());
         }
@@ -275,6 +278,19 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
     }
 
+    /// Native anonymous content converts display:contents into display:inline.
+    #[cfg(feature = "gecko")]
+    fn adjust_for_prohibited_display_contents(&mut self, flags: CascadeFlags) {
+        // TODO: We should probably convert display:contents into display:none
+        // in some cases too: https://drafts.csswg.org/css-display/#unbox
+        if !flags.contains(PROHIBIT_DISPLAY_CONTENTS) ||
+           self.style.get_box().clone_display() != display::contents {
+            return;
+        }
+
+        self.style.mutate_box().set_display(display::inline);
+    }
+
     /// -moz-center, -moz-left and -moz-right are used for HTML's alignment.
     ///
     /// This is covering the <div align="right"><table>...</table></div> case.
@@ -305,10 +321,13 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// `nsStyleContext::ApplyStyleFixups`.
     pub fn adjust(&mut self,
                   layout_parent_style: &ComputedValues,
-                  skip_root_and_element_display_fixup: bool) {
+                  flags: CascadeFlags) {
+        #[cfg(feature = "gecko")]
+        {
+            self.adjust_for_prohibited_display_contents(flags);
+        }
         self.adjust_for_top_layer();
-        self.blockify_if_necessary(layout_parent_style,
-                                   skip_root_and_element_display_fixup);
+        self.blockify_if_necessary(layout_parent_style, flags);
         self.adjust_for_position();
         self.adjust_for_overflow();
         #[cfg(feature = "gecko")]
