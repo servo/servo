@@ -33,7 +33,7 @@ use dom::cssstylesheet::CSSStyleSheet;
 use dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
-use dom::element::{Element, ElementCreator};
+use dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::htmlbodyelement::HTMLBodyElement;
@@ -1827,8 +1827,11 @@ impl Node {
                     ns: element.namespace().clone(),
                     local: element.local_name().clone()
                 };
-                let element = Element::create(name, element.get_is(),
-                    &document, ElementCreator::ScriptCreated);
+                let element = Element::create(name,
+                                              element.get_is(),
+                                              &document,
+                                              ElementCreator::ScriptCreated,
+                                              CustomElementCreationMode::Asynchronous);
                 Root::upcast::<Node>(element)
             },
         };
