@@ -703,6 +703,7 @@ impl Document {
             // Step 3
             let global_scope = self.window.upcast::<GlobalScope>();
             let webrender_pipeline_id = global_scope.pipeline_id().to_webrender();
+            self.window.update_viewport_for_scroll(x, y);
             self.window.perform_a_scroll(x,
                                          y,
                                          ClipId::root_scroll_node(webrender_pipeline_id),
