@@ -135,8 +135,9 @@ mod webdriver_handlers;
 
 use dom::bindings::codegen::RegisterBindings;
 use dom::bindings::proxyhandler;
-use script_traits::SWManagerSenders;
+use script_traits::{SWManagerSenders, TimerSchedulerMsg};
 use serviceworker_manager::ServiceWorkerManager;
+use std::sync::mpsc::Sender;
 
 #[cfg(target_os = "linux")]
 #[allow(unsafe_code)]
@@ -179,9 +180,9 @@ fn perform_platform_specific_initialization() {
 #[cfg(not(target_os = "linux"))]
 fn perform_platform_specific_initialization() {}
 
-pub fn init_service_workers(sw_senders: SWManagerSenders) {
+pub fn init_service_workers(sw_senders: SWManagerSenders, scheduler_chan: Sender<TimerSchedulerMsg>) {
     // Spawn the service worker manager passing the constellation sender
-    ServiceWorkerManager::spawn_manager(sw_senders);
+    ServiceWorkerManager::spawn_manager(sw_senders, scheduler_chan);
 }
 
 #[allow(unsafe_code)]

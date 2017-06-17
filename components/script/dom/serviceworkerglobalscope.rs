@@ -28,6 +28,7 @@ use net_traits::{load_whole_resource, IpcSend, CustomResponseMediator};
 use net_traits::request::{CredentialsMode, Destination, RequestInit, Type as RequestType};
 use script_runtime::{CommonScriptMsg, StackRootTLS, get_reports, new_rt_and_cx, ScriptChan};
 use script_traits::{TimerEvent, WorkerGlobalScopeInit, ScopeThings, ServiceWorkerMsg, WorkerScriptLoadOrigin};
+use script_traits::TimerSchedulerMsg;
 use servo_config::prefs::PREFS;
 use servo_rand::random;
 use servo_url::ServoUrl;
@@ -93,6 +94,7 @@ impl ServiceWorkerGlobalScope {
                      timer_event_chan: IpcSender<TimerEvent>,
                      timer_event_port: Receiver<()>,
                      swmanager_sender: IpcSender<ServiceWorkerMsg>,
+                     scheduler_chan: Sender<TimerSchedulerMsg>,
                      scope_url: ServoUrl)
                      -> ServiceWorkerGlobalScope {
         ServiceWorkerGlobalScope {
@@ -101,6 +103,7 @@ impl ServiceWorkerGlobalScope {
                                                                 runtime,
                                                                 from_devtools_receiver,
                                                                 timer_event_chan,
+                                                                scheduler_chan,
                                                                 None),
             receiver: receiver,
             timer_event_port: timer_event_port,
@@ -112,6 +115,7 @@ impl ServiceWorkerGlobalScope {
 
     #[allow(unsafe_code)]
     pub fn new(init: WorkerGlobalScopeInit,
+               scheduler_chan: Sender<TimerSchedulerMsg>,
                worker_url: ServoUrl,
                from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
                runtime: Runtime,
@@ -124,15 +128,16 @@ impl ServiceWorkerGlobalScope {
                -> Root<ServiceWorkerGlobalScope> {
         let cx = runtime.cx();
         let scope = box ServiceWorkerGlobalScope::new_inherited(init,
-                                                                  worker_url,
-                                                                  from_devtools_receiver,
-                                                                  runtime,
-                                                                  own_sender,
-                                                                  receiver,
-                                                                  timer_event_chan,
-                                                                  timer_event_port,
-                                                                  swmanager_sender,
-                                                                  scope_url);
+                                                                worker_url,
+                                                                from_devtools_receiver,
+                                                                runtime,
+                                                                own_sender,
+                                                                receiver,
+                                                                timer_event_chan,
+                                                                timer_event_port,
+                                                                swmanager_sender,
+                                                                scheduler_chan,
+                                                                scope_url);
         unsafe {
             ServiceWorkerGlobalScopeBinding::Wrap(cx, scope)
         }
@@ -140,11 +145,12 @@ impl ServiceWorkerGlobalScope {
 
     #[allow(unsafe_code)]
     pub fn run_serviceworker_scope(scope_things: ScopeThings,
-                            own_sender: Sender<ServiceWorkerScriptMsg>,
-                            receiver: Receiver<ServiceWorkerScriptMsg>,
-                            devtools_receiver: IpcReceiver<DevtoolScriptControlMsg>,
-                            swmanager_sender: IpcSender<ServiceWorkerMsg>,
-                            scope_url: ServoUrl) {
+                                   scheduler_chan: Sender<TimerSchedulerMsg>,
+                                   own_sender: Sender<ServiceWorkerScriptMsg>,
+                                   receiver: Receiver<ServiceWorkerScriptMsg>,
+                                   devtools_receiver: IpcReceiver<DevtoolScriptControlMsg>,
+                                   swmanager_sender: IpcSender<ServiceWorkerMsg>,
+                                   scope_url: ServoUrl) {
         let ScopeThings { script_url,
                           init,
                           worker_load_origin,
@@ -190,7 +196,7 @@ impl ServiceWorkerGlobalScope {
             let (timer_ipc_chan, _timer_ipc_port) = ipc::channel().unwrap();
             let (timer_chan, timer_port) = channel();
             let global = ServiceWorkerGlobalScope::new(
-                init, url, devtools_mpsc_port, runtime,
+                init, scheduler_chan, url, devtools_mpsc_port, runtime,
                 own_sender, receiver,
                 timer_ipc_chan, timer_port, swmanager_sender, scope_url);
             let scope = global.upcast::<WorkerGlobalScope>();

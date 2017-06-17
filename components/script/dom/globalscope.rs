@@ -44,6 +44,7 @@ use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::ffi::CString;
+use std::sync::mpsc::Sender;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use time::{Timespec, get_time};
@@ -83,7 +84,7 @@ pub struct GlobalScope {
     constellation_chan: IpcSender<ConstellationMsg>,
 
     #[ignore_heap_size_of = "channels are hard"]
-    scheduler_chan: IpcSender<TimerSchedulerMsg>,
+    scheduler_chan: Sender<TimerSchedulerMsg>,
 
     /// https://html.spec.whatwg.org/multipage/#in-error-reporting-mode
     in_error_reporting_mode: Cell<bool>,
@@ -105,7 +106,7 @@ impl GlobalScope {
             mem_profiler_chan: mem::ProfilerChan,
             time_profiler_chan: time::ProfilerChan,
             constellation_chan: IpcSender<ConstellationMsg>,
-            scheduler_chan: IpcSender<TimerSchedulerMsg>,
+            scheduler_chan: Sender<TimerSchedulerMsg>,
             resource_threads: ResourceThreads,
             timer_event_chan: IpcSender<TimerEvent>,
             origin: MutableOrigin)
@@ -235,7 +236,7 @@ impl GlobalScope {
         &self.constellation_chan
     }
 
-    pub fn scheduler_chan(&self) -> &IpcSender<TimerSchedulerMsg> {
+    pub fn scheduler_chan(&self) -> &Sender<TimerSchedulerMsg> {
         &self.scheduler_chan
     }
 

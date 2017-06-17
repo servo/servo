@@ -1795,7 +1795,7 @@ impl Window {
                devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
                constellation_chan: IpcSender<ConstellationMsg>,
                control_chan: IpcSender<ConstellationControlMsg>,
-               scheduler_chan: IpcSender<TimerSchedulerMsg>,
+               scheduler_chan: Sender<TimerSchedulerMsg>,
                timer_event_chan: IpcSender<TimerEvent>,
                layout_chan: Sender<Msg>,
                id: PipelineId,

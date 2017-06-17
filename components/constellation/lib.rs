@@ -48,7 +48,8 @@ mod network_listener;
 mod pipeline;
 #[cfg(not(target_os = "windows"))]
 mod sandboxing;
-mod timer_scheduler;
+
+pub mod timer_scheduler;
 
 pub use constellation::{Constellation, FromCompositorLogger, FromScriptLogger, InitialConstellationState};
 pub use pipeline::UnprivilegedPipelineContent;

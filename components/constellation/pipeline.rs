@@ -119,7 +119,7 @@ pub struct InitialPipelineState {
     pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
 
     /// A channel to schedule timer events.
-    pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
+    pub scheduler_chan: Sender<TimerSchedulerMsg>,
 
     /// A channel to the compositor.
     pub compositor_proxy: CompositorProxy,
@@ -244,7 +244,6 @@ impl Pipeline {
                     top_level_browsing_context_id: state.top_level_browsing_context_id,
                     parent_info: state.parent_info,
                     constellation_chan: state.constellation_chan,
-                    scheduler_chan: state.scheduler_chan,
                     devtools_chan: script_to_devtools_chan,
                     bluetooth_thread: state.bluetooth_thread,
                     swmanager_thread: state.swmanager_thread,
@@ -275,7 +274,7 @@ impl Pipeline {
                 if opts::multiprocess() {
                     let _ = try!(unprivileged_pipeline_content.spawn_multiprocess());
                 } else {
-                    unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false);
+                    unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false, state.scheduler_chan);
                 }
 
                 EventLoop::new(script_chan)
@@ -445,7 +444,6 @@ pub struct UnprivilegedPipelineContent {
     parent_info: Option<(PipelineId, FrameType)>,
     constellation_chan: IpcSender<ScriptMsg>,
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
-    scheduler_chan: IpcSender<TimerSchedulerMsg>,
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     bluetooth_thread: IpcSender<BluetoothRequest>,
     swmanager_thread: IpcSender<SWManagerMsg>,
@@ -470,7 +468,9 @@ pub struct UnprivilegedPipelineContent {
 }
 
 impl UnprivilegedPipelineContent {
-    pub fn start_all<Message, LTF, STF>(self, wait_for_completion: bool)
+    pub fn start_all<Message, LTF, STF>(self,
+                                        wait_for_completion: bool,
+                                        scheduler_chan: Sender<TimerSchedulerMsg>)
         where LTF: LayoutThreadFactory<Message=Message>,
               STF: ScriptThreadFactory<Message=Message>
     {
@@ -484,7 +484,7 @@ impl UnprivilegedPipelineContent {
             control_port: self.script_port,
             constellation_chan: self.constellation_chan,
             layout_to_constellation_chan: self.layout_to_constellation_chan.clone(),
-            scheduler_chan: self.scheduler_chan,
+            scheduler_chan: scheduler_chan,
             bluetooth_thread: self.bluetooth_thread,
             resource_threads: self.resource_threads,
             image_cache: image_cache.clone(),

@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use ipc_channel::ipc::{self, IpcSender};
 use script_traits::{TimerEvent, TimerEventRequest, TimerSchedulerMsg};
 use std::cmp::{self, Ord};
 use std::collections::BinaryHeap;
@@ -38,8 +37,8 @@ impl PartialEq for ScheduledEvent {
 }
 
 impl TimerScheduler {
-    pub fn start() -> IpcSender<TimerSchedulerMsg> {
-        let (req_ipc_sender, req_ipc_receiver) = ipc::channel().expect("Channel creation failed.");
+    pub fn start() -> mpsc::Sender<TimerSchedulerMsg> {
+        let (scheduler_sender, scheduler_receiver) = mpsc::channel();
         let (req_sender, req_receiver) = mpsc::sync_channel(1);
 
         // We could do this much more directly with recv_timeout
@@ -90,7 +89,7 @@ impl TimerScheduler {
                         Err(Disconnected) => break,
                     }
                 }
-                // This thread can terminate if the req_ipc_sender is dropped.
+                // This thread can terminate if the scheduler_sender is dropped.
                 warn!("TimerScheduler thread terminated.");
             })
             .expect("Thread creation failed.")
@@ -105,7 +104,7 @@ impl TimerScheduler {
         thread::Builder::new()
             .name(String::from("TimerProxy"))
             .spawn(move || {
-                while let Ok(req) = req_ipc_receiver.recv() {
+                while let Ok(req) = scheduler_receiver.recv() {
                     let mut shutting_down = false;
                     match req {
                         TimerSchedulerMsg::Exit => shutting_down = true,
@@ -117,12 +116,12 @@ impl TimerScheduler {
                         break;
                     }
                 }
-                // This thread can terminate if the req_ipc_sender is dropped.
+                // This thread can terminate if the scheduler_sender is dropped.
                 warn!("TimerProxy thread terminated.");
             })
             .expect("Thread creation failed.");
 
         // Return the IPC sender
-        req_ipc_sender
+        scheduler_sender
     }
 }

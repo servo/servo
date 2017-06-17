@@ -26,6 +26,7 @@ use script_traits::TimerSchedulerMsg;
 use servo_url::ImmutableOrigin;
 use servo_url::MutableOrigin;
 use servo_url::ServoUrl;
+use std::sync::mpsc::Sender;
 
 #[dom_struct]
 /// https://drafts.css-houdini.org/worklets/#workletglobalscope
@@ -116,7 +117,7 @@ pub struct WorkletGlobalScopeInit {
     /// Messages to send to constellation
     pub constellation_chan: IpcSender<ScriptMsg>,
     /// Message to send to the scheduler
-    pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
+    pub scheduler_chan: Sender<TimerSchedulerMsg>,
 }
 
 /// https://drafts.css-houdini.org/worklets/#worklet-global-scope-type
