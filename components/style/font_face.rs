@@ -24,31 +24,14 @@ use style_traits::{ToCss, OneOrMoreCommaSeparated, ParseError, StyleParseError};
 use values::specified::url::SpecifiedUrl;
 
 /// A source for a font-face rule.
-#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Clone, Debug, Eq, PartialEq, ToCss)]
 pub enum Source {
     /// A `url()` source.
     Url(UrlSource),
     /// A `local()` source.
+    #[css(function)]
     Local(FamilyName),
-}
-
-impl ToCss for Source {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
-    {
-        match *self {
-            Source::Url(ref url) => {
-                try!(dest.write_str("url(\""));
-                try!(url.to_css(dest));
-            },
-            Source::Local(ref family) => {
-                try!(dest.write_str("local(\""));
-                try!(family.to_css(dest));
-            },
-        }
-        dest.write_str("\")")
-    }
 }
 
 impl OneOrMoreCommaSeparated for Source {}
@@ -70,7 +53,7 @@ impl ToCss for UrlSource {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
         where W: fmt::Write,
     {
-        dest.write_str(self.url.as_str())
+        self.url.to_css(dest)
     }
 }
 

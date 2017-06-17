@@ -4,10 +4,9 @@
 
 //! Common handling for the specified value CSS url() values.
 
-use cssparser::CssStringWriter;
 use parser::ParserContext;
 use servo_url::ServoUrl;
-use std::fmt::{self, Write};
+use std::fmt;
 // Note: We use std::sync::Arc rather than stylearc::Arc here because the
 // nonzero optimization is important in keeping the size of SpecifiedUrl below
 // the threshold.
@@ -111,7 +110,6 @@ impl PartialEq for SpecifiedUrl {
 
 impl ToCss for SpecifiedUrl {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(dest.write_str("url(\""));
         let string = match self.original {
             Some(ref original) => &**original,
             None => match self.resolved {
@@ -123,7 +121,8 @@ impl ToCss for SpecifiedUrl {
             }
         };
 
-        try!(CssStringWriter::new(dest).write_str(string));
-        dest.write_str("\")")
+        dest.write_str("url(")?;
+        string.to_css(dest)?;
+        dest.write_str(")")
     }
 }
