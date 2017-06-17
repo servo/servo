@@ -10,6 +10,7 @@
   "dom.permissions.enabled": false,
   "dom.permissions.testing.allowed_in_nonsecure_contexts": false,
   "dom.serviceworker.timeout_seconds": 60,
+  "dom.servoparser.async_html_tokenizer.enabled": false,
   "dom.testable_crash.enabled": false,
   "dom.testbinding.enabled": false,
   "dom.webvr.enabled": false,

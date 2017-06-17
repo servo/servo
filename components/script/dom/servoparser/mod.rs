@@ -43,6 +43,7 @@ use profile_traits::time::{TimerMetadata, TimerMetadataFrameType};
 use profile_traits::time::{TimerMetadataReflowType, ProfilerCategory, profile};
 use script_thread::ScriptThread;
 use script_traits::DocumentActivity;
+use servo_config::prefs::PREFS;
 use servo_config::resource_files::read_resource_file;
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
@@ -51,6 +52,7 @@ use std::cell::Cell;
 use std::mem;
 use style::context::QuirksMode as ServoQuirksMode;
 
+mod async_html;
 mod html;
 mod xml;
 
@@ -102,10 +104,17 @@ enum LastChunkState {
 
 impl ServoParser {
     pub fn parse_html_document(document: &Document, input: DOMString, url: ServoUrl) {
-        let parser = ServoParser::new(document,
-                                      Tokenizer::Html(self::html::Tokenizer::new(document, url, None)),
-                                      LastChunkState::NotReceived,
-                                      ParserKind::Normal);
+        let parser = if PREFS.get("dom.servoparser.async_html_tokenizer.enabled").as_boolean().unwrap() {
+            ServoParser::new(document,
+                             Tokenizer::AsyncHtml(self::async_html::Tokenizer::new(document, url, None)),
+                             LastChunkState::NotReceived,
+                             ParserKind::Normal)
+        } else {
+            ServoParser::new(document,
+                             Tokenizer::Html(self::html::Tokenizer::new(document, url, None)),
+                             LastChunkState::NotReceived,
+                             ParserKind::Normal)
+        };
         parser.parse_string_chunk(String::from(input));
     }
 
@@ -138,6 +147,7 @@ impl ServoParser {
         // Step 11.
         let form = context_node.inclusive_ancestors()
             .find(|element| element.is::<HTMLFormElement>());
+
         let fragment_context = FragmentContext {
             context_elem: context_node,
             form_elem: form.r(),
@@ -145,7 +155,7 @@ impl ServoParser {
 
         let parser = ServoParser::new(&document,
                                       Tokenizer::Html(self::html::Tokenizer::new(&document,
-                                                                                 url.clone(),
+                                                                                 url,
                                                                                  Some(fragment_context))),
                                       LastChunkState::Received,
                                       ParserKind::Normal);
@@ -485,6 +495,7 @@ enum ParserKind {
 #[must_root]
 enum Tokenizer {
     Html(self::html::Tokenizer),
+    AsyncHtml(self::async_html::Tokenizer),
     Xml(self::xml::Tokenizer),
 }
 
@@ -492,6 +503,7 @@ impl Tokenizer {
     fn feed(&mut self, input: &mut BufferQueue) -> Result<(), Root<HTMLScriptElement>> {
         match *self {
             Tokenizer::Html(ref mut tokenizer) => tokenizer.feed(input),
+            Tokenizer::AsyncHtml(ref mut tokenizer) => tokenizer.feed(input),
             Tokenizer::Xml(ref mut tokenizer) => tokenizer.feed(input),
         }
     }
@@ -499,6 +511,7 @@ impl Tokenizer {
     fn end(&mut self) {
         match *self {
             Tokenizer::Html(ref mut tokenizer) => tokenizer.end(),
+            Tokenizer::AsyncHtml(ref mut tokenizer) => tokenizer.end(),
             Tokenizer::Xml(ref mut tokenizer) => tokenizer.end(),
         }
     }
@@ -506,6 +519,7 @@ impl Tokenizer {
     fn url(&self) -> &ServoUrl {
         match *self {
             Tokenizer::Html(ref tokenizer) => tokenizer.url(),
+            Tokenizer::AsyncHtml(ref tokenizer) => tokenizer.url(),
             Tokenizer::Xml(ref tokenizer) => tokenizer.url(),
         }
     }
@@ -513,6 +527,7 @@ impl Tokenizer {
     fn set_plaintext_state(&mut self) {
         match *self {
             Tokenizer::Html(ref mut tokenizer) => tokenizer.set_plaintext_state(),
+            Tokenizer::AsyncHtml(ref mut tokenizer) => tokenizer.set_plaintext_state(),
             Tokenizer::Xml(_) => unimplemented!(),
         }
     }
@@ -520,6 +535,7 @@ impl Tokenizer {
     fn profiler_category(&self) -> ProfilerCategory {
         match *self {
             Tokenizer::Html(_) => ProfilerCategory::ScriptParseHTML,
+            Tokenizer::AsyncHtml(_) => ProfilerCategory::ScriptParseHTML,
             Tokenizer::Xml(_) => ProfilerCategory::ScriptParseXML,
         }
     }
