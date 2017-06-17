@@ -35,7 +35,7 @@ use time::{precise_time_ns, precise_time_s};
 use touch::{TouchHandler, TouchAction};
 use webrender;
 use webrender_traits::{self, ClipId, LayoutPoint, LayoutVector2D, ScrollEventPhase, ScrollLocation, ScrollClamping};
-use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
+use windowing::{self, MouseWindowEvent, WindowMethods, WindowNavigateMsg};
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -409,7 +409,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         compositor
     }
 
-    fn start_shutting_down(&mut self) {
+    pub fn start_shutting_down(&mut self) {
         debug!("Compositor sending Exit message to Constellation");
         if let Err(e) = self.constellation_chan.send(ConstellationMsg::Exit) {
             warn!("Sending exit message to constellation failed ({}).", e);
@@ -723,91 +723,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                                ScrollClamping::ToContentBounds);
     }
 
-    fn handle_window_message(&mut self, event: WindowEvent) {
-        match event {
-            WindowEvent::Idle => {}
-
-            WindowEvent::Refresh => {
-                self.composite();
-            }
-
-            WindowEvent::InitializeCompositing => {
-                self.initialize_compositing();
-            }
-
-            WindowEvent::Resize(size) => {
-                self.on_resize_window_event(size);
-            }
-
-            WindowEvent::LoadUrl(url_string) => {
-                self.on_load_url_window_event(url_string);
-            }
-
-            WindowEvent::MouseWindowEventClass(mouse_window_event) => {
-                self.on_mouse_window_event_class(mouse_window_event);
-            }
-
-            WindowEvent::MouseWindowMoveEventClass(cursor) => {
-                self.on_mouse_window_move_event_class(cursor);
-            }
-
-            WindowEvent::Touch(event_type, identifier, location) => {
-                match event_type {
-                    TouchEventType::Down => self.on_touch_down(identifier, location),
-                    TouchEventType::Move => self.on_touch_move(identifier, location),
-                    TouchEventType::Up => self.on_touch_up(identifier, location),
-                    TouchEventType::Cancel => self.on_touch_cancel(identifier, location),
-                }
-            }
-
-            WindowEvent::Scroll(delta, cursor, phase) => {
-                match phase {
-                    TouchEventType::Move => self.on_scroll_window_event(delta, cursor),
-                    TouchEventType::Up | TouchEventType::Cancel => {
-                        self.on_scroll_end_window_event(delta, cursor);
-                    }
-                    TouchEventType::Down => {
-                        self.on_scroll_start_window_event(delta, cursor);
-                    }
-                }
-            }
-
-            WindowEvent::Zoom(magnification) => {
-                self.on_zoom_window_event(magnification);
-            }
-
-            WindowEvent::ResetZoom => {
-                self.on_zoom_reset_window_event();
-            }
-
-            WindowEvent::PinchZoom(magnification) => {
-                self.on_pinch_zoom_window_event(magnification);
-            }
-
-            WindowEvent::Navigation(direction) => {
-                self.on_navigation_window_event(direction);
-            }
-
-            WindowEvent::TouchpadPressure(cursor, pressure, stage) => {
-                self.on_touchpad_pressure_event(cursor, pressure, stage);
-            }
-
-            WindowEvent::KeyEvent(ch, key, state, modifiers) => {
-                self.on_key_event(ch, key, state, modifiers);
-            }
-
-            WindowEvent::Quit => {
-                if self.shutdown_state == ShutdownState::NotShuttingDown {
-                    debug!("Shutting down the constellation for WindowEvent::Quit");
-                    self.start_shutting_down();
-                }
-            }
-
-            WindowEvent::Reload => {}
-        }
-    }
-
-    fn on_resize_window_event(&mut self, new_size: TypedSize2D<u32, DevicePixel>) {
+    pub fn on_resize_window_event(&mut self, new_size: TypedSize2D<u32, DevicePixel>) {
         debug!("compositor resizing to {:?}", new_size.to_untyped());
 
         // A size change could also mean a resolution change.
@@ -831,7 +747,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.send_window_size(WindowSizeType::Resize);
     }
 
-    fn on_load_url_window_event(&mut self, url_string: String) {
+    pub fn on_load_url_window_event(&mut self, url_string: String) {
         debug!("osmain: loading URL `{}`", url_string);
         match ServoUrl::parse(&url_string) {
             Ok(url) => {
@@ -848,7 +764,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn on_mouse_window_event_class(&mut self, mouse_window_event: MouseWindowEvent) {
+    pub fn on_mouse_window_event_class(&mut self, mouse_window_event: MouseWindowEvent) {
         if opts::get().convert_mouse_to_touch {
             match mouse_window_event {
                 MouseWindowEvent::Click(_, _) => {}
@@ -894,7 +810,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn on_mouse_window_move_event_class(&mut self, cursor: TypedPoint2D<f32, DevicePixel>) {
+    pub fn on_mouse_window_move_event_class(&mut self, cursor: TypedPoint2D<f32, DevicePixel>) {
         if opts::get().convert_mouse_to_touch {
             self.on_touch_move(TouchId(0), cursor);
             return
@@ -936,7 +852,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn on_touch_down(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
+    pub fn on_touch_down(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
         self.touch_handler.on_touch_down(identifier, point);
         let dppx = self.page_zoom * self.hidpi_factor();
         let translated_point = (point / dppx).to_untyped();
@@ -945,7 +861,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                                     translated_point));
     }
 
-    fn on_touch_move(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
+    pub fn on_touch_move(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
         match self.touch_handler.on_touch_move(identifier, point) {
             TouchAction::Scroll(delta) => {
                 match point.cast() {
@@ -980,7 +896,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn on_touch_up(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
+    pub fn on_touch_up(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
         let dppx = self.page_zoom * self.hidpi_factor();
         let translated_point = (point / dppx).to_untyped();
         self.send_event_to_root_pipeline(TouchEvent(TouchEventType::Up,
@@ -991,7 +907,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn on_touch_cancel(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
+    pub fn on_touch_cancel(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
         // Send the event to script.
         self.touch_handler.on_touch_cancel(identifier, point);
         let dppx = self.page_zoom * self.hidpi_factor();
@@ -1001,7 +917,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                                     translated_point));
     }
 
-    fn on_touchpad_pressure_event(&self,
+    pub fn on_touchpad_pressure_event(&self,
                                   point: TypedPoint2D<f32, DevicePixel>,
                                   pressure: f32,
                                   phase: TouchpadPressurePhase) {
@@ -1023,7 +939,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.dispatch_mouse_window_event_class(MouseWindowEvent::Click(button, p));
     }
 
-    fn on_scroll_window_event(&mut self,
+    pub fn on_scroll_window_event(&mut self,
                               scroll_location: ScrollLocation,
                               cursor: TypedPoint2D<i32, DevicePixel>) {
         let event_phase = match (self.scroll_in_progress, self.in_scroll_transaction) {
@@ -1042,7 +958,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         });
     }
 
-    fn on_scroll_start_window_event(&mut self,
+    pub fn on_scroll_start_window_event(&mut self,
                                     scroll_location: ScrollLocation,
                                     cursor: TypedPoint2D<i32, DevicePixel>) {
         self.scroll_in_progress = true;
@@ -1055,7 +971,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         });
     }
 
-    fn on_scroll_end_window_event(&mut self,
+    pub fn on_scroll_end_window_event(&mut self,
                                   scroll_location: ScrollLocation,
                                   cursor: TypedPoint2D<i32, DevicePixel>) {
         self.scroll_in_progress = false;
@@ -1241,14 +1157,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.scale = ScaleFactor::new(scale.get());
     }
 
-    fn on_zoom_reset_window_event(&mut self) {
+    pub fn on_zoom_reset_window_event(&mut self) {
         self.page_zoom = ScaleFactor::new(1.0);
         self.update_zoom_transform();
         self.send_window_size(WindowSizeType::Resize);
         self.update_page_zoom_for_webrender();
     }
 
-    fn on_zoom_window_event(&mut self, magnification: f32) {
+    pub fn on_zoom_window_event(&mut self, magnification: f32) {
         self.page_zoom = ScaleFactor::new((self.page_zoom.get() * magnification)
                                           .max(MIN_ZOOM).min(MAX_ZOOM));
         self.update_zoom_transform();
@@ -1262,7 +1178,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     /// Simulate a pinch zoom
-    fn on_pinch_zoom_window_event(&mut self, magnification: f32) {
+    pub fn on_pinch_zoom_window_event(&mut self, magnification: f32) {
         self.pending_scroll_zoom_events.push(ScrollZoomEvent {
             magnification: magnification,
             scroll_location: ScrollLocation::Delta(TypedVector2D::zero()), // TODO: Scroll to keep the center in view?
@@ -1272,7 +1188,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         });
     }
 
-    fn on_navigation_window_event(&self, direction: WindowNavigateMsg) {
+    pub fn on_navigation_window_event(&self, direction: WindowNavigateMsg) {
         let direction = match direction {
             windowing::WindowNavigateMsg::Forward => TraversalDirection::Forward(1),
             windowing::WindowNavigateMsg::Back => TraversalDirection::Back(1),
@@ -1287,7 +1203,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn on_key_event(&mut self,
+    pub fn on_key_event(&mut self,
                     ch: Option<char>,
                     key: Key,
                     state: KeyState,
@@ -1403,7 +1319,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn composite(&mut self) {
+    pub fn composite(&mut self) {
         let target = self.composite_target;
         match self.composite_specific_target(target) {
             Ok(_) => if opts::get().output_file.is_some() || opts::get().exit_after_load {
@@ -1552,7 +1468,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn initialize_compositing(&mut self) {
+    pub fn initialize_compositing(&mut self) {
     }
 
     fn get_root_pipeline_id(&self) -> Option<PipelineId> {
@@ -1570,7 +1486,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    pub fn handle_events(&mut self, messages: Vec<WindowEvent>) -> bool {
+    pub fn receive_messages(&mut self) {
         // Check for new messages coming from the other threads in the system.
         let mut compositor_messages = vec![];
         let mut found_recomposite_msg = false;
@@ -1591,12 +1507,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
 
         if self.shutdown_state == ShutdownState::FinishedShuttingDown {
-            return false;
-        }
-
-        // Handle any messages coming from the windowing system.
-        for message in messages {
-            self.handle_window_message(message);
+            return;
         }
 
         // If a pinch-zoom happened recently, ask for tiles at the new resolution
@@ -1614,8 +1525,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         if !self.pending_scroll_zoom_events.is_empty() && !self.waiting_for_results_of_scroll {
             self.process_pending_scroll_events()
         }
-
-        self.shutdown_state != ShutdownState::FinishedShuttingDown
     }
 
     pub fn set_webrender_profiler_enabled(&mut self, enabled: bool) {

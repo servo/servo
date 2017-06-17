@@ -91,7 +91,7 @@ use profile::mem as profile_mem;
 use profile::time as profile_time;
 use profile_traits::mem;
 use profile_traits::time;
-use script_traits::{ConstellationMsg, SWManagerSenders, ScriptMsg};
+use script_traits::{ConstellationMsg, SWManagerSenders, ScriptMsg, TouchEventType};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_config::resource_files::resources_dir_path;
@@ -250,6 +250,85 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
 
     fn handle_window_event(&mut self, event: WindowEvent) {
         match event {
+            WindowEvent::Idle => {
+            }
+
+            WindowEvent::Refresh => {
+                self.compositor.composite();
+            }
+
+            WindowEvent::InitializeCompositing => {
+                self.compositor.initialize_compositing();
+            }
+
+            WindowEvent::Resize(size) => {
+                self.compositor.on_resize_window_event(size);
+            }
+
+            WindowEvent::LoadUrl(url_string) => {
+                self.compositor.on_load_url_window_event(url_string);
+            }
+
+            WindowEvent::MouseWindowEventClass(mouse_window_event) => {
+                self.compositor.on_mouse_window_event_class(mouse_window_event);
+            }
+
+            WindowEvent::MouseWindowMoveEventClass(cursor) => {
+                self.compositor.on_mouse_window_move_event_class(cursor);
+            }
+
+            WindowEvent::Touch(event_type, identifier, location) => {
+                match event_type {
+                    TouchEventType::Down => self.compositor.on_touch_down(identifier, location),
+                    TouchEventType::Move => self.compositor.on_touch_move(identifier, location),
+                    TouchEventType::Up => self.compositor.on_touch_up(identifier, location),
+                    TouchEventType::Cancel => self.compositor.on_touch_cancel(identifier, location),
+                }
+            }
+
+            WindowEvent::Scroll(delta, cursor, phase) => {
+                match phase {
+                    TouchEventType::Move => self.compositor.on_scroll_window_event(delta, cursor),
+                    TouchEventType::Up | TouchEventType::Cancel => {
+                        self.compositor.on_scroll_end_window_event(delta, cursor);
+                    }
+                    TouchEventType::Down => {
+                        self.compositor.on_scroll_start_window_event(delta, cursor);
+                    }
+                }
+            }
+
+            WindowEvent::Zoom(magnification) => {
+                self.compositor.on_zoom_window_event(magnification);
+            }
+
+            WindowEvent::ResetZoom => {
+                self.compositor.on_zoom_reset_window_event();
+            }
+
+            WindowEvent::PinchZoom(magnification) => {
+                self.compositor.on_pinch_zoom_window_event(magnification);
+            }
+
+            WindowEvent::Navigation(direction) => {
+                self.compositor.on_navigation_window_event(direction);
+            }
+
+            WindowEvent::TouchpadPressure(cursor, pressure, stage) => {
+                self.compositor.on_touchpad_pressure_event(cursor, pressure, stage);
+            }
+
+            WindowEvent::KeyEvent(ch, key, state, modifiers) => {
+                self.compositor.on_key_event(ch, key, state, modifiers);
+            }
+
+            WindowEvent::Quit => {
+                if self.compositor.shutdown_state == ShutdownState::NotShuttingDown {
+                    debug!("Shutting down the constellation for WindowEvent::Quit");
+                    self.compositor.start_shutting_down();
+                }
+            }
+
             WindowEvent::Reload => {
                 let top_level_browsing_context_id = match self.compositor.root_pipeline {
                     Some(ref pipeline) => pipeline.top_level_browsing_context_id,
@@ -260,11 +339,10 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                     warn!("Sending reload to constellation failed ({}).", e);
                 }
             },
-            _ => {},
         }
     }
 
-    pub fn handle_events(&mut self, events: Vec<WindowEvent>) -> bool {
+    fn receive_messages(&mut self) {
         while let Some(msg) = self.embedder_receiver.try_recv_embedder_msg() {
             match (msg, self.compositor.shutdown_state) {
                 (EmbedderMsg::Status(message), ShutdownState::NotShuttingDown) => {
@@ -281,10 +359,15 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 (_, _) => {},
             }
         }
-        for event in events.clone() {
+    }
+
+    pub fn handle_events(&mut self, events: Vec<WindowEvent>) -> bool {
+        self.receive_messages();
+        self.compositor.receive_messages();
+        for event in events {
             self.handle_window_event(event);
         }
-        self.compositor.handle_events(events)
+        self.compositor.shutdown_state != ShutdownState::FinishedShuttingDown
     }
 
     pub fn set_webrender_profiler_enabled(&mut self, enabled: bool) {
