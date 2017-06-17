@@ -28,7 +28,7 @@ pub trait EventLoopWaker : 'static + Send {
     fn wake(&self);
 }
 
-/// Sends messages to the compositor.
+/// Sends messages to the embedder.
 pub struct EmbedderProxy {
     pub sender: Sender<EmbedderMsg>,
     pub event_loop_waker: Box<EventLoopWaker>,
@@ -50,7 +50,7 @@ impl EmbedderProxy {
     }
 }
 
-/// The port that the compositor receives messages on.
+/// The port that the embedder receives messages on.
 pub struct EmbedderReceiver {
     pub receiver: Receiver<EmbedderMsg>
 }
@@ -113,7 +113,7 @@ impl RenderListener for CompositorProxy {
 pub enum EmbedderMsg {
     /// A status message to be displayed by the browser chrome.
     Status(Option<String>),
-    /// Alerts the compositor that the current page has changed its title.
+    /// Alerts the embedder that the current page has changed its title.
     ChangePageTitle(PipelineId, Option<String>),
 }
 

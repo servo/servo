@@ -406,7 +406,7 @@ fn create_embedder_channel(event_loop_waker: Box<compositor_thread::EventLoopWak
     (EmbedderProxy {
          sender: sender,
          event_loop_waker: event_loop_waker,
-        },
+     },
      EmbedderReceiver {
          receiver: receiver
      })
@@ -418,7 +418,7 @@ fn create_compositor_channel(event_loop_waker: Box<compositor_thread::EventLoopW
     (CompositorProxy {
          sender: sender,
          event_loop_waker: event_loop_waker,
-        },
+     },
      CompositorReceiver {
          receiver: receiver
      })

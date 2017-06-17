@@ -170,6 +170,7 @@ pub struct Constellation<Message, LTF, STF> {
     /// A channel for the constellation to receive messages from the compositor thread.
     compositor_receiver: Receiver<FromCompositorMsg>,
 
+    /// A channel through which messages can be sent to the embedder.
     embedder_proxy: EmbedderProxy,
 
     /// A channel (the implementation of which is port-specific) for the
@@ -300,6 +301,7 @@ pub struct Constellation<Message, LTF, STF> {
 
 /// State needed to construct a constellation.
 pub struct InitialConstellationState {
+    /// A channel through which messages can be sent to the embedder.
     pub embedder_proxy: EmbedderProxy,
 
     /// A channel through which messages can be sent to the compositor.
