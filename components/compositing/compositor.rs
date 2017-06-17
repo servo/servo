@@ -1525,7 +1525,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         if !self.pending_scroll_zoom_events.is_empty() && !self.waiting_for_results_of_scroll {
             self.process_pending_scroll_events()
         }
-        true
+        self.shutdown_state != ShutdownState::FinishedShuttingDown
     }
 
     pub fn set_webrender_profiler_enabled(&mut self, enabled: bool) {
