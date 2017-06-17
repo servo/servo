@@ -4,7 +4,10 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<%helpers:shorthand name="flex-flow" sub_properties="flex-direction flex-wrap" extra_prefixes="webkit"
+<%helpers:shorthand name="flex-flow"
+                    sub_properties="flex-direction flex-wrap"
+                    extra_prefixes="webkit"
+                    derive_serialize="True"
                     spec="https://drafts.csswg.org/css-flexbox/#flex-flow-property">
     use properties::longhands::{flex_direction, flex_wrap};
 
@@ -36,18 +39,12 @@
             flex_wrap: unwrap_or_initial!(flex_wrap, wrap),
         })
     }
-
-
-    impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            self.flex_direction.to_css(dest)?;
-            dest.write_str(" ")?;
-            self.flex_wrap.to_css(dest)
-        }
-    }
 </%helpers:shorthand>
 
-<%helpers:shorthand name="flex" sub_properties="flex-grow flex-shrink flex-basis" extra_prefixes="webkit"
+<%helpers:shorthand name="flex"
+                    sub_properties="flex-grow flex-shrink flex-basis"
+                    extra_prefixes="webkit"
+                    derive_serialize="True"
                     spec="https://drafts.csswg.org/css-flexbox/#flex-property">
     use values::specified::Number;
 
@@ -100,18 +97,6 @@
             // https://github.com/w3c/csswg-drafts/commit/2c446befdf0f686217905bdd7c92409f6bd3921b
             flex_basis: basis.unwrap_or(longhands::flex_basis::SpecifiedValue::zero_percent()),
         })
-    }
-
-    impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            try!(self.flex_grow.to_css(dest));
-            try!(dest.write_str(" "));
-
-            try!(self.flex_shrink.to_css(dest));
-            try!(dest.write_str(" "));
-
-            self.flex_basis.to_css(dest)
-        }
     }
 </%helpers:shorthand>
 

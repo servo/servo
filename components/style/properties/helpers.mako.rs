@@ -764,7 +764,7 @@
     % endif
 </%def>
 
-<%def name="shorthand(name, sub_properties, experimental=False, **kwargs)">
+<%def name="shorthand(name, sub_properties, experimental=False, derive_serialize=False, **kwargs)">
 <%
     shorthand = data.declare_shorthand(name, sub_properties.split(), experimental=experimental,
                                        **kwargs)
@@ -778,9 +778,12 @@
         use properties::{ShorthandId, LonghandId, UnparsedValue, longhands};
         #[allow(unused_imports)]
         use selectors::parser::SelectorParseError;
+        #[allow(unused_imports)]
         use std::fmt;
         use stylearc::Arc;
-        use style_traits::{ToCss, ParseError, StyleParseError};
+        use style_traits::{ParseError, StyleParseError};
+        #[allow(unused_imports)]
+        use style_traits::ToCss;
 
         pub struct Longhands {
             % for sub_property in shorthand.sub_properties:
@@ -798,6 +801,9 @@
 
         /// Represents a serializable set of all of the longhand properties that
         /// correspond to a shorthand.
+        % if derive_serialize:
+        #[derive(ToCss)]
+        % endif
         pub struct LonghandsToSerialize<'a> {
             % for sub_property in shorthand.sub_properties:
                 pub ${sub_property.ident}:

@@ -4,7 +4,10 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<%helpers:shorthand name="columns" sub_properties="column-count column-width" experimental="True"
+<%helpers:shorthand name="columns"
+                    sub_properties="column-width column-count"
+                    experimental="True"
+                    derive_serialize="True"
                     extra_prefixes="moz" spec="https://drafts.csswg.org/css-multicol/#propdef-columns">
     use properties::longhands::{column_count, column_width};
 
@@ -49,19 +52,11 @@
             })
         }
     }
-
-    impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            try!(self.column_width.to_css(dest));
-            try!(write!(dest, " "));
-
-            self.column_count.to_css(dest)
-        }
-    }
 </%helpers:shorthand>
 
 <%helpers:shorthand name="column-rule" products="gecko" extra_prefixes="moz"
     sub_properties="column-rule-width column-rule-style column-rule-color"
+    derive_serialize="True"
     spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule">
     use properties::longhands::{column_rule_width, column_rule_style};
     use properties::longhands::column_rule_color;
@@ -95,16 +90,6 @@
             })
         } else {
             Err(StyleParseError::UnspecifiedError.into())
-        }
-    }
-
-    impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            self.column_rule_width.to_css(dest)?;
-            dest.write_str(" ")?;
-            self.column_rule_style.to_css(dest)?;
-            dest.write_str(" ")?;
-            self.column_rule_color.to_css(dest)
         }
     }
 </%helpers:shorthand>
