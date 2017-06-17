@@ -60,7 +60,8 @@ pub enum StyleSource {
     Style(Arc<Locked<StyleRule>>),
     /// A declaration block stable pointer.
     Declarations(Arc<Locked<PropertyDeclarationBlock>>),
-    /// Indicates no style source
+    /// Indicates no style source. Used to save an Option wrapper around the stylesource in
+    /// RuleNode
     None,
 }
 
@@ -104,17 +105,12 @@ impl StyleSource {
         block.read_with(guard)
     }
 
-    /// Indicates if this StyleSource has no value
-    pub fn is_none(&self) -> bool {
-        match *self {
-            StyleSource::None => true,
-            _ => false
-        }
-    }
-
     /// Indicates if this StyleSource has a value
     pub fn is_some(&self) -> bool {
-        !self.is_none()
+        match *self {
+            StyleSource::None => false,
+            _ => true,
+        }
     }
 }
 
@@ -686,7 +682,7 @@ impl HeapSizeOf for StrongRuleNode {
 
 impl StrongRuleNode {
     fn new(n: Box<RuleNode>) -> Self {
-        debug_assert!(n.parent.is_none() == n.source.is_none());
+        debug_assert!(n.parent.is_none() == ! n.source.is_some());
 
         let ptr = Box::into_raw(n);
 
