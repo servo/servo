@@ -43,6 +43,7 @@ use profile_traits::time::{TimerMetadata, TimerMetadataFrameType};
 use profile_traits::time::{TimerMetadataReflowType, ProfilerCategory, profile};
 use script_thread::ScriptThread;
 use script_traits::DocumentActivity;
+use servo_config::prefs::PREFS;
 use servo_config::resource_files::read_resource_file;
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
@@ -103,10 +104,17 @@ enum LastChunkState {
 
 impl ServoParser {
     pub fn parse_html_document(document: &Document, input: DOMString, url: ServoUrl) {
-        let parser = ServoParser::new(document,
-                                      Tokenizer::Html(self::html::Tokenizer::new(document, url, None)),
-                                      LastChunkState::NotReceived,
-                                      ParserKind::Normal);
+        let parser = if PREFS.get("dom.servoparser.async_html_tokenizer.enabled").as_boolean().unwrap() {
+            ServoParser::new(document,
+                             Tokenizer::AsyncHtml(self::async_html::Tokenizer::new(document, url, None)),
+                             LastChunkState::NotReceived,
+                             ParserKind::Normal)
+        } else {
+            ServoParser::new(document,
+                             Tokenizer::Html(self::html::Tokenizer::new(document, url, None)),
+                             LastChunkState::NotReceived,
+                             ParserKind::Normal)
+        };
         parser.parse_string_chunk(String::from(input));
     }
 
