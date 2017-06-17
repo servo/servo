@@ -25,8 +25,9 @@ use style::computed_values::border_collapse;
 use style::logical_geometry::{Direction, LogicalSize};
 use style::properties::ServoComputedValues;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW};
-use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
-use style::values::computed::{LengthOrPercentageOrAutoOrContent, LengthOrPercentageOrNone};
+use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
+use style::values::computed::flex::FlexBasis;
+use style::values::generics::flex::FlexBasis as GenericFlexBasis;
 
 /// The size of an axis. May be a specified size, a min/max
 /// constraint, or an unlimited size
@@ -67,23 +68,25 @@ impl AxisSize {
 /// and the container size, then return the used value of flex basis. it can be used to help
 /// determining the flex base size and to indicate whether the main size of the item
 /// is definite after flex size resolving.
-fn from_flex_basis(flex_basis: LengthOrPercentageOrAutoOrContent,
-                   main_length: LengthOrPercentageOrAuto,
-                   containing_length: Option<Au>) -> MaybeAuto {
+fn from_flex_basis(
+    flex_basis: FlexBasis,
+    main_length: LengthOrPercentageOrAuto,
+    containing_length: Option<Au>
+) -> MaybeAuto {
     match (flex_basis, containing_length) {
-        (LengthOrPercentageOrAutoOrContent::Length(length), _) =>
+        (GenericFlexBasis::Length(LengthOrPercentage::Length(length)), _) =>
             MaybeAuto::Specified(length),
-        (LengthOrPercentageOrAutoOrContent::Percentage(percent), Some(size)) =>
+        (GenericFlexBasis::Length(LengthOrPercentage::Percentage(percent)), Some(size)) =>
             MaybeAuto::Specified(size.scale_by(percent.0)),
-        (LengthOrPercentageOrAutoOrContent::Percentage(_), None) =>
+        (GenericFlexBasis::Length(LengthOrPercentage::Percentage(_)), None) =>
             MaybeAuto::Auto,
-        (LengthOrPercentageOrAutoOrContent::Calc(calc), _) =>
+        (GenericFlexBasis::Length(LengthOrPercentage::Calc(calc)), _) =>
             MaybeAuto::from_option(calc.to_used_value(containing_length)),
-        (LengthOrPercentageOrAutoOrContent::Content, _) =>
+        (GenericFlexBasis::Content, _) =>
             MaybeAuto::Auto,
-        (LengthOrPercentageOrAutoOrContent::Auto, Some(size)) =>
+        (GenericFlexBasis::Auto, Some(size)) =>
             MaybeAuto::from_style(main_length, size),
-        (LengthOrPercentageOrAutoOrContent::Auto, None) => {
+        (GenericFlexBasis::Auto, None) => {
             if let LengthOrPercentageOrAuto::Length(length) = main_length {
                 MaybeAuto::Specified(length)
             } else {

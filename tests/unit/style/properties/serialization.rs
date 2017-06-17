@@ -6,11 +6,10 @@ use properties::{parse, parse_input};
 use style::computed_values::display::T::inline_block;
 use style::properties::{PropertyDeclaration, Importance, PropertyId};
 use style::properties::parse_property_declaration_list;
-use style::values::{RGBA, Auto};
-use style::values::CustomIdent;
+use style::values::{CustomIdent, RGBA, Auto};
+use style::values::generics::flex::FlexBasis;
 use style::values::specified::{BorderStyle, BorderSideWidth, Color};
-use style::values::specified::{Length, LengthOrPercentage};
-use style::values::specified::{LengthOrPercentageOrAuto, LengthOrPercentageOrAutoOrContent};
+use style::values::specified::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::specified::{NoCalcLength, PositionComponent};
 use style::values::specified::position::Y;
 use style::values::specified::url::SpecifiedUrl;
@@ -564,7 +563,7 @@ mod shorthand_serialization {
         let grow = Number::new(2f32);
         let shrink = Number::new(3f32);
         let basis =
-            LengthOrPercentageOrAutoOrContent::Percentage(Percentage(0.5f32));
+            FlexBasis::Length(Percentage(0.5f32).into());
 
         properties.push(PropertyDeclaration::FlexGrow(grow));
         properties.push(PropertyDeclaration::FlexShrink(shrink));

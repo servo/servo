@@ -45,8 +45,8 @@ impl MediaList {
 }
 
 /// https://drafts.csswg.org/mediaqueries/#mq-prefix
-#[derive(PartialEq, Eq, Copy, Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss)]
 pub enum Qualifier {
     /// Hide a media query from legacy UAs:
     /// https://drafts.csswg.org/mediaqueries/#mq-only
@@ -54,17 +54,6 @@ pub enum Qualifier {
     /// Negate a media query:
     /// https://drafts.csswg.org/mediaqueries/#mq-not
     Not,
-}
-
-impl ToCss for Qualifier {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write
-    {
-        dest.write_str(match *self {
-            Qualifier::Not => "not",
-            Qualifier::Only => "only",
-        })
-    }
 }
 
 /// A [media query][mq].

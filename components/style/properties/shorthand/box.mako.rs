@@ -334,6 +334,7 @@ macro_rules! try_parse_one {
 <%helpers:shorthand name="-moz-transform" products="gecko"
                     sub_properties="transform"
                     flags="SHORTHAND_ALIAS_PROPERTY"
+                    derive_serialize="True"
                     spec="Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/transform">
     use properties::longhands::transform;
 
@@ -342,11 +343,5 @@ macro_rules! try_parse_one {
         Ok(expanded! {
             transform: transform::parse_prefixed(context, input)?,
         })
-    }
-
-    impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            self.transform.to_css(dest)
-        }
     }
 </%helpers:shorthand>

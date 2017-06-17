@@ -170,9 +170,8 @@ ${helpers.predefined_type("order", "Integer", "0",
 % else:
     // FIXME: This property should be animatable.
     ${helpers.predefined_type("flex-basis",
-                              "LengthOrPercentageOrAutoOrContent",
-                              "computed::LengthOrPercentageOrAutoOrContent::Auto",
-                              "parse_non_negative",
+                              "FlexBasis",
+                              "computed::FlexBasis::auto()",
                               spec="https://drafts.csswg.org/css-flexbox/#flex-basis-property",
                               extra_prefixes="webkit",
                               animation_value_type="none")}

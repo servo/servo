@@ -4,7 +4,9 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<%helpers:shorthand name="outline" sub_properties="outline-color outline-style outline-width"
+<%helpers:shorthand name="outline"
+                    sub_properties="outline-width outline-style outline-color"
+                    derive_serialize="True"
                     spec="https://drafts.csswg.org/css-ui/#propdef-outline">
     use properties::longhands::{outline_color, outline_width, outline_style};
     use values::specified;
@@ -49,16 +51,6 @@
             })
         } else {
             Err(StyleParseError::UnspecifiedError.into())
-        }
-    }
-
-    impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            try!(self.outline_width.to_css(dest));
-            try!(write!(dest, " "));
-            try!(self.outline_style.to_css(dest));
-            try!(write!(dest, " "));
-            self.outline_color.to_css(dest)
         }
     }
 </%helpers:shorthand>
