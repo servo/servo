@@ -362,10 +362,11 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
     }
 
     pub fn handle_events(&mut self, events: Vec<WindowEvent>) -> bool {
-        self.receive_messages();
-        self.compositor.receive_messages();
-        for event in events {
-            self.handle_window_event(event);
+        if self.compositor.receive_messages() {
+            self.receive_messages();
+            for event in events {
+                self.handle_window_event(event);
+            }
         }
         self.compositor.shutdown_state != ShutdownState::FinishedShuttingDown
     }

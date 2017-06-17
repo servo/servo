@@ -1486,7 +1486,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    pub fn receive_messages(&mut self) {
+    pub fn receive_messages(&mut self) -> bool {
         // Check for new messages coming from the other threads in the system.
         let mut compositor_messages = vec![];
         let mut found_recomposite_msg = false;
@@ -1507,7 +1507,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
 
         if self.shutdown_state == ShutdownState::FinishedShuttingDown {
-            return;
+            return false;
         }
 
         // If a pinch-zoom happened recently, ask for tiles at the new resolution
@@ -1525,6 +1525,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         if !self.pending_scroll_zoom_events.is_empty() && !self.waiting_for_results_of_scroll {
             self.process_pending_scroll_events()
         }
+        true
     }
 
     pub fn set_webrender_profiler_enabled(&mut self, enabled: bool) {
