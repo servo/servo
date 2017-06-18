@@ -332,6 +332,23 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
         self.parent_element()
     }
 
+    /// The ::before pseudo-element of this element, if it exists.
+    fn before_pseudo_element(&self) -> Option<Self> {
+        None
+    }
+
+    /// The ::after pseudo-element of this element, if it exists.
+    fn after_pseudo_element(&self) -> Option<Self> {
+        None
+    }
+
+    /// Execute `f` for each anonymous content child (apart from ::before and
+    /// ::after) whose originating element is `self`.
+    fn each_anonymous_content_child<F>(&self, _f: F)
+    where
+        F: FnMut(Self),
+    {}
+
     /// For a given NAC element, return the closest non-NAC ancestor, which is
     /// guaranteed to exist.
     fn closest_non_native_anonymous_ancestor(&self) -> Option<Self> {

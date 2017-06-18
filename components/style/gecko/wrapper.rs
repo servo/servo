@@ -558,6 +558,25 @@ impl<'le> GeckoElement<'le> {
     }
 
     #[inline]
+    fn has_properties(&self) -> bool {
+        use gecko_bindings::structs::NODE_HAS_PROPERTIES;
+
+        (self.flags() & NODE_HAS_PROPERTIES as u32) != 0
+    }
+
+    #[inline]
+    fn get_before_or_after_pseudo(&self, is_before: bool) -> Option<Self> {
+        if !self.has_properties() {
+            return None;
+        }
+
+        unsafe {
+            bindings::Gecko_GetBeforeOrAfterPseudo(self.0, is_before)
+                .map(GeckoElement)
+        }
+    }
+
+    #[inline]
     fn may_have_style_attribute(&self) -> bool {
         self.as_node().get_bool_flag(nsINode_BooleanFlag::ElementMayHaveStyle)
     }
@@ -687,6 +706,40 @@ impl<'le> TElement for GeckoElement<'le> {
         } else {
             self.as_node().flattened_tree_parent().and_then(|n| n.as_element())
         }
+    }
+
+    fn before_pseudo_element(&self) -> Option<Self> {
+        self.get_before_or_after_pseudo(/* is_before = */ true)
+    }
+
+    fn after_pseudo_element(&self) -> Option<Self> {
+        self.get_before_or_after_pseudo(/* is_before = */ false)
+    }
+
+    /// Execute `f` for each anonymous content child element (apart from
+    /// ::before and ::after) whose originating element is `self`.
+    fn each_anonymous_content_child<F>(&self, mut f: F)
+    where
+        F: FnMut(Self),
+    {
+        let array: *mut structs::nsTArray<*mut nsIContent> =
+            unsafe { bindings::Gecko_GetAnonymousContentForElement(self.0) };
+
+        if array.is_null() {
+            return;
+        }
+
+        for content in unsafe { &**array } {
+            let node = GeckoNode::from_content(unsafe { &**content });
+            let element = match node.as_element() {
+                Some(e) => e,
+                None => continue,
+            };
+
+            f(element);
+        }
+
+        unsafe { bindings::Gecko_DestroyAnonymousContentList(array) };
     }
 
     fn closest_non_native_anonymous_ancestor(&self) -> Option<Self> {
@@ -865,6 +918,10 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn implemented_pseudo_element(&self) -> Option<PseudoElement> {
         if !self.is_native_anonymous() {
+            return None;
+        }
+
+        if !self.has_properties() {
             return None;
         }
 
