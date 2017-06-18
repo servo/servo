@@ -1300,12 +1300,12 @@ impl FragmentDisplayListBuilding for Fragment {
         let mut clip = clip.clone();
         clip.intersect_rect(clip_bounds);
 
-        let border_padding = self.border_padding.to_physical(style.writing_mode);
+        let border = self.border_width().to_physical(style.writing_mode);
         let mut bounds = *absolute_bounds;
-        bounds.origin.x = bounds.origin.x + border_padding.left;
-        bounds.origin.y = bounds.origin.y + border_padding.top;
-        bounds.size.width = bounds.size.width - border_padding.horizontal();
-        bounds.size.height = bounds.size.height - border_padding.vertical();
+        bounds.origin.x = bounds.origin.x + border.left;
+        bounds.origin.y = bounds.origin.y + border.top;
+        bounds.size.width = bounds.size.width - border.horizontal();
+        bounds.size.height = bounds.size.height - border.vertical();
 
         let base = state.create_base_display_item(&bounds,
                                                   &clip,
