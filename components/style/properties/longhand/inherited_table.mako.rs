@@ -44,10 +44,10 @@ ${helpers.single_keyword("caption-side", "top bottom",
             fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64)
                 -> Result<Self, ()> {
                 Ok(T {
-                    horizontal: try!(self.horizontal.add_weighted(&other.horizontal,
-                                                                  self_portion, other_portion)),
-                    vertical: try!(self.vertical.add_weighted(&other.vertical,
-                                                              self_portion, other_portion)),
+                    horizontal: self.horizontal.add_weighted(&other.horizontal,
+                                                             self_portion, other_portion)?,
+                    vertical: self.vertical.add_weighted(&other.vertical,
+                                                         self_portion, other_portion)?,
                 })
             }
 
@@ -58,8 +58,8 @@ ${helpers.single_keyword("caption-side", "top bottom",
 
             #[inline]
             fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
-                Ok(try!(self.horizontal.compute_squared_distance(&other.horizontal)) +
-                   try!(self.vertical.compute_squared_distance(&other.vertical)))
+                Ok(self.horizontal.compute_squared_distance(&other.horizontal)? +
+                   self.vertical.compute_squared_distance(&other.vertical)?)
             }
         }
     }
@@ -83,9 +83,9 @@ ${helpers.single_keyword("caption-side", "top bottom",
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result
             where W: fmt::Write,
         {
-            try!(self.horizontal.to_css(dest));
+            self.horizontal.to_css(dest)?;
             if let Some(vertical) = self.vertical.as_ref() {
-                try!(dest.write_str(" "));
+                dest.write_str(" ")?;
                 vertical.to_css(dest)?;
             }
             Ok(())

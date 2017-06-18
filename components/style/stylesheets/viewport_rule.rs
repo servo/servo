@@ -103,9 +103,9 @@ macro_rules! declare_viewport_descriptor_inner {
                 match *self {
                     $(
                         ViewportDescriptor::$assigned_variant(ref val) => {
-                            try!(dest.write_str($assigned_variant_name));
-                            try!(dest.write_str(": "));
-                            try!(val.to_css(dest));
+                            dest.write_str($assigned_variant_name)?;
+                            dest.write_str(": ")?;
+                            val.to_css(dest)?;
                         },
                     )*
                 }
@@ -254,9 +254,9 @@ impl ViewportDescriptorDeclaration {
 
 impl ToCss for ViewportDescriptorDeclaration {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(self.descriptor.to_css(dest));
+        self.descriptor.to_css(dest)?;
         if self.important {
-            try!(dest.write_str(" !important"));
+            dest.write_str(" !important")?;
         }
         dest.write_str(";")
     }
@@ -264,7 +264,7 @@ impl ToCss for ViewportDescriptorDeclaration {
 
 fn parse_shorthand<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                            -> Result<(ViewportLength, ViewportLength), ParseError<'i>> {
-    let min = try!(ViewportLength::parse(context, input));
+    let min = ViewportLength::parse(context, input)?;
     match input.try(|i| ViewportLength::parse(context, i)) {
         Err(_) => Ok((min.clone(), min)),
         Ok(max) => Ok((min, max))
@@ -301,7 +301,7 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for ViewportRuleParser<'a, 'b> {
                 Ok(vec![declaration!($declaration($parse))])
             };
             (shorthand -> [$min:ident, $max:ident]) => {{
-                let shorthand = try!(parse_shorthand(self.context, input));
+                let shorthand = parse_shorthand(self.context, input)?;
                 let important = input.try(parse_important).is_ok();
 
                 Ok(vec![declaration!($min(value: shorthand.0, important: important)),
@@ -515,12 +515,12 @@ impl ToCssWithGuard for ViewportRule {
     // Serialization of ViewportRule is not specced.
     fn to_css<W>(&self, _guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
     where W: fmt::Write {
-        try!(dest.write_str("@viewport { "));
+        dest.write_str("@viewport { ")?;
         let mut iter = self.declarations.iter();
-        try!(iter.next().unwrap().to_css(dest));
+        iter.next().unwrap().to_css(dest)?;
         for declaration in iter {
-            try!(dest.write_str(" "));
-            try!(declaration.to_css(dest));
+            dest.write_str(" ")?;
+            declaration.to_css(dest)?;
         }
         dest.write_str(" }")
     }

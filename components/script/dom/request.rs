@@ -308,12 +308,12 @@ impl Request {
                     headers_copy = Root::from_ref(&*init_headers);
                 }
                 &HeadersInit::ByteStringSequenceSequence(ref init_sequence) => {
-                    try!(headers_copy.fill(Some(
-                        HeadersInit::ByteStringSequenceSequence(init_sequence.clone()))));
+                    headers_copy.fill(Some(
+                        HeadersInit::ByteStringSequenceSequence(init_sequence.clone())))?;
                 },
                 &HeadersInit::StringByteStringRecord(ref init_map) => {
-                    try!(headers_copy.fill(Some(
-                        HeadersInit::StringByteStringRecord(init_map.clone()))));
+                    headers_copy.fill(Some(
+                        HeadersInit::StringByteStringRecord(init_map.clone())))?;
                 },
             }
         }
@@ -351,10 +351,10 @@ impl Request {
                 // but an input with headers is given, set request's
                 // headers as the input's Headers.
                 if let RequestInfo::Request(ref input_request) = input {
-                    try!(r.Headers().fill(Some(HeadersInit::Headers(input_request.Headers()))));
+                    r.Headers().fill(Some(HeadersInit::Headers(input_request.Headers())))?;
                 }
             },
-            Some(HeadersInit::Headers(_)) => try!(r.Headers().fill(Some(HeadersInit::Headers(headers_copy)))),
+            Some(HeadersInit::Headers(_)) => r.Headers().fill(Some(HeadersInit::Headers(headers_copy)))?,
             _ => {},
         }
 
@@ -391,8 +391,8 @@ impl Request {
             // Step 34.3
             if let Some(contents) = content_type {
                 if !r.Headers().Has(ByteString::new(b"Content-Type".to_vec())).unwrap() {
-                    try!(r.Headers().Append(ByteString::new(b"Content-Type".to_vec()),
-                                            ByteString::new(contents.as_bytes().to_vec())));
+                    r.Headers().Append(ByteString::new(b"Content-Type".to_vec()),
+                                            ByteString::new(contents.as_bytes().to_vec()))?;
                 }
             }
         }
@@ -446,7 +446,7 @@ impl Request {
         *r_clone.request.borrow_mut() = req.clone();
         r_clone.body_used.set(body_used);
         *r_clone.mime_type.borrow_mut() = mime_type;
-        try!(r_clone.Headers().fill(Some(HeadersInit::Headers(r.Headers()))));
+        r_clone.Headers().fill(Some(HeadersInit::Headers(r.Headers())))?;
         r_clone.Headers().set_guard(headers_guard);
         Ok(r_clone)
     }

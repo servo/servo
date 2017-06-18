@@ -148,8 +148,8 @@ fn run_form_data_algorithm(root: &GlobalScope, bytes: Vec<u8>, mime: &[u8]) -> F
     } else {
         ""
     };
-    let mime: Mime = try!(mime_str.parse().map_err(
-        |_| Error::Type("Inappropriate MIME-type for Body".to_string())));
+    let mime: Mime = mime_str.parse().map_err(
+        |_| Error::Type("Inappropriate MIME-type for Body".to_string()))?;
     match mime {
         // TODO
         // ... Parser for Mime(TopLevel::Multipart, SubLevel::FormData, _)

@@ -99,7 +99,7 @@ impl FontHandleMethods for FontHandle {
                     return Err(());
                 }
                 if let Some(s) = pt_size {
-                    try!(FontHandle::set_char_size(face, s).or(Err(())))
+                    FontHandle::set_char_size(face, s).or(Err(()))?
                 }
                 Ok(face)
             }

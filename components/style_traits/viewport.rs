@@ -95,18 +95,18 @@ impl ToCss for ViewportConstraints {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
         where W: fmt::Write
     {
-        try!(write!(dest, "@viewport {{"));
-        try!(write!(dest, " width: {}px;", self.size.width));
-        try!(write!(dest, " height: {}px;", self.size.height));
-        try!(write!(dest, " zoom: {};", self.initial_zoom.get()));
+        write!(dest, "@viewport {{")?;
+        write!(dest, " width: {}px;", self.size.width)?;
+        write!(dest, " height: {}px;", self.size.height)?;
+        write!(dest, " zoom: {};", self.initial_zoom.get())?;
         if let Some(min_zoom) = self.min_zoom {
-            try!(write!(dest, " min-zoom: {};", min_zoom.get()));
+            write!(dest, " min-zoom: {};", min_zoom.get())?;
         }
         if let Some(max_zoom) = self.max_zoom {
-            try!(write!(dest, " max-zoom: {};", max_zoom.get()));
+            write!(dest, " max-zoom: {};", max_zoom.get())?;
         }
-        try!(write!(dest, " user-zoom: ")); try!(self.user_zoom.to_css(dest));
-        try!(write!(dest, "; orientation: ")); try!(self.orientation.to_css(dest));
+        write!(dest, " user-zoom: ")?; self.user_zoom.to_css(dest)?;
+        write!(dest, "; orientation: ")?; self.orientation.to_css(dest)?;
         write!(dest, "; }}")
     }
 }
@@ -144,7 +144,7 @@ impl Zoom {
         use cssparser::Token;
         use values::specified::AllowedLengthType::NonNegative;
 
-        match try!(input.next()) {
+        match input.next()? {
             // TODO: This parse() method should take ParserContext as an
             // argument, and pass ParsingMode owned by the ParserContext to
             // is_ok() instead of using PARSING_MODE_DEFAULT directly.

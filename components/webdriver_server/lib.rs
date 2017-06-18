@@ -155,15 +155,15 @@ impl WebDriverExtensionRoute for ServoExtensionRoute {
                body_data: &Json) -> WebDriverResult<WebDriverCommand<ServoExtensionCommand>> {
         let command = match *self {
             ServoExtensionRoute::GetPrefs => {
-                let parameters: GetPrefsParameters = try!(Parameters::from_json(&body_data));
+                let parameters: GetPrefsParameters = Parameters::from_json(&body_data)?;
                 ServoExtensionCommand::GetPrefs(parameters)
             }
             ServoExtensionRoute::SetPrefs => {
-                let parameters: SetPrefsParameters = try!(Parameters::from_json(&body_data));
+                let parameters: SetPrefsParameters = Parameters::from_json(&body_data)?;
                 ServoExtensionCommand::SetPrefs(parameters)
             }
             ServoExtensionRoute::ResetPrefs => {
-                let parameters: GetPrefsParameters = try!(Parameters::from_json(&body_data));
+                let parameters: GetPrefsParameters = Parameters::from_json(&body_data)?;
                 ServoExtensionCommand::ResetPrefs(parameters)
             }
         };
@@ -195,19 +195,19 @@ struct GetPrefsParameters {
 
 impl Parameters for GetPrefsParameters {
     fn from_json(body: &Json) -> WebDriverResult<GetPrefsParameters> {
-        let data = try!(body.as_object().ok_or(
+        let data = body.as_object().ok_or(
             WebDriverError::new(ErrorStatus::InvalidArgument,
-                                "Message body was not an object")));
-        let prefs_value = try!(data.get("prefs").ok_or(
+                                "Message body was not an object"))?;
+        let prefs_value = data.get("prefs").ok_or(
             WebDriverError::new(ErrorStatus::InvalidArgument,
-                                "Missing prefs key")));
-        let items = try!(prefs_value.as_array().ok_or(
+                                "Missing prefs key"))?;
+        let items = prefs_value.as_array().ok_or(
             WebDriverError::new(
                 ErrorStatus::InvalidArgument,
-                "prefs was not an array")));
-        let params = try!(items.iter().map(|x| x.as_string().map(|y| y.to_owned()).ok_or(
+                "prefs was not an array"))?;
+        let params = items.iter().map(|x| x.as_string().map(|y| y.to_owned()).ok_or(
             WebDriverError::new(ErrorStatus::InvalidArgument,
-                                "Pref is not a string"))).collect::<Result<Vec<_>, _>>());
+                                "Pref is not a string"))).collect::<Result<Vec<_>, _>>()?;
         Ok(GetPrefsParameters {
             prefs: params
         })
@@ -229,20 +229,20 @@ struct SetPrefsParameters {
 
 impl Parameters for SetPrefsParameters {
     fn from_json(body: &Json) -> WebDriverResult<SetPrefsParameters> {
-        let data = try!(body.as_object().ok_or(
+        let data = body.as_object().ok_or(
             WebDriverError::new(ErrorStatus::InvalidArgument,
-                                "Message body was not an object")));
-        let items = try!(try!(data.get("prefs").ok_or(
+                                "Message body was not an object"))?;
+        let items = data.get("prefs").ok_or(
             WebDriverError::new(ErrorStatus::InvalidArgument,
-                                "Missing prefs key"))).as_object().ok_or(
+                                "Missing prefs key"))?.as_object().ok_or(
             WebDriverError::new(
                 ErrorStatus::InvalidArgument,
-                "prefs was not an array")));
+                "prefs was not an array"))?;
         let mut params = Vec::with_capacity(items.len());
         for (name, val) in items.iter() {
-            let value = try!(PrefValue::from_json(val.clone()).or(
+            let value = PrefValue::from_json(val.clone()).or(
                 Err(WebDriverError::new(ErrorStatus::InvalidArgument,
-                                        "Pref is not a boolean or string"))));
+                                        "Pref is not a boolean or string")))?;
             let key = name.to_owned();
             params.push((key, value));
         }
@@ -702,9 +702,9 @@ impl Handler {
     fn handle_set_timeouts(&mut self,
                            parameters: &TimeoutsParameters)
                            -> WebDriverResult<WebDriverResponse> {
-        let mut session = try!(self.session
+        let mut session = self.session
             .as_mut()
-            .ok_or(WebDriverError::new(ErrorStatus::SessionNotCreated, "")));
+            .ok_or(WebDriverError::new(ErrorStatus::SessionNotCreated, ""))?;
 
         session.script_timeout = parameters.script;
         session.load_timeout = parameters.page_load;
@@ -776,11 +776,11 @@ impl Handler {
         self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
 
         // TODO: distinguish the not found and not focusable cases
-        try!(receiver.recv().unwrap().or_else(|_| Err(WebDriverError::new(
-            ErrorStatus::StaleElementReference, "Element not found or not focusable"))));
+        receiver.recv().unwrap().or_else(|_| Err(WebDriverError::new(
+            ErrorStatus::StaleElementReference, "Element not found or not focusable")))?;
 
-        let keys = try!(keycodes_to_keys(&keys.value).or_else(|_|
-            Err(WebDriverError::new(ErrorStatus::UnsupportedOperation, "Failed to convert keycodes"))));
+        let keys = keycodes_to_keys(&keys.value).or_else(|_|
+            Err(WebDriverError::new(ErrorStatus::UnsupportedOperation, "Failed to convert keycodes")))?;
 
         // TODO: there's a race condition caused by the focus command and the
         // send keys command being two separate messages,
@@ -870,7 +870,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
         match msg.command {
             WebDriverCommand::NewSession(_) => {},
             _ => {
-                try!(self.session());
+                self.session()?;
             }
         }
 

@@ -512,8 +512,8 @@ pub fn parse_legacy_color(mut input: &str) -> Result<RGBA, ()> {
             0 => Err(()),
             1 => hex(string[0] as char),
             _ => {
-                let upper = try!(hex(string[0] as char));
-                let lower = try!(hex(string[1] as char));
+                let upper = hex(string[0] as char)?;
+                let lower = hex(string[1] as char)?;
                 Ok((upper << 4) | lower)
             }
         }

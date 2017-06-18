@@ -71,18 +71,18 @@
                 match *self {
                     ContentItem::String(ref s) => s.to_css(dest),
                     ContentItem::Counter(ref s, ref counter_style) => {
-                        try!(dest.write_str("counter("));
-                        try!(cssparser::serialize_identifier(&**s, dest));
-                        try!(dest.write_str(", "));
-                        try!(counter_style.to_css(dest));
+                        dest.write_str("counter(")?;
+                        cssparser::serialize_identifier(&**s, dest)?;
+                        dest.write_str(", ")?;
+                        counter_style.to_css(dest)?;
                         dest.write_str(")")
                     }
                     ContentItem::Counters(ref s, ref separator, ref counter_style) => {
-                        try!(dest.write_str("counters("));
-                        try!(cssparser::serialize_identifier(&**s, dest));
-                        try!(dest.write_str(", "));
+                        dest.write_str("counters(")?;
+                        cssparser::serialize_identifier(&**s, dest)?;
+                        dest.write_str(", ")?;
                         separator.to_css(dest)?;
-                        try!(dest.write_str(", "));
+                        dest.write_str(", ")?;
                         counter_style.to_css(dest)?;
                         dest.write_str(")")
                     }
@@ -121,10 +121,10 @@
                     % endif
                     T::Items(ref content) => {
                         let mut iter = content.iter();
-                        try!(iter.next().unwrap().to_css(dest));
+                        iter.next().unwrap().to_css(dest)?;
                         for c in iter {
-                            try!(dest.write_str(" "));
-                            try!(c.to_css(dest));
+                            dest.write_str(" ")?;
+                            c.to_css(dest)?;
                         }
                         Ok(())
                     }
@@ -186,14 +186,14 @@
                 Ok(Token::Function(name)) => {
                     let result = match_ignore_ascii_case! { &name,
                         "counter" => Some(input.parse_nested_block(|input| {
-                            let name = try!(input.expect_ident()).into_owned();
+                            let name = input.expect_ident()?.into_owned();
                             let style = parse_counter_style(context, input);
                             Ok(ContentItem::Counter(name, style))
                         })),
                         "counters" => Some(input.parse_nested_block(|input| {
-                            let name = try!(input.expect_ident()).into_owned();
-                            try!(input.expect_comma());
-                            let separator = try!(input.expect_string()).into_owned();
+                            let name = input.expect_ident()?.into_owned();
+                            input.expect_comma()?;
+                            let separator = input.expect_string()?.into_owned();
                             let style = parse_counter_style(context, input);
                             Ok(ContentItem::Counters(name, separator, style))
                         })),
@@ -205,7 +205,7 @@
                         _ => None
                     };
                     match result {
-                        Some(result) => content.push(try!(result)),
+                        Some(result) => content.push(result?),
                         None => return Err(StyleParseError::UnexpectedFunction(name).into())
                     }
                 }

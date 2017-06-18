@@ -41,7 +41,7 @@
             let mut mask_${name} = mask_${name}::SpecifiedValue(Vec::new());
         % endfor
 
-        try!(input.parse_comma_separated(|input| {
+        input.parse_comma_separated(|input| {
             % for name in "image mode position size repeat origin clip composite".split():
                 let mut ${name} = None;
             % endfor
@@ -59,7 +59,7 @@
 
                         // Parse mask size, if applicable.
                         size = input.try(|input| {
-                            try!(input.expect_delim('/'));
+                            input.expect_delim('/')?;
                             mask_size::single_value::parse(context, input)
                         }).ok();
 
@@ -106,7 +106,7 @@
             } else {
                 Err(StyleParseError::UnspecifiedError.into())
             }
-        }));
+        })?;
 
         Ok(expanded! {
             % for name in "image mode position_x position_y size repeat origin clip composite".split():

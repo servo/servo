@@ -1662,7 +1662,7 @@ fn get_root_flow_background_color(flow: &mut Flow) -> webrender_traits::ColorF {
 fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
     fn parse_ua_stylesheet(shared_lock: &SharedRwLock, filename: &'static str)
                            -> Result<Stylesheet, &'static str> {
-        let res = try!(read_resource_file(filename).map_err(|_| filename));
+        let res = read_resource_file(filename).map_err(|_| filename)?;
         Ok(Stylesheet::from_bytes(
             &res,
             ServoUrl::parse(&format!("chrome://resources/{:?}", filename)).unwrap(),
@@ -1681,7 +1681,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
     // FIXME: presentational-hints.css should be at author origin with zero specificity.
     //        (Does it make a difference?)
     for &filename in &["user-agent.css", "servo.css", "presentational-hints.css"] {
-        user_or_user_agent_stylesheets.push(try!(parse_ua_stylesheet(&shared_lock, filename)));
+        user_or_user_agent_stylesheets.push(parse_ua_stylesheet(&shared_lock, filename)?);
     }
     for &(ref contents, ref url) in &opts::get().user_stylesheets {
         user_or_user_agent_stylesheets.push(Stylesheet::from_bytes(
@@ -1689,7 +1689,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
             shared_lock.clone(), None, &RustLogReporter, QuirksMode::NoQuirks));
     }
 
-    let quirks_mode_stylesheet = try!(parse_ua_stylesheet(&shared_lock, "quirks-mode.css"));
+    let quirks_mode_stylesheet = parse_ua_stylesheet(&shared_lock, "quirks-mode.css")?;
 
     Ok(UserAgentStylesheets {
         shared_lock: shared_lock,

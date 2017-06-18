@@ -36,7 +36,7 @@ impl NetworkConnector for HttpsConnector {
 
         // Perform host replacement when making the actual TCP connection.
         let addr = &(&*replace_host(host), port);
-        let stream = HttpStream(try!(TcpStream::connect(addr)));
+        let stream = HttpStream(TcpStream::connect(addr)?);
 
         if scheme == "http" {
             Ok(HttpsStream::Http(stream))

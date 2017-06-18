@@ -103,7 +103,7 @@ impl HTMLTableElement {
             let reference_element = node.child_elements().find(reference_predicate);
             let reference_node = reference_element.r().map(|e| e.upcast());
 
-            try!(node.InsertBefore(section.upcast(), reference_node));
+            node.InsertBefore(section.upcast(), reference_node)?;
         }
 
         Ok(())

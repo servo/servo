@@ -56,11 +56,11 @@ impl GLContextWrapper {
     fn resize(&mut self, size: Size2D<i32>) -> Result<Size2D<i32>, &'static str> {
         match *self {
             GLContextWrapper::Native(ref mut ctx) => {
-                try!(ctx.resize(size));
+                ctx.resize(size)?;
                 Ok(ctx.borrow_draw_buffer().unwrap().size())
             }
             GLContextWrapper::OSMesa(ref mut ctx) => {
-                try!(ctx.resize(size));
+                ctx.resize(size)?;
                 Ok(ctx.borrow_draw_buffer().unwrap().size())
             }
         }
@@ -115,7 +115,7 @@ fn create_readback_painter(size: Size2D<i32>,
                            webrender_api: webrender_traits::RenderApi,
                            gl_type: gl::GlType)
     -> Result<(WebGLPaintThread, GLLimits), String> {
-    let context = try!(GLContextWrapper::new(size, attrs, gl_type));
+    let context = GLContextWrapper::new(size, attrs, gl_type)?;
     let limits = context.get_limits();
     let painter = WebGLPaintThread {
         size: size,
@@ -294,7 +294,7 @@ impl WebGLPaintThread {
             WebGLPaintTaskData::Readback(ref mut context, ref webrender_api, ref mut image_key) => {
                 if size.width > self.size.width ||
                    size.height > self.size.height {
-                    self.size = try!(context.resize(size));
+                    self.size = context.resize(size)?;
                 } else {
                     self.size = size;
                     context.gl().scissor(0, 0, size.width, size.height);

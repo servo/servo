@@ -609,7 +609,7 @@ impl Length {
                               num_context: AllowedLengthType,
                               allow_quirks: AllowQuirks)
                               -> Result<Length, ParseError<'i>> {
-        let token = try!(input.next());
+        let token = input.next()?;
         match token {
             Token::Dimension { value, ref unit, .. } if num_context.is_ok(context.parsing_mode, value) => {
                 Length::parse_dimension(context, value, unit)
@@ -721,7 +721,7 @@ impl Percentage {
                                             input: &mut Parser<'i, 't>,
                                             num_context: AllowedNumericType)
                                             -> Result<Self, ParseError<'i>> {
-        match try!(input.next()) {
+        match input.next()? {
             Token::Percentage { unit_value, .. } if num_context.is_ok(context.parsing_mode, unit_value) => {
                 Ok(Percentage(unit_value))
             }
@@ -804,7 +804,7 @@ impl LengthOrPercentage {
                               allow_quirks: AllowQuirks)
                               -> Result<LengthOrPercentage, ParseError<'i>>
     {
-        let token = try!(input.next());
+        let token = input.next()?;
         match token {
             Token::Dimension { value, ref unit, .. } if num_context.is_ok(context.parsing_mode, value) => {
                 NoCalcLength::parse_dimension(context, value, unit).map(LengthOrPercentage::Length)
@@ -822,9 +822,9 @@ impl LengthOrPercentage {
                 }
             }
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                let calc = try!(input.parse_nested_block(|i| {
+                let calc = input.parse_nested_block(|i| {
                     CalcNode::parse_length_or_percentage(context, i, num_context)
-                }));
+                })?;
                 return Ok(LengthOrPercentage::Calc(Box::new(calc)))
             }
             _ => Err(())
@@ -940,7 +940,7 @@ impl LengthOrPercentageOrAuto {
                               num_context: AllowedLengthType,
                               allow_quirks: AllowQuirks)
                               -> Result<Self, ParseError<'i>> {
-        let token = try!(input.next());
+        let token = input.next()?;
         match token {
             Token::Dimension { value, ref unit, .. } if num_context.is_ok(context.parsing_mode, value) => {
                 NoCalcLength::parse_dimension(context, value, unit).map(LengthOrPercentageOrAuto::Length)
@@ -962,9 +962,9 @@ impl LengthOrPercentageOrAuto {
                 Ok(LengthOrPercentageOrAuto::Auto)
             }
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                let calc = try!(input.parse_nested_block(|i| {
+                let calc = input.parse_nested_block(|i| {
                     CalcNode::parse_length_or_percentage(context, i, num_context)
-                }));
+                })?;
                 Ok(LengthOrPercentageOrAuto::Calc(Box::new(calc)))
             }
             _ => Err(())
@@ -1039,7 +1039,7 @@ impl LengthOrPercentageOrNone {
                               allow_quirks: AllowQuirks)
                               -> Result<LengthOrPercentageOrNone, ParseError<'i>>
     {
-        let token = try!(input.next());
+        let token = input.next()?;
         match token {
             Token::Dimension { value, ref unit, .. } if num_context.is_ok(context.parsing_mode, value) => {
                 NoCalcLength::parse_dimension(context, value, unit).map(LengthOrPercentageOrNone::Length)
@@ -1057,9 +1057,9 @@ impl LengthOrPercentageOrNone {
                 ))
             }
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                let calc = try!(input.parse_nested_block(|i| {
+                let calc = input.parse_nested_block(|i| {
                     CalcNode::parse_length_or_percentage(context, i, num_context)
-                }));
+                })?;
                 Ok(LengthOrPercentageOrNone::Calc(Box::new(calc)))
             }
             Token::Ident(ref value) if value.eq_ignore_ascii_case("none") =>

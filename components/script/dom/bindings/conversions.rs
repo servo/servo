@@ -390,7 +390,7 @@ pub unsafe fn private_from_proto_check<F>(mut obj: *mut JSObject,
                                           -> Result<*const libc::c_void, ()>
     where F: Fn(&'static DOMClass) -> bool
 {
-    let dom_class = try!(get_dom_class(obj).or_else(|_| {
+    let dom_class = get_dom_class(obj).or_else(|_| {
         if IsWrapper(obj) {
             trace!("found wrapper");
             obj = UnwrapObject(obj, /* stopAtWindowProxy = */ 0);
@@ -406,7 +406,7 @@ pub unsafe fn private_from_proto_check<F>(mut obj: *mut JSObject,
             trace!("not a dom wrapper");
             Err(())
         }
-    }));
+    })?;
 
     if proto_check(dom_class) {
         trace!("good prototype");

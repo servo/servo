@@ -24,7 +24,7 @@ pub struct FlowList {
 
 impl Serialize for FlowList {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut serializer = try!(serializer.serialize_seq(Some(self.len())));
+        let mut serializer = serializer.serialize_seq(Some(self.len()))?;
         for f in self.iter() {
             let mut flow_val = Map::new();
             flow_val.insert("class".to_owned(), to_value(f.class()).unwrap());
@@ -43,7 +43,7 @@ impl Serialize for FlowList {
                 }
             };
             flow_val.insert("data".to_owned(), data);
-            try!(serializer.serialize_element(&flow_val));
+            serializer.serialize_element(&flow_val)?;
         }
         serializer.end()
     }

@@ -501,7 +501,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         // Step 4 (first half)
         let extracted_or_serialized = match data {
             Some(DocumentOrBodyInit::Document(ref doc)) => {
-                let data = Vec::from(try!(serialize_document(&doc)).as_ref());
+                let data = Vec::from(serialize_document(&doc)?.as_ref());
                 let content_type = if doc.is_html_document() {
                     "text/html;charset=UTF-8"
                 } else {
@@ -719,7 +719,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             _ => {},
         }
         // Step 2
-        let override_mime = try!(mime.parse::<Mime>().map_err(|_| Error::Syntax));
+        let override_mime = mime.parse::<Mime>().map_err(|_| Error::Syntax)?;
         // Step 3
         let mime_no_params = Mime(override_mime.clone().0, override_mime.clone().1, vec![]);
         *self.override_mime_type.borrow_mut() = Some(mime_no_params);

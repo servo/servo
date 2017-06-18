@@ -1454,7 +1454,7 @@ impl Document {
             for node in nodes {
                 match node {
                     NodeOrString::Node(node) => {
-                        try!(fragment.AppendChild(&node));
+                        fragment.AppendChild(&node)?;
                     },
                     NodeOrString::String(string) => {
                         let node = Root::upcast::<Node>(self.CreateTextNode(string));
@@ -2819,8 +2819,8 @@ impl DocumentMethods for Document {
                        namespace: Option<DOMString>,
                        qualified_name: DOMString)
                        -> Fallible<Root<Element>> {
-        let (namespace, prefix, local_name) = try!(validate_and_extract(namespace,
-                                                                        &qualified_name));
+        let (namespace, prefix, local_name) = validate_and_extract(namespace,
+                                                                        &qualified_name)?;
         let name = QualName::new(prefix, namespace, local_name);
         Ok(Element::create(name, self, ElementCreator::ScriptCreated))
     }
@@ -2845,8 +2845,8 @@ impl DocumentMethods for Document {
                          namespace: Option<DOMString>,
                          qualified_name: DOMString)
                          -> Fallible<Root<Attr>> {
-        let (namespace, prefix, local_name) = try!(validate_and_extract(namespace,
-                                                                        &qualified_name));
+        let (namespace, prefix, local_name) = validate_and_extract(namespace,
+                                                                        &qualified_name)?;
         let value = AttrValue::String("".to_owned());
         let qualified_name = LocalName::from(qualified_name);
         Ok(Attr::new(&self.window,

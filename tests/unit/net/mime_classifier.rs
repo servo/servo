@@ -11,10 +11,10 @@ use std::io::{self, Read};
 use std::path::{self, PathBuf};
 
 fn read_file(path: &path::Path) -> io::Result<Vec<u8>> {
-    let mut file = try!(File::open(path));
+    let mut file = File::open(path)?;
     let mut buffer = Vec::new();
 
-    try!(file.read_to_end(&mut buffer));
+    file.read_to_end(&mut buffer)?;
 
     Ok(buffer)
 }

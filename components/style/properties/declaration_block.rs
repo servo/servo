@@ -840,10 +840,10 @@ pub fn append_serialization<'a, W, I, N>(dest: &mut W,
           I: Iterator<Item=&'a PropertyDeclaration>,
           N: ToCss,
 {
-    try!(handle_first_serialization(dest, is_first_serialization));
+    handle_first_serialization(dest, is_first_serialization)?;
 
-    try!(property_name.to_css(dest));
-    try!(dest.write_char(':'));
+    property_name.to_css(dest)?;
+    dest.write_char(':')?;
 
     // for normal parsed values, add a space between key: and value
     match appendable_value {
@@ -863,10 +863,10 @@ pub fn append_serialization<'a, W, I, N>(dest: &mut W,
         AppendableValue::DeclarationsForShorthand(..) => unreachable!(),
     }
 
-    try!(append_declaration_value(dest, appendable_value));
+    append_declaration_value(dest, appendable_value)?;
 
     if importance.important() {
-        try!(dest.write_str(" !important"));
+        dest.write_str(" !important")?;
     }
 
     dest.write_char(';')
@@ -934,7 +934,7 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for PropertyDeclarationParser<'a, 'b> {
 
     fn parse_value<'t>(&mut self, name: CompactCowStr<'i>, input: &mut Parser<'i, 't>)
                        -> Result<Importance, ParseError<'i>> {
-        let id = try!(PropertyId::parse(name));
+        let id = PropertyId::parse(name)?;
         input.parse_until_before(Delimiter::Bang, |input| {
             PropertyDeclaration::parse_into(self.declarations, id, self.context, input)
                 .map_err(|e| e.into())

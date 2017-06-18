@@ -65,8 +65,8 @@ impl ImageData {
         if let Some(jsobject) = opt_jsobject {
             let cx = global.get_cx();
             typedarray!(in(cx) let array_res: Uint8ClampedArray = jsobject);
-            let mut array = try!(array_res
-                .map_err(|_| Error::Type("Argument to Image data is not an Uint8ClampedArray".to_owned())));
+            let mut array = array_res
+                .map_err(|_| Error::Type("Argument to Image data is not an Uint8ClampedArray".to_owned()))?;
 
             let byte_len = array.as_slice().len() as u32;
             if byte_len % 4 != 0 {

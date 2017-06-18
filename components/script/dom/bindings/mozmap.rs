@@ -69,7 +69,7 @@ impl<T, C> FromJSValConvertible for MozMap<T>
                 return Err(());
             }
 
-            let property = match try!(T::from_jsval(cx, property.handle(), config.clone())) {
+            let property = match T::from_jsval(cx, property.handle(), config.clone())? {
                 ConversionResult::Success(property) => property,
                 ConversionResult::Failure(message) => return Ok(ConversionResult::Failure(message)),
             };

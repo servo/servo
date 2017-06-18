@@ -235,7 +235,7 @@ impl fmt::Debug for WeakAtom {
 impl fmt::Display for WeakAtom {
     fn fmt(&self, w: &mut fmt::Formatter) -> fmt::Result {
         for c in self.chars() {
-            try!(w.write_char(c.unwrap_or(char::REPLACEMENT_CHARACTER)))
+            w.write_char(c.unwrap_or(char::REPLACEMENT_CHARACTER))?
         }
         Ok(())
     }

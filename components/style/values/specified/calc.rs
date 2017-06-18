@@ -94,7 +94,7 @@ impl ToCss for CalcLengthOrPercentage {
         macro_rules! first_value_check {
             () => {
                 if !first_value {
-                    try!(dest.write_str(" + "));
+                    dest.write_str(" + ")?;
                 } else {
                     first_value = false;
                 }
@@ -106,14 +106,14 @@ impl ToCss for CalcLengthOrPercentage {
                 $(
                     if let Some(val) = self.$val {
                         first_value_check!();
-                        try!(val.to_css(dest));
-                        try!(dest.write_str(stringify!($val)));
+                        val.to_css(dest)?;
+                        dest.write_str(stringify!($val))?;
                     }
                 )*
             };
         }
 
-        try!(dest.write_str("calc("));
+        dest.write_str("calc(")?;
 
         serialize!(ch, em, ex, rem, vh, vmax, vmin, vw);
 
@@ -124,7 +124,7 @@ impl ToCss for CalcLengthOrPercentage {
 
         if let Some(val) = self.absolute {
             first_value_check!();
-            try!(val.to_css(dest));
+            val.to_css(dest)?;
         }
 
         if let Some(val) = self.percentage {
@@ -149,7 +149,7 @@ impl CalcNode {
         expected_unit: CalcUnit)
         -> Result<Self, ParseError<'i>>
     {
-        match (try!(input.next()), expected_unit) {
+        match (input.next()?, expected_unit) {
             (Token::Number { value, .. }, _) => Ok(CalcNode::Number(value)),
             (Token::Dimension { value, ref unit, .. }, CalcUnit::Length) |
             (Token::Dimension { value, ref unit, .. }, CalcUnit::LengthOrPercentage) => {

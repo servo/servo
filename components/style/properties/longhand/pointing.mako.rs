@@ -52,12 +52,12 @@
         #[cfg(feature = "gecko")]
         impl ToCss for Image {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                try!(self.url.to_css(dest));
+                self.url.to_css(dest)?;
                 if let Some((x, y)) = self.hotspot {
-                    try!(dest.write_str(" "));
-                    try!(x.to_css(dest));
-                    try!(dest.write_str(" "));
-                    try!(y.to_css(dest));
+                    dest.write_str(" ")?;
+                    x.to_css(dest)?;
+                    dest.write_str(" ")?;
+                    y.to_css(dest)?;
                 }
                 Ok(())
             }
@@ -67,8 +67,8 @@
         impl ToCss for T {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 for url in &self.images {
-                    try!(url.to_css(dest));
-                    try!(dest.write_str(", "));
+                    url.to_css(dest)?;
+                    dest.write_str(", ")?;
                 }
                 self.keyword.to_css(dest)
             }
@@ -95,7 +95,7 @@
                          -> Result<computed_value::Keyword, ParseError<'i>> {
             use std::ascii::AsciiExt;
             use style_traits::cursor::Cursor;
-            let ident = try!(input.expect_ident());
+            let ident = input.expect_ident()?;
             if ident.eq_ignore_ascii_case("auto") {
                 Ok(computed_value::Keyword::Auto)
             } else {
@@ -110,9 +110,9 @@
     fn parse_image<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                            -> Result<computed_value::Image, ParseError<'i>> {
         Ok(computed_value::Image {
-            url: try!(SpecifiedUrl::parse(context, input)),
+            url: SpecifiedUrl::parse(context, input)?,
             hotspot: match input.try(|input| input.expect_number()) {
-                Ok(number) => Some((number, try!(input.expect_number()))),
+                Ok(number) => Some((number, input.expect_number()?)),
                 Err(_) => None,
             },
         })
@@ -137,12 +137,12 @@
                 }
                 Err(_) => break,
             }
-            try!(input.expect_comma());
+            input.expect_comma()?;
         }
 
         Ok(computed_value::T {
             images: images,
-            keyword: try!(computed_value::Keyword::parse(context, input)),
+            keyword: computed_value::Keyword::parse(context, input)?,
         })
     }
 </%helpers:longhand>

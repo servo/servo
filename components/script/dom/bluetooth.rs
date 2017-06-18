@@ -328,7 +328,7 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
 
             for service in services {
                 // Step 3.2 - 3.3.
-                let uuid = try!(BluetoothUUID::service(service.clone())).to_string();
+                let uuid = BluetoothUUID::service(service.clone())?.to_string();
 
                 // Step 3.4.
                 if uuid_is_blocklisted(uuid.as_ref(), Blocklist::All) {
@@ -393,7 +393,7 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
                 // Step 7.3: No need to convert to IDL values since this is only used by native code.
 
                 // Step 7.4 - 7.5.
-                map.insert(manufacturer_id, try!(canonicalize_bluetooth_data_filter_init(bdfi)));
+                map.insert(manufacturer_id, canonicalize_bluetooth_data_filter_init(bdfi)?);
             }
             Some(map)
         },
@@ -417,7 +417,7 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
                 };
 
                 // Step 9.3 - 9.4.
-                let service = try!(BluetoothUUID::service(service_name)).to_string();
+                let service = BluetoothUUID::service(service_name)?.to_string();
 
                 // Step 9.5.
                 if uuid_is_blocklisted(service.as_ref(), Blocklist::All) {
@@ -427,7 +427,7 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
                 // Step 9.6: No need to convert to IDL values since this is only used by native code.
 
                 // Step 9.7 - 9.8.
-                map.insert(service, try!(canonicalize_bluetooth_data_filter_init(bdfi)));
+                map.insert(service, canonicalize_bluetooth_data_filter_init(bdfi)?);
             }
             Some(map)
         },

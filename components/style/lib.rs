@@ -207,11 +207,11 @@ pub fn serialize_comma_separated_list<W, T>(dest: &mut W,
         return Ok(());
     }
 
-    try!(list[0].to_css(dest));
+    list[0].to_css(dest)?;
 
     for item in list.iter().skip(1) {
-        try!(write!(dest, ", "));
-        try!(item.to_css(dest));
+        write!(dest, ", ")?;
+        item.to_css(dest)?;
     }
 
     Ok(())

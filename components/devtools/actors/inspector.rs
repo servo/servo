@@ -289,7 +289,7 @@ impl Actor for WalkerActor {
             "documentElement" => {
                 let (tx, rx) = ipc::channel().unwrap();
                 self.script_chan.send(GetDocumentElement(self.pipeline, tx)).unwrap();
-                let doc_elem_info = try!(rx.recv().unwrap().ok_or(()));
+                let doc_elem_info = rx.recv().unwrap().ok_or(())?;
                 let node = doc_elem_info.encode(registry, true, self.script_chan.clone(), self.pipeline);
 
                 let msg = DocumentElementReply {
@@ -315,7 +315,7 @@ impl Actor for WalkerActor {
                                                   registry.actor_to_script(target.to_owned()),
                                                   tx))
                                 .unwrap();
-                let children = try!(rx.recv().unwrap().ok_or(()));
+                let children = rx.recv().unwrap().ok_or(())?;
 
                 let msg = ChildrenReply {
                     hasFirst: true,
@@ -489,7 +489,7 @@ impl Actor for PageStyleActor {
                     borderTopWidth, borderRightWidth, borderBottomWidth, borderLeftWidth,
                     paddingTop, paddingRight, paddingBottom, paddingLeft,
                     width, height,
-                } = try!(rx.recv().unwrap().ok_or(()));
+                } = rx.recv().unwrap().ok_or(())?;
 
                 let auto_margins = msg.get("autoMargins")
                     .and_then(&Value::as_bool).unwrap_or(false);
@@ -563,7 +563,7 @@ impl Actor for InspectorActor {
 
                 let (tx, rx) = ipc::channel().unwrap();
                 self.script_chan.send(GetRootNode(self.pipeline, tx)).unwrap();
-                let root_info = try!(rx.recv().unwrap().ok_or(()));
+                let root_info = rx.recv().unwrap().ok_or(())?;
 
                 let node = root_info.encode(registry, false, self.script_chan.clone(), self.pipeline);
 

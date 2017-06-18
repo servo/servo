@@ -636,8 +636,8 @@ fn validate_layer(cx: *mut JSContext,
     let ctx = layer.source.as_ref().map(|ref s| s.get_or_init_webgl_context(cx, None)).unwrap_or(None);
     if let Some(ctx) = ctx {
         let mut data = WebVRLayer::default();
-        try!(parse_bounds(&layer.leftBounds, &mut data.left_bounds));
-        try!(parse_bounds(&layer.rightBounds, &mut data.right_bounds));
+        parse_bounds(&layer.leftBounds, &mut data.left_bounds)?;
+        parse_bounds(&layer.rightBounds, &mut data.right_bounds)?;
         Ok((data, ctx))
     } else {
         Err("VRLayer source must be a WebGL Context")

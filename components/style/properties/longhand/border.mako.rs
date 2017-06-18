@@ -91,10 +91,10 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
                         let mut first = true;
                         for ref color in vec {
                             if !first {
-                                try!(dest.write_str(" "));
+                                dest.write_str(" ")?;
                             }
                             first = false;
-                            try!(color.to_css(dest))
+                            color.to_css(dest)?
                         }
                         Ok(())
                     }
@@ -110,10 +110,10 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
                         let mut first = true;
                         for ref color in vec {
                             if !first {
-                                try!(dest.write_str(" "));
+                                dest.write_str(" ")?;
                             }
                             first = false;
-                            try!(color.to_css(dest))
+                            color.to_css(dest)?
                         }
                         Ok(())
                     }
@@ -240,10 +240,10 @@ ${helpers.predefined_type("border-image-outset", "LengthOrNumberRect",
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            try!(self.0.to_css(dest));
+            self.0.to_css(dest)?;
             if let Some(second) = self.1 {
-                try!(dest.write_str(" "));
-                try!(second.to_css(dest));
+                dest.write_str(" ")?;
+                second.to_css(dest)?;
             }
             Ok(())
         }
@@ -274,7 +274,7 @@ ${helpers.predefined_type("border-image-outset", "LengthOrNumberRect",
 
     pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue, ParseError<'i>> {
-        let first = try!(RepeatKeyword::parse(input));
+        let first = RepeatKeyword::parse(input)?;
         let second = input.try(RepeatKeyword::parse).ok();
 
         Ok(SpecifiedValue(first, second))

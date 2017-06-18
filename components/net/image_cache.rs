@@ -53,9 +53,9 @@ fn decode_bytes_sync(key: LoadKey, bytes: &[u8]) -> DecoderMsg {
 }
 
 fn get_placeholder_image(webrender_api: &webrender_traits::RenderApi, path: &PathBuf) -> io::Result<Arc<Image>> {
-    let mut file = try!(File::open(path));
+    let mut file = File::open(path)?;
     let mut image_data = vec![];
-    try!(file.read_to_end(&mut image_data));
+    file.read_to_end(&mut image_data)?;
     let mut image = load_from_memory(&image_data).unwrap();
     set_webrender_image_key(webrender_api, &mut image);
     Ok(Arc::new(image))

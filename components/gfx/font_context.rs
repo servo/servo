@@ -88,9 +88,9 @@ impl FontContext {
             font_variant_caps::T::normal => pt_size,
         };
 
-        let handle = try!(FontHandle::new_from_template(&self.platform_handle,
+        let handle = FontHandle::new_from_template(&self.platform_handle,
                                                         template,
-                                                        Some(actual_pt_size)));
+                                                        Some(actual_pt_size))?;
 
         Ok(Font::new(handle, variant, descriptor, pt_size, actual_pt_size, font_key))
     }

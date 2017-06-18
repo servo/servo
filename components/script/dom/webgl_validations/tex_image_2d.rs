@@ -285,7 +285,7 @@ impl<'a> WebGLValidator for TexImage2DValidator<'a> {
             width,
             height,
             border,
-        } = try!(self.common_validator.validate());
+        } = self.common_validator.validate()?;
 
         // GL_INVALID_VALUE is generated if target is one of the six cube map 2D
         // image targets and the width and height parameters are not equal.

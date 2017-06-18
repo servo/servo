@@ -159,14 +159,14 @@ ${helpers.predefined_type("clip",
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             let mut iter = self.filters.iter();
             if let Some(filter) = iter.next() {
-                try!(filter.to_css(dest));
+                filter.to_css(dest)?;
             } else {
-                try!(dest.write_str("none"));
+                dest.write_str("none")?;
                 return Ok(())
             }
             for filter in iter {
-                try!(dest.write_str(" "));
-                try!(filter.to_css(dest));
+                dest.write_str(" ")?;
+                filter.to_css(dest)?;
             }
             Ok(())
         }
@@ -176,14 +176,14 @@ ${helpers.predefined_type("clip",
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             let mut iter = self.0.iter();
             if let Some(filter) = iter.next() {
-                try!(filter.to_css(dest));
+                filter.to_css(dest)?;
             } else {
-                try!(dest.write_str("none"));
+                dest.write_str("none")?;
                 return Ok(())
             }
             for filter in iter {
-                try!(dest.write_str(" "));
-                try!(filter.to_css(dest));
+                dest.write_str(" ")?;
+                filter.to_css(dest)?;
             }
             Ok(())
         }
@@ -193,22 +193,22 @@ ${helpers.predefined_type("clip",
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
                 computed_value::Filter::Blur(ref value) => {
-                    try!(dest.write_str("blur("));
-                    try!(value.to_css(dest));
-                    try!(dest.write_str(")"));
+                    dest.write_str("blur(")?;
+                    value.to_css(dest)?;
+                    dest.write_str(")")?;
                 }
-                computed_value::Filter::Brightness(value) => try!(write!(dest, "brightness({})", value)),
-                computed_value::Filter::Contrast(value) => try!(write!(dest, "contrast({})", value)),
-                computed_value::Filter::Grayscale(value) => try!(write!(dest, "grayscale({})", value)),
+                computed_value::Filter::Brightness(value) => write!(dest, "brightness({})", value)?,
+                computed_value::Filter::Contrast(value) => write!(dest, "contrast({})", value)?,
+                computed_value::Filter::Grayscale(value) => write!(dest, "grayscale({})", value)?,
                 computed_value::Filter::HueRotate(value) => {
-                    try!(dest.write_str("hue-rotate("));
-                    try!(value.to_css(dest));
-                    try!(dest.write_str(")"));
+                    dest.write_str("hue-rotate(")?;
+                    value.to_css(dest)?;
+                    dest.write_str(")")?;
                 }
-                computed_value::Filter::Invert(value) => try!(write!(dest, "invert({})", value)),
-                computed_value::Filter::Opacity(value) => try!(write!(dest, "opacity({})", value)),
-                computed_value::Filter::Saturate(value) => try!(write!(dest, "saturate({})", value)),
-                computed_value::Filter::Sepia(value) => try!(write!(dest, "sepia({})", value)),
+                computed_value::Filter::Invert(value) => write!(dest, "invert({})", value)?,
+                computed_value::Filter::Opacity(value) => write!(dest, "opacity({})", value)?,
+                computed_value::Filter::Saturate(value) => write!(dest, "saturate({})", value)?,
+                computed_value::Filter::Sepia(value) => write!(dest, "sepia({})", value)?,
                 % if product == "gecko":
                 computed_value::Filter::DropShadow(shadow) => {
                     dest.write_str("drop-shadow(")?;
@@ -228,22 +228,22 @@ ${helpers.predefined_type("clip",
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
                 SpecifiedFilter::Blur(ref value) => {
-                    try!(dest.write_str("blur("));
-                    try!(value.to_css(dest));
-                    try!(dest.write_str(")"));
+                    dest.write_str("blur(")?;
+                    value.to_css(dest)?;
+                    dest.write_str(")")?;
                 }
-                SpecifiedFilter::Brightness(value) => try!(write!(dest, "brightness({})", value)),
-                SpecifiedFilter::Contrast(value) => try!(write!(dest, "contrast({})", value)),
-                SpecifiedFilter::Grayscale(value) => try!(write!(dest, "grayscale({})", value)),
+                SpecifiedFilter::Brightness(value) => write!(dest, "brightness({})", value)?,
+                SpecifiedFilter::Contrast(value) => write!(dest, "contrast({})", value)?,
+                SpecifiedFilter::Grayscale(value) => write!(dest, "grayscale({})", value)?,
                 SpecifiedFilter::HueRotate(value) => {
-                    try!(dest.write_str("hue-rotate("));
-                    try!(value.to_css(dest));
-                    try!(dest.write_str(")"));
+                    dest.write_str("hue-rotate(")?;
+                    value.to_css(dest)?;
+                    dest.write_str(")")?;
                 }
-                SpecifiedFilter::Invert(value) => try!(write!(dest, "invert({})", value)),
-                SpecifiedFilter::Opacity(value) => try!(write!(dest, "opacity({})", value)),
-                SpecifiedFilter::Saturate(value) => try!(write!(dest, "saturate({})", value)),
-                SpecifiedFilter::Sepia(value) => try!(write!(dest, "sepia({})", value)),
+                SpecifiedFilter::Invert(value) => write!(dest, "invert({})", value)?,
+                SpecifiedFilter::Opacity(value) => write!(dest, "opacity({})", value)?,
+                SpecifiedFilter::Saturate(value) => write!(dest, "saturate({})", value)?,
+                SpecifiedFilter::Sepia(value) => write!(dest, "sepia({})", value)?,
                 % if product == "gecko":
                 SpecifiedFilter::DropShadow(ref shadow) => {
                     dest.write_str("drop-shadow(")?;
@@ -277,7 +277,7 @@ ${helpers.predefined_type("clip",
                 } else
             % endif
             if let Ok(function_name) = input.try(|input| input.expect_function()) {
-                filters.push(try!(input.parse_nested_block(|input| {
+                filters.push(input.parse_nested_block(|input| {
                     match_ignore_ascii_case! { &function_name,
                         "blur" => specified::Length::parse_non_negative(context, input).map(SpecifiedFilter::Blur),
                         "brightness" => parse_factor(input).map(SpecifiedFilter::Brightness),
@@ -294,7 +294,7 @@ ${helpers.predefined_type("clip",
                         % endif
                         _ => Err(StyleParseError::UnexpectedFunction(function_name.clone()).into())
                     }
-                })));
+                })?);
             } else if filters.is_empty() {
                 return Err(StyleParseError::UnspecifiedError.into())
             } else {

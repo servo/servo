@@ -107,7 +107,7 @@ impl NodeIteratorMethods for NodeIterator {
             before_node = false;
 
             // Step 3-2.
-            let result = try!(self.accept_node(&node));
+            let result = self.accept_node(&node)?;
 
             // Step 3-3.
             if result == NodeFilterConstants::FILTER_ACCEPT {
@@ -122,7 +122,7 @@ impl NodeIteratorMethods for NodeIterator {
         // Step 3-1.
         for following_node in node.following_nodes(&self.root_node) {
             // Step 3-2.
-            let result = try!(self.accept_node(&following_node));
+            let result = self.accept_node(&following_node)?;
 
             // Step 3-3.
             if result == NodeFilterConstants::FILTER_ACCEPT {
@@ -151,7 +151,7 @@ impl NodeIteratorMethods for NodeIterator {
             before_node = true;
 
             // Step 3-2.
-            let result = try!(self.accept_node(&node));
+            let result = self.accept_node(&node)?;
 
             // Step 3-3.
             if result == NodeFilterConstants::FILTER_ACCEPT {
@@ -166,7 +166,7 @@ impl NodeIteratorMethods for NodeIterator {
         // Step 3-1.
         for preceding_node in node.preceding_nodes(&self.root_node) {
             // Step 3-2.
-            let result = try!(self.accept_node(&preceding_node));
+            let result = self.accept_node(&preceding_node)?;
 
             // Step 3-3.
             if result == NodeFilterConstants::FILTER_ACCEPT {

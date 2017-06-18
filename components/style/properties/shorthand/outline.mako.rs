@@ -66,7 +66,7 @@
 
     pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                -> Result<Longhands, ParseError<'i>> {
-        let radii = try!(BorderRadius::parse(context, input));
+        let radii = BorderRadius::parse(context, input)?;
         Ok(expanded! {
             _moz_outline_radius_topleft: radii.top_left,
             _moz_outline_radius_topright: radii.top_right,

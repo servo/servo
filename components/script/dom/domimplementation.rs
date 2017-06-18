@@ -57,7 +57,7 @@ impl DOMImplementationMethods for DOMImplementation {
                           pubid: DOMString,
                           sysid: DOMString)
                           -> Fallible<Root<DocumentType>> {
-        try!(validate_qualified_name(&qualified_name));
+        validate_qualified_name(&qualified_name)?;
         Ok(DocumentType::new(qualified_name, Some(pubid), Some(sysid), &self.document))
     }
 

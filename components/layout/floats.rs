@@ -78,9 +78,9 @@ impl FloatList {
 
 impl fmt::Debug for FloatList {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "max_block_start={:?} floats={}", self.max_block_start, self.floats.len()));
+        write!(f, "max_block_start={:?} floats={}", self.max_block_start, self.floats.len())?;
         for float in self.floats.iter() {
-            try!(write!(f, " {:?}", float));
+            write!(f, " {:?}", float)?;
         }
         Ok(())
     }

@@ -452,7 +452,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
             AtRulePrelude::Viewport => {
                 let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::Viewport));
                 Ok(CssRule::Viewport(Arc::new(self.shared_lock.wrap(
-                   try!(ViewportRule::parse(&context, input))))))
+                   ViewportRule::parse(&context, input)?))))
             }
             AtRulePrelude::Keyframes(name, prefix, location) => {
                 let context = ParserContext::new_with_rule_type(self.context, Some(CssRuleType::Keyframes));

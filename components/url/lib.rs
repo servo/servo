@@ -150,7 +150,7 @@ impl ServoUrl {
     }
 
     pub fn from_file_path<P: AsRef<Path>>(path: P) -> Result<Self, ()> {
-        Ok(Self::from_url(try!(Url::from_file_path(path))))
+        Ok(Self::from_url(Url::from_file_path(path)?))
     }
 }
 

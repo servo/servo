@@ -128,7 +128,7 @@ impl KeyframePercentage {
         } else if input.try(|input| input.expect_ident_matching("to")).is_ok() {
             KeyframePercentage::new(1.)
         } else {
-            let percentage = try!(input.expect_percentage());
+            let percentage = input.expect_percentage()?;
             if percentage >= 0. && percentage <= 1. {
                 KeyframePercentage::new(percentage)
             } else {
@@ -193,9 +193,9 @@ impl ToCssWithGuard for Keyframe {
     fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
     where W: fmt::Write {
         self.selector.to_css(dest)?;
-        try!(dest.write_str(" { "));
-        try!(self.block.read_with(guard).to_css(dest));
-        try!(dest.write_str(" }"));
+        dest.write_str(" { ")?;
+        self.block.read_with(guard).to_css(dest)?;
+        dest.write_str(" }")?;
         Ok(())
     }
 }
@@ -524,7 +524,7 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for KeyframeDeclarationParser<'a, 'b> {
 
     fn parse_value<'t>(&mut self, name: CompactCowStr<'i>, input: &mut Parser<'i, 't>)
                        -> Result<(), ParseError<'i>> {
-        let id = try!(PropertyId::parse(name.into()));
+        let id = PropertyId::parse(name.into())?;
         match PropertyDeclaration::parse_into(self.declarations, id, self.context, input) {
             Ok(()) => {
                 // In case there is still unparsed text in the declaration, we should roll back.

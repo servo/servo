@@ -158,17 +158,17 @@
                 {
                     let mut iter = self.0.iter();
                     if let Some(val) = iter.next() {
-                        try!(val.to_css(dest));
+                        val.to_css(dest)?;
                     } else {
                         % if allow_empty:
-                            try!(dest.write_str("none"));
+                            dest.write_str("none")?;
                         % else:
                             warn!("Found empty value for property ${name}");
                         % endif
                     }
                     for i in iter {
-                        try!(dest.write_str(", "));
-                        try!(i.to_css(dest));
+                        dest.write_str(", ")?;
+                        i.to_css(dest)?;
                     }
                     Ok(())
                 }
@@ -185,17 +185,17 @@
                 {
                     let mut iter = self.0.iter();
                     if let Some(val) = iter.next() {
-                        try!(val.to_css(dest));
+                        val.to_css(dest)?;
                     } else {
                         % if allow_empty:
-                            try!(dest.write_str("none"));
+                            dest.write_str("none")?;
                         % else:
                             warn!("Found empty value for property ${name}");
                         % endif
                     }
                     for i in iter {
-                        try!(dest.write_str(", "));
-                        try!(i.to_css(dest));
+                        dest.write_str(", ")?;
+                        i.to_css(dest)?;
                     }
                     Ok(())
                 }
@@ -462,8 +462,8 @@
                         let var = input.seen_var_functions();
                         if specified.is_err() && var {
                             input.reset(start);
-                            let (first_token_type, css) = try!(
-                                ::custom_properties::parse_non_custom_with_var(input));
+                            let (first_token_type, css) =
+                                ::custom_properties::parse_non_custom_with_var(input)?;
                             return Ok(PropertyDeclaration::WithVariables(LonghandId::${property.camel_case},
                                                                          Arc::new(UnparsedValue {
                                 css: css.into_owned(),
@@ -876,8 +876,8 @@
                 Ok(())
             } else if var {
                 input.reset(start);
-                let (first_token_type, css) = try!(
-                    ::custom_properties::parse_non_custom_with_var(input));
+                let (first_token_type, css) =
+                    ::custom_properties::parse_non_custom_with_var(input)?;
                 let unparsed = Arc::new(UnparsedValue {
                     css: css.into_owned(),
                     first_token_type: first_token_type,

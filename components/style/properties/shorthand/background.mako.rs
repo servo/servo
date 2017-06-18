@@ -39,7 +39,7 @@
         % for name in "image position_x position_y repeat size attachment origin clip".split():
             let mut background_${name} = background_${name}::SpecifiedValue(Vec::new());
         % endfor
-        try!(input.parse_comma_separated(|input| {
+        input.parse_comma_separated(|input| {
             // background-color can only be in the last element, so if it
             // is parsed anywhere before, the value is invalid.
             if background_color.is_some() {
@@ -62,7 +62,7 @@
 
                         // Parse background size, if applicable.
                         size = input.try(|input| {
-                            try!(input.expect_delim('/'));
+                            input.expect_delim('/')?;
                             background_size::single_value::parse(context, input)
                         }).ok();
 
@@ -110,7 +110,7 @@
             } else {
                 Err(StyleParseError::UnspecifiedError.into())
             }
-        }));
+        })?;
 
         Ok(expanded! {
              background_color: background_color.unwrap_or(Color::transparent()),
@@ -148,37 +148,37 @@
                 % endfor
 
                 if i != 0 {
-                    try!(write!(dest, ", "));
+                    write!(dest, ", ")?;
                 }
 
                 if i == len - 1 {
-                    try!(self.background_color.to_css(dest));
-                    try!(write!(dest, " "));
+                    self.background_color.to_css(dest)?;
+                    write!(dest, " ")?;
                 }
 
-                try!(image.to_css(dest));
+                image.to_css(dest)?;
                 % for name in "repeat attachment".split():
-                    try!(write!(dest, " "));
-                    try!(${name}.to_css(dest));
+                    write!(dest, " ")?;
+                    ${name}.to_css(dest)?;
                 % endfor
 
-                try!(write!(dest, " "));
+                write!(dest, " ")?;
                 Position {
                     horizontal: position_x.clone(),
                     vertical: position_y.clone()
                 }.to_css(dest)?;
 
                 if *size != background_size::single_value::get_initial_specified_value() {
-                    try!(write!(dest, " / "));
-                    try!(size.to_css(dest));
+                    write!(dest, " / ")?;
+                    size.to_css(dest)?;
                 }
 
                 if *origin != Origin::padding_box || *clip != Clip::border_box {
-                    try!(write!(dest, " "));
-                    try!(origin.to_css(dest));
+                    write!(dest, " ")?;
+                    origin.to_css(dest)?;
                     if *clip != From::from(*origin) {
-                        try!(write!(dest, " "));
-                        try!(clip.to_css(dest));
+                        write!(dest, " ")?;
+                        clip.to_css(dest)?;
                     }
                 }
             }

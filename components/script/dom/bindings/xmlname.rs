@@ -32,7 +32,7 @@ pub fn validate_and_extract(namespace: Option<DOMString>,
     let namespace = namespace_from_domstring(namespace);
 
     // Step 2.
-    try!(validate_qualified_name(qualified_name));
+    validate_qualified_name(qualified_name)?;
 
     let colon = ':';
 
