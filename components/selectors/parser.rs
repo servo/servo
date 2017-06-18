@@ -9,6 +9,7 @@ use cssparser::{ParseError, BasicParseError, CompactCowStr};
 use cssparser::{Token, Parser as CssParser, parse_nth, ToCss, serialize_identifier, CssStringWriter};
 use precomputed_hash::PrecomputedHash;
 use servo_arc::{Arc, HeaderWithLength, ThinArc};
+use sink::Push;
 use smallvec::SmallVec;
 use std::ascii::AsciiExt;
 use std::borrow::{Borrow, Cow};
@@ -1120,10 +1121,11 @@ impl<Impl: SelectorImpl> Selector<Impl> {
 /// * `Err(())`: Invalid selector, abort
 /// * `Ok(false)`: Not a type selector, could be something else. `input` was not consumed.
 /// * `Ok(true)`: Length 0 (`*|*`), 1 (`*|E` or `ns|*`) or 2 (`|E` or `ns|E`)
-fn parse_type_selector<'i, 't, P, E, Impl>(parser: &P, input: &mut CssParser<'i, 't>,
-                                           sequence: &mut ParseVec<Impl>)
-                                           -> Result<bool, ParseError<'i, SelectorParseError<'i, E>>>
-    where P: Parser<'i, Impl=Impl, Error=E>, Impl: SelectorImpl
+fn parse_type_selector<'i, 't, P, E, Impl, S>(parser: &P, input: &mut CssParser<'i, 't>, sink: &mut S)
+                                              -> Result<bool, ParseError<'i, SelectorParseError<'i, E>>>
+    where P: Parser<'i, Impl=Impl, Error=E>,
+          Impl: SelectorImpl,
+          S: Push<Component<Impl>>,
 {
     match parse_qualified_name(parser, input, /* in_attr_selector = */ false)? {
         None => Ok(false),
@@ -1131,16 +1133,16 @@ fn parse_type_selector<'i, 't, P, E, Impl>(parser: &P, input: &mut CssParser<'i,
             match namespace {
                 QNamePrefix::ImplicitAnyNamespace => {}
                 QNamePrefix::ImplicitDefaultNamespace(url) => {
-                    sequence.push(Component::DefaultNamespace(url))
+                    sink.push(Component::DefaultNamespace(url))
                 }
                 QNamePrefix::ExplicitNamespace(prefix, url) => {
-                    sequence.push(Component::Namespace(prefix, url))
+                    sink.push(Component::Namespace(prefix, url))
                 }
                 QNamePrefix::ExplicitNoNamespace => {
-                    sequence.push(Component::ExplicitNoNamespace)
+                    sink.push(Component::ExplicitNoNamespace)
                 }
                 QNamePrefix::ExplicitAnyNamespace => {
-                    sequence.push(Component::ExplicitAnyNamespace)
+                    sink.push(Component::ExplicitAnyNamespace)
                 }
                 QNamePrefix::ImplicitNoNamespace => {
                     unreachable!()  // Not returned with in_attr_selector = false
@@ -1148,13 +1150,13 @@ fn parse_type_selector<'i, 't, P, E, Impl>(parser: &P, input: &mut CssParser<'i,
             }
             match local_name {
                 Some(name) => {
-                    sequence.push(Component::LocalName(LocalName {
+                    sink.push(Component::LocalName(LocalName {
                         lower_name: from_cow_str(to_ascii_lowercase(&name)),
                         name: from_cow_str(name.into()),
                     }))
                 }
                 None => {
-                    sequence.push(Component::ExplicitUniversalType)
+                    sink.push(Component::ExplicitUniversalType)
                 }
             }
             Ok(true)
@@ -1422,7 +1424,7 @@ fn parse_negation<'i, 't, P, E, Impl>(parser: &P,
     where P: Parser<'i, Impl=Impl, Error=E>, Impl: SelectorImpl
 {
     // We use a sequence because a type selector may be represented as two Components.
-    let mut sequence = ParseVec::new();
+    let mut sequence = SmallVec::<[Component<Impl>; 2]>::new();
 
     // Consume any leading whitespace.
     loop {
@@ -1476,7 +1478,7 @@ fn parse_compound_selector<'i, 't, P, E, Impl>(
         }
     }
     let mut empty = true;
-    if !parse_type_selector(parser, input, &mut sequence)? {
+    if !parse_type_selector(parser, input, sequence)? {
         if let Some(url) = parser.default_namespace() {
             // If there was no explicit type selector, but there is a
             // default namespace, there is an implicit "<defaultns>|*" type
@@ -1496,8 +1498,9 @@ fn parse_compound_selector<'i, 't, P, E, Impl>(
                 empty = false
             }
             Some(SimpleSelectorParseResult::PseudoElement(p)) => {
-                // Try to parse state to its right.
-                let mut state_selectors = ParseVec::new();
+                // Try to parse state to its right. There are only 3 allowable
+                // state selectors that can go on pseudo-elements.
+                let mut state_selectors = SmallVec::<[Component<Impl>; 3]>::new();
 
                 loop {
                     match input.next_including_whitespace() {
