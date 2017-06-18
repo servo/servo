@@ -15,6 +15,7 @@ extern crate smallvec;
 
 pub mod attr;
 pub mod bloom;
+mod builder;
 pub mod context;
 pub mod matching;
 pub mod parser;
