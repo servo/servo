@@ -20,6 +20,7 @@ pub mod matching;
 pub mod parser;
 #[cfg(test)] mod size_of_tests;
 #[cfg(any(test, feature = "gecko_like_types"))] pub mod gecko_like_types;
+pub mod sink;
 mod tree;
 pub mod visitor;
 
