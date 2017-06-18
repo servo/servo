@@ -273,7 +273,7 @@ impl Pipeline {
                 //
                 // Yes, that's all there is to it!
                 if opts::multiprocess() {
-                    let _ = try!(unprivileged_pipeline_content.spawn_multiprocess());
+                    let _ = unprivileged_pipeline_content.spawn_multiprocess()?;
                 } else {
                     unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false);
                 }
@@ -563,7 +563,7 @@ impl UnprivilegedPipelineContent {
         }
 
         let (_receiver, sender) = server.accept().expect("Server failed to accept.");
-        try!(sender.send(self));
+        sender.send(self)?;
 
         Ok(())
     }

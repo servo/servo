@@ -1819,7 +1819,7 @@ pub mod tests {
                                                     -> Result<PseudoClass,
                                                               ParseError<'i, SelectorParseError<'i, ()>>> {
             match_ignore_ascii_case! { &name,
-                "lang" => Ok(PseudoClass::Lang(try!(parser.expect_ident_or_string()).into_owned())),
+                "lang" => Ok(PseudoClass::Lang(parser.expect_ident_or_string()?.into_owned())),
                 _ => Err(SelectorParseError::Custom(()).into())
             }
         }

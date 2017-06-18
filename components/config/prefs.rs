@@ -113,7 +113,7 @@ impl Pref {
     }
 
     fn from_json(data: Json) -> Result<Pref, ()> {
-        let value = try!(PrefValue::from_json(data));
+        let value = PrefValue::from_json(data)?;
         Ok(Pref::new_default(value))
     }
 
@@ -158,10 +158,10 @@ pub fn default_prefs() -> Preferences {
 
 pub fn read_prefs_from_file<T>(mut file: T)
     -> Result<HashMap<String, Pref>, ()> where T: Read {
-    let json = try!(Json::from_reader(&mut file).or_else(|e| {
+    let json = Json::from_reader(&mut file).or_else(|e| {
         println!("Ignoring invalid JSON in preferences: {:?}.", e);
         Err(())
-    }));
+    })?;
 
     let mut prefs = HashMap::new();
     if let Json::Object(obj) = json {
@@ -205,14 +205,14 @@ fn init_user_prefs(path: &mut PathBuf) {
 }
 
 fn read_prefs() -> Result<HashMap<String, Pref>, ()> {
-    let mut path = try!(resources_dir_path().map_err(|_| ()));
+    let mut path = resources_dir_path().map_err(|_| ())?;
     path.push("prefs.json");
 
-    let file = try!(File::open(path).or_else(|e| {
+    let file = File::open(path).or_else(|e| {
         writeln!(&mut stderr(), "Error opening preferences: {:?}.", e)
             .expect("failed printing to stderr");
         Err(())
-    }));
+    })?;
 
     read_prefs_from_file(file)
 }

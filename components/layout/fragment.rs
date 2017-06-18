@@ -143,10 +143,10 @@ pub struct Fragment {
 
 impl Serialize for Fragment {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut serializer = try!(serializer.serialize_struct("fragment", 3));
-        try!(serializer.serialize_field("id", &self.debug_id));
-        try!(serializer.serialize_field("border_box", &self.border_box));
-        try!(serializer.serialize_field("margin", &self.margin));
+        let mut serializer = serializer.serialize_struct("fragment", 3)?;
+        serializer.serialize_field("id", &self.debug_id)?;
+        serializer.serialize_field("border_box", &self.border_box)?;
+        serializer.serialize_field("margin", &self.margin)?;
         serializer.end()
     }
 }

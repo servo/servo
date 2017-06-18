@@ -44,9 +44,9 @@ pub fn resources_dir_path() -> io::Result<PathBuf> {
     // FIXME: Find a way to not rely on the executable being
     // under `<servo source>[/$target_triple]/target/debug`
     // or `<servo source>[/$target_triple]/target/release`.
-    let mut path = try!(env::current_exe());
+    let mut path = env::current_exe()?;
     // Follow symlink
-    path = try!(path.canonicalize());
+    path = path.canonicalize()?;
 
     while path.pop() {
         path.push("resources");
@@ -66,10 +66,10 @@ pub fn resources_dir_path() -> io::Result<PathBuf> {
 }
 
 pub fn read_resource_file<P: AsRef<Path>>(relative_path: P) -> io::Result<Vec<u8>> {
-    let mut path = try!(resources_dir_path());
+    let mut path = resources_dir_path()?;
     path.push(relative_path);
-    let mut file = try!(File::open(&path));
+    let mut file = File::open(&path)?;
     let mut data = Vec::new();
-    try!(file.read_to_end(&mut data));
+    file.read_to_end(&mut data)?;
     Ok(data)
 }

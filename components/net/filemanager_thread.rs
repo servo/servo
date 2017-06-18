@@ -357,14 +357,14 @@ impl FileManagerStore {
     fn create_entry(&self, file_path: &Path, origin: &str) -> Result<SelectedFile, FileManagerThreadError> {
         use net_traits::filemanager_thread::FileManagerThreadError::FileSystemError;
 
-        let file = try!(File::open(file_path).map_err(|e| FileSystemError(e.to_string())));
-        let metadata = try!(file.metadata().map_err(|e| FileSystemError(e.to_string())));
-        let modified = try!(metadata.modified().map_err(|e| FileSystemError(e.to_string())));
-        let elapsed = try!(modified.elapsed().map_err(|e| FileSystemError(e.to_string())));
+        let file = File::open(file_path).map_err(|e| FileSystemError(e.to_string()))?;
+        let metadata = file.metadata().map_err(|e| FileSystemError(e.to_string()))?;
+        let modified = metadata.modified().map_err(|e| FileSystemError(e.to_string()))?;
+        let elapsed = modified.elapsed().map_err(|e| FileSystemError(e.to_string()))?;
         // Unix Epoch: https://doc.servo.org/std/time/constant.UNIX_EPOCH.html
         let modified_epoch = elapsed.as_secs() * 1000 + elapsed.subsec_nanos() as u64 / 1000000;
         let file_size = metadata.len();
-        let file_name = try!(file_path.file_name().ok_or(FileSystemError("Invalid filepath".to_string())));
+        let file_name = file_path.file_name().ok_or(FileSystemError("Invalid filepath".to_string()))?;
 
         let file_impl = FileImpl::MetaDataOnly(FileMetaData {
             path: file_path.to_path_buf(),
@@ -400,7 +400,7 @@ impl FileManagerStore {
     fn get_blob_buf(&self, sender: &IpcSender<FileManagerResult<ReadFileProgress>>,
                     id: &Uuid, origin_in: &FileOrigin, rel_pos: RelativePos,
                     check_url_validity: bool) -> Result<(), BlobURLStoreError> {
-        let file_impl = try!(self.get_impl(id, origin_in, check_url_validity));
+        let file_impl = self.get_impl(id, origin_in, check_url_validity)?;
         match file_impl {
             FileImpl::Memory(buf) => {
                 let range = rel_pos.to_abs_range(buf.size as usize);
@@ -430,10 +430,10 @@ impl FileManagerStore {
                 let mime = guess_mime_type_opt(metadata.path.clone());
                 let range = rel_pos.to_abs_range(metadata.size as usize);
 
-                let mut file = try!(File::open(&metadata.path)
-                                   .map_err(|e| BlobURLStoreError::External(e.to_string())));
-                let seeked_start = try!(file.seek(SeekFrom::Start(range.start as u64))
-                                       .map_err(|e| BlobURLStoreError::External(e.to_string())));
+                let mut file = File::open(&metadata.path)
+                                   .map_err(|e| BlobURLStoreError::External(e.to_string()))?;
+                let seeked_start = file.seek(SeekFrom::Start(range.start as u64))
+                                       .map_err(|e| BlobURLStoreError::External(e.to_string()))?;
 
                 if seeked_start == (range.start as u64) {
                     let type_string = match mime {

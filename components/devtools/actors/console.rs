@@ -115,7 +115,7 @@ impl Actor for ConsoleActor {
                 let (chan, port) = ipc::channel().unwrap();
                 self.script_chan.send(DevtoolScriptControlMsg::GetCachedMessages(
                     self.pipeline, message_types, chan)).unwrap();
-                let messages = try!(port.recv().map_err(|_| ())).into_iter().map(|message| {
+                let messages = port.recv().map_err(|_| ())?.into_iter().map(|message| {
                     let json_string = message.encode().unwrap();
                     let json = serde_json::from_str::<Value>(&json_string).unwrap();
                     json.as_object().unwrap().to_owned()
@@ -179,7 +179,7 @@ impl Actor for ConsoleActor {
                     self.pipeline, input.clone(), chan)).unwrap();
 
                 //TODO: extract conversion into protocol module or some other useful place
-                let result = match try!(port.recv().map_err(|_| ())) {
+                let result = match port.recv().map_err(|_| ())? {
                     VoidValue => {
                         let mut m = Map::new();
                         m.insert("type".to_owned(), Value::String("undefined".to_owned()));

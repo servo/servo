@@ -80,7 +80,7 @@ impl Debug for FontTemplate {
 impl FontTemplate {
     pub fn new(identifier: Atom, maybe_bytes: Option<Vec<u8>>) -> Result<FontTemplate, IoError> {
         let maybe_data = match maybe_bytes {
-            Some(_) => Some(try!(FontTemplateData::new(identifier.clone(), maybe_bytes))),
+            Some(_) => Some(FontTemplateData::new(identifier.clone(), maybe_bytes)?),
             None => None,
         };
 
@@ -167,12 +167,12 @@ impl FontTemplate {
             return Err(())
         }
 
-        let data = try!(self.data().map_err(|_| ()));
+        let data = self.data().map_err(|_| ())?;
         let handle: Result<FontHandle, ()> = FontHandleMethods::new_from_template(font_context,
                                                                                   data,
                                                                                   None);
         self.is_valid = handle.is_ok();
-        let handle = try!(handle);
+        let handle = handle?;
         self.descriptor = Some(FontTemplateDescriptor::new(handle.boldness(),
                                                            handle.stretchiness(),
                                                            handle.is_italic()));
@@ -202,7 +202,7 @@ impl FontTemplate {
         }
 
         assert!(self.strong_ref.is_none());
-        let template_data = Arc::new(try!(FontTemplateData::new(self.identifier.clone(), None)));
+        let template_data = Arc::new(FontTemplateData::new(self.identifier.clone(), None)?);
         self.weak_ref = Some(Arc::downgrade(&template_data));
         Ok(template_data)
     }

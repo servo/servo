@@ -172,8 +172,7 @@ pub fn keycodes_to_keys(key_codes: &[char]) -> Result<Vec<(Key, KeyModifiers, Ke
     let mut rv = vec![];
 
     for char_code in key_codes.iter() {
-        let (key, with_shift) = try!(
-            key_from_char(char_code).ok_or(format!("Unsupported character code {}", char_code)));
+        let (key, with_shift) = key_from_char(char_code).ok_or(format!("Unsupported character code {}", char_code))?;
         let modifiers = if with_shift {
             SHIFT
         } else {

@@ -235,9 +235,9 @@ impl FontList {
 
 
     fn load_file(path: &str) -> Result<String, io::Error> {
-        let mut file = try!(File::open(path));
+        let mut file = File::open(path)?;
         let mut content = String::new();
-        try!(file.read_to_string(&mut content));
+        file.read_to_string(&mut content)?;
 
         Ok(content)
     }

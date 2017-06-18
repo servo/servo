@@ -1011,14 +1011,12 @@ impl fmt::Debug for BaseFlow {
 
 impl Serialize for BaseFlow {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut serializer = try!(serializer.serialize_struct("base", 5));
-        try!(serializer.serialize_field("id", &self.debug_id()));
-        try!(serializer.serialize_field("stacking_relative_position",
-                                        &self.stacking_relative_position));
-        try!(serializer.serialize_field("intrinsic_inline_sizes",
-                                        &self.intrinsic_inline_sizes));
-        try!(serializer.serialize_field("position", &self.position));
-        try!(serializer.serialize_field("children", &self.children));
+        let mut serializer = serializer.serialize_struct("base", 5)?;
+        serializer.serialize_field("id", &self.debug_id())?;
+        serializer.serialize_field("stacking_relative_position", &self.stacking_relative_position)?;
+        serializer.serialize_field("intrinsic_inline_sizes", &self.intrinsic_inline_sizes)?;
+        serializer.serialize_field("position", &self.position)?;
+        serializer.serialize_field("children", &self.children)?;
         serializer.end()
     }
 }

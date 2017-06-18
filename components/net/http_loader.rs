@@ -317,7 +317,7 @@ impl StreamedResponse {
     fn from_http_response(response: WrappedHttpResponse) -> io::Result<StreamedResponse> {
         let decoder = match response.content_encoding() {
             Some(Encoding::Gzip) => {
-                Decoder::Gzip(try!(GzDecoder::new(response)))
+                Decoder::Gzip(GzDecoder::new(response)?)
             }
             Some(Encoding::Deflate) => {
                 Decoder::Deflate(DeflateDecoder::new(response))
@@ -1340,7 +1340,7 @@ fn cors_check(request: &Request, response: &Response) -> Result<(), ()> {
     let origin = response.headers.get::<AccessControlAllowOrigin>().cloned();
 
     // Step 2
-    let origin = try!(origin.ok_or(()));
+    let origin = origin.ok_or(())?;
 
     // Step 3
     if request.credentials_mode != CredentialsMode::Include &&
