@@ -303,11 +303,11 @@ impl ServiceWorkerGlobalScope {
 
         let ret = sel.wait();
         if ret == worker_handle.id() {
-            Ok(MixedMessage::FromServiceWorker(try!(worker_port.recv())))
+            Ok(MixedMessage::FromServiceWorker(worker_port.recv()?))
         }else if ret == devtools_handle.id() {
-            Ok(MixedMessage::FromDevtools(try!(devtools_port.recv())))
+            Ok(MixedMessage::FromDevtools(devtools_port.recv()?))
         } else if ret == timer_port_handle.id() {
-            Ok(MixedMessage::FromTimeoutThread(try!(timer_event_port.recv())))
+            Ok(MixedMessage::FromTimeoutThread(timer_event_port.recv()?))
         } else {
             panic!("unexpected select result!")
         }

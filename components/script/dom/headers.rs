@@ -52,7 +52,7 @@ impl Headers {
     pub fn Constructor(global: &GlobalScope, init: Option<HeadersInit>)
                        -> Fallible<Root<Headers>> {
         let dom_headers_new = Headers::new(global);
-        try!(dom_headers_new.fill(init));
+        dom_headers_new.fill(init)?;
         Ok(dom_headers_new)
     }
 }
@@ -63,7 +63,7 @@ impl HeadersMethods for Headers {
         // Step 1
         let value = normalize_value(value);
         // Step 2
-        let (mut valid_name, valid_value) = try!(validate_name_and_value(name, value));
+        let (mut valid_name, valid_value) = validate_name_and_value(name, value)?;
         valid_name = valid_name.to_lowercase();
         // Step 3
         if self.guard.get() == Guard::Immutable {
@@ -95,7 +95,7 @@ impl HeadersMethods for Headers {
     // https://fetch.spec.whatwg.org/#dom-headers-delete
     fn Delete(&self, name: ByteString) -> ErrorResult {
         // Step 1
-        let valid_name = try!(validate_name(name));
+        let valid_name = validate_name(name)?;
         // Step 2
         if self.guard.get() == Guard::Immutable {
             return Err(Error::Type("Guard is immutable".to_string()));
@@ -121,7 +121,7 @@ impl HeadersMethods for Headers {
     // https://fetch.spec.whatwg.org/#dom-headers-get
     fn Get(&self, name: ByteString) -> Fallible<Option<ByteString>> {
         // Step 1
-        let valid_name = &try!(validate_name(name));
+        let valid_name = &validate_name(name)?;
         Ok(self.header_list.borrow().get_raw(&valid_name).map(|v| {
             ByteString::new(v[0].clone())
         }))
@@ -130,7 +130,7 @@ impl HeadersMethods for Headers {
     // https://fetch.spec.whatwg.org/#dom-headers-has
     fn Has(&self, name: ByteString) -> Fallible<bool> {
         // Step 1
-        let valid_name = try!(validate_name(name));
+        let valid_name = validate_name(name)?;
         // Step 2
         Ok(self.header_list.borrow_mut().get_raw(&valid_name).is_some())
     }
@@ -140,7 +140,7 @@ impl HeadersMethods for Headers {
         // Step 1
         let value = normalize_value(value);
         // Step 2
-        let (mut valid_name, valid_value) = try!(validate_name_and_value(name, value));
+        let (mut valid_name, valid_value) = validate_name_and_value(name, value)?;
         valid_name = valid_name.to_lowercase();
         // Step 3
         if self.guard.get() == Guard::Immutable {
@@ -172,10 +172,10 @@ impl Headers {
             // Step 1
             Some(HeadersInit::Headers(h)) => {
                 for header in h.header_list.borrow().iter() {
-                    try!(self.Append(
+                    self.Append(
                         ByteString::new(Vec::from(header.name())),
                         ByteString::new(Vec::from(header.value_string().into_bytes()))
-                    ));
+                    )?;
                 }
                 Ok(())
             },
@@ -185,7 +185,7 @@ impl Headers {
                     if seq.len() == 2 {
                         let val = seq.pop().unwrap();
                         let name = seq.pop().unwrap();
-                        try!(self.Append(name, val));
+                        self.Append(name, val)?;
                     } else {
                         return Err(Error::Type(
                             format!("Each header object must be a sequence of length 2 - found one with length {}",
@@ -198,7 +198,7 @@ impl Headers {
                 for (key, value) in m.iter() {
                     let key_vec = key.as_ref().to_string().into();
                     let headers_key = ByteString::new(key_vec);
-                    try!(self.Append(headers_key, value.clone()));
+                    self.Append(headers_key, value.clone())?;
                 }
                 Ok(())
             },
@@ -360,7 +360,7 @@ pub fn is_forbidden_header_name(name: &str) -> bool {
 // [4] https://www.rfc-editor.org/errata_search.php?rfc=7230
 fn validate_name_and_value(name: ByteString, value: ByteString)
                            -> Fallible<(String, Vec<u8>)> {
-    let valid_name = try!(validate_name(name));
+    let valid_name = validate_name(name)?;
     if !is_field_content(&value) {
         return Err(Error::Type("Value is not valid".to_string()));
     }

@@ -135,7 +135,7 @@ impl<'a> Serialize for &'a Node {
                         let ar: AttrRef = (&qname, &**value);
                         ar
                     });
-                    try!(serializer.start_elem(name.clone(), attr_refs));
+                    serializer.start_elem(name.clone(), attr_refs)?;
                 }
 
                 let children = if let Some(tpl) = node.downcast::<HTMLTemplateElement>() {
@@ -146,18 +146,18 @@ impl<'a> Serialize for &'a Node {
                 };
 
                 for handle in children {
-                    try!((&*handle).serialize(serializer, IncludeNode));
+                    (&*handle).serialize(serializer, IncludeNode)?;
                 }
 
                 if traversal_scope == IncludeNode {
-                    try!(serializer.end_elem(name.clone()));
+                    serializer.end_elem(name.clone())?;
                 }
                 Ok(())
             },
 
             (ChildrenOnly, NodeTypeId::Document(_)) => {
                 for handle in node.children() {
-                    try!((&*handle).serialize(serializer, IncludeNode));
+                    (&*handle).serialize(serializer, IncludeNode)?;
                 }
                 Ok(())
             },

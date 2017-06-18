@@ -765,7 +765,7 @@ impl WindowMethods for Window {
 
         // Step 1-2, 6-8.
         // TODO(#12717): Should implement the `transfer` argument.
-        let data = try!(StructuredCloneData::write(cx, message));
+        let data = StructuredCloneData::write(cx, message)?;
 
         // Step 9.
         self.post_message(origin, data);
@@ -993,9 +993,9 @@ impl WindowMethods for Window {
 
     // check-tidy: no specs after this line
     fn OpenURLInDefaultBrowser(&self, href: DOMString) -> ErrorResult {
-        let url = try!(ServoUrl::parse(&href).map_err(|e| {
+        let url = ServoUrl::parse(&href).map_err(|e| {
             Error::Type(format!("Couldn't parse URL: {}", e))
-        }));
+        })?;
         match open::that(url.as_str()) {
             Ok(_) => Ok(()),
             Err(e) => Err(Error::Type(format!("Couldn't open URL: {}", e))),

@@ -144,9 +144,9 @@ pub struct Element {
 
 impl fmt::Debug for Element {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "<{}", self.local_name));
+        write!(f, "<{}", self.local_name)?;
         if let Some(ref id) = *self.id_attribute.borrow() {
-            try!(write!(f, " id={}", id));
+            write!(f, " id={}", id)?;
         }
         write!(f, ">")
     }
@@ -1532,7 +1532,7 @@ impl ElementMethods for Element {
                       qualified_name: DOMString,
                       value: DOMString) -> ErrorResult {
         let (namespace, prefix, local_name) =
-            try!(validate_and_extract(namespace, &qualified_name));
+            validate_and_extract(namespace, &qualified_name)?;
         let qualified_name = LocalName::from(qualified_name);
         let value = self.parse_attribute(&namespace, &local_name, value);
         self.set_first_matching_attribute(
@@ -1929,7 +1929,7 @@ impl ElementMethods for Element {
     /// https://w3c.github.io/DOM-Parsing/#widl-Element-innerHTML
     fn SetInnerHTML(&self, value: DOMString) -> ErrorResult {
         // Step 1.
-        let frag = try!(self.parse_fragment(value));
+        let frag = self.parse_fragment(value)?;
         // Step 2.
         // https://github.com/w3c/DOM-Parsing/issues/1
         let target = if let Some(template) = self.downcast::<HTMLTemplateElement>() {
@@ -1974,9 +1974,9 @@ impl ElementMethods for Element {
         };
 
         // Step 5.
-        let frag = try!(parent.parse_fragment(value));
+        let frag = parent.parse_fragment(value)?;
         // Step 6.
-        try!(context_parent.ReplaceChild(frag.upcast(), context_node));
+        context_parent.ReplaceChild(frag.upcast(), context_node)?;
         Ok(())
     }
 
@@ -2095,8 +2095,8 @@ impl ElementMethods for Element {
     // https://dom.spec.whatwg.org/#dom-element-insertadjacentelement
     fn InsertAdjacentElement(&self, where_: DOMString, element: &Element)
                              -> Fallible<Option<Root<Element>>> {
-        let where_ = try!(AdjacentPosition::try_from(&*where_));
-        let inserted_node = try!(self.insert_adjacent(where_, element.upcast()));
+        let where_ = AdjacentPosition::try_from(&*where_)?;
+        let inserted_node = self.insert_adjacent(where_, element.upcast())?;
         Ok(inserted_node.map(|node| Root::downcast(node).unwrap()))
     }
 
@@ -2107,7 +2107,7 @@ impl ElementMethods for Element {
         let text = Text::new(data, &document_from_node(self));
 
         // Step 2.
-        let where_ = try!(AdjacentPosition::try_from(&*where_));
+        let where_ = AdjacentPosition::try_from(&*where_)?;
         self.insert_adjacent(where_, text.upcast()).map(|_| ())
     }
 
@@ -2115,7 +2115,7 @@ impl ElementMethods for Element {
     fn InsertAdjacentHTML(&self, position: DOMString, text: DOMString)
                           -> ErrorResult {
         // Step 1.
-        let position = try!(AdjacentPosition::try_from(&*position));
+        let position = AdjacentPosition::try_from(&*position)?;
 
         let context = match position {
             AdjacentPosition::BeforeBegin | AdjacentPosition::AfterEnd => {
@@ -2137,7 +2137,7 @@ impl ElementMethods for Element {
             &context.owner_doc(), context.downcast::<Element>());
 
         // Step 3.
-        let fragment = try!(context.parse_fragment(text));
+        let fragment = context.parse_fragment(text)?;
 
         // Step 4.
         self.insert_adjacent(position, fragment.upcast()).map(|_| ())

@@ -316,7 +316,7 @@ impl WebSocketMethods for WebSocket {
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
     fn Send(&self, data: USVString) -> ErrorResult {
         let data_byte_len = data.0.as_bytes().len() as u64;
-        let send_data = try!(self.send_impl(data_byte_len));
+        let send_data = self.send_impl(data_byte_len)?;
 
         if send_data {
             let mut other_sender = self.sender.borrow_mut();
@@ -334,7 +334,7 @@ impl WebSocketMethods for WebSocket {
            If the buffer limit is reached in the first place, there are likely other major problems
         */
         let data_byte_len = blob.Size();
-        let send_data = try!(self.send_impl(data_byte_len));
+        let send_data = self.send_impl(data_byte_len)?;
 
         if send_data {
             let mut other_sender = self.sender.borrow_mut();

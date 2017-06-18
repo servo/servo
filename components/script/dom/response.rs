@@ -101,7 +101,7 @@ impl Response {
             r.Headers().empty_header_list();
 
             // Step 6.2
-            try!(r.Headers().fill(Some(headers_member.clone())));
+            r.Headers().fill(Some(headers_member.clone()))?;
         }
 
         // Step 7
@@ -119,8 +119,8 @@ impl Response {
             // Step 7.4
             if let Some(content_type_contents) = content_type {
                 if !r.Headers().Has(ByteString::new(b"Content-Type".to_vec())).unwrap() {
-                    try!(r.Headers().Append(ByteString::new(b"Content-Type".to_vec()),
-                                            ByteString::new(content_type_contents.as_bytes().to_vec())));
+                    r.Headers().Append(ByteString::new(b"Content-Type".to_vec()),
+                                            ByteString::new(content_type_contents.as_bytes().to_vec()))?;
                 }
             };
         }
@@ -174,7 +174,7 @@ impl Response {
 
         // Step 6
         let url_bytestring = ByteString::from_str(url.as_str()).unwrap_or(ByteString::new(b"".to_vec()));
-        try!(r.Headers().Set(ByteString::new(b"Location".to_vec()), url_bytestring));
+        r.Headers().Set(ByteString::new(b"Location".to_vec()), url_bytestring)?;
 
         // Step 4 continued
         // Headers Guard is set to Immutable here to prevent error in Step 6
@@ -305,7 +305,7 @@ impl ResponseMethods for Response {
         // Step 2
         let new_response = Response::new(&self.global());
         new_response.Headers().set_guard(self.Headers().get_guard());
-        try!(new_response.Headers().fill(Some(HeadersInit::Headers(self.Headers()))));
+        new_response.Headers().fill(Some(HeadersInit::Headers(self.Headers())))?;
 
         // https://fetch.spec.whatwg.org/#concept-response-clone
         // Instead of storing a net_traits::Response internally, we

@@ -1137,18 +1137,18 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                 // https://html.spec.whatwg.org/multipage/#img-error
                 // If the image argument is an HTMLImageElement object that is in the broken state,
                 // then throw an InvalidStateError exception
-                try!(self.fetch_image_data(image).ok_or(Error::InvalidState))
+                self.fetch_image_data(image).ok_or(Error::InvalidState)?
             },
             HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::HTMLCanvasElement(ref canvas) => {
                 let _ = canvas.get_or_init_2d_context();
 
-                try!(canvas.fetch_all_data().ok_or(Error::InvalidState))
+                canvas.fetch_all_data().ok_or(Error::InvalidState)?
             },
             HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::CanvasRenderingContext2D(ref context) => {
                 let canvas = context.Canvas();
                 let _ = canvas.get_or_init_2d_context();
 
-                try!(canvas.fetch_all_data().ok_or(Error::InvalidState))
+                canvas.fetch_all_data().ok_or(Error::InvalidState)?
             }
         };
 

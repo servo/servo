@@ -269,25 +269,25 @@ impl RangeMethods for Range {
 
     // https://dom.spec.whatwg.org/#dom-range-setstartbefore
     fn SetStartBefore(&self, node: &Node) -> ErrorResult {
-        let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType));
+        let parent = node.GetParentNode().ok_or(Error::InvalidNodeType)?;
         self.SetStart(&parent, node.index())
     }
 
     // https://dom.spec.whatwg.org/#dom-range-setstartafter
     fn SetStartAfter(&self, node: &Node) -> ErrorResult {
-        let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType));
+        let parent = node.GetParentNode().ok_or(Error::InvalidNodeType)?;
         self.SetStart(&parent, node.index() + 1)
     }
 
     // https://dom.spec.whatwg.org/#dom-range-setendbefore
     fn SetEndBefore(&self, node: &Node) -> ErrorResult {
-        let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType));
+        let parent = node.GetParentNode().ok_or(Error::InvalidNodeType)?;
         self.SetEnd(&parent, node.index())
     }
 
     // https://dom.spec.whatwg.org/#dom-range-setendafter
     fn SetEndAfter(&self, node: &Node) -> ErrorResult {
-        let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType));
+        let parent = node.GetParentNode().ok_or(Error::InvalidNodeType)?;
         self.SetEnd(&parent, node.index() + 1)
     }
 
@@ -303,7 +303,7 @@ impl RangeMethods for Range {
     // https://dom.spec.whatwg.org/#dom-range-selectnode
     fn SelectNode(&self, node: &Node) -> ErrorResult {
         // Steps 1, 2.
-        let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType));
+        let parent = node.GetParentNode().ok_or(Error::InvalidNodeType)?;
         // Step 3.
         let index = node.index();
         // Step 4.
@@ -446,7 +446,7 @@ impl RangeMethods for Range {
                 let data = cdata.SubstringData(start_offset, end_offset - start_offset).unwrap();
                 let clone = cdata.clone_with_data(data, &start_node.owner_doc());
                 // Step 4.3.
-                try!(fragment.upcast::<Node>().AppendChild(&clone));
+                fragment.upcast::<Node>().AppendChild(&clone)?;
                 // Step 4.4
                 return Ok(fragment);
             }
@@ -454,7 +454,7 @@ impl RangeMethods for Range {
 
         // Steps 5-12.
         let (first_contained_child, last_contained_child, contained_children) =
-            try!(self.contained_children());
+            self.contained_children()?;
 
         if let Some(child) = first_contained_child {
             // Step 13.
@@ -464,12 +464,12 @@ impl RangeMethods for Range {
                 let data = cdata.SubstringData(start_offset, start_node.len() - start_offset).unwrap();
                 let clone = cdata.clone_with_data(data, &start_node.owner_doc());
                 // Step 13.3.
-                try!(fragment.upcast::<Node>().AppendChild(&clone));
+                fragment.upcast::<Node>().AppendChild(&clone)?;
             } else {
                 // Step 14.1.
                 let clone = child.CloneNode(false);
                 // Step 14.2.
-                try!(fragment.upcast::<Node>().AppendChild(&clone));
+                fragment.upcast::<Node>().AppendChild(&clone)?;
                 // Step 14.3.
                 let subrange = Range::new(&clone.owner_doc(),
                                           &start_node,
@@ -477,9 +477,9 @@ impl RangeMethods for Range {
                                           &child,
                                           child.len());
                 // Step 14.4.
-                let subfragment = try!(subrange.CloneContents());
+                let subfragment = subrange.CloneContents()?;
                 // Step 14.5.
-                try!(clone.AppendChild(subfragment.upcast()));
+                clone.AppendChild(subfragment.upcast())?;
             }
         }
 
@@ -488,7 +488,7 @@ impl RangeMethods for Range {
             // Step 15.1.
             let clone = child.CloneNode(true);
             // Step 15.2.
-            try!(fragment.upcast::<Node>().AppendChild(&clone));
+            fragment.upcast::<Node>().AppendChild(&clone)?;
         }
 
         if let Some(child) = last_contained_child {
@@ -499,12 +499,12 @@ impl RangeMethods for Range {
                 let data = cdata.SubstringData(0, end_offset).unwrap();
                 let clone = cdata.clone_with_data(data, &start_node.owner_doc());
                 // Step 16.3.
-                try!(fragment.upcast::<Node>().AppendChild(&clone));
+                fragment.upcast::<Node>().AppendChild(&clone)?;
             } else {
                 // Step 17.1.
                 let clone = child.CloneNode(false);
                 // Step 17.2.
-                try!(fragment.upcast::<Node>().AppendChild(&clone));
+                fragment.upcast::<Node>().AppendChild(&clone)?;
                 // Step 17.3.
                 let subrange = Range::new(&clone.owner_doc(),
                                           &child,
@@ -512,9 +512,9 @@ impl RangeMethods for Range {
                                           &end_node,
                                           end_offset);
                 // Step 17.4.
-                let subfragment = try!(subrange.CloneContents());
+                let subfragment = subrange.CloneContents()?;
                 // Step 17.5.
-                try!(clone.AppendChild(subfragment.upcast()));
+                clone.AppendChild(subfragment.upcast())?;
             }
         }
 
@@ -547,11 +547,11 @@ impl RangeMethods for Range {
                 let text = end_data.SubstringData(start_offset, end_offset - start_offset);
                 clone.downcast::<CharacterData>().unwrap().SetData(text.unwrap());
                 // Step 4.3.
-                try!(fragment.upcast::<Node>().AppendChild(&clone));
+                fragment.upcast::<Node>().AppendChild(&clone)?;
                 // Step 4.4.
-                try!(end_data.ReplaceData(start_offset,
+                end_data.ReplaceData(start_offset,
                                           end_offset - start_offset,
-                                          DOMString::new()));
+                                          DOMString::new())?;
                 // Step 4.5.
                 return Ok(fragment);
             }
@@ -559,7 +559,7 @@ impl RangeMethods for Range {
 
         // Steps 5-12.
         let (first_contained_child, last_contained_child, contained_children) =
-            try!(self.contained_children());
+            self.contained_children()?;
 
         let (new_node, new_offset) = if start_node.is_inclusive_ancestor_of(&end_node) {
             // Step 13.
@@ -584,16 +584,16 @@ impl RangeMethods for Range {
                                                     start_node.len() - start_offset);
                 clone.downcast::<CharacterData>().unwrap().SetData(text.unwrap());
                 // Step 15.3.
-                try!(fragment.upcast::<Node>().AppendChild(&clone));
+                fragment.upcast::<Node>().AppendChild(&clone)?;
                 // Step 15.4.
-                try!(start_data.ReplaceData(start_offset,
+                start_data.ReplaceData(start_offset,
                                             start_node.len() - start_offset,
-                                            DOMString::new()));
+                                            DOMString::new())?;
             } else {
                 // Step 16.1.
                 let clone = child.CloneNode(false);
                 // Step 16.2.
-                try!(fragment.upcast::<Node>().AppendChild(&clone));
+                fragment.upcast::<Node>().AppendChild(&clone)?;
                 // Step 16.3.
                 let subrange = Range::new(&clone.owner_doc(),
                                           &start_node,
@@ -601,15 +601,15 @@ impl RangeMethods for Range {
                                           &child,
                                           child.len());
                 // Step 16.4.
-                let subfragment = try!(subrange.ExtractContents());
+                let subfragment = subrange.ExtractContents()?;
                 // Step 16.5.
-                try!(clone.AppendChild(subfragment.upcast()));
+                clone.AppendChild(subfragment.upcast())?;
             }
         }
 
         // Step 17.
         for child in contained_children {
-            try!(fragment.upcast::<Node>().AppendChild(&child));
+            fragment.upcast::<Node>().AppendChild(&child)?;
         }
 
         if let Some(child) = last_contained_child {
@@ -621,14 +621,14 @@ impl RangeMethods for Range {
                 let text = end_data.SubstringData(0, end_offset);
                 clone.downcast::<CharacterData>().unwrap().SetData(text.unwrap());
                 // Step 18.3.
-                try!(fragment.upcast::<Node>().AppendChild(&clone));
+                fragment.upcast::<Node>().AppendChild(&clone)?;
                 // Step 18.4.
-                try!(end_data.ReplaceData(0, end_offset, DOMString::new()));
+                end_data.ReplaceData(0, end_offset, DOMString::new())?;
             } else {
                 // Step 19.1.
                 let clone = child.CloneNode(false);
                 // Step 19.2.
-                try!(fragment.upcast::<Node>().AppendChild(&clone));
+                fragment.upcast::<Node>().AppendChild(&clone)?;
                 // Step 19.3.
                 let subrange = Range::new(&clone.owner_doc(),
                                           &child,
@@ -636,15 +636,15 @@ impl RangeMethods for Range {
                                           &end_node,
                                           end_offset);
                 // Step 19.4.
-                let subfragment = try!(subrange.ExtractContents());
+                let subfragment = subrange.ExtractContents()?;
                 // Step 19.5.
-                try!(clone.AppendChild(subfragment.upcast()));
+                clone.AppendChild(subfragment.upcast())?;
             }
         }
 
         // Step 20.
-        try!(self.SetStart(&new_node, new_offset));
-        try!(self.SetEnd(&new_node, new_offset));
+        self.SetStart(&new_node, new_offset)?;
+        self.SetEnd(&new_node, new_offset)?;
 
         // Step 21.
         Ok(fragment)
@@ -690,16 +690,16 @@ impl RangeMethods for Range {
             };
 
         // Step 6.
-        try!(Node::ensure_pre_insertion_validity(node,
+        Node::ensure_pre_insertion_validity(node,
                                                  &parent,
-                                                 reference_node.r()));
+                                                 reference_node.r())?;
 
         // Step 7.
         let split_text;
         let reference_node =
             match start_node.downcast::<Text>() {
                 Some(text) => {
-                    split_text = try!(text.SplitText(start_offset));
+                    split_text = text.SplitText(start_offset)?;
                     let new_reference = Root::upcast::<Node>(split_text);
                     assert!(new_reference.GetParentNode().r() == Some(&parent));
                     Some(new_reference)
@@ -729,7 +729,7 @@ impl RangeMethods for Range {
         };
 
         // Step 12.
-        try!(Node::pre_insert(node, &parent, reference_node.r()));
+        Node::pre_insert(node, &parent, reference_node.r())?;
 
         // Step 13.
         if self.Collapsed() {
@@ -839,16 +839,16 @@ impl RangeMethods for Range {
         }
 
         // Step 3.
-        let fragment = try!(self.ExtractContents());
+        let fragment = self.ExtractContents()?;
 
         // Step 4.
         Node::replace_all(None, new_parent);
 
         // Step 5.
-        try!(self.InsertNode(new_parent));
+        self.InsertNode(new_parent)?;
 
         // Step 6.
-        try!(new_parent.AppendChild(fragment.upcast()));
+        new_parent.AppendChild(fragment.upcast())?;
 
         // Step 7.
         self.SelectNode(new_parent)
@@ -915,7 +915,7 @@ impl RangeMethods for Range {
         let element = Element::fragment_parsing_context(&owner_doc, element.r());
 
         // Step 3.
-        let fragment_node = try!(element.parse_fragment(fragment));
+        let fragment_node = element.parse_fragment(fragment)?;
 
         // Step 4.
         for node in fragment_node.upcast::<Node>().traverse_preorder() {

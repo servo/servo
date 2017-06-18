@@ -146,7 +146,7 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
 
         // Step 1-2, 6-8.
         // TODO(#12717): Should implement the `transfer` argument.
-        let data = try!(StructuredCloneData::write(cx, message));
+        let data = StructuredCloneData::write(cx, message)?;
 
         // Step 9.
         self.post_message(origin, data);

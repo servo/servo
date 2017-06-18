@@ -49,7 +49,7 @@ impl HTMLOptionsCollection {
         for _ in 0..count {
             let element = HTMLOptionElement::new(local_name!("option"), None, &document);
             let node = element.upcast::<Node>();
-            try!(root.AppendChild(node));
+            root.AppendChild(node)?;
         };
         Ok(())
     }
@@ -90,7 +90,7 @@ impl HTMLOptionsCollectionMethods for HTMLOptionsCollection {
 
             // Step 4
             if n > 0 {
-                try!(self.add_new_elements(n as u32));
+                self.add_new_elements(n as u32)?;
             }
 
             // Step 5

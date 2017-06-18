@@ -293,11 +293,11 @@ impl DedicatedWorkerGlobalScope {
         }
         let ret = sel.wait();
         if ret == worker_handle.id() {
-            Ok(MixedMessage::FromWorker(try!(worker_port.recv())))
+            Ok(MixedMessage::FromWorker(worker_port.recv()?))
         } else if ret == timer_event_handle.id() {
-            Ok(MixedMessage::FromScheduler(try!(timer_event_port.recv())))
+            Ok(MixedMessage::FromScheduler(timer_event_port.recv()?))
         } else if ret == devtools_handle.id() {
-            Ok(MixedMessage::FromDevtools(try!(devtools_port.recv())))
+            Ok(MixedMessage::FromDevtools(devtools_port.recv()?))
         } else {
             panic!("unexpected select result!")
         }
@@ -384,7 +384,7 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
     unsafe fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
-        let data = try!(StructuredCloneData::write(cx, message));
+        let data = StructuredCloneData::write(cx, message)?;
         let worker = self.worker.borrow().as_ref().unwrap().clone();
         self.parent_sender
             .send(CommonScriptMsg::RunnableMsg(WorkerEvent,

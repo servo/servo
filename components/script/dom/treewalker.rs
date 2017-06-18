@@ -104,7 +104,7 @@ impl TreeWalkerMethods for TreeWalker {
                     node = n;
                     // "2. If node is not null and filtering node returns FILTER_ACCEPT,
                     //     then set the currentNode attribute to node, return node."
-                    if NodeFilterConstants::FILTER_ACCEPT == try!(self.accept_node(&node)) {
+                    if NodeFilterConstants::FILTER_ACCEPT == self.accept_node(&node)? {
                         self.current_node.set(&node);
                         return Ok(Some(node))
                     }
@@ -163,7 +163,7 @@ impl TreeWalkerMethods for TreeWalker {
                 // "4. If result is FILTER_ACCEPT, then
                 //     set the currentNode attribute to node and return node."
                 loop {
-                    let result = try!(self.accept_node(&node));
+                    let result = self.accept_node(&node)?;
                     match result {
                         NodeFilterConstants::FILTER_REJECT => break,
                         _ if node.GetFirstChild().is_some() =>
@@ -192,7 +192,7 @@ impl TreeWalkerMethods for TreeWalker {
             }
             // "5. Filter node and if the return value is FILTER_ACCEPT, then
             //     set the currentNode attribute to node and return node."
-            if NodeFilterConstants::FILTER_ACCEPT == try!(self.accept_node(&node)) {
+            if NodeFilterConstants::FILTER_ACCEPT == self.accept_node(&node)? {
                 self.current_node.set(&node);
                 return Ok(Some(node))
             }
@@ -220,7 +220,7 @@ impl TreeWalkerMethods for TreeWalker {
                         // "1. Set node to its first child."
                         node = child;
                         // "2. Filter node and set result to the return value."
-                        result = try!(self.accept_node(&node));
+                        result = self.accept_node(&node)?;
                         // "3. If result is FILTER_ACCEPT, then
                         //     set the currentNode attribute to node and return node."
                         if NodeFilterConstants::FILTER_ACCEPT == result {
@@ -238,7 +238,7 @@ impl TreeWalkerMethods for TreeWalker {
                 Some(n) => {
                     node = n;
                     // "3. Filter node and set result to the return value."
-                    result = try!(self.accept_node(&node));
+                    result = self.accept_node(&node)?;
                     // "4. If result is FILTER_ACCEPT, then
                     //     set the currentNode attribute to node and return node."
                     if NodeFilterConstants::FILTER_ACCEPT == result {
@@ -275,7 +275,7 @@ impl TreeWalker {
         // 4. Main: Repeat these substeps:
         'main: loop {
             // "1. Filter node and let result be the return value."
-            let result = try!(self.accept_node(&node));
+            let result = self.accept_node(&node)?;
             match result {
                 // "2. If result is FILTER_ACCEPT, then set the currentNode
                 //     attribute to node and return node."
@@ -350,7 +350,7 @@ impl TreeWalker {
                 // "1. Set node to sibling."
                 node = sibling_op.unwrap();
                 // "2. Filter node and let result be the return value."
-                let result = try!(self.accept_node(&node));
+                let result = self.accept_node(&node)?;
                 // "3. If result is FILTER_ACCEPT, then set the currentNode
                 //     attribute to node and return node."
                 if NodeFilterConstants::FILTER_ACCEPT == result {
@@ -378,7 +378,7 @@ impl TreeWalker {
                 // "5. Filter node and if the return value is FILTER_ACCEPT, then return null."
                 Some(n) => {
                     node = n;
-                    if NodeFilterConstants::FILTER_ACCEPT == try!(self.accept_node(&node)) {
+                    if NodeFilterConstants::FILTER_ACCEPT == self.accept_node(&node)? {
                         return Ok(None)
                     }
                 }
