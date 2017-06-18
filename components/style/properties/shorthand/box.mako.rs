@@ -135,7 +135,7 @@ macro_rules! try_parse_one {
         % endfor
 
         if input.try(|input| input.expect_ident_matching("none")).is_err() {
-            let results = try!(input.parse_comma_separated(|i| parse_one_transition(context, i)));
+            let results = input.parse_comma_separated(|i| parse_one_transition(context, i))?;
             for result in results {
                 % for prop in "property duration timing_function delay".split():
                 ${prop}s.push(result.transition_${prop});
@@ -257,7 +257,7 @@ macro_rules! try_parse_one {
         let mut ${prop}s = vec![];
         % endfor
 
-        let results = try!(input.parse_comma_separated(|i| parse_one_animation(context, i)));
+        let results = input.parse_comma_separated(|i| parse_one_animation(context, i))?;
         for result in results.into_iter() {
             % for prop in props:
             ${prop}s.push(result.animation_${prop});
@@ -289,7 +289,7 @@ macro_rules! try_parse_one {
 
             for i in 0..len {
                 if i != 0 {
-                    try!(write!(dest, ", "));
+                    write!(dest, ", ")?;
                 }
 
                 % for name in props[1:]:
@@ -310,7 +310,7 @@ macro_rules! try_parse_one {
 
     pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                -> Result<Longhands, ParseError<'i>> {
-        let result = try!(scroll_snap_type_x::parse(context, input));
+        let result = scroll_snap_type_x::parse(context, input)?;
         Ok(expanded! {
             scroll_snap_type_x: result,
             scroll_snap_type_y: result,

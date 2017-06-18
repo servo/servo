@@ -82,7 +82,7 @@ ${helpers.single_keyword("image-rendering",
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             if let Some(angle) = self.angle {
-                try!(angle.to_css(dest));
+                angle.to_css(dest)?;
                 if self.flipped {
                     dest.write_str(" flip")
                 } else {
@@ -163,9 +163,9 @@ ${helpers.single_keyword("image-rendering",
             match *self {
                 computed_value::T::FromImage => dest.write_str("from-image"),
                 computed_value::T::AngleWithFlipped(angle, flipped) => {
-                    try!(angle.to_css(dest));
+                    angle.to_css(dest)?;
                     if flipped {
-                        try!(dest.write_str(" flip"));
+                        dest.write_str(" flip")?;
                     }
                     Ok(())
                 },

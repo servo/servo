@@ -180,7 +180,7 @@ impl<N: TNode> Debug for ShowDataAndPrimaryValues<N> {
 pub struct ShowSubtree<N: TNode>(pub N);
 impl<N: TNode> Debug for ShowSubtree<N> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(writeln!(f, "DOM Subtree:"));
+        writeln!(f, "DOM Subtree:")?;
         fmt_subtree(f, &|f, n| write!(f, "{:?}", n), self.0, 1)
     }
 }
@@ -190,7 +190,7 @@ impl<N: TNode> Debug for ShowSubtree<N> {
 pub struct ShowSubtreeData<N: TNode>(pub N);
 impl<N: TNode> Debug for ShowSubtreeData<N> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(writeln!(f, "DOM Subtree:"));
+        writeln!(f, "DOM Subtree:")?;
         fmt_subtree(f, &|f, n| fmt_with_data(f, n), self.0, 1)
     }
 }
@@ -200,7 +200,7 @@ impl<N: TNode> Debug for ShowSubtreeData<N> {
 pub struct ShowSubtreeDataAndPrimaryValues<N: TNode>(pub N);
 impl<N: TNode> Debug for ShowSubtreeDataAndPrimaryValues<N> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(writeln!(f, "DOM Subtree:"));
+        writeln!(f, "DOM Subtree:")?;
         fmt_subtree(f, &|f, n| fmt_with_data_and_primary_values(f, n), self.0, 1)
     }
 }
@@ -230,12 +230,12 @@ fn fmt_subtree<F, N: TNode>(f: &mut fmt::Formatter, stringify: &F, n: N, indent:
     where F: Fn(&mut fmt::Formatter, N) -> fmt::Result
 {
     for _ in 0..indent {
-        try!(write!(f, "  "));
+        write!(f, "  ")?;
     }
-    try!(stringify(f, n));
+    stringify(f, n)?;
     for kid in n.traversal_children() {
-        try!(writeln!(f, ""));
-        try!(fmt_subtree(f, stringify, kid, indent + 1));
+        writeln!(f, "")?;
+        fmt_subtree(f, stringify, kid, indent + 1)?;
     }
 
     Ok(())

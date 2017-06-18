@@ -57,11 +57,11 @@
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             if self.sides_are_logical {
                 assert!(self.first == Side::Clip);
-                try!(self.second.to_css(dest));
+                self.second.to_css(dest)?;
             } else {
-                try!(self.first.to_css(dest));
-                try!(dest.write_str(" "));
-                try!(self.second.to_css(dest));
+                self.first.to_css(dest)?;
+                dest.write_str(" ")?;
+                self.second.to_css(dest)?;
             }
             Ok(())
         }
@@ -133,10 +133,10 @@
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            try!(self.first.to_css(dest));
+            self.first.to_css(dest)?;
             if let Some(ref second) = self.second {
-                try!(dest.write_str(" "));
-                try!(second.to_css(dest));
+                dest.write_str(" ")?;
+                second.to_css(dest)?;
             }
             Ok(())
         }

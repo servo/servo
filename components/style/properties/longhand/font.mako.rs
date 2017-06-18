@@ -160,7 +160,7 @@ macro_rules! impl_gecko_keyword_from_trait {
                         quoted: true,
                     }))
                 }
-                let first_ident = try!(input.expect_ident());
+                let first_ident = input.expect_ident()?;
 
                 // FIXME(bholley): The fast thing to do here would be to look up the
                 // string (as lowercase) in the static atoms table. We don't have an
@@ -271,10 +271,10 @@ macro_rules! impl_gecko_keyword_from_trait {
         impl ToCss for T {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 let mut iter = self.0.iter();
-                try!(iter.next().unwrap().to_css(dest));
+                iter.next().unwrap().to_css(dest)?;
                 for family in iter {
-                    try!(dest.write_str(", "));
-                    try!(family.to_css(dest));
+                    dest.write_str(", ")?;
+                    family.to_css(dest)?;
                 }
                 Ok(())
             }
@@ -1125,8 +1125,7 @@ ${helpers.single_keyword_system("font-variant-caps",
                 -> Result<Self, ()> {
                 match (*self, *other) {
                     (T::Number(ref number), T::Number(ref other)) =>
-                        Ok(T::Number(try!(number.add_weighted(other,
-                                                              self_portion, other_portion)))),
+                        Ok(T::Number(number.add_weighted(other, self_portion, other_portion)?)),
                     _ => Err(()),
                 }
             }
@@ -1161,7 +1160,7 @@ ${helpers.single_keyword_system("font-variant-caps",
             return Ok(SpecifiedValue::None);
         }
 
-        Ok(SpecifiedValue::Number(try!(Number::parse_non_negative(context, input))))
+        Ok(SpecifiedValue::Number(Number::parse_non_negative(context, input)?))
     }
 </%helpers:longhand>
 
@@ -1327,10 +1326,10 @@ ${helpers.single_keyword_system("font-kerning",
                 ($ident:ident => $str:expr) => {
                     if self.intersects($ident) {
                         if has_any {
-                            try!(dest.write_str(" "));
+                            dest.write_str(" ")?;
                         }
                         has_any = true;
-                        try!(dest.write_str($str));
+                        dest.write_str($str)?;
                     }
                 }
             }
@@ -1473,10 +1472,10 @@ macro_rules! exclusive_value {
                 ($ident:ident => $str:expr) => {
                     if self.intersects($ident) {
                         if has_any {
-                            try!(dest.write_str(" "));
+                            dest.write_str(" ")?;
                         }
                         has_any = true;
-                        try!(dest.write_str($str));
+                        dest.write_str($str)?;
                     }
                 }
             }
@@ -1620,10 +1619,10 @@ macro_rules! exclusive_value {
                 ($ident:ident => $str:expr) => {
                     if self.intersects($ident) {
                         if has_any {
-                            try!(dest.write_str(" "));
+                            dest.write_str(" ")?;
                         }
                         has_any = true;
-                        try!(dest.write_str($str));
+                        dest.write_str($str)?;
                     }
                 }
             }
@@ -1776,10 +1775,10 @@ macro_rules! exclusive_value {
                 ($ident:ident => $str:expr) => {
                     if self.intersects($ident) {
                         if has_any {
-                            try!(dest.write_str(" "));
+                            dest.write_str(" ")?;
                         }
                         has_any = true;
-                        try!(dest.write_str($str));
+                        dest.write_str($str)?;
                     }
                 }
             }

@@ -230,7 +230,7 @@ impl Resolution {
     }
 
     fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        let (value, unit) = match try!(input.next()) {
+        let (value, unit) = match input.next()? {
             Token::Dimension { value, unit, .. } => {
                 (value, unit)
             },
@@ -462,9 +462,9 @@ impl Expression {
     /// ```
     pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<Self, ParseError<'i>> {
-        try!(input.expect_parenthesis_block());
+        input.expect_parenthesis_block()?;
         input.parse_nested_block(|input| {
-            let ident = try!(input.expect_ident());
+            let ident = input.expect_ident()?;
 
             let mut flags = 0;
             let result = {

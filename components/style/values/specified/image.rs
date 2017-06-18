@@ -152,7 +152,7 @@ impl Parse for Gradient {
             Radial,
         }
 
-        let func = try!(input.expect_function());
+        let func = input.expect_function()?;
         let result = match_ignore_ascii_case! { &func,
             "linear-gradient" => {
                 Some((Shape::Linear, false, CompatMode::Modern))
@@ -655,7 +655,7 @@ impl ShapeExtent {
     fn parse_with_compat_mode<'i, 't>(input: &mut Parser<'i, 't>,
                                       compat_mode: CompatMode)
                                       -> Result<Self, ParseError<'i>> {
-        match try!(Self::parse(input)) {
+        match Self::parse(input)? {
             ShapeExtent::Contain | ShapeExtent::Cover if compat_mode == CompatMode::Modern =>
                 Err(StyleParseError::UnspecifiedError.into()),
             keyword => Ok(keyword),
@@ -667,7 +667,7 @@ impl GradientItem {
     fn parse_comma_separated<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                      -> Result<Vec<Self>, ParseError<'i>> {
         let mut seen_stop = false;
-        let items = try!(input.parse_comma_separated(|input| {
+        let items = input.parse_comma_separated(|input| {
             if seen_stop {
                 if let Ok(hint) = input.try(|i| LengthOrPercentage::parse(context, i)) {
                     seen_stop = false;
@@ -676,7 +676,7 @@ impl GradientItem {
             }
             seen_stop = true;
             ColorStop::parse(context, input).map(GenericGradientItem::ColorStop)
-        }));
+        })?;
         if !seen_stop || items.len() < 2 {
             return Err(StyleParseError::UnspecifiedError.into());
         }
@@ -688,7 +688,7 @@ impl Parse for ColorStop {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                      -> Result<Self, ParseError<'i>> {
         Ok(ColorStop {
-            color: try!(RGBAColor::parse(context, input)),
+            color: RGBAColor::parse(context, input)?,
             position: input.try(|i| LengthOrPercentage::parse(context, i)).ok(),
         })
     }

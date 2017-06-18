@@ -66,10 +66,10 @@ ${helpers.predefined_type("background-image", "ImageLayer",
                 (RepeatKeyword::Repeat, RepeatKeyword::NoRepeat) => dest.write_str("repeat-x"),
                 (RepeatKeyword::NoRepeat, RepeatKeyword::Repeat) => dest.write_str("repeat-y"),
                 (horizontal, vertical) => {
-                    try!(horizontal.to_css(dest));
+                    horizontal.to_css(dest)?;
                     if horizontal != vertical {
-                        try!(dest.write_str(" "));
-                        try!(vertical.to_css(dest));
+                        dest.write_str(" ")?;
+                        vertical.to_css(dest)?;
                     }
                     Ok(())
                 },
@@ -82,10 +82,10 @@ ${helpers.predefined_type("background-image", "ImageLayer",
                 SpecifiedValue::RepeatX => dest.write_str("repeat-x"),
                 SpecifiedValue::RepeatY => dest.write_str("repeat-y"),
                 SpecifiedValue::Other(horizontal, vertical) => {
-                    try!(horizontal.to_css(dest));
+                    horizontal.to_css(dest)?;
                     if let Some(vertical) = vertical {
-                        try!(dest.write_str(" "));
-                        try!(vertical.to_css(dest));
+                        dest.write_str(" ")?;
+                        vertical.to_css(dest)?;
                     }
                     Ok(())
                 }
@@ -138,7 +138,7 @@ ${helpers.predefined_type("background-image", "ImageLayer",
         }).or_else(|()| {
             let horizontal: Result<_, ParseError> = RepeatKeyword::from_ident(&ident)
                 .map_err(|()| SelectorParseError::UnexpectedIdent(ident).into());
-            let horizontal = try!(horizontal);
+            let horizontal = horizontal?;
             let vertical = input.try(RepeatKeyword::parse).ok();
             Ok(SpecifiedValue::Other(horizontal, vertical))
         })

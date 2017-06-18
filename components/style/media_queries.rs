@@ -94,8 +94,8 @@ impl ToCss for MediaQuery {
         where W: fmt::Write,
     {
         if let Some(qual) = self.qualifier {
-            try!(qual.to_css(dest));
-            try!(write!(dest, " "));
+            qual.to_css(dest)?;
+            write!(dest, " ")?;
         }
 
         match self.media_type {
@@ -106,12 +106,12 @@ impl ToCss for MediaQuery {
                 // Otherwise, we'd serialize media queries like "(min-width:
                 // 40px)" in "all (min-width: 40px)", which is unexpected.
                 if self.qualifier.is_some() || self.expressions.is_empty() {
-                    try!(write!(dest, "all"));
+                    write!(dest, "all")?;
                 }
             },
-            MediaQueryType::Known(MediaType::Screen) => try!(write!(dest, "screen")),
-            MediaQueryType::Known(MediaType::Print) => try!(write!(dest, "print")),
-            MediaQueryType::Unknown(ref desc) => try!(write!(dest, "{}", desc)),
+            MediaQueryType::Known(MediaType::Screen) => write!(dest, "screen")?,
+            MediaQueryType::Known(MediaType::Print) => write!(dest, "print")?,
+            MediaQueryType::Unknown(ref desc) => write!(dest, "{}", desc)?,
         }
 
         if self.expressions.is_empty() {
@@ -119,14 +119,14 @@ impl ToCss for MediaQuery {
         }
 
         if self.media_type != MediaQueryType::All || self.qualifier.is_some() {
-            try!(write!(dest, " and "));
+            write!(dest, " and ")?;
         }
 
-        try!(self.expressions[0].to_css(dest));
+        self.expressions[0].to_css(dest)?;
 
         for expr in self.expressions.iter().skip(1) {
-            try!(write!(dest, " and "));
-            try!(expr.to_css(dest));
+            write!(dest, " and ")?;
+            expr.to_css(dest)?;
         }
         Ok(())
     }
@@ -215,7 +215,7 @@ impl MediaQuery {
             Ok(ident) => {
                 let result: Result<_, ParseError> = MediaQueryType::parse(&*ident)
                     .map_err(|()| SelectorParseError::UnexpectedIdent(ident).into());
-                try!(result)
+                result?
             }
             Err(_) => {
                 // Media type is only optional if qualifier is not specified.
@@ -224,7 +224,7 @@ impl MediaQuery {
                 }
 
                 // Without a media type, require at least one expression.
-                expressions.push(try!(Expression::parse(context, input)));
+                expressions.push(Expression::parse(context, input)?);
 
                 MediaQueryType::All
             }
@@ -235,7 +235,7 @@ impl MediaQuery {
             if input.try(|input| input.expect_ident_matching("and")).is_err() {
                 return Ok(MediaQuery::new(qualifier, media_type, expressions))
             }
-            expressions.push(try!(Expression::parse(context, input)))
+            expressions.push(Expression::parse(context, input)?)
         }
     }
 }

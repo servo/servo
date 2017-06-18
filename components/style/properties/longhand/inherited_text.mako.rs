@@ -470,16 +470,16 @@ ${helpers.predefined_type("word-spacing",
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             if let Some(fill) = self.fill() {
                 if fill {
-                    try!(dest.write_str("filled"));
+                    dest.write_str("filled")?;
                 } else {
-                    try!(dest.write_str("open"));
+                    dest.write_str("open")?;
                 }
             }
             if let Some(shape) = self.shape() {
                 if self.fill().is_some() {
-                    try!(dest.write_str(" "));
+                    dest.write_str(" ")?;
                 }
-                try!(shape.to_css(dest));
+                shape.to_css(dest)?;
             }
             Ok(())
         }
@@ -487,11 +487,11 @@ ${helpers.predefined_type("word-spacing",
     impl ToCss for computed_value::KeywordValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             if self.fill {
-                try!(dest.write_str("filled"));
+                dest.write_str("filled")?;
             } else {
-                try!(dest.write_str("open"));
+                dest.write_str("open")?;
             }
-            try!(dest.write_str(" "));
+            dest.write_str(" ")?;
             self.shape.to_css(dest)
         }
     }
@@ -643,11 +643,11 @@ ${helpers.predefined_type("word-spacing",
     pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<SpecifiedValue, ParseError<'i>> {
        if let Ok(horizontal) = input.try(|input| HorizontalWritingModeValue::parse(input)) {
-            let vertical = try!(VerticalWritingModeValue::parse(input));
+            let vertical = VerticalWritingModeValue::parse(input)?;
             Ok(SpecifiedValue(horizontal, vertical))
         } else {
-            let vertical = try!(VerticalWritingModeValue::parse(input));
-            let horizontal = try!(HorizontalWritingModeValue::parse(input));
+            let vertical = VerticalWritingModeValue::parse(input)?;
+            let horizontal = HorizontalWritingModeValue::parse(input)?;
             Ok(SpecifiedValue(horizontal, vertical))
         }
     }

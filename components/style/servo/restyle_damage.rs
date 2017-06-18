@@ -162,14 +162,14 @@ impl fmt::Display for ServoRestyleDamage {
 
         for &(damage, damage_str) in &to_iter {
             if self.contains(damage) {
-                if !first_elem { try!(write!(f, " | ")); }
-                try!(write!(f, "{}", damage_str));
+                if !first_elem { write!(f, " | ")?; }
+                write!(f, "{}", damage_str)?;
                 first_elem = false;
             }
         }
 
         if first_elem {
-            try!(write!(f, "NoDamage"));
+            write!(f, "NoDamage")?;
         }
 
         Ok(())

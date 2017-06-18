@@ -50,7 +50,7 @@
 
     fn parse_flexibility<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                  -> Result<(Number, Option<Number>),ParseError<'i>> {
-        let grow = try!(Number::parse_non_negative(context, input));
+        let grow = Number::parse_non_negative(context, input)?;
         let shrink = input.try(|i| Number::parse_non_negative(context, i)).ok();
         Ok((grow, shrink))
     }

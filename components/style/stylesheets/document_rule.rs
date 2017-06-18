@@ -30,12 +30,12 @@ pub struct DocumentRule {
 impl ToCssWithGuard for DocumentRule {
     fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
     where W: fmt::Write {
-        try!(dest.write_str("@-moz-document "));
-        try!(self.condition.to_css(dest));
-        try!(dest.write_str(" {"));
+        dest.write_str("@-moz-document ")?;
+        self.condition.to_css(dest)?;
+        dest.write_str(" {")?;
         for rule in self.rules.read_with(guard).0.iter() {
-            try!(dest.write_str(" "));
-            try!(rule.to_css(guard, dest));
+            dest.write_str(" ")?;
+            rule.to_css(guard, dest)?;
         }
         dest.write_str(" }")
     }

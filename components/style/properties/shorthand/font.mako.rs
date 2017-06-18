@@ -89,7 +89,7 @@
                     continue
                 }
             }
-            size = Some(try!(font_size::parse(context, input)));
+            size = Some(font_size::parse(context, input)?);
             break
         }
         #[inline]
@@ -101,7 +101,7 @@
             return Err(StyleParseError::UnspecifiedError.into())
         }
         let line_height = if input.try(|input| input.expect_delim('/')).is_ok() {
-            Some(try!(LineHeight::parse(context, input)))
+            Some(LineHeight::parse(context, input)?)
         } else {
             None
         };

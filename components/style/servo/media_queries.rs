@@ -154,20 +154,20 @@ impl Expression {
     /// Only supports width and width ranges for now.
     pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<Self, ParseError<'i>> {
-        try!(input.expect_parenthesis_block());
+        input.expect_parenthesis_block()?;
         input.parse_nested_block(|input| {
-            let name = try!(input.expect_ident());
-            try!(input.expect_colon());
+            let name = input.expect_ident()?;
+            input.expect_colon()?;
             // TODO: Handle other media features
             Ok(Expression(match_ignore_ascii_case! { &name,
                 "min-width" => {
-                    ExpressionKind::Width(Range::Min(try!(specified::Length::parse_non_negative(context, input))))
+                    ExpressionKind::Width(Range::Min(specified::Length::parse_non_negative(context, input)?))
                 },
                 "max-width" => {
-                    ExpressionKind::Width(Range::Max(try!(specified::Length::parse_non_negative(context, input))))
+                    ExpressionKind::Width(Range::Max(specified::Length::parse_non_negative(context, input)?))
                 },
                 "width" => {
-                    ExpressionKind::Width(Range::Eq(try!(specified::Length::parse_non_negative(context, input))))
+                    ExpressionKind::Width(Range::Eq(specified::Length::parse_non_negative(context, input)?))
                 },
                 _ => return Err(SelectorParseError::UnexpectedIdent(name.clone()).into())
             }))
@@ -195,14 +195,14 @@ impl ToCss for Expression {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
         where W: fmt::Write,
     {
-        try!(write!(dest, "("));
+        write!(dest, "(")?;
         let (mm, l) = match self.0 {
             ExpressionKind::Width(Range::Min(ref l)) => ("min-", l),
             ExpressionKind::Width(Range::Max(ref l)) => ("max-", l),
             ExpressionKind::Width(Range::Eq(ref l)) => ("", l),
         };
-        try!(write!(dest, "{}width: ", mm));
-        try!(l.to_css(dest));
+        write!(dest, "{}width: ", mm)?;
+        l.to_css(dest)?;
         write!(dest, ")")
     }
 }

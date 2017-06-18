@@ -135,7 +135,7 @@ impl SpecifiedValue {
     pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
                          -> Result<Box<Self>, ParseError<'i>> {
         let mut references = Some(HashSet::new());
-        let (first, css, last) = try!(parse_self_contained_declaration_value(input, &mut references));
+        let (first, css, last) = parse_self_contained_declaration_value(input, &mut references)?;
         Ok(Box::new(SpecifiedValue {
             css: css.into_owned(),
             first_token_type: first,
@@ -149,7 +149,7 @@ impl SpecifiedValue {
 pub fn parse_non_custom_with_var<'i, 't>
                                 (input: &mut Parser<'i, 't>)
                                 -> Result<(TokenSerializationType, Cow<'i, str>), ParseError<'i>> {
-    let (first_token_type, css, _) = try!(parse_self_contained_declaration_value(input, &mut None));
+    let (first_token_type, css, _) = parse_self_contained_declaration_value(input, &mut None)?;
     Ok((first_token_type, css))
 }
 
@@ -163,8 +163,7 @@ fn parse_self_contained_declaration_value<'i, 't>
                                           ), ParseError<'i>> {
     let start_position = input.position();
     let mut missing_closing_characters = String::new();
-    let (first, last) = try!(
-        parse_declaration_value(input, references, &mut missing_closing_characters));
+    let (first, last) = parse_declaration_value(input, references, &mut missing_closing_characters)?;
     let mut css: Cow<str> = input.slice_from(start_position).into();
     if !missing_closing_characters.is_empty() {
         // Unescaped backslash at EOF in a quoted string is ignored.
@@ -185,7 +184,7 @@ fn parse_declaration_value<'i, 't>
     input.parse_until_before(Delimiter::Bang | Delimiter::Semicolon, |input| {
         // Need at least one token
         let start_position = input.position();
-        try!(input.next_including_whitespace());
+        input.next_including_whitespace()?;
         input.reset(start_position);
 
         parse_declaration_value_block(input, references, missing_closing_characters)
@@ -209,9 +208,9 @@ fn parse_declaration_value_block<'i, 't>
     loop {
         macro_rules! nested {
             () => {
-                try!(input.parse_nested_block(|input| {
+                input.parse_nested_block(|input| {
                     parse_declaration_value_block(input, references, missing_closing_characters)
-                }))
+                })?
             }
         }
         macro_rules! check_closed {
@@ -243,9 +242,9 @@ fn parse_declaration_value_block<'i, 't>
             Token::Function(ref name) => {
                 if name.eq_ignore_ascii_case("var") {
                     let position = input.position();
-                    try!(input.parse_nested_block(|input| {
+                    input.parse_nested_block(|input| {
                         parse_var_function(input, references)
-                    }));
+                    })?;
                     input.reset(position);
                 }
                 nested!();
@@ -311,21 +310,21 @@ fn parse_declaration_value_block<'i, 't>
 fn parse_var_function<'i, 't>(input: &mut Parser<'i, 't>,
                               references: &mut Option<HashSet<Name>>)
                               -> Result<(), ParseError<'i>> {
-    let name = try!(input.expect_ident());
+    let name = input.expect_ident()?;
     let name: Result<_, ParseError> =
         parse_name(&name)
         .map_err(|()| SelectorParseError::UnexpectedIdent(name.clone()).into());
-    let name = try!(name);
+    let name = name?;
     if input.try(|input| input.expect_comma()).is_ok() {
         // Exclude `!` and `;` at the top level
         // https://drafts.csswg.org/css-syntax/#typedef-declaration-value
-        try!(input.parse_until_before(Delimiter::Bang | Delimiter::Semicolon, |input| {
+        input.parse_until_before(Delimiter::Bang | Delimiter::Semicolon, |input| {
             // At least one non-comment token.
-            try!(input.next_including_whitespace());
+            input.next_including_whitespace()?;
             // Skip until the end.
             while let Ok(_) = input.next_including_whitespace_and_comments() {}
             Ok(())
-        }));
+        })?;
     }
     if let Some(ref mut refs) = *references {
         refs.insert(Atom::from(name));
@@ -562,7 +561,7 @@ fn substitute_block<'i, 't, F>(input: &mut Parser<'i, 't>,
             Token::Function(ref name) if name.eq_ignore_ascii_case("var") => {
                 partial_computed_value.push(
                     input.slice(position.0..before_this_token), position.1, last_token_type);
-                try!(input.parse_nested_block(|input| {
+                input.parse_nested_block(|input| {
                     // parse_var_function() ensures neither .unwrap() will fail.
                     let name = input.expect_ident().unwrap();
                     let name = Atom::from(parse_name(&name).unwrap());
@@ -574,7 +573,7 @@ fn substitute_block<'i, 't, F>(input: &mut Parser<'i, 't>,
                         // FIXME: Add a specialized method to cssparser to do this with less work.
                         while let Ok(_) = input.next() {}
                     } else {
-                        try!(input.expect_comma());
+                        input.expect_comma()?;
                         let position = input.position();
                         let first_token_type = input.next_including_whitespace_and_comments()
                             // parse_var_function() ensures that .unwrap() will not fail.
@@ -582,12 +581,12 @@ fn substitute_block<'i, 't, F>(input: &mut Parser<'i, 't>,
                             .serialization_type();
                         input.reset(position);
                         let mut position = (position, first_token_type);
-                        last_token_type = try!(substitute_block(
-                            input, &mut position, partial_computed_value, substitute_one));
+                        last_token_type = substitute_block(
+                            input, &mut position, partial_computed_value, substitute_one)?;
                         partial_computed_value.push_from(position, input, last_token_type);
                     }
                     Ok(())
-                }));
+                })?;
                 set_position_at_next_iteration = true
             }
 
@@ -595,9 +594,9 @@ fn substitute_block<'i, 't, F>(input: &mut Parser<'i, 't>,
             Token::ParenthesisBlock |
             Token::CurlyBracketBlock |
             Token::SquareBracketBlock => {
-                try!(input.parse_nested_block(|input| {
+                input.parse_nested_block(|input| {
                     substitute_block(input, position, partial_computed_value, substitute_one)
-                }));
+                })?;
                 // It’s the same type for CloseCurlyBracket and CloseSquareBracket.
                 last_token_type = Token::CloseParenthesis.serialization_type();
             }
@@ -623,7 +622,7 @@ pub fn substitute<'i>(input: &'i str, first_token_type: TokenSerializationType,
     let mut input = ParserInput::new(input);
     let mut input = Parser::new(&mut input);
     let mut position = (input.position(), first_token_type);
-    let last_token_type = try!(substitute_block(
+    let last_token_type = substitute_block(
         &mut input, &mut position, &mut substituted, &mut |name, substituted| {
             if let Some(value) = computed_values_map.as_ref().and_then(|map| map.get(name)) {
                 substituted.push_variable(value);
@@ -632,7 +631,7 @@ pub fn substitute<'i>(input: &'i str, first_token_type: TokenSerializationType,
                 Err(())
             }
         }
-    ));
+    )?;
     substituted.push_from(position, &input, last_token_type);
     Ok(substituted.css)
 }

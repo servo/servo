@@ -220,22 +220,22 @@ impl<'a> Add for &'a TraversalStatistics {
 impl fmt::Display for TraversalStatistics {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         debug_assert!(self.traversal_time_ms != 0.0, "should have set traversal time");
-        try!(writeln!(f, "[PERF] perf block start"));
-        try!(writeln!(f, "[PERF],traversal,{}", if self.is_parallel.unwrap() {
+        writeln!(f, "[PERF] perf block start")?;
+        writeln!(f, "[PERF],traversal,{}", if self.is_parallel.unwrap() {
             "parallel"
         } else {
             "sequential"
-        }));
-        try!(writeln!(f, "[PERF],elements_traversed,{}", self.elements_traversed));
-        try!(writeln!(f, "[PERF],elements_styled,{}", self.elements_styled));
-        try!(writeln!(f, "[PERF],elements_matched,{}", self.elements_matched));
-        try!(writeln!(f, "[PERF],styles_shared,{}", self.styles_shared));
-        try!(writeln!(f, "[PERF],selectors,{}", self.selectors));
-        try!(writeln!(f, "[PERF],revalidation_selectors,{}", self.revalidation_selectors));
-        try!(writeln!(f, "[PERF],dependency_selectors,{}", self.dependency_selectors));
-        try!(writeln!(f, "[PERF],declarations,{}", self.declarations));
-        try!(writeln!(f, "[PERF],stylist_rebuilds,{}", self.stylist_rebuilds));
-        try!(writeln!(f, "[PERF],traversal_time_ms,{}", self.traversal_time_ms));
+        })?;
+        writeln!(f, "[PERF],elements_traversed,{}", self.elements_traversed)?;
+        writeln!(f, "[PERF],elements_styled,{}", self.elements_styled)?;
+        writeln!(f, "[PERF],elements_matched,{}", self.elements_matched)?;
+        writeln!(f, "[PERF],styles_shared,{}", self.styles_shared)?;
+        writeln!(f, "[PERF],selectors,{}", self.selectors)?;
+        writeln!(f, "[PERF],revalidation_selectors,{}", self.revalidation_selectors)?;
+        writeln!(f, "[PERF],dependency_selectors,{}", self.dependency_selectors)?;
+        writeln!(f, "[PERF],declarations,{}", self.declarations)?;
+        writeln!(f, "[PERF],stylist_rebuilds,{}", self.stylist_rebuilds)?;
+        writeln!(f, "[PERF],traversal_time_ms,{}", self.traversal_time_ms)?;
         writeln!(f, "[PERF] perf block end")
     }
 }
