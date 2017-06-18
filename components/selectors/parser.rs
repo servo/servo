@@ -388,9 +388,7 @@ impl SpecificityAndFlags {
 /// at the level of sequences of simple selectors separated by combinators. Most
 /// callers want the higher-level iterator.
 ///
-/// We store selectors internally left-to-right (in parsing order), but the
-/// canonical iteration order is right-to-left (selector matching order). The
-/// iterators abstract over these details.
+/// We store compound selectors internally right-to-left (in matching order).
 #[derive(Clone, Eq, PartialEq)]
 pub struct Selector<Impl: SelectorImpl>(ThinArc<SpecificityAndFlags, Component<Impl>>);
 
@@ -422,7 +420,7 @@ impl<Impl: SelectorImpl> Selector<Impl> {
     ///
     /// Used for "pre-computed" pseudo-elements in components/style/stylist.rs
     pub fn is_universal(&self) -> bool {
-        self.iter_raw().all(|c| matches!(*c,
+        self.iter_raw_match_order().all(|c| matches!(*c,
             Component::ExplicitUniversalType |
             Component::ExplicitAnyNamespace |
             Component::Combinator(Combinator::PseudoElement) |
@@ -431,29 +429,32 @@ impl<Impl: SelectorImpl> Selector<Impl> {
     }
 
 
-    /// Returns an iterator over the next sequence of simple selectors. When
-    /// a combinator is reached, the iterator will return None, and
+    /// Returns an iterator over this selector in matching order (right-to-left).
+    /// When a combinator is reached, the iterator will return None, and
     /// next_sequence() may be called to continue to the next sequence.
     pub fn iter(&self) -> SelectorIter<Impl> {
         SelectorIter {
-            iter: self.iter_raw(),
+            iter: self.iter_raw_match_order(),
             next_combinator: None,
         }
     }
 
+    /// Returns an iterator over this selector in matching order (right-to-left),
+    /// skipping the rightmost |offset| Components.
     pub fn iter_from(&self, offset: usize) -> SelectorIter<Impl> {
-        // Note: selectors are stored left-to-right but logical order is right-to-left.
-        let iter = self.0.slice[..(self.len() - offset)].iter().rev();
+        let iter = self.0.slice[offset..].iter();
         SelectorIter {
             iter: iter,
             next_combinator: None,
         }
     }
 
-    /// Returns the combinator at index `index`, or panics if the component is
-    /// not a combinator.
+    /// Returns the combinator at index `index` (one-indexed from the right),
+    /// or panics if the component is not a combinator.
+    ///
+    /// FIXME(bholley): Use more intuitive indexing.
     pub fn combinator_at(&self, index: usize) -> Combinator {
-        match self.0.slice[self.0.slice.len() - index] {
+        match self.0.slice[index - 1] {
             Component::Combinator(c) => c,
             ref other => {
                 panic!("Not a combinator: {:?}, {:?}, index: {}",
@@ -463,25 +464,32 @@ impl<Impl: SelectorImpl> Selector<Impl> {
     }
 
     /// Returns an iterator over the entire sequence of simple selectors and
-    /// combinators, from right to left.
-    pub fn iter_raw(&self) -> Rev<slice::Iter<Component<Impl>>> {
-        self.iter_raw_rev().rev()
-    }
-
-    /// Returns an iterator over the entire sequence of simple selectors and
-    /// combinators, from left to right.
-    pub fn iter_raw_rev(&self) -> slice::Iter<Component<Impl>> {
+    /// combinators, in matching order (from right to left).
+    pub fn iter_raw_match_order(&self) -> slice::Iter<Component<Impl>> {
         self.0.slice.iter()
     }
 
+    /// Returns an iterator over the entire sequence of simple selectors and
+    /// combinators, in parse order (from left to right).
+    pub fn iter_raw_parse_order(&self) -> Rev<slice::Iter<Component<Impl>>> {
+        self.0.slice.iter().rev()
+    }
+
     /// Returns an iterator over the sequence of simple selectors and
-    /// combinators after `offset`, from left to right.
-    pub fn iter_raw_rev_from(&self, offset: usize) -> slice::Iter<Component<Impl>> {
-        self.0.slice[(self.0.slice.len() - offset)..].iter()
+    /// combinators, in parse order (from left to right), _starting_
+    /// 'offset_from_right' entries from the past-the-end sentinel on
+    /// the right. So "0" panics,. "1" iterates nothing, and "len"
+    /// iterates the entire sequence.
+    ///
+    /// FIXME(bholley): This API is rather unintuive, and should really
+    /// be changed to accept an offset from the left. Same for combinator_at.
+    pub fn iter_raw_parse_order_from(&self, offset_from_right: usize) -> Rev<slice::Iter<Component<Impl>>> {
+        self.0.slice[..offset_from_right].iter().rev()
     }
 
     /// Creates a Selector from a vec of Components. Used in tests.
-    pub fn from_vec(vec: Vec<Component<Impl>>, specificity_and_flags: u32) -> Self {
+    pub fn from_vec(mut vec: Vec<Component<Impl>>, specificity_and_flags: u32) -> Self {
+        vec.reverse(); // FIXME(bholley): This goes away in the next patch.
         let header = HeaderWithLength::new(SpecificityAndFlags(specificity_and_flags), vec.len());
         Selector(Arc::into_thin(Arc::from_header_and_iter(header, vec.into_iter())))
     }
@@ -494,7 +502,7 @@ impl<Impl: SelectorImpl> Selector<Impl> {
 
 #[derive(Clone)]
 pub struct SelectorIter<'a, Impl: 'a + SelectorImpl> {
-    iter: Rev<slice::Iter<'a, Component<Impl>>>,
+    iter: slice::Iter<'a, Component<Impl>>,
     next_combinator: Option<Combinator>,
 }
 
@@ -758,7 +766,7 @@ impl<Impl: SelectorImpl> ToCss for SelectorList<Impl> {
 
 impl<Impl: SelectorImpl> ToCss for Selector<Impl> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-       for item in self.iter_raw_rev() {
+       for item in self.iter_raw_parse_order() {
            item.to_css(dest)?;
        }
 
@@ -1092,12 +1100,15 @@ fn parse_selector<'i, 't, P, E, Impl>(
     }
 
     let mut spec = SpecificityAndFlags(specificity(SelectorIter {
-        iter: sequence.iter().rev(),
+        iter: sequence.iter(),
         next_combinator: None,
     }));
     if parsed_pseudo_element {
         spec.0 |= HAS_PSEUDO_BIT;
     }
+
+    // FIXME(bholley): This is just temporary to maintain the semantics of this patch.
+    sequence.reverse();
 
     let header = HeaderWithLength::new(spec, sequence.len());
     let complex = Selector(Arc::into_thin(Arc::from_header_and_iter(header, sequence.into_iter())));

@@ -419,7 +419,7 @@ where
     }
 
     let mut local_context = LocalMatchingContext::new(context, selector);
-    for component in selector.iter_raw_rev_from(from_offset - 1) {
+    for component in selector.iter_raw_parse_order_from(from_offset - 1) {
         if matches!(*component, Component::Combinator(..)) {
             return CompoundSelectorMatchingResult::Matched {
                 next_combinator_offset: from_offset - 1,
