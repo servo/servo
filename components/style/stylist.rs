@@ -546,10 +546,26 @@ impl Stylist {
     pub fn might_have_attribute_dependency(&self,
                                            local_name: &LocalName)
                                            -> bool {
-        if *local_name == local_name!("style") {
+        if self.is_cleared || self.is_device_dirty {
+            // We can't tell what attributes are in our style rules until
+            // we rebuild.
+            true
+        } else if *local_name == local_name!("style") {
             self.style_attribute_dependency
         } else {
             self.attribute_dependencies.might_contain_hash(local_name.get_hash())
+        }
+    }
+
+    /// Returns whether the given ElementState bit might be relied upon by a
+    /// selector of some rule in the stylist.
+    pub fn might_have_state_dependency(&self, state: ElementState) -> bool {
+        if self.is_cleared || self.is_device_dirty {
+            // If self.is_cleared is true, we can't tell what states our style
+            // rules rely on until we rebuild.
+            true
+        } else {
+            self.state_dependencies.intersects(state)
         }
     }
 
