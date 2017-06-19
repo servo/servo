@@ -6533,6 +6533,18 @@
      {}
     ]
    ],
+   "mozilla/request_animation_frame_reftest_wait.html": [
+    [
+     "/_mozilla/mozilla/request_animation_frame_reftest_wait.html",
+     [
+      [
+       "/_mozilla/mozilla/request_animation_frame_reftest_wait_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "mozilla/restyle-out-of-document.html": [
     [
      "/_mozilla/mozilla/restyle-out-of-document.html",
@@ -11033,6 +11045,11 @@
     ]
    ],
    "mozilla/reparse_style_elements_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/request_animation_frame_reftest_wait_ref.html": [
     [
      {}
     ]
@@ -31444,6 +31461,14 @@
   ],
   "mozilla/reparse_style_elements_ref.html": [
    "df273cf90396cc2d3d3159ce72176122ab9518e5",
+   "support"
+  ],
+  "mozilla/request_animation_frame_reftest_wait.html": [
+   "9c5ce337c92c9954475309f3865a9b47b59fbe4d",
+   "reftest"
+  ],
+  "mozilla/request_animation_frame_reftest_wait_ref.html": [
+   "585548dfc915e3d53690e68ef07098044df39f1f",
    "support"
   ],
   "mozilla/resources/background-green.css": [
