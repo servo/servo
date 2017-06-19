@@ -763,8 +763,8 @@ impl StrongRuleNode {
         // WeakRuleNode, and implementing this on WeakRuleNode itself...
         for child in self.get().iter_children() {
             let child_node = unsafe { &*child.ptr() };
-            if child.get().level == level &&
-                child.get().source.ptr_equals(&source) {
+            if child_node.level == level &&
+                child_node.source.ptr_equals(&source) {
                 return child.upgrade();
             }
             last = Some(child);
