@@ -268,7 +268,6 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
                    animation_value_type="none"
                    products="gecko"
                    spec="Nonstandard (Internal-only)"
-                   internal="True"
                    allow_empty="True">
     use values::CustomIdent;
     use values::computed::ComputedValueAsSpecified;
