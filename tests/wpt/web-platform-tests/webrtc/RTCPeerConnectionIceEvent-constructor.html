@@ -1,34 +1,148 @@
-<!DOCTYPE html>
+<!doctype html>
 <meta charset="utf-8">
-<title>RTCPeerConnectionIceEvent constructor</title>
+<!--
+4.8.2 RTCPeerConnectionIceEvent
+
+  The icecandidate event of the RTCPeerConnection uses the RTCPeerConnectionIceEvent interface.
+
+-->
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-test(function() {
-  assert_equals(RTCPeerConnectionIceEvent.length, 1);
-  var e = new RTCPeerConnectionIceEvent('type');
-  assert_equals(e.candidate, null);
-  assert_false(e.bubbles);
-  assert_false(e.cancelable);
-}, 'RTCPeerConnectionIceEvent constructor with no candidate provided.');
+/*
+RTCPeerConnectionIceEvent
 
-test(function() {
-  var e = new RTCPeerConnectionIceEvent('type', { candidate: null });
-  assert_equals(e.candidate, null);
-}, 'RTCPeerConnectionIceEvent constructor with candidate passed as null.');
+[Constructor(DOMString type, optional RTCPeerConnectionIceEventInit eventInitDict)]
 
-test(function() {
-  var e = new RTCPeerConnectionIceEvent('type', { candidate: undefined });
-  assert_equals(e.candidate, null);
-}, 'RTCPeerConnectionIceEvent constructor with candidate passed as undefined.');
+interface RTCPeerConnectionIceEvent : Event {
+    readonly attribute RTCIceCandidate? candidate;
+    readonly attribute DOMString?       url;
+};
+ */
+test(() => {
+  assert_throws(new TypeError(), () => {
+    new RTCPeerConnectionIceEvent();
+  });
+}, "RTCPeerConnectionIceEvent with no arguments throws TypeError");
 
-test(function() {
-  var c = new RTCIceCandidate({ candidate: 'candidate', sdpMid: 'sdpMid', sdpMLineIndex: 1 });
-  var e = new RTCPeerConnectionIceEvent('type', { candidate: c, url: 'url', bubbles: true, cancelable: true});
-  assert_equals(e.type, 'type');
-  assert_equals(e.candidate, c);
-  // assert_equals(e.url, 'url');
-  assert_true(e.bubbles);
-  assert_true(e.cancelable);
-}, 'RTCPeerConnectionIceEvent constructor with full arguments.');
+test(() => {
+  const event = new RTCPeerConnectionIceEvent("type");
+  /*
+  candidate of type RTCIceCandidate, readonly, nullable
+  url of type DOMString, readonly, nullable
+  */
+  assert_equals(event.candidate, null);
+  assert_equals(event.url, null);
+
+  /*
+  Firing an RTCPeerConnectionIceEvent event named e with an RTCIceCandidate
+  candidate means that an event with the name e, which does not bubble
+  (except where otherwise stated) and is not cancelable
+  (except where otherwise stated),
+  */
+  assert_false(event.bubbles);
+  assert_false(event.cancelable);
+
+}, "RTCPeerConnectionIceEvent with no eventInitDict (default)");
+
+test(() => {
+  const event = new RTCPeerConnectionIceEvent("type", {});
+
+  /*
+  candidate of type RTCIceCandidate, readonly, nullable
+  url of type DOMString, readonly, nullable
+  */
+  assert_equals(event.candidate, null);
+  assert_equals(event.url, null);
+
+  /*
+  Firing an RTCPeerConnectionIceEvent event named e with an RTCIceCandidate
+  candidate means that an event with the name e, which does not bubble
+  (except where otherwise stated) and is not cancelable
+  (except where otherwise stated),
+  */
+  assert_false(event.bubbles);
+  assert_false(event.cancelable);
+
+}, "RTCPeerConnectionIceEvent with empty object as eventInitDict (default)");
+
+test(() => {
+  const event = new RTCPeerConnectionIceEvent("type", {
+    candidate: null
+  });
+  assert_equals(event.candidate, null);
+}, "RTCPeerConnectionIceEvent.candidate is null when constructed with { candidate: null }");
+
+test(() => {
+  const event = new RTCPeerConnectionIceEvent("type", {
+    candidate: undefined
+  });
+  assert_equals(event.candidate, null);
+}, "RTCPeerConnectionIceEvent.candidate is null when constructed with { candidate: undefined }");
+
+
+/*
+
+4.8.1 RTCIceCandidate Interface
+
+The RTCIceCandidate() constructor takes a dictionary argument, candidateInitDict,
+whose content is used to initialize the new RTCIceCandidate object. When run, if
+both the sdpMid and sdpMLineIndex dictionary members are null, throw a TypeError.
+*/
+const candidate = "";
+const sdpMid = "sdpMid";
+const sdpMLineIndex = 1;
+const ufrag = "";
+const url = "foo.bar";
+
+test(() => {
+  const iceCandidate = new RTCIceCandidate({ candidate, sdpMid, sdpMLineIndex, ufrag });
+  const event = new RTCPeerConnectionIceEvent("type", {
+    candidate: iceCandidate,
+    url,
+  });
+
+  assert_equals(event.candidate, iceCandidate);
+  assert_false(event.bubbles);
+  assert_false(event.cancelable);
+}, "RTCPeerConnectionIceEvent with RTCIceCandidate");
+
+test(() => {
+  const plain = { candidate, sdpMid, sdpMLineIndex, ufrag };
+  assert_throws(new TypeError(), () => new RTCPeerConnectionIceEvent("type", { candidate: plain }));
+}, "RTCPeerConnectionIceEvent with non RTCIceCandidate object throws");
+
+/*
+This will remain commented out until https://github.com/w3c/webrtc-pc/issues/1232
+is resolved.
+
+test(() => {
+  // When firing an RTCPeerConnectionIceEvent event that contains a RTCIceCandidate
+  // object, it must include values for both sdpMid and sdpMLineIndex.
+
+  assert_throws(new TypeError(), () => {
+    new RTCPeerConnectionIceEvent("type", {
+      candidate: new RTCIceCandidate({ candidate, sdpMid, ufrag })
+    });
+  });
+
+  assert_throws(new TypeError(), () => {
+    new RTCPeerConnectionIceEvent("type", {
+      candidate: new RTCIceCandidate({ candidate, sdpMLineIndex, ufrag })
+    });
+  });
+
+}, "RTCIceCandidate must include values for both sdpMid and sdpMLineIndex");
+*/
+
+test(() => {
+  const event = new RTCPeerConnectionIceEvent("type", {
+    candidate: null,
+    bubbles: true,
+    cancelable: true,
+  });
+
+  assert_true(event.bubbles);
+  assert_true(event.cancelable);
+}, "RTCPeerConnectionIceEvent bubbles and cancelable");
 </script>

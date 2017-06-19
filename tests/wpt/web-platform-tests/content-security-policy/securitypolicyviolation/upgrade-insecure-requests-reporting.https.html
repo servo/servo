@@ -1,0 +1,92 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/upgrade-insecure-requests/support/testharness-helper.sub.js"></script>
+<body></body>
+<script>
+    function waitForViolation(el, effective_directive) {
+      return new Promise(resolve => {
+        el.addEventListener('securitypolicyviolation', e => {
+          if (e.effectiveDirective == effective_directive)
+            resolve(e);
+        });
+	  });
+    }
+
+    async_test(t => {
+      var url = generateURL(Host.SAME_ORIGIN, Protocol.INSECURE, ResourceType.IMAGE).url;
+      var i = document.createElement('img');
+      var loaded = false;
+      var reported = false;
+      waitForViolation(window, "img-src")
+        .then(t.step_func(e => {
+           reported = true;
+           if (loaded)
+             t.done();
+      }));
+      i.onload = t.step_func(_ => {
+        loaded = true;
+        if (reported)
+          t.done();
+      });
+      i.onerror = t.unreached_func(url + " should load successfully.");
+      i.src = url;
+      document.body.appendChild(i);
+    }, "Upgraded image is reported");
+
+    async_test(t => {
+      var url = generateURL(Host.SAME_ORIGIN, Protocol.INSECURE, ResourceType.FRAME).url;
+      var i = document.createElement('iframe');
+      var loaded = false;
+      var reported = false;
+      waitForViolation(window, "frame-src")
+        .then(t.step_func(e => {
+           reported = true;
+           if (loaded)
+             t.done();
+      }));
+      window.addEventListener("message", t.step_func(e => {
+        if (e.source == i.contentWindow) {
+          i.remove();
+          loaded = true;
+          if (reported)
+            t.done();
+        }
+      }));
+      i.src = url;
+      document.body.appendChild(i);
+    }, "Upgraded iframe is reported");
+
+    async_test(t => {
+      // Load an HTTPS iframe, then navigate it to an HTTP URL and check that the HTTP URL is both upgraded and reported.
+      var url = generateURL(Host.SAME_ORIGIN, Protocol.SECURE, ResourceType.FRAME).url;
+      var navigate_to = generateURL(Host.CROSS_ORIGIN, Protocol.INSECURE, ResourceType.FRAME).url;
+      var upgraded = new URL(navigate_to);
+      upgraded.protocol = "https";
+
+      var i = document.createElement('iframe');
+      var loaded = false;
+      var reported = false;
+
+      window.addEventListener("message", t.step_func(e => {
+        if (e.source == i.contentWindow) {
+          if (e.data == (new URL(url)).origin) {
+            waitForViolation(window, "frame-src")
+              .then(t.step_func(e => {
+                reported = true;
+                if (loaded)
+                  t.done();
+            }));
+            i.contentWindow.location.href = navigate_to;
+          } else if (e.data == (new URL(upgraded)).origin) {
+            loaded = true;
+            if (reported)
+              t.done();
+          }
+        }
+      }));
+      i.src = url;
+      document.body.appendChild(i);
+    }, "Navigated iframe is upgraded and reported");
+</script>
+</html>

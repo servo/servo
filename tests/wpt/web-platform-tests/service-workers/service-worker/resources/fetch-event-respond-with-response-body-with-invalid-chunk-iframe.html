@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>respond-with-response-body-with-invalid-chunk</title>
+<body></body>
+<script>
+'use strict';
+
+fetch('body-stream-with-invalid-chunk').then(resp => {
+    const reader = resp.body.getReader();
+    return reader.read().then(
+      () => parent.done('FAIL: read() should be rejected'),
+      () => parent.done('PASS'));
+  }).catch(e => parent.done('FAIL: ' + e));
+</script>

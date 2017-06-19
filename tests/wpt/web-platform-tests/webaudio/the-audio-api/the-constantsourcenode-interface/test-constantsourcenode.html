@@ -26,12 +26,12 @@ test(function(t) {
     csn.stop(1);
   }, "Start must be called before stop");
 
-  assert_throws("NotSupportedError", function() {
+  assert_throws(new RangeError(), function() {
     csn.start(-1);
   }, "When can not be negative");
 
   csn.start(0);
-  assert_throws("NotSupportedError", function() {
+  assert_throws(new RangeError(), function() {
     csn.stop(-1);
   }, "When can not be negative");
 }, "ConstantSourceNode stop and start");

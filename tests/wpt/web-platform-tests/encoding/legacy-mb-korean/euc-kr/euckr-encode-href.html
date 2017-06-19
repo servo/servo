@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="euc-kr"> <!-- test breaks if the server overrides this -->
+<title>EUC-KR encoding (href)</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="euckr_index.js"></script>
+<script src="euckr-encoder.js"></script>
+<link rel="author" title="Richard Ishida" href="mailto:ishida@w3.org">
+<link rel="help" href="https://encoding.spec.whatwg.org/#euc-kr">
+<meta name="assert" content="The browser produces the expected byte sequences for all characters in the euc-kr encoding after 0x9F when writing characters to an href value, using the encoder steps in the specification.">
+<script>
+function encode(input, expected, desc) {
+  // tests whether a Unicode character is converted to an equivalent byte sequence by href
+  // input: a Unicode character
+  // expected: expected byte sequence
+  // desc: what's being tested
+  test(function() {
+    var a = document.createElement("a"); // <a> uses document encoding for URL's query
+    a.href = "https://example.com/?" + input;
+    result = a.search.substr(1); // remove leading "?"
+    assert_equals(normalizeStr(result), normalizeStr(expected));
+  }, desc);
+}
+
+// create a simple list of just those code points for which there is an encoding possible
+codepoints = [];
+for (var i = 0x80; i < 0xffff; i++) {
+  result = euckrEncoder(String.fromCodePoint(i));
+  if (result) {
+    var item = {};
+    codepoints.push(item);
+    item.cp = i;
+    item.expected = "%" + result.replace(/ /g, "%");
+  }
+}
+
+// run the tests
+for (var x = 0; x < codepoints.length; x++) {
+  encode(
+    String.fromCodePoint(codepoints[x].cp),
+    codepoints[x].expected,
+    "U+" +
+      codepoints[x].cp.toString(16).toUpperCase() +
+      " " +
+      String.fromCodePoint(codepoints[x].cp) +
+      " " +
+      codepoints[x].expected
+  );
+}
+
+// NOTES
+// this test relies on support for String.fromCodePoint, which appears to be supported by major desktop browsers
+// the testsexclude ASCII characters
+</script>
+</head>
+<body>
+<div id="log"></div>
+</body>
+</html>

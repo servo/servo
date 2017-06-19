@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>CSS Test:  font-variant-caps: unicase; low level equivalence</title>
+<link rel="author" title="Chris Lilley" href="chris@w3.org">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-variant-caps-prop">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-feature-settings-prop">
+<link rel="match" href="font-variant-caps-06-ref.html">
+<meta name="assert" content="Enables display of mixture of small capitals for uppercase letters with normal lowercase letters (OpenType feature: unic)">
+<style>
+  @font-face {
+    font-family: fwf;
+    src: url(support/fonts/FontWithFancyFeatures.otf);
+  }
+  .test {
+	  font-family: fwf;
+	  font-size: 3em;
+	  line-height: 1.1;
+  }
+  .high {
+	 font-variant-caps: unicase;
+  }
+  .low {
+   font-feature-settings: "smcp" off, "c2sc" off, "pcap" off, "c2pc" off, "unic" on, "titl" off;
+  }
+.ref {
+
+}
+</style>
+<body>
+<p>Test passes if the three lines below are identical, with four crosses (✗), one check mark (✓) and one more cross (✗). </p>
+<section class="test">
+	<p class="high">JKLMNO</p>
+	<p class="low">JKLMNO</p>
+	<p class="ref">BBBBAB</p>
+</section>

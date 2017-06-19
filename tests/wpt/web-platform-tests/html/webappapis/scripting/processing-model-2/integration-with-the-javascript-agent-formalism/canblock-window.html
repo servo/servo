@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>[[CanBlock]] in a similar-origin window agent</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#similar-origin-window-agent">
+<link rel="help" href="https://tc39.github.io/ecma262/#sec-agentcansuspend">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+const sab = new SharedArrayBuffer(16);
+const ta = new Int32Array(sab);
+
+assert_throws(new TypeError(), () => {
+  Atomics.wait(ta, 0, 0, 10);
+}, "Atomics.wait must throw in a window context");
+
+done();
+</script>

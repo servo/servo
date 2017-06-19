@@ -27,13 +27,13 @@ function create_iframes(scope) {
 }
 
 var expected_without_include_uncontrolled = [
-    /* visibilityState, focused, url, frameType */
+    // visibilityState, focused, url, type, frameType
     ['visible', false, new URL(scope + '#1', location).toString(), 'window', 'nested'],
     ['visible', true, new URL(scope + '#2', location).toString(), 'window', 'nested']
 ];
 
 var expected_with_include_uncontrolled = [
-    /* visibilityState, focused, url, frameType */
+    // visibilityState, focused, url, type, frameType
     ['visible', true, location.href, 'window', 'top-level'],
     ['visible', false, new URL(scope + '#1', location).toString(), 'window', 'nested'],
     ['visible', true, new URL(scope + '#2', location).toString(), 'window', 'nested'],

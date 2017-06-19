@@ -1,8 +1,7 @@
 def main(request, response):
-    location = "%s://%s:%s/%s" % (request.url_parts.scheme,
-                                  request.url_parts.netloc,
-                                  request.url_parts.port,
-                                  request.url_parts.path)
+    location = "%s://%s%s" % (request.url_parts.scheme,
+                              request.url_parts.netloc,
+                              request.url_parts.path)
     page = "alternate";
     type = 302;
     mix = 0;
@@ -21,4 +20,3 @@ def main(request, response):
                ("Pragma", "no-cache"),
                ("Location", new_location)]
     return 301, headers, "Hello guest. You have been redirected to " + new_location
-

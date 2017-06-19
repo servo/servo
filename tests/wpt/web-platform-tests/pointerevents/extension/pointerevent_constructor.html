@@ -33,11 +33,13 @@
                         ["getCoalescedEvents()[" + i + "].pointerType", coalescedEvent.pointerType, event.pointerType],
                         ["getCoalescedEvents()[" + i + "].isPrimary", coalescedEvent.isPrimary, event.isPrimary],
                         ["getCoalescedEvents()[" + i + "].getCoalescedEvents().length", coalescedEvent.getCoalescedEvents().length, 0],
-                        ["getCoalescedEvents()[" + i + "].target", coalescedEvent.target, null],
-                        ["getCoalescedEvents()[" + i + "].currentTarget", coalescedEvent.target, null],
+                        ["getCoalescedEvents()[" + i + "].target", coalescedEvent.target, target0],
+                        ["getCoalescedEvents()[" + i + "].currentTarget", coalescedEvent.currentTarget, null],
                         ["getCoalescedEvents()[" + i + "].eventPhase", coalescedEvent.eventPhase, Event.NONE],
                         ["getCoalescedEvents()[" + i + "].cancelable", coalescedEvent.cancelable, false],
                         ["getCoalescedEvents()[" + i + "].bubbles", coalescedEvent.bubbles, false],
+                        ["getCoalescedEvents()[" + i + "].offsetX", coalescedEvent.offsetX, event.offsetX + (i==0?-10:0)],
+                        ["getCoalescedEvents()[" + i + "].offsetY", coalescedEvent.offsetY, event.offsetY],
                     ]);
                 }
             }));

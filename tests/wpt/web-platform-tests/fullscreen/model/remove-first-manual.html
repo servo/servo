@@ -12,19 +12,21 @@ async_test(function(t)
 {
     var first = document.getElementById("first");
     trusted_request(t, first);
-    document.onfullscreenchange = t.step_func(function()
+    document.onfullscreenchange = t.step_func(function(event)
     {
         assert_equals(document.fullscreenElement, first);
+        assert_equals(event.target, first);
         var last = document.getElementById("last");
         trusted_request(t, last);
-        document.onfullscreenchange = t.step_func(function()
+        document.onfullscreenchange = t.step_func(function(event)
         {
             assert_equals(document.fullscreenElement, last);
+            assert_equals(event.target, last);
             first.remove();
-            document.onfullscreenchange = t.step_func(function()
+            document.onfullscreenchange = t.step_func_done(function(event)
             {
                 assert_equals(document.fullscreenElement, null);
-                t.done();
+                assert_equals(event.target, document);
             });
         });
     });

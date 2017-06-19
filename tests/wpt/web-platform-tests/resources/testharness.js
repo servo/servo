@@ -10,7 +10,8 @@ policies and contribution forms [3].
 [3] http://www.w3.org/2004/10/27-testcases
 */
 
-/* Documentation is in docs/api.md */
+/* Documentation: http://web-platform-tests.org/writing-tests/testharness-api.html
+ * (../docs/_writing-tests/testharness-api.md) */
 
 (function ()
 {
@@ -482,7 +483,10 @@ policies and contribution forms [3].
     }
 
     function is_service_worker(worker) {
-        return 'ServiceWorker' in self && worker instanceof ServiceWorker;
+        // The worker object may be from another execution context,
+        // so do not use instanceof here.
+        return 'ServiceWorker' in self &&
+            Object.prototype.toString.call(worker) == '[object ServiceWorker]';
     }
 
     /*
@@ -1178,7 +1182,7 @@ policies and contribution forms [3].
                 throw e;
             }
             if (code === null) {
-                return;
+                throw new AssertionError('Test bug: need to pass exception to assert_throws()');
             }
             if (typeof code === "object") {
                 assert(typeof e == "object" && "name" in e && e.name == code.name,
@@ -1250,8 +1254,7 @@ policies and contribution forms [3].
                 ReadOnlyError: 0,
                 VersionError: 0,
                 OperationError: 0,
-                NotAllowedError: 0,
-                CancelationError: 0,
+                NotAllowedError: 0
             };
 
             if (!(name in name_code_map)) {
@@ -1323,7 +1326,8 @@ policies and contribution forms [3].
         }
         this.name = name;
 
-        this.phase = this.phases.INITIAL;
+        this.phase = tests.phase === tests.phases.ABORTED ?
+            this.phases.COMPLETE : this.phases.INITIAL;
 
         this.status = this.NOTRUN;
         this.timeout_id = null;
@@ -1371,12 +1375,14 @@ policies and contribution forms [3].
             this._structured_clone = merge({
                 name:String(this.name),
                 properties:merge({}, this.properties),
+                phases:merge({}, this.phases)
             }, Test.statuses);
         }
         this._structured_clone.status = this.status;
         this._structured_clone.message = this.message;
         this._structured_clone.stack = this.stack;
         this._structured_clone.index = this.index;
+        this._structured_clone.phase = this.phase;
         return this._structured_clone;
     };
 
@@ -1517,11 +1523,35 @@ policies and contribution forms [3].
         this.cleanup();
     };
 
+    /*
+     * Invoke all specified cleanup functions. If one or more produce an error,
+     * the context is in an unpredictable state, so all further testing should
+     * be cancelled.
+     */
     Test.prototype.cleanup = function() {
+        var error_count = 0;
+        var total;
+
         forEach(this.cleanup_callbacks,
                 function(cleanup_callback) {
-                    cleanup_callback();
+                    try {
+                        cleanup_callback();
+                    } catch (e) {
+                        // Set test phase immediately so that tests declared
+                        // within subsequent cleanup functions are not run.
+                        tests.phase = tests.phases.ABORTED;
+                        error_count += 1;
+                    }
                 });
+
+        if (error_count > 0) {
+            total = this.cleanup_callbacks.length;
+            tests.status.status = tests.status.ERROR;
+            tests.status.message = "Test named '" + this.name +
+                "' specified " + total + " 'cleanup' function" +
+                (total > 1 ? "s" : "") + ", and " + error_count + " failed.";
+            tests.status.stack = null;
+        }
     };
 
     /*
@@ -1547,10 +1577,12 @@ policies and contribution forms [3].
         var clone = {};
         Object.keys(this).forEach(
                 (function(key) {
-                    if (typeof(this[key]) === "object") {
-                        clone[key] = merge({}, this[key]);
+                    var value = this[key];
+
+                    if (typeof value === "object" && value !== null) {
+                        clone[key] = merge({}, value);
                     } else {
-                        clone[key] = this[key];
+                        clone[key] = value;
                     }
                 }).bind(this));
         clone.phases = merge({}, this.phases);
@@ -1703,7 +1735,8 @@ policies and contribution forms [3].
             SETUP:1,
             HAVE_TESTS:2,
             HAVE_RESULTS:3,
-            COMPLETE:4
+            COMPLETE:4,
+            ABORTED:5
         };
         this.phase = this.phases.INITIAL;
 
@@ -1837,7 +1870,8 @@ policies and contribution forms [3].
     };
 
     Tests.prototype.all_done = function() {
-        return (this.tests.length > 0 && test_environment.all_loaded &&
+        return this.phase === this.phases.ABORTED ||
+            (this.tests.length > 0 && test_environment.all_loaded &&
                 this.num_pending === 0 && !this.wait_for_finish &&
                 !this.processing_callbacks &&
                 !this.pending_remotes.some(function(w) { return w.running; }));
@@ -1980,6 +2014,7 @@ policies and contribution forms [3].
             }
         } else if (is_shared_worker(worker)) {
             message_port = worker.port;
+            message_port.start();
         } else {
             message_port = worker;
         }

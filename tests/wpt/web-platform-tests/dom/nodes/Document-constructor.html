@@ -33,6 +33,7 @@ test(function() {
   assert_equals(doc.compatMode, "CSS1Compat");
   assert_equals(doc.characterSet, "UTF-8");
   assert_equals(doc.contentType, "application/xml");
+  assert_equals(doc.origin, document.origin);
   assert_equals(doc.createElement("DIV").localName, "DIV");
 }, "new Document(): metadata")
 

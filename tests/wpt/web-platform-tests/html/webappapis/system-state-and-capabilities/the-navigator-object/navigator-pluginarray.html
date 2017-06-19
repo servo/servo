@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script type="text/javascript">
+test(function () {
+  for (var i = 0; i < navigator.plugins.length; i++) {
+    var plugin = navigator.plugins[i];
+    var name = plugin.name;
+    assert_equals(plugin, navigator.plugins[i]);
+    assert_equals(plugin, navigator.plugins[name]);
+  }
+  for (var i = 0; i < navigator.mimeTypes.length; i++) {
+    var mime_type = navigator.mimeTypes[i];
+    var type = mime_type.type;
+    assert_equals(mime_type, navigator.mimeTypes[i]);
+    assert_equals(mime_type, navigator.mimeTypes[type]);
+    assert_equals(mime_type.enabledPlugin, navigator.plugins[mime_type.enabledPlugin.name]);
+  }
+}, "Tests that navigator.plugins and navigator.mimeTypes returns the same object when queried multiple times.");
+
+test(function () {
+  var iframe = document.createElement("iframe");
+  iframe.src = "about:blank";
+  document.body.appendChild(iframe);
+  assert_equals(navigator.plugins.length, iframe.contentWindow.navigator.plugins.length);
+  assert_equals(navigator.mimeTypes.length, iframe.contentWindow.navigator.mimeTypes.length);
+  for (var i = 0; i < navigator.plugins.length; i++) {
+    var plugin = navigator.plugins[i];
+    var name = plugin.name;
+    assert_not_equals(plugin, iframe.contentWindow.navigator.plugins[i]);
+    assert_not_equals(plugin, iframe.contentWindow.navigator.plugins[name]);
+  }
+  for (var i = 0; i < navigator.mimeTypes.length; i++) {
+    var mime_type = navigator.mimeTypes[i];
+    var type = mime_type.type;
+    assert_not_equals(mime_type, iframe.contentWindow.navigator.mimeTypes[i]);
+    assert_not_equals(mime_type, iframe.contentWindow.navigator.mimeTypes[type]);
+    assert_not_equals(mime_type.enabledPlugin, iframe.contentWindow.navigator.plugins[mime_type.enabledPlugin.name]);
+  }
+  iframe.remove();
+}, "Tests that navigator.plugins and navigator.mimeTypes does not return the same object on different frames.");
+
+test(function () {
+  for (var i = 1; i < navigator.plugins.length; i++) {
+    assert_less_than_equal(navigator.plugins[i-1].name.localeCompare(navigator.plugins[i].name), 0);
+  }
+  for (var i = 1; i < navigator.mimeTypes.length; i++) {
+    assert_less_than_equal(navigator.mimeTypes[i-1].type.localeCompare(navigator.mimeTypes[i].type), 0);
+  }
+}, "Tests that navigator.plugins and navigator.mimeTypes returns plugins sorted in alphabetical order by plugin name.");
+</script>
+</body>
+</html>

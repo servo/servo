@@ -15,20 +15,18 @@ var t = async_test('User denies access, check that error callback is called with
     onSuccess, onError, hasMethodReturned = false;
 
 t.step(function() {
-  onSuccess = t.step_func(function(pos) {
+  onSuccess = t.step_func_done(function(pos) {
     assert_unreached('A success callback was invoked unexpectedly with position ' + positionToString(pos));
   });
 
-  onError =  t.step_func(function(err) {
+  onError =  t.step_func_done(function(err) {
     // http://dev.w3.org/geo/api/test-suite/t.html?00031
     assert_true(hasMethodReturned, 'Check that getCurrentPosition returns synchronously before any callbacks are invoked');
-    assert_equals(err.code, err.PERMISSION_DENIED,
-        'PossitionError code: ' + err.code, + ', message: ' + err.message);
-    done();
+    assert_equals(err.code, err.PERMISSION_DENIED, errorToString(err));
   });
 
   geo.getCurrentPosition(onSuccess, onError);
   hasMethodReturned = true;
 });
-</script>
 
+</script>

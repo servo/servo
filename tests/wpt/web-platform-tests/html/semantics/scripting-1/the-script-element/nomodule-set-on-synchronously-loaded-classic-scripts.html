@@ -36,11 +36,6 @@ test(() => {
     assert_false(errored);
 }, 'A synchronously loaded external classic script with nomodule content attribute must not run');
 
-
-waitForLoadEvent = new Promise((resolve) => {
-    window.onload = resolve;
-});
-
 </script>
 </body>
 </html>

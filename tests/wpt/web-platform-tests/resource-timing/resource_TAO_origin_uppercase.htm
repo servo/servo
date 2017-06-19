@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Resource Timing TAO tests</title>
+<link rel="author" title="Google" href="http://www.google.com/" />
+<link rel="help" href="https://www.w3.org/TR/resource-timing-2/#timing-allow-origin"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webperftestharness.js"></script>
+<script src="resources/webperftestharnessextension.js"></script>
+<script>
+setup({explicit_done: true});
+
+// explicitly test the namespace before we start testing
+test_namespace("getEntriesByType");
+
+var d;
+var iframe;
+var iframeBody;
+var image;
+var random = Math.random();
+
+function setup_iframe() {
+    iframe = document.getElementById('frameContext');
+    d = iframe.contentWindow.document;
+    iframeBody = d.body;
+    iframe.addEventListener('load', onload_test, false);
+}
+function onload_test() {
+    if (window.performance.getEntriesByType === undefined) {
+      done();
+      return;
+    }
+    var context = new PerformanceContext(iframe.contentWindow.performance);
+    var entries = context.getEntriesByType('resource');
+
+    if(entries.length > 0) {
+        entry = entries[0];
+
+        test_equals((entry.redirectStart + entry.redirectEnd + entry.domainLookupStart + entry.domainLookupEnd + entry.connectStart + entry.connectEnd + entry.secureConnectionStart + entry.requestStart + entry.responseStart), 0, 'redirectStart, redirectEnd, domainLookupStart, domainLookupEnd, connectStart, connectEnd, secureConnectionStart, requestStart, and responseStart -- should be all returned as 0 when the value of Timing-Allow-Origin is NOT a case-sensitive match for the value of the origin of the current document and TAO algorithm passes');
+    }
+
+    done();
+}
+window.setup_iframe = setup_iframe;
+</script>
+</head>
+<body>
+<h1>Description</h1>
+<p>This test validates that for a cross origin resource, the timing allow check algorithm will fail when the value of Timing-Allow-Origin is NOT a case-sensitive match for the value of the origin of the current document.</p>
+<div id="log"></div>
+<iframe id="frameContext" src="resources/iframe_TAO_origin_uppercase.html"></iframe>
+</body>
+</html>

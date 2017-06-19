@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<title>Limits on colSpan/rowSpan</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+
+<table border=1>
+  <tr><td colspan=500>a<td colspan=500 id=a1>a
+  <!-- This cell must span the previous two -->
+  <tr><td colspan=1000 id=a2>a
+</table>
+
+<table border=1>
+  <tr><td colspan=1000 id=b1>a<td>a
+  <!-- This cell must span only the first cell in the previous row -->
+  <tr><td colspan=1001 id=b2>a
+</table>
+
+<table border=1 style="float:left">
+  <!-- The first column must go all the way down to the bottom -->
+  <tr><td rowspan=65534 id=c1>a<td>
+  <!-- We'll add another 65533 rows later -->
+</table>
+
+<table border=1>
+  <!-- The first column must go one cell below the bottom -->
+  <tr><td rowspan=65535 id=d1>a<td>
+  <!-- We'll add another 65534 rows later -->
+</table>
+
+<script>
+var $ = document.querySelector.bind(document);
+
+test(() => {
+    assert_equals($("#a2").getBoundingClientRect().right,
+                  $("#a1").getBoundingClientRect().right);
+}, "colspan of 1000 must work");
+
+test(() => {
+    assert_equals($("#b2").getBoundingClientRect().right,
+                  $("#b1").getBoundingClientRect().right);
+}, "colspan of 1001 must be treated as 1000");
+
+test(() => {
+    var s = "";
+    for (var i = 0; i < 65532; i++) {
+      s += "<tr><td>";
+    }
+    s += "<tr><td id=c2>";
+    document.querySelectorAll("table")[2].firstElementChild.innerHTML += s;
+    assert_equals($("#c1").getBoundingClientRect().bottom,
+                  $("#c2").getBoundingClientRect().bottom);
+}, "rowspan of 65534 must work");
+
+test(() => {
+    var s = "";
+    for (var i = 0; i < 65532; i++) {
+      s += "<tr><td>";
+    }
+    s += "<tr><td id=d2><tr><td>a<td>";
+    document.querySelectorAll("table")[3].firstElementChild.innerHTML += s;
+    assert_equals($("#d1").getBoundingClientRect().bottom,
+                  $("#d2").getBoundingClientRect().bottom);
+}, "rowspan of 65535 must be treated as 65534");
+</script>

@@ -6,7 +6,7 @@ const Host = {
 const PolicyHeader = {
   CSP: "echo-policy.py?policy=",
   CSP_MULTIPLE: "echo-policy-multiple.py",
-  EMBEDDING_CSP: "echo-embedding-csp.py",
+  REQUIRED_CSP: "echo-required-csp.py",
   ALLOW_CSP_FROM: "echo-allow-csp-from.py",
 };
 
@@ -68,16 +68,16 @@ function generateUrlWithAllowCSPFrom(host, allowCspFrom) {
   return url;
 }
 
-function assert_embedding_csp(t, url, csp, expected) {
+function assert_required_csp(t, url, csp, expected) {
   var i = document.createElement('iframe');
   if(csp)
     i.csp = csp;
   i.src = url;
 
   window.addEventListener('message', t.step_func(e => {
-    if (e.source != i.contentWindow || !('embedding_csp' in e.data))
-        return;
-    assert_equals(expected, e.data['embedding_csp']);
+    if (e.source != i.contentWindow || !('required_csp' in e.data))
+      return;
+    assert_equals(e.data['required_csp'], expected);
     t.done();
   }));
 

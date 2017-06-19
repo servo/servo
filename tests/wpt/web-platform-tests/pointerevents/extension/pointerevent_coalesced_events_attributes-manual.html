@@ -77,8 +77,14 @@
                               test (function() {
                                 for (var i=0; i<coalescedEvents.length; i++) {
                                   assert_equals(coalescedEvents[i].isTrusted, true, 'isTrusted flag should be true for coalesced events.');
+                                  if (i > 0)
+                                    assert_greater_than_equal(coalescedEvents[i].timeStamp, coalescedEvents[i-1].timeStamp, 'Time stamps of coalesced events must be ascending.');
                                 }
                               }, expectedPointerType + ' pointermove coalesced events should all be marked as trusted.');
+                              test (function() {
+                                for (var i=1; i<coalescedEvents.length; i++)
+                                  assert_greater_than_equal(coalescedEvents[i].timeStamp, coalescedEvents[i-1].timeStamp, 'Time stamps of coalesced events must be ascending.');
+                              }, expectedPointerType + ' time stamps of coalesced events must be ascending.');
                               test (function() {
                                 for (var i=0; i<coalescedEvents.length; i++) {
                                   assert_equals(coalescedEvents[i].bubbles, false, 'Bubbles attribute should be false for coalesced events.');

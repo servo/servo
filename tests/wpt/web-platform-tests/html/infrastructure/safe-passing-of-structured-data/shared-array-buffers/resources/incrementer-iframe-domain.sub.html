@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>A test page that messes with a given SharedArrayBuffer and also sets document.domain</title>
+<script src="test-incrementer.js"></script>
+
+<script>
+"use strict";
+
+document.domain = "{{host}}";
+setupDestinationIncrementer(self, parent, "*");
+</script>

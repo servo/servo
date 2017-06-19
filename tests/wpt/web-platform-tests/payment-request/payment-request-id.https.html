@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<!-- Copyright © 2017 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<meta charset="utf-8">
+<title>Test for PaymentRequest identifier usage</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="iframe" allowpaymentrequest></iframe>
+<script>
+async_test((t) => {
+  onload = t.step_func_done(() => {
+    var request = new window[0].PaymentRequest([{supportedMethods: ['foo']}], {id: 'my_payment_id', total: {label: 'label', amount: {currency: 'USD', value: '5.00'}}});
+    assert_equals(request.id, 'my_payment_id', 'Payment identifier is not reflected correctly in PaymentRequest.id');
+
+    request = new window[0].PaymentRequest([{supportedMethods: ['foo']}], {total: {label: 'label', amount: {currency: 'USD', value: '5.00'}}});
+    assert_equals(request.id.length, 36, 'Generated payment identifier is not of correct length.');
+  });
+});
+</script>

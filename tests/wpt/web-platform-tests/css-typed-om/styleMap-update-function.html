@@ -9,7 +9,7 @@
   <div id="log"></div>
   <script>
     test(function() {
-      element.styleMap.set('width', new CSSSimpleLength(42, 'px'));
+      element.styleMap.set('width', new CSSUnitValue(42, 'px'));
       element.styleMap.update('width', length => new CSSSimpleLength(length.value + 20, length.type))
       assert_equals(element.styleMap.get('width').value, 62, 'update expected to apply callback to old value in map');
     });

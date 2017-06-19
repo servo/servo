@@ -1,0 +1,119 @@
+<!doctype html>
+<html>
+  <head>
+    <title>cell rowindex 4</title>
+    <link rel="stylesheet" href="/resources/testharness.css">
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_TABLE_CELL"
+               ],
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "rowindex:4"
+               ],
+               [
+                  "result",
+                  "atk_table_cell_get_position()",
+                  "contains",
+                  "row=3"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXRole",
+                  "is",
+                  "AXCell"
+               ],
+               [
+                  "property",
+                  "AXARIARowIndex",
+                  "is",
+                  "4"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_CELL"
+               ],
+               [
+                  "property",
+                  "rowindex",
+                  "is",
+                  "4"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_CELL"
+               ],
+               [
+                  "property",
+                  "rowindex",
+                  "is",
+                  "4"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "Control Type",
+                  "is",
+                  "TableItem"
+               ],
+               [
+                  "property",
+                  "Row",
+                  "is",
+                  "3"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "cell rowindex 4"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for cell rowindex 4.</p>
+    <div role="table">
+    <div role="row">
+       <div id="test" role="cell" aria-rowindex="4">test cell</div>
+    </div>
+  </div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>
+

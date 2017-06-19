@@ -80,6 +80,12 @@ creating a `FileAPI/Blob-constructor.any.js` as follows:
 This test could then be run from `FileAPI/Blob-constructor.any.worker.html` as well
 as `FileAPI/Blob-constructor.any.html`.
 
+To check if your test is run from a window or worker you can use the following two methods that will
+be made available by the framework:
+
+    self.GLOBAL.isWindow()
+    self.GLOBAL.isWorker()
+
 ### Including other JavaScript resources in auto-generated boilerplate tests
 
 Use `// META: script=link/to/resource.js` at the beginning of the resource. For example,
@@ -95,5 +101,5 @@ Use `// META: timeout=long` at the beginning of the resource.
 
 
 [general guidelines]: {{ site.baseurl }}{% link _writing-tests/general-guidelines.md %}
-[testharness-api]: {{ site.baseurl }}{% link _writing-tests/testharness-api.html %}
-[idlharness]: {{ site.baseurl }}{% link _writing-tests/idlharness.html %}
+[testharness-api]: {{ site.baseurl }}{% link _writing-tests/testharness-api.md %}
+[idlharness]: {{ site.baseurl }}{% link _writing-tests/idlharness.md %}

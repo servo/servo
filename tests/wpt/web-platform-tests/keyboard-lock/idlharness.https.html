@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+<title>Keyboard Lock IDL tests</title>
+<link rel="help" href="https://github.com/w3c/keyboard-lock"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+</head>
+<body>
+<pre id="untested_idl" style="display: none">
+interface Navigator {
+};
+</pre>
+<!--
+  The reason of the failure of requestKeyboardLock test looks like a code defect in
+  idlharness.js. media-capabilities/idlharness.html is also impacted by this
+  issue. See https://codereview.chromium.org/2805763004/#ps620001, which
+  includes a potential fix.
+  TODO(zijiehe): Submit the fix.
+-->
+<pre id="idl" style="display: none">
+partial interface Navigator {
+  [SecureContext] Promise<void> requestKeyboardLock(optional sequence<DOMString> keyCodes = []);
+  [SecureContext] void cancelKeyboardLock();
+};
+</pre>
+<script>
+var idl_array = new IdlArray();
+idl_array.add_untested_idls(
+    document.getElementById("untested_idl").textContent);
+idl_array.add_idls(document.getElementById("idl").textContent);
+idl_array.add_objects({
+  Navigator: ["navigator"]
+});
+idl_array.test();
+</script>
+<div id="log"></div>
+</body>
+</html>

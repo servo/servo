@@ -1,10 +1,13 @@
 import unittest
 import uuid
 
-import wptserve
+import pytest
+
+wptserve = pytest.importorskip("wptserve")
 from wptserve.router import any_method
 from wptserve.stash import StashServer
 from .base import TestUsingServer
+
 
 class TestResponseSetCookie(TestUsingServer):
     def run(self, result=None):

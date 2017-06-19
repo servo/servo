@@ -1,0 +1,124 @@
+<!doctype html>
+<html>
+  <head>
+    <title>combobox orientation unspecified</title>
+    <link rel="stylesheet" href="/resources/testharness.css">
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_COMBO_BOX"
+               ],
+               [
+                  "property",
+                  "states",
+                  "doesNotContain",
+                  "STATE_VERTICAL"
+               ],
+               [
+                  "property",
+                  "states",
+                  "doesNotContain",
+                  "STATE_HORIZONTAL"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXRole",
+                  "is",
+                  "AXComboBox"
+               ],
+               [
+                  "property",
+                  "AXSubrole",
+                  "is",
+                  "<nil>"
+               ],
+               [
+                  "property",
+                  "AXRoleDescription",
+                  "is",
+                  "combo box"
+               ],
+               [
+                  "property",
+                  "AXOrientation",
+                  "is",
+                  "AXUnknownOrientation"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "states",
+                  "doesNotContain",
+                  "IA2_STATE_VERTICAL"
+               ],
+               [
+                  "property",
+                  "states",
+                  "doesNotContain",
+                  "IA2_STATE_HORIZONTAL"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_COMBOBOX"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "Control Type",
+                  "is",
+                  "Combobox"
+               ],
+               [
+                  "property",
+                  "IUIAutomationElement.Orientation",
+                  "is",
+                  "null"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "combobox orientation unspecified"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for combobox orientation unspecified.</p>
+    <div aria-label="Tag" id="test" role="combobox" aria-expanded="true" aria-owns="owned_listbox">
+    <input type="text" aria-autocomplete="list" aria-controls="owned_listbox" aria-activedescendant="selected_option">
+    <li role="option">Zebra</li>
+    <li role="option" id="selected_option">Zoom</li>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>
+

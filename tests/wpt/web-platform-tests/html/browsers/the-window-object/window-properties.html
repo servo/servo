@@ -80,7 +80,6 @@ var methods = [
   "confirm",
   "prompt",
   "print",
-  // See below: "showModalDialog",
   "postMessage",
 
   // WindowBase64
@@ -105,12 +104,6 @@ var methods = [
   "scrollTo",
   "scrollBy"
 ];
-
-// We would like to remove showModalDialog from the platform,
-// see <https://www.w3.org/Bugs/Public/show_bug.cgi?id=26437>.
-if ("showModalDialog" in window) {
-  methods.push("showModalDialog");
-}
 
 var readonlyAttributes = [
   "history",

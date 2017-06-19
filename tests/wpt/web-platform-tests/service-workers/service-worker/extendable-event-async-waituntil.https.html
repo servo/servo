@@ -82,4 +82,20 @@ async_test(function(t) {
     }
     runTest(t, 'pending-respondwith-async-waituntil', testBody);
   }, 'Test calling waitUntil asynchronously with pending respondWith promise.');
+
+async_test(function(t) {
+    var testBody = function(worker) {
+      return with_iframe('./resources/respondwith-microtask-sync-waituntil/dummy.html');
+    }
+    runTest(t, 'respondwith-microtask-sync-waituntil', testBody);
+  }, 'Test calling waitUntil synchronously inside microtask of respondWith promise.');
+
+async_test(function(t) {
+    var testBody = function(worker) {
+      return with_iframe('./resources/respondwith-microtask-async-waituntil/dummy.html');
+    }
+    runTest(t, 'respondwith-microtask-async-waituntil', testBody);
+  }, 'Test calling waitUntil asynchronously inside microtask of respondWith promise.');
+
+
 </script>

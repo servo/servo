@@ -49,7 +49,7 @@ function runTest(config,qualifier) {
         function onPlaying(event) {
             // Not using waitForEventAndRunStep() to avoid too many
             // EVENT(onTimeUpdate) logs.
-            _video.addEventListener('timeupdate', onTimeupdate, true);
+            _video.addEventListener('timeupdate', onTimeupdate);
         }
 
         function onTimeupdate(event) {
@@ -57,16 +57,20 @@ function runTest(config,qualifier) {
                 _video.removeEventListener('timeupdate', onTimeupdate);
                 _video.pause();
                 _video.removeAttribute('src');
-                _video.load()
+                _video.load();
 
-                _mediaKeySession.closed.then(test.step_func(onClosed));
-                _mediaKeySession.close();
+                _mediaKeySession.closed
+                    .then(test.step_func(onClosed))
+                    .catch(onFailure);
+                _mediaKeySession.close()
+                    .catch(onFailure);
             }
         }
 
         function onClosed() {
             // Open a new window in which we will attempt to play with the persisted license
             var win = window.open(config.windowscript);
+            assert_not_equals(win, null, "Popup windows not allowed?");
 
             // Lisen for an event from the new window containing its test assertions
             window.addEventListener('message', test.step_func(function(messageEvent) {
