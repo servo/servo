@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::CustomElementRegistryBinding::CustomElemen
 use dom::bindings::codegen::Bindings::CustomElementRegistryBinding::ElementDefinitionOptions;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use dom::bindings::conversions::{ConversionResult, FromJSValConvertible};
+use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
@@ -126,6 +126,33 @@ impl CustomElementRegistry {
             attribute_changed_callback: get_callback(cx, prototype, b"attributeChangedCallback\0")?,
         })
     }
+
+    /// https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define
+    /// Step 10.6
+    #[allow(unsafe_code)]
+    fn get_observed_attributes(&self, constructor: HandleObject) -> Fallible<Vec<DOMString>> {
+        let cx = self.window.get_cx();
+        rooted!(in(cx) let mut observed_attributes = UndefinedValue());
+        if unsafe { !JS_GetProperty(cx,
+                                    constructor,
+                                    b"observedAttributes\0".as_ptr() as *const _,
+                                    observed_attributes.handle_mut()) } {
+            return Err(Error::JSFailed);
+        }
+
+        if observed_attributes.is_undefined() {
+            return Ok(Vec::new());
+        }
+
+        let conversion = unsafe {
+            FromJSValConvertible::from_jsval(cx, observed_attributes.handle(), StringificationBehavior::Default)
+        };
+        match conversion {
+            Ok(ConversionResult::Success(attributes)) => Ok(attributes),
+            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into())),
+            _ => Err(Error::JSFailed),
+        }
+    }
 }
 
 /// https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define
@@ -157,8 +184,8 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
     #[allow(unsafe_code, unrooted_must_root)]
     /// https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define
     fn Define(&self, name: DOMString, constructor_: Rc<Function>, options: &ElementDefinitionOptions) -> ErrorResult {
-        let global_scope = self.window.upcast::<GlobalScope>();
-        rooted!(in(global_scope.get_cx()) let constructor = constructor_.callback());
+        let cx = self.window.get_cx();
+        rooted!(in(cx) let constructor = constructor_.callback());
         let name = LocalName::from(&*name);
 
         // Step 1
@@ -211,9 +238,9 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         self.element_definition_is_running.set(true);
 
         // Steps 10.1 - 10.2
-        rooted!(in(global_scope.get_cx()) let mut prototype = UndefinedValue());
+        rooted!(in(cx) let mut prototype = UndefinedValue());
         {
-            let _ac = JSAutoCompartment::new(global_scope.get_cx(), constructor.get());
+            let _ac = JSAutoCompartment::new(cx, constructor.get());
             if let Err(error) = self.check_prototype(constructor.handle(), prototype.handle_mut()) {
                 self.element_definition_is_running.set(false);
                 return Err(error);
@@ -221,9 +248,9 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         };
 
         // Steps 10.3 - 10.4
-        rooted!(in(global_scope.get_cx()) let proto_object = prototype.to_object());
+        rooted!(in(cx) let proto_object = prototype.to_object());
         let callbacks = {
-            let _ac = JSAutoCompartment::new(global_scope.get_cx(), proto_object.get());
+            let _ac = JSAutoCompartment::new(cx, proto_object.get());
             match self.get_callbacks(proto_object.handle()) {
                 Ok(callbacks) => callbacks,
                 Err(error) => {
@@ -233,8 +260,19 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
             }
         };
 
-        // TODO: Steps 10.5 - 10.6
-        // Get observed attributes from the constructor
+        // Step 10.5 - 10.6
+        let observed_attributes = if callbacks.attribute_changed_callback.is_some() {
+            let _ac = JSAutoCompartment::new(cx, constructor.get());
+            match self.get_observed_attributes(constructor.handle()) {
+                Ok(attributes) => attributes,
+                Err(error) => {
+                    self.element_definition_is_running.set(false);
+                    return Err(error);
+                },
+            }
+        } else {
+            Vec::new()
+        };
 
         self.element_definition_is_running.set(false);
 
@@ -242,6 +280,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         let definition = CustomElementDefinition::new(name.clone(),
                                                       local_name,
                                                       constructor_,
+                                                      observed_attributes,
                                                       callbacks);
 
         // Step 12
@@ -333,15 +372,23 @@ pub struct CustomElementDefinition {
     #[ignore_heap_size_of = "Rc"]
     pub constructor: Rc<Function>,
 
+    pub observed_attributes: Vec<DOMString>,
+
     pub callbacks: LifecycleCallbacks,
 }
 
 impl CustomElementDefinition {
-    fn new(name: LocalName, local_name: LocalName, constructor: Rc<Function>, callbacks: LifecycleCallbacks) -> CustomElementDefinition {
+    fn new(name: LocalName,
+           local_name: LocalName,
+           constructor: Rc<Function>,
+           observed_attributes: Vec<DOMString>,
+           callbacks: LifecycleCallbacks)
+           -> CustomElementDefinition {
         CustomElementDefinition {
             name: name,
             local_name: local_name,
             constructor: constructor,
+            observed_attributes: observed_attributes,
             callbacks: callbacks,
         }
     }
