@@ -157,20 +157,6 @@ This should create two commits in your servo repository with the
 updated tests and updated metadata. The same process works for the
 CSSWG tests, using the `update-css` and `test-css` mach commands.
 
-Updating the test harness
-=========================
-
-The easiest way to update the test harness is using git:
-
-    cd tests/wpt/harness
-    git init .
-    git remote add origin https://github.com/w3c/wptrunner
-    git fetch origin
-    git checkout -f origin/master
-    cd ../../..
-
-At this point you should commit the updated files in the *servo* git repository.
-
 Servo-specific tests
 ====================
 
