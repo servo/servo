@@ -326,14 +326,21 @@ pub trait DomTraversal<E: TElement> : Sync {
         // the element if the element has animation only dirty
         // descendants bit, animation-only restyle hint or recascade.
         if traversal_flags.for_animation_only() {
-            if el.has_animation_only_dirty_descendants() {
-                return true;
-            }
-
+            // Skip elements that have no style data since animation-only
+            // restyle is not necessary for the elements.
             let data = match el.borrow_data() {
                 Some(d) => d,
                 None => return false,
             };
+
+            if !data.has_styles() {
+                return false;
+            }
+
+            if el.has_animation_only_dirty_descendants() {
+                return true;
+            }
+
             return data.restyle.hint.has_animation_hint() ||
                    data.restyle.hint.has_recascade_self();
         }
