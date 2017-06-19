@@ -18,6 +18,7 @@ use std::fmt::{self, Debug};
 use std::hash;
 use style_traits::{ToCss, ParseError, StyleParseError};
 
+pub mod animated;
 pub mod computed;
 pub mod generics;
 pub mod specified;

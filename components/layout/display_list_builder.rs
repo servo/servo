@@ -50,7 +50,6 @@ use std::sync::Arc;
 use style::computed_values::{background_attachment, background_clip, background_origin};
 use style::computed_values::{background_repeat, border_style, cursor};
 use style::computed_values::{image_rendering, overflow_x, pointer_events, position, visibility};
-use style::computed_values::filter::Filter;
 use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use style::properties::{self, ServoComputedValues};
 use style::properties::longhands::border_image_repeat::computed_value::RepeatKeyword;
@@ -61,6 +60,7 @@ use style::values::computed::{Gradient, GradientItem, LengthOrPercentage};
 use style::values::computed::{LengthOrPercentageOrAuto, NumberOrPercentage, Position, Shadow};
 use style::values::computed::image::{EndingShape, LineDirection};
 use style::values::generics::background::BackgroundSize;
+use style::values::generics::effects::Filter;
 use style::values::generics::image::{Circle, Ellipse, EndingShape as GenericEndingShape};
 use style::values::generics::image::{GradientItem as GenericGradientItem, GradientKind};
 use style::values::generics::image::{Image, ShapeExtent};
@@ -2006,7 +2006,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
         // Create the filter pipeline.
         let effects = self.style().get_effects();
-        let mut filters = effects.filter.clone();
+        let mut filters = effects.filter.clone().0.into_vec();
         if effects.opacity != 1.0 {
             filters.push(Filter::Opacity(effects.opacity))
         }
@@ -2022,7 +2022,7 @@ impl FragmentDisplayListBuilding for Fragment {
                              &border_box,
                              &overflow,
                              self.effective_z_index(),
-                             filters,
+                             filters.into(),
                              self.style().get_effects().mix_blend_mode.to_mix_blend_mode(),
                              self.transform_matrix(&border_box),
                              self.style().get_used_transform_style().to_transform_style(),

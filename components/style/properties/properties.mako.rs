@@ -2064,7 +2064,7 @@ impl ComputedValues {
         let effects = self.get_effects();
         // TODO(gw): Add clip-path, isolation, mask-image, mask-border-source when supported.
         effects.opacity < 1.0 ||
-           !effects.filter.is_empty() ||
+           !effects.filter.0.is_empty() ||
            !effects.clip.is_auto() ||
            effects.mix_blend_mode != mix_blend_mode::T::normal
     }

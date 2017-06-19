@@ -2467,7 +2467,7 @@ impl Fragment {
         if self.style().get_effects().opacity != 1.0 {
             return true
         }
-        if !self.style().get_effects().filter.is_empty() {
+        if !self.style().get_effects().filter.0.is_empty() {
             return true
         }
         if self.style().get_effects().mix_blend_mode != mix_blend_mode::T::normal {
