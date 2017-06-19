@@ -35,7 +35,6 @@ use style_traits::CSSPixel;
 
 mod compositor;
 pub mod compositor_thread;
-mod delayed_composition;
 mod touch;
 pub mod windowing;
 

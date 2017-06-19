@@ -102,6 +102,12 @@ impl Debug for WindowEvent {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum AnimationState {
+    Idle,
+    Animating,
+}
+
 pub trait WindowMethods {
     /// Returns the rendering area size in hardware pixels.
     fn framebuffer_size(&self) -> TypedSize2D<u32, DevicePixel>;
@@ -163,4 +169,10 @@ pub trait WindowMethods {
 
     /// Return the GL function pointer trait.
     fn gl(&self) -> Rc<gl::Gl>;
+
+    /// Set whether the application is currently animating.
+    /// Typically, when animations are active, the window
+    /// will want to avoid blocking on UI events, and just
+    /// run the event loop at the vsync interval.
+    fn set_animation_state(&self, _state: AnimationState) {}
 }
