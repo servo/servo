@@ -462,7 +462,11 @@ pub trait DomTraversal<E: TElement> : Sync {
                     let el = kid.as_element();
                     if el.as_ref().and_then(|el| el.borrow_data())
                                   .map_or(false, |d| d.has_styles()) {
-                        unsafe { parent.set_dirty_descendants(); }
+                        if self.shared_context().traversal_flags.for_animation_only() {
+                            unsafe { parent.set_animation_only_dirty_descendants(); }
+                        } else {
+                            unsafe { parent.set_dirty_descendants(); }
+                        }
                     }
                 }
                 f(thread_local, kid);
