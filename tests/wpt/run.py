@@ -20,7 +20,7 @@ def servo_path(*args):
     return os.path.join(servo_root, *args)
 
 # Imports
-sys.path.append(wpt_path("harness"))
+sys.path.append(wpt_path("web-platform-tests", "tools", "wptrunner"))
 from wptrunner import wptrunner, wptcommandline
 
 
