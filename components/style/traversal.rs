@@ -862,13 +862,13 @@ where
             None => continue,
         };
 
-        let mut child_data =
-            unsafe { D::ensure_element_data(&child).borrow_mut() };
-
         // If the child is unstyled, we don't need to set up any restyling.
-        if !child_data.has_styles() {
+        if child.borrow_data().map_or(true, |d| !d.has_styles()) {
             continue;
         }
+
+        let mut child_data =
+            unsafe { D::ensure_element_data(&child).borrow_mut() };
 
         trace!(" > {:?} -> {:?} + {:?}, pseudo: {:?}",
                child,
