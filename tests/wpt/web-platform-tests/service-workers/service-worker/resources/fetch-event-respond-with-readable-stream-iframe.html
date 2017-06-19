@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<script>
+'use strict';
+
+fetch('body-stream').then(resp => {
+    return resp.text();
+  }).then(text => parent.done(text))
+  .catch(e => parent.done('FAIL: ' + e));
+</script>

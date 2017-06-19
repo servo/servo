@@ -1,0 +1,62 @@
+<!doctype html>
+<html>
+<head>
+<title>enumerateDevices: test that enumerateDevices is present</title>
+<link rel="author" title="Dr Alex Gouaillard" href="mailto:agouaillard@gmail.com"/>
+<link rel="help" href="http://w3c.github.io/mediacapture-main/getusermedia.html#methods-2">
+<link rel="help" href="http://w3c.github.io/mediacapture-main/getusermedia.html#device-info">
+<link rel="help" href="http://w3c.github.io/mediacapture-main/getusermedia.html#idl-def-MediaDeviceKind">
+<meta name='assert' content='Check that the enumerateDevices() method is present.'/>
+</head>
+<body>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks for the presence of the
+<code>navigator.mediaDevices.enumerateDevices()</code> method.</p>
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/WebIDLParser.js></script>
+<script src=/resources/idlharness.js></script>
+<script>
+  "use strict";
+
+  function doIdlTest(idlText) {
+    const MDI_idl = new IdlArray();
+
+    MDI_idl.add_untested_idls("interface Navigator {};");
+    MDI_idl.add_idls(idlText);
+
+    assert_true(undefined !== navigator.mediaDevices.enumerateDevices,
+      "navigator.mediaDevices.enumerateDevices exists");
+
+    return navigator.mediaDevices.enumerateDevices()
+    .then(function(list) {
+      if( list.length > 0 ) {
+        window._mediaInfo = list[0];
+        MDI_idl.add_objects({MediaDeviceInfo: ["_mediaInfo"]});
+      }
+
+      for(const media of list) {
+        if( media.kind == "audioinput" ||
+            media.kind == "videoinput") {
+          // TODO -- Check InputDeviceInfo IDL, getCapabilities()
+        } else if ( media.kind == "audiooutput" ) {
+          // TODO -- pass
+        } else {
+          assert_unreached("media.kind should be one of 'audioinput', 'videoinput', or 'audiooutput'.")
+        }
+      }
+
+      MDI_idl.test();
+    });
+  }
+
+  promise_test(() => {
+    return fetch('/interfaces/mediacapture-main.idl')
+      .then(response => response.text())
+      .then(doIdlTest);
+
+  }, "Test MediaDevices.enumerateDevices call and result. Types only.");
+</script>
+</body>
+</html>

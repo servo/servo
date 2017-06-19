@@ -1,10 +1,5 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
-<title>HTML entities for various XHTML Doctype variants</title>
-<link rel=help href="http://w3c.github.io/html/xhtml.html#parsing-xhtml-documents">
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<div id="log"></div>
 <script>
   var parser = new DOMParser();
   var parse = parser.parseFromString.bind(parser);
@@ -20,13 +15,13 @@
         doctypeString += '>';
       var doc = parse(doctypeString + "<html><head></head><body id='test'>"+entitystring+"</body></html>", mimeType);
       var root = doc.getElementById('test');
-      assert_not_equals(root, null, friendlyMime + " parsing the entity reference caused a parse error;");
-      assert_true(!!root.firstChild);
+      parent.assert_not_equals(root, null, friendlyMime + " parsing the entity reference caused a parse error;");
+      parent.assert_true(!!root.firstChild);
       // Next line because some browsers include the partial parsed result in the parser error returned document.
-      assert_equals(root.firstChild.nodeType, 3/*Text*/, friendlyMime + " parsing the entity reference caused a parse error;");
+      parent.assert_equals(root.firstChild.nodeType, 3/*Text*/, friendlyMime + " parsing the entity reference caused a parse error;");
       var text = root.firstChild.data;
       for (var i = 0, len = expectedString.length; i < len; i++) {
-        assert_equals(text.charCodeAt(i),expectedString.charCodeAt(i));
+        parent.assert_equals(text.charCodeAt(i),expectedString.charCodeAt(i));
       }
     }
   }
@@ -34,34 +29,21 @@
   function setupTests(jsonEntities, publicId, systemId, mimeType, friendlyMime) {
     for (entityName in jsonEntities) {
       if ((mimeType == "text/html") || /;$/.test(entityName)) {
-        test(generateTestFunction(entityName, jsonEntities[entityName].characters, publicId, systemId, mimeType, friendlyMime), friendlyMime + " parsing " + entityName);
+        parent.test(generateTestFunction(entityName, jsonEntities[entityName].characters, publicId, systemId, mimeType, friendlyMime), friendlyMime + " parsing " + entityName);
       }
     }
   }
 
-  setup(function() {}, {explicit_done: true});
+  parent.setup(function() {}, {explicit_done: true});
 
-  var xhr = new XMLHttpRequest();
-  xhr.open("GET", "/common/entities.json");
-  xhr.onload = function () {
-    var entitiesJSON = JSON.parse(xhr.response);
-    [
-      ["application/xhtml+xml", "-//W3C//DTD XHTML 1.0 Transitional//EN", "foo", "XHTML1.0 Transitional"],
-      ["application/xhtml+xml", "-//W3C//DTD XHTML 1.1//EN", "foo", "XHTML1.1"],
-      ["application/xhtml+xml", "-//W3C//DTD XHTML 1.0 Strict//EN", "foo", "XHTML1.0 Strict"],
-      ["application/xhtml+xml", "-//W3C//DTD XHTML 1.0 Frameset//EN", "foo", "XHTML1.0 Frameset"],
-      ["application/xhtml+xml", "-//W3C//DTD XHTML Basic 1.0//EN", "foo", "XHTML Basic"],
-      ["application/xhtml+xml", "-//W3C//DTD XHTML 1.1 plus MathML 2.0//EN", "foo", "XHTML1.1+MathML"],
-      ["application/xhtml+xml", "-//W3C//DTD XHTML 1.1 plus MathML 2.0 plus SVG 1.1//EN", "foo", "XHTML1.1+MathML+SVG"],
-      ["application/xhtml+xml", "-//W3C//DTD MathML 2.0//EN", "foo", "MathML"],
-      ["application/xhtml+xml", "-//WAPFORUM//DTD XHTML Mobile 1.0//EN", "foo", "XHTML Mobile"],
-//      ["application/xhtml+xml", null, "mathml.dtd", "SYSTEM MathML"], // Experimental
-      ["text/html", null, null, "HTML"]
-    ].forEach(function (row) {
+  function run(row) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", "/common/entities.json");
+    xhr.onload = function () {
+      var entitiesJSON = JSON.parse(xhr.response);
       setupTests(entitiesJSON, row[1], row[2], row[0], row[3]);
-    });
-    done();
+      parent.done();
+    }
+    xhr.send();
   }
-  xhr.send();
-
 </script>

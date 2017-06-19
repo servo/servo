@@ -10,6 +10,6 @@
   <script>
     test(function() {
       element.styleMap.set('width', new CSSKeywordValue('inherit'));
-      assert_equals(element.styleMap.get('width').keywordValue, 'inherit', 'inherit should be a valid value for styleMap properties');
+      assert_equals(element.styleMap.get('width').value, 'inherit', 'inherit should be a valid value for styleMap properties');
     });
   </script>

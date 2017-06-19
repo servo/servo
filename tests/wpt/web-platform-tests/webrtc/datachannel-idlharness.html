@@ -1,0 +1,75 @@
+<!doctype html>
+<!--
+This test creates a data channel object and compares it with the WebIDL defined interface
+-->
+
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>RTCPeerConnection Data Channel Empty String Test</title>
+  <link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
+  <link rel="help" href="http://w3c.github.io/webrtc-pc/#rtcdatachannel">
+</head>
+<body>
+  <div id="log"></div>
+  <!-- These files are in place when executing on W3C. -->
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src=/resources/WebIDLParser.js></script>
+  <script src=/resources/idlharness.js></script>
+  <!-- The IDL is copied from https://w3c.github.io/webrtc-pc/archives/20161219/webrtc.html -->
+  <script type="text/plain">
+interface RTCDataChannel : EventTarget {
+    readonly attribute USVString           label;
+    readonly attribute boolean             ordered;
+    readonly attribute unsigned short?     maxPacketLifeTime;
+    readonly attribute unsigned short?     maxRetransmits;
+    readonly attribute USVString           protocol;
+    readonly attribute boolean             negotiated;
+    readonly attribute unsigned short      id;
+    readonly attribute RTCPriorityType     priority;
+    readonly attribute RTCDataChannelState readyState;
+    readonly attribute unsigned long       bufferedAmount;
+             attribute unsigned long       bufferedAmountLowThreshold;
+             attribute EventHandler        onopen;
+             attribute EventHandler        onbufferedamountlow;
+             attribute EventHandler        onerror;
+             attribute EventHandler        onclose;
+    void close();
+             attribute EventHandler        onmessage;
+             attribute DOMString           binaryType;
+    void send(USVString data);
+    void send(Blob data);
+    void send(ArrayBuffer data);
+    void send(ArrayBufferView data);
+};
+enum RTCPriorityType {
+    "very-low",
+    "low",
+    "medium",
+    "high"
+};
+enum RTCDataChannelState {
+    "connecting",
+    "open",
+    "closing",
+    "closed"
+};
+</script>
+  <script type="text/javascript">
+    (function() {
+  var idl_array = new IdlArray();
+  [].forEach.call(document.querySelectorAll("script[type=text\\/plain]"),
+                  function(node) {
+                    idl_array.add_idls(node.textContent);
+                  });
+    pc = new RTCPeerConnection(null);
+    window.channel = pc.createDataChannel("test");
+  idl_array.add_objects({"RTCDataChannel": ["channel"]});
+  idl_array.test();
+  done();
+})();
+</script>
+</body>
+</html>
+

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: DOM support for 'grid' and 'inline-grid' 'display' values</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/"> <!-- 2014-11-18 -->
+<link rel="help" href="http://www.w3.org/TR/css-grid-1/#grid-containers" title="3.1 Establishing Grid Containers">
+<meta name="flags" content="dom">
+<meta name="assert" content="This test checks that 'grid' and 'inline-grid' values for 'display' property are supported so that DOM methods, specifically getComputedValue(), and its associated CSS2Properties interface, can fetch such 'display' values.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .grid {
+    display: grid;
+  }
+
+  .inline-grid {
+    display: inline-grid;
+  }
+</style>
+<div id="log"></div>
+
+<div id="style-grid" style="display: grid;"></div>
+<div id="style-inline-grid" style="display: inline-grid;"></div>
+
+<div id="css-grid" class="grid"></div>
+<div id="css-inline-grid" class="inline-grid"></div>
+
+<div id="js-grid"></div>
+<div id="js-inline-grid"></div>
+
+<script>
+  function testStyleDisplay(element, value) {
+    assert_equals(element.style.display, value, "Style display should be '" + value + "'");
+  }
+
+  function testComputedStyleDisplay(element, value) {
+    assert_equals(getComputedStyle(element).getPropertyValue("display"), value, "getComputedStyle() display should be '" + value + "'");
+  }
+
+  var styleGrid = document.getElementById("style-grid");
+  test(function() {
+      testStyleDisplay(styleGrid, "grid");
+      testComputedStyleDisplay(styleGrid, "grid");
+    }, "Test style display 'grid'");
+
+  var styleInlineGrid = document.getElementById("style-inline-grid");
+  test(function() {
+      testStyleDisplay(styleInlineGrid, "inline-grid");
+      testComputedStyleDisplay(styleInlineGrid, "inline-grid");
+    }, "Test style display 'inline-grid'");
+
+  var cssGrid = document.getElementById("css-grid");
+  test(function() {
+      testComputedStyleDisplay(cssGrid, "grid");
+    }, "Test CSS display 'grid'");
+
+  var cssInlineGrid = document.getElementById("css-inline-grid");
+  test(function() {
+      testComputedStyleDisplay(cssInlineGrid, "inline-grid");
+    }, "Test CSS display 'inline-grid'");
+
+  var jsGrid = document.getElementById("js-grid");
+  jsGrid.style.display = "grid";
+  test(function() {
+      testStyleDisplay(jsGrid, "grid");
+      testComputedStyleDisplay(jsGrid, "grid");
+    }, "Test JavaScript display 'grid'");
+
+  var jsInlineGrid = document.getElementById("js-inline-grid");
+  jsInlineGrid.style.display = "inline-grid";
+  test(function() {
+      testStyleDisplay(jsInlineGrid, "inline-grid");
+      testComputedStyleDisplay(jsInlineGrid, "inline-grid");
+    }, "Test JavaScript display 'inline-grid'");
+</script>

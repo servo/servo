@@ -1,0 +1,18 @@
+<script>
+function listener(event) {
+  var mod = event.data;
+  try {
+    var i = new WebAssembly.Instance(mod);
+    var ans = i.exports.increment(42);
+    event.source.postMessage(ans, event.origin);
+  } catch (e) {
+    event.source.postMessage(e, event.origin);
+  }
+}
+
+if (window.addEventListener){
+  addEventListener("message", listener, false)
+} else {
+  attachEvent("onmessage", listener)
+}
+</script>

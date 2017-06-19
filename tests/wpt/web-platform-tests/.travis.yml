@@ -1,6 +1,9 @@
 dist: trusty
 sudo: required
 language: python
+branches:
+  only:
+    - master
 addons:
   hosts:
     - web-platform.test
@@ -9,6 +12,8 @@ addons:
     - www2.web-platform.test
     - xn--n8j6ds53lwwkrqhv28a.web-platform.test
     - xn--lve-6lad.web-platform.test
+  jwt:
+    secure: N9lvgkqUPtFlz6Vpa6qTPFhymEsDCsbaCsT64/hj3vlHRxK94r5+ugVJ3zm99zC0q2j1ish8yJC7mN/W4wRfBE4sAwmdxrlowxF1DDGCkaLE9i/GWW92s0fBVGJmXLh8kwNkQ31hMOsaGfHIMpeLFS7Se741te7YqsHIzmBCdQs=
 before_install:
   - git submodule update --init --recursive
   - export DISPLAY=:99.0
@@ -17,7 +22,10 @@ install:
   - pip install -U setuptools
   - pip install -U requests
 env:  # required at the top-level for allow_failures to work below
+  global:
+    - SAUCE_USERNAME=w3c-ttwf
 matrix:
+  fast_finish: true
   include:
     - os: linux
       python: "2.7"
@@ -48,10 +56,34 @@ matrix:
       env:
         - secure: "YTSXPwI0DyCA1GhYrLT9KMEV6b7QQKuEeaQgeFDP38OTzJ1+cIj3CC4SRNqbnJ/6SJwPGcdqSxLuV8m4e5HFFnyCcQnJe6h8EMsTehZ7W3j/fP9UYrJqYqvGpe3Vj3xblO5pwBYmq7sg3jAmmuCgAgOW6VGf7cRMucrsmFeo7VM="
         - SCRIPT=ci_stability.sh PRODUCT=chrome:unstable
+    - os: linux
+      python: "2.7"
+      env:
+        - secure: "YTSXPwI0DyCA1GhYrLT9KMEV6b7QQKuEeaQgeFDP38OTzJ1+cIj3CC4SRNqbnJ/6SJwPGcdqSxLuV8m4e5HFFnyCcQnJe6h8EMsTehZ7W3j/fP9UYrJqYqvGpe3Vj3xblO5pwBYmq7sg3jAmmuCgAgOW6VGf7cRMucrsmFeo7VM="
+        - SCRIPT=ci_stability.sh PRODUCT=sauce:safari:10.0 PLATFORM='macOS 10.12'
+    - os: linux
+      python: "2.7"
+      env:
+        - secure: "YTSXPwI0DyCA1GhYrLT9KMEV6b7QQKuEeaQgeFDP38OTzJ1+cIj3CC4SRNqbnJ/6SJwPGcdqSxLuV8m4e5HFFnyCcQnJe6h8EMsTehZ7W3j/fP9UYrJqYqvGpe3Vj3xblO5pwBYmq7sg3jAmmuCgAgOW6VGf7cRMucrsmFeo7VM="
+        - SCRIPT=ci_stability.sh PRODUCT=sauce:MicrosoftEdge:14.14393 PLATFORM='Windows 10'
+    - python: 2.7
+      env: TOXENV=py27 HYPOTHESIS_PROFILE=ci SCRIPT=ci_unittest.sh
+    - python: 3.5
+      env: TOXENV=py35 HYPOTHESIS_PROFILE=ci SCRIPT=ci_unittest.sh
+    - python: 3.6
+      env: TOXENV=py36 HYPOTHESIS_PROFILE=ci SCRIPT=ci_unittest.sh
+    - python: pypy
+      env: TOXENV=pypy HYPOTHESIS_PROFILE=ci SCRIPT=ci_unittest.sh
   exclude:
     - env:  # exclude empty env from the top-level above
   allow_failures:
     - env: SCRIPT=css/build-css-testsuites.sh
+    - env:
+        - secure: "YTSXPwI0DyCA1GhYrLT9KMEV6b7QQKuEeaQgeFDP38OTzJ1+cIj3CC4SRNqbnJ/6SJwPGcdqSxLuV8m4e5HFFnyCcQnJe6h8EMsTehZ7W3j/fP9UYrJqYqvGpe3Vj3xblO5pwBYmq7sg3jAmmuCgAgOW6VGf7cRMucrsmFeo7VM="
+        - SCRIPT=ci_stability.sh PRODUCT=chrome:unstable
+    - env:
+        - secure: "YTSXPwI0DyCA1GhYrLT9KMEV6b7QQKuEeaQgeFDP38OTzJ1+cIj3CC4SRNqbnJ/6SJwPGcdqSxLuV8m4e5HFFnyCcQnJe6h8EMsTehZ7W3j/fP9UYrJqYqvGpe3Vj3xblO5pwBYmq7sg3jAmmuCgAgOW6VGf7cRMucrsmFeo7VM="
+        - SCRIPT=ci_stability.sh PRODUCT=sauce:MicrosoftEdge:14.14393 PLATFORM='Windows 10'
 script:
   - bash $SCRIPT
 cache:

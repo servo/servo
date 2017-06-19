@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./support/helper.js"></script>
+<body>
+<script>
+  async_test(t => {
+    var i = document.createElement('iframe');
+    i.src = "./support/xfo.py?value=SAMEORIGIN";
+
+    wait_for_message_from(i, t)
+      .then(t.step_func_done(e => {
+        assert_equals(e.data, "Loaded");
+        i.remove();
+      }));
+
+    document.body.appendChild(i);
+  }, "`XFO: SAMEORIGIN` allows same-origin framing.");
+
+  async_test(t => {
+    var i = document.createElement('iframe');
+    i.src = "./support/nested.py?origin=http://{{host}}:{{ports[http][0]}}&value=SAMEORIGIN";
+
+    wait_for_message_from(i, t)
+      .then(t.step_func_done(e => {
+        assert_equals(e.data, "Loaded");
+        i.remove();
+      }));
+
+    document.body.appendChild(i);
+  }, "`XFO: SAMEORIGIN` allows same-origin nested in same-origin framing.");
+
+  async_test(t => {
+    var i = document.createElement('iframe');
+    i.src = "http://{{domains[www]}}:{{ports[http][0]}}/x-frame-options/support/xfo.py?value=SAMEORIGIN";
+
+    assert_no_message_from(i, t);
+
+    i.onload = t.step_func_done(_ => {
+      assert_throws("SecurityError", function () { return i.contentDocument; });
+      i.remove();
+    });
+
+    document.body.appendChild(i);
+  }, "`XFO: SAMEORIGIN` blocks cross-origin framing.");
+
+  async_test(t => {
+    var i = document.createElement('iframe');
+    i.src = "./support/nested.py?origin=http://{{domains[www]}}:{{ports[http][0]}}&value=SAMEORIGIN";
+
+    wait_for_message_from(i, t)
+      .then(t.step_func_done(e => {
+        assert_equals(e.data, "Failed");
+        i.remove();
+      }));
+
+    document.body.appendChild(i);
+  }, "`XFO: SAMEORIGIN` blocks cross-origin nested in same-origin framing.");
+
+  async_test(t => {
+    var i = document.createElement('iframe');
+    i.src = "http://{{domains[www]}}:{{ports[http][0]}}/x-frame-options/support/nested.py?origin=http://{{host}}:{{ports[http][0]}}&value=SAMEORIGIN";
+
+    wait_for_message_from(i, t)
+      .then(t.step_func_done(e => {
+        assert_equals(e.data, "Failed");
+        i.remove();
+      }));
+
+    document.body.appendChild(i);
+  }, "`XFO: SAMEORIGIN` blocks same-origin nested in cross-origin framing.");
+
+  async_test(t => {
+    var i = document.createElement('iframe');
+    i.src = "http://{{domains[www]}}:{{ports[http][0]}}/x-frame-options/support/nested.py?origin=http://{{domains[www]}}:{{ports[http][0]}}&value=SAMEORIGIN";
+
+    wait_for_message_from(i, t)
+      .then(t.step_func_done(e => {
+        assert_equals(e.data, "Failed");
+        i.remove();
+      }));
+
+    document.body.appendChild(i);
+  }, "`XFO: SAMEORIGIN` blocks cross-origin nested in cross-origin framing.");
+</script>

@@ -73,7 +73,7 @@ const loadTypes = [
                eResultFromPostMessage),
   new LoadType("a blob: URI",
                eLoadInEverything,
-               URL.createObjectURL(new Blob(["<script>(opener||parent).postMessage(isSecureContext, '*')</script>"])),
+               URL.createObjectURL(new Blob(["<script>(opener||parent).postMessage(isSecureContext, '*')</script>"], {type: "text/html"})),
                eSecureIfCreatorSecure,
                eResultFromPostMessage),
   new LoadType("a srcdoc",

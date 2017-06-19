@@ -1,0 +1,112 @@
+<!doctype html>
+<html>
+  <head>
+    <title>menu orientation vertical</title>
+    <link rel="stylesheet" href="/resources/testharness.css">
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_MENU"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_VERTICAL"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXRole",
+                  "is",
+                  "AXMenu"
+               ],
+               [
+                  "property",
+                  "AXSubrole",
+                  "is",
+                  "<nil>"
+               ],
+               [
+                  "property",
+                  "AXRoleDescription",
+                  "is",
+                  "menu"
+               ],
+               [
+                  "property",
+                  "AXOrientation",
+                  "is",
+                  "AXVerticalOrientation"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "IA2_STATE_VERTICAL"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_MENUPOPUP"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "Control Type",
+                  "is",
+                  "Menu"
+               ],
+               [
+                  "property",
+                  "IUIAutomationElement.Orientation",
+                  "is",
+                  "vertical"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "menu orientation vertical"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for menu orientation vertical.</p>
+    <ul id="test" role="menu" aria-orientation="vertical">
+    <li role="menuitem">File</file>
+    <li role="menuitem">Edit</file>
+  </ul>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>
+

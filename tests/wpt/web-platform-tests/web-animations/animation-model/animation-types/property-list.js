@@ -259,8 +259,7 @@ var gCSSProperties = {
   },
   'border-spacing': {
     // https://drafts.csswg.org/css-tables/#propdef-border-spacing
-    types: [
-    ]
+    types: [ 'lengthPair' ]
   },
   'border-top-color': {
     // https://drafts.csswg.org/css-backgrounds-3/#border-top-color
@@ -318,6 +317,10 @@ var gCSSProperties = {
       { type: 'discrete', options: [ [ 'top', 'bottom' ] ] }
     ]
   },
+  'caret-color': {
+    // https://drafts.csswg.org/css-ui/#propdef-caret-color
+    types: [ 'color' ]
+  },
   'clear': {
     // https://drafts.csswg.org/css-page-floats/#propdef-clear
     types: [
@@ -327,6 +330,11 @@ var gCSSProperties = {
   'clip': {
     // https://drafts.fxtf.org/css-masking-1/#propdef-clip
     types: [
+      'rect',
+      { type: 'discrete', options: [ [ 'rect(10px, 10px, 10px, 10px)',
+                                       'auto' ],
+                                     [ 'rect(10px, 10px, 10px, 10px)',
+                                       'rect(10px, 10px, 10px, auto)'] ] }
     ]
   },
   'clip-path': {
@@ -364,12 +372,15 @@ var gCSSProperties = {
   },
   'column-count': {
     // https://drafts.csswg.org/css-multicol/#propdef-column-count
-    types: [
+    types: [ 'positiveInteger',
+            { type: 'discrete', options: [ [ 'auto', '10' ] ] }
     ]
   },
   'column-gap': {
     // https://drafts.csswg.org/css-multicol/#propdef-column-gap
-    types: [ 'length' ]
+    types: [ 'length',
+            {  type: 'discrete', options: [ [ 'normal', '200px' ] ] }
+    ]
   },
   'column-rule-color': {
     // https://drafts.csswg.org/css-multicol/#propdef-column-rule-color
@@ -1130,8 +1141,7 @@ var gCSSProperties = {
   },
   'perspective-origin': {
     // https://drafts.csswg.org/css-transforms-1/#propdef-perspective-origin
-    types: [
-    ]
+    types: [ 'position' ]
   },
   'pointer-events': {
     // https://svgwg.org/svg2-draft/interact.html#PointerEventsProperty
@@ -1225,8 +1235,7 @@ var gCSSProperties = {
   },
   'stroke-dasharray': {
     // https://svgwg.org/svg2-draft/painting.html#StrokeDasharrayProperty
-    types: [
-    ]
+    types: [ 'dasharray' ]
   },
   'stroke-dashoffset': {
     // https://svgwg.org/svg2-draft/painting.html#StrokeDashoffsetProperty
@@ -1250,13 +1259,11 @@ var gCSSProperties = {
   },
   'stroke-miterlimit': {
     // https://svgwg.org/svg2-draft/painting.html#StrokeMiterlimitProperty
-    types: [
-    ]
+    types: [ 'positiveNumber' ]
   },
   'stroke-opacity': {
     // https://svgwg.org/svg2-draft/painting.html#StrokeOpacityProperty
-    types: [
-    ]
+    types: [ 'opacity' ]
   },
   'stroke-width': {
     // https://svgwg.org/svg2-draft/painting.html#StrokeWidthProperty
@@ -1435,8 +1442,7 @@ var gCSSProperties = {
   },
   'word-spacing': {
     // https://drafts.csswg.org/css-text-3/#propdef-word-spacing
-    types: [
-    ]
+    types: [ 'lengthPercentageOrCalc' ]
   },
   'will-change': {
     // http://dev.w3.org/csswg/css-will-change/#propdef-will-change
@@ -1520,4 +1526,13 @@ function propertyToIDL(property) {
                           function (str) {
                             return str.substr(1).toUpperCase(); });
 }
+function calcFromPercentage(idlName, percentageValue) {
+  var examElem = document.createElement('div');
+  document.body.appendChild(examElem);
+  examElem.style[idlName] = percentageValue;
 
+  var calcValue = getComputedStyle(examElem)[idlName];
+  document.body.removeChild(examElem);
+
+  return calcValue;
+}

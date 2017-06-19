@@ -1,3 +1,4 @@
+// For documentation of the format, see README in this directory.
 var browserTests = [
 ["foo[bar]baz",
     [["defaultparagraphseparator","div"],["insertparagraph",""]],

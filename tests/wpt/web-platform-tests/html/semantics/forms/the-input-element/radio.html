@@ -23,6 +23,11 @@
 <input type=radio name=group4 id=radio10>
 <input type=radio name=group4 id=radio11 checked>
 
+<form id="testform"></form>
+<input type=radio form=testform name=group6 id=radio12 checked>
+<input type=radio form=testform name=group6 id=radio13>
+<input type=radio form=testform name=group6 id=radio14>
+
 <script>
   var radio1 = document.getElementById('radio1'),
       radio2 = document.getElementById('radio2'),
@@ -36,6 +41,10 @@
       radio9 = document.getElementById('radio9'),
       radio10 = document.getElementById('radio10'),
       radio11 = document.getElementById('radio11'),
+      radio12 = document.getElementById('radio12'),
+      radio13 = document.getElementById('radio13'),
+      radio14 = document.getElementById('radio14'),
+      testform = document.getElementById('testform'),
       t1 = async_test("click on mutable radio fires click event, then input event, then change event"),
       t3 = async_test("click on non-mutable radio doesn't fire the input event"),
       t4 = async_test("click on non-mutable radio doesn't fire the change event"),
@@ -77,6 +86,31 @@
     assert_false(radio10.checked);
     assert_false(radio11.checked);
   }, "changing the name of a radio input element and setting its checkedness to true makes all the other elements' checkedness in the same radio button group be set to false");
+
+  test(function(){
+    radio12.remove();
+    assert_true(radio12.checked);
+    assert_false(radio13.checked);
+    assert_false(radio14.checked);
+    radio13.checked = true;
+    assert_true(radio13.checked);
+    assert_false(radio14.checked);
+    radio13.removeAttribute("form");
+    radio14.removeAttribute("form");
+    assert_true(radio13.checked);
+    assert_false(radio14.checked);
+    radio14.checked = true;
+    assert_false(radio13.checked);
+    assert_true(radio14.checked);
+    radio13.setAttribute("form", "testform");
+    radio14.setAttribute("form", "testform");
+    radio13.checked = true;
+    assert_true(radio13.checked);
+    assert_false(radio14.checked);
+    testform.remove();
+    assert_true(radio13.checked);
+    assert_false(radio14.checked);
+  }, "moving radio input element out of or into a form should still work as expected");
 
   radio5.onclick = t1.step_func(function(e) {
     click_fired = true;

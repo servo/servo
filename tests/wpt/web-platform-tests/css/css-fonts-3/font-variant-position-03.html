@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>CSS Test:  font-variant-position: super; low level equivalence</title>
+<link rel="author" title="Chris Lilley" href="chris@w3.org">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-variant-position-prop">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-feature-settings-prop">
+<link rel="match" href="font-variant-position-03-ref.html">
+<meta name="assert" content="Enables display of subscript variants (OpenType feature: subs).">
+<style>
+  @font-face {
+    font-family: fwf;
+    src: url(support/fonts/FontWithFancyFeatures.otf);
+  }
+  .test {
+	  font-family: fwf;
+	  font-size: 3em;
+	  line-height: 1.1;
+  }
+  .high {
+	 font-variant-position: super;
+  }
+  .low {
+	font-feature-settings: "subs" off, "sups" on;
+  }
+.foo {
+  color: #100;
+}
+.bar {
+  color: #001;
+}
+</style>
+<body>
+<p>Test passes if the three lines below are identical, with one cross (✗) followed by one checkmark (✓)  </p>
+<!-- Identical? If the UA is allowed to simulate subscripts and superscripts then the first line will use smaller glyphs than the second and third. Maybe "similar" and point out size doesn't matter on this test?  -->
+
+<section class="test">
+  <p class="high"><span class="foo">H</span><span class="bar">I</span></p>
+  <p class="high"><span class="foo">H</span><span class="bar">I</span></p>
+	<p class="ref">BA</p>
+</section>

@@ -15,8 +15,8 @@
         <div id="log" />
         <script id="metadata_cache">/*
         {
-          "window_inherited_functions": {
-            "assert": ["window functions are inherited"]
+          "window_exposed_functions": {
+            "assert": ["window functions are exposed"]
           },
           "window_functions": {
             "assert": ["window functions are instances of Function"]
@@ -35,12 +35,12 @@
              */
             test(
                 function(){
-                    assert_inherits(window, "matchMedia");
-                    assert_inherits(window, "scroll");
-                    assert_inherits(window, "scrollTo");
-                    assert_inherits(window, "scrollBy");
-                }, 'window_inherited_functions', {
-                  assert: ['window functions are inherited']
+                    assert_own_property(window, "matchMedia");
+                    assert_own_property(window, "scroll");
+                    assert_own_property(window, "scrollTo");
+                    assert_own_property(window, "scrollBy");
+                }, 'window_exposed_functions', {
+                  assert: ['window functions are exposed']
                 }
             );
 

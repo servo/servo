@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="match" href="background-image-tiled-ref.html">
+<style>
+    div {
+        display: inline-block;
+        width: 100px;
+        height: 100px;
+    }
+
+    #one {
+        background:
+            paint(ellipse) top left/50% 50% repeat-x,
+            paint(ellipse) bottom left/100% 50% no-repeat;
+    }
+
+    #two {
+        background:
+            paint(ellipse) top left/50% 20% repeat-y,
+            paint(ellipse) center right/50% 50% no-repeat;
+    }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/css-paint-tests.js"></script>
+<body>
+<div id="one"></div>
+<div id="two"></div>
+
+<script id="code" type="text/worklet">
+registerPaint('ellipse', class {
+    paint(ctx, geom) {
+        var x = geom.width / 2;
+        var y = geom.height / 2;
+
+        ctx.fillStyle = 'green';
+        ctx.beginPath();
+        ctx.ellipse(x, y, x - 1, y - 1, 0, 0, 2 * Math.PI);
+        ctx.fill();
+    }
+});
+</script>
+
+<script>
+    importPaintWorkletAndTerminateTestAfterAsyncPaint(document.getElementById('code').textContent);
+</script>
+</body>
+</html>

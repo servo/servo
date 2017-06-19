@@ -51,6 +51,8 @@
                 count_done++;
 
                 assert_equals(count_done, 3, "count_done");
+
+                db2.close();
                 this.done();
             });
         });

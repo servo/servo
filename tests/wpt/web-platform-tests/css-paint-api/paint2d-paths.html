@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="match" href="paint2d-paths-ref.html">
+<style>
+    #output {
+        width: 300px;
+        height: 400px;
+        background-image: paint(paths);
+    }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/css-paint-tests.js"></script>
+<body>
+<div id="output"></div>
+
+<script id="code" type="text/worklet">
+registerPaint('paths', class {
+    paint(ctx, geom) {
+        ctx.beginPath();
+        ctx.lineWidth = '10';
+        ctx.strokeStyle = 'green';
+        ctx.moveTo(15, 15);
+        ctx.lineTo(135, 15);
+        ctx.lineTo(70, 170);
+        ctx.closePath();
+        ctx.stroke();
+
+        var path1 = new Path2D();
+        path1.moveTo(250, 25);
+        path1.bezierCurveTo(110, 150, 110, 300, 200, 200);
+        ctx.strokeStyle = 'purple';
+        ctx.setLineDash([ 10, 5 ]);
+        ctx.stroke(path1);
+
+        ctx.fillStyle = 'red';
+        ctx.beginPath()
+        ctx.arc(75, 325, 50, 0, Math.PI * 2, true);
+        ctx.arc(75, 325, 20, 0, Math.PI * 2, true);
+        ctx.fill('evenodd');
+    }
+});
+</script>
+
+<script>
+    importPaintWorkletAndTerminateTestAfterAsyncPaint(document.getElementById('code').textContent);
+</script>
+</body>
+</html>

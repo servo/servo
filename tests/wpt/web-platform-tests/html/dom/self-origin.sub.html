@@ -10,9 +10,9 @@
 <!-- Use the non-default HTTP port so we can make sure it gets included in
      self.origin -->
 <iframe src="http://{{domains[www1]}}:{{ports[http][1]}}{{location[path]}}/../resources/self-origin-subframe.html"></iframe>
-<!-- Using the punycode version on purpose, we expect to get back the IDNA
+<!-- Using the Unicode version on purpose, we expect to get back the Punycode
      version in self.origin -->
-<iframe src="http://xn--lve-6lad.{{domains[]}}:{{ports[http][1]}}{{location[path]}}/../resources/self-origin-subframe.html"></iframe>
+<iframe src="http://élève.{{domains[]}}:{{ports[http][1]}}{{location[path]}}/../resources/self-origin-subframe.html"></iframe>
 <iframe src="resources/self-origin-subframe.html" sandbox="allow-scripts"></iframe>
 <script type="application/javascript">
 test(function() {
@@ -28,9 +28,9 @@ var messageTests = [
     async_test("Should have the right origin for cross-origin subframe") ],
   [ frames[4], "setDomainAndGetOrigin", "http://{{domains[www1]}}:{{ports[http][1]}}",
     async_test("Should have the right origin for cross-origin subframe after setting document.domain") ],
-  [ frames[5], "getOrigin", "http://élève.{{domains[]}}:{{ports[http][1]}}",
+  [ frames[5], "getOrigin", "http://xn--lve-6lad.{{domains[]}}:{{ports[http][1]}}",
     async_test("Should have the right origin for IDN subframe") ],
-  [ frames[5], "setDomainAndGetOrigin", "http://élève.{{domains[]}}:{{ports[http][1]}}",
+  [ frames[5], "setDomainAndGetOrigin", "http://xn--lve-6lad.{{domains[]}}:{{ports[http][1]}}",
     async_test("Should have the right origin for IDN subframe after setting document.domain") ],
   [ frames[6], "getOrigin", "null",
     async_test("Should have the right origin for sandboxed iframe") ],
@@ -48,7 +48,7 @@ function nextMessageTest() {
 
 window.onmessage = function(e) {
   var testData = messageTests[curTest++];
-  testData[3].step_func(function() {
+  testData[3].step(function() {
     assert_equals(e.data, testData[2])
   });
   testData[3].done();

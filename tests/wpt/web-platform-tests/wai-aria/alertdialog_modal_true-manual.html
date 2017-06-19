@@ -1,0 +1,123 @@
+<!doctype html>
+<html>
+  <head>
+    <title>alertdialog modal true</title>
+    <link rel="stylesheet" href="/resources/testharness.css">
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_DIALOG"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_MODAL"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXRole",
+                  "is",
+                  "AXGroup"
+               ],
+               [
+                  "property",
+                  "AXSubrole",
+                  "is",
+                  "AXApplicationAlertDialog"
+               ],
+               [
+                  "property",
+                  "AXRoleDescription",
+                  "is",
+                  "web alert dialog"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "IA2_STATE_MODAL"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_DIALOG"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "Control Type",
+                  "is",
+                  "Pane"
+               ],
+               [
+                  "result",
+                  "Window.isModal",
+                  "is",
+                  "true"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      },
+      {
+         "element" : "Test2",
+         "test" : {
+            "AXAPI" : [
+               [
+                  "property",
+                  "accessible",
+                  "is",
+                  "false"
+               ]
+            ],
+            "UIA" : []
+         },
+         "title" : "step 2",
+         "type" : "test"
+      }
+   ],
+   "title" : "alertdialog modal true"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for alertdialog modal true.</p>
+    <h1 id="Test2">Modal Dialog Box Test</h1>
+  <div role="alertdialog" aria-modal="true" id="test">
+    You have an error.
+    <input type="button" value="ok"/>
+  </div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>
+

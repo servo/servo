@@ -1,6 +1,6 @@
 "use strict";
 
-function testCollapse(range, point) {
+function testCollapse(range, point, method) {
     selection.removeAllRanges();
     var addedRange;
     if (range) {
@@ -10,46 +10,46 @@ function testCollapse(range, point) {
 
     if (point[0].nodeType == Node.DOCUMENT_TYPE_NODE) {
         assert_throws("INVALID_NODE_TYPE_ERR", function() {
-            selection.collapse(point[0], point[1]);
-        }, "Must throw INVALID_NODE_TYPE_ERR when collapse()ing if the node is a DocumentType");
+            selection[method](point[0], point[1]);
+        }, "Must throw INVALID_NODE_TYPE_ERR when " + method + "()ing if the node is a DocumentType");
         return;
     }
 
     if (point[1] < 0 || point[1] > getNodeLength(point[0])) {
         assert_throws("INDEX_SIZE_ERR", function() {
-            selection.collapse(point[0], point[1]);
-        }, "Must throw INDEX_SIZE_ERR when collapse()ing if the offset is negative or greater than the node's length");
+            selection[method](point[0], point[1]);
+        }, "Must throw INDEX_SIZE_ERR when " + method + "()ing if the offset is negative or greater than the node's length");
         return;
     }
 
     if (!document.contains(point[0])) {
         assertSelectionNoChange(function() {
-            selection.collapse(point[0], point[1]);
+            selection[method](point[0], point[1]);
         });
         return;
     }
 
-    selection.collapse(point[0], point[1]);
+    selection[method](point[0], point[1]);
 
     assert_equals(selection.rangeCount, 1,
-        "selection.rangeCount must equal 1 after collapse()");
+        "selection.rangeCount must equal 1 after " + method + "()");
     assert_equals(selection.focusNode, point[0],
-        "focusNode must equal the node we collapse()d to");
+        "focusNode must equal the node we " + method + "()d to");
     assert_equals(selection.focusOffset, point[1],
-        "focusOffset must equal the offset we collapse()d to");
+        "focusOffset must equal the offset we " + method + "()d to");
     assert_equals(selection.focusNode, selection.anchorNode,
-        "focusNode and anchorNode must be equal after collapse()");
+        "focusNode and anchorNode must be equal after " + method + "()");
     assert_equals(selection.focusOffset, selection.anchorOffset,
-        "focusOffset and anchorOffset must be equal after collapse()");
+        "focusOffset and anchorOffset must be equal after " + method + "()");
     if (range) {
         assert_equals(addedRange.startContainer, range.startContainer,
-            "collapse() must not change the startContainer of a preexisting Range");
+            method + "() must not change the startContainer of a preexisting Range");
         assert_equals(addedRange.endContainer, range.endContainer,
-            "collapse() must not change the endContainer of a preexisting Range");
+            method + "() must not change the endContainer of a preexisting Range");
         assert_equals(addedRange.startOffset, range.startOffset,
-            "collapse() must not change the startOffset of a preexisting Range");
+            method + "() must not change the startOffset of a preexisting Range");
         assert_equals(addedRange.endOffset, range.endOffset,
-            "collapse() must not change the endOffset of a preexisting Range");
+            method + "() must not change the endOffset of a preexisting Range");
     }
 }
 
@@ -91,7 +91,10 @@ function testCollapseSubSet(startIndex, optionalEndIndex) {
             }
         }, "Set up range " + i + " " + testRanges[i]);
         for (var j = 0; j < testPoints.length; j++) {
-            tests.push(["Range " + i + " " + testRanges[i] + ", point " + j + " " + testPoints[j], range, testPointsCached[j]]);
+            tests.push(["collapse() on " + testRanges[i] + " to " + testPoints[j],
+                        range, testPointsCached[j], "collapse"]);
+            tests.push(["setPosition() on " + testRanges[i] + " to " + testPoints[j],
+                        range, testPointsCached[j], "setPosition"]);
         }
     }
 

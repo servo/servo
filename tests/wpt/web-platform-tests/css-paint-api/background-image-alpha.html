@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="match" href="background-image-alpha-ref.html">
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+}
+
+#canvas-opaque {
+  background-image: paint(opaque);
+}
+
+#canvas-nonopaque {
+  background-image: paint(nonOpaque);
+}
+
+#background {
+  background-color: yellow;
+  display: inline-block;
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/css-paint-tests.js"></script>
+<body>
+<div id="background">
+  <div id="canvas-opaque" class="container"></div>
+  <div id="canvas-nonopaque" class="container"></div>
+</div>
+
+<script id="code" type="text/worklet">
+registerPaint('opaque', class {
+    static get alpha() { return false; }
+    paint(ctx, geom) {
+        ctx.strokeStyle = 'blue';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(20, 20, 60, 60);
+    }
+});
+
+registerPaint('nonOpaque', class {
+    static get alpha() { return true; }
+    paint(ctx, geom) {
+        ctx.strokeStyle = 'blue';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(20, 20, 60, 60);
+    }
+});
+</script>
+
+<script>
+    importPaintWorkletAndTerminateTestAfterAsyncPaint(document.getElementById('code').textContent);
+</script>
+</body>
+</html>

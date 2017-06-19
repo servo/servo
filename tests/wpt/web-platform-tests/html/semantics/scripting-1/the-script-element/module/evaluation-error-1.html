@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Handling of evaluation errors, 1</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    setup({allow_uncaught_exception: true});
+
+    window.log = [];
+
+    window.addEventListener("error", ev => log.push(ev.error));
+
+    const test_load = async_test(
+        "Test that exceptions during evaluation lead to error events on " +
+        "window, and that exceptions are remembered.\n");
+    window.addEventListener("load", test_load.step_func_done(ev => {
+      const exn = log[1];
+      assert_array_equals(log, ["throw", exn, exn, exn, exn]);
+      assert_true(exn.foo);
+    }));
+
+    function unreachable() { log.push("unexpected"); }
+</script>
+<script type="module" src="throw.js" onerror="unreachable()"></script>
+<script type="module" src="throw.js" onerror="unreachable()"></script>
+<script type="module" src="throw.js" async onerror="unreachable()"></script>
+<script type="module" src="throw.js" nomodule onerror="unreachable()"></script>

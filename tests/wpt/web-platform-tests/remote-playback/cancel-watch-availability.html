@@ -23,7 +23,7 @@ async_test(t => {
 
 async_test(t => {
   var v = document.createElement('video');
-  v.src = getVideoURI('media_5');
+  v.src = getVideoURI('movie_5');
 
   Promise.all([
       v.remote.watchAvailability(function() {}),

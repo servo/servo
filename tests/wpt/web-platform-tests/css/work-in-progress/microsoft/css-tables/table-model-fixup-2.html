@@ -1,8 +1,8 @@
 <!doctype html>
 <script src='/resources/testharness.js'></script>
 <script src='/resources/testharnessreport.js'></script>
-<link rel='stylesheet' href='/resources/testharness.css'>
 <link rel='stylesheet' href='./base.css' />
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#table-structure">
 <style>
 	[inline] { display: inline !important; }
 	[block] { display: block !important; }
@@ -25,7 +25,7 @@
 		generate_tests(assert_equals, [
 			[
 				desc.textContent,
-				root.querySelector("[target="+a+"]").offsetWidth, 
+				root.querySelector("[target="+a+"]").offsetWidth,
 				root.querySelector("[target="+b+"]").offsetWidth
 			]
 		]);
@@ -36,7 +36,7 @@
 		generate_tests(assert_equals, [
 			[
 				desc.textContent,
-				root.querySelector("[target="+a+"]").getBoundingClientRect().top|0, 
+				root.querySelector("[target="+a+"]").getBoundingClientRect().top|0,
 				root.querySelector("[target="+b+"]").getBoundingClientRect().top|0
 			]
 		]);
@@ -47,7 +47,7 @@
 		generate_tests(assert_not_equals, [
 			[
 				desc.textContent,
-				root.querySelector("[target="+a+"]").getBoundingClientRect().top|0, 
+				root.querySelector("[target="+a+"]").getBoundingClientRect().top|0,
 				root.querySelector("[target="+b+"]").getBoundingClientRect().top|0
 			]
 		]);
@@ -69,11 +69,11 @@
 		</x-table>
 	</div>
 	<script>
-	
+
 		assertEqualOffsetWidths('a','b');
-		
+
 	</script>
-	
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>Both images should look identical, on their own line:</p>
 	<p>Replaced elements inside a table cannot be <mark>table-row</mark> and are considered <mark>block</mark> -- img elements</p>
@@ -84,11 +84,11 @@
 		</x-table>
 	</div>
 	<script>
-	
+
 		assertEqualOffsetWidths('a','b');
-		
+
 	</script>
-	
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>Both input fields should look identical, on their own line:</p>
 	<p>Replaced elements inside a table cannot be <mark>table-column</mark> and are considered <mark>inline</mark> -- input elements</p>
@@ -99,11 +99,11 @@
 		</x-table>
 	</div>
 	<script>
-	
+
 		assertEqualOffsetWidths('a','b');
-		
+
 	</script>
-	
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>Both images should look identical, on their own line:</p>
 	<p>Replaced elements inside a table cannot be <mark>table-column</mark> and are considered <mark>inline</mark> -- img elements</p>
@@ -114,11 +114,11 @@
 		</x-table>
 	</div>
 	<script>
-	
+
 		assertEqualOffsetWidths('a','b');
-		
+
 	</script>
-	
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>Both input fields should look identical, on their own line:</p>
 	<p>Replaced elements inside a table cannot be <mark>table-cell</mark> and are considered <mark>inline</mark> -- input elements</p>
@@ -129,11 +129,11 @@
 		</x-table>
 	</div>
 	<script>
-	
+
 		assertEqualOffsetWidths('a','b');
-		
+
 	</script>
-	
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>Both images should look identical, on their own line:</p>
 	<p>Replaced elements inside a table cannot be <mark>table-cell</mark> and are considered <mark>inline</mark> -- img elements</p>
@@ -144,9 +144,9 @@
 		</x-table>
 	</div>
 	<script>
-	
+
 		assertEqualOffsetWidths('a','b');
-		
+
 	</script>
 
 	<hr/><!------------------------------------------------------------------------------------------------------------>
@@ -157,9 +157,9 @@
 		<input inline-table target=b />
 	</div>
 	<script>
-	
+
 		assertEqualOffsetTops('a','b');
-		
+
 	</script>
 
 	<hr/><!------------------------------------------------------------------------------------------------------------>
@@ -170,11 +170,11 @@
 		<input type=button inline-table target=b />
 	</div>
 	<script>
-	
+
 		assertEqualOffsetTops('a','b');
-		
+
 	</script>
-	
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>Both file inputs should share the same line:</p>
 	<p>Replaced elements outside a table cannot be <mark>inline-table</mark> and are considered <mark>inline</mark> -- input=file elements</p>
@@ -183,9 +183,9 @@
 		<input type=file inline-table target=b />
 	</div>
 	<script>
-	
+
 		assertEqualOffsetTops('a','b');
-		
+
 	</script>
 
 	<hr/><!------------------------------------------------------------------------------------------------------------>
@@ -196,11 +196,11 @@
 		<img src="http://w3.org/favicon.ico" inline-table target=b />
 	</div>
 	<script>
-	
+
 		assertEqualOffsetTops('a','b');
-		
+
 	</script>
-	
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>Both text inputs should stand on their own line:</p>
 	<p>Replaced elements outside a table cannot be <mark>table</mark> and are considered <mark>block</mark> -- input=text elements</p>
@@ -209,11 +209,11 @@
 		<input type=text table target=b />
 	</div>
 	<script>
-	
+
 		assertUnequalOffsetTops('a','b');
-		
-	</script>	
-	
+
+	</script>
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>Both button inputs should stand on their own line:</p>
 	<p>Replaced elements outside a table cannot be <mark>table</mark> and are considered <mark>block</mark> -- input=button elements</p>
@@ -222,11 +222,11 @@
 		<input type=button table target=b />
 	</div>
 	<script>
-	
+
 		assertUnequalOffsetTops('a','b');
-		
-	</script>	
-	
+
+	</script>
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>Both file inputs should stand on their own line:</p>
 	<p>Replaced elements outside a table cannot be <mark>table</mark> and are considered <mark>block</mark> -- input=file elements</p>
@@ -235,11 +235,11 @@
 		<input type=file table target=b />
 	</div>
 	<script>
-	
+
 		assertUnequalOffsetTops('a','b');
-		
-	</script>	
-	
+
+	</script>
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>Both images should stand on their own line:</p>
 	<p>Replaced elements outside a table cannot be <mark>table</mark> and are considered <mark>block</mark> -- img elements</p>
@@ -248,11 +248,11 @@
 		<img src="http://w3.org/favicon.ico" table target=b />
 	</div>
 	<script>
-	
+
 		assertUnequalOffsetTops('a','b');
-		
+
 	</script>
-	
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>Both text inputs should stand on their own line:</p>
 	<p>Replaced elements outside a table cannot be <mark>table-row</mark> and are considered <mark>block</mark> -- input=text elements</p>
@@ -261,11 +261,11 @@
 		<input type=text table-row target=b />
 	</div>
 	<script>
-	
+
 		assertUnequalOffsetTops('a','b');
-		
+
 	</script>
-	
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>Both button inputs should stand on their own line:</p>
 	<p>Replaced elements outside a table cannot be <mark>table-row</mark> and are considered <mark>block</mark> -- input=button elements</p>
@@ -274,11 +274,11 @@
 		<input type=button table-row target=b />
 	</div>
 	<script>
-	
+
 		assertUnequalOffsetTops('a','b');
-		
+
 	</script>
-	
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>Both file inputs should stand on their own line:</p>
 	<p>Replaced elements outside a table cannot be <mark>table-row</mark> and are considered <mark>block</mark> -- input=file elements</p>
@@ -287,11 +287,11 @@
 		<input type=file table-row target=b />
 	</div>
 	<script>
-	
+
 		assertUnequalOffsetTops('a','b');
-		
+
 	</script>
-	
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>Both images should stand on their own line:</p>
 	<p>Replaced elements outside a table cannot be <mark>table-row</mark> and are considered <mark>block</mark> -- img elements</p>
@@ -300,11 +300,11 @@
 		<img src="http://w3.org/favicon.ico" table-row target=b />
 	</div>
 	<script>
-	
+
 		assertUnequalOffsetTops('a','b');
-		
+
 	</script>
-	
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>Both text inputs should stand on their own line:</p>
 	<p>Replaced elements outside a table cannot be <mark>table-row-group</mark> and are considered <mark>block</mark> -- input=text elements</p>
@@ -313,11 +313,11 @@
 		<input type=text table-row-group target=b />
 	</div>
 	<script>
-	
+
 		assertUnequalOffsetTops('a','b');
-		
+
 	</script>
-	
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>Both button inputs should stand on their own line:</p>
 	<p>Replaced elements outside a table cannot be <mark>table-row-group</mark> and are considered <mark>block</mark> -- input=button elements</p>
@@ -326,11 +326,11 @@
 		<input type=button table-row-group target=b />
 	</div>
 	<script>
-	
+
 		assertUnequalOffsetTops('a','b');
-		
+
 	</script>
-	
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>Both file inputs should stand on their own line:</p>
 	<p>Replaced elements outside a table cannot be <mark>table-row-group</mark> and are considered <mark>block</mark> -- input=file elements</p>
@@ -339,11 +339,11 @@
 		<input type=file table-row-group target=b />
 	</div>
 	<script>
-	
+
 		assertUnequalOffsetTops('a','b');
-		
+
 	</script>
-	
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>Both images should stand on their own line:</p>
 	<p>Replaced elements outside a table cannot be <mark>table-row-group</mark> and are considered <mark>block</mark> -- img elements</p>
@@ -352,11 +352,11 @@
 		<img src="http://w3.org/favicon.ico" table-row-group target=b />
 	</div>
 	<script>
-	
+
 		assertUnequalOffsetTops('a','b');
-		
+
 	</script>
-	
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>Both text inputs should share the same line:</p>
 	<p>Replaced elements outside a table cannot be <mark>table-column</mark> and are <mark>considered</mark> inline -- input=text elements</p>
@@ -365,9 +365,9 @@
 		<input table-column target=b />
 	</div>
 	<script>
-	
+
 		assertEqualOffsetTops('a','b');
-		
+
 	</script>
 
 	<hr/><!------------------------------------------------------------------------------------------------------------>
@@ -378,11 +378,11 @@
 		<input type=button table-column target=b />
 	</div>
 	<script>
-	
+
 		assertEqualOffsetTops('a','b');
-		
+
 	</script>
-	
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>Both file inputs should share the same line:</p>
 	<p>Replaced elements outside a table cannot be <mark>table-column</mark> and are considered <mark>inline</mark> -- input=file elements</p>
@@ -391,9 +391,9 @@
 		<input type=file table-column target=b />
 	</div>
 	<script>
-	
+
 		assertEqualOffsetTops('a','b');
-		
+
 	</script>
 
 	<hr/><!------------------------------------------------------------------------------------------------------------>
@@ -404,9 +404,9 @@
 		<img src="http://w3.org/favicon.ico" table-column target=b />
 	</div>
 	<script>
-	
+
 		assertEqualOffsetTops('a','b');
-		
+
 	</script>
 
 	<hr/><!------------------------------------------------------------------------------------------------------------>
@@ -417,9 +417,9 @@
 		<input table-cell target=b />
 	</div>
 	<script>
-	
+
 		assertEqualOffsetTops('a','b');
-		
+
 	</script>
 
 	<hr/><!------------------------------------------------------------------------------------------------------------>
@@ -430,11 +430,11 @@
 		<input type=button table-cell target=b />
 	</div>
 	<script>
-	
+
 		assertEqualOffsetTops('a','b');
-		
+
 	</script>
-	
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>Both file inputs should share the same line:</p>
 	<p>Replaced elements outside a table cannot be <mark>table-cell</mark> and are considered <mark>inline</mark> -- input=file elements</p>
@@ -443,9 +443,9 @@
 		<input type=file table-cell target=b />
 	</div>
 	<script>
-	
+
 		assertEqualOffsetTops('a','b');
-		
+
 	</script>
 
 	<hr/><!------------------------------------------------------------------------------------------------------------>
@@ -456,9 +456,9 @@
 		<img src="http://w3.org/favicon.ico" table-cell target=b />
 	</div>
 	<script>
-	
+
 		assertEqualOffsetTops('a','b');
-		
+
 	</script>
-	
+
 </main>

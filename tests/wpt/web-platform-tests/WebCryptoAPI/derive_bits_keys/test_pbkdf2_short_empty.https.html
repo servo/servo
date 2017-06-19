@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>WebCryptoAPI: deriveBits() and deriveKey() Using PBKDF2</title>
+<link rel="author" title="Charles Engelke" href="mailto:w3c@engelke.com">
+<link rel="help" href="https://w3c.github.io/webcrypto/Overview.html#SubtleCrypto-method-deriveBits">
+<link rel="help" href="https://w3c.github.io/webcrypto/Overview.html#SubtleCrypto-method-deriveKey">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script src="pbkdf2_vectors.js"></script>
+<script src="pbkdf2.js"></script>
+
+<h1>deriveBits and deriveKey Tests for PBKDF2</h1>
+
+<div id="log"></div>
+<script>
+run_test(
+  "short", //password size
+  "empty"  //salt size
+);
+</script>

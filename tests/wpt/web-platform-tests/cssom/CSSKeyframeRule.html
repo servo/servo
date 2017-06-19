@@ -41,4 +41,11 @@
     assert_equals(toRule.style.marginLeft, "-5%");
     assert_equals(toRule.style.width, "50%");
   }, "CSSKeyframeRule: style property");
+
+  test(function() {
+    fromRule.style = "margin-left: 50%; width: 100%;";
+
+    assert_equals(fromRule.style.marginLeft, "50%", "margin-left");
+    assert_equals(fromRule.style.width, "100%", "width");
+  }, "CSSKeyframeRule: style property has [PutForwards]");
 </script>

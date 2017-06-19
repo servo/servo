@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<title>position:sticky elements should respect the right constraint</title>
+<link rel="match" href="position-sticky-right-ref.html" />
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
+<meta name="assert" content="This test checks that position:sticky elements obey their right anchor after scrolling" />
+
+<style>
+.group {
+  position: relative;
+  width: 250px;
+  height: 150px;
+}
+
+.scroller {
+  position: relative;
+  width: 200px;
+  height: 100px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.contents {
+  height: 100%;
+  width: 500px;
+}
+
+.prepadding {
+  display: inline-block;
+  height: 100%;
+  width: 200px;
+}
+
+.container {
+  display: inline-block;
+  height: 100%;
+  width: 200px;
+}
+
+.filler {
+  display: inline-block;
+  height: 100%;
+  width: 100px;
+}
+
+.indicator {
+  background-color: red;
+  position: absolute;
+  top: 0;
+}
+
+.sticky {
+  background-color: green;
+  position: sticky;
+  right: 25px;
+}
+
+.box {
+  display: inline-block;
+  height: 100%;
+  width: 100px;
+}
+</style>
+
+<script>
+window.addEventListener('load', function() {
+  document.getElementById('scroller1').scrollLeft = 100;
+  document.getElementById('scroller2').scrollLeft = 175;
+  document.getElementById('scroller3').scrollLeft = 250;
+});
+</script>
+
+<div class="group">
+  <div id="scroller1" class="scroller">
+    <div class="indicator box" style="left: 200px;"></div>
+    <div class="contents">
+      <!-- As these elements are inline, they are whitespace sensitive. -->
+      <div class="prepadding"></div><div class="container"><div class="filler"></div><div class="sticky box"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="group">
+  <div id="scroller2" class="scroller">
+    <div class="indicator box" style="left: 250px;"></div>
+    <div class="contents">
+      <!-- As these elements are inline, they are whitespace sensitive. -->
+      <div class="prepadding"></div><div class="container"><div class="filler"></div><div class="sticky box"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="group">
+  <div id="scroller3" class="scroller">
+    <div class="indicator box" style="left: 300px;"></div>
+    <div class="contents">
+      <!-- As these elements are inline, they are whitespace sensitive. -->
+      <div class="prepadding"></div><div class="container"><div class="filler"></div><div class="sticky box"></div></div>
+    </div>
+  </div>
+</div>
+
+<div>You should see three green boxes above. No red should be visible.</div>

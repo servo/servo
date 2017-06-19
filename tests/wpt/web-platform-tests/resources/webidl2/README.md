@@ -3,16 +3,15 @@
 
 [![NPM version](https://badge.fury.io/js/webidl2.png)](http://badge.fury.io/js/webidl2)
 
-Purpose
-=======
+## Purpose
 
 This is a parser for the [WebIDL](http://dev.w3.org/2006/webapi/WebIDL/) language. If
 you don't know what that is, then you probably don't need it. It is meant to be used
 both in Node and in the browser (the parser likely works in other JS environments, but
 not the test suite).
 
-What of v1?
------------
+### What of v1?
+
 There was a previous incarnation of this project. I had written it in the most quick
 and dirty manner that was handy because I required it as a dependency in an experiment.
 As these things tend to happen, some people started using that, which then had to be
@@ -20,65 +19,72 @@ maintained. But since it was not built on solid foundations, it was painful to k
 up to date with the specification, which is a bit of a moving target.
 
 So I started from scratch. Compared to the previous version (which used a parser generator)
-this one is about 6x less code (which translates to 4x smaller minified or 2x smaller 
+this one is about 6x less code (which translates to 4x smaller minified or 2x smaller
 minizipped) and 4x faster. The test suite is reasonably complete (95% coverage), much more
 than previously. This version is up to date with WebIDL, rather than a couple years' behind.
 It also has *far* better error reporting.
 
-The AST you get from parsing is very similar to the one you got in v1, but some adjustments 
-have been made in order to be more systematic, and to map better to what's actually in the spec 
+The AST you get from parsing is very similar to the one you got in v1, but some adjustments
+have been made in order to be more systematic, and to map better to what's actually in the spec
 now. If you used v1, you will need to tweak your code but the result ought to be simpler and
-you ought to be able to be a fair bit less defensive against irregularities in the way 
+you ought to be able to be a fair bit less defensive against irregularities in the way
 information is represented.
 
-Installation
-============
+## Installation
 
 Just the usual. For Node:
 
-    npm install webidl2
-    
+```Bash
+npm install webidl2
+```
+
 In the browser:
 
-    <script src='webidl2.js'></script>
+```HTML
+<script src='webidl2.js'></script>
+```
 
-Documentation
-=============
+## Documentation
+
 
 The API to WebIDL2 is trivial: you parse a string of WebIDL and it returns a syntax tree.
 
-Parsing
--------
+### Parsing
+
 In Node, that happens with:
 
-    var WebIDL2 = require("webidl2");
-    var tree = WebIDL2.parse("string of WebIDL");
+```JS
+var WebIDL2 = require("webidl2");
+var tree = WebIDL2.parse("string of WebIDL");
+```
 
 In the browser:
+```HTML
+<script src='webidl2.js'></script>
+<script>
+  var tree = WebIDL2.parse("string of WebIDL");
+</script>
+```
 
-    <script src='webidl2.js'></script>
-    <script>
-      var tree = WebIDL2.parse("string of WebIDL");
-    </script>
-
-Advanced Parsing
-----------------
+### Advanced Parsing
 
 `parse()` can optionally accept a second parameter, an options object, which can be used to
 modify parsing behavior.
 
 The following options are recognized:
-```javascript
+```JS
 {
-    allowNestedTypedefs: false # 
+  allowNestedTypedefs: false
 }
 ```
+
 And their meanings are as follows:
 
-* `allowNestedTypedefs`: Boolean indicating whether the parser should accept `typedef`s as valid members of `interface`s. This is non-standard syntax and therefore the default is `false`.
+* `allowNestedTypedefs`: Boolean indicating whether the parser should accept `typedef`s as valid members of `interface`s.
+This is non-standard syntax and therefore the default is `false`.
 
-Errors
-------
+### Errors
+
 When there is a syntax error in the WebIDL, it throws an exception object with the following
 properties:
 
@@ -91,8 +97,8 @@ properties:
 The exception also has a `toString()` method that hopefully should produce a decent
 error message.
 
-AST (Abstract Syntax Tree)
---------------------------
+### AST (Abstract Syntax Tree)
+
 The `parse()` method returns a tree object representing the parse tree of the IDL.
 Comment and white space are not represented in the AST.
 
@@ -106,35 +112,34 @@ This structure is used in many other places (operation return types, argument ty
 It captures a WebIDL type with a number of options. Types look like this and are typically
 attached to a field called `idlType`:
 
-    {
-        "sequence": false,
-        "generic": null,
-        "nullable": false,
-        "array": false,
-        "union": false,
-        "idlType": "void"
-    }
+```JS
+{
+  "array": false,
+  "generic": null,
+  "idlType": "void",
+  "nullable": false,
+  "union": false,
+}
+```
 
 Where the fields are as follows:
 
-* `sequence`: Boolean indicating whether this is a sequence or not. Deprecated. Use
-  `generic` instead.
-* `generic`: String indicating the generic type (e.g. "Promise", "sequence"). `null`
-  otherwise.
-* `nullable`: Boolean indicating whether this is nullable or not.
 * `array`: Either `false` to indicate that it is not an array, or a number for the level of
   array nesting.
-* `union`: Boolean indicating whether this is a union type or not.
+* `generic`: String indicating the generic type (e.g. "Promise", "sequence"). `null`
+  otherwise.
 * `idlType`: Can be different things depending on context. In most cases, this will just
   be a string with the type name. But the reason this field isn't called "typeName" is
   because it can take more complex values. If the type is a union, then this contains an
   array of the types it unites. If it is a generic type, it contains the IDL type
   description for the type in the sequence, the eventual value of the promise, etc.
+* `nullable`: Boolean indicating whether this is nullable or not.
+* `union`: Boolean indicating whether this is a union type or not.
 
 #### Interactions between `nullable` and `array`
 
 A more complex data model for our AST would likely represent `Foo[][][]` as a series of
-nested types four levels deep with three anonymous array types eventually containing a 
+nested types four levels deep with three anonymous array types eventually containing a
 `Foo` type. But experience shows that such structures are cumbersome to use, and so we
 have a simpler model in which the depth of the array is specified with the `array` field.
 
@@ -167,22 +172,23 @@ a `?` at the end.
 ### Interface
 Interfaces look like this:
 
-    {
-        "type": "interface",
-        "name": "Animal",
-        "partial": false,
-        "members": [...],
-        "inheritance": null,
-        "extAttrs": [...]
-    },
-    {
-        "type": "interface",
-        "name": "Human",
-        "partial": false,
-        "members": [...],
-        "inheritance": "Animal",
-        "extAttrs": [...]
-    }
+```JS
+{
+  "type": "interface",
+  "name": "Animal",
+  "partial": false,
+  "members": [...],
+  "inheritance": null,
+  "extAttrs": [...]
+}, {
+  "type": "interface",
+  "name": "Human",
+  "partial": false,
+  "members": [...],
+  "inheritance": "Animal",
+  "extAttrs": [...]
+}
+```
 
 The fields are as follows:
 
@@ -204,20 +210,22 @@ their `type` field is "callback interface".
 
 A callback looks like this:
 
-  {
-      "type": "callback",
-      "name": "AsyncOperationCallback",
-      "idlType": {
-          "sequence": false,
-          "generic": null,
-          "nullable": false,
-          "array": false,
-          "union": false,
-          "idlType": "void"
-      },
-      "arguments": [...],
-      "extAttrs": []
-  }
+```JS
+{
+  "type": "callback",
+  "name": "AsyncOperationCallback",
+  "idlType": {
+    "sequence": false,
+    "generic": null,
+    "nullable": false,
+    "array": false,
+    "union": false,
+    "idlType": "void"
+  },
+  "arguments": [...],
+  "extAttrs": []
+}
+```
 
 The fields are as follows:
 
@@ -231,33 +239,33 @@ The fields are as follows:
 
 A dictionary looks like this:
 
-    {
-        "type": "dictionary",
-        "name": "PaintOptions",
-        "partial": false,
-        "members": [
-            {
-                "type": "field",
-                "name": "fillPattern",
-                "required": false,
-                "idlType": {
-                    "sequence": false,
-                    "generic": null,
-                    "nullable": true,
-                    "array": false,
-                    "union": false,
-                    "idlType": "DOMString"
-                },
-                "extAttrs": [],
-                "default": {
-                    "type": "string",
-                    "value": "black"
-                }
-            }
-        ],
-        "inheritance": null,
-        "extAttrs": []
+```JS
+{
+  "type": "dictionary",
+  "name": "PaintOptions",
+  "partial": false,
+  "members": [{
+    "type": "field",
+    "name": "fillPattern",
+    "required": false,
+    "idlType": {
+      "sequence": false,
+      "generic": null,
+      "nullable": true,
+      "array": false,
+      "union": false,
+      "idlType": "DOMString"
+    },
+    "extAttrs": [],
+    "default": {
+      "type": "string",
+      "value": "black"
     }
+  }],
+  "inheritance": null,
+  "extAttrs": []
+}
+```
 
 The fields are as follows:
 
@@ -281,27 +289,27 @@ All the members are fields as follows:
 
 An exception looks like this:
 
-    {
-        "type": "exception",
-        "name": "HierarchyRequestError",
-        "members": [
-            {
-                "type": "field",
-                "name": "code",
-                "idlType": {
-                    "sequence": false,
-                    "generic": null,
-                    "nullable": false,
-                    "array": false,
-                    "union": false,
-                    "idlType": "unsigned short"
-                },
-                "extAttrs": []
-            }
-        ],
-        "inheritance": "DOMException",
-        "extAttrs": []
-    }
+```JS
+{
+  "type": "exception",
+  "name": "HierarchyRequestError",
+  "members": [{
+    "type": "field",
+    "name": "code",
+    "idlType": {
+      "sequence": false,
+      "generic": null,
+      "nullable": false,
+      "array": false,
+      "union": false,
+      "idlType": "unsigned short"
+    },
+    "extAttrs": []
+  }],
+  "inheritance": "DOMException",
+  "extAttrs": []
+}
+```
 
 The fields are as follows:
 
@@ -322,16 +330,18 @@ Members that aren't [constants](#constants) have the following fields:
 
 An enum looks like this:
 
-    {
-        "type": "enum",
-        "name": "MealType",
-        "values": [
-            "rice",
-            "noodles",
-            "other"
-        ],
-        "extAttrs": []
-    }
+```JS
+{
+  "type": "enum",
+  "name": "MealType",
+  "values": [
+    "rice",
+    "noodles",
+    "other"
+  ],
+  "extAttrs": []
+}
+```
 
 The fields are as follows:
 
@@ -344,27 +354,30 @@ The fields are as follows:
 
 A typedef looks like this:
 
-    {
-        "type": "typedef",
-        "typeExtAttrs": [],
-        "idlType": {
-            "sequence": true,
-            "generic": "sequence",
-            "nullable": false,
-            "array": false,
-            "union": false,
-            "idlType": {
-                "sequence": false,
-                "generic": null,
-                "nullable": false,
-                "array": false,
-                "union": false,
-                "idlType": "Point"
-            }
-        },
-        "name": "PointSequence",
-        "extAttrs": []
+```JS
+{
+  "type": "typedef",
+  "typeExtAttrs": [],
+  "idlType": {
+    "sequence": true,
+    "generic": "sequence",
+    "nullable": false,
+    "array": false,
+    "union": false,
+    "idlType": {
+      "sequence": false,
+      "generic": null,
+      "nullable": false,
+      "array": false,
+      "union": false,
+      "idlType": "Point"
     }
+  },
+  "name": "PointSequence",
+  "extAttrs": []
+}
+```
+
 
 The fields are as follows:
 
@@ -379,12 +392,14 @@ type rather than to the typedef as a whole.
 
 An implements definition looks like this:
 
-    {
-        "type": "implements",
-        "target": "Node",
-        "implements": "EventTarget",
-        "extAttrs": []
-    }
+```JS
+{
+  "type": "implements",
+  "target": "Node",
+  "implements": "EventTarget",
+  "extAttrs": []
+}
+```
 
 The fields are as follows:
 
@@ -396,43 +411,42 @@ The fields are as follows:
 ### Operation Member
 
 An operation looks like this:
-
-    {
-        "type": "operation",
-        "getter": false,
-        "setter": false,
-        "creator": false,
-        "deleter": false,
-        "legacycaller": false,
-        "static": false,
-        "stringifier": false,
-        "idlType": {
-            "sequence": false,
-            "generic": null,
-            "nullable": false,
-            "array": false,
-            "union": false,
-            "idlType": "void"
-        },
-        "name": "intersection",
-        "arguments": [
-            {
-                "optional": false,
-                "variadic": true,
-                "extAttrs": [],
-                "idlType": {
-                    "sequence": false,
-                    "generic": null,
-                    "nullable": false,
-                    "array": false,
-                    "union": false,
-                    "idlType": "long"
-                },
-                "name": "ints"
-            }
-        ],
-        "extAttrs": []
-    }
+```JS
+{
+  "type": "operation",
+  "getter": false,
+  "setter": false,
+  "creator": false,
+  "deleter": false,
+  "legacycaller": false,
+  "static": false,
+  "stringifier": false,
+  "idlType": {
+    "sequence": false,
+    "generic": null,
+    "nullable": false,
+    "array": false,
+    "union": false,
+    "idlType": "void"
+  },
+  "name": "intersection",
+  "arguments": [{
+    "optional": false,
+    "variadic": true,
+    "extAttrs": [],
+    "idlType": {
+      "sequence": false,
+      "generic": null,
+      "nullable": false,
+      "array": false,
+      "union": false,
+      "idlType": "long"
+    },
+    "name": "ints"
+  }],
+  "extAttrs": []
+}
+```
 
 The fields are as follows:
 
@@ -453,24 +467,26 @@ The fields are as follows:
 
 An attribute member looks like this:
 
-    {
-        "type": "attribute",
-        "static": false,
-        "stringifier": false,
-        "inherit": false,
-        "readonly": false,
-        "idlType": {
-            "sequence": false,
-            "generic": null,
-            "nullable": false,
-            "array": false,
-            "union": false,
-            "idlType": "RegExp"
-        },
-        "name": "regexp",
-        "extAttrs": []
-    }
-    
+```JS
+{
+  "type": "attribute",
+  "static": false,
+  "stringifier": false,
+  "inherit": false,
+  "readonly": false,
+  "idlType": {
+    "sequence": false,
+    "generic": null,
+    "nullable": false,
+    "array": false,
+    "union": false,
+    "idlType": "RegExp"
+  },
+  "name": "regexp",
+  "extAttrs": []
+}
+```
+
 The fields are as follows:
 
 * `type`: Always "attribute".
@@ -486,17 +502,19 @@ The fields are as follows:
 
 A constant member looks like this:
 
-    {
-        "type": "const",
-        "nullable": false,
-        "idlType": "boolean",
-        "name": "DEBUG",
-        "value": {
-            "type": "boolean",
-            "value": false
-        },
-        "extAttrs": []
-    }
+```JS
+{
+  "type": "const",
+  "nullable": false,
+  "idlType": "boolean",
+  "name": "DEBUG",
+  "value": {
+    "type": "boolean",
+    "value": false
+  },
+  "extAttrs": []
+}
+```
 
 The fields are as follows:
 
@@ -512,60 +530,63 @@ The fields are as follows:
 Serializers come in many shapes, which are best understood by looking at the
 examples below that map the IDL to the produced AST.
 
-    // serializer;
-    {
-        "type": "serializer",
-        "extAttrs": []
-    }
+```JS
+// serializer;
+{
+  "type": "serializer",
+  "extAttrs": []
+}
 
-    // serializer DOMString serialize();
-    {
-        "type": "serializer",
-        "idlType": {
-            "sequence": false,
-            "generic": null,
-            "nullable": false,
-            "array": false,
-            "union": false,
-            "idlType": "DOMString"
-        },
-        "operation": {
-            "name": "serialize",
-            "arguments": []
-        },
-        "extAttrs": []
-    }
+// serializer DOMString serialize();
+{
+  "type": "serializer",
+  "idlType": {
+    "sequence": false,
+    "generic": null,
+    "nullable": false,
+    "array": false,
+    "union": false,
+    "idlType": "DOMString"
+  },
+  "operation": {
+    "name": "serialize",
+    "arguments": []
+  },
+  "extAttrs": []
+}
 
-    // serializer = { from, to, amount, description };
-    {
-        "type": "serializer",
-        "patternMap": true,
-        "names": [
-            "from",
-            "to",
-            "amount",
-            "description"
-        ],
-        "extAttrs": []
-    }
+// serializer = { from, to, amount, description };
+{
+  "type": "serializer",
+  "patternMap": true,
+  "names": [
+    "from",
+    "to",
+    "amount",
+    "description"
+  ],
+  "extAttrs": []
+}
 
-    // serializer = number;
-    {
-        "type": "serializer",
-        "name": "number",
-        "extAttrs": []
-    }
+// serializer = number;
+{
+  "type": "serializer",
+  "name": "number",
+  "extAttrs": []
+}
 
-    // serializer = [ name, number ];
-    {
-        "type": "serializer",
-        "patternList": true,
-        "names": [
-            "name",
-            "number"
-        ],
-        "extAttrs": []
-    }
+// serializer = [ name, number ];
+{
+  "type": "serializer",
+  "patternList": true,
+  "names": [
+    "name",
+    "number"
+  ],
+  "extAttrs": []
+}
+
+```
 
 The common fields are as follows:
 
@@ -598,26 +619,28 @@ Finally, if the serializer is a named serializer:
 
 Iterator members look like this
 
-    {
-        "type": "iterator",
-        "getter": false,
-        "setter": false,
-        "creator": false,
-        "deleter": false,
-        "legacycaller": false,
-        "static": false,
-        "stringifier": false,
-        "idlType": {
-            "sequence": false,
-            "generic": null,
-            "nullable": false,
-            "array": false,
-            "union": false,
-            "idlType": "Session2"
-        },
-        "iteratorObject": "SessionIterator",
-        "extAttrs": []
-    }
+```JS
+{
+  "type": "iterator",
+  "getter": false,
+  "setter": false,
+  "creator": false,
+  "deleter": false,
+  "legacycaller": false,
+  "static": false,
+  "stringifier": false,
+  "idlType": {
+    "sequence": false,
+    "generic": null,
+    "nullable": false,
+    "array": false,
+    "union": false,
+    "idlType": "Session2"
+  },
+  "iteratorObject": "SessionIterator",
+  "extAttrs": []
+}
+```
 
 * `type`: Always "iterator".
 * `iteratorObject`: The string on the right-hand side; absent if there isn't one.
@@ -627,22 +650,24 @@ Iterator members look like this
 
 The arguments (e.g. for an operation) look like this:
 
-    "arguments": [
-        {
-            "optional": false,
-            "variadic": true,
-            "extAttrs": [],
-            "idlType": {
-                "sequence": false,
-                "generic": null,
-                "nullable": false,
-                "array": false,
-                "union": false,
-                "idlType": "long"
-            },
-            "name": "ints"
-        }
-    ]
+```JS
+{
+  "arguments": [{
+    "optional": false,
+    "variadic": true,
+    "extAttrs": [],
+    "idlType": {
+      "sequence": false,
+      "generic": null,
+      "nullable": false,
+      "array": false,
+      "union": false,
+      "idlType": "long"
+    },
+    "name": "ints"
+  }]
+}
+```
 
 The fields are as follows:
 
@@ -656,16 +681,18 @@ The fields are as follows:
 
 Extended attributes are arrays of items that look like this:
 
-    "extAttrs": [
-        {
-            "name": "TreatNullAs",
-            "arguments": null,
-            "rhs": {
-                "type": "identifier",
-                "value": "EmptyString"
-            }
-        }
-    ]
+```JS
+{
+  "extAttrs": [{
+    "name": "TreatNullAs",
+    "arguments": null,
+    "rhs": {
+      "type": "identifier",
+      "value": "EmptyString"
+    }
+  }]
+}
+```
 
 The fields are as follows:
 
@@ -700,12 +727,14 @@ For Infinity:
 
 These appear as members of interfaces that look like this:
 
-        {
-            "type": "maplike", // or "legacyiterable" / "iterable" / "setlike"
-            "idlType": /* One or two types */,
-            "readonly": false, // only for maplike and setlike
-            "extAttrs": []
-        }
+```JS
+{
+  "type": "maplike", // or "legacyiterable" / "iterable" / "setlike"
+  "idlType": /* One or two types */ ,
+  "readonly": false, // only for maplike and setlike
+  "extAttrs": []
+}
+```
 
 The fields are as follows:
 
@@ -715,46 +744,51 @@ The fields are as follows:
 * `extAttrs`: A list of [extended attributes](#extended-attributes).
 
 
-Testing
-=======
+## Testing
 
 In order to run the tests you need to ensure that the widlproc submodule inside `test` is
-initialised and up to date:
+initialized and up to date:
 
-    git submodule init
-    git submodule update
+```Bash
+git submodule init
+git submodule update
+```
 
-Running
--------
+### Running
+
 The test runs with mocha and expect.js. Normally, running mocha in the root directory
 should be enough once you're set up.
 
-Coverage
---------
+### Coverage
+
 Current test coverage, as documented in `coverage.html`, is 95%. You can run your own
 coverage analysis with:
 
-    jscoverage lib lib-cov
-    
+```Bash
+jscoverage lib lib-cov
+```
+
 That will create the lib-cov directory with instrumented code; the test suite knows
 to use that if needed. You can then run the tests with:
 
-    JSCOV=1 mocha --reporter html-cov > coverage.html
+```Bash
+JSCOV=1 mocha --reporter html-cov > coverage.html
+```
 
 Note that I've been getting weirdly overescaped results from the html-cov reporter,
 so you might wish to try this instead:
 
-    JSCOV=1 mocha  --reporter html-cov | sed "s/&lt;/</g" | sed "s/&gt;/>/g" | sed "s/&quot;/\"/g" > coverage.html
+```Bash
+JSCOV=1 mocha  --reporter html-cov | sed "s/&lt;/</g" | sed "s/&gt;/>/g" | sed "s/&quot;/\"/g" > coverage.html
+```
+### Browser tests
 
-Browser tests
--------------
 In order to test in the browser, get inside `test/web` and run `make-web-tests.js`. This
 will generate a `browser-tests.html` file that you can open in a browser. As of this
 writing tests pass in the latest Firefox, Chrome, Opera, and Safari. Testing on IE
 and older versions will happen progressively.
 
-TODO
-====
+## TODO
 
 * add some tests to address coverage limitations
 * add a push API for processors that need to process things like comments

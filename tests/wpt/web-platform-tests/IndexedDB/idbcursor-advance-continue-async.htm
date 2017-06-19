@@ -7,180 +7,175 @@
 
 <script>
 
-    var db, open;
+function upgrade_func(t, db, tx) {
+  var objStore = db.createObjectStore("test");
+  objStore.createIndex("index", "");
 
-    setup(function() {
-        open = indexedDB.open('testdb-' + new Date().getTime());
-        open.onupgradeneeded = function(e) {
-            db = e.target.result;
-            var objStore = db.createObjectStore("test");
-            objStore.createIndex("index", "");
+  objStore.add("data",  1);
+  objStore.add("data2", 2);
+}
 
-            objStore.add("data",  1);
-            objStore.add("data2", 2);
-        };
-    },
-    { explicit_done: true });
+indexeddb_test(
+  upgrade_func,
+  function(t, db) {
+    var count = 0;
+    var rq = db.transaction("test").objectStore("test").openCursor();
 
+    rq.onsuccess = t.step_func(function(e) {
+      if (!e.target.result) {
+        assert_equals(count, 2, 'count');
+        t.done();
+        return;
+      }
+      var cursor = e.target.result;
 
-    open.onsuccess = function() {
+      switch(count) {
+        case 0:
+          assert_equals(cursor.value, "data")
+          assert_equals(cursor.key, 1)
+          cursor.advance(1)
+          assert_equals(cursor.value, "data")
+          assert_equals(cursor.key, 1)
+          break
 
+        case 1:
+          assert_equals(cursor.value, "data2")
+          assert_equals(cursor.key, 2)
+          cursor.advance(1)
+          assert_equals(cursor.value, "data2")
+          assert_equals(cursor.key, 2)
+          break
 
-        async_test(document.title + " - advance").step(function(e) {
-            var count = 0;
-            var rq = db.transaction("test").objectStore("test").openCursor();
+        default:
+          assert_unreached("Unexpected count: " + count)
+      }
 
-            rq.onsuccess = this.step_func(function(e) {
-                if (!e.target.result) {
-                    assert_equals(count, 2, 'count');
-                    this.done();
-                    return;
-                }
-                var cursor = e.target.result;
+      count++;
+    });
+    rq.onerror = t.unreached_func("unexpected error")
+  },
+  document.title + " - advance"
+);
 
-                switch(count) {
-                    case 0:
-                        assert_equals(cursor.value, "data")
-                        assert_equals(cursor.key, 1)
-                        cursor.advance(1)
-                        assert_equals(cursor.value, "data")
-                        assert_equals(cursor.key, 1)
-                        break
+indexeddb_test(
+  upgrade_func,
+  function(t, db) {
+    var count = 0;
+    var rq = db.transaction("test").objectStore("test").index("index").openCursor();
 
-                    case 1:
-                        assert_equals(cursor.value, "data2")
-                        assert_equals(cursor.key, 2)
-                        cursor.advance(1)
-                        assert_equals(cursor.value, "data2")
-                        assert_equals(cursor.key, 2)
-                        break
+    rq.onsuccess = t.step_func(function(e) {
+      if (!e.target.result) {
+        assert_equals(count, 2, 'count');
+        t.done();
+        return;
+      }
+      var cursor = e.target.result;
 
-                    default:
-                        assert_unreached("Unexpected count: " + count)
-                }
+      switch(count) {
+        case 0:
+          assert_equals(cursor.value, "data")
+          assert_equals(cursor.key,   "data")
+          assert_equals(cursor.primaryKey, 1)
+          cursor.continue("data2")
+          assert_equals(cursor.value, "data")
+          assert_equals(cursor.key,   "data")
+          assert_equals(cursor.primaryKey, 1)
+          break
 
-                count++;
-            });
-            rq.onerror = fail(this, "unexpected error")
-        });
+        case 1:
+          assert_equals(cursor.value, "data2")
+          assert_equals(cursor.key,   "data2")
+          assert_equals(cursor.primaryKey, 2)
+          cursor.continue()
+          assert_equals(cursor.value, "data2")
+          assert_equals(cursor.key,   "data2")
+          assert_equals(cursor.primaryKey, 2)
+          break
 
+        default:
+          assert_unreached("Unexpected count: " + count)
+      }
 
-        async_test(document.title + " - continue").step(function(e) {
-            var count = 0;
-            var rq = db.transaction("test").objectStore("test").index("index").openCursor();
+      count++;
+    });
+    rq.onerror = t.unreached_func("unexpected error")
+  },
+  document.title + " - continue"
+);
 
-            rq.onsuccess = this.step_func(function(e) {
-                if (!e.target.result) {
-                    assert_equals(count, 2, 'count');
-                    this.done();
-                    return;
-                }
-                var cursor = e.target.result;
+indexeddb_test(
+  upgrade_func,
+  function(t, db) {
+    var count = 0;
+    var rq = db.transaction("test").objectStore("test").index("index").openCursor();
 
-                switch(count) {
-                    case 0:
-                        assert_equals(cursor.value, "data")
-                        assert_equals(cursor.key,   "data")
-                        assert_equals(cursor.primaryKey, 1)
-                        cursor.continue("data2")
-                        assert_equals(cursor.value, "data")
-                        assert_equals(cursor.key,   "data")
-                        assert_equals(cursor.primaryKey, 1)
-                        break
+    rq.onsuccess = t.step_func(function(e) {
+      if (!e.target.result) {
+        assert_equals(count, 2, 'count');
+        t.done();
+        return;
+      }
+      var cursor = e.target.result;
+      cursor.advance(1)
 
-                    case 1:
-                        assert_equals(cursor.value, "data2")
-                        assert_equals(cursor.key,   "data2")
-                        assert_equals(cursor.primaryKey, 2)
-                        cursor.continue()
-                        assert_equals(cursor.value, "data2")
-                        assert_equals(cursor.key,   "data2")
-                        assert_equals(cursor.primaryKey, 2)
-                        break
+      switch(count) {
+        case 0:
+          assert_equals(cursor.value, "data")
+          assert_equals(cursor.key,   "data")
+          assert_equals(cursor.primaryKey, 1)
+          break
 
-                    default:
-                        assert_unreached("Unexpected count: " + count)
-                }
+        case 1:
+          assert_equals(cursor.value, "data2")
+          assert_equals(cursor.key,   "data2")
+          assert_equals(cursor.primaryKey, 2)
+          break
 
-                count++;
-            });
-            rq.onerror = fail(this, "unexpected error")
-        });
+        default:
+          assert_unreached("Unexpected count: " + count)
+      }
 
+      count++;
+    });
+    rq.onerror = t.unreached_func("unexpected error")
+  },
+  document.title + " - fresh advance still async"
+);
 
-        async_test(document.title + " - fresh advance still async").step(function(e) {
-            var count = 0;
-            var rq = db.transaction("test").objectStore("test").index("index").openCursor();
+indexeddb_test(
+  upgrade_func,
+  function(t, db) {
+    var count = 0;
+    var rq = db.transaction("test").objectStore("test").openCursor();
 
-            rq.onsuccess = this.step_func(function(e) {
-                if (!e.target.result) {
-                    assert_equals(count, 2, 'count');
-                    this.done();
-                    return;
-                }
-                var cursor = e.target.result;
-                cursor.advance(1)
+    rq.onsuccess = t.step_func(function(e) {
+      if (!e.target.result) {
+        assert_equals(count, 2, 'count');
+        t.done();
+        return;
+      }
+      var cursor = e.target.result;
+      cursor.continue()
 
-                switch(count) {
-                    case 0:
-                        assert_equals(cursor.value, "data")
-                        assert_equals(cursor.key,   "data")
-                        assert_equals(cursor.primaryKey, 1)
-                        break
+      switch(count) {
+        case 0:
+          assert_equals(cursor.value, "data")
+          assert_equals(cursor.key, 1)
+          break
 
-                    case 1:
-                        assert_equals(cursor.value, "data2")
-                        assert_equals(cursor.key,   "data2")
-                        assert_equals(cursor.primaryKey, 2)
-                        break
+        case 1:
+          assert_equals(cursor.value, "data2")
+          assert_equals(cursor.key, 2)
+          break
 
-                    default:
-                        assert_unreached("Unexpected count: " + count)
-                }
+        default:
+          assert_unreached("Unexpected count: " + count)
+      }
 
-                count++;
-            });
-            rq.onerror = fail(this, "unexpected error")
-        });
-
-
-        async_test(document.title + " - fresh continue still async").step(function(e) {
-            var count = 0;
-            var rq = db.transaction("test").objectStore("test").openCursor();
-
-            rq.onsuccess = this.step_func(function(e) {
-                if (!e.target.result) {
-                    assert_equals(count, 2, 'count');
-                    this.done();
-                    return;
-                }
-                var cursor = e.target.result;
-                cursor.continue()
-
-                switch(count) {
-                    case 0:
-                        assert_equals(cursor.value, "data")
-                        assert_equals(cursor.key, 1)
-                        break
-
-                    case 1:
-                        assert_equals(cursor.value, "data2")
-                        assert_equals(cursor.key, 2)
-                        break
-
-                    default:
-                        assert_unreached("Unexpected count: " + count)
-                }
-
-                count++;
-            });
-            rq.onerror = fail(this, "unexpected error")
-        });
-
-        // Stop blocking the testing system from hereon
-        done();
-    }
-
+      count++;
+    });
+    rq.onerror = t.unreached_func("unexpected error")
+  },
+  document.title + " - fresh continue still async"
+);
 </script>
-
-<div id=log></div>

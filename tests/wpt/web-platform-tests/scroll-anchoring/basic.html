@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+body { height: 1000px; }
+div { height: 100px; }
+
+</style>
+<div id="block1">abc</div>
+<div id="block2">def</div>
+<script>
+
+// Tests that growing an element above the viewport produces a scroll
+// anchoring adjustment equal to the amount by which it grew.
+
+test(() => {
+  document.scrollingElement.scrollTop = 150;
+  document.querySelector("#block1").style.height = "200px";
+  assert_equals(document.scrollingElement.scrollTop, 250);
+}, "Minimal scroll anchoring example.");
+
+</script>

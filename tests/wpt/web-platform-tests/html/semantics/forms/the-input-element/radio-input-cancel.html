@@ -1,0 +1,41 @@
+<!DOCTYPE HTML>
+<title>Radio input cancel behavior reverts state</title>
+<link rel="author" title="jeffcarp" href="mailto:gcarpenterv@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/#radio-button-state-(type=radio)">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+"use strict";
+
+test(() => {
+  const input = document.createElement("input");
+  input.type = "radio";
+  document.body.appendChild(input);
+  const events = [];
+
+  input.addEventListener("change", () => {
+    events.push("change");
+  });
+  input.addEventListener("click", e => {
+    // cancel click event
+    e.preventDefault();
+    events.push("click");
+  });
+  input.addEventListener("input", () => {
+    events.push("input");
+  });
+
+  assert_false(input.checked);
+
+  input.click();
+
+  assert_false(input.checked);
+
+  // only click event called
+  assert_array_equals(events, ["click"]);
+
+}, "radio input cancel behavior reverts state");
+</script>

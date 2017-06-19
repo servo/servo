@@ -13,7 +13,7 @@ import sys
 from collections import defaultdict
 
 from . import fnmatch
-from ..localpaths import repo_root
+from .. import localpaths
 from ..gitignore.gitignore import PathFilter
 
 from manifest.sourcefile import SourceFile, js_meta_re, python_meta_re
@@ -45,7 +45,7 @@ setup_logging()
 
 
 ERROR_MSG = """You must fix all errors; for details on how to fix them, see
-https://github.com/w3c/web-platform-tests/blob/master/docs/lint-tool.md
+http://web-platform-tests.org/writing-tests/lint-tool.html
 
 However, instead of fixing a particular error, it's sometimes
 OK to add a line to the lint.whitelist file in the root of the
@@ -679,6 +679,8 @@ def parse_args():
                         help="Output markdown")
     parser.add_argument("--css-mode", action="store_true",
                         help="Run CSS testsuite specific lints")
+    parser.add_argument("--repo-root", help="The WPT directory. Use this"
+                        "option if the lint script exists outside the repository")
     return parser.parse_args()
 
 
@@ -687,6 +689,7 @@ def main(**kwargs):
         logger.critical("Cannot specify --json and --markdown")
         sys.exit(2)
 
+    repo_root = kwargs.get('repo_root') or localpaths.repo_root
     output_format = {(True, False): "json",
                      (False, True): "markdown",
                      (False, False): "normal"}[(kwargs.get("json", False),

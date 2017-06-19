@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./support/helper.js"></script>
+<body>
+<script>
+  async_test(t => {
+    var i = document.createElement('iframe');
+    i.src = "./support/xfo.py?value=DENY";
+
+    assert_no_message_from(i, t);
+
+    i.onload = t.step_func_done(_ => {
+      assert_throws("SecurityError", function () { return i.contentDocument; });
+      i.remove();
+    });
+
+    document.body.appendChild(i);
+  }, "`XFO: DENY` blocks same-origin framing.");
+
+  async_test(t => {
+    var i = document.createElement('iframe');
+    i.src = "http://{{domains[www]}}:{{ports[http][0]}}/x-frame-options/support/xfo.py?value=DENY";
+
+    assert_no_message_from(i, t);
+
+    i.onload = t.step_func_done(_ => {
+      assert_throws("SecurityError", function () { return i.contentDocument; });
+      i.remove();
+    });
+
+    document.body.appendChild(i);
+  }, "`XFO: DENY` blocks cross-origin framing.");
+</script>

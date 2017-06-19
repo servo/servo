@@ -2,7 +2,10 @@ import os
 import unittest
 import time
 
+import pytest
+
 from .base import TestUsingServer, doc_root
+
 
 class TestStatus(TestUsingServer):
     def test_status(self):

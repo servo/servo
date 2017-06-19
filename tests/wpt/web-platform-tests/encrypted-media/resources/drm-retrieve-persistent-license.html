@@ -43,8 +43,14 @@
 
         function onTimeupdate(event) {
             if ( config.video.currentTime > ( config.duration || 1 ) ) {
+                config.video.removeEventListener('timeupdate', onTimeupdate);
                 config.video.pause();
+
+                _mediaKeySession.closed
+                    .then(onComplete)
+                    .catch(onFailure);
                 _mediaKeySession.close()
+                    .catch(onFailure);
             }
         }
 
@@ -53,9 +59,8 @@
             return access.createMediaKeys();
         }).then(function(mediaKeys) {
             config.video.setMediaKeys(mediaKeys);
-            config.video.addEventListener('timeupdate', onTimeupdate, true);
+            config.video.addEventListener('timeupdate', onTimeupdate);
             _mediaKeySession = mediaKeys.createSession( 'persistent-license' );
-            _mediaKeySession.closed.then(onComplete);
             return _mediaKeySession.load(event.data.sessionId);
         }).then(function( success ) {
             if ( !success ) throw new DOMException( 'Could not load session' );

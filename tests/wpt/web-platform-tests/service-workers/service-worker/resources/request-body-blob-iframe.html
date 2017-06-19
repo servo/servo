@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>request-body-blob-iframe</title>
+<body></body>
+<script>
+var blob = new Blob(['it\'s me the blob',
+                     'and more blob!']);
+fetch('simple.html?post-with-blob-body',
+      { method: 'POST', body: blob })
+  .then(resp => {
+      if (!resp.ok)
+        return Promise.reject('bad response: ' + resp.status);
+      return resp.text()
+    })
+  .then(text => parent.done(text))
+  .catch(error => {
+      var reason = error.message || error.name || error;
+      parent.done('error: ' + reason);
+    });
+</script>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>InputEvent have data when typing on textarea and contenteditable</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<p>To manually run this test, please follow the steps below:<br/>
+1. Focus the first box and press key 'a' and then 'b'.<br/>
+2. Focus the second box and press key 'c' and then 'd'.<br/>
+<br/>
+If a "PASS" result appears the test passes, otherwise it fails</p>
+<textarea id='plain'></textarea>
+<div id='rich' style='border-style: solid;' contenteditable></div>
+<script>
+async_test(t => {
+    const expectedResult = [
+        'plain-beforeinput-a',
+        'plain-input-a',
+        'plain-beforeinput-b',
+        'plain-input-b',
+        'rich-beforeinput-c',
+        'rich-input-c',
+        'rich-beforeinput-d',
+        'rich-input-d',
+    ];
+    let eventCounter = 0;
+
+    for (const targetId of ['plain', 'rich']) {
+        for (const eventType of ['beforeinput', 'input']) {
+            document.getElementById(targetId).addEventListener(eventType, t.step_func(e => {
+                assert_equals(`${targetId}-${eventType}-${e.data}`, expectedResult[eventCounter]);
+                ++eventCounter;
+                if (eventCounter === expectedResult.length)
+                    t.done();
+            }));
+        }
+    }
+})
+</script>

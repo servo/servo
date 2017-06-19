@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests for importScripts: script resource map</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<body>
+<script>
+// This test registers a worker that imports a script multiple times. The
+// script should be stored on the first import and thereafter that stored
+// script should be loaded. The worker asserts that the stored script was
+// loaded; if the assert fails then registration fails.
+promise_test(t => {
+    const scope = 'resources/import-scripts-resource-map';
+    return service_worker_unregister(t, scope)
+      .then(() => {
+          return navigator.serviceWorker.register(
+              'resources/import-scripts-resource-map-worker.js', {scope: scope});
+        })
+      .then(r => r.unregister());
+  }, 'import the same script URL multiple times');
+</script>
+</body>

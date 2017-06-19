@@ -306,6 +306,94 @@ test(function() {
   assert_equals(h.get("c"), "2");
 }, "Correct operation ordering with repeated keys");
 
-// Need to add symbol tests, but those are pending
-// https://github.com/heycam/webidl/issues/294 being resolved.
+test(function() {
+  this.add_cleanup(clearLog);
+  var record = {
+    a: "b",
+    [Symbol.toStringTag]: {
+      // Make sure the ToString conversion of the value happens
+      // after the ToString conversion of the key.
+      toString: function () { addLogEntry("toString", [this]); return "nope"; }
+    },
+    c: "d" };
+  var proxy = new Proxy(record, loggingHandler);
+  assert_throws(new TypeError(),
+                function() { var h = new Headers(proxy); });
+
+  assert_equals(log.length, 7);
+  // The first thing is the [[Get]] of Symbol.iterator to figure out whether
+  // we're a sequence, during overload resolution.
+  assert_array_equals(log[0], ["get", record, Symbol.iterator, proxy]);
+  // Then we have the [[OwnPropertyKeys]] from
+  // https://heycam.github.io/webidl/#es-to-record step 4.
+  assert_array_equals(log[1], ["ownKeys", record]);
+  // Then the [[GetOwnProperty]] from step 5.1.
+  assert_array_equals(log[2], ["getOwnPropertyDescriptor", record, "a"]);
+  // Then the [[Get]] from step 5.2.
+  assert_array_equals(log[3], ["get", record, "a", proxy]);
+  // Then the second [[GetOwnProperty]] from step 5.1.
+  assert_array_equals(log[4], ["getOwnPropertyDescriptor", record, "c"]);
+  // Then the second [[Get]] from step 5.2.
+  assert_array_equals(log[5], ["get", record, "c", proxy]);
+  // Then the third [[GetOwnProperty]] from step 5.1.
+  assert_array_equals(log[6], ["getOwnPropertyDescriptor", record,
+                               Symbol.toStringTag]);
+  // Then we throw an exception converting the Symbol to a string, before we do
+  // the third [[Get]].
+}, "Basic operation with Symbol keys");
+
+test(function() {
+  this.add_cleanup(clearLog);
+  var record = {
+    a: {
+      toString: function() { addLogEntry("toString", [this]); return "b"; }
+    },
+    [Symbol.toStringTag]: {
+      toString: function () { addLogEntry("toString", [this]); return "nope"; }
+    },
+    c: {
+      toString: function() { addLogEntry("toString", [this]); return "d"; }
+    }
+  };
+  // Now make that Symbol-named property not enumerable.
+  Object.defineProperty(record, Symbol.toStringTag, { enumerable: false });
+  assert_array_equals(Reflect.ownKeys(record),
+                      ["a", "c", Symbol.toStringTag]);
+
+  var proxy = new Proxy(record, loggingHandler);
+  var h = new Headers(proxy);
+
+  assert_equals(log.length, 9);
+  // The first thing is the [[Get]] of Symbol.iterator to figure out whether
+  // we're a sequence, during overload resolution.
+  assert_array_equals(log[0], ["get", record, Symbol.iterator, proxy]);
+  // Then we have the [[OwnPropertyKeys]] from
+  // https://heycam.github.io/webidl/#es-to-record step 4.
+  assert_array_equals(log[1], ["ownKeys", record]);
+  // Then the [[GetOwnProperty]] from step 5.1.
+  assert_array_equals(log[2], ["getOwnPropertyDescriptor", record, "a"]);
+  // Then the [[Get]] from step 5.2.
+  assert_array_equals(log[3], ["get", record, "a", proxy]);
+  // Then the ToString on the value.
+  assert_array_equals(log[4], ["toString", record.a]);
+  // Then the second [[GetOwnProperty]] from step 5.1.
+  assert_array_equals(log[5], ["getOwnPropertyDescriptor", record, "c"]);
+  // Then the second [[Get]] from step 5.2.
+  assert_array_equals(log[6], ["get", record, "c", proxy]);
+  // Then the ToString on the value.
+  assert_array_equals(log[7], ["toString", record.c]);
+  // Then the third [[GetOwnProperty]] from step 5.1.
+  assert_array_equals(log[8], ["getOwnPropertyDescriptor", record,
+                               Symbol.toStringTag]);
+  // No [[Get]] because not enumerable.
+
+  // Check the results.
+  assert_equals([...h].length, 2);
+  assert_array_equals([...h.keys()], ["a", "c"]);
+  assert_true(h.has("a"));
+  assert_equals(h.get("a"), "b");
+  assert_true(h.has("c"));
+  assert_equals(h.get("c"), "d");
+}, "Operation with non-enumerable Symbol keys");
+
 </script>

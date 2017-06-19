@@ -1,5 +1,4 @@
-
-function run_test() {
+function run_test(testPasswordSize, testSaltSize) {
     // May want to test prefixed implementations.
     var subtle = self.crypto.subtle;
 
@@ -28,7 +27,9 @@ function run_test() {
         // and number of iterations. The derivations object is structured in
         // that way, so navigate it to run tests and compare with correct results.
         Object.keys(derivations).forEach(function(passwordSize) {
+            if (typeof testPasswordSize != 'undefined' && testPasswordSize != passwordSize) return;
             Object.keys(derivations[passwordSize]).forEach(function(saltSize) {
+                if (typeof testSaltSize != 'undefined' && testSaltSize != saltSize) return;
                 Object.keys(derivations[passwordSize][saltSize]).forEach(function(hashName) {
                     Object.keys(derivations[passwordSize][saltSize][hashName]).forEach(function(iterations) {
                         var testName = passwordSize + " password, " + saltSize + " salt, " + hashName + ", with " + iterations + " iterations";

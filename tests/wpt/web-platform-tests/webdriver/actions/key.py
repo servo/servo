@@ -1,9 +1,7 @@
-# META: timeout=long
-
 import pytest
 
 from support.keys import Keys
-from support.refine import get_keys, filter_dict, get_events
+from support.refine import filter_dict, get_keys, get_events
 
 
 def test_lone_keyup_sends_no_events(session, key_reporter, key_chain):
@@ -13,31 +11,6 @@ def test_lone_keyup_sends_no_events(session, key_reporter, key_chain):
     session.actions.release()
     assert len(get_keys(key_reporter)) == 0
     assert len(get_events(session)) == 0
-
-
-# TODO - the harness bails with TIMEOUT before all these subtests complete
-# The timeout is per file, so move to separate file with longer timeout?
-# Need a way to set timeouts in py files (since can't do html meta)
-# @pytest.mark.parametrize("name,expected", ALL_EVENTS.items())
-# def test_webdriver_special_key_sends_keydown(session,
-#                                              key_reporter,
-#                                              key_chain,
-#                                              name,
-#                                              expected):
-#     key_chain.key_down(getattr(Keys, name)).perform()
-#     # only interested in keydown
-#     first_event = get_events(session)[0]
-#     # make a copy so we throw out irrelevant keys and compare to events
-#     expected = dict(expected)
-#     del expected["value"]
-#     # check and remove keys that aren't in expected
-#     assert first_event["type"] == "keydown"
-#     assert first_event["repeat"] == False
-#     first_event = filter_dict(first_event, expected)
-#     assert first_event == expected
-#     # check that printable character was recorded in input field
-#     if len(expected["key"]) == 1:
-#         assert get_keys(key_reporter) == expected["key"]
 
 
 @pytest.mark.parametrize("value,code", [
@@ -170,3 +143,12 @@ def test_sequence_of_keydown_character_keys(session, key_reporter, key_chain):
     events = [filter_dict(e, expected[0]) for e in get_events(session)]
     assert events == expected
     assert get_keys(key_reporter) == "ef"
+
+
+def test_backspace_erases_keys(session, key_reporter, key_chain):
+    key_chain \
+        .send_keys("efcd") \
+        .send_keys([Keys.BACKSPACE, Keys.BACKSPACE]) \
+        .perform()
+    assert get_keys(key_reporter) == "ef"
+

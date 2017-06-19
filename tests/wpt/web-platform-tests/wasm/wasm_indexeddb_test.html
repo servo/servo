@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/load_wasm.js"></script>
+<script src="wasm_indexeddb_test.js"></script>
+</head>
+<body>
+<script>
+  if (window.location.origin != get_host_info().AUTHENTICATED_ORIGIN) {
+    window.location = get_host_info().AUTHENTICATED_ORIGIN + window.location.pathname;
+  } else {
+    promise_test(TestIndexedDBLoadStoreSecure, "serialize/deserialize to IndexedDB in secure context");
+  }
+</script>
+</body>
+</html>

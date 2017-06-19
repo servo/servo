@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method"  data-tested-assertations="following::ol[1]/li[4] following::ol[1]/li[4]/dl[1]/dd[1]"/>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-status-attribute"  data-tested-assertations="following::ol[1]/li[3]"/>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-response-attribute"  data-tested-assertations="following::ol[1]/li[3]"/>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <title>XMLHttpRequest: The send() method: ArrayBufferView data</title>
+    <link rel="author" title="Ondrej Zara" href="mailto:ondrej.zara@gmail.com">
+</head>
+
+<body>
+    <div id="log"></div>
+
+    <script type="text/javascript">
+        var test = async_test();
+
+        test.step(function()
+        {
+            var str = "Hello";
+            var bytes = str.split("").map(function(ch) { return ch.charCodeAt(0); });
+            var xhr = new XMLHttpRequest();
+            var arr = new Uint8Array(bytes);
+
+            xhr.onload = test.step_func_done(function() {
+                assert_equals(xhr.status, 200);
+                assert_equals(xhr.response, str);
+            });
+
+            xhr.open("POST", "./resources/content.py", true);
+            xhr.send(arr);
+        });
+    </script>
+</body>
+</html>

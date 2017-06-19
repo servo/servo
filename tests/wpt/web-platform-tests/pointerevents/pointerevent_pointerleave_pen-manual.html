@@ -21,20 +21,34 @@
 
             function run() {
                 var target0 = document.getElementById("target0");
+                var count = 0;
+
+                on_event(target0, "pointerenter", function (event) {
+                    test_pointerEvent.step(function () {
+                        assert_equals(event.pointerType, "pen", "Test should be run using a pen as input");
+                        assert_equals(event.type, "pointerenter", "The " + event.type + " event was received");
+                        assert_equals(event.isPrimary, true, "The " + event.type + ".isPrimary is true");
+                    });
+                });
 
                 on_event(target0, "pointerleave", function (event) {
+                    count++;
                     detected_pointertypes[event.pointerType] = true;
-                    check_PointerEvent(event);
+                    if (count == 1)
+                        check_PointerEvent(event);
+
                     test_pointerEvent.step(function () {
                         assert_equals(event.pointerType, "pen", "Test should be run using a pen as input");
                         assert_equals(event.type, "pointerleave", "The " + event.type + " event was received");
+                        assert_equals(event.isPrimary, true, "The " + event.type + ".isPrimary is true");
                         assert_true((event.clientX > target0.getBoundingClientRect().left)&&
                             (event.clientX < target0.getBoundingClientRect().right)&&
                             (event.clientY > target0.getBoundingClientRect().top)&&
                             (event.clientY < target0.getBoundingClientRect().bottom),
                             "pointerleave should be received inside of target bounds");
                     });
-                    test_pointerEvent.done(); // complete test
+                    if (count >= 2)
+                      test_pointerEvent.done(); // complete test
                 });
             }
         </script>
@@ -43,11 +57,11 @@
         <h1>Pointer Event: Dispatch pointerleave (pen)</h1>
         <h4>
             Test Description:
-            When a pointing device that supports hover (pen stylus) leaves the range of the digitizer while over an element, the pointerleave event must be dispatched.
+            When a pointing device that supports hover (pen stylus) leaves the range of the digitizer while over an element, the pointerleave event must be dispatched. In addition, all the pointer events' isPrimary should always be true when the pointing device leaves and enters the range of the digitizer again. 
         </h4>
         <br />
         <div id="target0">
-            Use a pen to hover over then lift up away from this element.
+            Use a pen to hover over then lift up away from this element, and repeat it again.
         </div>
         <div id="complete-notice">
             <p>Test complete: Scroll to Summary to view Pass/Fail Results.</p>

@@ -1,0 +1,164 @@
+<!doctype html>
+<html>
+  <head>
+    <title>grid busy false</title>
+    <link rel="stylesheet" href="/resources/testharness.css">
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_TABLE"
+               ],
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "xml-roles:grid"
+               ],
+               [
+                  "property",
+                  "interfaces",
+                  "contains",
+                  "Table"
+               ],
+               [
+                  "property",
+                  "interfaces",
+                  "contains",
+                  "Selection"
+               ],
+               [
+                  "result",
+                  "atk_selection_clear_selection()",
+                  "is",
+                  "false"
+               ],
+               [
+                  "property",
+                  "states",
+                  "doesNotContain",
+                  "STATE_BUSY"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXRole",
+                  "is",
+                  "AXTable"
+               ],
+               [
+                  "property",
+                  "AXSubrole",
+                  "is",
+                  "<nil>"
+               ],
+               [
+                  "property",
+                  "AXRoleDescription",
+                  "is",
+                  "table"
+               ],
+               [
+                  "property",
+                  "AXElementBusy",
+                  "is",
+                  "false"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "xml-roles:grid"
+               ],
+               [
+                  "property",
+                  "interfaces",
+                  "contains",
+                  "IAccessibleTable2"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_TABLE"
+               ],
+               [
+                  "property",
+                  "states",
+                  "doesNotContain",
+                  "STATE_SYSTEM_BUSY"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "Control Type",
+                  "is",
+                  "DataGrid"
+               ],
+               [
+                  "property",
+                  "interfaces",
+                  "contains",
+                  "selection pattern"
+               ],
+               [
+                  "result",
+                  "AriaProperties.busy",
+                  "is",
+                  "false"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "grid busy false"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for grid busy false.</p>
+    <div role="grid" aria-busy="false" id="test">
+    <div role="row">
+       <div role="columnheader">shoes</div>
+       <div role="columnheader">shirts</div>
+    </div>
+    <div role="row">
+       <div role="gridcell">loafers</div>
+       <div role="gridcell">polo</div>
+    </div>
+    <div role="row">
+       <div role="gridcell">laced</div>
+       <div role="gridcell">rugby</div>
+    </div>
+  </div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>
+

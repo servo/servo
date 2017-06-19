@@ -2,6 +2,7 @@ import json
 import pytest
 import webdriver
 
+
 def window_size_supported(session):
     try:
         session.window.size = ("a", "b")

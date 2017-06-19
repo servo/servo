@@ -1,0 +1,115 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.createAnswer</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170515/webrtc.html
+
+  // The following helper functions are called from RTCPeerConnection-helper.js:
+  //   generateOffer()
+  //   generateAnswer()
+  //   test_never_resolve()
+
+  /*
+   * 4.3.2. createAnswer()
+   */
+
+  /*
+   *  4.1.  If connection's remoteDescription is null return a promise rejected with a
+   *        newly created InvalidStateError.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    return promise_rejects(t, 'InvalidStateError',
+      pc.createAnswer());
+  }, 'createAnswer() with null remoteDescription should reject with InvalidStateError');
+
+  /*
+   *  Final steps to create an answer
+   *  4. Let answer be a newly created RTCSessionDescriptionInit dictionary with its
+   *     type member initialized to the string "answer" and its sdp member initialized to sdpString.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    return generateOffer({ video: true })
+    .then(offer => pc.setRemoteDescription(offer))
+    .then(() => pc.createAnswer())
+    .then(answer => {
+      assert_equals(typeof answer, 'object',
+        'Expect answer to be plain object dictionary RTCSessionDescriptionInit');
+
+      assert_false(answer instanceof RTCSessionDescription,
+        'Expect answer to not be instance of RTCSessionDescription')
+    });
+  }, 'createAnswer() after setting remote description should succeed');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    return generateOffer({ data: true })
+    .then(offer => pc.setRemoteDescription(offer))
+    .then(() => {
+      pc.close();
+      return promise_rejects(t, 'InvalidStateError',
+        pc.createAnswer());
+    });
+  }, 'createAnswer() when connection is closed reject with InvalidStateError');
+
+  test_never_resolve(t => {
+    const pc = new RTCPeerConnection();
+
+    return generateOffer({ data: true })
+    .then(offer => pc.setRemoteDescription(offer))
+    .then(() => {
+      const promise = pc.createAnswer();
+      pc.close();
+      return promise;
+    });
+  }, 'createAnswer() when connection is closed in parallel should never resolve');
+
+  /*
+   *  TODO
+   *  4.3.2 createAnswer
+   *    3.  If connection is configured with an identity provider, and an
+   *        identity assertion has not yet been generated using said
+   *        identity provider, then begin the identity assertion request
+   *        process if it has not already begun.
+   *
+   *    Steps to create an answer
+   *      1.  If the need for an identity assertion was identified when
+   *          createAnswer was invoked, wait for the identity assertion
+   *          request process to complete.
+   *      2.  If the identity provider was unable to produce an identity
+   *          assertion, reject p with a newly created NotReadableError
+   *          and abort these steps.
+   *      3.  If connection was not constructed with a set of certificates,
+   *          and one has not yet been generated, wait for it to be generated.
+   *
+   *    Final steps to create an answer
+   *      2.  If connection was modified in such a way that additional
+   *          inspection of the system state is necessary, then in
+   *          parallel begin the steps to create an answer again, given p,
+   *          and abort these steps.
+   *
+   *  Non-Testable
+   *  4.3.2 createAnswer
+   *      Steps to create an answer
+   *        4.  Inspect the system state to determine the currently
+   *            available resources as necessary for generating the answer,
+   *            as described in [JSEP] (section 4.1.7.).
+   *        5.  If this inspection failed for any reason, reject p with a
+   *            newly created OperationError and abort these steps.
+   *
+   *      Final steps to create an answer
+   *        3.  Given the information that was obtained from previous inspection
+   *            and the current state of connection and its RTCRtpTransceivers,
+   *            generate an SDP answer, sdpString, as described in [JSEP] (section 5.3.).
+   */
+
+</script>

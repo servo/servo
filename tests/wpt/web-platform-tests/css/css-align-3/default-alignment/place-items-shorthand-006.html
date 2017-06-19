@@ -10,7 +10,7 @@
 <script>
     var values = ["normal", "stretch"].concat(selfPositionValues, baselineValues);
     values.forEach(function(alignValue) {
-        ["", "auto"].concat(values).forEach(function(justifyValue) {
+        [""].concat(values).forEach(function(justifyValue) {
             var value = (alignValue + " " + justifyValue).trim();
             test(function() {
                 checkPlaceShorhand("place-items", alignValue, justifyValue)

@@ -1,0 +1,138 @@
+<!doctype html>
+<html>
+  <head>
+    <title>button haspopup grid</title>
+    <link rel="stylesheet" href="/resources/testharness.css">
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_PUSH_BUTTON"
+               ],
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "haspopup:grid"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_HAS_POPUP"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXRole",
+                  "is",
+                  "AXPopUpButton"
+               ],
+               [
+                  "property",
+                  "AXSubrole",
+                  "is",
+                  "<nil>"
+               ],
+               [
+                  "property",
+                  "AXRoleDescription",
+                  "is",
+                  "pop up button"
+               ],
+               [
+                  "property",
+                  "actions",
+                  "contains",
+                  "AXShowMenu"
+               ],
+               [
+                  "property",
+                  "actions",
+                  "contains",
+                  "AXPress"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "haspopup:grid"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_BUTTONMENU"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_SYSTEM_HASPOPUP"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "IUIAutomationElement.ControlType",
+                  "is",
+                  "Button"
+               ],
+               [
+                  "property",
+                  "controlPatterns",
+                  "contains",
+                  "ExpandCollapse"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "button haspopup grid"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for button haspopup grid.</p>
+    <div id="test" role="button" aria-haspopup="grid">
+  OK
+  </div>
+  <table role="grid">
+  <tr>
+    <th>c1</th><th>c2</th>
+  </tr>
+  <tr>
+    <td>A</td><td>B</td>
+  </tr>
+  </table>
+
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>
+

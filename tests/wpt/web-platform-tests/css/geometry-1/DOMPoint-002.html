@@ -145,7 +145,7 @@
         },'test DOMPointReadOnly fromPoint with undefined value');
         test(function() {
             var point = new DOMPointReadOnly(5, 4);
-            var matrix = new DOMMatrix([2, 0, 0, 2, 10, 10]);
+            var matrix = new DOMMatrix([1, 2, 3, 4, 5, 6]);
             var result = point.matrixTransform(matrix);
             var expected = getMatrixTransform(matrix, point);
             checkDOMPoint(result, expected);

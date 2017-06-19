@@ -1,0 +1,132 @@
+<!doctype html>
+<html>
+  <head>
+    <title>option selected true</title>
+    <link rel="stylesheet" href="/resources/testharness.css">
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_LIST_ITEM"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_SELECTED"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_SELECTABLE"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXRole",
+                  "is",
+                  "AXStaticText"
+               ],
+               [
+                  "property",
+                  "AXSubrole",
+                  "is",
+                  "<nil>"
+               ],
+               [
+                  "property",
+                  "AXRoleDescription",
+                  "is",
+                  "text"
+               ],
+               [
+                  "property",
+                  "AXSelected",
+                  "is",
+                  "true"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_LISTITEM"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_SYSTEM_SELECTED"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_SYSTEM_SELECTABLE"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "Control Type",
+                  "is",
+                  "ListItem"
+               ],
+               [
+                  "property",
+                  "interfaces",
+                  "contains",
+                  "Invoke"
+               ],
+               [
+                  "property",
+                  "SelectionItem.IsSelected",
+                  "Is",
+                  "true"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "option selected true"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for option selected true.</p>
+    <div role="listbox">
+   <div role="option" aria-selected="true" id="test">
+   Fish
+   </div>
+   <div role="option">
+   beef
+   </div>
+  </div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>
+

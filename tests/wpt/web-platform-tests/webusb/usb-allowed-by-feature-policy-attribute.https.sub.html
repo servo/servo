@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<body>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+'use strict';
+
+async_test(t => {
+  let frame = document.createElement('iframe');
+  frame.src = 'https://{{domains[www]}}:{{ports[https][0]}}/webusb/resources/check-availability.html';
+  frame.allow = 'usb';
+
+  window.addEventListener('message', t.step_func(evt => {
+    if (evt.source == frame.contentWindow) {
+      assert_equals(evt.data, '#OK');
+      document.body.removeChild(frame);
+      t.done();
+    }
+  }));
+
+  document.body.appendChild(frame);
+}, 'Feature policy "usb" can be enabled in cross-origin iframes using "allowed" attribute.');
+</script>
+</body>

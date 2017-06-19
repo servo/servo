@@ -1,9 +1,11 @@
 import unittest
 
+import pytest
 from six.moves.urllib.error import HTTPError
 
-import wptserve
+wptserve = pytest.importorskip("wptserve")
 from .base import TestUsingServer
+
 
 class TestFileHandler(TestUsingServer):
     def test_not_handled(self):

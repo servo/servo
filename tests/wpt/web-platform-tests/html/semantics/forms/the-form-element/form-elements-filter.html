@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>form.elements must contain all listed elements with the form owner</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-form-elements">
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+
+<!--
+  Elements with data-in are expected to be in the form.elements collection.
+  The choice of other elements besides "listed elements" (i.e. img, label, meter, progress) was
+  because those are ones that appear in form-associated or labelable element categories.
+-->
+
+<button data-in form="form" id="before-button1"></button>
+<fieldset data-in form="form" id="before-fieldset1"></fieldset>
+<object data-in form="form" id="before-object1"></object>
+<output data-in form="form" id="before-output1"></output>
+<select data-in form="form" id="before-select1">
+  <option form="form" id="before-option1">x</option>
+</select>
+<textarea data-in form="form" id="before-textarea1"></textarea>
+
+<input data-in form="form" id="before-input1">
+<input data-in type="hidden" form="form" id="before-input2">
+<input data-in type="search" form="form" id="before-input3">
+<input data-in type="tel" form="form" id="before-input4">
+<input data-in type="url" form="form" id="before-input5">
+<input data-in type="email" form="form" id="before-input6">
+<input data-in type="password" form="form" id="before-input7">
+<input data-in type="date" form="form" id="before-input8">
+<input data-in type="month" form="form" id="before-input9">
+<input data-in type="week" form="form" id="before-input10">
+<input data-in type="time" form="form" id="before-input11">
+<input data-in type="datetime-local" form="form" id="before-input12">
+<input data-in type="number" form="form" id="before-input13">
+<input data-in type="range" form="form" id="before-input14">
+<input data-in type="color" form="form" id="before-input15">
+<input data-in type="checkbox" form="form" id="before-input16">
+<input data-in type="radio" form="form" id="before-input17">
+<input data-in type="file" form="form" id="before-input18">
+<input data-in type="submit" form="form" id="before-input19">
+<input data-in type="reset" form="form" id="before-input20">
+<input data-in type="button" form="form" id="before-input21">
+
+<img form="form" id="before-img1">
+<label form="form" id="before-label1"></label>
+<meter form="form" id="before-meter1"></meter>
+<progress form="form" id="before-progress1"></progress>
+
+<form id="form">
+  <button data-in id="button1"></button>
+  <fieldset data-in id="fieldset1"></fieldset>
+  <object data-in id="object1"></object>
+  <output data-in id="output1"></output>
+  <select data-in id="select1">
+    <option id="option1">x</option>
+  </select>
+  <textarea data-in id="textarea1"></textarea>
+
+  <input data-in id="input1">
+  <input data-in type="hidden" id="input2">
+  <input data-in type="search" id="input3">
+  <input data-in type="tel" id="input4">
+  <input data-in type="url" id="input5">
+  <input data-in type="email" id="input6">
+  <input data-in type="password" id="input7">
+  <input data-in type="date" id="input8">
+  <input data-in type="month" id="input9">
+  <input data-in type="week" id="input10">
+  <input data-in type="time" id="input11">
+  <input data-in type="datetime-local" id="input12">
+  <input data-in type="number" id="input13">
+  <input data-in type="range" id="input14">
+  <input data-in type="color" id="input15">
+  <input data-in type="checkbox" id="input16">
+  <input data-in type="radio" id="input17">
+  <input data-in type="file" id="input18">
+  <input data-in type="submit" id="input19">
+  <input data-in type="reset" id="input20">
+  <input data-in type="button" id="input21">
+
+  <img id="img1">
+  <label id="label1"></label>
+  <meter id="meter1"></meter>
+  <progress id="progress1"></progress>
+</form>
+
+<button data-in form="form" id="after-button1"></button>
+<fieldset data-in form="form" id="after-fieldset1"></fieldset>
+<object data-in form="form" id="after-object1"></object>
+<output data-in form="form" id="after-output1"></output>
+<select data-in form="form" id="after-select1">
+  <option form="form" id="after-option1">x</option>
+</select>
+<textarea data-in form="form" id="after-textarea1"></textarea>
+
+<input data-in form="form" id="after-input1">
+<input data-in type="hidden" form="form" id="after-input2">
+<input data-in type="search" form="form" id="after-input3">
+<input data-in type="tel" form="form" id="after-input4">
+<input data-in type="url" form="form" id="after-input5">
+<input data-in type="email" form="form" id="after-input6">
+<input data-in type="password" form="form" id="after-input7">
+<input data-in type="date" form="form" id="after-input8">
+<input data-in type="month" form="form" id="after-input9">
+<input data-in type="week" form="form" id="after-input10">
+<input data-in type="time" form="form" id="after-input11">
+<input data-in type="datetime-local" form="form" id="after-input12">
+<input data-in type="number" form="form" id="after-input13">
+<input data-in type="range" form="form" id="after-input14">
+<input data-in type="color" form="form" id="after-input15">
+<input data-in type="checkbox" form="form" id="after-input16">
+<input data-in type="radio" form="form" id="after-input17">
+<input data-in type="file" form="form" id="after-input18">
+<input data-in type="submit" form="form" id="after-input19">
+<input data-in type="reset" form="form" id="after-input20">
+<input data-in type="button" form="form" id="after-input21">
+
+<img form="form" id="after-img1">
+<label form="form" id="after-label1"></label>
+<meter form="form" id="after-meter1"></meter>
+<progress form="form" id="after-progress1"></progress>
+
+<button id="after-unassociated-button1"></button>
+<fieldset id="after-unassociated-fieldset1"></fieldset>
+<object id="after-unassociated-object1"></object>
+<output id="after-unassociated-output1"></output>
+<select id="after-unassociated-select1">
+  <option id="after-unassociated-option1">x</option>
+</select>
+<textarea id="after-unassociated-textarea1"></textarea>
+
+<input id="after-unassociated-input1">
+<input type="hidden" id="after-unassociated-input2">
+<input type="search" id="after-unassociated-input3">
+<input type="tel" id="after-unassociated-input4">
+<input type="url" id="after-unassociated-input5">
+<input type="email" id="after-unassociated-input6">
+<input type="password" id="after-unassociated-input7">
+<input type="date" id="after-unassociated-input8">
+<input type="month" id="after-unassociated-input9">
+<input type="week" id="after-unassociated-input10">
+<input type="time" id="after-unassociated-input11">
+<input type="datetime-local" id="after-unassociated-input12">
+<input type="number" id="after-unassociated-input13">
+<input type="range" id="after-unassociated-input14">
+<input type="color" id="after-unassociated-input15">
+<input type="checkbox" id="after-unassociated-input16">
+<input type="radio" id="after-unassociated-input17">
+<input type="file" id="after-unassociated-input18">
+<input type="submit" id="after-unassociated-input19">
+<input type="reset" id="after-unassociated-input20">
+<input type="button" id="after-unassociated-input21">
+
+<img id="after-unassociated-img1">
+<label id="after-unassociated-label1"></label>
+<meter id="after-unassociated-meter1"></meter>
+<progress id="after-unassociated-progress1"></progress>
+
+<script>
+"use strict";
+test(() => {
+  const elements = document.querySelector("#form").elements;
+  const ids = Array.from(elements).map(el => el.id);
+
+  const allCorrectIDs = Array.from(document.querySelectorAll("[data-in]")).map(el => el.id);
+
+  assert_array_equals(ids, allCorrectIDs);
+});
+</script>

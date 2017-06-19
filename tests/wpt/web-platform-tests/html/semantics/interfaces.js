@@ -83,7 +83,6 @@ var elements = [
   ["mark", ""],
   ["marquee", "Marquee"],
   ["menu", "Menu"],
-  ["menuitem", "MenuItem"],
   ["meta", "Meta"],
   ["meter", "Meter"],
   ["mod", "Unknown"],

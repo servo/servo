@@ -33,9 +33,7 @@ which is useful if you want to contribute patches back:
 If you are writing WebDriver specification tests for
 [WPT](https://github.com/w3c/web-platform-tests),
 there is no need to install the client manually
-as it is picked up as a submodule to
-[wpt-tools](https://github.com/w3c/wpt-tools)
-that is checked out in `./tools`.
+as it is included in the `tools/webdriver` directory.
 
 ## Usage
 

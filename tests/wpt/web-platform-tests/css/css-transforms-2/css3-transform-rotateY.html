@@ -1,0 +1,34 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>CSS Transforms Test: transform property with rotateY function</title>
+    <link rel="author" title="Noah Lu" href="mailto:codedancerhua@gmail.com" />
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-property" />
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-2/#funcdef-rotate" />
+    <link rel="match" href="css3-transform-rotateY-ref.html"/>
+    <meta name="assert" content="box width should be equal to projection width if transform rotateY applied">
+    <style type="text/css">
+    div {
+        height: 100px;
+        position: absolute;
+        top: 80px;
+    }
+    .red {
+        background-color: red;
+        left: 80px;
+        width: 100px;
+    }
+    .green{
+        background-color: green;
+        left: 30px;
+        transform: rotateY(60deg);
+        width: 200px;
+    }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a green square and no red.</p>
+    <div class="red"></div>
+    <div class="green"></div>
+</body>
+</html>

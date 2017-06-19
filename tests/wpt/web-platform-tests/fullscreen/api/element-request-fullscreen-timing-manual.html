@@ -15,7 +15,7 @@ async_test(t => {
   const callback = t.step_func(event => {
     events.push(event.type);
     if (event.type == 'fullscreenchange') {
-      setTimeout(t.unreached_func('timer callback'));
+      step_timeout(t.unreached_func('timer callback'));
       requestAnimationFrame(t.step_func_done(() => {
         assert_array_equals(events, ['resize', 'fullscreenchange'], 'event order');
       }));
@@ -30,7 +30,7 @@ async_test(t => {
   // If fullscreenerror is an animation frame event, then animation frame
   // callbacks should be run after it is fired, before the timer callback.
   document.onfullscreenerror = t.step_func(() => {
-    setTimeout(t.unreached_func('timer callback'));
+    step_timeout(t.unreached_func('timer callback'));
     requestAnimationFrame(t.step_func_done());
   });
 }, 'Timing of fullscreenerror event');

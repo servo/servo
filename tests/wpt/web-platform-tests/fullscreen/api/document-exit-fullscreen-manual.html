@@ -7,16 +7,18 @@
 <script>
 async_test(function(t)
 {
-    trusted_request(t, document.querySelector("div"));
+    var div = document.querySelector("div");
+    trusted_request(t, div);
 
     document.addEventListener("fullscreenchange", t.step_func(function(event)
     {
         if (document.fullscreenElement) {
             document.exitFullscreen();
         } else {
-            assert_equals(event.target, document, "event.target");
-            assert_false(event.bubbles, "event.bubbles");
+            assert_equals(event.target, div, "event.target");
+            assert_true(event.bubbles, "event.bubbles");
             assert_false(event.cancelable, "event.cancelable");
+            assert_true(event.composed, "event.composed");
             t.done();
         }
     }));

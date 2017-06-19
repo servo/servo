@@ -37,6 +37,7 @@ self.onmessage = function(e) {
                   message.push([client.visibilityState,
                                 client.focused,
                                 client.url,
+                                client.type,
                                 client.frameType]);
                 } else {
                   message.push(client);

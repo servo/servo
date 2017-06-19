@@ -1,7 +1,6 @@
 <!doctype html>
 <script src='/resources/testharness.js'></script>
 <script src='/resources/testharnessreport.js'></script>
-<link rel='stylesheet' href='/resources/testharness.css'>
 <link rel='stylesheet' href='../base.css' />
 
 <link rel="author" title="Greg Whitworth" href="gwhit@microsoft.com" />
@@ -29,7 +28,7 @@
 
     var i = 1;
 	generate_tests(assert_equals, [
-        [  
+        [
              // TEST ONE
             "Width is 100px due to 100px content size of caption",
             document.getElementById('one').offsetWidth,

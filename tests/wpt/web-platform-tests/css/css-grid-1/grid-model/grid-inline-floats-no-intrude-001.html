@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: floats do not intrude into an inline grid</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="http://www.w3.org/TR/css-grid-1/#grid-containers" title="3.1 Establishing Grid Containers">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+
+  .test-overlapping-green {
+    background-color: green;
+    width: 50px;
+    height: 100px;
+  }
+
+  .float {
+    float: left;
+  }
+
+  .inline-grid {
+    display: inline-grid;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+
+<div class="float test-overlapping-green"></div>
+<div class="inline-grid test-overlapping-green"></div>

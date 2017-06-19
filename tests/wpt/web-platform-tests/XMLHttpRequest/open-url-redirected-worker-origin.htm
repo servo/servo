@@ -18,7 +18,7 @@
         // now start the worker
         var finalWorkerURL = "workerxhr-origin-referrer.js";
         var url = "resources/redirect.py?location=" + encodeURIComponent(finalWorkerURL);
-        var worker = new Worker(url, true)
+        var worker = new Worker(url)
         worker.onmessage = function (e) {
             var subtest = async_test(e.data.test)
             subtest.step(function(){

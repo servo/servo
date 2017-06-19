@@ -1897,6 +1897,28 @@ promise_test(t => {
 }, 'ReadableStream with byte source: Throwing in pull in response to read(view) must be ignored if the stream is ' +
    'errored in it');
 
+promise_test(() => {
+  // Tests https://github.com/whatwg/streams/issues/686
+
+  let controller;
+  const rs = new ReadableStream({
+    autoAllocateChunkSize: 128,
+    start(c) {
+      controller = c;
+    },
+    type: "bytes"
+  });
+
+  const readPromise = rs.getReader().read();
+
+  const br = controller.byobRequest;
+  controller.close();
+
+  br.respond(0);
+
+  return readPromise;
+}, 'ReadableStream with byte source: default reader + autoAllocateChunkSize + byobRequest interaction');
+
 test(() => {
   const ReadableStreamBYOBReader = new ReadableStream({ type: 'bytes' }).getReader({ mode: 'byob' }).constructor;
   const stream = new ReadableStream({ type: 'bytes' });

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Transforms Test: perspective property</title>
+    <link rel="author" title="Andres Ugarte" href="mailto:anduga@gmail.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-2/#perspective-property">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-property">
+    <link rel="match" href="reference/perspective-reftest.html">
+    <meta name="assert" content="Asserts that the scaling is proportional to d/(d - Z) for a negative Z">
+    <style type="text/css">
+        .container {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            top: 100px;
+            left: 100px;
+            perspective: 3px;
+        }
+        .redSquare {
+            position: absolute;
+            top: -25px;
+            left: -25px;
+            width: 200px;
+            height: 200px;
+            background: red;
+            transform: translateZ(-1px);
+         }
+        .greenSquare {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 150px;
+            height: 150px;
+            background: green;
+            transform: translateZ(0px);
+         }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a green square and no red.</p>
+    <div class="container">
+        <div class="redSquare"></div>
+        <div class="greenSquare"></div>
+    </div>
+</body>
+</html>

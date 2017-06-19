@@ -1,0 +1,146 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Viewport: Dimensions with custom scrollbars</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, minimum-scale=1">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="viewport_support.js"></script>
+        <script>
+           setup({explicit_done: true, explicit_timeout: true});
+        </script>
+        <style>
+          #spacer {
+            width: 10000px;
+            height: 10000px;
+            position: absolute;
+            visibility: hidden;
+          }
+          ::-webkit-scrollbar {
+            width: 20px;
+            height: 25px;
+          }
+
+          ::-webkit-scrollbar-track {
+                background-color: #b46868;
+          }
+
+          ::-webkit-scrollbar-thumb {
+                background-color: rgba(0, 0, 0, 0.2);
+          }
+        </style>
+    </head>
+    <body>
+    <h1>Viewport: Dimensions with custom scrollbars</h1>
+    <h4>
+        Test Description: Tests the viewport dimensions correctly account for
+        custom scrollbars
+    </h4>
+    <h2 style="color: red">THIS IS A MANUAL TEST</h2>
+    <p id="skip">
+        <button id="skipbtn" onclick="skipManualTest();">Skip</button>
+        <p>
+            Skip this test if your browser doesn't support custom scrollbars or
+            browser-zoom (Ctrl+/-).
+        </p>
+    </p>
+    <p id="instruction"></p>
+    <button id="continue">Start Test</button>
+    <div id="log"></div>
+    <div id="spacer"></div>
+    </body>
+    <script>
+        var continueBtn = document.getElementById("continue");
+
+        function continueTest() {
+          nextStep(function(instructionText) {
+            var instruction = document.getElementById("instruction");
+            continueBtn.innerText = "Continue";
+            instruction.innerText = instructionText;
+          });
+        }
+
+        continueBtn.addEventListener('click', continueTest);
+
+        var originalWidth = 0;
+        var originalHeight = 0;
+        var originalInnerWidth = 0;
+
+        addManualTestStep(
+            function() {},
+            null,
+            '1. Ensure the browser is at the default pinch and browser zoom ' +
+            'levels (100%). Most browsers: ctrl+0');
+
+        addManualTestStep(
+            function() {
+                originalWidth = window.view.width;
+                originalHeight = window.view.height;
+                originalInnerWidth = window.innerWidth;
+
+                assert_equals(
+                    window.view.width,
+                    window.innerWidth - 20,
+                    "Custom scrollbar width subtracted from viewport.");
+                assert_equals(
+                    window.view.height,
+                    window.innerHeight - 25,
+                    "Custom scrollbar height subtracted from viewport.");
+            },
+            'No zoom or scale applied',
+            '2. Browser-zoom into 200% (ctrl +)');
+
+        addManualTestStep(
+            function() {
+                // Ensure we zoomed in to about what we expect.
+                assert_approx_equals(
+                    originalInnerWidth / window.innerWidth,
+                    2.0,
+                    0.1,
+                    "Browser zoom to correct level");
+
+                assert_equals(
+                    window.view.width,
+                    window.innerWidth - 20,
+                    "Custom scrollbar width subtracted from viewport.");
+                assert_equals(
+                    window.view.height,
+                    window.innerHeight - 25,
+                    "Custom scrollbar height subtracted from viewport.");
+            },
+            'With 200% browser zoom',
+            '3. Reset browser zoom (ctrl+0).');
+
+        addManualTestStep(
+            showPinchWidget.bind(null, 2.0, 0, 0, continueTest),
+            null,
+            'Pinch-zoom dialog in progress');
+
+        addManualTestStep(
+            function() {
+                assert_approx_equals(
+                    window.view.scale, 2, 0.2, "Pinch zoom to correct scale");
+
+                // Scrollbars do not grow with pinch-zoom so they take up fewer
+                // CSS pixels as you zoom in.
+                assert_approx_equals(
+                    window.view.width,
+                    originalWidth / window.view.scale,
+                    1,
+                    "Custom scrollbar width subtracted from viewport.");
+                assert_approx_equals(
+                    window.view.height,
+                    originalHeight / window.view.scale,
+                    1,
+                    "Custom scrollbar width subtracted from viewport.");
+            },
+            'With ~200% pinch zoom',
+            '4. Pinch-zoom out.');
+
+        addManualTestStep(
+            function() { continueBtn.remove(); },
+            null,
+            'Test Complete');
+    </script>
+</html>

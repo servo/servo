@@ -83,9 +83,9 @@ test(() => {
   assert_array_equals(n.s2.assignedNodes(), []);
   assert_array_equals(n.s3.assignedNodes(), []);
 
-  assert_array_equals(n.s1.assignedNodes({ flatten: true }), [n.c1]);
-  assert_array_equals(n.s2.assignedNodes({ flatten: true }), [n.c2, n.c3_1, n.c3_2]);
-  assert_array_equals(n.s3.assignedNodes({ flatten: true }), [n.c3_1, n.c3_2]);
+  assert_array_equals(n.s1.assignedNodes({ flatten: true }), []);
+  assert_array_equals(n.s2.assignedNodes({ flatten: true }), []);
+  assert_array_equals(n.s3.assignedNodes({ flatten: true }), []);
 }, 'Slots: Distributed nooes for Slots not in a shadow tree.');
 </script>
 

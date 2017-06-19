@@ -1,0 +1,171 @@
+<!doctype html>
+<html>
+  <head>
+    <title>combobox haspopup grid</title>
+    <link rel="stylesheet" href="/resources/testharness.css">
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_COMBO_BOX"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_EXPANDABLE"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_EXPANDED"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_HAS_POPUP"
+               ],
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "haspopup:grid"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXRole",
+                  "is",
+                  "AXComboBox"
+               ],
+               [
+                  "property",
+                  "AXSubrole",
+                  "is",
+                  "<nil>"
+               ],
+               [
+                  "property",
+                  "AXRoleDescription",
+                  "is",
+                  "combo box"
+               ],
+               [
+                  "property",
+                  "AXExpanded",
+                  "is",
+                  "true"
+               ],
+               [
+                  "property",
+                  "actions",
+                  "contains",
+                  "AXShowMenu"
+               ],
+               [
+                  "property",
+                  "actions",
+                  "contains",
+                  "AXPress"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "haspopup:grid"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_COMBOBOX"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_SYSTEM_HASPOPUP"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_SYSTEM_EXPANDED"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "Control Type",
+                  "is",
+                  "Combobox"
+               ],
+               [
+                  "property",
+                  "interfaces",
+                  "contains",
+                  "ExpandCollapse pattern"
+               ],
+               [
+                  "property",
+                  "ExpandCollapse.ExpandCollapseState",
+                  "is",
+                  "Expanded"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "combobox haspopup grid"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for combobox haspopup grid.</p>
+    <div aria-label="Tag" aria-haspopup="grid" id="test" role="combobox" aria-expanded="true" aria-owns="owned_grid">
+    <input type="text" aria-autocomplete="list" aria-controls="owned_grid" aria-activedescendant="selected_cell">
+  </div>
+  <table id="owned_grid" role="grid">
+    <tr>
+      <th tabindex="-1" id="selected_cell" role="colomnheader">c1</th><th role="colomnheader">c2</th>
+    </tr>
+    <tr>
+      <td role="gridcell">A1</td><td role="gridcell">A2</td>
+    </tr>
+    <tr>
+      <td role="gridcell">A3</td><td role="gridcell">A4</td>
+    </tr>
+  </table>
+
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>
+

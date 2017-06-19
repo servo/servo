@@ -864,9 +864,7 @@
     - security.getImageData
   scripts:
     - /common/get-host-info.sub.js
-  script-variants:
-    cross: data:text/javascript,addCrossOriginYellowImage()
-    redirect: data:text/javascript,addCrossOriginRedirectYellowImage()
+    - data:text/javascript,addCrossOriginYellowImage()
   code: |
     ctx.drawImage(document.getElementById('yellow.png'), 0, 0);
     @assert throws SECURITY_ERR canvas.toDataURL();
@@ -879,9 +877,7 @@
     - security.drawImage.canvas
   scripts:
     - /common/get-host-info.sub.js
-  script-variants:
-    cross: data:text/javascript,addCrossOriginYellowImage()
-    redirect: data:text/javascript,addCrossOriginRedirectYellowImage()
+    - data:text/javascript,addCrossOriginYellowImage()
   code: |
     var canvas2 = document.createElement('canvas');
     canvas2.width = 100;
@@ -899,9 +895,7 @@
     - security.start
   scripts:
     - /common/get-host-info.sub.js
-  script-variants:
-    cross: data:text/javascript,addCrossOriginYellowImage()
-    redirect: data:text/javascript,addCrossOriginRedirectYellowImage()
+    - data:text/javascript,addCrossOriginYellowImage()
   code: |
     var p = ctx.createPattern(document.getElementById('yellow.png'), 'repeat');
     canvas.toDataURL();
@@ -915,9 +909,7 @@
     - security.start
   scripts:
     - /common/get-host-info.sub.js
-  script-variants:
-    cross: data:text/javascript,addCrossOriginYellowImage()
-    redirect: data:text/javascript,addCrossOriginRedirectYellowImage()
+    - data:text/javascript,addCrossOriginYellowImage()
   code: |
     var canvas2 = document.createElement('canvas');
     canvas2.width = 100;
@@ -940,9 +932,7 @@
     - security.fillStyle.canvas
   scripts:
     - /common/get-host-info.sub.js
-  script-variants:
-    cross: data:text/javascript,addCrossOriginYellowImage()
-    redirect: data:text/javascript,addCrossOriginRedirectYellowImage()
+    - data:text/javascript,addCrossOriginYellowImage()
   code: |
     var canvas2 = document.createElement('canvas');
     canvas2.width = 100;
@@ -965,9 +955,7 @@
     - security.fillStyle.image
   scripts:
     - /common/get-host-info.sub.js
-  script-variants:
-    cross: data:text/javascript,addCrossOriginYellowImage()
-    redirect: data:text/javascript,addCrossOriginRedirectYellowImage()
+    - data:text/javascript,addCrossOriginYellowImage()
   code: |
     var p = ctx.createPattern(document.getElementById('yellow.png'), 'repeat');
     ctx.fillStyle = p;
@@ -982,9 +970,7 @@
     - security.fillStyle.canvas
   scripts:
     - /common/get-host-info.sub.js
-  script-variants:
-    cross: data:text/javascript,addCrossOriginYellowImage()
-    redirect: data:text/javascript,addCrossOriginRedirectYellowImage()
+    - data:text/javascript,addCrossOriginYellowImage()
   code: |
     var canvas2 = document.createElement('canvas');
     canvas2.width = 100;
@@ -1004,9 +990,7 @@
     - security.strokeStyle.image
   scripts:
     - /common/get-host-info.sub.js
-  script-variants:
-    cross: data:text/javascript,addCrossOriginYellowImage()
-    redirect: data:text/javascript,addCrossOriginRedirectYellowImage()
+    - data:text/javascript,addCrossOriginYellowImage()
   code: |
     var p = ctx.createPattern(document.getElementById('yellow.png'), 'repeat');
     ctx.strokeStyle = p;
@@ -1021,9 +1005,7 @@
     - security.strokeStyle.canvas
   scripts:
     - /common/get-host-info.sub.js
-  script-variants:
-    cross: data:text/javascript,addCrossOriginYellowImage()
-    redirect: data:text/javascript,addCrossOriginRedirectYellowImage()
+    - data:text/javascript,addCrossOriginYellowImage()
   code: |
     var canvas2 = document.createElement('canvas');
     canvas2.width = 100;
@@ -1063,9 +1045,7 @@
     - initial.reset
   scripts:
     - /common/get-host-info.sub.js
-  script-variants:
-    cross: data:text/javascript,addCrossOriginYellowImage()
-    redirect: data:text/javascript,addCrossOriginRedirectYellowImage()
+    - data:text/javascript,addCrossOriginYellowImage()
   code: |
     canvas.width = 50;
     ctx.drawImage(document.getElementById('yellow.png'), 0, 0);

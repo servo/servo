@@ -19,7 +19,7 @@ async_test(t => {
     iframeDocument.body.requestFullscreen();
     iframe.remove();
     // No events will be fired, end test after 100ms.
-    setTimeout(t.step_func_done(() => {
+    step_timeout(t.step_func_done(() => {
       assert_equals(document.fullscreenElement, null);
       assert_equals(iframeDocument.fullscreenElement, null);
     }), 100);

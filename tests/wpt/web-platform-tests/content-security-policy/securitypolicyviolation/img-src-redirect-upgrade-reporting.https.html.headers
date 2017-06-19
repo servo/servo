@@ -1,0 +1,2 @@
+Content-Security-Policy-Report-Only: img-src https:
+Content-Security-Policy: upgrade-insecure-requests

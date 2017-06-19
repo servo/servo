@@ -99,6 +99,19 @@ html.done section + section {
     background: rgba(255, 200, 0, 0.5);
 }
 
+#current_test {
+  visibility: hidden;
+}
+
+#current_test a {
+  display: inline-block;
+  margin-left: 1em;
+}
+
+#current_test .match {
+  background-color: #BDF1FF;
+}
+
 #manualUI .panel {
     max-width: 800px;
     margin: auto;

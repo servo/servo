@@ -3,7 +3,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
-<script src="resources/test-helpers.sub.js?pipe=sub"></script>
+<script src="resources/test-helpers.sub.js"></script>
 <script>
 async_test(function(t) {
     var SCOPE = 'resources/fetch-request-xhr-iframe.https.html';
@@ -15,13 +15,17 @@ async_test(function(t) {
         })
       .then(function() { return with_iframe(SCOPE); })
       .then(function(frame) {
+          t.add_cleanup(function() { frame.remove(); });
           var channel = new MessageChannel();
           channel.port1.onmessage = t.step_func(function(e) {
               if (e.data.results === 'finish') {
-                frame.remove();
                 service_worker_unregister_and_done(t, SCOPE);
               } else if (e.data.results == 'equals') {
                 assert_equals(e.data.got, e.data.expected);
+              } else if (e.data.results == 'array_equals') {
+                assert_array_equals(e.data.got, e.data.expected, e.data.msg);
+              } else if (e.data.results == 'failure') {
+                throw e.data.error;
               }
             });
           frame.contentWindow.postMessage({},

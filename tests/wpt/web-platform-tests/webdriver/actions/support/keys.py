@@ -117,7 +117,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue025",
-        "which": 0,
     },
     "ALT": {
         "code": "AltLeft",
@@ -127,7 +126,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue00a",
-        "which": 0,
     },
     "BACKSPACE": {
         "code": "Backspace",
@@ -137,7 +135,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue003",
-        "which": 0,
     },
     "CANCEL": {
         "code": "",
@@ -147,7 +144,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue001",
-        "which": 0,
     },
     "CLEAR": {
         "code": "",
@@ -157,7 +153,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue005",
-        "which": 0,
     },
     "CONTROL": {
         "code": "ControlLeft",
@@ -167,7 +162,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue009",
-        "which": 0,
     },
     "DECIMAL": {
         "code": "NumpadDecimal",
@@ -177,7 +171,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue028",
-        "which": 0,
     },
     "DELETE": {
         "code": "Delete",
@@ -187,7 +180,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue017",
-        "which": 0,
     },
     "DIVIDE": {
         "code": "NumpadDivide",
@@ -197,7 +189,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue029",
-        "which": 0,
     },
     "DOWN": {
         "code": "ArrowDown",
@@ -207,7 +198,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue015",
-        "which": 0,
     },
     "END": {
         "code": "End",
@@ -217,7 +207,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue010",
-        "which": 0,
     },
     "ENTER": {
         "code": "NumpadEnter",
@@ -227,7 +216,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue007",
-        "which": 0,
     },
     "EQUALS": {
         "code": "",
@@ -237,7 +225,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue019",
-        "which": 0,
     },
     "ESCAPE": {
         "code": "Escape",
@@ -247,7 +234,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue00c",
-        "which": 0,
     },
     "F1": {
         "code": "F1",
@@ -257,7 +243,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue031",
-        "which": 0,
     },
     "F10": {
         "code": "F10",
@@ -267,7 +252,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue03a",
-        "which": 0,
     },
     "F11": {
         "code": "F11",
@@ -277,7 +261,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue03b",
-        "which": 0,
     },
     "F12": {
         "code": "F12",
@@ -287,7 +270,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue03c",
-        "which": 0,
     },
     "F2": {
         "code": "F2",
@@ -297,7 +279,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue032",
-        "which": 0,
     },
     "F3": {
         "code": "F3",
@@ -307,7 +288,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue033",
-        "which": 0,
     },
     "F4": {
         "code": "F4",
@@ -317,7 +297,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue034",
-        "which": 0,
     },
     "F5": {
         "code": "F5",
@@ -327,7 +306,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue035",
-        "which": 0,
     },
     "F6": {
         "code": "F6",
@@ -337,7 +315,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue036",
-        "which": 0,
     },
     "F7": {
         "code": "F7",
@@ -347,7 +324,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue037",
-        "which": 0,
     },
     "F8": {
         "code": "F8",
@@ -357,7 +333,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue038",
-        "which": 0,
     },
     "F9": {
         "code": "F9",
@@ -367,7 +342,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue039",
-        "which": 0,
     },
     "HELP": {
         "code": "Help",
@@ -377,7 +351,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue002",
-        "which": 0,
     },
     "HOME": {
         "code": "Home",
@@ -387,7 +360,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue011",
-        "which": 0,
     },
     "INSERT": {
         "code": "Insert",
@@ -397,7 +369,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue016",
-        "which": 0,
     },
     "LEFT": {
         "code": "ArrowLeft",
@@ -407,7 +378,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue012",
-        "which": 0,
     },
     "META": {
         "code": "OSLeft",
@@ -417,7 +387,6 @@ ALL_EVENTS = {
         "meta": True,
         "shift": False,
         "value": u"\ue03d",
-        "which": 0,
     },
     "MULTIPLY": {
         "code": "NumpadMultiply",
@@ -427,7 +396,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue024",
-        "which": 0,
     },
     "NULL": {
         "code": "",
@@ -437,7 +405,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue000",
-        "which": 0,
     },
     "NUMPAD0": {
         "code": "Numpad0",
@@ -447,7 +414,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue01a",
-        "which": 0,
     },
     "NUMPAD1": {
         "code": "Numpad1",
@@ -457,7 +423,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue01b",
-        "which": 0,
     },
     "NUMPAD2": {
         "code": "Numpad2",
@@ -467,7 +432,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue01c",
-        "which": 0,
     },
     "NUMPAD3": {
         "code": "Numpad3",
@@ -477,7 +441,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue01d",
-        "which": 0,
     },
     "NUMPAD4": {
         "code": "PageDown",
@@ -487,7 +450,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue01e",
-        "which": 0,
     },
     "NUMPAD5": {
         "code": "PageUp",
@@ -497,7 +459,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue01f",
-        "which": 0,
     },
     "NUMPAD6": {
         "code": "Numpad6",
@@ -507,7 +468,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue020",
-        "which": 0,
     },
     "NUMPAD7": {
         "code": "Numpad7",
@@ -517,7 +477,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue021",
-        "which": 0,
     },
     "NUMPAD8": {
         "code": "Numpad8",
@@ -527,7 +486,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue022",
-        "which": 0,
     },
     "NUMPAD9": {
         "code": "Numpad9",
@@ -537,7 +495,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue023",
-        "which": 0,
     },
     "PAGE_DOWN": {
         "code": "",
@@ -547,7 +504,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue00f",
-        "which": 0,
     },
     "PAGE_UP": {
         "code": "",
@@ -557,7 +513,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue00e",
-        "which": 0,
     },
     "PAUSE": {
         "code": "",
@@ -567,17 +522,15 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue00b",
-        "which": 0,
     },
     "RETURN": {
         "code": "Enter",
         "ctrl": False,
-        "key": "Return",
+        "key": "Enter",
         "location": 0,
         "meta": False,
         "shift": False,
         "value": u"\ue006",
-        "which": 0,
     },
     "RIGHT": {
         "code": "ArrowRight",
@@ -587,7 +540,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue014",
-        "which": 0,
     },
     "R_ALT": {
         "code": "AltRight",
@@ -597,7 +549,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue052",
-        "which": 0,
     },
     "R_ARROWDOWN": {
         "code": "Numpad2",
@@ -607,7 +558,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue05b",
-        "which": 0,
     },
     "R_ARROWLEFT": {
         "code": "Numpad4",
@@ -617,7 +567,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue058",
-        "which": 0,
     },
     "R_ARROWRIGHT": {
         "code": "Numpad6",
@@ -627,7 +576,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue05a",
-        "which": 0,
     },
     "R_ARROWUP": {
         "code": "Numpad8",
@@ -637,7 +585,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue059",
-        "which": 0,
     },
     "R_CONTROL": {
         "code": "ControlRight",
@@ -647,7 +594,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue051",
-        "which": 0,
     },
     "R_DELETE": {
         "code": "NumpadDecimal",
@@ -657,7 +603,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue05d",
-        "which": 0,
     },
     "R_END": {
         "code": "Numpad1",
@@ -667,7 +612,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue056",
-        "which": 0,
     },
     "R_HOME": {
         "code": "Numpad7",
@@ -677,7 +621,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue057",
-        "which": 0,
     },
     "R_INSERT": {
         "code": "Numpad0",
@@ -687,7 +630,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue05c",
-        "which": 0,
     },
     "R_META": {
         "code": "OSRight",
@@ -697,7 +639,6 @@ ALL_EVENTS = {
         "meta": True,
         "shift": False,
         "value": u"\ue053",
-        "which": 0,
     },
     "R_PAGEDOWN": {
         "code": "Numpad3",
@@ -707,7 +648,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue055",
-        "which": 0,
     },
     "R_PAGEUP": {
         "code": "Numpad9",
@@ -717,7 +657,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue054",
-        "which": 0,
     },
     "R_SHIFT": {
         "code": "ShiftRight",
@@ -727,7 +666,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": True,
         "value": u"\ue050",
-        "which": 0,
     },
     "SEMICOLON": {
         "code": "",
@@ -737,7 +675,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue018",
-        "which": 0,
     },
     "SEPARATOR": {
         "code": "NumpadSubtract",
@@ -747,7 +684,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue026",
-        "which": 0,
     },
     "SHIFT": {
         "code": "ShiftLeft",
@@ -757,7 +693,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": True,
         "value": u"\ue008",
-        "which": 0,
     },
     "SPACE": {
         "code": "Space",
@@ -767,7 +702,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue00d",
-        "which": 0,
     },
     "SUBTRACT": {
         "code": "",
@@ -777,7 +711,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue027",
-        "which": 0,
     },
     "TAB": {
         "code": "Tab",
@@ -787,7 +720,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue004",
-        "which": 0,
     },
     "UP": {
         "code": "ArrowUp",
@@ -797,7 +729,6 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue013",
-        "which": 0,
     },
     "ZENKAKUHANKAKU": {
         "code": "",
@@ -807,6 +738,5 @@ ALL_EVENTS = {
         "meta": False,
         "shift": False,
         "value": u"\ue040",
-        "which": 0,
     }
 }

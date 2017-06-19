@@ -68,7 +68,7 @@ async_test(function(t) {
   var child = input.appendChild(document.createElement("input"))
   child.type = "checkbox"
   child.onclick = t.step_func(function() {
-    assert_true(input.checked, "child pre-click must be triggered")
+    assert_true(child.checked, "child pre-click must be triggered")
   })
   child.dispatchEvent(new MouseEvent("click", {bubbles:true}))
   t.done()

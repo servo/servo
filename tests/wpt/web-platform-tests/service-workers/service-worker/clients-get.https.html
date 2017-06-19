@@ -60,9 +60,9 @@ function wait_for_clientId() {
 }
 
 var expected = [
-    /* visibilityState, focused, url, frameType */
-    ['visible', true, normalizeURL(scope) + '#1', 'nested'],
-    ['visible', false, normalizeURL(scope) + '#2', 'nested'],
+    // visibilityState, focused, url, type, frameType
+    ['visible', true, normalizeURL(scope) + '#1', 'window', 'nested'],
+    ['visible', false, normalizeURL(scope) + '#2', 'window', 'nested'],
     undefined
 ];
 </script>

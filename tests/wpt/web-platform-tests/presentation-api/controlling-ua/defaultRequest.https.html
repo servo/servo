@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Setting a default presentation request</title>
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs">
+<link rel="help" href="http://w3c.github.io/presentation-api/#controlling-user-agent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+  test(() => {
+    assert_equals(navigator.presentation.defaultRequest, null, 'The initial value of the default presentation request is null.');
+
+    const request = new PresentationRequest('https://example.org/');
+    navigator.presentation.defaultRequest = request;
+    assert_equals(navigator.presentation.defaultRequest, request, 'The default presentation request is set to an instance of PresentationRequest.');
+
+    assert_throws(new TypeError(), () => {
+      navigator.presentation.defaultRequest = {};
+    }, 'The default presentation request cannot be set to any value but an instance of PresentationRequest or null.');
+
+    navigator.presentation.defaultRequest = null;
+    assert_equals(navigator.presentation.defaultRequest, null, 'The default presentation request is set to null.');
+  });
+</script>

@@ -8,6 +8,7 @@
 <script>
     var db, count = 0,
       t = async_test();
+      t.add_cleanup(function() { indexedDB.deleteDatabase('webworker101'); });
 
     t.step(function() {
         var worker = new Worker("idbworker.js");
@@ -27,7 +28,4 @@
 
         worker.postMessage(1);
     })
-
 </script>
-
-<div id="log"></div>

@@ -14,12 +14,18 @@
 <script><![CDATA[
 async_test(function() {
   var frame = document.createElement("iframe");
-  frame.onload = this.step_func_done(init);
+  var self = this;
+  frame.onload = function() {
+    // :target doesn't work before a page rendering on some browsers.  We run
+    // tests after an animation frame because it may be later than the first
+    // page rendering.
+    requestAnimationFrame(self.step_func_done(init.bind(self, frame)));
+  };
   frame.src = "ParentNode-querySelector-All-content.xht#target";
   document.body.appendChild(frame);
 })
 
-function init(e) {
+function init(target) {
   /*
    * This test suite tests Selectors API methods in 4 different contexts:
    * 1. Document node
@@ -58,7 +64,7 @@ function init(e) {
   var docType  = "xhtml"; // Only run tests suitable for XHTML
 
   // Prepare the nodes for testing
-  var doc = e.target.contentDocument;                 // Document Node tests
+  var doc = target.contentDocument;                 // Document Node tests
 
   var element = doc.getElementById("root");   // In-document Element Node tests
 

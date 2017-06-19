@@ -8,13 +8,14 @@
 <script>
     var open_rq = createdb(async_test(), undefined, 13);
     var did_upgrade = false;
+    var open_rq2;
 
     open_rq.onupgradeneeded = function() {};
     open_rq.onsuccess = function(e) {
         var db = e.target.result;
         db.close();
 
-        var open_rq2 = window.indexedDB.open(db.name, 14);
+        open_rq2 = window.indexedDB.open(db.name, 14);
         open_rq2.onupgradeneeded = function() {
             did_upgrade = true;
         };
@@ -26,6 +27,8 @@
         var open_rq3 = window.indexedDB.open(e.target.result.name);
         open_rq3.onsuccess = this.step_func(function(e) {
             assert_equals(e.target.result.version, 14, "db.version")
+            open_rq2.result.close();
+            open_rq3.result.close();
             this.done();
         });
         open_rq3.onupgradeneeded = fail(this, 'Unexpected upgradeneeded')

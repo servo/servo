@@ -16,6 +16,12 @@ function upgradeneeded_test(upgrade_func, success_func, error_func, description)
       var open_request = indexedDB.open(dbName);
 
       open_request.onupgradeneeded = t.step_func(function() {
+        t.add_cleanup(function() {
+          if (open_request.result) {
+            open_request.result.close(),
+            indexedDB.deleteDatabase(dbName);
+          }
+        });
         upgrade_func(t, open_request);
       });
       open_request.onsuccess = t.step_func(function() {

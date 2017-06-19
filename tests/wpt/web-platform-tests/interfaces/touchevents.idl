@@ -1,0 +1,10 @@
+interface Touch {
+    readonly    attribute long        identifier;
+    readonly    attribute EventTarget target;
+    readonly    attribute long        screenX;
+    readonly    attribute long        screenY;
+    readonly    attribute long        clientX;
+    readonly    attribute long        clientY;
+    readonly    attribute long        pageX;
+    readonly    attribute long        pageY;
+};
