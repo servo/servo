@@ -60,6 +60,9 @@ pub enum StyleSource {
     Style(Arc<Locked<StyleRule>>),
     /// A declaration block stable pointer.
     Declarations(Arc<Locked<PropertyDeclarationBlock>>),
+    /// Indicates no style source. Used to save an Option wrapper around the stylesource in
+    /// RuleNode
+    None,
 }
 
 impl PartialEq for StyleSource {
@@ -75,6 +78,7 @@ impl StyleSource {
         match (self, other) {
             (&Style(ref one), &Style(ref other)) => Arc::ptr_eq(one, other),
             (&Declarations(ref one), &Declarations(ref other)) => Arc::ptr_eq(one, other),
+            (&None, _) | (_, &None) => panic!("Should not check for equality between null StyleSource objects"),
             _ => false,
         }
     }
@@ -97,8 +101,17 @@ impl StyleSource {
         let block = match *self {
             StyleSource::Style(ref rule) => &rule.read_with(guard).block,
             StyleSource::Declarations(ref block) => block,
+            StyleSource::None => panic!("Cannot call read on StyleSource::None"),
         };
         block.read_with(guard)
+    }
+
+    /// Indicates if this StyleSource has a value
+    pub fn is_some(&self) -> bool {
+        match *self {
+            StyleSource::None => false,
+            _ => true,
+        }
     }
 }
 
@@ -291,7 +304,7 @@ impl RuleTree {
         // First walk up until the first less-or-equally specific rule.
         let mut children = vec![];
         while current.get().level > level {
-            children.push((current.get().source.clone().unwrap(), current.get().level));
+            children.push((current.get().source.clone(), current.get().level));
             current = current.parent().unwrap().clone();
         }
 
@@ -316,8 +329,8 @@ impl RuleTree {
                 // also equally valid. This is less likely, and would require an
                 // in-place mutation of the source, which is, at best, fiddly,
                 // so let's skip it for now.
-                let is_here_already = match current.get().source.as_ref() {
-                    Some(&StyleSource::Declarations(ref already_here)) => {
+                let is_here_already = match &current.get().source {
+                    &StyleSource::Declarations(ref already_here) => {
                         Arc::ptr_eq(pdb, already_here)
                     },
                     _ => unreachable!("Replacing non-declarations style?"),
@@ -382,7 +395,7 @@ impl RuleTree {
         let mut children = vec![];
         for node in iter {
             if !node.cascade_level().is_animation() {
-                children.push((node.get().source.clone().unwrap(), node.cascade_level()));
+                children.push((node.get().source.clone(), node.cascade_level()));
             }
             last = node;
         }
@@ -532,7 +545,7 @@ pub struct RuleNode {
 
     /// The actual style source, either coming from a selector in a StyleRule,
     /// or a raw property declaration block (like the style attribute).
-    source: Option<StyleSource>,
+    source: StyleSource,
 
     /// The cascade level this rule is positioned at.
     level: CascadeLevel,
@@ -564,7 +577,7 @@ impl RuleNode {
         RuleNode {
             root: Some(root),
             parent: Some(parent),
-            source: Some(source),
+            source: source,
             level: level,
             refcount: AtomicUsize::new(1),
             first_child: AtomicPtr::new(ptr::null_mut()),
@@ -578,7 +591,7 @@ impl RuleNode {
         RuleNode {
             root: None,
             parent: None,
-            source: None,
+            source: StyleSource::None,
             level: CascadeLevel::UANormal,
             refcount: AtomicUsize::new(1),
             first_child: AtomicPtr::new(ptr::null_mut()),
@@ -664,16 +677,13 @@ impl RuleNode {
             let _ = write!(writer, " ");
         }
 
-        match self.source {
-            Some(ref source) => {
-                source.dump(self.level.guard(guards), writer);
+        if self.source.is_some() {
+            self.source.dump(self.level.guard(guards), writer);
+        } else {
+            if indent != 0 {
+                warn!("How has this happened?");
             }
-            None => {
-                if indent != 0 {
-                    warn!("How has this happened?");
-                }
-                let _ = write!(writer, "(root)");
-            }
+            let _ = write!(writer, "(root)");
         }
 
         let _ = write!(writer, "\n");
@@ -714,7 +724,7 @@ impl HeapSizeOf for StrongRuleNode {
 
 impl StrongRuleNode {
     fn new(n: Box<RuleNode>) -> Self {
-        debug_assert!(n.parent.is_none() == n.source.is_none());
+        debug_assert!(n.parent.is_none() == !n.source.is_some());
 
         let ptr = Box::into_raw(n);
 
@@ -755,7 +765,7 @@ impl StrongRuleNode {
         for child in self.get().iter_children() {
             let child_node = unsafe { &*child.ptr() };
             if child_node.level == level &&
-                child_node.source.as_ref().unwrap().ptr_equals(&source) {
+                child_node.source.ptr_equals(&source) {
                 return child.upgrade();
             }
             last = Some(child);
@@ -800,7 +810,7 @@ impl StrongRuleNode {
                 // we accessed `last`.
                 next = WeakRuleNode::from_ptr(existing);
 
-                if unsafe { &*next.ptr() }.source.as_ref().unwrap().ptr_equals(&source) {
+                if unsafe { &*next.ptr() }.source.ptr_equals(&source) {
                     // That node happens to be for the same style source, use
                     // that, and let node fall out of scope.
                     return next.upgrade();
@@ -828,8 +838,8 @@ impl StrongRuleNode {
     /// Get the style source corresponding to this rule node. May return `None`
     /// if it's the root node, which means that the node hasn't matched any
     /// rules.
-    pub fn style_source(&self) -> Option<&StyleSource> {
-        self.get().source.as_ref()
+    pub fn style_source(&self) -> &StyleSource {
+        &self.get().source
     }
 
     /// The cascade level for this node
@@ -1077,9 +1087,11 @@ impl StrongRuleNode {
             let mut have_explicit_ua_inherit = false;
 
             for node in element_rule_node.self_and_ancestors() {
-                let declarations = match node.style_source() {
-                    Some(source) => source.read(node.cascade_level().guard(guards)).declarations(),
-                    None => continue
+                let source = node.style_source();
+                let declarations = if source.is_some() {
+                    source.read(node.cascade_level().guard(guards)).declarations()
+                } else {
+                    continue
                 };
 
                 // Iterate over declarations of the longhands we care about.
@@ -1194,7 +1206,7 @@ impl StrongRuleNode {
                 .take_while(|node| node.cascade_level() > CascadeLevel::Animations);
         let mut result = (LonghandIdSet::new(), false);
         for node in iter {
-            let style = node.style_source().unwrap();
+            let style = node.style_source();
             for &(ref decl, important) in style.read(node.cascade_level().guard(guards))
                                                .declarations()
                                                .iter() {
@@ -1219,9 +1231,10 @@ impl StrongRuleNode {
     fn get_animation_style(&self) -> &Arc<Locked<PropertyDeclarationBlock>> {
         debug_assert!(self.cascade_level().is_animation(),
                       "The cascade level should be an animation level");
-        match *self.style_source().unwrap() {
+        match *self.style_source() {
             StyleSource::Declarations(ref block) => block,
             StyleSource::Style(_) => unreachable!("animating style should not be a style rule"),
+            StyleSource::None => unreachable!("animating style should not be none"),
         }
     }
 
