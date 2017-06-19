@@ -115,6 +115,30 @@ pub enum EmbedderMsg {
     Status(Option<String>),
     /// Alerts the embedder that the current page has changed its title.
     ChangePageTitle(PipelineId, Option<String>),
+    /// Move the window to a point
+    MoveTo(Point2D<i32>),
+    /// Resize the window to size
+    ResizeTo(Size2D<u32>),
+    /// Get Window Informations size and position
+    GetClientWindow(IpcSender<(Size2D<u32>, Point2D<i32>)>),
+    /// Wether or not to follow a link
+    AllowNavigation(ServoUrl, IpcSender<bool>),
+    /// Sends an unconsumed key event back to the embedder.
+    KeyEvent(Option<char>, Key, KeyState, KeyModifiers),
+    /// Changes the cursor.
+    SetCursor(Cursor),
+    /// A favicon was detected
+    NewFavicon(ServoUrl),
+    /// <head> tag finished parsing
+    HeadParsed,
+    /// The history state has changed.
+    HistoryChanged(Vec<LoadData>, usize),
+    /// Enter or exit fullscreen
+    SetFullscreenState(bool),
+    /// The load of a page has begun
+    LoadStart,
+    /// The load of a page has completed
+    LoadComplete,
 }
 
 /// Messages from the painting thread and the constellation thread to the compositor thread.
@@ -133,38 +157,16 @@ pub enum Msg {
     ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Replaces the current frame tree, typically called during main frame navigation.
     SetFrameTree(SendableFrameTree, IpcSender<()>),
-    /// The load of a page has begun
-    LoadStart,
-    /// The load of a page has completed
-    LoadComplete,
-    /// The history state has changed.
-    HistoryChanged(Vec<LoadData>, usize),
-    /// Wether or not to follow a link
-    AllowNavigation(ServoUrl, IpcSender<bool>),
     /// Composite.
     Recomposite(CompositingReason),
-    /// Sends an unconsumed key event back to the compositor.
-    KeyEvent(Option<char>, Key, KeyState, KeyModifiers),
     /// Script has handled a touch event, and either prevented or allowed default actions.
     TouchEventProcessed(EventResult),
-    /// Changes the cursor.
-    SetCursor(Cursor),
     /// Composite to a PNG file and return the Image over a passed channel.
     CreatePng(IpcSender<Option<Image>>),
     /// Alerts the compositor that the viewport has been constrained in some manner
     ViewportConstrained(PipelineId, ViewportConstraints),
     /// A reply to the compositor asking if the output image is stable.
     IsReadyToSaveImageReply(bool),
-    /// A favicon was detected
-    NewFavicon(ServoUrl),
-    /// <head> tag finished parsing
-    HeadParsed,
-    /// Get Window Informations size and position
-    GetClientWindow(IpcSender<(Size2D<u32>, Point2D<i32>)>),
-    /// Move the window to a point
-    MoveTo(Point2D<i32>),
-    /// Resize the window to size
-    ResizeTo(Size2D<u32>),
     /// Pipeline visibility changed
     PipelineVisibilityChanged(PipelineId, bool),
     /// WebRender has successfully processed a scroll. The boolean specifies whether a composite is
@@ -180,8 +182,6 @@ pub enum Msg {
     /// It's used to dispatch functions from webrender to the main thread's event loop.
     /// Required to allow WGL GLContext sharing in Windows.
     Dispatch(Box<Fn() + Send>),
-    /// Enter or exit fullscreen
-    SetFullscreenState(bool),
 }
 
 impl Debug for Msg {
@@ -192,27 +192,15 @@ impl Debug for Msg {
             Msg::ScrollFragmentPoint(..) => write!(f, "ScrollFragmentPoint"),
             Msg::ChangeRunningAnimationsState(..) => write!(f, "ChangeRunningAnimationsState"),
             Msg::SetFrameTree(..) => write!(f, "SetFrameTree"),
-            Msg::LoadComplete => write!(f, "LoadComplete"),
-            Msg::AllowNavigation(..) => write!(f, "AllowNavigation"),
-            Msg::LoadStart => write!(f, "LoadStart"),
-            Msg::HistoryChanged(..) => write!(f, "HistoryChanged"),
             Msg::Recomposite(..) => write!(f, "Recomposite"),
-            Msg::KeyEvent(..) => write!(f, "KeyEvent"),
             Msg::TouchEventProcessed(..) => write!(f, "TouchEventProcessed"),
-            Msg::SetCursor(..) => write!(f, "SetCursor"),
             Msg::CreatePng(..) => write!(f, "CreatePng"),
             Msg::ViewportConstrained(..) => write!(f, "ViewportConstrained"),
             Msg::IsReadyToSaveImageReply(..) => write!(f, "IsReadyToSaveImageReply"),
-            Msg::NewFavicon(..) => write!(f, "NewFavicon"),
-            Msg::HeadParsed => write!(f, "HeadParsed"),
-            Msg::GetClientWindow(..) => write!(f, "GetClientWindow"),
-            Msg::MoveTo(..) => write!(f, "MoveTo"),
-            Msg::ResizeTo(..) => write!(f, "ResizeTo"),
             Msg::PipelineVisibilityChanged(..) => write!(f, "PipelineVisibilityChanged"),
             Msg::PipelineExited(..) => write!(f, "PipelineExited"),
             Msg::NewScrollFrameReady(..) => write!(f, "NewScrollFrameReady"),
             Msg::Dispatch(..) => write!(f, "Dispatch"),
-            Msg::SetFullscreenState(..) => write!(f, "SetFullscreenState"),
         }
     }
 }
@@ -222,6 +210,18 @@ impl Debug for EmbedderMsg {
         match *self {
             EmbedderMsg::Status(..) => write!(f, "Status"),
             EmbedderMsg::ChangePageTitle(..) => write!(f, "ChangePageTitle"),
+            EmbedderMsg::MoveTo(..) => write!(f, "MoveTo"),
+            EmbedderMsg::ResizeTo(..) => write!(f, "ResizeTo"),
+            EmbedderMsg::GetClientWindow(..) => write!(f, "GetClientWindow"),
+            EmbedderMsg::AllowNavigation(..) => write!(f, "AllowNavigation"),
+            EmbedderMsg::KeyEvent(..) => write!(f, "KeyEvent"),
+            EmbedderMsg::SetCursor(..) => write!(f, "SetCursor"),
+            EmbedderMsg::NewFavicon(..) => write!(f, "NewFavicon"),
+            EmbedderMsg::HeadParsed => write!(f, "HeadParsed"),
+            EmbedderMsg::HistoryChanged(..) => write!(f, "HistoryChanged"),
+            EmbedderMsg::SetFullscreenState(..) => write!(f, "SetFullscreenState"),
+            EmbedderMsg::LoadStart => write!(f, "LoadStart"),
+            EmbedderMsg::LoadComplete => write!(f, "LoadComplete"),
         }
     }
 }

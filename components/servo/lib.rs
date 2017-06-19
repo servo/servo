@@ -85,6 +85,7 @@ use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcSender};
 use log::{Log, LogMetadata, LogRecord};
+use msg::constellation_msg::KeyState;
 use net::resource_thread::new_resource_threads;
 use net_traits::IpcSend;
 use profile::mem as profile_mem;
@@ -344,7 +345,14 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
 
     fn receive_messages(&mut self) {
         while let Some(msg) = self.embedder_receiver.try_recv_embedder_msg() {
+            println!("browser: {:?}", msg);
             match (msg, self.compositor.shutdown_state) {
+                (_, ShutdownState::FinishedShuttingDown) => {
+                    error!("embedder shouldn't be handling messages after compositor has shut down");
+                },
+                (_, ShutdownState::ShuttingDown) => {
+                    println!("browser ignore message(compositor shutting donw)");
+                },
                 (EmbedderMsg::Status(message), ShutdownState::NotShuttingDown) => {
                     self.compositor.window.status(message);
                 },
@@ -356,17 +364,78 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                         self.compositor.window.set_page_title(title);
                     }
                 },
-                (_, _) => {},
+                (EmbedderMsg::MoveTo(point),
+                 ShutdownState::NotShuttingDown) => {
+                    self.compositor.window.set_position(point);
+                },
+                (EmbedderMsg::ResizeTo(size),
+                 ShutdownState::NotShuttingDown) => {
+                    self.compositor.window.set_inner_size(size);
+                },
+                (EmbedderMsg::GetClientWindow(send),
+                 ShutdownState::NotShuttingDown) => {
+                    let rect = self.compositor.window.client_window();
+                    if let Err(e) = send.send(rect) {
+                        warn!("Sending response to get client window failed ({}).", e);
+                    }
+                },
+                (EmbedderMsg::AllowNavigation(url, response_chan), ShutdownState::NotShuttingDown) => {
+                    let allow = self.compositor.window.allow_navigation(url);
+                    if let Err(e) = response_chan.send(allow) {
+                        warn!("Failed to send allow_navigation result ({}).", e);
+                    }
+                },
+                (EmbedderMsg::KeyEvent(ch, key, state, modified), ShutdownState::NotShuttingDown) => {
+                    if state == KeyState::Pressed {
+                        self.compositor.window.handle_key(ch, key, modified);
+                    }
+                },
+                (EmbedderMsg::SetCursor(cursor), ShutdownState::NotShuttingDown) => {
+                    self.compositor.window.set_cursor(cursor)
+                },
+                (EmbedderMsg::NewFavicon(url), ShutdownState::NotShuttingDown) => {
+                    self.compositor.window.set_favicon(url);
+                },
+                (EmbedderMsg::HeadParsed, ShutdownState::NotShuttingDown) => {
+                    self.compositor.window.head_parsed();
+                },
+                (EmbedderMsg::HistoryChanged(entries, current), ShutdownState::NotShuttingDown) => {
+                    self.compositor.window.history_changed(entries, current);
+                },
+                (EmbedderMsg::SetFullscreenState(state), ShutdownState::NotShuttingDown) => {
+                    self.compositor.window.set_fullscreen_state(state);
+                },
+                (EmbedderMsg::LoadStart, ShutdownState::NotShuttingDown) => {
+                    self.compositor.window.load_start();
+                },
+                (EmbedderMsg::LoadComplete, ShutdownState::NotShuttingDown) => {
+                    self.compositor.handle_load_complete();
+
+                    // Inform the embedder that the load has finished.
+                    //
+                    // TODO(pcwalton): Specify which frame's load completed.
+                    self.compositor.window.load_end();
+                },
             }
         }
     }
 
     pub fn handle_events(&mut self, events: Vec<WindowEvent>) -> bool {
+        println!("browser received new events");
         if self.compositor.receive_messages() {
             self.receive_messages();
-            for event in events {
+        } else {
+            println!("browser draining messages");
+            while self.embedder_receiver.try_recv_embedder_msg().is_some() {};
+        }
+        for event in events {
+            println!("browser event: {:?}", event);
+            if self.compositor.shutdown_state != ShutdownState::FinishedShuttingDown {
                 self.handle_window_event(event);
             }
+        }
+        if self.compositor.shutdown_state != ShutdownState::FinishedShuttingDown {
+            self.compositor.perform_updates();
         }
         self.compositor.shutdown_state != ShutdownState::FinishedShuttingDown
     }

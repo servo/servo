@@ -410,6 +410,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     pub fn start_shutting_down(&mut self) {
+        println!("Starting SHUTTING DOWN");
         debug!("Compositor sending Exit message to Constellation");
         if let Err(e) = self.constellation_chan.send(ConstellationMsg::Exit) {
             warn!("Sending exit message to constellation failed ({}).", e);
@@ -419,6 +420,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn finish_shutting_down(&mut self) {
+        println!("Finishing SHUTTING DOWN");
         debug!("Compositor received message that constellation shutdown is complete");
 
         // Drain compositor port, sometimes messages contain channels that are blocking
@@ -434,7 +436,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.shutdown_state = ShutdownState::FinishedShuttingDown;
     }
 
+    pub fn handle_load_complete(&mut self) {
+        // If we're painting in headless mode, schedule a recomposite.
+        if opts::get().output_file.is_some() || opts::get().exit_after_load {
+            self.composite_if_necessary(CompositingReason::Headless);
+        }
+    }
+
     fn handle_browser_message(&mut self, msg: Msg) -> bool {
+        println!("compositor: {:?}", msg);
         match (msg, self.shutdown_state) {
             (_, ShutdownState::FinishedShuttingDown) => {
                 error!("compositor shouldn't be handling messages after shutting down");
@@ -467,63 +477,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.scroll_fragment_to_point(scroll_root_id, point);
             }
 
-            (Msg::MoveTo(point),
-             ShutdownState::NotShuttingDown) => {
-                self.window.set_position(point);
-            }
-
-            (Msg::ResizeTo(size),
-             ShutdownState::NotShuttingDown) => {
-                self.window.set_inner_size(size);
-            }
-
-            (Msg::GetClientWindow(send),
-             ShutdownState::NotShuttingDown) => {
-                let rect = self.window.client_window();
-                if let Err(e) = send.send(rect) {
-                    warn!("Sending response to get client window failed ({}).", e);
-                }
-            }
-
-            (Msg::LoadStart, ShutdownState::NotShuttingDown) => {
-                self.window.load_start();
-            }
-
-            (Msg::LoadComplete, ShutdownState::NotShuttingDown) => {
-                // If we're painting in headless mode, schedule a recomposite.
-                if opts::get().output_file.is_some() || opts::get().exit_after_load {
-                    self.composite_if_necessary(CompositingReason::Headless);
-                }
-
-                // Inform the embedder that the load has finished.
-                //
-                // TODO(pcwalton): Specify which frame's load completed.
-                self.window.load_end();
-            }
-
-            (Msg::AllowNavigation(url, response_chan), ShutdownState::NotShuttingDown) => {
-                let allow = self.window.allow_navigation(url);
-                if let Err(e) = response_chan.send(allow) {
-                    warn!("Failed to send allow_navigation result ({}).", e);
-                }
-            }
-
             (Msg::Recomposite(reason), ShutdownState::NotShuttingDown) => {
                 self.composition_request = CompositionRequest::CompositeNow(reason)
             }
 
-            (Msg::KeyEvent(ch, key, state, modified), ShutdownState::NotShuttingDown) => {
-                if state == KeyState::Pressed {
-                    self.window.handle_key(ch, key, modified);
-                }
-            }
-
             (Msg::TouchEventProcessed(result), ShutdownState::NotShuttingDown) => {
                 self.touch_handler.on_event_processed(result);
-            }
-
-            (Msg::SetCursor(cursor), ShutdownState::NotShuttingDown) => {
-                self.window.set_cursor(cursor)
             }
 
             (Msg::CreatePng(reply), ShutdownState::NotShuttingDown) => {
@@ -558,18 +517,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.composite_if_necessary(CompositingReason::Headless);
             }
 
-            (Msg::NewFavicon(url), ShutdownState::NotShuttingDown) => {
-                self.window.set_favicon(url);
-            }
-
-            (Msg::HeadParsed, ShutdownState::NotShuttingDown) => {
-                self.window.head_parsed();
-            }
-
-            (Msg::HistoryChanged(entries, current), ShutdownState::NotShuttingDown) => {
-                self.window.history_changed(entries, current);
-            }
-
             (Msg::PipelineVisibilityChanged(pipeline_id, visible), ShutdownState::NotShuttingDown) => {
                 self.pipeline_details(pipeline_id).visible = visible;
                 if visible {
@@ -597,14 +544,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 func();
             }
 
-            (Msg::SetFullscreenState(state), ShutdownState::NotShuttingDown) => {
-                self.window.set_fullscreen_state(state);
-            }
-
             // When we are shutting_down, we need to avoid performing operations
             // such as Paint that may crash because we have begun tearing down
             // the rest of our resources.
-            (_, ShutdownState::ShuttingDown) => { }
+            (_, ShutdownState::ShuttingDown) => { println!("compositor ignore message (shuttingdow)"); }
         }
 
         true
@@ -1486,6 +1429,30 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
+    pub fn perform_updates(&mut self) -> bool {
+        if self.shutdown_state == ShutdownState::FinishedShuttingDown {
+            return false;
+        }
+
+        // If a pinch-zoom happened recently, ask for tiles at the new resolution
+        if self.zoom_action && precise_time_s() - self.zoom_time > 0.3 {
+            self.zoom_action = false;
+        }
+
+        match self.composition_request {
+            CompositionRequest::NoCompositingNecessary |
+            CompositionRequest::DelayedComposite(_) => {}
+            CompositionRequest::CompositeNow(_) => {
+                self.composite()
+            }
+        }
+
+        if !self.pending_scroll_zoom_events.is_empty() && !self.waiting_for_results_of_scroll {
+            self.process_pending_scroll_events()
+        }
+        self.shutdown_state != ShutdownState::FinishedShuttingDown
+    }
+
     pub fn receive_messages(&mut self) -> bool {
         // Check for new messages coming from the other threads in the system.
         let mut compositor_messages = vec![];
@@ -1502,7 +1469,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
         for msg in compositor_messages {
             if !self.handle_browser_message(msg) {
-                break
+                return false
             }
         }
 
@@ -1521,11 +1488,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.composite()
             }
         }
-
-        if !self.pending_scroll_zoom_events.is_empty() && !self.waiting_for_results_of_scroll {
-            self.process_pending_scroll_events()
-        }
-        self.shutdown_state != ShutdownState::FinishedShuttingDown
+        true
     }
 
     pub fn set_webrender_profiler_enabled(&mut self, enabled: bool) {

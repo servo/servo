@@ -1115,11 +1115,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
             FromScriptMsg::NewFavicon(url) => {
                 debug!("constellation got new favicon message");
-                self.compositor_proxy.send(ToCompositorMsg::NewFavicon(url));
+                self.embedder_proxy.send(EmbedderMsg::NewFavicon(url));
             }
             FromScriptMsg::HeadParsed => {
                 debug!("constellation got head parsed message");
-                self.compositor_proxy.send(ToCompositorMsg::HeadParsed);
+                self.embedder_proxy.send(EmbedderMsg::HeadParsed);
             }
             FromScriptMsg::CreateCanvasPaintThread(size, sender) => {
                 debug!("constellation got create-canvas-paint-thread message");
@@ -1149,15 +1149,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
 
             FromScriptMsg::GetClientWindow(send) => {
-                self.compositor_proxy.send(ToCompositorMsg::GetClientWindow(send));
+                self.embedder_proxy.send(EmbedderMsg::GetClientWindow(send));
             }
 
             FromScriptMsg::MoveTo(point) => {
-                self.compositor_proxy.send(ToCompositorMsg::MoveTo(point));
+                self.embedder_proxy.send(EmbedderMsg::MoveTo(point));
             }
 
             FromScriptMsg::ResizeTo(size) => {
-                self.compositor_proxy.send(ToCompositorMsg::ResizeTo(size));
+                self.embedder_proxy.send(EmbedderMsg::ResizeTo(size));
             }
 
             FromScriptMsg::Exit => {
@@ -1172,7 +1172,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
 
             FromScriptMsg::SendKeyEvent(ch, key, key_state, key_modifiers) => {
-                self.compositor_proxy.send(ToCompositorMsg::KeyEvent(ch, key, key_state, key_modifiers))
+                self.embedder_proxy.send(EmbedderMsg::KeyEvent(ch, key, key_state, key_modifiers))
             }
 
             FromScriptMsg::TouchEventProcessed(result) => {
@@ -1205,7 +1205,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.handle_broadcast_storage_event(pipeline_id, storage, url, key, old_value, new_value);
             }
             FromScriptMsg::SetFullscreenState(state) => {
-                self.compositor_proxy.send(ToCompositorMsg::SetFullscreenState(state));
+                self.embedder_proxy.send(EmbedderMsg::SetFullscreenState(state));
             }
         }
     }
@@ -1658,7 +1658,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_set_cursor_msg(&mut self, cursor: Cursor) {
-        self.compositor_proxy.send(ToCompositorMsg::SetCursor(cursor))
+        self.embedder_proxy.send(EmbedderMsg::SetCursor(cursor))
     }
 
     fn handle_change_running_animations_state(&mut self,
@@ -1729,7 +1729,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn load_url(&mut self, source_id: PipelineId, load_data: LoadData, replace: bool) -> Option<PipelineId> {
         // Allow the embedder to handle the url itself
         let (chan, port) = ipc::channel().expect("Failed to create IPC channel!");
-        self.compositor_proxy.send(ToCompositorMsg::AllowNavigation(load_data.url.clone(), chan));
+        self.embedder_proxy.send(EmbedderMsg::AllowNavigation(load_data.url.clone(), chan));
         if let Ok(false) = port.recv() {
             return None;
         }
@@ -1820,7 +1820,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_load_start_msg(&mut self, _pipeline_id: PipelineId) {
-        self.compositor_proxy.send(ToCompositorMsg::LoadStart);
+        self.embedder_proxy.send(EmbedderMsg::LoadStart);
     }
 
     fn handle_load_complete_msg(&mut self, pipeline_id: PipelineId) {
@@ -1835,7 +1835,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if webdriver_reset {
             self.webdriver.load_channel = None;
         }
-        self.compositor_proxy.send(ToCompositorMsg::LoadComplete);
+        self.embedder_proxy.send(EmbedderMsg::LoadComplete);
         self.handle_subframe_loaded(pipeline_id);
     }
 
@@ -1901,8 +1901,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 }
             },
             None => {
-                let event = ToCompositorMsg::KeyEvent(ch, key, state, mods);
-                self.compositor_proxy.clone_compositor_proxy().send(event);
+                let event = EmbedderMsg::KeyEvent(ch, key, state, mods);
+                self.embedder_proxy.clone_embedder_proxy().send(event);
             }
         }
     }
@@ -2104,7 +2104,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             },
             WebDriverCommandMsg::SetWindowSize(_, size, reply) => {
                 self.webdriver.resize_channel = Some(reply);
-                self.compositor_proxy.send(ToCompositorMsg::ResizeTo(size));
+                self.embedder_proxy.send(EmbedderMsg::ResizeTo(size));
             },
             WebDriverCommandMsg::LoadUrl(top_level_browsing_context_id, load_data, reply) => {
                 self.load_url_for_webdriver(top_level_browsing_context_id, load_data, reply, false);
@@ -2338,7 +2338,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                        .map(&keep_load_data_if_top_browsing_context)
                        .scan(current_load_data.clone(), &resolve_load_data));
 
-        self.compositor_proxy.send(ToCompositorMsg::HistoryChanged(entries, current_index));
+        self.embedder_proxy.send(EmbedderMsg::HistoryChanged(entries, current_index));
     }
 
     fn load_url_for_webdriver(&mut self,
