@@ -143,7 +143,7 @@ promise_test(function testPromiseRace() {
                             "Next 3"]);
   assert_true(p instanceof LoggingPromise);
   return p.then(function(arg) {
-    assert_true(arg == 1 || arg == 2);
+    assert_in_array(arg, [1, 2]);
   });
 }, "Promise.race behavior");
 
@@ -159,7 +159,7 @@ promise_test(function testPromiseRaceNoSpecies() {
                             "Next 3"]);
   assert_true(p instanceof SpeciesLessPromise);
   return p.then(function(arg) {
-    assert_true(arg == 1 || arg == 2);
+    assert_in_array(arg, [1, 2]);
   });
 }, "Promise.race without species behavior");
 

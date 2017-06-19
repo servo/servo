@@ -26,7 +26,6 @@ function create_test_case_promise(url, with_credentials) {
     });
 }
 
-
 function create_test_promise(url, with_credentials, expected_result) {
   return new Promise(function(resolve, reject) {
       create_test_case_promise(url, with_credentials)

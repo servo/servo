@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Structured cloning of SharedArrayBuffers to similar-origin, but not same-origin, windows</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#structuredserialize">
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-incrementer.js"></script>
+
+<div id="log"></div>
+
+<script>
+"use strict";
+document.domain = "{{host}}";
+
+promise_test(t => {
+  return new Promise(resolve => {
+    const iframe = document.createElement("iframe");
+    iframe.onload = t.step_func(() => {
+      resolve(testSharingViaIncrementerScript(t, window, "window", iframe.contentWindow, "iframe", "*"));
+    });
+    iframe.src = "//{{domains[www1]}}:{{location[port]}}/html/infrastructure/safe-passing-of-structured-data/shared-array-buffers/resources/incrementer-iframe.html";
+    document.body.appendChild(iframe);
+  });
+}, "postMessaging to a not same-origin-domain, but similar origin, iframe allows them to see each others' modifications");
+</script>

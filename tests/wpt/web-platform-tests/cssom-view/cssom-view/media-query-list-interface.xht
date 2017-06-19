@@ -18,10 +18,10 @@
             var mediaQueryList;
             test(
                 function(){
-                    assert_inherits(window, "matchMedia");
+                    assert_own_property(window, "matchMedia");
                     mediaQueryList = window.matchMedia('foo');
-                }, 'window_inherits_matchmedia', {
-                  assert: ['window.matchMedia is inherited. If this fails, the rest of the test fails.']
+                }, 'window_exposes_matchmedia', {
+                  assert: ['window.matchMedia is exposed by window. If this fails, the rest of the test fails.']
                 }
             );
             /*
@@ -50,10 +50,10 @@
              */
             test(
                 function() {
-                    assert_own_property(mediaQueryList, 'media');
-                    assert_own_property(mediaQueryList, 'matches');
+                    assert_inherits(mediaQueryList, 'media');
+                    assert_inherits(mediaQueryList, 'matches');
                 }, 'mediaquerylist_properties', {
-                  assert: ['MediaQueryList properties are owned by window']
+                  assert: ['MediaQueryList properties are inherited']
                 }
             );
             test(

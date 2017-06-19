@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>CSS Test:  font-variant-east-asian: proportional-width; low level equivalence</title>
+<link rel="author" title="Chris Lilley" href="chris@w3.org">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-variant-east-asian-prop">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-feature-settings-prop">
+<link rel="match" href="font-variant-east-asian-09-ref.html">
+<meta name="assert" content="Enables rendering of proportionally-spaced variants (OpenType feature: pwid)">
+<style>
+  @font-face {
+    font-family: fwf;
+    src: url(support/fonts/FontWithFancyFeatures.otf);
+  }
+  .test {
+	  font-family: fwf;
+	  font-size: 3em;
+	  line-height: 1.1;
+  }
+  .high {
+	 font-variant-east-asian: proportional-width;
+  }
+  .low {
+   font-feature-settings: "jp78" off, "jp83" off, "jp90" off, "jp04" off, "smpl" off,  "trad" off, "fwid" off, "pwid" on, "ruby" off ;
+  }
+</style>
+<body>
+<p>Test passes if the three lines below are identical, with seven crosses (✗), one check mark (✓), then one cross (✗). </p>
+<section class="test">
+	<p class="high">YZabcdefg</p>
+	<p class="low">YZabcdefg</p>
+	<p class="ref">BBBBBBBAB</p>
+</section>

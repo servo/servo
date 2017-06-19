@@ -209,7 +209,6 @@ element_attribute_pairs = [
     "input value", # type=url
     "ins cite",
     "link href",
-    #"menuitem icon", # skip until parser is updated
     "object data",
     "q cite",
     "script src",

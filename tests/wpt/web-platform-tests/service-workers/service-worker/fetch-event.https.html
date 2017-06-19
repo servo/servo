@@ -8,6 +8,35 @@
 var worker = 'resources/fetch-event-test-worker.js';
 
 async_test(function(t) {
+    const scope = 'resources/simple.html?headers';
+    service_worker_unregister_and_register(t, worker, scope)
+      .then(function(reg) {
+          return wait_for_state(t, reg.installing, 'activated');
+        })
+      .then(function() { return with_iframe(scope); })
+      .then(function(frame) {
+          t.add_cleanup(function() { frame.remove(); });
+          const headers = JSON.parse(frame.contentDocument.body.textContent);
+          const header_names = {};
+          for (const [name, value] of headers) {
+            header_names[name] = true;
+          }
+
+          assert_true(
+            header_names.hasOwnProperty('accept'),
+            'request includes "Accept" header as inserted by Fetch'
+          );
+          assert_true(
+            header_names.hasOwnProperty('upgrade-insecure-requests'),
+            'request specifies "Upgrade-Insecure Requests header as inserted by Fetch'
+          );
+
+          return service_worker_unregister_and_done(t, scope);
+        })
+      .catch(unreached_rejection(t));
+  }, 'Service Worker headers in the request of a fetch event');
+
+async_test(function(t) {
     var scope = 'resources/simple.html?string';
     service_worker_unregister_and_register(t, worker, scope)
       .then(function(reg) {
@@ -516,6 +545,7 @@ async_test(function(t) {
         })
       .catch(unreached_rejection(t));
   }, 'Service Worker should expose FetchEvent URL fragments.');
+
 async_test(function(t) {
     var scope = 'resources/simple.html?cache';
     var frame;
@@ -549,6 +579,7 @@ async_test(function(t) {
                   .catch(reject);
               });
           });
+          return Promise.all(tests);
         })
       .then(function() {
           return new Promise(function(resolve, reject) {
@@ -639,25 +670,16 @@ async_test(function(t) {
           assert_equals(
             frame.contentDocument.body.textContent, '');
 
-          return new Promise(function(resolve, reject) {
-              return frame.contentWindow.fetch(scope,
-                {'integrity': integrity_metadata})
-                .then(function(response) {
-                    return response.text();
-                })
-                .then(function(response_text) {
-                    // Should get the same integrity metadata.
-                    assert_equals(response_text, integrity_metadata,
-                                  'Service Worker should respond to fetch with the correct integrity');
-                })
-                .then(resolve())
-                .catch(reject());
-          });
+          return frame.contentWindow.fetch(scope, {'integrity': integrity_metadata});
         })
-      .then(function() {
+      .then(response => {
+          return response.text();
+        })
+      .then(response_text => {
+          assert_equals(response_text, integrity_metadata, 'integrity');
           frame.remove();
           return service_worker_unregister_and_done(t, scope);
-      })
+        })
       .catch(unreached_rejection(t));
   }, 'Service Worker responds to fetch event with the correct integrity_metadata');
 

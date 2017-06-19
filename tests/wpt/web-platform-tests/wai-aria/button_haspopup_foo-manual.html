@@ -1,0 +1,130 @@
+<!doctype html>
+<html>
+  <head>
+    <title>button haspopup foo</title>
+    <link rel="stylesheet" href="/resources/testharness.css">
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_PUSH_BUTTON"
+               ],
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "haspopup:false"
+               ],
+               [
+                  "property",
+                  "states",
+                  "doesNotContain",
+                  "STATE_HAS_POPUP"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXRole",
+                  "is",
+                  "AXButton"
+               ],
+               [
+                  "property",
+                  "AXSubrole",
+                  "is",
+                  "<nil>"
+               ],
+               [
+                  "property",
+                  "AXRoleDescription",
+                  "is",
+                  "button"
+               ],
+               [
+                  "property",
+                  "actions",
+                  "doesNotContain",
+                  "AXShowMenu"
+               ],
+               [
+                  "property",
+                  "actions",
+                  "doesNotContain",
+                  "AXPress"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "haspopup:false"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_PUSHBUTTON"
+               ],
+               [
+                  "property",
+                  "states",
+                  "doesNotContain",
+                  "STATE_SYSTEM_HASPOPUP"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "IUIAutomationElement.ControlType",
+                  "is",
+                  "Button"
+               ],
+               [
+                  "property",
+                  "controlPatterns",
+                  "doesNotContain",
+                  "ExpandCollapse"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "button haspopup foo"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for button haspopup foo.</p>
+    <div id="test" role="button" aria-haspopup="foo">
+  OK
+  </div>
+
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>
+

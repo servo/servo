@@ -85,34 +85,10 @@
 
     test(
       function() {
-        target2.style.display = "none";
-        assert_array_equals(elementsStyledWithFocusWithinSelector(), ["html", "body", "test", "container2", "sibling5", "target2"]);
-        assert_array_equals(elementsMatchingFocusWithinSelector(), ["html", "body", "test", "container2", "sibling5", "target2"]);
-        assert_true(target2.matches(":focus"));
-      }, "Set display none on 'target2'");
-
-    test(
-      function() {
         target1.focus();
         assert_array_equals(elementsStyledWithFocusWithinSelector(), ["html", "body", "test", "container1", "sibling2", "target1"]);
         assert_array_equals(elementsMatchingFocusWithinSelector(), ["html", "body", "test", "container1", "sibling2", "target1"]);
       }, "Focus 'target1' again");
-
-    test(
-      function() {
-        target2.focus();
-        assert_array_equals(elementsStyledWithFocusWithinSelector(), ["html", "body", "test", "container1", "sibling2", "target1"]);
-        assert_array_equals(elementsMatchingFocusWithinSelector(), ["html", "body", "test", "container1", "sibling2", "target1"]);
-        assert_true(target1.matches(":focus"));
-        assert_false(target2.matches(":focus"));
-      }, "Try to focus 'target2'");
-
-    test(
-      function() {
-        target2.style.display = "inline-block";
-        assert_array_equals(elementsStyledWithFocusWithinSelector(), ["html", "body", "test", "container1", "sibling2", "target1"]);
-        assert_array_equals(elementsMatchingFocusWithinSelector(), ["html", "body", "test", "container1", "sibling2", "target1"]);
-      }, "Set display back on 'target2'");
 
     test(
       function() {
@@ -123,34 +99,10 @@
 
     test(
       function() {
-        container2.style.display = "none";
-        assert_array_equals(elementsStyledWithFocusWithinSelector(), ["html", "body", "test", "container2", "sibling5", "target2"]);
-        assert_array_equals(elementsMatchingFocusWithinSelector(), ["html", "body", "test", "container2", "sibling5", "target2"]);
-        assert_true(target2.matches(":focus"));
-      }, "Set display none on 'container2'");
-
-    test(
-      function() {
         target1.focus();
         assert_array_equals(elementsStyledWithFocusWithinSelector(), ["html", "body", "test", "container1", "sibling2", "target1"]);
         assert_array_equals(elementsMatchingFocusWithinSelector(), ["html", "body", "test", "container1", "sibling2", "target1"]);
       }, "Focus 'target1' once again");
-
-    test(
-      function() {
-        target2.focus();
-        assert_array_equals(elementsStyledWithFocusWithinSelector(), ["html", "body", "test", "container1", "sibling2", "target1"]);
-        assert_array_equals(elementsMatchingFocusWithinSelector(), ["html", "body", "test", "container1", "sibling2", "target1"]);
-        assert_true(target1.matches(":focus"));
-        assert_false(target2.matches(":focus"));
-      }, "Try to focus 'target2' again");
-
-    test(
-      function() {
-        container2.style.display = "block";
-        assert_array_equals(elementsStyledWithFocusWithinSelector(), ["html", "body", "test", "container1", "sibling2", "target1"]);
-        assert_array_equals(elementsMatchingFocusWithinSelector(), ["html", "body", "test", "container1", "sibling2", "target1"]);
-      }, "Set display back on 'container2'");
 
     test(
       function() {

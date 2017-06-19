@@ -1,0 +1,102 @@
+<!doctype html>
+<html>
+  <head>
+    <title>errormessage object in valid state</title>
+    <link rel="stylesheet" href="/resources/testharness.css">
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "relation",
+                  "RELATION_ERROR_MESSAGE",
+                  "is",
+                  "error"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "TBD",
+                  "is",
+                  "TBD"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "relation",
+                  "IA2_RELATION_ERROR_MESSAGE",
+                  "is",
+                  "error"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "IUIAutomationElement.ControllerFor",
+                  "is",
+                  "error"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      },
+      {
+         "element" : "error",
+         "test" : {
+            "ATK" : [
+               [
+                  "relation",
+                  "RELATION_ERROR_FOR",
+                  "is",
+                  "test"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "relation",
+                  "IA2_RELATION_ERROR_FOR",
+                  "is",
+                  "test"
+               ]
+            ],
+            "UIA" : []
+         },
+         "title" : "step 2",
+         "type" : "test"
+      }
+   ],
+   "title" : "errormessage object in valid state"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for errormessage object in valid state.</p>
+    <div role="form">
+  <label for="test">date</label><input type="text" id="test" value="April 12" aria-errormessage="error">
+  <label for="test1">surname</label><input type="text" id="test1" value="April 14">
+  </div>
+  <div id="error">
+     You did not enter a valid date!
+  </div>
+
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>
+

@@ -1,0 +1,138 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Test RTCPeerConnection.generateCertificate</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170515/webrtc.html
+
+  /*
+   *  4.10. Certificate Management
+   *    partial interface RTCPeerConnection {
+   *      static Promise<RTCCertificate> generateCertificate(
+   *        AlgorithmIdentifier keygenAlgorithm);
+   *    };
+   *
+   *  4.10.2. RTCCertificate Interface
+   *    interface RTCCertificate {
+   *      readonly attribute DOMTimeStamp expires;
+   *      ...
+   *    };
+   *
+   *  [WebCrypto]
+   *  11. Algorithm Dictionary
+   *    typedef (object or DOMString) AlgorithmIdentifier;
+   */
+
+  /*
+   *  4.10. The following values must be supported by a user agent:
+   *        { name: "RSASSA-PKCS1-v1_5", modulusLength: 2048,
+   *          publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
+   *        and { name: "ECDSA", namedCurve: "P-256" }.
+   */
+  promise_test(t =>
+    RTCPeerConnection.generateCertificate({
+      name: 'RSASSA-PKCS1-v1_5',
+      modulusLength: 2048,
+      publicExponent: new Uint8Array([1, 0, 1]),
+      hash: 'SHA-256'
+    }).then(cert => {
+      assert_true(cert instanceof RTCCertificate,
+        'Expect cert to be instance of RTCCertificate');
+
+      assert_greater_than(cert.expires, Date.now(),
+        'Expect generated certificate to expire reasonably long after current time');
+    }),
+    'generateCertificate() with compulsary RSASSA-PKCS1-v1_5 parameters should succeed');
+
+  promise_test(t =>
+    RTCPeerConnection.generateCertificate({
+      name: 'ECDSA',
+      namedCurve: 'P-256'
+    }).then(cert => {
+      assert_true(cert instanceof RTCCertificate,
+        'Expect cert to be instance of RTCCertificate');
+
+      assert_greater_than(cert.expires, Date.now(),
+        'Expect generated certificate to expire reasonably long after current time');
+    }),
+    'generateCertificate() with compulsary ECDSA parameters should succeed');
+
+  /*
+   *  4.10. A user agent must reject a call to generateCertificate() with a
+   *        DOMException of type NotSupportedError if the keygenAlgorithm
+   *        parameter identifies an algorithm that the user agent cannot or
+   *        will not use to generate a certificate for RTCPeerConnection.
+   */
+  promise_test(t =>
+    promise_rejects(t, 'NotSupportedError',
+      RTCPeerConnection.generateCertificate('invalid-algo')),
+    'generateCertificate() with invalid string algorithm should reject with NotSupportedError');
+
+  promise_test(t =>
+    promise_rejects(t, 'NotSupportedError',
+      RTCPeerConnection.generateCertificate({
+        name: 'invalid-algo'
+      })),
+    'generateCertificate() with invalid algorithm dict should reject with NotSupportedError');
+
+  /*
+   *  4.10.1. Dictionary RTCCertificateExpiration
+   *    dictionary RTCCertificateExpiration {
+   *      [EnforceRange]
+   *      DOMTimeStamp expires;
+   *    };
+   *
+   *    If this parameter is present it indicates the maximum time that
+   *    the RTCCertificate is valid for relative to the current time.
+   *
+   *    When generateCertificate is called with an object argument,
+   *    the user agent attempts to convert the object into a
+   *    RTCCertificateExpiration. If this is unsuccessful, immediately
+   *    return a promise that is rejected with a newly created TypeError
+   *    and abort processing.
+   */
+
+  promise_test(t => {
+    const start = Date.now();
+    return RTCPeerConnection.generateCertificate({
+      name: 'ECDSA',
+      namedCurve: 'P-256',
+      expires: 2000
+    }).then(cert => {
+      assert_approx_equals(cert.expires, start+2000, 1000);
+    })
+  }, 'generateCertificate() with valid expires parameter should succeed');
+
+  promise_test(t => {
+    return RTCPeerConnection.generateCertificate({
+      name: 'ECDSA',
+      namedCurve: 'P-256',
+      expires: 0
+    }).then(cert => {
+      assert_less_than_equal(cert.expires, Date.now());
+    })
+  }, 'generateCertificate() with 0 expires parameter should generate expired cert');
+
+  promise_test(t => {
+    return promise_rejects(t, new TypeError(),
+      RTCPeerConnection.generateCertificate({
+        name: 'ECDSA',
+        namedCurve: 'P-256',
+        expires: -1
+      }))
+  }, 'generateCertificate() with invalid range for expires should reject with TypeError');
+
+  promise_test(t => {
+    return promise_rejects(t, new TypeError(),
+      RTCPeerConnection.generateCertificate({
+        name: 'ECDSA',
+        namedCurve: 'P-256',
+        expires: 'invalid'
+      }))
+  }, 'generateCertificate() with invalid type for expires should reject with TypeError');
+
+</script>

@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: [id] and [class] attribute selectors are invalidated correctly.</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#attribute-selectors">
+<link rel="match" href="class-id-attr-selector-invalidation-01-ref.html">
+<style>
+[class="foo"] {
+  color: green;
+}
+[id="baz"] {
+  color: green;
+}
+</style>
+<div id="foo">This should be green</div>
+<div id="bar">And this too</div>
+<script>
+onload = function() {
+  document.documentElement.offsetTop;
+  foo.classList.add("foo");
+  bar.setAttribute("id", "baz");
+  document.documentElement.offsetTop;
+}
+</script>

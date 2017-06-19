@@ -1,0 +1,140 @@
+<!doctype html>
+<html>
+  <head>
+    <title>spinbutton readonly false</title>
+    <link rel="stylesheet" href="/resources/testharness.css">
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_SPIN_BUTTON"
+               ],
+               [
+                  "property",
+                  "interfaces",
+                  "contains",
+                  "Value"
+               ],
+               [
+                  "property",
+                  "states",
+                  "doesNotContain",
+                  "STATE_READ_ONLY"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXRole",
+                  "is",
+                  "AXIncrementor"
+               ],
+               [
+                  "property",
+                  "AXSubrole",
+                  "is",
+                  "<nil>"
+               ],
+               [
+                  "property",
+                  "AXRoleDescription",
+                  "is",
+                  "stepper"
+               ],
+               [
+                  "result",
+                  "AXUIElementIsAttributeSettable(AXValue)",
+                  "is",
+                  "true"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_SPINBUTTON"
+               ],
+               [
+                  "property",
+                  "interfaces",
+                  "contains",
+                  "IAcesssibleValue"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "IA2_STATE_SYSTEM_EDITABLE"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_SPINBUTTON"
+               ],
+               [
+                  "property",
+                  "interfaces",
+                  "contains",
+                  "IAcesssibleValue"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "IA2_STATE_SYSTEM_EDITABLE"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "Control Type",
+                  "is",
+                  "Spinner"
+               ],
+               [
+                  "property",
+                  "Value.IsReadOnly",
+                  "is",
+                  "false"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "spinbutton readonly false"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for spinbutton readonly false.</p>
+      <div id="test" role="spinbutton" aria-readonly="false">
+    </div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>
+

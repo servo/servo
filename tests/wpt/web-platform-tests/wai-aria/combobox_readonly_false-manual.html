@@ -1,0 +1,138 @@
+<!doctype html>
+<html>
+  <head>
+    <title>combobox readonly false</title>
+    <link rel="stylesheet" href="/resources/testharness.css">
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_COMBO_BOX"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_EXPANDABLE"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_HAS_POPUP"
+               ],
+               [
+                  "property",
+                  "states",
+                  "doesNotContain",
+                  "STATE_READ_ONLY"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXRole",
+                  "is",
+                  "AXComboBox"
+               ],
+               [
+                  "property",
+                  "AXSubrole",
+                  "is",
+                  "<nil>"
+               ],
+               [
+                  "property",
+                  "AXRoleDescription",
+                  "is",
+                  "combo box"
+               ],
+               [
+                  "result",
+                  "AXUIElementIsAttributeSettable(AXValue)",
+                  "is",
+                  "true"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "objectAttribute",
+                  "checkable",
+                  "true"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "IA2_STATE_SYSTEM_EDITABLE"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_COMBOBOX"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_SYSTEM_HASPOPUP"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "Control Type",
+                  "is",
+                  "Combobox"
+               ],
+               [
+                  "property",
+                  "Value.IsReadOnly",
+                  "is",
+                  "false"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "combobox readonly false"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for combobox readonly false.</p>
+      <div id="test" role="combobox" aria-readonly="false" aria-owns="myID" aria-expanded="true" aria-haspopup="listbox"><span role="textbox">option 3</span></div>
+    <div role="listbox" id="myID">
+      <div role="option">option 1</div>
+      <div role="option">option 2</div>
+      <div role="option">option 3</div>
+    </div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>
+

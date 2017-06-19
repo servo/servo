@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Viewport: Resize Event On Load Overflowing Page</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, minimum-scale=1">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="viewport_support.js"></script>
+        <script>
+            // This first case ensures that we load into the same kind of
+            // viewport. If the previous test had a page-scale factor set or a
+            // different viewport <meta> we might get a resize because of that.
+            if (location.search === "") {
+                window.addEventListener('load', function() {
+                    var url = window.location.href + "?reloaded";
+                    window.location.href = url;
+                });
+            } else {
+                var t = async_test(
+                    "Resize event fired exactly once against window.view if " +
+                    "scrollbars affect layout.");
+                var numViewResizes = 0;
+                window.view.addEventListener('resize', function() {
+                    numViewResizes++;
+                });
+
+                window.addEventListener('load', function() {
+                  requestAnimationFrame(
+                      t.step_func_done(function() {
+                          var isOverlay = calculateScrollbarThickness() == 0;
+                          assert_equals(numViewResizes, isOverlay ? 0 : 1);
+                      }));
+                });
+            }
+        </script>
+        <style>
+          html {
+            height: 100%;
+          }
+          body {
+              /* Ensure overflow */
+              height: 200%;
+          }
+          #log {
+              overflow: auto;
+          }
+        </style>
+    </head>
+    <body>
+    <h1>Viewport: Resize Event On Load Overflowing Page</h1>
+    <h4>
+        Test Description: This test ensures that we fire a resize event against
+        window.view if the page has overflow (since this creates a scrollbar
+        and thus changes the viewport size).
+    </h4>
+    <div id="log"></div>
+    </body>
+</html>
+

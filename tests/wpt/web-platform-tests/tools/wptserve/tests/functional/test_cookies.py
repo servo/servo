@@ -1,7 +1,10 @@
 import unittest
 
-import wptserve
+import pytest
+
+wptserve = pytest.importorskip("wptserve")
 from .base import TestUsingServer
+
 
 class TestResponseSetCookie(TestUsingServer):
     def test_name_value(self):

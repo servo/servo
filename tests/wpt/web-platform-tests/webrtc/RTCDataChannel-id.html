@@ -1,0 +1,60 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCDataChannel id attribute</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+'use strict';
+
+// This and the test below verify that after a description is set that
+// negotiates the DTLS role used by SCTP, data channels with unset IDs
+// have IDs set according to the rules in rtcweb-data-channel.
+promise_test(test => {
+  const pc = new RTCPeerConnection;
+  const channel = pc.createDataChannel('');
+  return pc.createOffer()
+  .then(offer => pc.setLocalDescription(offer))
+  .then(() => {
+    // Turn our own offer SDP into valid answer SDP by setting the DTLS role to
+    // "active".
+    const answer = {
+      type: "answer",
+      sdp: pc.localDescription.sdp.replace("actpass", "active")
+    };
+    return pc.setRemoteDescription(answer);
+  })
+  .then(() => {
+    // Since the remote description had an "active" DTLS role, we're the server
+    // and should use odd data channel IDs, according to rtcweb-data-channel.
+    assert_equals(channel.id % 2, 1, 'id');
+    const another_channel = pc.createDataChannel('another');
+    assert_equals(another_channel.id % 2, 1, 'id');
+    assert_not_equals(channel.id, another_channel.id);
+  })
+}, "DTLS client uses odd data channel IDs");
+
+promise_test(test => {
+  const pc = new RTCPeerConnection;
+  const channel = pc.createDataChannel('');
+  return pc.createOffer()
+  .then(offer => pc.setLocalDescription(offer))
+  .then(() => {
+    // Turn our own offer SDP into valid answer SDP by setting the DTLS role to
+    // "passive".
+    const answer = {
+      type: "answer",
+      sdp: pc.localDescription.sdp.replace("actpass", "passive")
+    };
+    return pc.setRemoteDescription(answer);
+  })
+  .then(() => {
+    // Since the remote description had a "passive" DTLS role, we're the client
+    // and should use even data channel IDs, according to rtcweb-data-channel.
+    assert_equals(channel.id % 2, 0, 'id');
+    const another_channel = pc.createDataChannel('another');
+    assert_equals(another_channel.id % 2, 0, 'id');
+    assert_not_equals(channel.id, another_channel.id);
+  })
+}, "DTLS server uses even data channel IDs");
+
+</script>

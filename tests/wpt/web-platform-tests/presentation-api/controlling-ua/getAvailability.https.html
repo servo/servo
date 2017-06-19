@@ -16,33 +16,46 @@
     // Presentation Availability Tests - begin
     // ---------------------------------------
 
-    promise_test(function(t) {
-        var availability;
+    promise_test(t => {
+        let availability;
 
-        var request = new PresentationRequest(presentationUrls);
+        const request = new PresentationRequest(presentationUrls);
         assert_true(request instanceof PresentationRequest, 'The request is an instance of PresentationRequest.');
 
-        var promise = request.getAvailability();
+        const promise = request.getAvailability();
         assert_equals(promise, request.getAvailability(), 'If the PresentationRequest object has an unsettled Promise, getAvailability returns that Promise.');
 
         function catchNotSupported(err) {
             assert_equals(err.name, 'NotSupportedError', 'getAvailability() rejects a Promise with a NotSupportedError exception, if the browser can find presentation displays only when starting a connection.')
         }
 
-        return promise.then(function (a) {
+        return promise.then(a => {
             availability = a;
 
             assert_true(availability instanceof PresentationAvailability, 'The promise is resolved with an instance of PresentationAvailability.');
             assert_equals(typeof availability.value, 'boolean', 'The availability has an boolean value.');
-            assert_true(availability.value, 'The availability value is true when any presentation display is available.');
 
-            var newPromise = request.getAvailability();
-            assert_not_equals(promise, newPromise, 'If the Promise from a previous call to getAvailability has already been settled, getAvailability returns a new Promise.');
+            // The value of the presentation availability object is set to false, when the object is newly created.
+            const waitForChange = () => {
+                const eventWatcher = new EventWatcher(t, availability, 'change');
+                return eventWatcher.wait_for('change');
+            };
 
-            return newPromise.then(function (newAvailability) {
-                assert_equals(availability, newAvailability, 'Promises from a PresentationRequest\'s getAvailability are resolved with the same PresentationAvailability object.');
+            return (availability.value ? Promise.resolve() : waitForChange()).then(() => {
+                assert_true(availability.value, 'The availability value is true when any presentation display is available.');
+
+                const request2 = new PresentationRequest('https://example.com');
+                return request2.getAvailability();
+            }).then(a => {
+                assert_not_equals(availability, a, 'A presentation availability object is newly created if the presentation request has a newly added presentation URLs.');
+
+                const newPromise = request.getAvailability();
+                assert_not_equals(promise, newPromise, 'If the Promise from a previous call to getAvailability has already been settled, getAvailability returns a new Promise.');
+
+                return newPromise.then(newAvailability => {
+                    assert_equals(availability, newAvailability, 'Promises from a PresentationRequest\'s getAvailability are resolved with the same PresentationAvailability object.');
+                }, catchNotSupported);
             }, catchNotSupported);
         }, catchNotSupported);
     });
-
 </script>

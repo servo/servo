@@ -73,7 +73,8 @@ indexeddb_test(function(t, db, tx) {
             assert_array_equals(saved_tx.objectStoreNames, ['s2', 's3'],
                 'previous transaction objectStoreNames should be unchanged');
             assert_array_equals(db.objectStoreNames, saved_tx.objectStoreNames,
-                'connection and transaction objectStoreNames should match');
+                                'connection and transaction objectStoreNames should match');
+            db2.close();
             t.done();
         });
     }, 'IDBTransaction.objectStoreNames - value after close');

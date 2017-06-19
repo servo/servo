@@ -1,7 +1,3 @@
-[submodule "tools/wptserve"]
-	path = wptserve
-	url = https://github.com/w3c/wptserve.git
-	ignore = dirty
 [submodule "tools/pywebsocket"]
 	path = pywebsocket
 	url = https://github.com/w3c/pywebsocket.git
@@ -15,6 +11,3 @@
 [submodule "pytest"]
 	path = pytest
 	url = https://github.com/pytest-dev/pytest.git
-[submodule "webdriver"]
-	path = webdriver
-	url = https://github.com/w3c/wdclient.git

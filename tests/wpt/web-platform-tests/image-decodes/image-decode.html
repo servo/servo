@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>img.decode()</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel=help href="">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+
+<script>
+"use strict";
+
+// src tests
+// -------------------
+promise_test(function() {
+  var img = new Image();
+  img.src = "/images/green.png";
+  return img.decode().then(function(arg) {
+    assert_equals(arg, undefined);
+  });
+}, "(src) PNG image decodes with undefined.");
+
+promise_test(function() {
+  var img = new Image();
+  img.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAA" +
+            "D91JpzAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH4QUSEioKsyAgyw" +
+            "AAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAAAWSURBVA" +
+            "jXY9y3bx8DAwPL58+fGRgYACktBRltLfebAAAAAElFTkSuQmCC";
+  return img.decode().then(function(arg) {
+    assert_equals(arg, undefined);
+  });
+}, "(src) PNG url image decodes with undefined.");
+
+promise_test(function() {
+  var img = new Image();
+  img.src = "/images/green.svg";
+  return img.decode().then(function(arg) {
+    assert_equals(arg, undefined);
+  });
+}, "(src) SVG image decodes with undefined.");
+
+promise_test(function(t) {
+  var img = new Image();
+  img.src = "/non/existent/path.png";
+  var promise = img.decode();
+  return promise_rejects(t, "EncodingError", promise);
+}, "(src) Non-existent path fails decode.");
+
+promise_test(function(t) {
+  var img = new Image();
+  img.src = "data:image/png;base64,iVBO00PDR0BADBEEF00KGg";
+  var promise = img.decode();
+  return promise_rejects(t, "EncodingError", promise);
+}, "(src) Corrupt image fails decode.");
+
+promise_test(function(t) {
+  var img = new Image();
+  var promise = img.decode();
+  return promise_rejects(t, "EncodingError", promise);
+}, "(src) Path-less image fails decode.");
+
+promise_test(function() {
+  var img = new Image();
+  img.src = "/images/green.png";
+  var first_promise = img.decode();
+  var second_promise = img.decode();
+  assert_true(first_promise !== second_promise);
+  return Promise.all([
+    first_promise,
+    second_promise
+  ]);
+}, "(src) Multiple decodes succeed.");
+
+// srcset tests
+// -------------------
+promise_test(function() {
+  var img = new Image();
+  img.srcset = "/images/green.png 100w";
+  return img.decode().then(function(arg) {
+    assert_equals(arg, undefined);
+  });
+}, "(srcset) PNG image decodes with undefined.");
+
+promise_test(function() {
+  var img = new Image();
+  img.srcset = "/images/green.svg 100w";
+  return img.decode().then(function(arg) {
+    assert_equals(arg, undefined);
+  });
+}, "(srcset) SVG image decodes with undefined.");
+
+promise_test(function(t) {
+  var img = new Image();
+  img.srcset = "/non/existent/path.png 100w";
+  var promise = img.decode();
+  return promise_rejects(t, "EncodingError", promise);
+}, "(srcset) Non-existent path fails decode.");
+
+promise_test(function() {
+  var img = new Image();
+  img.srcset = "/images/green.png 100w";
+  var first_promise = img.decode();
+  var second_promise = img.decode();
+  assert_true(first_promise !== second_promise);
+  return Promise.all([
+    first_promise,
+    second_promise
+  ]);
+}, "(srcset) Multiple decodes succeed.");
+
+</script>

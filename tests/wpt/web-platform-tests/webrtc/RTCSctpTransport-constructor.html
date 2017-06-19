@@ -1,0 +1,89 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>RTCSctpTransport constructor</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170515/webrtc.html
+
+  // The following helper functions are called from RTCPeerConnection-helper.js:
+  //   generateOffer()
+  //   generateAnswer()
+
+  /*
+    6.1.  RTCPeerConnection Interface Extensions
+      partial interface RTCPeerConnection {
+        readonly attribute RTCSctpTransport? sctp;
+        ...
+      };
+
+      1.1.  RTCSctpTransport Interface
+        interface RTCSctpTransport {
+          readonly attribute RTCDtlsTransport transport;
+          readonly attribute unsigned long    maxMessageSize;
+        };
+
+    4.3.1.  Operation
+      When the RTCPeerConnection() constructor is invoked
+        8.  Let connection have an [[sctpTransport]] internal slot,
+            initialized to null.
+
+      To set an RTCSessionDescription description
+      6.  If description is of type "answer" or "pranswer", then run the
+          following steps:
+        1.  If description initiates the establishment of a new SCTP
+            association, as defined in [SCTP-SDP], Sections 10.3 and 10.4,
+            set the value of connection's [[sctpTransport]] internal slot
+            to a newly created RTCSctpTransport.
+   */
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    assert_equals(pc.sctp, null);
+    pc.createDataChannel('test');
+
+    return pc.createOffer()
+    .then(offer =>
+      pc.setLocalDescription(offer)
+      .then(() => generateAnswer(offer)))
+    .then(answer => pc.setRemoteDescription(answer))
+    .then(() => {
+      const { sctp } = pc;
+      assert_not_equals(sctp, null);
+      assert_true(sctp instanceof RTCSctpTransport,
+        'Expect pc.sctp to be instance of RTCSctpTransport');
+
+      assert_true(sctp.transport instanceof RTCDtlsTransport,
+        'Expect sctp.transport to be instance of RTCDtlsTransport');
+
+      assert_true(typeof sctp.maxMessageSize, 'number',
+        'Expect sctp.maxMessageSize to be a number');
+    });
+  }, 'setRemoteDescription() with answer containing data media should initialize pc.sctp');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    assert_equals(pc.sctp, null);
+
+    return generateOffer({ data: true })
+    .then(offer => pc.setRemoteDescription(offer))
+    .then(() => pc.createAnswer())
+    .then(answer => pc.setLocalDescription(answer))
+    .then(() => {
+      const { sctp } = pc;
+      assert_not_equals(sctp, null);
+      assert_true(sctp instanceof RTCSctpTransport,
+        'Expect pc.sctp to be instance of RTCSctpTransport');
+
+      assert_true(sctp.transport instanceof RTCDtlsTransport,
+        'Expect sctp.transport to be instance of RTCDtlsTransport');
+
+      assert_true(typeof sctp.maxMessageSize, 'number',
+        'Expect sctp.maxMessageSize to be a number');
+    });
+  }, 'setLocalDescription() with answer containing data media should initialize pc.sctp');
+</script>

@@ -1,43 +1,34 @@
-var port = undefined;
-// Create a then-able object that is never resolved.
-function createPending() {
-  return { then: createPending };
-}
-
-onmessage = function(e) {
-  var message = e.data;
-  if (typeof message === 'object' && 'port' in message) {
-    port = message.port;
-
-    port.postMessage('received port');
-    // The ServiceWorker which handles the "message" event must persist long
-    // enough to handle the subsequent "fetch" event. To promote test
-    // simplicity, the worker prevents its own termination indefinitely via a
-    // then-able that is never resolved.
-    e.waitUntil(createPending());
-  }
-};
+'use strict';
 
 onfetch = function(e) {
   var headers = {};
-  var errorNameWhileAppendingHeader;
   for (var header of e.request.headers) {
     var key = header[0], value = header[1];
     headers[key] = value;
   }
-  var errorNameWhileAddingHeader = '';
+  var append_header_error = '';
   try {
     e.request.headers.append('Test-Header', 'TestValue');
-  } catch (e) {
-    errorNameWhileAppendingHeader = e.name;
+  } catch (error) {
+    append_header_error = error.name;
   }
-  port.postMessage({
-      url: e.request.url,
-      mode: e.request.mode,
-      method: e.request.method,
-      referrer: e.request.referrer,
-      headers: headers,
-      headerSize: e.request.headers.size,
-      errorNameWhileAppendingHeader: errorNameWhileAppendingHeader
-    });
+
+  var request_construct_error = '';
+  try {
+    new Request(e.request, {method: 'GET'});
+  } catch (error) {
+    request_construct_error = error.name;
+  }
+
+  e.respondWith(new Response(JSON.stringify({
+    url: e.request.url,
+    method: e.request.method,
+    referrer: e.request.referrer,
+    headers: headers,
+    mode: e.request.mode,
+    credentials: e.request.credentials,
+    redirect: e.request.redirect,
+    append_header_error: append_header_error,
+    request_construct_error: request_construct_error
+  })));
 };

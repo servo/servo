@@ -1,0 +1,103 @@
+<!doctype html>
+<html>
+  <head>
+    <title>button roledescription valid</title>
+    <link rel="stylesheet" href="/resources/testharness.css">
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_PUSH_BUTTON"
+               ],
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "roledescription:SassyButton"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXRole",
+                  "is",
+                  "AXButton"
+               ],
+               [
+                  "property",
+                  "AXSubrole",
+                  "is",
+                  "<nil>"
+               ],
+               [
+                  "property",
+                  "AXRoleDescription",
+                  "is",
+                  "SassyButton"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "result",
+                  "IAccessible2_2.localizedExtendedRole",
+                  "contains",
+                  "SassyButton"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_PUSHBUTTON"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "Control Type",
+                  "is",
+                  "Button"
+               ],
+               [
+                  "property",
+                  "Localized Control Type",
+                  "is",
+                  "SassyButton"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "button roledescription valid"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for button roledescription valid.</p>
+    <input type="button" value="Go Fish" aria-roledescription="SassyButton" id="test"/>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>
+

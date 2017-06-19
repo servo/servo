@@ -63,5 +63,13 @@ function load_css_with_integrity(url, integrity) {
   document.body.appendChild(link);
 }
 
+function load_audio(url, cross_origin) {
+  var audio = document.createElement('audio');
+  if (cross_origin != '') {
+    audio.crossOrigin = cross_origin;
+  }
+  audio.src = url;
+  document.body.appendChild(audio);
+}
 </script>
 </body>

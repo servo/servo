@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+body { height: 1000px }
+#outer { line-height: 100px }
+#ib1, #ib2 { display: inline-block }
+
+</style>
+<span id=outer>
+  <span id=ib1>abc</span>
+  <br><br>
+  <span id=ib2>def</span>
+</span>
+<script>
+
+// Tests anchoring to an inline block inside a <span>.
+
+test(() => {
+  document.scrollingElement.scrollTop = 150;
+  document.querySelector("#ib1").style.lineHeight = "150px";
+  assert_equals(document.scrollingElement.scrollTop, 200);
+}, "Anchor selection descent into inline blocks.");
+
+</script>

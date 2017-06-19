@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+body { height: 1000px }
+#A, #B { width: 100px; background-color: #afa; }
+#B { height: 100px; }
+#inner { width: 100px; height: 100px; background-color: pink; }
+#A { overflow-anchor: none; }
+
+</style>
+<div id="changer1"></div>
+<div id="A">
+  <div id="inner"></div>
+  <div id="changer2"></div>
+</div>
+<div id="B"></div>
+<script>
+
+// Tests that an element with overflow-anchor: none is excluded, along with its
+// DOM descendants, from the anchor selection algorithm.
+
+test(() => {
+  var changer1 = document.querySelector("#changer1");
+  var changer2 = document.querySelector("#changer2");
+
+  document.scrollingElement.scrollTop = 50;
+  changer1.style.height = "100px";
+  changer2.style.height = "50px";
+
+  // We should anchor to #B, not #A or #inner, despite them being visible.
+  assert_equals(document.scrollingElement.scrollTop, 200);
+
+  document.querySelector("#A").style.overflowAnchor = "auto";
+  document.scrollingElement.scrollTop = 150;
+
+  changer1.style.height = "200px";
+  changer2.style.height = "100px";
+
+  // We should now anchor to #inner, which is moved only by #changer1.
+  assert_equals(document.scrollingElement.scrollTop, 250);
+}, "Subtree exclusion with overflow-anchor.");
+
+</script>

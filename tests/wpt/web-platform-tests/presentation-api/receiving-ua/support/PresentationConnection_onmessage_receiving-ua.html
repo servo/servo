@@ -43,6 +43,16 @@ navigator.presentation.receiver.connectionList.then(list => {
     assert_false(event.cancelable, 'the event is not cancelable');
   };
 
+  const watchEvent = (obj, watcher, type) => {
+    const watchHandler = new Promise(resolve => {
+      obj['on' + type] = evt => { resolve(evt); };
+    });
+    return Promise.all([ watchHandler, watcher.wait_for(type) ]).then(results => {
+      assert_equals(results[0], results[1], 'Both on' + type + ' and addEventListener pass the same event object.');
+      return results[0];
+    });
+  };
+
   const connection = list.connections[0];
 
   promise_test(t => {
@@ -56,21 +66,21 @@ navigator.presentation.receiver.connectionList.then(list => {
     return eventWatcher.wait_for('message').then(evt => {
       checkEvent(evt);
       assert_equals(event.data, message1, 'receive a string correctly');
-      return eventWatcher.wait_for('message');
+      return watchEvent(connection, eventWatcher, 'message');
     }).then(event => {
       checkEvent(event);
       assert_equals(event.data, message2, 'receive a string correctly');
-      return eventWatcher.wait_for('message');
+      return watchEvent(connection, eventWatcher, 'message');
     }).then(event => {
       checkEvent(event);
       assert_true(event.data instanceof ArrayBuffer, 'receive binary data as ArrayBuffer');
       assert_true(compare(event.data, message3), 'receive an ArrayBuffer correctly (originally a Blob at a controlling user agent)');
-      return eventWatcher.wait_for('message');
+      return watchEvent(connection, eventWatcher, 'message');
     }).then(event => {
       checkEvent(event);
       assert_true(event.data instanceof ArrayBuffer, 'receive binary data as ArrayBuffer');
       assert_true(compare(event.data, message4), 'receive an ArrayBuffer correctly (originally an ArrayBuffer at a controlling user agent)');
-      return eventWatcher.wait_for('message');
+      return watchEvent(connection, eventWatcher, 'message');
     }).then(event => {
       checkEvent(event);
       assert_true(event.data instanceof ArrayBuffer, 'receive binary data as ArrayBuffer');
@@ -79,7 +89,7 @@ navigator.presentation.receiver.connectionList.then(list => {
       connection.binaryType = 'blob';
       return Promise.all([
         stash.send(JSON.stringify({ type: 'blob' })),
-        eventWatcher.wait_for('message')
+        watchEvent(connection, eventWatcher, 'message')
       ]).then(results => results[1]);
     }).then(event => {
       assert_true(event.data instanceof Blob, 'receive binary data as Blob');

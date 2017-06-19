@@ -219,12 +219,13 @@ function allValidUsages(validUsages, emptyIsValid, mandatoryUsages) {
 
 // Algorithm name specifiers are case-insensitive. Generate several
 // case variations of a given name.
-function allNameVariants(name) {
+function allNameVariants(name, slowTest) {
     var upCaseName = name.toUpperCase();
     var lowCaseName = name.toLowerCase();
     var mixedCaseName = upCaseName.substring(0, 1) + lowCaseName.substring(1);
 
+    // for slow tests effectively cut the amount of work in third by only
+    // returning one variation
+    if (slowTest) return [mixedCaseName];
     return [upCaseName, lowCaseName, mixedCaseName];
 }
-
-

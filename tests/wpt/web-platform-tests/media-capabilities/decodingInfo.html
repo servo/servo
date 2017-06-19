@@ -36,6 +36,131 @@ promise_test(t => {
 }, "Test that decodingInfo rejects if the MediaConfiguration does not have a type");
 
 promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+  }));
+}, "Test that decodingInfo rejects if the configuration doesn't have an audio or video field");
+
+promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    video: {
+      contentType: 'video/webm; codecs="vp9"',
+      width: 800,
+      height: 600,
+      bitrate: 3000,
+      framerate: -1,
+    },
+  }));
+}, "Test that decodingInfo rejects if the video configuration has a negative framerate");
+
+promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    video: {
+      contentType: 'video/webm; codecs="vp9"',
+      width: 800,
+      height: 600,
+      bitrate: 3000,
+      framerate: 0,
+    },
+  }));
+}, "Test that decodingInfo rejects if the video configuration has a framerate set to 0");
+
+promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    video: {
+      contentType: 'video/webm; codecs="vp9"',
+      width: 800,
+      height: 600,
+      bitrate: 3000,
+      framerate: Infinity,
+    },
+  }));
+}, "Test that decodingInfo rejects if the video configuration has a framerate set to Infinity");
+
+promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    video: {
+      contentType: 'fgeoa',
+      width: 800,
+      height: 600,
+      bitrate: 3000,
+      framerate: 24,
+    },
+  }));
+}, "Test that decodingInfo rejects if the video configuration contentType doesn't parse");
+
+promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    video: {
+      contentType: 'audio/fgeoa',
+      width: 800,
+      height: 600,
+      bitrate: 3000,
+      framerate: 24,
+    },
+  }));
+}, "Test that decodingInfo rejects if the video configuration contentType isn't of type video");
+
+promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    video: {
+      contentType: 'video/webm; codecs="vp9"; foo="bar"',
+      width: 800,
+      height: 600,
+      bitrate: 3000,
+      framerate: 24,
+    },
+  }));
+}, "Test that decodingInfo rejects if the video configuration contentType has more than one parameter");
+
+promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    video: {
+      contentType: 'video/webm; foo="bar"',
+      width: 800,
+      height: 600,
+      bitrate: 3000,
+      framerate: 24,
+    },
+  }));
+}, "Test that decodingInfo rejects if the video configuration contentType has one parameter that isn't codecs");
+
+promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    audio: { contentType: 'fgeoa' },
+  }));
+}, "Test that decodingInfo rejects if the audio configuration contenType doesn't parse");
+
+promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    audio: { contentType: 'video/fgeoa' },
+  }));
+}, "Test that decodingInfo rejects if the audio configuration contentType isn't of type audio");
+
+promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    audio: { contentType: 'audio/webm; codecs="opus"; foo="bar"' },
+  }));
+}, "Test that decodingInfo rejects if the audio configuration contentType has more than one parameters");
+
+promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    audio: { contentType: 'audio/webm; foo="bar"' },
+  }));
+}, "Test that decodingInfo rejects if the audio configuration contentType has one parameter that isn't codecs");
+
+promise_test(t => {
   return navigator.mediaCapabilities.decodingInfo({
     type: 'file',
     video: minimalVideoConfiguration,

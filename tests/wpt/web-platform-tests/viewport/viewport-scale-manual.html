@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Viewport: Scale</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, minimum-scale=1">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="viewport_support.js"></script>
+        <script>
+           setup({explicit_done: true, explicit_timeout: true});
+        </script>
+    </head>
+    <body>
+    <h1>Viewport: Scale</h1>
+    <h4>Test Description: Tests the view.scale property</h4>
+    <h2 style="color: red">THIS IS A MANUAL TEST</h2>
+    <p id="skip">
+        <button id="skipbtn" onclick="skipManualTest();">Skip Test</button>
+    </p>
+    <p id="instruction"></p>
+    <button id="continue">Start Test</button>
+    <div id="log"></div>
+    <div id="spacer"></div>
+    </body>
+    <script>
+        var continueBtn = document.getElementById("continue");
+
+        function continueTest() {
+          nextStep(function(instructionText) {
+            var instruction = document.getElementById("instruction");
+            continueBtn.innerText = "Continue";
+            instruction.innerText = instructionText;
+          });
+        }
+
+        continueBtn.addEventListener('click', continueTest);
+
+        addManualTestStep(
+            function() {},
+            null,
+            '1. Ensure the browser is at the default pinch and browser zoom ' +
+            'levels (100%). Most browsers: ctrl+0');
+
+        addManualTestStep(
+            showPinchWidget.bind(null, 2.0, 0, 0, continueTest),
+            null,
+            '2.Follow instructions on pinch zoom dialog.');
+
+        addManualTestStep(
+            function() {
+                // Ensure we zoomed in to about what we expect.
+                assert_approx_equals(window.view.scale, 2.0, 0.2,
+                    "window.view.scale reflects pinch-zoom level");
+            },
+            'With ~200% pinch-zoom',
+            '3. Pinch-zoom back out to the minimum scale');
+
+        addManualTestStep(
+            function() {
+                assert_equals(window.view.scale, 1);
+            },
+            'Fully pinch-zoomed out',
+            '4. If your browser supports it, browser-zoom in (using ctrl-+). ' +
+            'Otherwise just click continue.');
+
+        addManualTestStep(
+            function() {
+                assert_equals(window.view.scale, 1);
+            },
+            'Browser zoom doesn\'t change view.scale',
+            '5. Reset browser zoom to default (ctrl-0)');
+
+        addManualTestStep(
+            function() {
+                continueBtn.remove();
+            },
+            null,
+            'Test Complete');
+    </script>
+</html>

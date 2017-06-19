@@ -1,0 +1,254 @@
+[Exposed=Window,
+ Constructor,
+ Constructor(MediaStream stream),
+ Constructor(sequence<MediaStreamTrack> tracks)]
+interface MediaStream : EventTarget {
+    readonly attribute DOMString    id;
+    sequence<MediaStreamTrack> getAudioTracks();
+    sequence<MediaStreamTrack> getVideoTracks();
+    sequence<MediaStreamTrack> getTracks();
+    MediaStreamTrack?          getTrackById(DOMString trackId);
+    void                       addTrack(MediaStreamTrack track);
+    void                       removeTrack(MediaStreamTrack track);
+    MediaStream                clone();
+    readonly attribute boolean      active;
+             attribute EventHandler onaddtrack;
+             attribute EventHandler onremovetrack;
+};
+
+[Exposed=Window]
+interface MediaStreamTrack : EventTarget {
+    readonly attribute DOMString             kind;
+    readonly attribute DOMString             id;
+    readonly attribute DOMString             label;
+             attribute boolean               enabled;
+    readonly attribute boolean               muted;
+             attribute EventHandler          onmute;
+             attribute EventHandler          onunmute;
+    readonly attribute MediaStreamTrackState readyState;
+             attribute EventHandler          onended;
+    MediaStreamTrack       clone();
+    void                   stop();
+    MediaTrackCapabilities getCapabilities();
+    MediaTrackConstraints  getConstraints();
+    MediaTrackSettings     getSettings();
+    Promise<void>          applyConstraints(optional MediaTrackConstraints constraints);
+             attribute EventHandler          onoverconstrained;
+};
+
+enum MediaStreamTrackState {
+    "live",
+    "ended"
+};
+
+dictionary MediaTrackSupportedConstraints {
+    boolean width = true;
+    boolean height = true;
+    boolean aspectRatio = true;
+    boolean frameRate = true;
+    boolean facingMode = true;
+    boolean volume = true;
+    boolean sampleRate = true;
+    boolean sampleSize = true;
+    boolean echoCancellation = true;
+    boolean latency = true;
+    boolean channelCount = true;
+    boolean deviceId = true;
+    boolean groupId = true;
+};
+
+dictionary MediaTrackCapabilities {
+    LongRange           width;
+    LongRange           height;
+    DoubleRange         aspectRatio;
+    DoubleRange         frameRate;
+    sequence<DOMString> facingMode;
+    DoubleRange         volume;
+    LongRange           sampleRate;
+    LongRange           sampleSize;
+    sequence<boolean>   echoCancellation;
+    DoubleRange         latency;
+    LongRange           channelCount;
+    DOMString           deviceId;
+    DOMString           groupId;
+};
+
+dictionary MediaTrackConstraints : MediaTrackConstraintSet {
+    sequence<MediaTrackConstraintSet> advanced;
+};
+
+dictionary MediaTrackConstraintSet {
+    ConstrainLong      width;
+    ConstrainLong      height;
+    ConstrainDouble    aspectRatio;
+    ConstrainDouble    frameRate;
+    ConstrainDOMString facingMode;
+    ConstrainDouble    volume;
+    ConstrainLong      sampleRate;
+    ConstrainLong      sampleSize;
+    ConstrainBoolean   echoCancellation;
+    ConstrainDouble    latency;
+    ConstrainLong      channelCount;
+    ConstrainDOMString deviceId;
+    ConstrainDOMString groupId;
+};
+
+dictionary MediaTrackSettings {
+    long      width;
+    long      height;
+    double    aspectRatio;
+    double    frameRate;
+    DOMString facingMode;
+    double    volume;
+    long      sampleRate;
+    long      sampleSize;
+    boolean   echoCancellation;
+    double    latency;
+    long      channelCount;
+    DOMString deviceId;
+    DOMString groupId;
+};
+
+enum VideoFacingModeEnum {
+    "user",
+    "environment",
+    "left",
+    "right"
+};
+
+[Exposed=Window,
+ Constructor(DOMString type, MediaStreamTrackEventInit eventInitDict)]
+interface MediaStreamTrackEvent : Event {
+    [SameObject]
+    readonly attribute MediaStreamTrack track;
+};
+
+dictionary MediaStreamTrackEventInit : EventInit {
+    required MediaStreamTrack track;
+};
+
+[Exposed=Window,
+ Constructor(DOMString type, OverconstrainedErrorEventInit eventInitDict)]
+interface OverconstrainedErrorEvent : Event {
+    readonly attribute OverconstrainedError? error;
+};
+
+dictionary OverconstrainedErrorEventInit : EventInit {
+    OverconstrainedError? error = null;
+};
+
+[Exposed=Window,
+ NoInterfaceObject]
+interface NavigatorUserMedia {
+    [SameObject]
+    readonly attribute MediaDevices mediaDevices;
+};
+
+Navigator implements NavigatorUserMedia;
+
+[Exposed=Window]
+interface MediaDevices : EventTarget {
+    attribute EventHandler ondevicechange;
+    Promise<sequence<MediaDeviceInfo>> enumerateDevices();
+};
+
+[Exposed=Window]
+interface MediaDeviceInfo {
+    readonly attribute DOMString       deviceId;
+    readonly attribute MediaDeviceKind kind;
+    readonly attribute DOMString       label;
+    readonly attribute DOMString       groupId;
+    serializer = {attribute};
+};
+
+enum MediaDeviceKind {
+    "audioinput",
+    "audiooutput",
+    "videoinput"
+};
+
+interface InputDeviceInfo : MediaDeviceInfo {
+    MediaTrackCapabilities getCapabilities();
+};
+
+partial interface NavigatorUserMedia {
+    void getUserMedia(MediaStreamConstraints constraints,
+                      NavigatorUserMediaSuccessCallback successCallback,
+                      NavigatorUserMediaErrorCallback errorCallback);
+};
+
+partial interface MediaDevices {
+    MediaTrackSupportedConstraints getSupportedConstraints();
+    Promise<MediaStream>           getUserMedia(optional MediaStreamConstraints constraints);
+};
+
+dictionary MediaStreamConstraints {
+    (boolean or MediaTrackConstraints) video = false;
+    (boolean or MediaTrackConstraints) audio = false;
+};
+
+callback NavigatorUserMediaSuccessCallback = void (MediaStream stream);
+
+callback NavigatorUserMediaErrorCallback = void (MediaStreamError error);
+
+typedef object MediaStreamError;
+
+[NoInterfaceObject]
+interface ConstrainablePattern {
+    Capabilities  getCapabilities();
+    Constraints   getConstraints();
+    Settings      getSettings();
+    Promise<void> applyConstraints(optional Constraints constraints);
+    attribute EventHandler onoverconstrained;
+};
+
+dictionary DoubleRange {
+    double max;
+    double min;
+};
+
+dictionary ConstrainDoubleRange : DoubleRange {
+    double exact;
+    double ideal;
+};
+
+dictionary LongRange {
+    long max;
+    long min;
+};
+
+dictionary ConstrainLongRange : LongRange {
+    long exact;
+    long ideal;
+};
+
+dictionary ConstrainBooleanParameters {
+    boolean exact;
+    boolean ideal;
+};
+
+dictionary ConstrainDOMStringParameters {
+    (DOMString or sequence<DOMString>) exact;
+    (DOMString or sequence<DOMString>) ideal;
+};
+
+typedef (long or ConstrainLongRange) ConstrainLong;
+
+typedef (double or ConstrainDoubleRange) ConstrainDouble;
+
+typedef (boolean or ConstrainBooleanParameters) ConstrainBoolean;
+
+typedef (DOMString or sequence<DOMString> or ConstrainDOMStringParameters) ConstrainDOMString;
+
+dictionary Capabilities {
+};
+
+dictionary Settings {
+};
+
+dictionary ConstraintSet {
+};
+
+dictionary Constraints : ConstraintSet {
+    sequence<ConstraintSet> advanced;
+};

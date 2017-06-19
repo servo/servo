@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSSOM: Correct resolution of resolved value for display-affected pseudo-elements</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle">
+<link rel="help" href="https://drafts.csswg.org/cssom/#resolved-values">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+#test { width: 100px; }
+
+#contents {
+  display: contents;
+  border: 10px solid red;
+}
+
+#test::before,
+#test::after,
+#contents::before,
+#contents::after {
+  content: " ";
+  width: 50%;
+  height: 10px;
+  display: block;
+}
+</style>
+<div id="test">
+  <div id="contents"></div>
+</div>
+<script>
+test(function() {
+  var div = document.getElementById('test');
+  [":before", ":after"].forEach(function(pseudo) {
+    assert_equals(getComputedStyle(div, pseudo).width, "50px");
+  });
+}, "Resolution of width is correct for ::before and ::after pseudo-elements");
+test(function() {
+  var contents = document.getElementById('contents');
+  [":before", ":after"].forEach(function(pseudo) {
+    assert_equals(getComputedStyle(contents, pseudo).width, "50px");
+  });
+}, "Resolution of width is correct for ::before and ::after pseudo-elements of display: contents elements");
+</script>

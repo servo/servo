@@ -4,15 +4,16 @@
     <title>Test Actions</title>
     <style>
       div { padding:0px; margin: 0px; }
+      #trackPointer { position: fixed; }
       #resultContainer { width: 600px; height: 60px; }
-      #outer { width: 100px; height: 50px; background-color: #ccc; }
-      #trackPointer {
-        width: 5px;
-        height: 5px;
-        border: solid 1px red;
-        position: fixed; }
+      .area { width: 100px; height: 50px; background-color: #ccc; }
+      .block { width: 5px; height: 5px; border: solid 1px red; }
+      #dragArea { position: relative; }
+      #dragTarget { position: absolute; top:22px; left:47px;}
     </style>
     <script>
+        "use strict";
+        var els = {};
         var allEvents = {events: []};
         function displayMessage(message) {
             document.getElementById("events").innerHTML = "<p>" + message + "</p>";
@@ -58,7 +59,8 @@
           appendMessage(`${event.type}(` +
               `code: ${event.code}, ` +
               `key: ${key}, ` +
-              `which: ${event.which})`);
+              `which: ${event.which}, ` +
+              `keyCode: ${event.keyCode})`);
         }
 
         function recordPointerEvent(event) {
@@ -89,6 +91,39 @@
             displayMessage("");
         }
 
+        function drop(moveHandler) {
+          return function (event) {
+            els.dragArea.removeEventListener("mousemove", moveHandler);
+            els.dragTarget.style.backgroundColor = "yellow";
+            els.dragTarget.addEventListener("mousedown", grab);
+            recordPointerEvent(event);
+          };
+        }
+
+        function move(el, offsetX, offsetY, timeout) {
+          return (event) => {
+            setTimeout(() => {
+              el.style.top = event.clientY + offsetY + "px";
+              el.style.left = event.clientX + offsetX + "px";
+            }, timeout);
+          };
+        }
+
+        function grab(event) {
+          event.target.style.backgroundColor = "red";
+          let boxRect = event.target.getBoundingClientRect();
+          let areaRect = event.target.parentElement.getBoundingClientRect();
+          let moveHandler = move(
+              event.target,
+              // coordinates of dragTarget must be relative to dragArea such that
+              // dragTarget remains under the pointer
+              -(areaRect.left + (event.clientX - boxRect.left)),
+              -(areaRect.top + (event.clientY - boxRect.top)),
+              20);
+          els.dragArea.addEventListener("mousemove", moveHandler);
+          els.dragArea.addEventListener("mouseup", drop(moveHandler), {once: true});
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
           var keyReporter = document.getElementById("keys");
           ["keyup", "keypress", "keydown"].forEach((e) => {
@@ -99,28 +134,32 @@
               "mouseup", "contextmenu"].forEach((e) => {
             outer.addEventListener(e, recordPointerEvent);
           });
-          window.addEventListener("mousemove", recordFirstPointerMove);
+          window.addEventListener("mousemove", recordPointerEvent, {once: true});
           //visual cue for mousemove
           var pointer = document.getElementById("trackPointer");
-          window.addEventListener("mousemove", (e) => {
-            setTimeout(() => {
-              let offset = 15;
-              pointer.style.top = e.pageY + offset + "px";
-              pointer.style.left = e.pageX + offset + "px";
-            }, 30);
-          });
+          window.addEventListener("mousemove", move(pointer, 15, 15, 30));
+          // drag and drop
+          els.dragArea = document.getElementById("dragArea");
+          els.dragTarget = document.getElementById("dragTarget");
+          els.dragTarget.addEventListener("mousedown", grab, {once: true});
         });
     </script>
 </head>
 <body>
-  <div id="trackPointer"></div>
+  <div id="trackPointer" class="block"></div>
   <div>
     <h2>KeyReporter</h2>
     <input type="text" id="keys" size="80">
   </div>
   <div>
     <h2>ClickReporter</h2>
-    <div id="outer">
+    <div id="outer" class="area">
+    </div>
+  </div>
+  <div>
+    <h2>DragReporter</h2>
+    <div id="dragArea" class="area">
+      <div id="dragTarget" class="block"></div>
     </div>
   </div>
   <div id="resultContainer">

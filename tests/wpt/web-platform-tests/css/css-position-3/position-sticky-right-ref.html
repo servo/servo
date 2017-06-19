@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<title>Reference for position:sticky elements should respect the right constraint</title>
+
+<style>
+.group {
+  position: relative;
+  width: 250px;
+  height: 150px;
+}
+
+.scroller {
+  position: relative;
+  width: 200px;
+  height: 100px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.contents {
+  height: 100%;
+  width: 500px;
+}
+
+.indicator {
+  background-color: green;
+  position: absolute;
+  top: 0;
+}
+
+.box {
+  height: 100%;
+  width: 100px;
+}
+</style>
+
+<script>
+window.addEventListener('load', function() {
+  document.getElementById('scroller1').scrollLeft = 100;
+  document.getElementById('scroller2').scrollLeft = 175;
+  document.getElementById('scroller3').scrollLeft = 250;
+});
+</script>
+
+<div class="group">
+  <div id="scroller1" class="scroller">
+    <div class="contents">
+      <div class="indicator box" style="left: 200px;"></div>
+    </div>
+  </div>
+</div>
+
+<div class="group">
+  <div id="scroller2" class="scroller">
+    <div class="contents">
+      <div class="indicator box" style="left: 250px;"></div>
+    </div>
+  </div>
+</div>
+
+<div class="group">
+  <div id="scroller3" class="scroller">
+    <div class="contents">
+      <div class="indicator box" style="left: 300px;"></div>
+    </div>
+  </div>
+</div>
+
+<div>You should see three green boxes above. No red should be visible.</div>

@@ -16,7 +16,7 @@ async_test(t => {
     count++;
     assert_between_inclusive(count, 1, 4, 'number of fullscreenchange events');
     const expected = {
-      target: count == 1 || count == 4 ? document : iframeDoc,
+      target: count == 1 || count == 4 ? iframe : iframeBody,
       outerFullscreenElement: count <= 2 ? iframe : null,
       innerFullscreenElement: count <= 2 ? iframeBody : null,
     };
@@ -27,7 +27,7 @@ async_test(t => {
       iframeDoc.exitFullscreen();
     } else if (count == 4) {
       // Done, but set timeout to fail on extra events.
-      setTimeout(t.step_func_done());
+      step_timeout(t.step_func_done());
     }
   });
   document.onfullscreenerror = t.unreached_func('fullscreenerror event');

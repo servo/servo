@@ -4,6 +4,7 @@
 == mask-composite-1a.html mask-composite-1-ref.html
 == mask-composite-1b.html mask-composite-1-ref.html
 == mask-composite-1c.html mask-composite-1-ref.html
+== mask-composite-1d.html mask-composite-1-ref.html
 == mask-composite-2a.html mask-composite-2-ref.html
 == mask-composite-2b.html mask-composite-2-ref.html
 == mask-composite-2c.html mask-composite-2-ref.html
@@ -12,6 +13,7 @@
 == mask-mode-a.html mask-mode-ref.html
 == mask-mode-b.html mask-mode-ref.html
 == mask-mode-c.html mask-mode-ref.html
+== mask-mode-d.html mask-mode-ref.html
 == mask-mode-to-mask-type.html mask-mode-to-mask-type-ref.html
 
 # mask-image test cases

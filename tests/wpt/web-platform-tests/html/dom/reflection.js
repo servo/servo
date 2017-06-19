@@ -455,6 +455,37 @@ ReflectionTests.typeMap = {
             "idlDomExpected": [null, 1, maxInt, null, null]
     },
     /**
+     * "If a reflecting IDL attribute has an unsigned integer type (unsigned
+     * long) that is clamped to the range [min, max], then on getting, the
+     * content attribute must first be parsed according to the rules for
+     * parsing non-negative integers, and if that is successful, and the value
+     * is between min and max inclusive, the resulting value must be returned.
+     * If it fails, the default value must be returned. If it succeeds but the
+     * value is less than min, min must be returned. If it succeeds but the
+     * value is greater than max, max must be returned. On setting, it behaves
+     * the same as a regular reflected unsigned integer."
+     *
+     * The data object passed to reflects must contain the keys defaultVal,
+     * min, and max.  As with enum, domExpected is generated later once we have
+     * access to the min and max.
+     */
+    "clamped unsigned long": {
+        "jsType": "number",
+        "domTests": [minInt - 1, minInt, -36,  -1,   0,    1, maxInt,
+                     maxInt + 1, maxUnsigned, maxUnsigned + 1, "", "-1", "-0", "0", "1",
+                     "\u00097", "\u000B7", "\u000C7", "\u00207", "\u00A07", "\uFEFF7",
+                     "\u000A7", "\u000D7", "\u20287", "\u20297", "\u16807", "\u180E7",
+                     "\u20007", "\u20017", "\u20027", "\u20037", "\u20047", "\u20057",
+                     "\u20067", "\u20077", "\u20087", "\u20097", "\u200A7", "\u202F7",
+                     "\u30007",
+                     " " + binaryString + " foo ", undefined, 1.5, true, false,
+                     {"test": 6}, NaN, +Infinity, -Infinity, "\0",
+                     {toString:function() {return 2;}, valueOf: null},
+                     {valueOf:function() {return 3;}}],
+        "idlTests": [0, 1, 257, maxInt, "-0", maxInt + 1, maxUnsigned],
+        "idlDomExpected": [0, 1, 257, maxInt, 0, null, null],
+    },
+    /**
      * "If a reflecting IDL attribute is a floating point number type (double),
      * then, on getting, the content attribute must be parsed according to the
      * rules for parsing floating point number values, and if that is
@@ -644,6 +675,10 @@ ReflectionTests.reflects = function(data, idlName, idlObj, domName, domObj) {
                 domTests.push(data.keywords[i].toUpperCase());
                 idlTests.push(data.keywords[i].toUpperCase());
             }
+            if (data.keywords[i] != data.keywords[i].replace(/k/g, "\u212A")) {
+                domTests.push(data.keywords[i].replace(/k/g, "\u212A"));
+                idlTests.push(data.keywords[i].replace(/k/g, "\u212A"));
+            }
         }
 
         // Per spec, the expected DOM values are the same as the value we set
@@ -680,6 +715,54 @@ ReflectionTests.reflects = function(data, idlName, idlObj, domName, domObj) {
                 }
             }
         }
+        break;
+
+        case "clamped unsigned long":
+        [data.min - 1, data.min, data.max, data.max + 1].forEach(function(val) {
+          if (domTests.indexOf(val) == -1) {
+            domTests.push(val);
+          }
+          if (idlTests.indexOf(val) == -1 && 0 <= val && val <= maxUnsigned) {
+            idlTests.push(val);
+            if (typeof val != "number") {
+              val = ReflectionTests.parseNonneg(val);
+            }
+            idlDomExpected.push(val > maxInt ? null : val);
+          }
+        });
+
+        // Rewrite expected values
+        domExpected = domTests.map(function(val) {
+            var parsed = ReflectionTests.parseNonneg(String(val));
+            if (parsed === false) {
+                return defaultVal;
+            }
+            if (parsed < data.min) {
+              return data.min;
+            }
+            if (parsed > data.max) {
+              return data.max;
+            }
+            return parsed;
+        });
+        idlIdlExpected = idlTests.map(function(val) {
+            if (typeof val != "number") {
+              val = ReflectionTests.parseNonneg(val);
+            }
+            if (val < 0 || val > maxUnsigned) {
+              throw "Test bug: val should be an unsigned long";
+            }
+            if (val > maxInt) {
+              return defaultVal;
+            }
+            if (val < data.min) {
+              return data.min;
+            }
+            if (val > data.max) {
+              return data.max;
+            }
+            return val;
+        });
         break;
     }
     if (domObj.tagName.toLowerCase() == "canvas" && (domName == "width" || domName == "height")) {
@@ -742,6 +825,10 @@ ReflectionTests.reflects = function(data, idlName, idlObj, domName, domObj) {
     }
 };
 
+function toASCIILowerCase(str) {
+    return str.replace(/[A-Z]/g, function(m) { return m.toLowerCase(); });
+}
+
 /**
  * If we have an enumerated attribute limited to the array of values in
  * keywords, with nonCanon being a map of non-canonical values to their
@@ -752,7 +839,7 @@ ReflectionTests.reflects = function(data, idlName, idlObj, domName, domObj) {
 ReflectionTests.enumExpected = function(keywords, nonCanon, invalidVal, contentVal) {
     var ret = invalidVal;
     for (var i = 0; i < keywords.length; i++) {
-        if (String(contentVal).toLowerCase() == keywords[i].toLowerCase()) {
+        if (toASCIILowerCase(String(contentVal)) === toASCIILowerCase(keywords[i])) {
             ret = keywords[i];
             break;
         }

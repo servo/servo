@@ -1,0 +1,92 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Pointer Event: touch-action in rotated divs</title>
+    <meta content="text/html; charset=UTF-8" http-equiv="Content-Type"/>
+    <link rel="author" title="Google" href="http://www.google.com "/>
+    <link rel="help" href="https://w3c.github.io/pointerevents/#declaring-candidate-regions-for-default-touch-behaviors" />
+    <meta name="assert" content="Tests that touch-action directions in a div rotated by 90-degrees are interpreted in the local (rotated) coordinate space"/>
+    <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script type="text/javascript" src="pointerevent_support.js"></script>
+    <script type="text/javascript">
+      var event_log = [];
+
+      function resetTestState() {
+        event_log = [];
+      }
+
+      function run() {
+        var current_test = 0;
+        var test_params = [
+          {
+            test_obj: setup_pointerevent_test("'touch-action: pan-x' in a rotated div", ["touch"]),
+            touch_action: "pan-x",
+            expected_events: "pointercancel, pointercancel, pointerup, pointerup"
+          },
+          {
+            test_obj: setup_pointerevent_test("'touch-action: pan-y' in a rotated div", ["touch"]),
+            touch_action: "pan-y",
+            expected_events: "pointerup, pointerup, pointercancel, pointercancel"
+          },
+        ];
+
+        function setCurrentTouchAction() {
+          document.getElementById("target").style.touchAction = test_params[current_test].touch_action;
+        }
+
+        setCurrentTouchAction();
+
+        on_event(document.getElementById("btnDone"), "click", function() {
+          test_params[current_test].test_obj.step(function () {
+            assert_equals(event_log.join(", "), test_params[current_test].expected_events);
+          });
+
+          event_log = [];
+
+          test_params[current_test++].test_obj.done();
+          if (current_test < 2)
+            setCurrentTouchAction();
+        });
+
+        ["pointerup", "pointercancel"].forEach(function(eventName) {
+          on_event(document.getElementById("target"), eventName, function (event) {
+            event_log.push(event.type);
+          });
+        });
+      }
+    </script>
+    <style>
+      #target {
+        width: 200px;
+        height: 200px;
+        margin: 10px;
+        float: left;
+        touch-action: none;
+        background-color: green;
+        transform: rotate(-90deg);
+      }
+
+      #btnDone {
+        padding: 20px;
+      }
+    </style>
+  </head>
+  <body onload="run()">
+    <h1>Pointer Event: touch-action in rotated divs</h1>
+    <h2 id="pointerTypeDescription"></h2>
+    <h4>
+      Tests that touch-action directions in a div rotated by 90-degrees are interpreted in the local (rotated) coordinate space
+    </h4>
+    <ol>
+      <li>Make 4 separate touch drags on Green, in this order: drag UP, then drag DOWN, then drag LEFT, then drag RIGHT.</li>
+      <li>Tap on Done.</li>
+      <li>Repeat the touch drags once again, in the same order.</li>
+      <li>Tap on Done.</li>
+    </ol>
+    <div id="target"></div>
+    <input type="button" id="btnDone" value="Done" />
+    <div id="log" />
+  </body>
+</html>

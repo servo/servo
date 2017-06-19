@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Support for named grid lines in 'grid-template-columns' and 'grid-template-rows' properties</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="http://www.w3.org/TR/css-grid-1/#named-lines" title="5.1.1. Named Grid Lines: the '(&lt;custom-ident\&gt;*)' syntax">
+<meta name="flags" content="ahem dom">
+<meta name="assert" content="This test checks that grid lines can be explicitly named in 'grid-template-columns' and 'grid-template-rows' properties.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/testing-utils.js"></script>
+<style>
+  .grid {
+    display: grid;
+    width: 800px;
+    height: 600px;
+    font: 10px/1 Ahem;
+    justify-content: start;
+    align-content: start;
+  }
+</style>
+<div id="log"></div>
+
+<div id="emptyGrid" class="grid"></div>
+<div id="grid" class="grid">
+  <div id="item">GRID ITEM</div>
+</div>
+
+<script>
+  // Valid values.
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[first] auto [last]", "[first] auto [last]", "[first] 0px [last]", "[first] 0px [last]");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[first] auto [last]", "[first] auto [last]", "[first] 90px [last]", "[first] 10px [last]");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[F1rst-L1_n3] auto [L4st-L1_n3]", "[F1rst-L1_n3] auto [L4st-L1_n3]", "[F1rst-L1_n3] 0px [L4st-L1_n3]", "[F1rst-L1_n3] 0px [L4st-L1_n3]");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[F1rst-L1_n3] auto [L4st-L1_n3]", "[F1rst-L1_n3] auto [L4st-L1_n3]", "[F1rst-L1_n3] 90px [L4st-L1_n3]", "[F1rst-L1_n3] 10px [L4st-L1_n3]");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[] auto [ ]", "[ ] auto []", "0px", "0px");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[] auto [ ]", "[ ] auto []", "90px", "10px");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[first] auto", "[first] auto", "[first] 0px", "[first] 0px");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[first] auto", "[first] auto", "[first] 90px", "[first] 10px");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "auto [last]", "auto [last]", "0px [last]", "0px [last]");
+  TestingUtils.testGridTemplateColumnsRows("grid", "auto [last]", "auto [last]", "90px [last]", "10px [last]");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[line] auto [line]", "[line] auto [line]", "[line] 0px [line]", "[line] 0px [line]");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[line] auto [line]", "[line] auto [line]", "[line] 90px [line]", "[line] 10px [line]");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[first line] auto [last line]", "[first line] auto [last line]", "[first line] 0px [last line]", "[first line] 0px [last line]");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[first line] auto [last line]", "[first line] auto [last line]", "[first line] 90px [last line]", "[first line] 10px [last line]");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[a] auto [b] auto [c]", "[a] auto [b] auto [c]", "[a] 0px [b] 0px [c]", "[a] 0px [b] 0px [c]");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[a] auto [b] auto [c]", "[a] auto [b] auto [c]", "[a] 90px [b] 0px [c]", "[a] 10px [b] 0px [c]");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "auto [b] auto [c]", "auto [b] auto [c]", "0px [b] 0px [c]", "0px [b] 0px [c]");
+  TestingUtils.testGridTemplateColumnsRows("grid", "auto [b] auto [c]", "auto [b] auto [c]", "90px [b] 0px [c]", "10px [b] 0px [c]");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[a] auto auto [c]", "[a] auto auto [c]", ["[a] 0px 0px [c]", "[a] repeat(2, 0px) [c]"], ["[a] 0px 0px [c]", "[a] repeat(2, 0px) [c]"]);
+  TestingUtils.testGridTemplateColumnsRows("grid", "[a] auto auto [c]", "[a] auto auto [c]", "[a] 90px 0px [c]", "[a] 10px 0px [c]");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[a] auto [b] auto", "[a] auto [b] auto", "[a] 0px [b] 0px", "[a] 0px [b] 0px");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[a] auto [b] auto", "[a] auto [b] auto", "[a] 90px [b] 0px", "[a] 10px [b] 0px");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[a] auto auto", "[a] auto auto", ["[a] 0px 0px", "[a] repeat(2, 0px)"], ["[a] 0px 0px", "[a] repeat(2, 0px)"]);
+  TestingUtils.testGridTemplateColumnsRows("grid", "[a] auto auto", "[a] auto auto", "[a] 90px 0px", "[a] 10px 0px");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "auto [b] auto", "auto [b] auto", "0px [b] 0px", "0px [b] 0px");
+  TestingUtils.testGridTemplateColumnsRows("grid", "auto [b] auto", "auto [b] auto", "90px [b] 0px", "10px [b] 0px");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "auto auto [c]", "auto auto [c]", ["0px 0px [c]", "repeat(2, 0px) [c]"], ["0px 0px [c]", "repeat(2, 0px) [c]"]);
+  TestingUtils.testGridTemplateColumnsRows("grid", "auto auto [c]", "auto auto [c]", "90px 0px [c]", "10px 0px [c]");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[a] auto [a] auto [a]", "[a] auto [a] auto [a]", ["[a] 0px [a] 0px [a]", "repeat(2, [a] 0px) [a]"], ["[a] 0px [a] 0px [a]", "repeat(2, [a] 0px) [a]"]);
+  TestingUtils.testGridTemplateColumnsRows("grid", "[a] auto [a] auto [a]", "[a] auto [a] auto [a]", "[a] 90px [a] 0px [a]", "[a] 10px [a] 0px [a]");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[a b c] auto [a b c] auto [a b c]", "[a b c] auto [a b c] auto [a b c]", ["[a b c] 0px [a b c] 0px [a b c]", "repeat(2, [a b c] 0px) [a b c]"], "[a b c] 0px [a b c] 0px [a b c]");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[a b c] auto [a b c] auto [a b c]", "[a b c] auto [a b c] auto [a b c]", "[a b c] 90px [a b c] 0px [a b c]", "[a b c] 10px [a b c] 0px [a b c]");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[a] 40em [b] 100px [c] 15% [d]", "[z] 50px [y] 20em [x] 10% [w]", "[a] 400px [b] 100px [c] 120px [d]", "[z] 50px [y] 200px [x] 60px [w]");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[a] 40em [b] 100px [c] 15% [d]", "[z] 50px [y] 20em [x] 10% [w]", "[a] 400px [b] 100px [c] 120px [d]", "[z] 50px [y] 200px [x] 60px [w]");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[a] 200px [b] 1fr [c]", "[z] 1fr [y] 100px [x]", "[a] 200px [b] 600px [c]", "[z] 500px [y] 100px [x]");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[a] 200px [b] 1fr [c]", "[z] 1fr [y] 100px [x]", "[a] 200px [b] 600px [c]", "[z] 500px [y] 100px [x]");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[a] min-content [b] 1fr [c] calc(20px + 10%) [d] minmax(30em, 50em) [e]", "[z] min-content [y] 1fr [x] calc(10% + 40px) [w] minmax(3em, 5em) [v]", "[a] 0px [b] 200px [c] 100px [d] 500px [e]", "[z] 0px [y] 450px [x] 100px [w] 50px [v]");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[a] min-content [b] 1fr [c] calc(20px + 10%) [d] minmax(30em, 50em) [e]", "[z] min-content [y] 1fr [x] calc(10% + 40px) [w] minmax(3em, 5em) [v]", "[a] 40px [b] 160px [c] 100px [d] 500px [e]", "[z] 20px [y] 430px [x] 100px [w] 50px [v]");
+
+  // Reset values.
+  document.getElementById("emptyGrid").style.gridTemplateColumns = "";
+  document.getElementById("emptyGrid").style.gridTemplateRows = "";
+  document.getElementById("grid").style.gridTemplateColumns = "";
+  document.getElementById("grid").style.gridTemplateRows = "";
+
+  // Wrong values.
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[a]", "[a]", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[a]", "[a]", "90px", "10px");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[a b]", "[a b]", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[a b]", "[a b]", "90px", "10px");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[a] none [b]", "[a] none [b]", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[a] none [b]", "[a] none [b]", "90px", "10px");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[a] [b]", "[a] [b]", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[a] [b]", "[a] [b]", "90px", "10px");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "a auto b", "a auto b", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "a auto b", "a auto b", "90px", "10px");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "(a) auto (b)", "(a) auto (b)", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "(a) auto (b)", "(a) auto (b)", "90px", "10px");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "'a' auto 'b'", "'a' auto 'b'", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "'a' auto 'b'", "'a' auto 'b'", "90px", "10px");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "\"a\" auto \"b\"", "\"a\" auto \"b\"", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "\"a\" auto \"b\"", "\"a\" auto \"b\"", "90px", "10px");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[a, b] auto [a, b]", "[a, b] auto [a, b]", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[a, b] auto [a, b]", "[a, b] auto [a, b]", "90px", "10px");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[a] [b] auto [c d] [e]", "[a] [b] auto [c d] [e]", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[a] [b] auto [c d] [e]", "[a] [b] auto [c d] [e]", "90px", "10px");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[a [b]] auto [c]", "[a [b]] auto [c]", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[a [b]] auto [c]", "[a [b]] auto [c]", "90px", "10px");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[a] auto [[b]]", "[a] auto [[b]]", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[a] auto [[b]]", "[a] auto [[b]]", "90px", "10px");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[a auto [b]", "[a auto [b]", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[a auto [b]", "[a auto [b]", "90px", "10px");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[a 100px] auto [b]", "[a 100px] auto [b]", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[a 100px] auto [b]", "[a 100px] auto [b]", "90px", "10px");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[a 50%] auto [b]", "[a 50%] auto [b]", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[a 50%] auto [b]", "[a 50%] auto [b]", "90px", "10px");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[5] auto [10]", "[5] auto [10]", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[5] auto [10]", "[5] auto [10]", "90px", "10px");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[a.] auto [b*]", "[a.] auto [b*]", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[a.] auto [b*]", "[a.] auto [b*]", "90px", "10px");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[#a] auto [$b]", "[#a] auto [$b]", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[#a] auto [$b]", "[#a] auto [$b]", "90px", "10px");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[initial] auto", "[initial] auto", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[initial] auto", "[initial] auto", "90px", "10px");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[inherit] auto", "[inherit] auto", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[inherit] auto", "[inherit] auto", "90px", "10px");
+  TestingUtils.testGridTemplateColumnsRows("emptyGrid", "[default] auto", "[default] auto", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "[default] auto", "[default] auto", "90px", "10px");
+</script>

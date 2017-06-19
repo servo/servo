@@ -8,13 +8,14 @@
 <script>
     var open_rq = createdb(async_test(), undefined, 13);
     var did_upgrade = false;
+    var open_rq2;
 
     open_rq.onupgradeneeded = function() {};
     open_rq.onsuccess = function(e) {
         var db = e.target.result;
         db.close();
 
-        var open_rq2 = window.indexedDB.open(db.name, 14);
+        open_rq2 = window.indexedDB.open(db.name, 14);
         open_rq2.onupgradeneeded = function() {};
         open_rq2.onsuccess = this.step_func(open_previous_db);
         open_rq2.onerror = fail(this, 'Unexpected error')
@@ -24,6 +25,7 @@
         var open_rq3 = window.indexedDB.open(e.target.result.name, 13);
         open_rq3.onerror = this.step_func(function(e) {
             assert_equals(e.target.error.name, 'VersionError', 'e.target.error.name')
+            open_rq2.result.close();
             this.done();
         });
         open_rq3.onupgradeneeded = fail(this, 'Unexpected upgradeneeded')

@@ -2,26 +2,20 @@
 <title>IDBObjectStore.openKeyCursor()</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
 <script>
 function store_test(func, name) {
-    async_test(function(t) {
-        var del = indexedDB.deleteDatabase(name);
-        del.onerror = t.unreached_func("deleteDatabase failed");
-        var open = indexedDB.open(name);
-        open.onupgradeneeded = t.step_func(function() {
-            var db = open.result;
-            var store = db.createObjectStore("store");
-            for (var i = 0; i < 10; ++i) {
-                store.put("value: " + i, i);
-            }
-        });
-
-        open.onsuccess = t.step_func(function() {
-            var db = open.result;
-            var tx = db.transaction("store");
-            var store = tx.objectStore("store");
-            func(t, db, tx, store);
-        });
+  indexeddb_test(
+    function(t, db, tx) {
+      var store = db.createObjectStore("store");
+      for (var i = 0; i < 10; ++i) {
+        store.put("value: " + i, i);
+      }
+    },
+    function(t, db) {
+      var tx = db.transaction("store");
+      var store = tx.objectStore("store");
+      func(t, db, tx, store);
     }, name);
 }
 

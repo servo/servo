@@ -15,18 +15,19 @@ module.exports = (function () {
     },
     get: function (source, formatter) {
       formatter = formatter || this.formatAsArray;
-      var deferred = Promise.defer();
       var buffer = "";
       var parser = new stream.Writable();
       parser._write = function (chunk, encoding, next) {
         buffer += chunk;
         next();
       };
-      parser.on("finish", function () {
-        var results = null;
-        for (var line of buffer.split("\n"))
-          results = unicodeData.parseLine(line, formatter, results);
-        deferred.resolve(results);
+      var promise = new Promise(function(resolve, reject) {
+        parser.on("finish", function () {
+          var results = null;
+          for (var line of buffer.split("\n"))
+            results = unicodeData.parseLine(line, formatter, results);
+          resolve(results);
+        });
       });
       var basename = path.basename(url.parse(source).path);
       var local = "ucd/" + basename;
@@ -38,7 +39,7 @@ module.exports = (function () {
           res.pipe(parser);
         });
       }
-      return deferred.promise;
+      return promise;
     },
     copyToLocal: function () {
       for (let key in unicodeData.url) {

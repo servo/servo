@@ -30,7 +30,7 @@ t.step(function() {
   });
 
 var expected = [
-    /* visibilityState, focused, url, frameType */
+    // visibilityState, focused, url, type, frameType
     ['visible', true, new URL(scope + '#1', location).toString(), 'window', 'nested'],
     ['visible', false, new URL(scope + '#2', location).toString(), 'window', 'nested']
 ];

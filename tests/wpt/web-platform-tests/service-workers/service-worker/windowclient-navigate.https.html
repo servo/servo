@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<title>Service Worker: WindowClient.navigate() tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<body>
+<script>
+'use strict';
+
+const SCOPE = 'resources/blank.html';
+const SCRIPT_URL = 'resources/windowclient-navigate-worker.js';
+const CROSS_ORIGIN_URL = get_host_info()['HTTPS_REMOTE_ORIGIN'] + base_path() +
+    'resources/blank.html';
+
+navigate_test({
+    description: 'normal',
+    dest_url: 'blank.html?navigate',
+    expected: normalizeURL(SCOPE) + '?navigate',
+  });
+
+navigate_test({
+    description: 'blank url',
+    dest_url: '',
+    expected: normalizeURL(SCRIPT_URL)
+  });
+
+navigate_test({
+    description: 'in scope but not controlled test on installing worker',
+    dest_url: 'blank.html?navigate',
+    expected: 'TypeError',
+    wait_state: 'installing',
+  });
+
+navigate_test({
+    description: 'in scope but not controlled test on active worker',
+    dest_url: 'blank.html?navigate',
+    expected: 'TypeError',
+    should_be_reload: false,
+  });
+
+navigate_test({
+    description: 'out of scope',
+    src_url: '/common/blank.html',
+    dest_url: 'blank.html?navigate',
+    expected: 'TypeError',
+  });
+
+navigate_test({
+    description: 'cross orgin url',
+    dest_url: CROSS_ORIGIN_URL,
+    expected: null
+  });
+
+navigate_test({
+    description: 'invalid url (http://[example.com])',
+    dest_url: 'http://[example].com',
+    expected: 'TypeError'
+  });
+
+navigate_test({
+    description: 'invalid url (view-source://example.com)',
+    dest_url: 'view-source://example.com',
+    expected: 'TypeError'
+  });
+
+navigate_test({
+    description: 'invalid url (file:///)',
+    dest_url: 'file:///',
+    expected: 'TypeError'
+  });
+
+navigate_test({
+    description: 'invalid url (about:blank)',
+    dest_url: 'about:blank',
+    expected: 'TypeError'
+  });
+
+function navigate_test(override_parameters) {
+  // default parameters
+  var parameters = {
+    description: null,
+    src_url: SCOPE,
+    dest_url: null,
+    expected: null,
+    wait_state: 'activated',
+    scope: SCOPE,
+    should_be_reload: true
+  };
+  var key;
+
+  for (key in override_parameters)
+    parameters[key] = override_parameters[key];
+
+  promise_test(function(test) {
+    var service_worker;
+    var client_frame;
+    var registration;
+    var pausedLifecyclePort;
+    var script_url = SCRIPT_URL;
+
+    // For in-scope-but-not-controlled test on installing worker,
+    // if the wait_state is "installing", then append the query to script_url.
+    if (parameters.wait_state == 'installing') {
+      script_url += '?' + parameters.wait_state;
+
+      navigator.serviceWorker.addEventListener('message', function(event) {
+          pausedLifecyclePort = event.data.port;
+        });
+    }
+
+    var cleanup = function() {
+      if (client_frame && client_frame) {
+        client_frame.remove();
+      }
+
+      // Some tests require that the worker remain in a given lifecycle phase.
+      // "Clean up" logic for these tests requires signaling the worker to
+      // release the hold; this allows the worker to be properly discarded
+      // prior to the execution of additional tests.
+      if (pausedLifecyclePort) {
+        // The value of the posted message is inconsequential. A string is
+        // specified here solely to aid in test debugging.
+        pausedLifecyclePort.postMessage('continue lifecycle');
+      }
+
+      if (registration) {
+        return registration.unregister();
+      }
+    };
+
+    var test_body = with_iframe(parameters.src_url)
+      .then(function(frame) {
+          client_frame = frame;
+          return service_worker_unregister_and_register(
+              test, script_url, parameters.scope);
+        })
+      .then(function(r) {
+          registration = r;
+          service_worker = registration.installing;
+          return wait_for_state(test, service_worker, parameters.wait_state);
+        })
+      .then(function() {
+          if (parameters.should_be_reload) {
+            client_frame.remove();
+            return with_iframe(parameters.src_url);
+          }
+          return client_frame;
+        })
+      .then(function(frame) {
+          client_frame = frame;
+          return new Promise(function(resolve) {
+              var channel = new MessageChannel();
+              channel.port1.onmessage = test.step_func(resolve);
+              service_worker.postMessage({
+                  port: channel.port2,
+                  url: parameters.dest_url
+                }, [channel.port2]);
+            });
+        })
+      .then(function(response) {
+          assert_equals(response.data, parameters.expected);
+        });
+
+    // Ensure that test "clean up" is deferred until after the test body
+    // executes. `Test#add_cleanup` cannot be used for this purpose because the
+    // operation is asynchronous, and `add_cleanup` does not support
+    // asynchronous operations at the time of this writing. See
+    // https://github.com/w3c/web-platform-tests/issues/6075
+    // Ensure also that test failure is not hidden by successful cleanup
+    // operation.
+    return test_body
+      .then(cleanup, cleanup)
+      .then(function() { return test_body; });
+  }, parameters.description);
+}
+</script>
+</body>

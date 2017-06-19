@@ -1,0 +1,113 @@
+<!doctype html>
+<html>
+  <head>
+    <title>doc-pagelist</title>
+    <link rel="stylesheet" href="/resources/testharness.css">
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_LANDMARK"
+               ],
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "xml-roles:doc-pagelist"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXRole",
+                  "is",
+                  "AXGroup"
+               ],
+               [
+                  "property",
+                  "AXSubrole",
+                  "is",
+                  "AXLandmarkNavigation"
+               ],
+               [
+                  "property",
+                  "AXRoleDescription",
+                  "is",
+                  "navigation"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "xml-roles:doc-pagelist"
+               ],
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "IA2_ROLE_LANDMARK"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "ControlType",
+                  "is",
+                  "Text"
+               ],
+               [
+                  "property",
+                  "LocalizedControlType",
+                  "is",
+                  "pagelist"
+               ],
+               [
+                  "property",
+                  "landmarkType",
+                  "is",
+                  "Custom"
+               ],
+               [
+                  "property",
+                  "LocalizedLandmarkType",
+                  "is",
+                  "pagelist"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "doc-pagelist"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for doc-pagelist.</p>
+    <div role="doc-pagelist" id="test">Text</div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>
+

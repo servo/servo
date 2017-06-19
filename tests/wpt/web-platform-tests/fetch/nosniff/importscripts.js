@@ -3,26 +3,15 @@ function log(w) { this.postMessage(w) }
 function f() { log("FAIL") }
 function p() { log("PASS") }
 
-const get_url = (mime, outcome) => {
-  let url = "resources/js.py"
-  if (mime != null) {
-      url += "?type=" + encodeURIComponent(mime)
-  }
-  if (outcome) {
-    url += "&outcome=p"
-  }
-  return url
-}
-
-[null, "", "x", "x/x"].forEach(function(mime) {
+["", "?type=", "?type=x", "?type=x/x"].forEach(function(urlpart) {
   try {
-    importScripts(get_url(mime))
+    importScripts("resources/js.py" + urlpart)
   } catch(e) {
-    (e.name == "NetworkError") ? p() : log("FAIL (no NetworkError exception): " + mime)
+    (e.name == "NetworkError") ? p() : log("FAIL (no NetworkError exception): " + urlpart)
   }
 
 })
-importScripts(get_url("text/javascript", true))
-importScripts(get_url("text/ecmascript", true))
-importScripts(get_url("text/ecmascript;blah", true))
+importScripts("resources/js.py?type=text/javascript&outcome=p")
+importScripts("resources/js.py?type=text/ecmascript&outcome=p")
+importScripts("resources/js.py?type=text/ecmascript;blah&outcome=p")
 log("END")

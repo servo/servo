@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Structured cloning of SharedArrayBuffers into a dedicated worker nested inside a dedicated worker</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#structuredserialize">
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script>
+"use strict";
+fetch_tests_from_worker(new Worker("nested-worker-success.js"));
+</script>

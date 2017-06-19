@@ -1,3 +1,6 @@
+from webdriver.client import Element, element_key
+from webdriver.error import WebDriverException
+
 # WebDriver specification ID: dfn-error-response-data
 errors = {
     "element click intercepted": 400,
@@ -75,3 +78,42 @@ def assert_success(response, value):
 
     assert response.status == 200
     assert response.body["value"] == value
+
+def assert_dialog_handled(session, expected_text):
+    result = session.transport.send("GET",
+                                    "session/%s/alert/text" % session.session_id)
+
+    # If there were any existing dialogs prior to the creation of this
+    # fixture's dialog, then the "Get Alert Text" command will return
+    # successfully. In that case, the text must be different than that
+    # of this fixture's dialog.
+    try:
+        assert_error(result, "no such alert")
+    except:
+        assert (result.status == 200 and
+                result.body["value"] != expected_text), (
+               "Dialog with text '%s' was not handled." % expected_text)
+
+def assert_same_element(session, a, b):
+    """Verify that two element references describe the same element."""
+    assert isinstance(a, dict), "Actual value is not a dictionary"
+    assert isinstance(b, dict), "Expected value is not a dictionary"
+    assert element_key in a, "Actual value does not describe an element"
+    assert element_key in b, "Expected value does not describe an element"
+
+    if a[element_key] == b[element_key]:
+        return
+
+    message = ("Expected element references to describe the same element, " +
+        "but they did not.")
+
+    # Attempt to provide more information, accounting for possible errors such
+    # as stale element references or not visible elements.
+    try:
+        a_markup = session.execute_script("return arguments[0].outerHTML;", args=[a])
+        b_markup = session.execute_script("return arguments[0].outerHTML;", args=[b])
+        message += " Actual: `%s`. Expected: `%s`." % (a_markup, b_markup)
+    except WebDriverException:
+        pass
+
+    raise AssertionError(message)

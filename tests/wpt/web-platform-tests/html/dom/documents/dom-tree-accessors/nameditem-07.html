@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Named items: objects</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dom.html#dom-document-nameditem">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<div id="test">
+<object name=test1></object>
+
+<object name=test2></object>
+<object name=test2></object>
+
+<object id=test3></object>
+
+<object id=test4></object>
+<object id=test4></object>
+
+<object name=test5></object>
+<object id=test5></object>
+
+<object id=test6></object>
+<object name=test6></object>
+
+<object id=test7 name=fail></object>
+
+<object name=test8 id=fail></object>
+</div>
+<script>
+test(function() {
+  var object = document.getElementsByTagName("object")[0];
+  assert_equals(object.name, "test1");
+
+  assert_true("test1" in document, '"test1" in document should be true');
+  assert_equals(document.test1, object);
+}, "If there is one object, it should be returned (name)");
+
+test(function() {
+  var object1 = document.getElementsByTagName("object")[1];
+  assert_equals(object1.name, "test2");
+  var object2 = document.getElementsByTagName("object")[2];
+  assert_equals(object2.name, "test2");
+
+  assert_true("test2" in document, '"test2" in document should be true');
+  var collection = document.test2;
+  assert_class_string(collection, "HTMLCollection", "collection should be an HTMLCollection");
+  assert_array_equals(collection, [object1, object2]);
+}, "If there are two objects, a collection should be returned. (name)");
+
+test(function() {
+  var object = document.getElementsByTagName("object")[3];
+  assert_equals(object.id, "test3");
+
+  assert_true("test3" in document, '"test3" in document should be true');
+  assert_equals(document.test3, object);
+}, "If there is one object, it should be returned (id)");
+
+test(function() {
+  var object1 = document.getElementsByTagName("object")[4];
+  assert_equals(object1.id, "test4");
+  var object2 = document.getElementsByTagName("object")[5];
+  assert_equals(object2.id, "test4");
+
+  assert_true("test4" in document, '"test4" in document should be true');
+  var collection = document.test4;
+  assert_class_string(collection, "HTMLCollection", "collection should be an HTMLCollection");
+  assert_array_equals(collection, [object1, object2]);
+}, "If there are two objects, a collection should be returned. (id)");
+
+test(function() {
+  var object1 = document.getElementsByTagName("object")[6];
+  assert_equals(object1.name, "test5");
+  var object2 = document.getElementsByTagName("object")[7];
+  assert_equals(object2.id, "test5");
+
+  assert_true("test5" in document, '"test5" in document should be true');
+  var collection = document.test5;
+  assert_class_string(collection, "HTMLCollection", "collection should be an HTMLCollection");
+  assert_array_equals(collection, [object1, object2]);
+}, "If there are two objects, a collection should be returned. (name and id)");
+
+test(function() {
+  var object1 = document.getElementsByTagName("object")[8];
+  assert_equals(object1.id, "test6");
+  var object2 = document.getElementsByTagName("object")[9];
+  assert_equals(object2.name, "test6");
+
+  assert_true("test6" in document, '"test6" in document should be true');
+  var collection = document.test6;
+  assert_class_string(collection, "HTMLCollection", "collection should be an HTMLCollection");
+  assert_array_equals(collection, [object1, object2]);
+}, "If there are two objects, a collection should be returned. (id and name)");
+
+test(function() {
+  var object = document.getElementsByTagName("object")[10];
+  assert_equals(object.id, "test7");
+
+  assert_true("test7" in document, '"test7" in document should be true');
+  assert_equals(document.test7, object);
+}, "A name shouldn't affect getting an object by id");
+
+test(function() {
+  var object = document.getElementsByTagName("object")[11];
+  assert_equals(object.name, "test8");
+
+  assert_true("test8" in document, '"test8" in document should be true');
+  assert_equals(document.test8, object);
+}, "An id shouldn't affect getting an object by name");
+</script>

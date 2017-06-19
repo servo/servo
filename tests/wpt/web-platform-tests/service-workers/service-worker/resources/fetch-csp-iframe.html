@@ -1,72 +1,16 @@
-<script src="/common/get-host-info.sub.js"></script>
-<script src="test-helpers.sub.js?pipe=sub"></script>
 <script>
-var image_path = base_path() + 'fetch-access-control.py?PNGIMAGE';
-var host_info = get_host_info();
-var results = '';
-var port = undefined;
+var meta = document.createElement('meta');
+meta.setAttribute('http-equiv', 'Content-Security-Policy');
+meta.setAttribute('content', decodeURIComponent(location.search.substring(1)));
+document.head.appendChild(meta);
 
-function test1() {
-  var img = document.createElement('img');
-  document.body.appendChild(img);
-  img.onload = function() {
-    test2();
-  };
-  img.onerror = function() {
-    results += 'FAIL(1)';
-    test2();
-  };
-  img.src = host_info['HTTPS_ORIGIN'] + image_path;
+function load_image(url) {
+  return new Promise(function(resolve, reject) {
+      var img = document.createElement('img');
+      document.body.appendChild(img);
+      img.onload = resolve;
+      img.onerror = reject;
+      img.src = url;
+    });
 }
-
-function test2() {
-  var img = document.createElement('img');
-  document.body.appendChild(img);
-  img.onload = function() {
-    results += 'FAIL(2)';
-    test3();
-  };
-  img.onerror = function() {
-    test3();
-  };
-  img.src = host_info['HTTPS_REMOTE_ORIGIN'] + image_path;
-}
-
-function test3() {
-  var img = document.createElement('img');
-  document.body.appendChild(img);
-  img.onload = function() {
-    test4();
-  };
-  img.onerror = function() {
-    results += 'FAIL(3)';
-    test4();
-  };
-  img.src = './dummy?url=' +
-            encodeURIComponent(host_info['HTTPS_ORIGIN'] + image_path);
-}
-
-function test4() {
-  var img = document.createElement('img');
-  document.body.appendChild(img);
-  img.onload = function() {
-    results += 'FAIL(4)';
-    finish();
-  };
-  img.onerror = function() {
-    finish();
-  };
-  img.src = './dummy?mode=no-cors&url=' +
-            encodeURIComponent(host_info['HTTPS_REMOTE_ORIGIN'] + image_path);
-}
-
-function finish() {
-  results += 'finish';
-  port.postMessage({results: results});
-}
-
-window.addEventListener('message', function(evt) {
-    port = evt.ports[0];
-    test1();
-  }, false);
 </script>

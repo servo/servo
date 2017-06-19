@@ -13,68 +13,44 @@
 <script src="support.js"></script>
 
 <script>
-    var records = [ "Alice", "Bob", "Greg" ];
-    var directions = ["next", "prev", "nextunique", "prevunique"];
-    var tests = {};
+var records = [ "Alice", "Bob", "Greg" ];
+var directions = ["next", "prev", "nextunique", "prevunique"];
+var cases = [
+  {dir: 'next', expect: ['Alice', 'Bob', 'Greg']},
+  {dir: 'prev', expect: ['Greg', 'Bob', 'Alice']},
+  {dir: 'nextunique', expect: ['Alice', 'Bob', 'Greg']},
+  {dir: 'prevunique', expect: ['Greg', 'Bob', 'Alice']},
+];
 
-    directions.forEach(function(dir) {
-        tests[dir] = async_test(document.title + ' - ' + dir);
-    });
-
-    var open_rq = indexedDB.open("testdb-" + new Date().getTime() + Math.random());
-
-    open_rq.onupgradeneeded = function(e) {
-        var objStore = e.target.result.createObjectStore("test");
-
-        for (var i = 0; i < records.length; i++)
-            objStore.add(records[i], records[i]);
-    };
-
-    open_rq.onsuccess = function(e) {
-        var db = e.target.result;
-        db.onerror = fail_helper("db.onerror");
-
-
-        // The tests
-        testdir('next',       ['Alice', 'Bob', 'Greg']);
-        testdir('prev',       ['Greg', 'Bob', 'Alice']);
-        testdir('nextunique', ['Alice', 'Bob', 'Greg']);
-        testdir('prevunique', ['Greg', 'Bob', 'Alice']);
-
-
-        // Test function
-        function testdir(dir, expect) {
-            var count = 0;
-            var t = tests[dir];
-            var rq = db.transaction("test").objectStore("test").openCursor(undefined, dir);
-            rq.onsuccess = t.step_func(function(e) {
-                var cursor = e.target.result;
-                if (!cursor) {
-                    assert_equals(count, expect.length, "cursor runs");
-                    t.done();
-                }
-                assert_equals(cursor.value, expect[count], "cursor.value");
-                count++;
-                cursor.continue();
-            });
-            rq.onerror = t.step_func(function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                assert_unreached("rq.onerror - " + e.message);
-            });
+cases.forEach(function(testcase) {
+  var dir = testcase.dir;
+  var expect = testcase.expect;
+  indexeddb_test(
+    function(t, db, tx) {
+      var objStore = db.createObjectStore("test");
+      for (var i = 0; i < records.length; i++)
+        objStore.add(records[i], records[i]);
+    },
+    function(t, db) {
+      var count = 0;
+      var rq = db.transaction("test").objectStore("test").openCursor(undefined, dir);
+      rq.onsuccess = t.step_func(function(e) {
+        var cursor = e.target.result;
+        if (!cursor) {
+          assert_equals(count, expect.length, "cursor runs");
+          t.done();
         }
-    };
-
-    // Fail handling
-    function fail_helper(name) {
-        return function() {
-            directions.forEach(function(dir) {
-                tests[dir].step(function() { assert_unreached(name); });
-            });
-        };
-    }
-    open_rq.onblocked = fail_helper('open_rq.onblocked');
-    open_rq.onerror = fail_helper('open_rq.onerror');
+        assert_equals(cursor.value, expect[count], "cursor.value");
+        count++;
+        cursor.continue();
+      });
+      rq.onerror = t.step_func(function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        assert_unreached("rq.onerror - " + e.message);
+      });
+    },
+    document.title + ' - ' + dir
+  );
+});
 </script>
-
-<div id=log> </div>

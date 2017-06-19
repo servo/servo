@@ -43,12 +43,9 @@ test(function() {
 
   try {
     geo.getCurrentPosition(
-        t86.step_func(function(pos) {
-          assert_unreached('A success callback was invoked unexpectedly');
-        }),
-        t86.step_func(function(err) {
+        t86.unreached_func('A success callback was invoked unexpectedly'),
+        t86.step_func_done(function(err) {
           assert_equals(err.code, err.TIMEOUT);
-          t86.done();
         }),
         {timeout: 0, maximumAge: 0}
     );
@@ -60,12 +57,9 @@ test(function() {
 
   try {
     geo.watchPosition(
-        t88.step_func(function(pos) {
-          assert_unreached('A success callback was invoked unexpectedly');
-        }),
-        t88.step_func(function(err) {
+        t88.unreached_func('A success callback was invoked unexpectedly'),
+        t88.step_func_done(function(err) {
           assert_equals(err.code, err.TIMEOUT);
-          t88.done();
         }),
         {timeout: 0, maximumAge: 0}
     );
@@ -77,12 +71,9 @@ test(function() {
 
   try {
     geo.getCurrentPosition(
-        t91.step_func(function(pos) {
-          assert_unreached('A success callback was invoked unexpectedly');
-        }),
-        t91.step_func(function(err) {
+        t91.unreached_func('A success callback was invoked unexpectedly'),
+        t91.step_func_done(function(err) {
           assert_equals(err.code, err.TIMEOUT);
-          t91.done();
         }),
         {timeout:-1, maximumAge: 0}
     );
@@ -94,13 +85,9 @@ test(function() {
 
   try {
     geo.watchPosition(
-        t92.step_func(function(pos) {
-          assert_unreached('A success callback was invoked unexpectedly');
-          done();
-        }),
-        t92.step_func(function(err) {
+        t92.unreached_func('A success callback was invoked unexpectedly'),
+        t92.step_func_done(function(err) {
           assert_equals(err.code, err.TIMEOUT);
-          done();
         }),
         {timeout: -1, maximumAge: 0}
     );

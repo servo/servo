@@ -18,8 +18,7 @@ test(function() {
   worker.onmessage = t2.step_func(function(e) {
     ++messages;
     var data = e.data;
-    assert_true(data.source == "onerror" ||
-                data.source == "event listener");
+    assert_in_array(data.source, ["onerror", "event listener"]);
     assert_equals(data.value, "hello");
     if (messages == 2) {
       t2.done();

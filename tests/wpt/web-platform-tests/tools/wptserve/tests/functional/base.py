@@ -3,13 +3,14 @@ from __future__ import print_function
 import base64
 import logging
 import os
+import pytest
 import unittest
 
 from six.moves.urllib.parse import urlencode, urlunsplit
 from six.moves.urllib.request import Request as BaseRequest
 from six.moves.urllib.request import urlopen
 
-import wptserve
+wptserve = pytest.importorskip("wptserve")
 
 logging.basicConfig()
 
@@ -17,6 +18,7 @@ wptserve.logger.set_logger(logging.getLogger())
 
 here = os.path.split(__file__)[0]
 doc_root = os.path.join(here, "docroot")
+
 
 class Request(BaseRequest):
     def __init__(self, *args, **kwargs):
@@ -32,6 +34,7 @@ class Request(BaseRequest):
         print(data)
         self.add_header("Content-Length", str(len(data)))
         BaseRequest.add_data(self, data)
+
 
 class TestUsingServer(unittest.TestCase):
     def setUp(self):

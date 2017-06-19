@@ -88,3 +88,5 @@ function setupTestStream() {
 
   return ws.getWriter();
 }
+
+done();

@@ -16,6 +16,10 @@ async_test(function(t) {
 
     open.onupgradeneeded = t.step_func(function() {
         var db = open.result;
+        t.add_cleanup(function() {
+            db.close();
+            indexedDB.deleteDatabase(db.name);
+        });
         var store = db.createObjectStore('store');
         store.put('a', 1).onerror = t.unreached_func('put should not fail');
         var request = store.openCursor();
@@ -60,6 +64,10 @@ async_test(function(t) {
 
         open.onupgradeneeded = t.step_func(function() {
             var db = open.result;
+            t.add_cleanup(function() {
+                db.close();
+                indexedDB.deleteDatabase(db.name);
+            });
             var store = db.createObjectStore('store', {keyPath: 'pk'});
             var index = store.createIndex('index', 'ik', {multiEntry: true});
             store.put({pk: 'a', ik: [1,2,3]}).onerror =

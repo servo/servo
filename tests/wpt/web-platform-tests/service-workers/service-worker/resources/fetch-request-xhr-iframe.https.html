@@ -8,6 +8,10 @@ function assert_equals(a, b) {
   port.postMessage({results: 'equals', got: a, expected: b});
 }
 
+function assert_array_equals(a, b, msg) {
+  port.postMessage({results: 'array_equals', got: a, expected: b, msg: msg});
+}
+
 function get_boundary(headers) {
   var reg = new RegExp('multipart\/form-data; boundary=(.*)');
   for (var i = 0; i < headers.length; ++i) {
@@ -57,6 +61,70 @@ function xhr_send(url_base, method, data, with_credentials) {
       xhr.open(method, url_base + '/dummy?test', true);
       xhr.send(data);
     });
+}
+
+function get_sorted_header_name_list(headers) {
+  var header_names = [];
+  var idx, name;
+
+  for (idx = 0; idx < headers.length; ++idx) {
+    name = headers[idx][0];
+    // The `Accept-Language` header is optional; its presence should not
+    // influence test results.
+    //
+    // > 4. If request’s header list does not contain `Accept-Language`, user
+    // >    agents should append `Accept-Language`/an appropriate value to
+    // >    request's header list.
+    //
+    // https://fetch.spec.whatwg.org/#fetching
+    if (name === 'accept-language') {
+      continue;
+    }
+
+    header_names.push(name);
+  }
+  header_names.sort();
+  return header_names;
+}
+
+function get_header_test() {
+  return xhr_send(host_info['HTTPS_ORIGIN'], 'GET', '', false)
+    .then(function(response) {
+        assert_array_equals(
+          get_sorted_header_name_list(response.headers),
+          ["accept"],
+          'event.request has the expected headers for same-origin GET.');
+      });
+}
+
+function post_header_test() {
+  return xhr_send(host_info['HTTPS_ORIGIN'], 'POST', '', false)
+    .then(function(response) {
+        assert_array_equals(
+          get_sorted_header_name_list(response.headers),
+          ["accept", "content-type"],
+          'event.request has the expected headers for same-origin POST.');
+      });
+}
+
+function cross_origin_get_header_test() {
+  return xhr_send(host_info['HTTPS_REMOTE_ORIGIN'], 'GET', '', false)
+    .then(function(response) {
+        assert_array_equals(
+          get_sorted_header_name_list(response.headers),
+          ["accept"],
+          'event.request has the expected headers for cross-origin GET.');
+      });
+}
+
+function cross_origin_post_header_test() {
+  return xhr_send(host_info['HTTPS_REMOTE_ORIGIN'], 'POST', '', false)
+    .then(function(response) {
+        assert_array_equals(
+          get_sorted_header_name_list(response.headers),
+          ["accept", "content-type"],
+          'event.request has the expected headers for cross-origin POST.');
+      });
 }
 
 function string_test() {
@@ -166,7 +234,11 @@ function data_url_test() {
 
 window.addEventListener('message', function(evt) {
     port = evt.ports[0];
-    string_test()
+    get_header_test()
+      .then(post_header_test)
+      .then(cross_origin_get_header_test)
+      .then(cross_origin_post_header_test)
+      .then(string_test)
       .then(blob_test)
       .then(custom_method_test)
       .then(options_method_test)
@@ -174,6 +246,9 @@ window.addEventListener('message', function(evt) {
       .then(mode_credentials_test)
       .then(data_url_test)
       .then(function() { port.postMessage({results: 'finish'}); })
-      .catch(function(e) { port.postMessage({results: 'failure:' + e}); });
+      .catch(function(reason) {
+          var error = String(reason.message || reason);
+          port.postMessage({results: 'failure', error: error});
+        });
   });
 </script>

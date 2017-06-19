@@ -2,37 +2,36 @@
 <html>
 <head>
   <title>getUserMedia() triggers error callback when auth is denied</title>
-<link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
-<link rel="help" href="http://w3c.github.io/mediacapture-main/getusermedia.html#error-names">
-<link rel="help" href="http://w3c.github.io/mediacapture-main/getusermedia.html#idl-def-MediaStreamError">
+  <link rel="author" title="Dr. A. Gouaillard" href="mailto:agouaillard@gmail.com"/>
+  <link rel="help" href="http://w3c.github.io/mediacapture-main/getusermedia.html#methods-5">
+  <link rel="help" href="http://w3c.github.io/mediacapture-main/getusermedia.html#navigatorusermediaerrorcallback">
 </head>
 <body>
-<p class="instructions">When prompted, <strong>please deny</strong> access to
-the video stream.</p>
-<h1 class="instructions">Description</h1>
-<p class="instructions">This test checks that the error callback is triggered
-when user denies access to the video stream.</p>
-
-<div id='log'></div>
-<script src=/resources/testharness.js></script>
-<script src=/resources/testharnessreport.js></script>
-<script src="/common/vendor-prefix.js" data-prefixed-objects='[{"ancestors":["navigator"], "name":"getUserMedia"}]'></script>
-<script>
-var t = async_test("Tests that the error callback is triggered when permission is denied", {timeout:10000});
-t.step(function() {
-  navigator.getUserMedia(
-    {video: true},
-    t.step_func(function (stream) {
-      assert_unreached("The success callback should not be triggered since access is to be denied");
-      t.done();
-    }),
-    t.step_func(function (error) {
-      assert_equals(error.name, "securityError", "securityError returned");
-      assert_equals(error.constraintName, undefined, "constraintName attribute not set for permission denied");
-      t.done();
-    })
-  );
-});
-</script>
+  <p class="instructions">When prompted, <strong>please deny</strong> access to
+    the video stream.</p>
+  <h1 class="instructions">Description</h1>
+  <p class="instructions">This test checks that the error callback is triggered
+    when user denies access to the video stream.</p>
+  <div id='log'></div>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="/common/vendor-prefix.js" data-prefixed-objects='[{"ancestors":["navigator"], "name":"getUserMedia"}]'></script>
+  <script>
+    var t = async_test("Tests that the error callback is triggered when permission is denied", {timeout:10000});
+    t.step(function() {
+      navigator.getUserMedia(
+        {video: true},
+        t.step_func(function (stream) {
+        assert_unreached("The success callback should not be triggered since access is to be denied");
+        t.done();
+        }),
+        t.step_func(function (error) {
+          assert_equals(error.name, "securityError", "securityError returned as expected");
+          assert_equals(error.constraintName, undefined, "constraintName attribute not set as expected");
+          t.done();
+        })
+      );
+    });
+  </script>
 </body>
 </html>

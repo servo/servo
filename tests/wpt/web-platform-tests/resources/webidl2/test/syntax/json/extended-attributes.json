@@ -26,5 +26,38 @@
                 }
             }
         ]
+    },
+    {
+      "type": "interface",
+      "name": "IdInterface",
+      "partial": false,
+      "members": [],
+      "inheritance": null,
+      "extAttrs": [
+        {
+          "name": "IntAttr",
+          "arguments": null,
+          "rhs": {
+            "type": "integer",
+            "value": "0"
+          }
+        },
+        {
+          "name": "FloatAttr",
+          "arguments": null,
+          "rhs": {
+            "type": "float",
+            "value": "3.14"
+          }
+        },
+        {
+          "name": "StringAttr",
+          "arguments": null,
+          "rhs": {
+            "type": "string",
+            "value": "\"abc\""
+          }
+        }
+      ]
     }
 ]

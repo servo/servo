@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>onmessageerror content attribute</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#handler-onmessageerror">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+
+<script>
+"use strict";
+window.messageErrorHappened = false;
+
+function cleanup() {
+  window.messageErrorHappened = false;
+  document.body.removeAttribute("onmessageerror");
+}
+
+test(() => {
+  assert_equals(document.body.onmessageerror, null, "body");
+  assert_equals(window.onmessageerror, null, "window");
+}, "The default value of onmessageerror is null");
+
+test(t => {
+  t.add_cleanup(cleanup);
+
+  document.body.setAttribute("onmessageerror", "window.messageErrorHappened = true;")
+  const compiledHandler = document.body.onmessageerror;
+
+  assert_equals(typeof compiledHandler, "function", "The onmessageerror property must be a function");
+  compiledHandler();
+  assert_true(window.messageErrorHappened, "Calling the handler must run the code");
+}, "The onmessageerror content attribute must be compiled into the onmessageerror property");
+
+test(t => {
+  t.add_cleanup(cleanup);
+
+  document.body.setAttribute("onmessageerror", "window.messageErrorHappened = true;")
+
+  window.dispatchEvent(new Event("messageerror"));
+
+  assert_true(window.messageErrorHappened, "Dispatching the event must run the code");
+}, "The onmessageerror content attribute must execute when an event is dispatched on the window");
+</script>

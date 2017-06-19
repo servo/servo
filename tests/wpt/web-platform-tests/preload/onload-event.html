@@ -14,15 +14,17 @@
     var gibberishLoaded = false;
     var gibberishErrored = false;
     var noTypeLoaded = false;
+    var fetchLoaded = false;
 </script>
 <link rel=preload href="resources/dummy.js" as=script onload="scriptLoaded = true;">
 <link rel=preload href="resources/dummy.css" as=style onload="styleLoaded = true;">
 <link rel=preload href="resources/square.png" as=image onload="imageLoaded = true;">
-<link rel=preload href="/media/CanvasTest.ttf" as=font crossorigin onload="fontLoaded = true;">
+<link rel=preload href="/fonts/CanvasTest.ttf" as=font crossorigin onload="fontLoaded = true;">
 <link rel=preload href="/media/white.mp4" as=video onload="videoLoaded = true;">
 <link rel=preload href="/media/sound_5.oga" as=audio onload="audioLoaded = true;">
 <link rel=preload href="/media/foo.vtt" as=track onload="trackLoaded = true;">
 <link rel=preload href="resources/dummy.xml?foo=bar" as=foobarxmlthing onload="gibberishLoaded = true;" onerror="gibberishErrored = true;">
+<link rel=preload href="resources/dummy.xml?fetch" as=fetch onload="fetchLoaded = true;">
 <link rel=preload href="resources/dummy.xml" onload="noTypeLoaded = true;">
 <body>
 <script src="resources/dummy.js?pipe=trickle(d5)"></script>
@@ -37,8 +39,9 @@
         assert_true(audioLoaded, "audio triggered load event");
         assert_true(trackLoaded, "track triggered load event");
         assert_false(gibberishLoaded, "gibberish as value triggered load event");
-        assert_true(gibberishErrored, "gibberish as value triggered error event");
-        assert_true(noTypeLoaded, "empty as triggered load event");
+        assert_false(gibberishErrored, "gibberish as value triggered error event");
+        assert_true(fetchLoaded, "fetch as value triggered load event");
+        assert_false(noTypeLoaded, "empty as triggered load event");
         t.done();
     });
 </script>

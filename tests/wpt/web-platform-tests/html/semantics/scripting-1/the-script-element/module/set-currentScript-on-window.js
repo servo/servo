@@ -1,0 +1,1 @@
+window.currentScriptRecorded = document.currentScript;

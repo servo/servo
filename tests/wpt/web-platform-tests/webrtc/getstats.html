@@ -1,0 +1,130 @@
+<!doctype html>
+<!--
+This test uses data only, and thus does not require fake media devices.
+-->
+
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>RTCPeerConnection GetStats</title>
+</head>
+<body>
+  <div id="log"></div>
+  <h2>Retrieved stats info</h2>
+  <pre>
+  <div id="stats">
+  </div>
+  </pre>
+
+  <!-- These files are in place when executing on W3C. -->
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script type="text/javascript">
+  var test = async_test('Can get stats from a basic WebRTC call.');
+
+  var gFirstConnection = null;
+  var gSecondConnection = null;
+
+  var onIceCandidateToFirst = test.step_func(function(event) {
+    // If event.candidate is null = no more candidates.
+    if (event.candidate) {
+      gSecondConnection.addIceCandidate(event.candidate);
+    }
+  });
+
+  var onIceCandidateToSecond = test.step_func(function(event) {
+    if (event.candidate) {
+      gFirstConnection.addIceCandidate(event.candidate);
+    }
+  });
+
+  var onRemoteStream = test.step_func(function(event) {
+    assert_unreached('WebRTC received a stream when there was none');
+  });
+
+  var getStatsRecordByType = function(stats, type) {
+    for (let stat of stats.values()) {
+      if (stat.type == type) {
+        return stat;
+      }
+    }
+    return null;
+  }
+
+  var onIceConnectionStateChange = test.step_func(function(event) {
+    // Wait until connection is established.
+    // Note - not all browsers reach 'completed' state, so we're
+    // checking for 'connected' state instead.
+    if (gFirstConnection.iceConnectionState != 'connected') {
+      return;
+    }
+    gFirstConnection.getStats()
+    .then(function(report) {
+      // Show the retrieved stats info
+      var showStats = document.getElementById('stats');
+      let reportDictionary = {};
+      for (let stats of report.values()) {
+        reportDictionary[stats.id] = stats;
+      }
+      showStats.innerHTML = JSON.stringify(reportDictionary, null, 2);
+      // Check the stats properties.
+      assert_not_equals(report, null);
+      let sessionStat = getStatsRecordByType(report, 'peer-connection');
+      assert_not_equals(sessionStat, null, 'Did not find peer-connection stats');
+      assert_exists(sessionStat, 'dataChannelsOpened');
+      assert_equals(sessionStat.dataChannelsOpened, 1);
+      test.done();
+    })
+    .catch(test.step_func(function(e) {
+      assert_unreached(e.name + ': ' + e.message + ': ');
+    }));
+  });
+
+  // This function starts the test.
+  test.step(function() {
+    gFirstConnection = new RTCPeerConnection(null);
+    gFirstConnection.onicecandidate = onIceCandidateToFirst;
+    gFirstConnection.oniceconnectionstatechange = onIceConnectionStateChange;
+
+    gSecondConnection = new RTCPeerConnection(null);
+    gSecondConnection.onicecandidate = onIceCandidateToSecond;
+    gSecondConnection.onaddstream = onRemoteStream;
+
+    // The createDataChannel is necessary and sufficient to make
+    // sure the ICE connection be attempted.
+    gFirstConnection.createDataChannel('channel');
+
+    var atStep = 'Create offer';
+
+    gFirstConnection.createOffer()
+    .then(function(offer) {
+      atStep = 'Set local description at first';
+      return gFirstConnection.setLocalDescription(offer);
+    })
+    .then(function() {
+      atStep = 'Set remote description at second';
+      return gSecondConnection.setRemoteDescription(
+          gFirstConnection.localDescription);
+    })
+    .then(function() {
+      atStep = 'Create answer';
+      return gSecondConnection.createAnswer();
+    })
+    .then(function(answer) {
+      atStep = 'Set local description at second';
+      return gSecondConnection.setLocalDescription(answer);
+    })
+    .then(function() {
+      atStep = 'Set remote description at first';
+      return gFirstConnection.setRemoteDescription(
+          gSecondConnection.localDescription);
+    })
+    .catch(test.step_func(function(e) {
+      assert_unreached('Error ' + e.name + ': ' + e.message +
+                       ' happened at step ' + atStep);
+    }));
+  });
+</script>
+
+</body>
+</html>

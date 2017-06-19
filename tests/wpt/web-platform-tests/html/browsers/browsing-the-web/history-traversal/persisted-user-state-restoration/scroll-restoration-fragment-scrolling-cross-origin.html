@@ -47,12 +47,11 @@
       }, function() {
         // coming back from history, scrollRestoration should be set to manual and respected
         assert_equals(iframe.contentWindow.location.href, baseURL + '/resources/page-with-fragment.html#fragment', 'should be back on page-with-fragment page');
-        iframe.contentWindow.requestAnimationFrame(function() {
+        iframe.contentWindow.requestAnimationFrame(t.step_func_done(function() {
           assert_equals(iframe.contentWindow.history.scrollRestoration, 'manual', 'navigating back should retain scrollRestoration value');
           assert_equals(iframe.contentWindow.scrollX, 0, 'should not scroll to fragment');
           assert_equals(iframe.contentWindow.scrollY, 0, 'should not scroll to fragment');
-          t.done();
-        });
+        }));
       }
     ];
 

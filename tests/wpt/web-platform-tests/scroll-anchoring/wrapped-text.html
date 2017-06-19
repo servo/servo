@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+body {
+  position: absolute;
+  font-size: 100px;
+  width: 200px;
+  height: 1000px;
+  line-height: 100px;
+}
+
+</style>
+abc <b id=b>def</b> ghi
+<script>
+
+// Tests anchoring to a text node that is moved by preceding text.
+
+test(() => {
+  var b = document.querySelector("#b");
+  var preText = b.previousSibling;
+  document.scrollingElement.scrollTop = 150;
+  preText.nodeValue = "abcd efg ";
+  assert_equals(document.scrollingElement.scrollTop, 250);
+}, "Anchoring with text wrapping changes.");
+
+</script>

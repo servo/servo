@@ -1,0 +1,129 @@
+<!doctype html>
+<html>
+  <head>
+    <title>region without name</title>
+    <link rel="stylesheet" href="/resources/testharness.css">
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_SECTION"
+               ],
+               [
+                  "property",
+                  "interfaces",
+                  "contains",
+                  "Text"
+               ],
+               [
+                  "property",
+                  "interfaces",
+                  "contains",
+                  "Hypertext"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXRole",
+                  "is",
+                  "AXGroup"
+               ],
+               [
+                  "property",
+                  "AXSubrole",
+                  "is",
+                  "<nil>"
+               ],
+               [
+                  "property",
+                  "AXRoleDescription",
+                  "is",
+                  "group"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "interfaces",
+                  "contains",
+                  "IAccessibleText2"
+               ],
+               [
+                  "property",
+                  "interfaces",
+                  "contains",
+                  "IAccessibleHypertext2"
+               ],
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "IA2_ROLE_SECTION"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_GROUPING"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "Control Group",
+                  "is",
+                  "Group"
+               ],
+               [
+                  "property",
+                  "landmarkType",
+                  "isNot",
+                  "Custom"
+               ],
+               [
+                  "property",
+                  "localizedLandmarkType",
+                  "isNot",
+                  "region"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "region without name"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for region without name.</p>
+    <div role="region" id="test" tabindex="-1">
+    <article>This is article 1</article>
+  </div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>
+

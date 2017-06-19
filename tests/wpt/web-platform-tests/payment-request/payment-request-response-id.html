@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PaymentRequest identifier manual test</title>
+</head>
+<body>
+  <div id="contents">
+    <h1>PaymentRequest identifier manual test</h1>
+    <p>Perform the following steps:</p>
+    <ul>
+      <li>Press 'Buy'</li>
+      <li>In the payment dialog make sure a payment app is selected</li>
+      <li>In the payment dialog press 'Pay'</li>
+      <li>In the launched payment app perform steps to do the payment</li>
+      <li>The response will be processed and below should display 'my_payment_id'</li>
+    </ul>
+    <p>No payment will be processed.</p>
+    <p>Price: USD <strong>$55.00</strong></p>
+    <p><button onclick="onBuyClicked()">Buy</button></p>
+  </div>
+  <pre id="msg"></pre>
+  <script>
+    /**
+      * Initializes the payment request object.
+      * @return {PaymentRequest} The payment request object.
+      */
+     function buildPaymentRequest() {
+       if (!window.PaymentRequest) {
+         return null;
+       }
+
+       const supportedInstruments = [{
+         supportedMethods: ['https://android.com/pay'],
+         data: {
+           merchantName: 'Rouslan Solomakhin',
+           merchantId: '00184145120947117657',
+           allowedCardNetworks: ['AMEX', 'MASTERCARD', 'VISA', 'DISCOVER'],
+           paymentMethodTokenizationParameters: {
+             tokenizationType: 'GATEWAY_TOKEN',
+             parameters: {
+               'gateway': 'stripe',
+               'stripe:publishableKey': 'pk_live_lNk21zqKM2BENZENh3rzCUgo',
+               'stripe:version': '2016-07-06',
+             },
+           },
+         },
+       }, {
+         supportedMethods: ['basic-card'],
+         data: {
+           supportedNetworks: ['unionpay', 'visa', 'mastercard', 'amex', 'discover',
+             'diners', 'jcb', 'mir',
+           ],
+           supportedTypes: ['prepaid', 'debit', 'credit'],
+         },
+       }];
+
+       const details = {
+         id: 'my_payment_id',
+         total: {
+           label: 'Donation',
+           amount: {
+             currency: 'USD',
+             value: '55.00',
+           },
+         },
+         displayItems: [{
+           label: 'Original donation amount',
+           amount: {
+             currency: 'USD',
+             value: '65.00',
+           },
+         }, {
+           label: 'Friends and family discount',
+           amount: {
+             currency: 'USD',
+             value: '-10.00',
+           },
+         }],
+       };
+
+       let request = null;
+
+       try {
+         request = new PaymentRequest(supportedInstruments, details);
+         if (request.canMakePayment) {
+           request.canMakePayment().then(function(result) {
+             console.log(result ? 'Can make payment' : 'Cannot make payment');
+           }).catch(function(err) {
+             console.log(err);
+           });
+         }
+       } catch (e) {
+         console.log('Developer mistake: \'' + e + '\'');
+       }
+
+       return request;
+     }
+
+     let request = buildPaymentRequest();
+
+     /**
+      * Launches payment request that does not require shipping.
+      */
+     function onBuyClicked() { // eslint-disable-line no-unused-vars
+       if (!window.PaymentRequest || !request) {
+         console.log('PaymentRequest API is not supported.');
+         return;
+       }
+
+       try {
+         request.show()
+           .then(function(instrumentResponse) {
+             window.setTimeout(function() {
+               instrumentResponse.complete('success')
+                 .then(function() {
+                    let element = document.createElement('pre');
+                    element.innerHTML = instrumentResponse.requestId;
+                    document.getElementById('msg').appendChild(element);
+                 })
+                 .catch(function(err) {
+                   console.log(err);
+                   request = buildPaymentRequest();
+                 });
+             }, 2000);
+           })
+           .catch(function(err) {
+             console.log(err);
+             request = buildPaymentRequest();
+           });
+       } catch (e) {
+         console.log('Developer mistake: \'' + e + '\'');
+         request = buildPaymentRequest();
+       }
+     }
+  </script>
+</body>
+</html>
+

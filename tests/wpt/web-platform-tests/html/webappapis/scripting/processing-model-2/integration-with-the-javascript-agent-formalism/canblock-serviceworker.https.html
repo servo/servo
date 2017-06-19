@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>[[CanBlock]] in a service worker agent</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#service-worker-agent">
+<link rel="help" href="https://tc39.github.io/ecma262/#sec-agentcansuspend">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+
+<script>
+"use strict";
+service_worker_test("worker-that-requires-failure.js", "Service worker test setup");
+</script>

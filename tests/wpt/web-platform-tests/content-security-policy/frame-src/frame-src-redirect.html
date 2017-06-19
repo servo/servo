@@ -1,0 +1,35 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./support/testharness-helper.sub.js"></script>
+<body></body>
+<script>
+    function waitForViolation(el, policy, blocked_origin) {
+      return new Promise(resolve => {
+        el.addEventListener('securitypolicyviolation', e => {
+          if (e.originalPolicy == policy && (new URL(e.blockedURI)).origin == blocked_origin)
+            resolve(e);
+        });
+      });
+    }
+
+    async_test(t => {
+      var i = document.createElement("iframe");
+      var redirect = generateCrossOriginRedirectFrame();
+      i.src = redirect.url;
+
+      // Report-only policy should trigger a violation on the original request.
+      var original_report_only = waitForViolation(window, "frame-src http://foo.test", (new URL(i.src)).origin)
+      // Report-only policy should trigger a violation on the redirected request.
+      var redirect_report_only = waitForViolation(window, "frame-src http://foo.test", (new URL(redirect.target)).origin)
+      // Enforced policy should trigger a violation on the redirected request.
+      var redirect_enforced = waitForViolation(window, "frame-src 'self'", (new URL(redirect.target)).origin)
+
+      Promise.all([original_report_only, redirect_report_only, redirect_enforced]).then(t.step_func(_ => {
+        t.done();
+      }));
+
+      document.body.appendChild(i);
+    }, "Redirected iframe src should evaluate both enforced and report-only policies on both original request and when following redirect");
+</script>
+</html>

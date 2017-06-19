@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang=en class="reftest-wait">
+<meta charset="utf-8">
+<title>Selectors Level 4: focus-within Reference File</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<style>
+:focus {
+  outline: none;
+
+  /* Make the caret invisible
+     since it matches the color of the text, which is transparent,
+     while keeping the text readable thanks to its shadow.
+     Not using the caret-color property as it is too new to be relied on. */
+  color: transparent; text-shadow: black 0px 0px 0px;
+}
+
+div {
+  border: solid 15px green;
+}
+</style>
+<p>Test passes if, when the element below is focused,
+it is surrounded by a thick green border.
+There must be no red or blue once it is focused.</p>
+<div>
+  <input id="focusme" value="Focus this element">
+</div>
+<script>
+var focusme = document.getElementById('focusme');
+focusme.focus();
+document.documentElement.classList.remove('reftest-wait');
+</script>
+</html>

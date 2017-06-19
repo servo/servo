@@ -1,0 +1,157 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.addTransceiver</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170515/webrtc.html
+
+  /*
+   *  5.1. RTCPeerConnection Interface Extensions
+   *  partial interface RTCPeerConnection {
+   *      sequence<RTCRtpSender>      getSenders();
+   *      sequence<RTCRtpReceiver>    getReceivers();
+   *      sequence<RTCRtpTransceiver> getTransceivers();
+   *      RTCRtpTransceiver           addTransceiver((MediaStreamTrack or DOMString) trackOrKind,
+   *                                                 optional RTCRtpTransceiverInit init);
+   *      ...
+   *  };
+   *
+   *  dictionary RTCRtpTransceiverInit {
+   *      RTCRtpTransceiverDirection         direction = "sendrecv";
+   *      sequence<MediaStream>              streams;
+   *      sequence<RTCRtpEncodingParameters> sendEncodings;
+   *  };
+   */
+
+  /*
+   *  5.1.  addTransceiver
+   *        The initial value of mid is null.
+   *
+   *        3.  If the first argument is a string, let it be kind and run the following steps:
+   *            2.  Let track be null.
+   *        5.  Create an RTCRtpSender with track, streams and sendEncodings and let sender
+   *            be the result.
+   *        6.  Create an RTCRtpReceiver with kind and let receiver be the result.
+   *        7.  Create an RTCRtpTransceiver with sender and receiver and let transceiver
+   *            be the result.
+   *        8.  Add transceiver to connection's set of transceivers.
+   *
+   *  5.3.  RTCRtpReceiver Interface
+   *        Create an RTCRtpReceiver
+   *        2.  Let track be a new MediaStreamTrack object [GETUSERMEDIA]. The source of
+   *            track is a remote source provided by receiver.
+   *        3.  Initialize track.kind to kind.
+   *        5.  Initialize track.label to the result of concatenating the string "remote "
+   *            with kind.
+   *        6.  Initialize track.readyState to live.
+   *        7.  Initialize track.muted to true.
+   *
+   *  5.4.  RTCRtpTransceiver Interface
+   *        Create an RTCRtpTransceiver
+   *        2.  Set transceiver.sender to sender.
+   *        3.  Set transceiver.receiver to receiver.
+   *        4.  Set transceiver.stopped to false.
+   */
+  test(t => {
+    const pc = new RTCPeerConnection();
+
+    assert_own_property(pc, 'addTransceiver');
+
+    const transceiver = pc.addTransceiver('audio');
+    assert_true(transceiver instanceof RTCRtpTransceiver,
+      'Expect transceiver to be instance of RTCRtpTransceiver');
+
+    assert_equals(transceiver.mid, null);
+    assert_equals(transceiver.stopped, false);
+    assert_equals(transceiver.direction, 'sendrecv');
+
+    assert_array_equals([transceiver], pc.getTransceivers(),
+      `Expect added transceiver to be the only element in connection's list of transceivers`);
+
+    const sender = transceiver.sender;
+
+    assert_true(sender instanceof RTCRtpSender,
+      'Expect sender to be instance of RTCRtpSender');
+
+    assert_equals(sender.track, null);
+
+    assert_array_equals([sender], pc.getSenders(),
+      `Expect added sender to be the only element in connection's list of senders`);
+
+    const receiver = transceiver.receiver;
+    assert_true(receiver instanceof RTCRtpReceiver,
+      'Expect receiver to be instance of RTCRtpReceiver');
+
+    const track = receiver.track
+    assert_true(track instanceof MediaStreamTrack,
+      'Expect receiver.track to be instance of MediaStreamTrack');
+
+    assert_equals(track.kind, 'audio');
+    assert_equals(track.label, 'remote audio');
+    assert_equals(track.readyState, 'live');
+    assert_equals(track.muted, true);
+
+    assert_array_equals([receiver], pc.getReceivers(),
+      `Expect added receiver to be the only element in connection's list of receivers`);
+
+  }, `addTransceiver('audio') should return an audio transceiver`);
+
+  test(t => {
+    const pc = new RTCPeerConnection();
+
+    assert_own_property(pc, 'addTransceiver');
+
+    const transceiver = pc.addTransceiver('video');
+    assert_true(transceiver instanceof RTCRtpTransceiver,
+      'Expect transceiver to be instance of RTCRtpTransceiver');
+
+    assert_equals(transceiver.mid, null);
+    assert_equals(transceiver.stopped, false);
+    assert_equals(transceiver.direction, 'sendrecv');
+
+    assert_array_equals([transceiver], pc.getTransceivers(),
+      `Expect added transceiver to be the only element in connection's list of transceivers`);
+
+    const sender = transceiver.sender;
+
+    assert_true(sender instanceof RTCRtpSender,
+      'Expect sender to be instance of RTCRtpSender');
+
+    assert_equals(sender.track, null);
+
+    assert_array_equals([sender], pc.getSenders(),
+      `Expect added sender to be the only element in connection's list of senders`);
+
+    const receiver = transceiver.receiver;
+    assert_true(receiver instanceof RTCRtpReceiver,
+      'Expect receiver to be instance of RTCRtpReceiver');
+
+    const track = receiver.track
+    assert_true(track instanceof MediaStreamTrack,
+      'Expect receiver.track to be instance of MediaStreamTrack');
+
+    assert_equals(track.kind, 'video');
+    assert_equals(track.label, 'remote video');
+    assert_equals(track.readyState, 'live');
+    assert_equals(track.muted, true);
+
+    assert_array_equals([receiver], pc.getReceivers(),
+      `Expect added receiver to be the only element in connection's list of receivers`);
+
+  }, `addTransceiver('video') should return a video transceiver`);
+
+  /*
+   *  5.1.  addTransceiver
+   *        3.1.  If kind is not a legal MediaStreamTrack kind, throw a TypeError.
+   */
+  test(t => {
+    const pc = new RTCPeerConnection();
+    assert_own_property(pc, 'addTransceiver');
+    assert_throws(new TypeError(), () => pc.addTransceiver('invalid'));
+  }, 'addTransceiver() with string argument as invalid kind should throw TypeError');
+
+</script>

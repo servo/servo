@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+  <head>
+    <title>WebRTC IDL Tests</title>
+  </head>
+  <body>
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+    <script src=/resources/WebIDLParser.js></script>
+    <script src=/resources/idlharness.js></script>
+    <script>
+      'use strict';
+
+      function generateCertificate() {
+        if (!RTCPeerConnection.generateCertificate)
+          return null;
+        return RTCPeerConnection.generateCertificate({
+          name: 'RSASSA-PKCS1-v1_5',
+          modulusLength: 2048,
+          publicExponent: new Uint8Array([1, 0, 1]),
+          hash: 'SHA-256'
+        })
+        .catch(() => {}); // ignore error
+      }
+
+      function doIdlTest([idlText, certificate]) {
+        const idlArray = new IdlArray();
+
+        idlArray.add_untested_idls('interface EventHandler {};');
+        idlArray.add_untested_idls('interface MediaStreamTrack {};');
+        idlArray.add_idls(idlText);
+
+        // TODO: Add object for all IDL interfaces
+        idlArray.add_objects({
+          'RTCPeerConnection': ['new RTCPeerConnection'],
+          'RTCSessionDescription': ['new RTCSessionDescription({ type: "offer" })'],
+          'RTCIceCandidate': ['new RTCIceCandidate'],
+          'RTCPeerConnectionIceEvent': ['new RTCPeerConnectionIceEvent("ice")'],
+          'RTCPeerConnectionIceErrorEvent': ['new RTCPeerConnectionIceErrorEvent("ice-error", { errorCode: 701 });'],
+        });
+
+        if (certificate) {
+          window.certificate = certificate;
+          idlArray.add_objects({'RTCCertificate': ['certificate']});
+        }
+
+        idlArray.test();
+      }
+
+      promise_test(() => {
+        return Promise.all([fetch('/interfaces/webrtc-pc.idl').then(response => response.text()),
+                            generateCertificate()])
+                      .then(doIdlTest);
+      }, 'Test driver');
+    </script>
+  </body>
+</html>

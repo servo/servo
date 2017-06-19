@@ -1,0 +1,2 @@
+Content-Security-Policy: frame-src 'self'
+Content-Security-Policy-Report-Only: frame-src http://foo.test

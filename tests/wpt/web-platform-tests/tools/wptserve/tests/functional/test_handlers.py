@@ -1,13 +1,14 @@
 import json
 import os
-import pytest
 import unittest
 import uuid
 
+import pytest
 from six.moves.urllib.error import HTTPError
 
-import wptserve
+wptserve = pytest.importorskip("wptserve")
 from .base import TestUsingServer, doc_root
+
 
 class TestFileHandler(TestUsingServer):
     def test_GET(self):

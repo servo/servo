@@ -41,8 +41,8 @@
         var test_parsedUnordered1 = async_test("Unordered module script execution (parsed, unordered #1)");
         var test_parsedUnordered2 = async_test("Unordered module script execution (parsed, unordered #2)");
     </script>
-    <script type="module" src="execOrder-parsedUnordered1.js"></script>
-    <script type="module" src="execOrder-parsedUnordered2.js"></script>
+    <script type="module" src="execorder-parsedunordered1.js"></script>
+    <script type="module" src="execorder-parsedunordered2.js"></script>
     <script>
         /////
         // End test_parsedUnordered*
@@ -53,8 +53,8 @@
         /////
         var test_dynamicUnordered1 = async_test("Unordered module script execution (dynamic, unordered #1)");
         var test_dynamicUnordered2 = async_test("Unordered module script execution (dynamic, unordered #2)");
-        create_script("execOrder-dynamicUnordered1.js", { module: true });
-        create_script("execOrder-dynamicUnordered2.js", { module: true });
+        create_script("execorder-dynamicunordered1.js", { module: true });
+        create_script("execorder-dynamicunordered2.js", { module: true });
         /////
         // End test_dynamicUnordered*
         /////
@@ -68,13 +68,13 @@
             test_parsedOrdered.done();
         }));
     </script>
-    <script src="execOrder-parsedOrdered2.js" defer></script>
+    <script src="execorder-parsedordered2.js" defer></script>
     <script type="module">
         test_parsedOrdered.step(function() {
             assert_execCount(0, 3, "Inline module-typed script element should have fired third");
         });
     </script>
-    <script src="execOrder-parsedOrdered4.js" defer></script>
+    <script src="execorder-parsedordered4.js" defer></script>
     <script>
         test_parsedOrdered.step(function() {
             assert_execCount(0, 1, "Inline untyped script element should have fired first");
@@ -91,9 +91,9 @@
             assert_execCount(1, 5, "onload should have fired fifth (last)");
             test_dynamicOrdered.done();
         }));
-        create_script("execOrder-dynamicOrdered2.js", { asyncOrdered: true, module: false });
-        create_script("execOrder-dynamicOrdered3.js", { asyncOrdered: true, module: true });
-        create_script("execOrder-dynamicOrdered4.js", { asyncOrdered: true, module: false });
+        create_script("execorder-dynamicordered2.js", { asyncOrdered: true, module: false });
+        create_script("execorder-dynamicordered3.js", { asyncOrdered: true, module: true });
+        create_script("execorder-dynamicordered4.js", { asyncOrdered: true, module: false });
         test_dynamicOrdered.step(function() {
             assert_execCount(1, 1, "Inline untyped script element should have fired first");
         });

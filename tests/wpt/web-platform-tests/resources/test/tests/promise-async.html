@@ -1,0 +1,180 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Async Tests and Promises</title>
+</head>
+<body>
+<h1>Async Tests and Promises</h1>
+<p>This test assumes ECMAScript 6 Promise support. Some failures are expected.</p>
+<div id="log"></div>
+<script src="../../testharness.js"></script>
+<script src="../../testharnessreport.js"></script>
+<script>
+
+test(function() {
+  var p = new Promise(function(resolve, reject) {});
+  assert_true('then' in p);
+  assert_equals(typeof Promise.resolve, 'function');
+  assert_equals(typeof Promise.reject, 'function');
+}, "Promises are supported in your browser");
+
+(function() {
+  var t = async_test("Promise resolution");
+  t.step(function() {
+    Promise.resolve('x').then(
+      t.step_func(function(value) {
+        assert_equals(value, 'x');
+        t.done();
+      }),
+      t.unreached_func('Promise should not reject')
+    );
+  });
+}());
+
+(function() {
+  var t = async_test("Promise rejection");
+  t.step(function() {
+    Promise.reject(Error('fail')).then(
+      t.unreached_func('Promise should reject'),
+      t.step_func(function(reason) {
+        assert_true(reason instanceof Error);
+        assert_equals(reason.message, 'fail');
+        t.done();
+      })
+    );
+  });
+}());
+
+(function() {
+  var t = async_test("Promises resolution chaining");
+  t.step(function() {
+    var resolutions = [];
+    Promise.resolve('a').then(
+      t.step_func(function(value) {
+        resolutions.push(value);
+        return 'b';
+      })
+    ).then(
+      t.step_func(function(value) {
+        resolutions.push(value);
+        return 'c';
+      })
+    ).then(
+      t.step_func(function(value) {
+        resolutions.push(value);
+
+        assert_array_equals(resolutions, ['a', 'b', 'c']);
+        t.done();
+      })
+    ).catch(
+      t.unreached_func('promise should not have rejected')
+    );
+  });
+}());
+
+(function() {
+  var t = async_test("Use of step_func with Promises");
+  t.step(function() {
+    var resolutions = [];
+    Promise.resolve('x').then(
+      t.step_func_done(),
+      t.unreached_func('Promise should not have rejected')
+    );
+  });
+}());
+
+(function() {
+  var t = async_test("Promises and test assertion failures (should fail)");
+  t.step(function() {
+    var resolutions = [];
+    Promise.resolve('x').then(
+      t.step_func(function(value) {
+        assert_true(false, 'This failure is expected');
+      })
+    ).then(
+      t.unreached_func('Promise should not have resolved')
+    ).catch(
+      t.unreached_func('Promise should not have rejected')
+    );
+  });
+}());
+
+(function() {
+  var t = async_test("Use of unreached_func with Promises (should fail)");
+  t.step(function() {
+    var resolutions = [];
+    var r;
+    var p = new Promise(function(resolve, reject) {
+      // Reject instead of resolve, to demonstrate failure.
+      reject(123);
+    });
+    p.then(
+      function(value) {
+        assert_equals(value, 123, 'This should not actually happen');
+      },
+      t.unreached_func('This failure is expected')
+    );
+  });
+}());
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "OK",
+    "message": null,
+    "stack": null
+  },
+  "summarized_tests": [
+    {
+      "status_string": "PASS",
+      "name": "Promise rejection",
+      "properties": {},
+      "message": null,
+      "stack": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Promise resolution",
+      "properties": {},
+      "message": null,
+      "stack": null
+    },
+    {
+      "status_string": "FAIL",
+      "name": "Promises and test assertion failures (should fail)",
+      "properties": {},
+      "message": "assert_true: This failure is expected expected true got false",
+      "stack": "(implementation-defined)"
+    },
+    {
+      "status_string": "PASS",
+      "name": "Promises are supported in your browser",
+      "properties": {},
+      "message": null,
+      "stack": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Promises resolution chaining",
+      "properties": {},
+      "message": null,
+      "stack": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Use of step_func with Promises",
+      "properties": {},
+      "message": null,
+      "stack": null
+    },
+    {
+      "status_string": "FAIL",
+      "name": "Use of unreached_func with Promises (should fail)",
+      "properties": {},
+      "message": "assert_unreached: This failure is expected Reached unreachable code",
+      "stack": "(implementation-defined)"
+    }
+  ],
+  "type": "complete"
+}
+</script>

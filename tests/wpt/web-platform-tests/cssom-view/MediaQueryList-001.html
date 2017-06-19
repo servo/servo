@@ -10,12 +10,11 @@
     </style>
 </head>
 <body>
-    <p>This case tests the MediaQueryList
-    <p>The test passes if the value is 1280/800</p>
+  <p>This case tests the MediaQueryList</p>
     <div id="log"></div>
     <script>
         test(function(){
-            assert_equals(window.matchMedia('(device-aspect-ratio: 1280/800)').matches, true, "Expected value for device-aspect-ratio is 1280/800");
+            assert_equals(window.matchMedia('(min-width: 1px)').matches, true, "Expected any device to match min-width: 1px");
         },'matchMedia');
     </script>
 </body>

@@ -1,0 +1,100 @@
+<!doctype html>
+<html>
+  <head>
+    <title>combobox controls an invalid ID</title>
+    <link rel="stylesheet" href="/resources/testharness.css">
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "relations",
+                  "doesNotContain",
+                  "RELATION_CONTROLLER_FOR"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXLinkedUIElements",
+                  "doesNotContain",
+                  "myID"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "relations",
+                  "doesNotContain",
+                  "IA2_RELATION_CONTROLLER_FOR"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "IUIAutomation.ControllerFor",
+                  "doesNotContain",
+                  "myID"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      },
+      {
+         "element" : "myID",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "relations",
+                  "doesNotContain",
+                  "RELATION_CONTROLLED_BY"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "relations",
+                  "doesNotContain",
+                  "IA2_RELATION_CONTROLLED_BY"
+               ]
+            ],
+            "UIA" : []
+         },
+         "title" : "step 2",
+         "type" : "test"
+      }
+   ],
+   "title" : "combobox controls an invalid ID"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for combobox controls an invalid ID.</p>
+      <div id="test" role="combobox" aria-controls="fakeID" aria-owns="myID" aria-expanded="true" aria-haspopup="listbox"><span role="textbox">option 3</span></div>
+    <div role="listbox" id="myID">
+      <div role="option">option 1</div>
+      <div role="option">option 2</div>
+      <div role="option">option 3</div>
+    </div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>
+

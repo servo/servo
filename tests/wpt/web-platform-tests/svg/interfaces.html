@@ -984,14 +984,6 @@ interface SVGScriptElement : SVGElement {
 
 SVGScriptElement implements SVGURIReference;
 
-interface SVGZoomEvent : UIEvent {
-  [SameObject] readonly attribute DOMRectReadOnly zoomRectScreen;
-  readonly attribute float previousScale;
-  [SameObject] readonly attribute DOMPointReadOnly previousTranslate;
-  readonly attribute float newScale;
-  [SameObject] readonly attribute DOMPointReadOnly newTranslate;
-};
-
 interface SVGAElement : SVGGraphicsElement {
   [SameObject] readonly attribute SVGAnimatedString target;
 };

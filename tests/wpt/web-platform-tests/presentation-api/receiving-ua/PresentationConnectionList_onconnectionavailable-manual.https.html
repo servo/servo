@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Monitoring incoming presentation connections</title>
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs">
+<link rel="help" href="https://w3c.github.io/presentation-api/#monitoring-incoming-presentation-connections">
+<link rel="stylesheet" href="/resources/testharness.css">
+<script src="common.js"></script>
+<script src="support/stash.js"></script>
+<style>
+iframe { display: none; }
+</style>
+
+<p>Click the button below and select the available presentation display, to start the manual test.</p>
+<button id="presentBtn" disabled>Start Presentation Test</button>
+<iframe id="childFrame" sandbox="allow-scripts allow-presentation" src="support/iframe.html"></iframe>
+
+<script>
+  let connection;
+  const presentBtn = document.getElementById('presentBtn');
+  const child = document.getElementById('childFrame');
+
+  child.onload = () => { presentBtn.disabled = false; };
+
+  presentBtn.onclick = () => {
+    presentBtn.disabled = true;
+    const stash = new Stash(stashIds.toController, stashIds.toReceiver);
+    const request = new PresentationRequest('support/PresentationConnectionList_onconnectionavailable_receiving-ua.html');
+
+    return request.start().then(c => {
+      connection = c;
+      return stash.init();
+    }).then(() => {
+      return stash.receive();
+    }).then(data => {
+      const result = JSON.parse(data);
+      if (result.type === 'ok') {
+        connection.close();
+        return stash.receive();
+      }
+      else
+        return data;
+    }).then(data => {
+      const result = JSON.parse(data);
+      if (result.type === 'ok') {
+        request.reconnect(connection.id);
+        return stash.receive();
+      }
+      else
+        return data;
+    }).then(data => {
+      const result = JSON.parse(data);
+      if (result.type === 'ok') {
+        child.contentWindow.postMessage({ type: 'connect', id: connection.id, url: connection.url }, '*');
+        return stash.receive();
+      }
+      else
+        return data;
+    }).then(result => {
+      const json = JSON.parse(result);
+
+      // notify receiver's results of a parent window (e.g. test runner)
+      if (window.opener && 'completion_callback' in window.opener) {
+        window.opener.completion_callback(json.tests, json.status);
+      }
+      // display receiver's results as HTML
+      const log = document.createElement('div');
+      log.id = 'log';
+      log.innerHTML = json.log;
+      document.body.appendChild(log);
+
+      connection.onconnect = () => { connection.terminate(); };
+      if (connection.state === 'closed')
+        request.reconnect(connection.id);
+      else
+        connection.terminate();
+    });
+  };
+</script>

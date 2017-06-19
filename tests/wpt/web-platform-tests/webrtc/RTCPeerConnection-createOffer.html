@@ -1,0 +1,201 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection.prototype.createOffer</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  'use strict';
+
+  // Test is based on the following editor draft:
+  // https://w3c.github.io/webrtc-pc/archives/20170515/webrtc.html
+
+  // The following helper functions are called from RTCPeerConnection-helper.js:
+  //   generateOffer()
+  //   generateAnswer()
+  //   countAudioLine()
+  //   countVideoLine()
+  //   test_state_change_event()
+  //   test_never_resolve()
+  //   assert_session_desc_equals()
+
+  /*
+   *  4.3.2.  createOffer()
+   */
+
+  /*
+   *  Final steps to create an offer
+   *    4.  Let offer be a newly created RTCSessionDescriptionInit dictionary
+   *        with its type member initialized to the string "offer" and its sdp member
+   *        initialized to sdpString.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection()
+
+    return pc.createOffer()
+    .then(offer => {
+      assert_equals(typeof offer, 'object',
+        'Expect offer to be plain object dictionary RTCSessionDescriptionInit');
+
+      assert_false(offer instanceof RTCSessionDescription,
+        'Expect offer to not be instance of RTCSessionDescription')
+    });
+  }, 'createOffer() with no argument from newly created RTCPeerConnection should succeed');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    test_state_change_event(t, pc, ['have-local-offer']);
+
+    return pc.createOffer({ offerToReceiveAudio: true })
+    .then(offer =>
+      pc.setLocalDescription(offer)
+      .then(offer => {
+        assert_equals(pc.signalingState, 'have-local-offer');
+        assert_session_desc_equals(pc.localDescription, offer);
+        assert_session_desc_equals(pc.pendingLocalDescription, offer);
+        assert_equals(pc.currentLocalDescription, null);
+      }));
+  }, 'createOffer() and then setLocalDescription() should succeed');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    pc.close();
+
+    return promise_rejects(t, 'InvalidStateError',
+      pc.createOffer());
+  }, 'createOffer() after connection is closed should reject with InvalidStateError');
+
+  test_never_resolve(t => {
+    const pc = new RTCPeerConnection();
+    const promise = pc.createOffer();
+
+    pc.close();
+    return promise;
+
+  }, 'createOffer() when connection is closed halfway should never resolve');
+
+  /*
+   *  Final steps to create an offer
+   *    2.  If connection was modified in such a way that additional inspection of the
+   *        system state is necessary, then in parallel begin the steps to create an
+   *        offer again, given p, and abort these steps.
+   *
+   *  This test might hit step 2 of final steps to create an offer. But the media stream
+   *  is likely added already by the time steps to create an offer is executed, because
+   *  that is enqueued as an operation.
+   *  Either way it verifies that the media stream is included in the offer even though
+   *  the stream is added after synchronous call to createOffer.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+    const promise = pc.createOffer();
+
+    pc.addTransceiver('audio');
+    return promise.then(offer => {
+      assert_equals(countAudioLine(offer.sdp), 1,
+        'Expect m=audio line to be found in offer SDP')
+    });
+  }, 'When media stream is added when createOffer() is running in parallel, the result offer should contain the new media stream');
+
+  /*
+   *  TODO
+   *  4.3.2 createOffer
+   *    3.  If connection is configured with an identity provider, and an identity
+   *        assertion has not yet been generated using said identity provider, then
+   *        begin the identity assertion request process if it has not already begun.
+   *    Steps to create an offer
+   *    1.  If the need for an identity assertion was identified when createOffer was
+   *        invoked, wait for the identity assertion request process to complete.
+   *
+   *  Non-Testable
+   *  4.3.2 createOffer
+   *    Steps to create an offer
+   *    4.  Inspect the system state to determine the currently available resources as
+   *    necessary for generating the offer, as described in [JSEP] (section 4.1.6.).
+   *    5.  If this inspection failed for any reason, reject p with a newly created
+   *        OperationError and abort these steps.
+   */
+
+  /*
+   *  4.3.3.2 Configuration data extensions
+   *  partial dictionary RTCOfferOptions
+   */
+
+  /*
+   *  offerToReceiveAudio of type boolean
+   *    When this is given a non-false value, no outgoing track of type
+   *    "audio" is attached to the PeerConnection, and the existing
+   *    localDescription (if any) doesn't contain any sendrecv or recv
+   *    audio media sections, createOffer() will behave as if
+   *    addTransceiver("audio") had been called once prior to the createOffer() call.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    return pc.createOffer({ offerToReceiveAudio: true })
+    .then(offer1 => {
+      assert_equals(countAudioLine(offer1.sdp), 1,
+        'Expect created offer to have audio line');
+
+      // The first createOffer implicitly calls addTransceiver('audio'),
+      // so all following offers will also have audio media section
+      // in their SDP.
+      return pc.createOffer({ offerToReceiveAudio: false })
+      .then(offer2 => {
+        assert_equals(countAudioLine(offer2.sdp), 1,
+          'Expect audio line to remain in created offer');
+      })
+    });
+  }, 'createOffer() with offerToReceiveAudio should add audio line to all subsequent created offers');
+
+  /*
+   *  offerToReceiveVideo of type boolean
+   *    When this is given a non-false value, and no outgoing track
+   *    of type "video" is attached to the PeerConnection, and the
+   *    existing localDescription (if any) doesn't contain any sendecv
+   *    or recv video media sections, createOffer() will behave as if
+   *    addTransceiver("video") had been called prior to the createOffer() call.
+   */
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    return pc.createOffer({ offerToReceiveVideo: true })
+    .then(offer1 => {
+      assert_equals(countVideoLine(offer1.sdp), 1,
+      'Expect created offer to have video line');
+
+      return pc.createOffer({ offerToReceiveVideo: false })
+      .then(offer2 => {
+        assert_equals(countVideoLine(offer2.sdp), 1,
+          'Expect video line to remain in created offer');
+      })
+    });
+  }, 'createOffer() with offerToReceiveVideo should add video line to all subsequent created offers');
+
+  promise_test(t => {
+    const pc = new RTCPeerConnection();
+
+    return pc.createOffer({
+      offerToReceiveAudio: true,
+      offerToReceiveVideo: false
+    }).then(offer1 => {
+      assert_equals(countAudioLine(offer1.sdp), 1,
+        'Expect audio line to be found in created offer');
+
+      assert_equals(countVideoLine(offer1.sdp), 0,
+        'Expect video line to not found in create offer');
+
+      return pc.createOffer({
+        offerToReceiveAudio: false,
+        offerToReceiveVideo: true
+      }).then(offer2 => {
+        assert_equals(countAudioLine(offer2.sdp), 1,
+          'Expect audio line to remain in created offer');
+
+        assert_equals(countVideoLine(offer2.sdp), 1,
+          'Expect video line to be found in create offer');
+      })
+    });
+  }, 'createOffer() with offerToReceiveAudio:true then offerToReceiveVideo:true should have result offer with both audio and video line');
+
+</script>

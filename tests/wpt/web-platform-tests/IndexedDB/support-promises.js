@@ -270,3 +270,23 @@ function checkTitleIndexContents(testCase, index, errorMessage) {
     assert_equals(result.author, BOOKS_RECORD_DATA[2].author, errorMessage);
   });
 }
+
+// Returns an Uint8Array with pseudorandom data.
+//
+// The PRNG should be sufficient to defeat compression schemes, but it is not
+// cryptographically strong.
+function largeValue(size, seed) {
+  const buffer = new Uint8Array(size);
+
+  // 32-bit xorshift - the seed can't be zero
+  let state = 1000 + seed;
+
+  for (let i = 0; i < size; ++i) {
+    state ^= state << 13;
+    state ^= state >> 17;
+    state ^= state << 5;
+    buffer[i] = state & 0xff;
+  }
+
+  return buffer;
+}

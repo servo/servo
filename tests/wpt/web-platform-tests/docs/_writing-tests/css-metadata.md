@@ -66,8 +66,9 @@ href="https://www.w3.org/TR/CSS21/colors.html#background-properties" />
 </tr>
 <tr>
   <td>font</td>
-  <td>Requires a specific font to be installed. (Details must be
-    provided and/or the font linked to in the test description)</td>
+  <td>Requires a specific font to be installed at the OS level. (A link to the
+      font to be installed must be provided; this is not needed if only web
+      fonts are used.)</td>
 </tr>
 <tr>
   <td>history</td>
