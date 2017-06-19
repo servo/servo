@@ -1,2 +1,0 @@
-mozprocess >= 0.19
-selenium >= 2.41.0
