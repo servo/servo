@@ -11225,6 +11225,41 @@
      {}
     ]
    ],
+   "mozilla/worklets/test_paint_worklet_alpha_throws.js": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/worklets/test_paint_worklet_arguments_throws.js": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/worklets/test_paint_worklet_empty_name.js": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/worklets/test_paint_worklet_no_paint.js": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/worklets/test_paint_worklet_not_constructor.js": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/worklets/test_paint_worklet_paint_not_callable.js": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/worklets/test_paint_worklet_properties_throws.js": [
+    [
+     {}
+    ]
+   ],
    "mozilla/worklets/test_paint_worklet_ref.html": [
     [
      {}
@@ -20085,6 +20120,12 @@
    "mozilla/windowproxy.html": [
     [
      "/_mozilla/mozilla/windowproxy.html",
+     {}
+    ]
+   ],
+   "mozilla/worklets/test_paint_worklet_loading.html": [
+    [
+     "/_mozilla/mozilla/worklets/test_paint_worklet_loading.html",
      {}
     ]
    ],
@@ -31803,6 +31844,38 @@
   ],
   "mozilla/worklets/test_paint_worklet.js": [
    "e714db50da9e5cb18c652629fcc1b5ccc453564d",
+   "support"
+  ],
+  "mozilla/worklets/test_paint_worklet_alpha_throws.js": [
+   "fe7df9db6799494f4d24f5ad00349f3aeebb2c23",
+   "support"
+  ],
+  "mozilla/worklets/test_paint_worklet_arguments_throws.js": [
+   "64ef8ea909c96c23932f77dd9ef793f85cfbb38d",
+   "support"
+  ],
+  "mozilla/worklets/test_paint_worklet_empty_name.js": [
+   "589e2a4061e51122750afe2d72f8f609ffb9b216",
+   "support"
+  ],
+  "mozilla/worklets/test_paint_worklet_loading.html": [
+   "20fef90b09fdf8dfb5e7461a01c8bd0f7e5d31af",
+   "testharness"
+  ],
+  "mozilla/worklets/test_paint_worklet_no_paint.js": [
+   "ad637c4f670a8be2814ff21dbc916157293892e5",
+   "support"
+  ],
+  "mozilla/worklets/test_paint_worklet_not_constructor.js": [
+   "70e69524890892e855155fc762a46c8cebaa1fbe",
+   "support"
+  ],
+  "mozilla/worklets/test_paint_worklet_paint_not_callable.js": [
+   "51f1b485d5c505c918edec8a146d54d9e0cf60d9",
+   "support"
+  ],
+  "mozilla/worklets/test_paint_worklet_properties_throws.js": [
+   "50fd53b8f561edda7c6bc8a0e9ac7207bdf22d8b",
    "support"
   ],
   "mozilla/worklets/test_paint_worklet_ref.html": [
