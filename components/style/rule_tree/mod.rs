@@ -78,6 +78,7 @@ impl StyleSource {
         match (self, other) {
             (&Style(ref one), &Style(ref other)) => Arc::ptr_eq(one, other),
             (&Declarations(ref one), &Declarations(ref other)) => Arc::ptr_eq(one, other),
+            (&None, _) | (_, &None) => panic!("Should not check for equality between null StyleSource objects"),
             _ => false,
         }
     }
