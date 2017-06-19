@@ -424,15 +424,10 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         println!("browser received new events");
         if self.compositor.receive_messages() {
             self.receive_messages();
-        } else {
-            println!("browser draining messages");
-            while self.embedder_receiver.try_recv_embedder_msg().is_some() {};
         }
         for event in events {
             println!("browser event: {:?}", event);
-            if self.compositor.shutdown_state != ShutdownState::FinishedShuttingDown {
-                self.handle_window_event(event);
-            }
+            self.handle_window_event(event);
         }
         if self.compositor.shutdown_state != ShutdownState::FinishedShuttingDown {
             self.compositor.perform_updates();
