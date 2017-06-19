@@ -19,7 +19,7 @@ use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::fmt;
 use std::ops::Range;
-use style_traits::{ToCss, OneOrMoreCommaSeparated, ParseError, StyleParseError};
+use style_traits::{ToCss, OneOrMoreSeparated, CommaSeparator, ParseError, StyleParseError};
 use values::CustomIdent;
 
 /// Parse the prelude of an @counter-style rule
@@ -552,7 +552,9 @@ pub struct AdditiveTuple {
     pub symbol: Symbol,
 }
 
-impl OneOrMoreCommaSeparated for AdditiveTuple {}
+impl OneOrMoreSeparated for AdditiveTuple {
+    type S = CommaSeparator;
+}
 
 impl Parse for AdditiveTuple {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
