@@ -5,6 +5,7 @@
 //! Common handling for the specified value CSS url() values.
 
 use gecko_bindings::structs::{ServoBundledURI, URLExtraData};
+use gecko_bindings::structs::mozilla::css::URLValueData;
 use gecko_bindings::structs::root::mozilla::css::ImageValue;
 use gecko_bindings::sugar::refptr::RefPtr;
 use parser::ParserContext;
@@ -49,6 +50,16 @@ impl SpecifiedUrl {
     /// use its |resolved| status.
     pub fn is_invalid(&self) -> bool {
         false
+    }
+
+    /// Convert from URLValueData to SpecifiedUrl.
+    pub unsafe fn from_url_value_data(url: &URLValueData)
+                                       -> Result<SpecifiedUrl, ()> {
+        Ok(SpecifiedUrl {
+            serialization: Arc::new(url.mString.to_string()),
+            extra_data: url.mExtraData.to_safe(),
+            image_value: None,
+        })
     }
 
     /// Returns true if this URL looks like a fragment.
