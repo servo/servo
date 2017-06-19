@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Structured cloning of SharedArrayBuffers: BroadcastChannel within the same agent cluster</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#structuredserialize">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#broadcasting-to-other-browsing-contexts">
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script>
+"use strict";
+
+promise_test(t => {
+  return Promise.all([
+    createIFrame("resources/broadcastchannel-iframe.html"),
+    createIFrame("resources/broadcastchannel-iframe.html"),
+    createIFrame("resources/broadcastchannel-iframe.html")
+  ]).then(() => {
+    const sab = new SharedArrayBuffer(3);
+    const view = new Uint8Array(sab);
+    const channel = new BroadcastChannel("channel name");
+
+    return new Promise(resolve => {
+      let soFar = 0;
+      channel.onmessage = t.step_func(({ data: { sab: broadcastSAB, i } }) => {
+        if (broadcastSAB) {
+          // We only care about "broadcasts" from the workers.
+          return;
+        }
+
+        assert_in_array(i, [0, 1, 2], "Any message events must come from expected sources");
+        ++soFar;
+
+        if (soFar === 3) {
+          assert_equals(view[0], 1, "The first iframe must have set view[0] to 1");
+          assert_equals(view[1], 2, "The second iframe must have set view[1] to 2");
+          assert_equals(view[2], 3, "The third iframe must have set view[2] to 3");
+          resolve();
+        }
+      });
+
+      channel.postMessage({ sab });
+    });
+  });
+});
+
+function createIFrame(src) {
+  return new Promise((resolve, reject) => {
+    const iframe = document.createElement("iframe");
+    iframe.src = src;
+    iframe.onload = () => resolve(iframe);
+    iframe.onerror = () => reject(`iframe with URL ${src} failed to load`);
+    document.body.appendChild(iframe);
+  });
+}
+</script>

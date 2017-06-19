@@ -1,0 +1,27 @@
+{"host": "web-platform.test",
+ "doc_root": null,
+ "ws_doc_root": null,
+ "external_host": null,
+ "ports":{"http":[8000, "auto"],
+          "https":[9003],
+          "ws":["auto"],
+          "wss":["auto"]},
+ "check_subdomains": true,
+ "log_level":"debug",
+ "bind_hostname": true,
+ "ssl": {"type": "openssl",
+         "encrypt_after_connect": false,
+         "openssl": {
+             "openssl_binary": "openssl",
+             "base_path": "_certs",
+             "force_regenerate": false,
+             "base_conf_path": null
+         },
+         "pregenerated": {
+             "host_key_path": null,
+             "host_cert_path": null
+         },
+         "none": {}
+        },
+ "aliases": []
+}

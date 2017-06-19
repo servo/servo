@@ -93,18 +93,6 @@ nav.home {
 }
 
 
-// TTWF include iframes
-iframe.ttwf {
-    border: 1px solid grey;
-    width: 100%;
-    max-width: 990px;
-    height: 75vh;
-    margin: 0 auto;
-    display: block;
-    box-sizing: border-box;
-}
-
-
 // Site nav (class name is to avoid conflict with minima defined .site-nav)
 .wpt-site-nav {
     float: right;

@@ -56,6 +56,45 @@ async_test(function(t) {
          'registration is in use.');
 
 async_test(function(t) {
+    var scope = 'resources/scope/complete-unregistration-followed-by-' +
+                'reloading-controllee-iframe';
+    var registration;
+    var frame;
+    var service_worker;
+    service_worker_unregister_and_register(t, worker_url, scope)
+      .then(function(r) {
+          registration = r;
+          return wait_for_state(t, r.installing, 'activated');
+        })
+      .then(function() {
+          return with_iframe(scope);
+        })
+      .then(function(f) {
+          frame = f;
+          return registration.unregister();
+        })
+      .then(function() {
+          return new Promise(function(resolve) {
+              frame.onload = resolve;
+              frame.contentWindow.location.reload();
+            });
+        })
+      .then(function() {
+          var c = frame.contentWindow.navigator.serviceWorker.controller;
+          assert_equals(c, null, 'a page after unregistration should not be ' +
+                                 'controlled by service worker');
+          return navigator.serviceWorker.getRegistration(scope);
+        })
+      .then(function(r) {
+          assert_equals(r, undefined, 'getRegistration should return ' +
+                                      'undefined after unregistration');
+          service_worker_unregister_and_done(t, scope);
+        })
+      .catch(unreached_rejection(t));
+}, 'Reloading the last controlled iframe after unregistration should ensure ' +
+   'the deletion of the registration');
+
+async_test(function(t) {
     var scope = 'resources/scope/re-register-does-not-affect-existing-controllee';
     var iframe;
     var registration;
@@ -116,8 +155,6 @@ async_test(function(t) {
           return with_iframe(scope);
         })
       .then(function(frame) {
-          // FIXME: When crbug.com/400602 is fixed, assert that controller
-          // equals the original worker.
           assert_not_equals(
               frame.contentWindow.navigator.serviceWorker.controller, null,
               'document should have a controller');

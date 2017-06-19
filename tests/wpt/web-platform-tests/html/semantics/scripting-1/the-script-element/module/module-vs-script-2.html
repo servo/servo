@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Once as classic script, once as module script</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    window.log = [];
+
+    const test_load = async_test(
+        "Test that evaluating something as classic script does not prevent " +
+        "it from being evaluated as module script.");
+    window.addEventListener("load", test_load.step_func_done(ev => {
+      assert_array_equals(log, [window, undefined]);
+    }));
+</script>
+<script type="module" src="this.js"></script>
+<script src="this.js"></script>

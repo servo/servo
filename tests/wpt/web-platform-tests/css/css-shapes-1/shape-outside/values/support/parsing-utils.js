@@ -19,7 +19,7 @@ function testComputedStyle(value, expected) {
     // so this check allows for testing that at least one of them passes.
     // Description of the 2 expecteds is below near calcTestValues.
     if(Object.prototype.toString.call( expected ) === '[object Array]' && expected.length == 2) {
-        assert_true(expected[0] == actual || expected[1] == actual)
+        assert_in_array(actual, expected);
     } else {
         assert_equals(actual, typeof expected !== 'undefined' ? expected : value);
     }
@@ -55,7 +55,7 @@ function testShapeMarginComputedStyle(value, expected) {
 
     // See comment above about multiple expected results
     if(Object.prototype.toString.call( expected ) === '[object Array]' && expected.length == 2) {
-        assert_true(expected[0] == actual || expected[1] == actual)
+        assert_in_array(actual, expected);
     } else {
         assert_equals(actual, !expected ? '0px' : expected);
     }
@@ -86,7 +86,7 @@ function testShapeThresholdComputedStyle(value, expected) {
 
     // See comment above about multiple expected results
     if(Object.prototype.toString.call( expected ) === '[object Array]' && expected.length == 2) {
-        assert_true(expected[0] == actual || expected[1] == actual)
+        assert_in_array(actual, expected);
     } else {
         assert_equals(actual, !expected ? '0' : expected);
     }

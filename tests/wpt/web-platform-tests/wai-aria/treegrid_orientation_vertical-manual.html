@@ -1,0 +1,132 @@
+<!doctype html>
+<html>
+  <head>
+    <title>treegrid orientation vertical</title>
+    <link rel="stylesheet" href="/resources/testharness.css">
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_TREE_TABLE"
+               ],
+               [
+                  "property",
+                  "interfaces",
+                  "contains",
+                  "Selection"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_VERTICAL"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXRole",
+                  "is",
+                  "AXTable"
+               ],
+               [
+                  "property",
+                  "AXSubrole",
+                  "is",
+                  "<nil>"
+               ],
+               [
+                  "property",
+                  "AXRoleDescription",
+                  "is",
+                  "table"
+               ],
+               [
+                  "property",
+                  "AXOrientation",
+                  "is",
+                  "AXVerticalOrientation"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "IA2_STATE_VERTICAL"
+               ],
+               [
+                  "property",
+                  "states",
+                  "doesNotContain",
+                  "IA2_STATE_HORIZONTAL"
+               ],
+               [
+                  "property",
+                  "interfaces",
+                  "contains",
+                  "IAccessibleTable2"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_OUTLINE"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "Control Type",
+                  "is",
+                  "DataGrid"
+               ],
+               [
+                  "property",
+                  "Orientation",
+                  "is",
+                  "vertical"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "treegrid orientation vertical"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for treegrid orientation vertical.</p>
+    <div role="treegrid" tabindex="0" aria-orientation="vertical" aria-activedescendant="foo" id="test">
+      <div role="row">
+       <div role="cell" id="foo">c1</div>
+       <div role="cell">c2</div>
+    </div>
+  </div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>
+

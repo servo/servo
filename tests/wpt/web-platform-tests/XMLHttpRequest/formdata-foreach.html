@@ -14,8 +14,12 @@
     fd.append('n2', 'v5');
     fd.append('n3', 'v6');
     fd.delete('n2');
-    var expected_keys = ['n1', 'n3', 'n1', 'n3'];
-    var expected_values = ['v1', 'v3', 'v4', 'v6'];
+
+    var file = new File(['hello'], "hello.txt");
+    fd.append('f1', file);
+
+    var expected_keys = ['n1', 'n3', 'n1', 'n3', 'f1'];
+    var expected_values = ['v1', 'v3', 'v4', 'v6', file];
     test(function() {
         var mykeys = [], myvalues = [];
         for(var entry of fd) {

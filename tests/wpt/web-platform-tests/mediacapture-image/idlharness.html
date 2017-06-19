@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>Image Capture IDL test</title>
+  <link rel="help" href="https://w3c.github.io/mediacapture-image">
+  <link rel="idl" href="https://w3c.github.io/mediacapture-image/#idl-index">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/WebIDLParser.js"></script>
+  <script src="/resources/idlharness.js"></script>
+</head>
+<body>
+  <canvas id='canvas' width=10 height=10/>
+
+  <pre id="untested_idl" style="display: none">
+    interface Event {};
+    interface EventHandler {};
+    interface EventTarget {};
+    interface MediaStreamTrack {};
+  </pre>
+  <pre id="idl" style="display: none">
+    // https://w3c.github.io/mediacapture-image
+
+    [Constructor(MediaStreamTrack videoTrack)]
+    interface ImageCapture {
+       Promise<Blob>              takePhoto(optional PhotoSettings photoSettings);
+       Promise<PhotoCapabilities> getPhotoCapabilities();
+
+       Promise<ImageBitmap>       grabFrame();
+
+       readonly attribute MediaStreamTrack track;
+    };
+
+    interface PhotoCapabilities {
+      readonly attribute RedEyeReduction            redEyeReduction;
+      readonly attribute MediaSettingsRange         imageHeight;
+      readonly attribute MediaSettingsRange         imageWidth;
+      readonly attribute FrozenArray<FillLightMode> fillLightMode;
+    };
+
+    dictionary PhotoSettings {
+      FillLightMode   fillLightMode;
+      double          imageHeight;
+      double          imageWidth;
+      boolean         redEyeReduction;
+    };
+
+    interface MediaSettingsRange {
+        readonly attribute double max;
+        readonly attribute double min;
+        readonly attribute double step;
+    };
+
+    enum RedEyeReduction {
+      "never",
+      "always",
+      "controllable",
+    };
+
+    enum FillLightMode {
+      "auto",
+      "off",
+      "flash",
+    };
+
+    // Partial dictionaries are unsupported, see
+    // https://github.com/w3c/testharness.js/issues/84
+
+    partial dictionary MediaTrackSupportedConstraints {
+      boolean whiteBalanceMode = true;
+      boolean exposureMode = true;
+      boolean focusMode = true;
+      boolean pointsOfInterest = true;
+
+      boolean exposureCompensation = true;
+      boolean colorTemperature = true;
+      boolean iso = true;
+
+      boolean brightness = true;
+      boolean contrast = true;
+      boolean saturation = true;
+      boolean sharpness = true;
+      boolean zoom = true;
+      boolean torch = true;
+    };
+
+    partial dictionary MediaTrackCapabilities {
+      sequence<DOMString>  whiteBalanceMode;
+      sequence<DOMString>  exposureMode;
+      sequence<DOMString>  focusMode;
+
+      MediaSettingsRange   exposureCompensation;
+      MediaSettingsRange   colorTemperature;
+      MediaSettingsRange   iso;
+
+      MediaSettingsRange   brightness;
+      MediaSettingsRange   contrast;
+      MediaSettingsRange   saturation;
+      MediaSettingsRange   sharpness;
+
+      MediaSettingsRange   zoom;
+
+      boolean              torch;
+    };
+
+    partial dictionary MediaTrackConstraintSet {
+      ConstrainDOMString whiteBalanceMode;
+      ConstrainDOMString exposureMode;
+      ConstrainDOMString focusMode;
+      ConstrainPoint2D   pointsOfInterest;
+
+      ConstrainDouble    exposureCompensation;
+      ConstrainDouble    colorTemperature;
+      ConstrainDouble    iso;
+
+      ConstrainDouble    brightness;
+      ConstrainDouble    contrast;
+      ConstrainDouble    saturation;
+      ConstrainDouble    sharpness;
+
+      ConstrainDouble    zoom;
+
+      ConstrainBoolean   torch;
+    };
+
+    partial dictionary MediaTrackSettings {
+      DOMString         whiteBalanceMode;
+      DOMString         exposureMode;
+      DOMString         focusMode;
+      sequence<Point2D> pointsOfInterest;
+
+      double            exposureCompensation;
+      double            colorTemperature;
+      double            iso;
+
+      double            brightness;
+      double            contrast;
+      double            saturation;
+      double            sharpness;
+
+      double            zoom;
+
+      boolean           torch;
+    };
+
+    dictionary ConstrainPoint2DParameters {
+      sequence<Point2D> exact;
+      sequence<Point2D> ideal;
+    };
+
+    typedef (sequence<Point2D> or ConstrainPoint2DParameters) ConstrainPoint2D;
+
+    enum MeteringMode {
+      "none",
+      "manual",
+      "single-shot",
+      "continuous"
+    };
+
+    dictionary Point2D {
+      double x = 0.0;
+      double y = 0.0;
+    };
+
+  </pre>
+  <script>
+    var canvas = document.getElementById('canvas');
+    var context = canvas.getContext("2d");
+    context.fillStyle = "red";
+    context.fillRect(0, 0, 10, 10);
+    var track = canvas.captureStream().getVideoTracks()[0];
+
+    var idl_array = new IdlArray();
+    idl_array.add_untested_idls(
+        document.getElementById("untested_idl").textContent);
+    idl_array.add_idls(document.getElementById("idl").textContent);
+    idl_array.add_objects({
+      ImageCapturer : [new ImageCapture(track)]
+    });
+    idl_array.test();
+  </script>
+  <div id="log"></div>
+</body>
+</html>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/load_wasm.js"></script>
+<iframe src="resources/frame.html" id="iframe"></iframe>
+<script>
+  promise_test(async function() {
+    var mod = await createWasmModule();
+    assert_true(mod instanceof WebAssembly.Module);
+    var ans = await new Promise((resolve, reject) => {
+      var iframe = document.getElementById("iframe").contentWindow;
+      iframe.postMessage(mod, '*');
+      window.addEventListener("message", (reply) => resolve(reply.data), false);
+    });
+    assert_equals(ans, 43);
+  }, "send wasm module to iframe");
+</script>

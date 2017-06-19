@@ -4,12 +4,11 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/test-helpers.sub.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
-<script src="../fetch/resources/fetch-test-helpers.sub.js"></script>
 <script>
 // Purge the existing registrations for the origin.
 // getRegistrations() is used in order to avoid adding additional complexity
 // e.g. adding an internal function.
-promise_test(function(t) {
+promise_test(function() {
     return navigator.serviceWorker.getRegistrations()
       .then(function(registrations) {
           return registrations.reduce(function(sequence, registration) {
@@ -17,18 +16,17 @@ promise_test(function(t) {
                   return registration.unregister();
                 });
             }, Promise.resolve());
-        });
-  }, 'Purge the existing registrations.');
-
-promise_test(function(t) {
-    return navigator.serviceWorker.getRegistrations()
+        })
+      .then(function() {
+          return navigator.serviceWorker.getRegistrations();
+        })
       .then(function(value) {
           assert_array_equals(
             value,
             [],
             'getRegistrations should resolve with an empty array.');
         });
-  }, 'getRegistrations');
+}, 'registrations are not returned following unregister');
 
 promise_test(function(t) {
     var scope = 'resources/scope/getregistrations/normal';
@@ -96,7 +94,6 @@ promise_test(function(t) {
     var scope = 'resources/scope/getregistrations/register-unregister-controlled';
     var script = 'resources/empty-worker.js';
     var registrations;
-    var frame;
     return service_worker_unregister_and_register(t, script, scope)
       .then(function(r) {
           registration = r;
@@ -106,7 +103,7 @@ promise_test(function(t) {
           return with_iframe(scope);
         })
       .then(function(f) {
-          frame = f;
+          t.add_cleanup(function() { f.remove(); });
           return registration.unregister();
         })
       .then(function() {
@@ -120,7 +117,6 @@ promise_test(function(t) {
           assert_equals(registration.installing, null);
           assert_equals(registration.waiting, null);
           assert_equals(registration.active.state, 'activated');
-          frame.remove();
         });
   }, 'Register then Unregister with controlled frame then getRegistrations');
 
@@ -157,6 +153,7 @@ promise_test(function(t) {
     // just until the frame loads.
     return with_iframe_ready(frame_url)
       .then(function(f) {
+          t.add_cleanup(function() { f.remove(); });
           frame = f;
           return service_worker_unregister_and_register(t, script, scope);
         })
@@ -182,10 +179,7 @@ promise_test(function(t) {
           return p;
         })
       .then(function() {
-          frame.remove();
           return service_worker_unregister(t, scope);
         });
   }, 'getRegistrations promise resolves only with same origin registrations.');
-
-done();
 </script>

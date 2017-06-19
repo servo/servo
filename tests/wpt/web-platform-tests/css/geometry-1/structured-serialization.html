@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<title>Geometry Interfaces: Serialize and deserialize</title>
+<link rel="help" href="https://drafts.fxtf.org/geometry/#structured-serialization">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function clone(obj) {
+  return new Promise((resolve, reject) => {
+    const channel = new MessageChannel();
+    channel.port2.onmessage = e => resolve(e.data);
+    channel.port1.postMessage(obj);
+  });
+}
+function defineThrowingGetters(object, attrs) {
+  for (let attr of attrs) {
+    Object.defineProperty(object, attr, {
+      get: () => assert_unreached(`getter for ${attr}`)
+    });
+  }
+}
+
+[
+  ["DOMPointReadOnly", "x", "y", "z", "w"],
+  ["DOMPoint", "x", "y", "z", "w"],
+  ["DOMRectReadOnly", "x", "y", "width", "height"],
+  ["DOMRect", "x", "y", "width", "height"],
+  ["DOMQuad", "p1", "p2", "p3", "p4"],
+  ["DOMMatrixReadOnly", "a", "b", "c", "d", "e", "f", "m11", "m12", "m13", "m14", "m21", "m22", "m23", "m24", "m31", "m32", "m33", "m34", "m41", "m42", "m43", "m44", "is2D"],
+  ["DOMMatrix", "a", "b", "c", "d", "e", "f", "m11", "m12", "m13", "m14", "m21", "m22", "m23", "m24", "m31", "m32", "m33", "m34", "m41", "m42", "m43", "m44", "is2D"],
+].forEach(([constr, ...attrs]) => {
+  const prefix = `${constr} clone:`;
+
+  promise_test(t => {
+    const object = new self[constr]();
+    return clone(object).then(other => {
+      assert_not_equals(object, other);
+      assert_class_string(other, constr);
+      for (let attr of attrs) {
+        if (constr === "DOMQuad") {
+          assert_not_equals(other[attr], object[attr], attr);
+          assert_class_string(other[attr], "DOMPoint", attr);
+          assert_equals(other[attr].x, object.p1.x, `${attr}.x`);
+          assert_equals(other[attr].y, object.p1.y, `${attr}.y`);
+          assert_equals(other[attr].z, object.p1.z, `${attr}.z`);
+          assert_equals(other[attr].w, object.p1.w, `${attr}.w`);
+        } else {
+          assert_equals(other[attr], object[attr], attr);
+        }
+      }
+      t.done();
+    });
+  }, `${prefix} basic`);
+
+  promise_test(t => {
+    const object = new self[constr]();
+    object.foo = "bar";
+    return clone(object).then(other => {
+      assert_false("foo" in other, 'foo should not exist in other');
+      t.done();
+    });
+  }, `${prefix} custom property`);
+
+  promise_test(t => {
+    const object = new self[constr]();
+    // The custom throwing getter on object should not be copied to other.
+    defineThrowingGetters(object, attrs);
+    return clone(object).then(other => {
+      for (let attr of attrs) {
+        // This should call the standard getter, and therefore not throw.
+        // If this were to call the throwing getter defined on object, the test would fail.
+        other[attr];
+      }
+      t.done();
+    });
+  }, `${prefix} throwing getters`);
+
+  // More specific tests for each type
+  switch(constr) {
+    case "DOMPointReadOnly":
+    case "DOMPoint":
+    case "DOMRectReadOnly":
+    case "DOMRect":
+      promise_test(t => {
+        const object = new self[constr](1, -0, Infinity, NaN);
+        return clone(object).then(other => {
+          for (let attr of attrs) {
+            assert_equals(other[attr], object[attr], attr);
+          }
+          t.done();
+        });
+      }, `${prefix} non-initial values`);
+      break;
+    case "DOMQuad":
+      promise_test(t => {
+        const object = new self[constr]({x:1, y:2, z:3, w:4},
+                                        {x:-0, y:-0, z:-0, w:-0},
+                                        {x:Infinity, y:Infinity, z:Infinity, w:Infinity},
+                                        {x:NaN, y:NaN, z:NaN, w:NaN});
+        return clone(object).then(other => {
+          for (let attr of attrs) {
+            assert_equals(other[attr].x, object[attr].x, `${attr}.x`);
+            assert_equals(other[attr].y, object[attr].y, `${attr}.y`);
+            assert_equals(other[attr].z, object[attr].z, `${attr}.z`);
+            assert_equals(other[attr].w, object[attr].w, `${attr}.w`);
+          }
+          t.done();
+        });
+      }, `${prefix} non-initial values`);
+      break;
+    case "DOMMatrixReadOnly":
+    case "DOMMatrix":
+      promise_test(t => {
+        const object = new self[constr]([1, -0, Infinity, NaN, 5, 6]);
+        object.m13 = -0;
+        object.m14 = -0;
+        object.m23 = -0;
+        object.m24 = -0;
+        object.m31 = -0;
+        object.m32 = -0;
+        object.m34 = -0;
+        object.m43 = -0;
+        assert_true(object.is2D, 'is2D after setting m13 etc to -0');
+        return clone(object).then(other => {
+          for (let attr of attrs) {
+            if (attr === 'm13' ||
+                attr === 'm14' ||
+                attr === 'm23' ||
+                attr === 'm24' ||
+                attr === 'm31' ||
+                attr === 'm32' ||
+                attr === 'm34' ||
+                attr === 'm43') {
+              assert_equals(other[attr], 0, attr);
+            } else {
+              assert_equals(other[attr], object[attr], attr);
+            }
+          }
+          t.done();
+        });
+      }, `${prefix} non-initial values (2d)`);
+
+      promise_test(t => {
+        const object = new self[constr]([11, -0, Infinity, NaN,
+                                         21, 22, 23, 24,
+                                         31, 32, 33, 34,
+                                         41, 42, 43, 44]);
+        return clone(object).then(other => {
+          for (let attr of attrs) {
+            assert_equals(other[attr], object[attr], attr);
+          }
+          t.done();
+        });
+      }, `${prefix} non-initial values (3d)`);
+      break;
+    default:
+      throw new Error(`Test bug: ${constr} has no test for non-initial values`);
+  }
+});
+</script>

@@ -1,0 +1,109 @@
+<!doctype html>
+<html>
+  <head>
+    <title>searchbox multiline false</title>
+    <link rel="stylesheet" href="/resources/testharness.css">
+    <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/wai-aria/scripts/ATTAcomm.js"></script>
+    <script>
+    setup({explicit_timeout: true, explicit_done: true });
+
+    var theTest = new ATTAcomm(
+    {
+   "steps" : [
+      {
+         "element" : "test",
+         "test" : {
+            "ATK" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_ENTRY"
+               ],
+               [
+                  "property",
+                  "states",
+                  "contains",
+                  "STATE_SINGLE_LINE"
+               ],
+               [
+                  "property",
+                  "interfaces",
+                  "contains",
+                  "EditableText"
+               ]
+            ],
+            "AXAPI" : [
+               [
+                  "property",
+                  "AXRole",
+                  "is",
+                  "AXTextField"
+               ],
+               [
+                  "property",
+                  "AXSubrole",
+                  "is",
+                  "AXSearchField"
+               ],
+               [
+                  "property",
+                  "AXRoleDescription",
+                  "is",
+                  "search text field"
+               ]
+            ],
+            "IAccessible2" : [
+               [
+                  "property",
+                  "objectAttributes",
+                  "contains",
+                  "xml-roles:search"
+               ]
+            ],
+            "MSAA" : [
+               [
+                  "property",
+                  "role",
+                  "is",
+                  "ROLE_SYSTEM_TEXT"
+               ]
+            ],
+            "UIA" : [
+               [
+                  "property",
+                  "Control Type",
+                  "is",
+                  "Edit"
+               ],
+               [
+                  "property",
+                  "Localized Control Type",
+                  "is",
+                  "search box"
+               ]
+            ]
+         },
+         "title" : "step 1",
+         "type" : "test"
+      }
+   ],
+   "title" : "searchbox multiline false"
+}
+
+    ) ;
+    </script>
+  </head>
+  <body>
+  <p>This test examines the ARIA properties for searchbox multiline false.</p>
+    <div id='test' role='searchbox' contenteditable='true' aria-multiline='false'></div>
+
+  <div id="manualMode"></div>
+  <div id="log"></div>
+  <div id="ATTAmessages"></div>
+  </body>
+</html>
+

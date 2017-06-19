@@ -6,41 +6,54 @@
 <script src="support.js"></script>
 
 <script>
-    var db,
-      t = async_test(document.title + " - request gotten by the handler"),
-      open_t = async_test(document.title + " - request returned by open()"),
+async_test(function(t) {
+  var open_rq = indexedDB.open("idbtransaction-" + document.location + t.name);
 
-    open_rq = indexedDB.open("idbtransaction-" + new Date().getTime() + Math.random());
+  open_rq.onblocked = t.unreached_func('open_rq.onblocked');
+  open_rq.onerror = t.unreached_func('open_rq.onerror');
 
-    open_t.step(function() {
-        assert_equals(open_rq.transaction, null, "IDBOpenDBRequest.transaction");
-        assert_equals(open_rq.source, null, "IDBOpenDBRequest.source");
-        assert_equals(open_rq.readyState, "pending", "IDBOpenDBRequest.readyState");
-
-        assert_true(open_rq instanceof IDBOpenDBRequest, "open_rq instanceof IDBOpenDBRequest");
-        assert_equals(open_rq + "", "[object IDBOpenDBRequest]", "IDBOpenDBRequest (open_rq)");
-
-        open_t.done();
+  open_rq.onupgradeneeded = t.step_func(function(e) {
+    t.add_cleanup(function() {
+      open_rq.onerror = function(e) {
+        e.preventDefault();
+      };
+      open_rq.result.close();
+      indexedDB.deleteDatabase(open_rq.result.name);
     });
 
-    open_rq.onupgradeneeded = t.step_func(function(e) {
-        assert_equals(e.target, open_rq, "e.target is reusing the same IDBOpenDBRequest");
-        assert_equals(e.target.transaction, open_rq.transaction, "IDBOpenDBRequest.transaction");
+    assert_equals(e.target, open_rq, "e.target is reusing the same IDBOpenDBRequest");
+    assert_equals(e.target.transaction, open_rq.transaction, "IDBOpenDBRequest.transaction");
 
-        assert_true(e.target.transaction instanceof IDBTransaction, "transaction instanceof IDBTransaction");
-        t.done();
+    assert_true(e.target.transaction instanceof IDBTransaction, "transaction instanceof IDBTransaction");
+    t.done();
+  });
+
+}, document.title + " - request gotten by the handler");
+
+async_test(function(t) {
+  var open_rq = indexedDB.open("idbtransaction-" + document.location + t.name);
+
+  assert_equals(open_rq.transaction, null, "IDBOpenDBRequest.transaction");
+  assert_equals(open_rq.source, null, "IDBOpenDBRequest.source");
+  assert_equals(open_rq.readyState, "pending", "IDBOpenDBRequest.readyState");
+
+  assert_true(open_rq instanceof IDBOpenDBRequest, "open_rq instanceof IDBOpenDBRequest");
+  assert_equals(open_rq + "", "[object IDBOpenDBRequest]", "IDBOpenDBRequest (open_rq)");
+
+  open_rq.onblocked = t.unreached_func('open_rq.onblocked');
+  open_rq.onerror = t.unreached_func('open_rq.onerror');
+
+  open_rq.onupgradeneeded = t.step_func(function() {
+    t.add_cleanup(function() {
+      open_rq.onerror = function(e) {
+        e.preventDefault();
+      };
+      open_rq.result.close();
+      indexedDB.deleteDatabase(open_rq.result.name);
     });
+    t.done();
+  });
 
+}, document.title + " - request returned by open()");
 
-    // Not plausible conditions...
-    function fail_helper(name) {
-        return function() {
-            t.step(function() { assert_unreached(name); });
-            open_t.step(function() { assert_unreached(name); });
-        };
-    }
-    open_rq.onblocked = fail_helper('open_rq.onblocked');
-    open_rq.onerror = fail_helper('open_rq.onerror');
 </script>
-
-<div id="log"></div>

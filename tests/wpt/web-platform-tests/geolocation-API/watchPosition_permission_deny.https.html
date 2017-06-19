@@ -14,18 +14,15 @@
 var t = async_test('Check that watchPosition returns synchronously before any callbacks are invoked.'),
     id, checkMethodHasReturned, hasMethodReturned = false;
 
-checkMethodHasReturned = t.step_func(function() {
+checkMethodHasReturned = t.step_func_done(function() {
   assert_true(hasMethodReturned);
-  done();
 });
 
 try {
   id = geo.watchPosition(checkMethodHasReturned, checkMethodHasReturned);
   hasMethodReturned = true;
 } catch(e) {
-  t.step(function() {
-    assert_unreached('An exception was thrown unexpectedly: ' + e.message);
-  });
+  t.unreached_func('An exception was thrown unexpectedly: ' + e.message);
 }
 
 // Rewrite http://dev.w3.org/geo/api/test-suite/t.html?00151

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Magnetometer Test: onerror</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://www.w3.org/TR/magnetometer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/generic-sensor/generic-sensor-tests.js"></script>
+<div id="log"></div>
+<h2>Precondition</h2>
+<ol>
+  <li>
+    Disable the Magnetometer Sensor or run test on a device without Magnetometer Sensor.
+  </li>
+</ol>
+<script>
+
+runGenericSensorOnerror(Magnetometer);
+
+</script>

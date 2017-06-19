@@ -1,0 +1,9 @@
+<!doctype html>
+<title>testharness.js test with long timeout</title>
+<meta name=timeout content=long>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+var t = async_test("Long timeout test");
+setTimeout(t.step_func_done(function() {assert_true(true)}), 15*1000);
+</script>

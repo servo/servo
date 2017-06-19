@@ -36,103 +36,109 @@
         return !!p && !!q && p.every((item, index) => { return item === q[index]; });
     };
 
-    presentBtn.onclick = () => {
-        presentBtn.disabled = true;
+    promise_test(t => {
+        const clickWatcher = new EventWatcher(t, presentBtn, 'click');
+        const request = new PresentationRequest(presentationUrls);
         const stash = new Stash(stashIds.toController, stashIds.toReceiver);
+        let connection, watcher, eventWatcher;
 
-        promise_test(t => {
-            let connection, watcher, eventWatcher;
-            const request = new PresentationRequest(presentationUrls);
+        const checkEvent = event => {
+            assert_true(event.isTrusted, 'a trusted event is fired');
+            assert_true(event instanceof MessageEvent, 'The event uses the MessageEvent interface');
+            assert_false(event.bubbles, 'the event does not bubble');
+            assert_false(event.cancelable, 'the event is not cancelable');
+        };
 
-            const checkEvent = event => {
-                assert_true(event.isTrusted, 'a trusted event is fired');
-                assert_true(event instanceof MessageEvent, 'The event uses the MessageEvent interface');
-                assert_false(event.bubbles, 'the event does not bubble');
-                assert_false(event.cancelable, 'the event is not cancelable');
-            };
-
-            t.add_cleanup(() => {
-                if (connection) {
-                    if (connection.state === 'connecting') {
-                        connection.onconnect = event => {
-                            connection.terminate();
-                        };
-                    }
-                    else if (connection.state === 'connected')
-                        connection.terminate();
-                    else if (connection.state === 'closed') {
-                        request.reconnect(connection.id).then(c => {
-                            c.terminate();
-                        });
-                    }
-                }
-                const notice = document.getElementById('notice');
-                notice.parentNode.removeChild(notice);
-                stash.stop();
+        const watchEvent = (obj, watcher, type) => {
+            const watchHandler = new Promise(resolve => {
+                obj['on' + type] = evt => { resolve(evt); };
             });
-
-            return request.start().then(c => {
-                connection = c;
-                assert_equals(connection.state, 'connecting', 'the initial state of the presentation connection is "connecting"');
-                assert_equals(connection.binaryType, 'arraybuffer', 'the default value of binaryType is "arraybuffer"');
-
-                // enable timeout again, cause no user action is needed from here.
-                t.step_timeout(() => {
-                    t.force_timeout();
-                    t.done();
-                }, 5000);
-
-                watcher = new EventWatcher(t, connection, 'connect');
-                return watcher.wait_for('connect');
-            }).then(() => {
-                return stash.init();
-            }).then(() => {
-                eventWatcher = new EventWatcher(t, connection, 'message');
-                // Tell receiving page to start sending messages, and wait for first message
-                return Promise.all([
-                    stash.send('onmessage'),
-                    eventWatcher.wait_for('message')
-                ]).then(results => results[1]);
-            }).then(event => {
-                checkEvent(event);
-                assert_equals(event.data, message1, 'receive a string correctly');
-                return eventWatcher.wait_for('message');
-            }).then(event => {
-                checkEvent(event);
-                assert_equals(event.data, message2, 'receive a string correctly');
-                return eventWatcher.wait_for('message');
-            }).then(event => {
-                checkEvent(event);
-                assert_true(event.data instanceof ArrayBuffer, 'receive binary data as ArrayBuffer');
-                assert_true(compare(event.data, message3), 'receive an ArrayBuffer correctly (originally a Blob at a receiving user agent)');
-                return eventWatcher.wait_for('message');
-            }).then(event => {
-                checkEvent(event);
-                assert_true(event.data instanceof ArrayBuffer, 'receive binary data as ArrayBuffer');
-                assert_true(compare(event.data, message4), 'receive an ArrayBuffer correctly (originally an ArrayBuffer at a receiving user agent)');
-                return eventWatcher.wait_for('message');
-            }).then(event => {
-                checkEvent(event);
-                assert_true(event.data instanceof ArrayBuffer, 'receive binary data as ArrayBuffer');
-                assert_true(compare(event.data, message5), 'receive an ArrayBuffer correctly (originally an ArrayBufferView at a receiving user agent)');
-
-                connection.binaryType = 'blob';
-                return Promise.all([
-                    stash.send('blob'),
-                    eventWatcher.wait_for('message')
-                ]).then(results => results[1]);
-            }).then(event => {
-                assert_true(event.data instanceof Blob, 'receive binary data as Blob');
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = resolve;
-                    reader.onerror = reject;
-                    reader.readAsArrayBuffer(event.data);
-                });
-            }).then(event => {
-                assert_true(compare(event.target.result, message5), 'receive a Blob correctly');
-                connection.terminate();
+            return Promise.all([ watchHandler, watcher.wait_for(type) ]).then(results => {
+                assert_equals(results[0], results[1], 'Both on' + type + ' and addEventListener pass the same event object.');
+                return results[0];
             });
+        };
+
+        t.add_cleanup(() => {
+            if (connection) {
+                connection.onconnect = () => { connection.terminate(); };
+                if (connection.state === 'closed')
+                    request.reconnect(connection.id);
+                else
+                    connection.terminate();
+            }
+            const notice = document.getElementById('notice');
+            notice.parentNode.removeChild(notice);
+            stash.stop();
         });
-    };
+
+        return Promise.all([
+            clickWatcher.wait_for('click'),
+            stash.init()
+        ]).then(() => {
+            presentBtn.disabled = true;
+            return request.start();
+        }).then(c => {
+            connection = c;
+            assert_equals(connection.state, 'connecting', 'the initial state of the presentation connection is "connecting"');
+            assert_equals(connection.binaryType, 'arraybuffer', 'the default value of binaryType is "arraybuffer"');
+
+            // enable timeout again, cause no user action is needed from here.
+            t.step_timeout(() => {
+                t.force_timeout();
+                t.done();
+            }, 5000);
+
+            watcher = new EventWatcher(t, connection, 'connect');
+            return watcher.wait_for('connect');
+        }).then(() => {
+            return stash.init();
+        }).then(() => {
+            eventWatcher = new EventWatcher(t, connection, 'message');
+            // Tell receiving page to start sending messages, and wait for first message
+            return Promise.all([
+                stash.send('onmessage'),
+                watchEvent(connection, eventWatcher, 'message')
+            ]).then(results => results[1]);
+        }).then(event => {
+            checkEvent(event);
+            assert_equals(event.data, message1, 'receive a string correctly');
+            return watchEvent(connection, eventWatcher, 'message');
+        }).then(event => {
+            checkEvent(event);
+            assert_equals(event.data, message2, 'receive a string correctly');
+            return watchEvent(connection, eventWatcher, 'message');
+        }).then(event => {
+            checkEvent(event);
+            assert_true(event.data instanceof ArrayBuffer, 'receive binary data as ArrayBuffer');
+            assert_true(compare(event.data, message3), 'receive an ArrayBuffer correctly (originally a Blob at a receiving user agent)');
+            return watchEvent(connection, eventWatcher, 'message');
+        }).then(event => {
+            checkEvent(event);
+            assert_true(event.data instanceof ArrayBuffer, 'receive binary data as ArrayBuffer');
+            assert_true(compare(event.data, message4), 'receive an ArrayBuffer correctly (originally an ArrayBuffer at a receiving user agent)');
+            return watchEvent(connection, eventWatcher, 'message');
+        }).then(event => {
+            checkEvent(event);
+            assert_true(event.data instanceof ArrayBuffer, 'receive binary data as ArrayBuffer');
+            assert_true(compare(event.data, message5), 'receive an ArrayBuffer correctly (originally an ArrayBufferView at a receiving user agent)');
+
+            connection.binaryType = 'blob';
+            return Promise.all([
+                stash.send('blob'),
+                watchEvent(connection, eventWatcher, 'message')
+            ]).then(results => results[1]);
+        }).then(event => {
+            assert_true(event.data instanceof Blob, 'receive binary data as Blob');
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = resolve;
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(event.data);
+            });
+        }).then(event => {
+            assert_true(compare(event.target.result, message5), 'receive a Blob correctly');
+            connection.terminate();
+        });
+    });
 </script>

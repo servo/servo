@@ -5,12 +5,14 @@
 <script src=/resources/testharnessreport.js></script>
 <div id="log"></div>
 <script>
+  let option = {timeout: 50};
+
   async_test(function (t) {
     assert_false(document.hidden, "document.hidden must exist and be false to run this test properly");
     var counter = 0;
     function f(c) {
       assert_equals(counter, c);
-      if (counter === 99) {
+      if (counter === 49) {
         t.done();
       }
 
@@ -18,7 +20,7 @@
     }
     for (var i = 0; i < 100; ++i) {
       let j = i;
-      window.requestIdleCallback(t.step_func(function () { f(j) }));
+      window.requestIdleCallback(t.step_func(function () { f(j) }), option);
     }
   }, "requestIdleCallback callbacks should be invoked in order (called iteratively)");
 
@@ -28,14 +30,17 @@
 
     function f(c) {
       assert_equals(counter, c);
-      if (counter === 99) {
+      if (counter === 49) {
         t.done();
       }
 
       ++counter;
-      window.requestIdleCallback(t.step_func(function () { f(c + 1) }));
+      window.requestIdleCallback(t.step_func(function () { f(c + 1) }), option);
     }
 
-    window.requestIdleCallback(t.step_func(function () { f(0) }));
+    window.requestIdleCallback(t.step_func(function () { f(0) }), option);
   }, "requestIdleCallback callbacks should be invoked in order (called recursively)");
+
+  let generateIdlePeriods = _ => requestAnimationFrame(generateIdlePeriods);
+  generateIdlePeriods();
 </script>

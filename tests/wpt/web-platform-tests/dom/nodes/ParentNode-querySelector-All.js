@@ -45,6 +45,9 @@ function setupSpecialElements(doc, parent) {
 
   parent.appendChild(anyNS);
   parent.appendChild(noNS);
+
+  var span = doc.getElementById("attr-presence-i1");
+  span.setAttributeNS("http://www.example.org/ns", "title", "");
 }
 
 /*

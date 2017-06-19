@@ -1,7 +1,6 @@
 [
     {
         "type": "typedef",
-        "typeExtAttrs": [],
         "idlType": {
             "sequence": false,
             "generic": null,

@@ -1,0 +1,184 @@
+[
+    {
+        "type": "interface",
+        "name": "Foo",
+        "partial": false,
+        "members": [
+            {
+                "type": "operation",
+                "getter": false,
+                "setter": false,
+                "creator": false,
+                "deleter": false,
+                "legacycaller": false,
+                "static": false,
+                "stringifier": false,
+                "idlType": {
+                    "sequence": false,
+                    "generic": null,
+                    "nullable": false,
+                    "array": false,
+                    "union": false,
+                    "idlType": "void"
+                },
+                "name": "foo",
+                "arguments": [
+                    {
+                        "optional": false,
+                        "variadic": false,
+                        "extAttrs": [],
+                        "idlType": {
+                            "sequence": true,
+                            "generic": "sequence",
+                            "nullable": false,
+                            "array": false,
+                            "union": false,
+                            "idlType": {
+                                "sequence": false,
+                                "generic": "record",
+                                "nullable": false,
+                                "array": false,
+                                "union": false,
+                                "idlType": [
+                                    {
+                                        "sequence": false,
+                                        "generic": null,
+                                        "nullable": false,
+                                        "array": false,
+                                        "union": false,
+                                        "idlType": "ByteString"
+                                    },
+                                    {
+                                        "sequence": false,
+                                        "generic": null,
+                                        "nullable": false,
+                                        "array": false,
+                                        "union": false,
+                                        "idlType": "any"
+                                    }
+                                ]
+                            }
+                        },
+                        "name": "param"
+                    }
+                ],
+                "extAttrs": []
+            },
+            {
+                "type": "operation",
+                "getter": false,
+                "setter": false,
+                "creator": false,
+                "deleter": false,
+                "legacycaller": false,
+                "static": false,
+                "stringifier": false,
+                "idlType": {
+                    "sequence": false,
+                    "generic": "record",
+                    "nullable": false,
+                    "array": false,
+                    "union": false,
+                    "idlType": [
+                        {
+                            "sequence": false,
+                            "generic": null,
+                            "nullable": false,
+                            "array": false,
+                            "union": false,
+                            "idlType": "DOMString"
+                        },
+                        {
+                            "sequence": false,
+                            "generic": null,
+                            "nullable": true,
+                            "array": false,
+                            "union": true,
+                            "idlType": [
+                                {
+                                    "sequence": false,
+                                    "generic": null,
+                                    "nullable": false,
+                                    "array": false,
+                                    "union": false,
+                                    "idlType": "float"
+                                },
+                                {
+                                    "sequence": false,
+                                    "generic": null,
+                                    "nullable": false,
+                                    "array": false,
+                                    "union": false,
+                                    "idlType": "DOMString"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "name": "bar",
+                "arguments": [],
+                "extAttrs": []
+            },
+            {
+                "type": "operation",
+                "getter": false,
+                "setter": false,
+                "creator": false,
+                "deleter": false,
+                "legacycaller": false,
+                "static": false,
+                "stringifier": false,
+                "idlType": {
+                    "sequence": false,
+                    "generic": null,
+                    "nullable": false,
+                    "array": false,
+                    "union": false,
+                    "idlType": "record"
+                },
+                "name": "baz",
+                "arguments": [],
+                "extAttrs": []
+            }
+        ],
+        "inheritance": null,
+        "extAttrs": [
+            {
+                "name": "Constructor",
+                "arguments": [
+                    {
+                        "optional": false,
+                        "variadic": false,
+                        "extAttrs": [],
+                        "idlType": {
+                            "sequence": false,
+                            "generic": "record",
+                            "nullable": false,
+                            "array": false,
+                            "union": false,
+                            "idlType": [
+                                {
+                                    "sequence": false,
+                                    "generic": null,
+                                    "nullable": false,
+                                    "array": false,
+                                    "union": false,
+                                    "idlType": "USVString"
+                                },
+                                {
+                                    "sequence": false,
+                                    "generic": null,
+                                    "nullable": false,
+                                    "array": false,
+                                    "union": false,
+                                    "idlType": "USVString"
+                                }
+                            ]
+                        },
+                        "name": "init"
+                    }
+                ]
+            }
+        ]
+    }
+]

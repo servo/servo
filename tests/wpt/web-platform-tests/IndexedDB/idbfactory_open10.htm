@@ -81,6 +81,8 @@
                 });
                 idx.getKey("Sicking").onsuccess = this.step_func(function(e) {
                     assert_equals(e.target.result, undefined, "getKey(Sicking)");
+
+                    db3.close();
                     this.done();
                 });
             });

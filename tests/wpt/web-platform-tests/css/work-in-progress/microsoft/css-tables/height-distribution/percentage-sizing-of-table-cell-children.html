@@ -2,7 +2,6 @@
 <!--------------------------------------------------------------------------------------->
 <script src='/resources/testharness.js'></script>
 <script src='/resources/testharnessreport.js'></script>
-<link rel='stylesheet' href='/resources/testharness.css'>
 <link rel='stylesheet' href='../base.css' />
 <script>
 
@@ -12,19 +11,19 @@
 		generate_tests(assert_equals, [
 			[
 				desc.textContent,
-				root.querySelector("[target="+a+"]").offsetWidth, 
+				root.querySelector("[target="+a+"]").offsetWidth,
 				targetValue
 			]
 		]);
 	}
-	
+
 	function assertOffsetHeightEquals(a,targetValue) {
 		var desc = document.querySelector('main > hr:last-of-type + p + p') || document.querySelectorAll('main > hr + p + p')[document.querySelectorAll('main > hr + p + p').length-1];
 		var root = document.querySelector('main > div:last-of-type') || document.querySelectorAll('main > div')[document.querySelectorAll('main > div').length-1];
 		generate_tests(assert_equals, [
 			[
 				desc.textContent,
-				root.querySelector("[target="+a+"]").offsetHeight, 
+				root.querySelector("[target="+a+"]").offsetHeight,
 				targetValue
 			]
 		]);
@@ -38,7 +37,7 @@
 	<h1>Height distribution</h1>
 	<p>Check that percentages are accounted for correctly for table-cell children</p>
 
-	
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>There should be a 100px blue square below:</p>
 	<p>Percentages resolve based on the column width</p>
@@ -48,12 +47,12 @@
 		</x-table>
 	</div>
 	<script>
-	
+
 		assertOffsetWidthEquals('a',100);
-		
+
 	</script>
-	
-	
+
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>There should be a 100px blue square below:</p>
 	<p>Percentages resolve based on the row height</p>
@@ -63,11 +62,11 @@
 		</x-table>
 	</div>
 	<script>
-	
+
 		assertOffsetHeightEquals('a',100);
-		
+
 	</script>
-	
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>There should be a 100px blue square below:</p>
 	<p>Percentages resolve based on the final column width</p>
@@ -78,12 +77,12 @@
 		</x-table>
 	</div>
 	<script>
-	
+
 		assertOffsetWidthEquals('a',100);
-		
+
 	</script>
-	
-	
+
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>There should be a 100px blue square below:</p>
 	<p>Percentages resolve based on the final row height</p>
@@ -96,12 +95,12 @@
 		</x-table>
 	</div>
 	<script>
-	
+
 		assertOffsetHeightEquals('a',100);
-		
+
 	</script>
-	
-	
+
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>There should be a blue and cyan rectangles of the same width:</p>
 	<p>Unresolvable percentage widths are resolved as auto in first pass (replaced elements)</p>
@@ -112,12 +111,12 @@
 		<input style="background:cyan; appearance:none; -webkit-appearance:none; border:0;margin:0;padding:0;" />
 	</div>
 	<script>
-	
+
 		assertOffsetWidthEquals('a',document.querySelector('input[style="background:cyan; appearance:none; -webkit-appearance:none; border:0;margin:0;padding:0;"]').offsetWidth);
-		
+
 	</script>
-	
-	
+
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>There should be a blue and cyan rectangles below of the same height:</p>
 	<p>Unresolvable percentage heights are resolved as auto in first pass (replaced elements)</p>
@@ -128,12 +127,12 @@
 		<input style="background:cyan; appearance:none; -webkit-appearance:none; border:0;margin:0;padding:0;" />
 	</div>
 	<script>
-	
+
 		assertOffsetHeightEquals('a',document.querySelector('input[style="background:cyan; appearance:none; -webkit-appearance:none; border:0;margin:0;padding:0;"]').offsetHeight);
-		
+
 	</script>
-	
-	
+
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>There should be a 100px blue square below:</p>
 	<p>Unresolvable percentage widths are resolved as auto in first pass (unscrollable overflow)</p>
@@ -143,12 +142,12 @@
 		</x-table>
 	</div>
 	<script>
-	
+
 		assertOffsetWidthEquals('a',100);
-		
+
 	</script>
-	
-	
+
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>There should be a 100px blue square below:</p>
 	<p>Unresolvable percentage heights are resolved as auto in first pass (unscrollable overflow)</p>
@@ -160,12 +159,12 @@
 		</x-table>
 	</div>
 	<script>
-	
+
 		assertOffsetHeightEquals('a',100);
-		
+
 	</script>
-	
-	
+
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>There should be a 100px blue square below:</p>
 	<p>Unresolvable percentage widths are resolved as auto in first pass (scrollable overflow)</p>
@@ -175,12 +174,12 @@
 		</x-table>
 	</div>
 	<script>
-	
+
 		assertOffsetWidthEquals('a',100);
-		
+
 	</script>
-	
-	
+
+
 	<hr/><!------------------------------------------------------------------------------------------------------------>
 	<p>There should be a 100px blue square below:</p>
 	<p>Unresolvable percentage heights are resolved as 0px in first pass (scrollable overflow)</p>
@@ -191,9 +190,9 @@
 		</x-table>
 	</div>
 	<script>
-	
+
 		assertOffsetHeightEquals('a',0);
-		
+
 	</script>
-	
+
 </main>

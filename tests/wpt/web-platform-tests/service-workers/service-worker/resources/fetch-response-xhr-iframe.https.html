@@ -23,11 +23,29 @@ function coalesce_headers_test() {
   .then(function(xhr) {
       window.parent.postMessage({results: xhr.getResponseHeader('foo')},
                                 host_info['HTTPS_ORIGIN']);
+
+      return new Promise(function(resolve) {
+          window.addEventListener('message', function handle(evt) {
+              if (event.data !== 'ACK') {
+                return;
+              }
+
+              window.removeEventListener('message', handle);
+              resolve();
+            });
+        });
     });
 }
 
 window.addEventListener('message', function(evt) {
-    var port = evt.ports[0];
+    var port;
+
+    if (event.data !== 'START') {
+      return;
+    }
+
+    port = evt.ports[0];
+
     coalesce_headers_test()
       .then(function() { port.postMessage({results: 'finish'}); })
       .catch(function(e) { port.postMessage({results: 'failure:' + e}); });

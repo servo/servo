@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+
+<meta charset="utf-8">
+<title>Terminating a presentation in a receiving browsing context</title>
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs/">
+<link rel="help" href="https://w3c.github.io/presentation-api/#terminating-a-presentation-in-a-receiving-browsing-context">
+<script src="../common.js"></script>
+<script src="stash.js"></script>
+
+<script>
+  const stash = new Stash(stashIds.toReceiver, stashIds.toController);
+
+  navigator.presentation.receiver.connectionList.then(list => {
+    const connection = list.connections[0];
+
+    // terminate a presentation when two presentation connections become "connected"
+    list.onconnectionavailable = evt => {
+      connection.terminate();
+
+      stash.sendBeacon({ type: (window.closed ? 'ok' : 'error') });
+    };
+  });
+</script>

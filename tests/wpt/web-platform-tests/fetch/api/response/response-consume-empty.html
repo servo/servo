@@ -11,14 +11,14 @@
   </head>
   <body>
     <script>
-    function checkBodyText(response) {
+    function checkBodyText(test, response) {
       return response.text().then(function(bodyAsText) {
         assert_equals(bodyAsText, "", "Resolved value should be empty");
         assert_false(response.bodyUsed);
       });
     }
 
-    function checkBodyBlob(response) {
+    function checkBodyBlob(test, response) {
       return response.blob().then(function(bodyAsBlob) {
         var promise = new Promise(function(resolve, reject) {
           var reader = new FileReader();
@@ -37,14 +37,14 @@
       });
     }
 
-    function checkBodyArrayBuffer(response) {
+    function checkBodyArrayBuffer(test, response) {
       return response.arrayBuffer().then(function(bodyAsArrayBuffer) {
         assert_equals(bodyAsArrayBuffer.byteLength, 0, "Resolved value should be empty");
         assert_false(response.bodyUsed);
       });
     }
 
-    function checkBodyJSON(response) {
+    function checkBodyJSON(test, response) {
       return response.json().then(
         function(bodyAsJSON) {
           assert_unreached("JSON parsing should fail");
@@ -54,27 +54,34 @@
         });
     }
 
-    function checkBodyFormData(response) {
+    function checkBodyFormData(test, response) {
       return response.formData().then(function(bodyAsFormData) {
         assert_true(bodyAsFormData instanceof FormData, "Should receive a FormData");
         assert_false(response.bodyUsed);
      });
     }
 
-    function checkResponseWithNoBody(bodyType, checkFunction) {
-      promise_test(function(test) {
-        var response = new Response();
+    function checkBodyFormDataError(test, response) {
+      return promise_rejects(test, new TypeError(), response.formData()).then(function() {
         assert_false(response.bodyUsed);
-        return checkFunction(response);
+      });
+    }
+
+    function checkResponseWithNoBody(bodyType, checkFunction, headers = []) {
+      promise_test(function(test) {
+        var response = new Response(undefined, { "headers": headers });
+        assert_false(response.bodyUsed);
+        return checkFunction(test, response);
       }, "Consume response's body as " + bodyType);
     }
 
-    var formData = new FormData();
     checkResponseWithNoBody("text", checkBodyText);
     checkResponseWithNoBody("blob", checkBodyBlob);
     checkResponseWithNoBody("arrayBuffer", checkBodyArrayBuffer);
-    checkResponseWithNoBody("json", checkBodyJSON);
-    checkResponseWithNoBody("formData", checkBodyFormData);
+    checkResponseWithNoBody("json (error case)", checkBodyJSON);
+    checkResponseWithNoBody("formData with correct multipart type (error case)", checkBodyFormDataError, [["Content-Type", 'multipart/form-data; boundary="boundary"']]);
+    checkResponseWithNoBody("formData with correct urlencoded type", checkBodyFormData, [["Content-Type", "application/x-www-form-urlencoded;charset=UTF-8"]]);
+    checkResponseWithNoBody("formData without correct type (error case)", checkBodyFormDataError);
 
     function checkResponseWithEmptyBody(bodyType, body, asText) {
       promise_test(function(test) {

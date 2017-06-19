@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): scale3d() on a Bitmap</title>
+    <link rel="author" title="Aryeh Gregor" href="mailto:ayg@aryeh.name">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-2/#three-d-transform-functions">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-2/#funcdef-scale3d">
+    <meta name="assert" content="This tests that applying a simple 3D transform
+    to a bitmap image works properly.  This is motivated by a real-world
+    implementation bug: <https://bugzilla.mozilla.org/show_bug.cgi?id=735373>.">
+    <link rel="match" href="transform-lime-square-ref.html">
+  </head>
+  <body>
+    <img src="support/transform-lime-square.png" height="50" width="50"
+    style="transform: scale3d(2, 2, 2); transform-origin: 0 0">
+  </body>
+</html>

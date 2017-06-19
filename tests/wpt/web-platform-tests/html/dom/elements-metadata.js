@@ -12,7 +12,12 @@ var metadataElements = {
     crossOrigin: {type: "enum", keywords: ["anonymous", "use-credentials"], nonCanon:{"": "anonymous"}, isNullable: true, defaultVal: null, invalidVal: "anonymous"},
     rel: "string",
     relList: {type: "tokenlist", domAttrName: "rel"},
-    // as: {}, XXX TODO: reflecting IDL attribute is an IDL enumeration
+    as: {
+      type: "enum",
+      keywords: ["fetch", "audio", "document", "embed", "font", "image", "manifest", "object", "report", "script", "serviceworker", "sharedworker", "style", "track", "video", "worker", "xslt"],
+      defaultVal: "",
+      invalidVal: ""
+    },
     media: "string",
     nonce: "string",
     integrity: "string",

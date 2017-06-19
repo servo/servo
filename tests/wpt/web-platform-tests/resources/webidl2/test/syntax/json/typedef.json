@@ -44,7 +44,6 @@
     },
     {
         "type": "typedef",
-        "typeExtAttrs": [],
         "idlType": {
             "sequence": true,
             "generic": "sequence",
@@ -206,19 +205,19 @@
     },
     {
         "type": "typedef",
-        "typeExtAttrs": [
-            {
-                "name": "Clamp",
-                "arguments": null
-            }
-        ],
         "idlType": {
             "sequence": false,
             "generic": null,
             "nullable": false,
             "array": false,
             "union": false,
-            "idlType": "octet"
+            "idlType": "octet",
+            "extAttrs": [
+                {
+                    "name": "Clamp",
+                    "arguments": null
+                }
+            ]
         },
         "name": "value",
         "extAttrs": []

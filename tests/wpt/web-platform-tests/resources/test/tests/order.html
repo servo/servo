@@ -1,0 +1,39 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Ordering</title>
+<meta name="timeout" content="6000">
+</head>
+<body>
+<div id="log"></div>
+<script src="../../testharness.js"></script>
+<script src="../../testharnessreport.js"></script>
+<script>
+test(function() {}, 'second');
+test(function() {}, 'first');
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "OK",
+    "message": null,
+    "stack": null
+  },
+  "summarized_tests": [{
+    "status_string": "PASS",
+    "name": "first",
+    "stack": null,
+    "message": null,
+    "properties": {}
+  }, {
+    "status_string": "PASS",
+    "name": "second",
+    "stack": null,
+    "message": null,
+    "properties": {}
+  }],
+  "type": "complete"
+}
+</script>
+</body>
+</html>

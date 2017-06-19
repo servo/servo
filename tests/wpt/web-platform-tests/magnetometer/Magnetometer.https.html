@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Magnetometer Test</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://www.w3.org/TR/magnetometer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/generic-sensor/generic-sensor-tests.js"></script>
+<div id="log"></div>
+<iframe src="support-iframe.html" id="frame" style="display:none" sandbox="allow-scripts">
+</iframe>
+<script>
+
+runGenericSensorTests(Magnetometer);
+
+</script>

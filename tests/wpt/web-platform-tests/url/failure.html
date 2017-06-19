@@ -33,6 +33,10 @@ function runTests(testData) {
     self.test(() => {
       assert_throws(new TypeError, () => self[0].location = test.input)
     }, "Location's href: " + name)
+
+    self.test(() => {
+      assert_throws("SyntaxError", () => self.open(test.input).close())
+    }, "window.open(): " + name)
   }
 }
 </script>

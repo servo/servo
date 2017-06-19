@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<!-- Copyright © 2017 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<meta charset="utf-8">
+<title>Test for onshippingoptionchange attribute</title>
+<link rel="help" href="https://w3c.github.io/browser-payment-api/#onshippingoptionchange-attribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+const basicCard = Object.freeze({ supportedMethods: ["basic-card"] });
+const defaultMethods = Object.freeze([basicCard]);
+const defaultDetails = Object.freeze({
+  total: {
+    label: "Total",
+    amount: {
+      currency: "USD",
+      value: "1.00",
+    },
+  },
+});
+
+test(() => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  const ev = new Event("shippingoptionchange");
+  let didHandle = false;
+  request.onshippingoptionchange = evt => {
+    assert_equals(ev, evt, "must be same event");
+    didHandle = true;
+  };
+  request.dispatchEvent(ev);
+  assert_true(didHandle, "event did not fire");
+}, `onshippingoptionchange attribute is a generic handler for "shippingoptionchange"`);
+
+test(() => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  const ev = new PaymentRequestUpdateEvent("shippingoptionchange");
+  let didHandle = false;
+  request.onshippingoptionchange = evt => {
+    assert_equals(ev, evt, "must be same event");
+    didHandle = true;
+  };
+  request.dispatchEvent(ev);
+  assert_true(didHandle, "event did not fire");
+}, `onshippingoptionchange attribute is a handler for PaymentRequestUpdateEvent`);
+
+test(() => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  const ev = new PaymentRequestUpdateEvent("shippingoptionchange");
+  let didHandle = false;
+  let didListen = false;
+  request.onshippingoptionchange = evt => {
+    assert_equals(ev, evt, "must be same event");
+    didHandle = true;
+  };
+  request.addEventListener("shippingoptionchange", evt => {
+    assert_equals(ev, evt, "must be same event");
+    didListen = true;
+  });
+  request.dispatchEvent(ev);
+  assert_true(didHandle, "onshippingoptionchange did not receive the event");
+  assert_true(didListen, "addEventListener did not receive the event");
+}, `onshippingoptionchange attribute and listeners both work`);
+
+</script>

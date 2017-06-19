@@ -9,7 +9,7 @@
 <link rel=preload href="resources/dummy.css" as=style>
 <link rel=preload href="resources/square.png" as=image>
 <link rel=preload href="resources/square.png?background" as=image>
-<link rel=preload href="/media/CanvasTest.ttf" as=font crossorigin>
+<link rel=preload href="/fonts/CanvasTest.ttf" as=font crossorigin>
 <link rel=preload href="/media/white.mp4" as=video>
 <link rel=preload href="/media/sound_5.oga" as=audio>
 <link rel=preload href="/media/foo.vtt" as=track>
@@ -25,7 +25,7 @@
     }
     @font-face {
       font-family:ahem;
-      src: url(/media/CanvasTest.ttf);
+      src: url(/fonts/CanvasTest.ttf);
     }
     span { font-family: ahem, Arial; }
 </style>
@@ -49,7 +49,7 @@
             verifyNumberOfDownloads("resources/dummy.css", 1);
             verifyNumberOfDownloads("resources/square.png", 1);
             verifyNumberOfDownloads("resources/square.png?background", 1);
-            verifyNumberOfDownloads("/media/CanvasTest.ttf", 1);
+            verifyNumberOfDownloads("/fonts/CanvasTest.ttf", 1);
             verifyNumberOfDownloads("resources/dummy.xml?foobar", 0);
             verifyNumberOfDownloads("/media/foo.vtt", 1);
             verifyNumberOfDownloads("resources/dummy.xml", 1);

@@ -1,0 +1,20 @@
+[general]
+tests=/path/to/web-platform-tests/
+metadata=/path/to/web-platform-tests/
+ssl-type=none
+
+# [firefox]
+# binary=/path/to/firefox
+# prefs-root=/path/to/gecko-src/testing/profiles/
+
+# [servo]
+# binary=/path/to/servo-src/target/release/servo
+# exclude=testharness # Because it needs a special testharness.js
+
+# [servodriver]
+# binary=/path/to/servo-src/target/release/servo
+# exclude=testharness # Because it needs a special testharness.js
+
+# [chrome]
+# binary=/path/to/chrome
+# webdriver-binary=/path/to/chromedriver
