@@ -910,6 +910,18 @@ pub extern "C" fn Servo_StyleSet_InsertStyleSheetBefore(raw_data: RawServoStyleS
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_StyleSet_UpdateStyleSheet(raw_data: RawServoStyleSetBorrowed,
+                                                  raw_sheet: RawServoStyleSheetBorrowed,
+                                                  unique_id: u64) {
+    let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
+    let sheet = HasArcFFI::as_arc(&raw_sheet);
+    data.stylesheets.update_stylesheet(
+        sheet,
+        unique_id);
+    data.clear_stylist();
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_StyleSet_RemoveStyleSheet(raw_data: RawServoStyleSetBorrowed,
                                                   unique_id: u64) {
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
