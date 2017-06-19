@@ -1517,10 +1517,6 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozMeterOptimum |
             NonTSPseudoClass::MozMeterSubOptimum |
             NonTSPseudoClass::MozMeterSubSubOptimum |
-            NonTSPseudoClass::MozHasDirAttr |
-            NonTSPseudoClass::MozDirAttrLTR |
-            NonTSPseudoClass::MozDirAttrRTL |
-            NonTSPseudoClass::MozDirAttrLikeAuto |
             NonTSPseudoClass::MozAutofill |
             NonTSPseudoClass::MozAutofillPreview => {
                 self.get_state().intersects(pseudo_class.state_flag())
