@@ -1491,19 +1491,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         };
 
         if wait_for_stable_image {
-            match self.is_ready_to_paint_image_output() {
-                Ok(()) => {
-                    // The current image is ready to output. However, if there are animations active,
-                    // tick those instead and continue waiting for the image output to be stable AND
-                    // all active animations to complete.
-                    if self.animations_active() {
-                        self.process_animations();
-                        return Err(UnableToComposite::NotReadyToPaintImage(NotReadyToPaint::AnimationsActive));
-                    }
-                }
-                Err(result) => {
-                    return Err(UnableToComposite::NotReadyToPaintImage(result))
-                }
+            // The current image may be ready to output. However, if there are animations active,
+            // tick those instead and continue waiting for the image output to be stable AND
+            // all active animations to complete.
+            if self.animations_active() {
+                self.process_animations();
+                return Err(UnableToComposite::NotReadyToPaintImage(NotReadyToPaint::AnimationsActive));
+            }
+            if let Err(result) = self.is_ready_to_paint_image_output() {
+                return Err(UnableToComposite::NotReadyToPaintImage(result))
             }
         }
 
