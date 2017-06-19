@@ -26,7 +26,7 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use js::conversions::ToJSValConvertible;
-use js::jsapi::{Construct1, IsConstructor, HandleValueArray, HandleObject};
+use js::jsapi::{Construct1, IsCallable, IsConstructor, HandleValueArray, HandleObject, MutableHandleValue};
 use js::jsapi::{JS_GetProperty, JSAutoCompartment, JSContext};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use std::cell::Cell;
@@ -94,15 +94,14 @@ impl CustomElementRegistry {
     /// https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define
     /// Steps 10.1, 10.2
     #[allow(unsafe_code)]
-    fn check_prototype(&self, constructor: HandleObject) -> ErrorResult {
+    fn check_prototype(&self, constructor: HandleObject, prototype: MutableHandleValue) -> ErrorResult {
         let global_scope = self.window.upcast::<GlobalScope>();
-        rooted!(in(global_scope.get_cx()) let mut prototype = UndefinedValue());
         unsafe {
             // Step 10.1
             if !JS_GetProperty(global_scope.get_cx(),
                                constructor,
                                b"prototype\0".as_ptr() as *const _,
-                               prototype.handle_mut()) {
+                               prototype) {
                 return Err(Error::JSFailed);
             }
 
@@ -112,6 +111,49 @@ impl CustomElementRegistry {
             }
         }
         Ok(())
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define
+    /// Steps 10.3, 10.4
+    #[allow(unsafe_code)]
+    fn get_callbacks(&self, prototype: HandleObject) -> Fallible<LifecycleCallbacks> {
+        macro_rules! get_callback {
+            ($cx:ident, $proto:ident, $callbacks:ident, $field:ident, $name:expr) => ({
+                rooted!(in($cx) let mut callback = UndefinedValue());
+
+                // Step 4.1
+                if unsafe { !JS_GetProperty($cx,
+                                    $proto,
+                                    $name.as_ptr() as *const _,
+                                    callback.handle_mut()) } {
+                    return Err(Error::JSFailed);
+                }
+
+                // Step 4.2
+                if !callback.is_undefined() {
+                    if !callback.is_object() || unsafe { !IsCallable(callback.to_object()) } {
+                        return Err(Error::Type("Lifecycle callback is not callable".to_owned()));
+                    }
+                    $callbacks.$field = Some(Function::new($cx, callback.to_object()));
+                }
+            })
+        }
+
+        let cx = self.window.get_cx();
+        let mut callbacks = LifecycleCallbacks {
+            connected_callback: None,
+            disconnected_callback: None,
+            adopted_callback: None,
+            attribute_changed_callback: None,
+        };
+
+        // Step 4
+        get_callback!(cx, prototype, callbacks, connected_callback, b"connectedCallback\0");
+        get_callback!(cx, prototype, callbacks, disconnected_callback, b"disconnectedCallback\0");
+        get_callback!(cx, prototype, callbacks, adopted_callback, b"adoptedCallback\0");
+        get_callback!(cx, prototype, callbacks, attribute_changed_callback, b"attributeChangedCallback\0");
+
+        Ok(callbacks)
     }
 }
 
@@ -173,22 +215,38 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         self.element_definition_is_running.set(true);
 
         // Steps 10.1 - 10.2
-        let result = {
+        rooted!(in(global_scope.get_cx()) let mut prototype = UndefinedValue());
+        {
             let _ac = JSAutoCompartment::new(global_scope.get_cx(), constructor.get());
-            self.check_prototype(constructor.handle())
+            if let Err(error) = self.check_prototype(constructor.handle(), prototype.handle_mut()) {
+                self.element_definition_is_running.set(false);
+                return Err(error);
+            }
         };
 
-        // TODO: Steps 10.3 - 10.6
-        // 10.3 - 10.4 Handle lifecycle callbacks
-        // 10.5 - 10.6 Get observed attributes from the constructor
+        // Steps 10.3 - 10.4
+        rooted!(in(global_scope.get_cx()) let proto_object = prototype.to_object());
+        let callbacks = {
+            let _ac = JSAutoCompartment::new(global_scope.get_cx(), proto_object.get());
+            match self.get_callbacks(proto_object.handle()) {
+                Ok(callbacks) => callbacks,
+                Err(error) => {
+                    self.element_definition_is_running.set(false);
+                    return Err(error);
+                },
+            }
+        };
+
+        // TODO: Steps 10.5 - 10.6
+        // Get observed attributes from the constructor
 
         self.element_definition_is_running.set(false);
-        result?;
 
         // Step 11
         let definition = CustomElementDefinition::new(name.clone(),
                                                       local_name,
-                                                      constructor_);
+                                                      constructor_,
+                                                      callbacks);
 
         // Step 12
         self.definitions.borrow_mut().insert(name.clone(), Rc::new(definition));
@@ -254,6 +312,21 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
     }
 }
 
+#[derive(HeapSizeOf, JSTraceable, Clone)]
+pub struct LifecycleCallbacks {
+    #[ignore_heap_size_of = "Rc"]
+    connected_callback: Option<Rc<Function>>,
+
+    #[ignore_heap_size_of = "Rc"]
+    disconnected_callback: Option<Rc<Function>>,
+
+    #[ignore_heap_size_of = "Rc"]
+    adopted_callback: Option<Rc<Function>>,
+
+    #[ignore_heap_size_of = "Rc"]
+    attribute_changed_callback: Option<Rc<Function>>,
+}
+
 /// https://html.spec.whatwg.org/multipage/#custom-element-definition
 #[derive(HeapSizeOf, JSTraceable, Clone)]
 pub struct CustomElementDefinition {
@@ -263,14 +336,17 @@ pub struct CustomElementDefinition {
 
     #[ignore_heap_size_of = "Rc"]
     pub constructor: Rc<Function>,
+
+    pub callbacks: LifecycleCallbacks,
 }
 
 impl CustomElementDefinition {
-    fn new(name: LocalName, local_name: LocalName, constructor: Rc<Function>) -> CustomElementDefinition {
+    fn new(name: LocalName, local_name: LocalName, constructor: Rc<Function>, callbacks: LifecycleCallbacks) -> CustomElementDefinition {
         CustomElementDefinition {
             name: name,
             local_name: local_name,
             constructor: constructor,
+            callbacks: callbacks,
         }
     }
 
