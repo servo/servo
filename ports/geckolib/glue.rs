@@ -3066,5 +3066,5 @@ pub extern "C" fn Servo_StyleSet_MightHaveAttributeDependency(raw_data: RawServo
 pub extern "C" fn Servo_StyleSet_HasStateDependency(raw_data: RawServoStyleSetBorrowed,
                                                     state: u64) -> bool {
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
-    data.stylist.has_state_dependency(ElementState::from_bits_truncate(state))
+    data.stylist.might_have_state_dependency(ElementState::from_bits_truncate(state))
 }
