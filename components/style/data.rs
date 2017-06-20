@@ -100,8 +100,24 @@ impl RestyleData {
 
 /// A list of styles for eagerly-cascaded pseudo-elements.
 /// Lazily-allocated.
-#[derive(Clone, Debug)]
-pub struct EagerPseudoStyles(pub Option<Box<[Option<Arc<ComputedValues>>]>>);
+#[derive(Debug)]
+pub struct EagerPseudoStyles(pub Option<Box<[Option<Arc<ComputedValues>>; EAGER_PSEUDO_COUNT]>>);
+
+// Manually implement `Clone` here because the derived impl of `Clone` for
+// array types assumes the value inside is `Copy`.
+impl Clone for EagerPseudoStyles {
+    fn clone(&self) -> Self {
+        if self.0.is_none() {
+            return EagerPseudoStyles(None)
+        }
+        let self_values = self.0.as_ref().unwrap();
+        let mut values: [Option<Arc<ComputedValues>>; EAGER_PSEUDO_COUNT] = Default::default();
+        for i in 0..EAGER_PSEUDO_COUNT {
+            values[i] = self_values[i].clone();
+        }
+        EagerPseudoStyles(Some(Box::new(values)))
+    }
+}
 
 impl EagerPseudoStyles {
     /// Returns whether there are any pseudo styles.
@@ -129,7 +145,7 @@ impl EagerPseudoStyles {
     /// Sets the style for the eager pseudo.
     pub fn set(&mut self, pseudo: &PseudoElement, value: Arc<ComputedValues>) {
         if self.0.is_none() {
-            self.0 = Some(vec![None; EAGER_PSEUDO_COUNT].into_boxed_slice());
+            self.0 = Some(Box::new(Default::default()));
         }
         self.0.as_mut().unwrap()[pseudo.eager_index()] = Some(value);
     }
