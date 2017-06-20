@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use ipc_channel::ipc::{self, IpcSender};
-use script_traits::ScriptMsg as ConstellationMsg;
+use ipc_channel::ipc::channel;
+use script_traits::{ScriptToConstellationChan, ScriptMsg};
 use std::borrow::ToOwned;
 
 pub trait ClipboardProvider {
@@ -13,14 +13,14 @@ pub trait ClipboardProvider {
     fn set_clipboard_contents(&mut self, String);
 }
 
-impl ClipboardProvider for IpcSender<ConstellationMsg> {
+impl ClipboardProvider for ScriptToConstellationChan {
     fn clipboard_contents(&mut self) -> String {
-        let (tx, rx) = ipc::channel().unwrap();
-        self.send(ConstellationMsg::GetClipboardContents(tx)).unwrap();
+        let (tx, rx) = channel().unwrap();
+        self.send(ScriptMsg::GetClipboardContents(tx)).unwrap();
         rx.recv().unwrap()
     }
     fn set_clipboard_contents(&mut self, s: String) {
-        self.send(ConstellationMsg::SetClipboardContents(s)).unwrap();
+        self.send(ScriptMsg::SetClipboardContents(s)).unwrap();
     }
 }
 

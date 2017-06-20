@@ -81,7 +81,7 @@ use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventC
 use script_thread::{ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg, Runnable};
 use script_thread::{RunnableWrapper, ScriptThread, SendableMainThreadScriptChan};
 use script_traits::{ConstellationControlMsg, DocumentState, LoadData, MozBrowserEvent};
-use script_traits::{ScriptMsg as ConstellationMsg, ScrollState, TimerEvent, TimerEventId};
+use script_traits::{ScriptToConstellationChan, ScriptMsg, ScrollState, TimerEvent, TimerEventId};
 use script_traits::{TimerSchedulerMsg, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use selectors::attr::CaseSensitivity;
@@ -511,11 +511,7 @@ impl WindowMethods for Window {
         }
 
         let (sender, receiver) = ipc::channel().unwrap();
-        let global_scope = self.upcast::<GlobalScope>();
-        global_scope
-            .constellation_chan()
-            .send(ConstellationMsg::Alert(global_scope.pipeline_id(), s.to_string(), sender))
-            .unwrap();
+        self.send_to_constellation(ScriptMsg::Alert(s.to_string(), sender));
 
         let should_display_alert_dialog = receiver.recv().unwrap();
         if should_display_alert_dialog {
@@ -920,10 +916,7 @@ impl WindowMethods for Window {
         // Step 1
         //TODO determine if this operation is allowed
         let size = Size2D::new(x.to_u32().unwrap_or(1), y.to_u32().unwrap_or(1));
-        self.upcast::<GlobalScope>()
-            .constellation_chan()
-            .send(ConstellationMsg::ResizeTo(size))
-            .unwrap()
+        self.send_to_constellation(ScriptMsg::ResizeTo(size));
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-resizeby
@@ -938,10 +931,7 @@ impl WindowMethods for Window {
         // Step 1
         //TODO determine if this operation is allowed
         let point = Point2D::new(x, y);
-        self.upcast::<GlobalScope>()
-            .constellation_chan()
-            .send(ConstellationMsg::MoveTo(point))
-            .unwrap()
+        self.send_to_constellation(ScriptMsg::MoveTo(point));
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-moveby
@@ -1161,9 +1151,8 @@ impl Window {
         // TODO (farodin91): Raise an event to stop the current_viewport
         self.update_viewport_for_scroll(x, y);
 
-        let global_scope = self.upcast::<GlobalScope>();
-        let message = ConstellationMsg::ScrollFragmentPoint(scroll_root_id, point, smooth);
-        global_scope.constellation_chan().send(message).unwrap();
+        let message = ScriptMsg::ScrollFragmentPoint(scroll_root_id, point, smooth);
+        self.send_to_constellation(message);
     }
 
     pub fn update_viewport_for_scroll(&self, x: f32, y: f32) {
@@ -1174,10 +1163,7 @@ impl Window {
 
     pub fn client_window(&self) -> (Size2D<u32>, Point2D<i32>) {
         let (send, recv) = ipc::channel::<(Size2D<u32>, Point2D<i32>)>().unwrap();
-        self.upcast::<GlobalScope>()
-            .constellation_chan()
-            .send(ConstellationMsg::GetClientWindow(send))
-            .unwrap();
+        self.send_to_constellation(ScriptMsg::GetClientWindow(send));
         recv.recv().unwrap_or((Size2D::zero(), Point2D::zero()))
     }
 
@@ -1373,9 +1359,8 @@ impl Window {
 
             let pending_images = self.pending_layout_images.borrow().is_empty();
             if ready_state == DocumentReadyState::Complete && !reftest_wait && pending_images {
-                let global_scope = self.upcast::<GlobalScope>();
-                let event = ConstellationMsg::SetDocumentState(global_scope.pipeline_id(), DocumentState::Idle);
-                global_scope.constellation_chan().send(event).unwrap();
+                let event = ScriptMsg::SetDocumentState(DocumentState::Idle);
+                self.send_to_constellation(event);
             }
         }
 
@@ -1775,6 +1760,13 @@ impl Window {
     pub fn unminified_js_dir(&self) -> Option<String> {
         self.unminified_js_dir.borrow().clone()
     }
+
+    fn send_to_constellation(&self, msg: ScriptMsg) {
+        self.upcast::<GlobalScope>()
+            .script_to_constellation_chan()
+            .send(msg)
+            .unwrap();
+    }
 }
 
 impl Window {
@@ -1793,7 +1785,7 @@ impl Window {
                mem_profiler_chan: MemProfilerChan,
                time_profiler_chan: TimeProfilerChan,
                devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-               constellation_chan: IpcSender<ConstellationMsg>,
+               constellation_chan: ScriptToConstellationChan,
                control_chan: IpcSender<ConstellationControlMsg>,
                scheduler_chan: IpcSender<TimerSchedulerMsg>,
                timer_event_chan: IpcSender<TimerEvent>,

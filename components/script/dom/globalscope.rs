@@ -37,7 +37,7 @@ use net_traits::{CoreResourceThread, ResourceThreads, IpcSend};
 use profile_traits::{mem, time};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_thread::{MainThreadScriptChan, RunnableWrapper, ScriptThread};
-use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEvent};
+use script_traits::{MsDuration, ScriptToConstellationChan, TimerEvent};
 use script_traits::{TimerEventId, TimerSchedulerMsg, TimerSource};
 use servo_url::{MutableOrigin, ServoUrl};
 use std::cell::Cell;
@@ -80,7 +80,7 @@ pub struct GlobalScope {
 
     /// A handle for communicating messages to the constellation thread.
     #[ignore_heap_size_of = "channels are hard"]
-    constellation_chan: IpcSender<ConstellationMsg>,
+    script_to_constellation_chan: ScriptToConstellationChan,
 
     #[ignore_heap_size_of = "channels are hard"]
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
@@ -104,7 +104,7 @@ impl GlobalScope {
             devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
             mem_profiler_chan: mem::ProfilerChan,
             time_profiler_chan: time::ProfilerChan,
-            constellation_chan: IpcSender<ConstellationMsg>,
+            script_to_constellation_chan: ScriptToConstellationChan,
             scheduler_chan: IpcSender<TimerSchedulerMsg>,
             resource_threads: ResourceThreads,
             timer_event_chan: IpcSender<TimerEvent>,
@@ -120,7 +120,7 @@ impl GlobalScope {
             devtools_chan: devtools_chan,
             mem_profiler_chan: mem_profiler_chan,
             time_profiler_chan: time_profiler_chan,
-            constellation_chan: constellation_chan,
+            script_to_constellation_chan: script_to_constellation_chan,
             scheduler_chan: scheduler_chan.clone(),
             in_error_reporting_mode: Default::default(),
             resource_threads: resource_threads,
@@ -231,8 +231,8 @@ impl GlobalScope {
     }
 
     /// Get a sender to the constellation thread.
-    pub fn constellation_chan(&self) -> &IpcSender<ConstellationMsg> {
-        &self.constellation_chan
+    pub fn script_to_constellation_chan(&self) -> &ScriptToConstellationChan {
+        &self.script_to_constellation_chan
     }
 
     pub fn scheduler_chan(&self) -> &IpcSender<TimerSchedulerMsg> {

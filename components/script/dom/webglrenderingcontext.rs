@@ -50,7 +50,7 @@ use js::typedarray::{TypedArray, TypedArrayElement, Float32, Int32};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageResponse;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
-use script_traits::ScriptMsg as ConstellationMsg;
+use script_traits::ScriptMsg;
 use servo_config::prefs::PREFS;
 use std::cell::Cell;
 use std::collections::HashMap;
@@ -172,8 +172,8 @@ impl WebGLRenderingContext {
         }
 
         let (sender, receiver) = ipc::channel().unwrap();
-        let constellation_chan = window.upcast::<GlobalScope>().constellation_chan();
-        constellation_chan.send(ConstellationMsg::CreateWebGLPaintThread(size, attrs, sender))
+        let script_to_constellation_chan = window.upcast::<GlobalScope>().script_to_constellation_chan();
+        script_to_constellation_chan.send(ScriptMsg::CreateWebGLPaintThread(size, attrs, sender))
                           .unwrap();
         let result = receiver.recv().unwrap();
 

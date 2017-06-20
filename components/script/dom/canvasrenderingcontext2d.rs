@@ -39,7 +39,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageResponse;
 use num_traits::ToPrimitive;
-use script_traits::ScriptMsg as ConstellationMsg;
+use script_traits::ScriptMsg;
 use servo_url::ServoUrl;
 use std::{cmp, fmt};
 use std::cell::Cell;
@@ -114,8 +114,8 @@ impl CanvasRenderingContext2D {
                      size: Size2D<i32>)
                      -> CanvasRenderingContext2D {
         let (sender, receiver) = ipc::channel().unwrap();
-        let constellation_chan = global.constellation_chan();
-        constellation_chan.send(ConstellationMsg::CreateCanvasPaintThread(size, sender)).unwrap();
+        let script_to_constellation_chan = global.script_to_constellation_chan();
+        script_to_constellation_chan.send(ScriptMsg::CreateCanvasPaintThread(size, sender)).unwrap();
         let ipc_renderer = receiver.recv().unwrap();
         CanvasRenderingContext2D {
             reflector_: Reflector::new(),

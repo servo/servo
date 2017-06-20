@@ -88,7 +88,7 @@ use profile::mem as profile_mem;
 use profile::time as profile_time;
 use profile_traits::mem;
 use profile_traits::time;
-use script_traits::{ConstellationMsg, SWManagerSenders, ScriptMsg};
+use script_traits::{ConstellationMsg, SWManagerSenders, ScriptToConstellationChan};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_config::resource_files::resources_dir_path;
@@ -362,10 +362,10 @@ impl<Log1, Log2> Log for BothLogger<Log1, Log2> where Log1: Log, Log2: Log {
     }
 }
 
-pub fn set_logger(constellation_chan: IpcSender<ScriptMsg>) {
+pub fn set_logger(script_to_constellation_chan: ScriptToConstellationChan) {
     log::set_logger(|max_log_level| {
         let env_logger = EnvLogger::new();
-        let con_logger = FromScriptLogger::new(constellation_chan);
+        let con_logger = FromScriptLogger::new(script_to_constellation_chan);
         let filter = max(env_logger.filter(), con_logger.filter());
         let logger = BothLogger(env_logger, con_logger);
         max_log_level.set(filter);
@@ -384,7 +384,7 @@ pub fn run_content_process(token: String) {
     let unprivileged_content = unprivileged_content_receiver.recv().unwrap();
     opts::set_defaults(unprivileged_content.opts());
     PREFS.extend(unprivileged_content.prefs());
-    set_logger(unprivileged_content.constellation_chan());
+    set_logger(unprivileged_content.script_to_constellation_chan().clone());
 
     // Enter the sandbox if necessary.
     if opts::get().sandbox {

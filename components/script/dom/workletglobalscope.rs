@@ -21,7 +21,7 @@ use msg::constellation_msg::PipelineId;
 use net_traits::ResourceThreads;
 use profile_traits::mem;
 use profile_traits::time;
-use script_traits::ScriptMsg;
+use script_traits::{ScriptToConstellationChan, ScriptMsg};
 use script_traits::TimerSchedulerMsg;
 use servo_url::ImmutableOrigin;
 use servo_url::MutableOrigin;
@@ -51,7 +51,10 @@ impl WorkletGlobalScope {
                                                     init.devtools_chan.clone(),
                                                     init.mem_profiler_chan.clone(),
                                                     init.time_profiler_chan.clone(),
-                                                    init.constellation_chan.clone(),
+                                                    ScriptToConstellationChan {
+                                                        sender: init.script_sender.clone(),
+                                                        pipeline_id: pipeline_id,
+                                                    },
                                                     init.scheduler_chan.clone(),
                                                     init.resource_threads.clone(),
                                                     timer_event_chan,
@@ -114,7 +117,7 @@ pub struct WorkletGlobalScopeInit {
     /// Channel to devtools
     pub devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// Messages to send to constellation
-    pub constellation_chan: IpcSender<ScriptMsg>,
+    pub script_sender: IpcSender<(PipelineId, ScriptMsg)>,
     /// Message to send to the scheduler
     pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
 }

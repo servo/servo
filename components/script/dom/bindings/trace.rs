@@ -73,7 +73,7 @@ use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_layout_interface::OpaqueStyleAndLayoutData;
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::LayoutRPC;
-use script_traits::{DocumentActivity, TimerEventId, TimerSource, TouchpadPressurePhase};
+use script_traits::{DocumentActivity, ScriptToConstellationChan, TimerEventId, TimerSource, TouchpadPressurePhase};
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use selectors::matching::ElementSelectorFlags;
 use serde::{Deserialize, Serialize};
@@ -390,6 +390,7 @@ unsafe_no_jsmanaged_fields!(WebGLTextureId);
 unsafe_no_jsmanaged_fields!(WebGLVertexArrayId);
 unsafe_no_jsmanaged_fields!(MediaList);
 unsafe_no_jsmanaged_fields!(WebVRGamepadHand);
+unsafe_no_jsmanaged_fields!(ScriptToConstellationChan);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]
