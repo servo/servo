@@ -1645,7 +1645,8 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             }
             NonTSPseudoClass::MozTableBorderNonzero |
             NonTSPseudoClass::MozBrowserFrame |
-            NonTSPseudoClass::MozNativeAnonymous => unsafe {
+            NonTSPseudoClass::MozNativeAnonymous |
+            NonTSPseudoClass::MozUseShadowTreeRoot => unsafe {
                 Gecko_MatchesElement(pseudo_class.to_gecko_pseudoclasstype().unwrap(), self.0)
             },
             NonTSPseudoClass::MozIsHTML => {
@@ -1733,6 +1734,24 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         let node_info = node.node_info();
         node_info.mInner.mNamespaceID == (structs::root::kNameSpaceID_XHTML as i32) &&
         node.owner_doc().mType == structs::root::nsIDocument_Type::eHTML
+    }
+
+    fn blocks_ancestor_combinators(&self) -> bool {
+        use gecko_bindings::structs::NODE_IS_ANONYMOUS_ROOT;
+        if self.flags() & (NODE_IS_ANONYMOUS_ROOT as u32) == 0 {
+            return false
+        }
+
+        match self.parent_element() {
+            Some(e) => {
+                // If this element is the shadow root of an use-element shadow
+                // tree, according to the spec, we should not match rules
+                // cross the shadow DOM boundary.
+                e.get_local_name().as_ptr() == atom!("use").as_ptr() &&
+                e.get_namespace() == &*Namespace(atom!("http://www.w3.org/2000/svg"))
+            },
+            None => false,
+        }
     }
 }
 

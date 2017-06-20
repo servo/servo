@@ -532,8 +532,12 @@ fn matches_complex_selector_internal<E, F>(mut selector_iter: SelectorIter<E::Im
                      SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant)
                 }
                 Combinator::Child | Combinator::Descendant => {
-                    (element.parent_element(),
-                     SelectorMatchingResult::NotMatchedGlobally)
+                    if element.blocks_ancestor_combinators() {
+                        (None, SelectorMatchingResult::NotMatchedGlobally)
+                    } else {
+                        (element.parent_element(),
+                         SelectorMatchingResult::NotMatchedGlobally)
+                    }
                 }
                 Combinator::PseudoElement => {
                     (element.pseudo_element_originating_element(),
