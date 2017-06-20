@@ -180,6 +180,8 @@ pub struct Window {
     mouse_down_point: Cell<Point2D<i32>>,
     event_queue: RefCell<Vec<WindowEvent>>,
 
+    browser_id: Cell<Option<BrowserId>>,
+
     mouse_pos: Cell<Point2D<i32>>,
     key_modifiers: Cell<KeyModifiers>,
     current_url: RefCell<Option<ServoUrl>>,
@@ -213,6 +215,14 @@ fn window_creation_scale_factor() -> ScaleFactor<f32, DeviceIndependentPixel, De
 
 
 impl Window {
+    pub fn set_browser_id(&self, browser_id: BrowserId) {
+        self.browser_id.set(Some(browser_id));
+    }
+
+    pub fn browser_id(&self) -> BrowserId {
+        self.browser_id.get().unwrap()
+    }
+
     pub fn new(is_foreground: bool,
                window_size: TypedSize2D<u32, DeviceIndependentPixel>,
                parent: Option<glutin::WindowID>) -> Rc<Window> {
@@ -304,6 +314,8 @@ impl Window {
             event_queue: RefCell::new(vec!()),
             mouse_down_button: Cell::new(None),
             mouse_down_point: Cell::new(Point2D::new(0, 0)),
+
+            browser_id: Cell::new(None),
 
             mouse_pos: Cell::new(Point2D::new(0, 0)),
             key_modifiers: Cell::new(KeyModifiers::empty()),
@@ -923,10 +935,10 @@ impl Window {
     fn platform_handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
         match (mods, key) {
             (CMD_OR_CONTROL, Key::LeftBracket) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(self.browser_id(), WindowNavigateMsg::Back));
             }
             (CMD_OR_CONTROL, Key::RightBracket) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Forward));
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(self.browser_id(), WindowNavigateMsg::Forward));
             }
             _ => {}
         }
@@ -1209,10 +1221,10 @@ impl WindowMethods for Window {
             }
 
             (NONE, None, Key::NavigateForward) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Forward));
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(self.browser_id(), WindowNavigateMsg::Forward));
             }
             (NONE, None, Key::NavigateBackward) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(self.browser_id(), WindowNavigateMsg::Back));
             }
 
             (NONE, None, Key::Escape) => {
@@ -1222,10 +1234,10 @@ impl WindowMethods for Window {
             }
 
             (CMD_OR_ALT, None, Key::Right) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Forward));
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(self.browser_id(), WindowNavigateMsg::Forward));
             }
             (CMD_OR_ALT, None, Key::Left) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(self.browser_id(), WindowNavigateMsg::Back));
             }
 
             (NONE, None, Key::PageDown) => {
@@ -1271,7 +1283,7 @@ impl WindowMethods for Window {
             }
             (CMD_OR_CONTROL, Some('r'), _) => {
                 if let Some(true) = PREFS.get("shell.builtin-key-shortcuts.enabled").as_boolean() {
-                    self.event_queue.borrow_mut().push(WindowEvent::Reload);
+                    self.event_queue.borrow_mut().push(WindowEvent::Reload(self.browser_id()));
                 }
             }
             (CMD_OR_CONTROL, Some('q'), _) => {
