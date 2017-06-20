@@ -13,7 +13,8 @@ use string_cache::{Atom, WeakAtom};
 
 #[macro_export]
 macro_rules! ns {
-    () => { $crate::string_cache::Namespace(atom!("")) }
+    () => { $crate::string_cache::Namespace(atom!("")) };
+    ($s: tt) => { $crate::string_cache::Namespace(atom!($s)) };
 }
 
 /// A Gecko namespace is just a wrapped atom.

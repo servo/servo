@@ -1747,8 +1747,8 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                 // If this element is the shadow root of an use-element shadow
                 // tree, according to the spec, we should not match rules
                 // cross the shadow DOM boundary.
-                e.get_local_name().as_ptr() == atom!("use").as_ptr() &&
-                e.get_namespace() == &*Namespace(atom!("http://www.w3.org/2000/svg"))
+                e.get_local_name() == &*local_name!("use") &&
+                e.get_namespace() == &*ns!("http://www.w3.org/2000/svg")
             },
             None => false,
         }
