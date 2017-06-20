@@ -1112,8 +1112,7 @@ impl StrongRuleNode {
                     CascadeLevel::UANormal |
                     CascadeLevel::UAImportant |
                     CascadeLevel::UserNormal |
-                    CascadeLevel::UserImportant |
-                    CascadeLevel::XBL => {
+                    CascadeLevel::UserImportant  => {
                         for (id, declaration) in longhands {
                             if properties.contains(id) {
                                 // This property was set by a non-author rule.
@@ -1136,6 +1135,7 @@ impl StrongRuleNode {
                     }
                     // Author rules:
                     CascadeLevel::PresHints |
+                    CascadeLevel::XBL |
                     CascadeLevel::AuthorNormal |
                     CascadeLevel::StyleAttributeNormal |
                     CascadeLevel::SMILOverride |
