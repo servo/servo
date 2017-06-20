@@ -333,7 +333,7 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
         //
         // Since we keep the traversal flags in terms of the flattened tree,
         // we need to propagate it as appropriate.
-        if invalidated_child && child.parent_element() != Some(self.element) {
+        if invalidated_child {
             let mut current = child.traversal_parent();
             while let Some(parent) = current.take() {
                 if parent == self.element {
