@@ -20,8 +20,9 @@
 use parser::{Combinator, Component, SelectorImpl};
 use servo_arc::{Arc, HeaderWithLength, ThinArc};
 use sink::Push;
-use smallvec::SmallVec;
+use smallvec::{self, SmallVec};
 use std::cmp;
+use std::iter;
 use std::ops::Add;
 use std::ptr;
 use std::slice;
@@ -115,46 +116,38 @@ impl<Impl: SelectorImpl> SelectorBuilder<Impl> {
         let header = HeaderWithLength::new(spec, full_len);
 
         // Create the Arc using an iterator that drains our buffers.
-        let iter = SelectorBuilderIter::new(self, full_len);
+
+        // Use a raw pointer to be able to call set_len despite "borrowing" the slice.
+        // This is similar to SmallVec::drain, but we use a slice here because
+        // we’re gonna traverse it non-linearly.
+        let raw_simple_selectors: *const [Component<Impl>] = &*self.simple_selectors;
+        unsafe {
+            // Panic-safety: if SelectorBuilderIter is not iterated to the end,
+            // some simple selectors will safely leak.
+            self.simple_selectors.set_len(0)
+        }
+        let (rest, current) = split_from_end(unsafe { &*raw_simple_selectors }, self.current_len);
+        let iter = SelectorBuilderIter {
+            current_simple_selectors: current.iter(),
+            rest_of_simple_selectors: rest,
+            combinators: self.combinators.drain().rev(),
+        };
+
         Arc::into_thin(Arc::from_header_and_iter(header, iter))
     }
 }
 
 struct SelectorBuilderIter<'a, Impl: SelectorImpl> {
-    builder: &'a mut SelectorBuilder<Impl>,
-    end: *const Component<Impl>,
-    base: *const Component<Impl>,
-    ptr: *const Component<Impl>,
-    full_len: usize,
-}
-
-impl<'a, Impl: SelectorImpl> SelectorBuilderIter<'a, Impl> {
-    fn new(builder: &'a mut SelectorBuilder<Impl>, full_len: usize) -> Self {
-        // Store a pointer to the end of the array of simple selectors,
-        // and set ourselves up to iterate the rightmost compound selector.
-        let sequence_base = &*builder.simple_selectors as *const [Component<Impl>] as *const Component<Impl>;
-        let end = unsafe { sequence_base.offset(builder.simple_selectors.len() as isize) };
-        let base = unsafe { end.offset(-(builder.current_len as isize)) };
-        let ptr = base;
-
-        // Next, tell the SmallVec to forget about its entries so that they
-        // won't be dropped when it frees its buffer. We're transferring
-        // ownership into the selector.
-        unsafe { builder.simple_selectors.set_len(0); }
-
-        SelectorBuilderIter {
-            builder: builder,
-            end: end,
-            base: base,
-            ptr: ptr,
-            full_len: full_len,
-        }
-    }
+    current_simple_selectors: slice::Iter<'a, Component<Impl>>,
+    rest_of_simple_selectors: &'a [Component<Impl>],
+    combinators: iter::Rev<smallvec::Drain<'a, (Combinator, usize)>>,
 }
 
 impl<'a, Impl: SelectorImpl> ExactSizeIterator for SelectorBuilderIter<'a, Impl> {
     fn len(&self) -> usize {
-        self.full_len
+        self.current_simple_selectors.len() +
+        self.rest_of_simple_selectors.len() +
+        self.combinators.len()
     }
 }
 
@@ -162,24 +155,20 @@ impl<'a, Impl: SelectorImpl> Iterator for SelectorBuilderIter<'a, Impl> {
     type Item = Component<Impl>;
     #[inline(always)]
     fn next(&mut self) -> Option<Self::Item> {
-        // If ptr is below end, continue walking this compound selector.
-        if self.ptr != self.end {
-            debug_assert!(self.ptr < self.end);
-            let result = unsafe { Some(ptr::read(self.ptr)) };
-            self.ptr = unsafe { self.ptr.offset(1) };
-            return result;
-        }
-
-        if let Some((combinator, len)) = self.builder.combinators.pop() {
-            // There's another compound selector. Reset the pointers to iterate it,
-            // and then return the combinator.
-            self.end = self.base;
-            self.base = unsafe { self.end.offset(-(len as isize)) };
-            self.ptr = self.base;
-            Some(Component::Combinator(combinator))
+        if let Some(simple_selector_ref) = self.current_simple_selectors.next() {
+            // Move a simple selector out of this slice iterator.
+            // This is safe because we’ve called SmallVec::set_len(0) above,
+            // so SmallVec::drop won’t drop this simple selector.
+            unsafe {
+                Some(ptr::read(simple_selector_ref))
+            }
         } else {
-            // All done.
-            None
+            self.combinators.next().map(|(combinator, len)| {
+                let (rest, current) = split_from_end(self.rest_of_simple_selectors, len);
+                self.rest_of_simple_selectors = rest;
+                self.current_simple_selectors = current.iter();
+                Component::Combinator(combinator)
+            })
         }
     }
 
@@ -188,15 +177,8 @@ impl<'a, Impl: SelectorImpl> Iterator for SelectorBuilderIter<'a, Impl> {
     }
 }
 
-#[cfg(debug_assertions)]
-impl<'a, Impl: SelectorImpl> Drop for SelectorBuilderIter<'a, Impl> {
-    fn drop(&mut self) {
-        // Failing to iterate the entire builder would cause us to leak (but not
-        // crash). Verify that this doesn't happen.
-        debug_assert!(self.builder.simple_selectors.len() == 0);
-        debug_assert!(self.builder.combinators.len() == 0);
-        debug_assert!(self.ptr == self.end);
-    }
+fn split_from_end<T>(s: &[T], at: usize) -> (&[T], &[T]) {
+    s.split_at(s.len() - at)
 }
 
 pub const HAS_PSEUDO_BIT: u32 = 1 << 30;
