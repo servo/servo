@@ -1210,7 +1210,9 @@ impl FragmentDisplayListBuilding for Fragment {
                     (X::Left, Y::Top)
                         => -atan,
                 }
-            }
+            },
+            // FIXME: Implement this for -moz-linear-gradient.
+            LineDirection::PositionAngle(_, _) => unimplemented!(),
         };
 
         // Get correct gradient line length, based on:

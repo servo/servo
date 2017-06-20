@@ -205,7 +205,8 @@ impl nsStyleImage {
                     Gecko_CreateGradient(NS_STYLE_GRADIENT_SHAPE_LINEAR as u8,
                                          NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER as u8,
                                          gradient.repeating,
-                                         gradient.compat_mode == CompatMode::WebKit,
+                                         gradient.compat_mode != CompatMode::Modern,
+                                         gradient.compat_mode == CompatMode::Moz,
                                          stop_count as u32)
                 };
 
@@ -234,7 +235,23 @@ impl nsStyleImage {
                             (*gecko_gradient).mBgPosY
                                              .set_value(CoordDataValue::Percent(percent_y));
                         }
-                    }
+                    },
+                    LineDirection::PositionAngle(position, angle) => {
+                        unsafe {
+                            if let Some(position) = position {
+                                (*gecko_gradient).mBgPosX.set(position.horizontal);
+                                (*gecko_gradient).mBgPosY.set(position.vertical);
+                            } else {
+                                (*gecko_gradient).mBgPosX.set_value(CoordDataValue::None);
+                                (*gecko_gradient).mBgPosY.set_value(CoordDataValue::None);
+                            }
+                            if let Some(angle) = angle {
+                                (*gecko_gradient).mAngle.set(angle);
+                            } else {
+                                (*gecko_gradient).mAngle.set_value(CoordDataValue::None);
+                            }
+                        }
+                    },
                 }
                 gecko_gradient
             },
@@ -274,7 +291,8 @@ impl nsStyleImage {
                     Gecko_CreateGradient(gecko_shape,
                                          gecko_size,
                                          gradient.repeating,
-                                         gradient.compat_mode == CompatMode::WebKit,
+                                         gradient.compat_mode != CompatMode::Modern,
+                                         gradient.compat_mode == CompatMode::Moz,
                                          stop_count as u32)
                 };
 

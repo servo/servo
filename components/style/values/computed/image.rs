@@ -54,6 +54,8 @@ pub enum LineDirection {
     Angle(Angle),
     /// A corner.
     Corner(X, Y),
+    /// A Position and an Angle for legacy `-moz-` prefixed gradient.
+    PositionAngle(Option<Position>, Option<Angle>),
 }
 
 /// A computed radial gradient ending shape.
@@ -73,6 +75,7 @@ impl GenericLineDirection for LineDirection {
         match *self {
             LineDirection::Angle(angle) => angle.radians() == PI,
             LineDirection::Corner(..) => false,
+            LineDirection::PositionAngle(_, _) => false,
         }
     }
 
@@ -89,6 +92,20 @@ impl GenericLineDirection for LineDirection {
                 dest.write_str(" ")?;
                 y.to_css(dest)
             },
+            LineDirection::PositionAngle(position, angle) => {
+                let mut need_space = false;
+                if let Some(position) = position {
+                    position.to_css(dest)?;
+                    need_space = true;
+                }
+                if let Some(angle) = angle {
+                    if need_space {
+                        dest.write_str(" ")?;
+                    }
+                    angle.to_css(dest)?;
+                }
+                Ok(())
+            }
         }
     }
 }
@@ -116,6 +133,10 @@ impl ToComputedValue for SpecifiedLineDirection {
             SpecifiedLineDirection::Corner(x, y) => {
                 LineDirection::Corner(x, y)
             },
+            SpecifiedLineDirection::PositionAngle(ref position, ref angle) => {
+                LineDirection::PositionAngle(position.to_computed_value(context),
+                                             angle.to_computed_value(context))
+            },
         }
     }
 
@@ -126,6 +147,10 @@ impl ToComputedValue for SpecifiedLineDirection {
             },
             LineDirection::Corner(x, y) => {
                 SpecifiedLineDirection::Corner(x, y)
+            },
+            LineDirection::PositionAngle(ref position, ref angle) => {
+                SpecifiedLineDirection::PositionAngle(ToComputedValue::from_computed_value(position),
+                                                      ToComputedValue::from_computed_value(angle))
             },
         }
     }

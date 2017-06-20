@@ -49,25 +49,46 @@ define_css_keyword_enum! { Y:
 }
 add_impls_for_keyword_enum!(Y);
 
+/// Modern position syntax supports 3 and 4-value syntax. That means:
+/// If three or four values are given, then each <percentage> or <length> represents an offset
+/// and must be preceded by a keyword, which specifies from which edge the offset is given.
+/// For example, `bottom 10px right 20px` represents a `10px` vertical
+/// offset up from the bottom edge and a `20px` horizontal offset leftward from the right edge.
+/// If three values are given, the missing offset is assumed to be zero.
+/// But for some historical reasons we need to keep CSS Level 2 syntax which only supports up to
+/// 2-value. This enum represents whether position should parse modern syntax or legacy syntax.
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum PositionSyntax {
+    /// Modern syntax
+    Modern,
+    /// Legacy syntax
+    Legacy,
+}
+
 impl Parse for Position {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        Self::parse_quirky(context, input, AllowQuirks::No)
+        Self::parse_quirky(context, input, AllowQuirks::No, PositionSyntax::Modern)
     }
 }
 
 impl Position {
     /// Parses a `<position>`, with quirks.
+    /// Syntax parameter uses PositionSyntax to determine whether the syntax parsing
+    /// mode is modern or legacy.
     pub fn parse_quirky<'i, 't>(context: &ParserContext,
                                 input: &mut Parser<'i, 't>,
-                                allow_quirks: AllowQuirks)
+                                allow_quirks: AllowQuirks,
+                                syntax: PositionSyntax)
                                 -> Result<Self, ParseError<'i>> {
-        match input.try(|i| PositionComponent::parse_quirky(context, i, allow_quirks)) {
+        match input.try(|i| PositionComponent::parse_quirky(context, i, allow_quirks, syntax)) {
             Ok(x_pos @ PositionComponent::Center) => {
-                if let Ok(y_pos) = input.try(|i| PositionComponent::parse_quirky(context, i, allow_quirks)) {
+                if let Ok(y_pos) = input.try(|i|
+                    PositionComponent::parse_quirky(context, i, allow_quirks, syntax)) {
                     return Ok(Self::new(x_pos, y_pos));
                 }
                 let x_pos = input
-                    .try(|i| PositionComponent::parse_quirky(context, i, allow_quirks))
+                    .try(|i| PositionComponent::parse_quirky(context, i, allow_quirks, syntax))
                     .unwrap_or(x_pos);
                 let y_pos = PositionComponent::Center;
                 return Ok(Self::new(x_pos, y_pos));
@@ -79,12 +100,22 @@ impl Position {
                     return Ok(Self::new(x_pos, y_pos));
                 }
                 if let Ok(y_keyword) = input.try(Y::parse) {
-                    let y_lop = input.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks)).ok();
+                    let y_lop = match syntax {
+                        PositionSyntax::Modern => {
+                            input.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks)).ok()
+                        },
+                        PositionSyntax::Legacy => None,
+                    };
                     let x_pos = PositionComponent::Side(x_keyword, lop);
                     let y_pos = PositionComponent::Side(y_keyword, y_lop);
                     return Ok(Self::new(x_pos, y_pos));
                 }
                 let x_pos = PositionComponent::Side(x_keyword, None);
+                if syntax == PositionSyntax::Legacy {
+                    if let Ok(y_lop) = input.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks)) {
+                        return Ok(Self::new(x_pos, PositionComponent::Length(y_lop)))
+                    }
+                }
                 let y_pos = lop.map_or(PositionComponent::Center, PositionComponent::Length);
                 return Ok(Self::new(x_pos, y_pos));
             },
@@ -105,12 +136,22 @@ impl Position {
         }
         let y_keyword = Y::parse(input)?;
         let lop_and_x_pos: Result<_, ParseError> = input.try(|i| {
-            let y_lop = i.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks)).ok();
+            let y_lop = match syntax {
+                PositionSyntax::Modern => {
+                    i.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks)).ok()
+                },
+                PositionSyntax::Legacy => None,
+            };
             if let Ok(x_keyword) = i.try(X::parse) {
-                let x_lop = i.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks)).ok();
+                let x_lop = match syntax {
+                    PositionSyntax::Modern => {
+                        i.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks)).ok()
+                    },
+                    PositionSyntax::Legacy => None,
+                };
                 let x_pos = PositionComponent::Side(x_keyword, x_lop);
                 return Ok((y_lop, x_pos));
-            }
+            };
             i.expect_ident_matching("center")?;
             let x_pos = PositionComponent::Center;
             Ok((y_lop, x_pos))
@@ -122,6 +163,13 @@ impl Position {
         let x_pos = PositionComponent::Center;
         let y_pos = PositionComponent::Side(y_keyword, None);
         Ok(Self::new(x_pos, y_pos))
+    }
+
+    /// Parses legacy Position syntax.
+    pub fn parse_legacy<'i, 't>(context: &ParserContext,
+                                input: &mut Parser<'i, 't>)
+                                -> Result<Self, ParseError<'i>> {
+        Self::parse_quirky(context, input, AllowQuirks::No, PositionSyntax::Legacy)
     }
 
     /// `center center`
@@ -168,7 +216,7 @@ impl<S> HasViewportPercentage for PositionComponent<S> {
 
 impl<S: Parse> Parse for PositionComponent<S> {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        Self::parse_quirky(context, input, AllowQuirks::No)
+        Self::parse_quirky(context, input, AllowQuirks::No, PositionSyntax::Modern)
     }
 }
 
@@ -176,7 +224,8 @@ impl<S: Parse> PositionComponent<S> {
     /// Parses a component of a CSS position, with quirks.
     pub fn parse_quirky<'i, 't>(context: &ParserContext,
                                 input: &mut Parser<'i, 't>,
-                                allow_quirks: AllowQuirks)
+                                allow_quirks: AllowQuirks,
+                                syntax: PositionSyntax)
                                 -> Result<Self, ParseError<'i>> {
         if input.try(|i| i.expect_ident_matching("center")).is_ok() {
             return Ok(PositionComponent::Center);
@@ -185,6 +234,9 @@ impl<S: Parse> PositionComponent<S> {
             return Ok(PositionComponent::Length(lop));
         }
         let keyword = S::parse(context, input)?;
+        if syntax == PositionSyntax::Legacy {
+            return Ok(PositionComponent::Side(keyword, None));
+        }
         let lop = input.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks)).ok();
         Ok(PositionComponent::Side(keyword, lop))
     }
