@@ -7,6 +7,7 @@ import collections
 import os
 import sys
 import subprocess
+import platform
 
 DEFAULT_MOVE_UP_CODE = u"\x1b[A"
 DEFAULT_CLEAR_EOL_CODE = u"\x1b[K"
@@ -29,8 +30,12 @@ class GroupingFormatter(base.BaseFormatter):
 
         # TODO(mrobinson, 8313): We need to add support for Windows terminals here.
         if self.interactive:
-            self.line_width = int(subprocess.check_output(['stty', 'size']).split()[1])
             self.move_up, self.clear_eol = self.get_move_up_and_clear_eol_codes()
+            if platform.system() != "Windows":
+                self.line_width = int(subprocess.check_output(['stty', 'size']).split()[1])
+            else:
+                # Until we figure out proper Windows support, this makes things work well enough to run.
+                self.line_width = 80
 
         self.expected = {
             'OK': 0,

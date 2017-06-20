@@ -256,8 +256,10 @@ def exe_path(name):
         return
 
     path = find_executable(name)
-    if os.access(path, os.X_OK):
+    if path and os.access(path, os.X_OK):
         return path
+    else:
+        return None
 
 
 def check_args(kwargs):
