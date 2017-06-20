@@ -194,7 +194,7 @@ fn test_get_id_name() {
 #[test]
 fn test_get_class_name() {
     let (rules_list, _) = get_mock_rules(&[".intro.foo", "#top"]);
-    assert_eq!(selector_map::get_class_name(rules_list[0][0].selector.iter()), Some(Atom::from("foo")));
+    assert_eq!(selector_map::get_class_name(rules_list[0][0].selector.iter()), Some(Atom::from("intro")));
     assert_eq!(selector_map::get_class_name(rules_list[1][0].selector.iter()), None);
 }
 
@@ -220,8 +220,8 @@ fn test_insert() {
     selector_map.insert(rules_list[1][0].clone(), QuirksMode::NoQuirks);
     assert_eq!(1, selector_map.id_hash.get(&Atom::from("top"), QuirksMode::NoQuirks).unwrap()[0].source_order);
     selector_map.insert(rules_list[0][0].clone(), QuirksMode::NoQuirks);
-    assert_eq!(0, selector_map.class_hash.get(&Atom::from("foo"), QuirksMode::NoQuirks).unwrap()[0].source_order);
-    assert!(selector_map.class_hash.get(&Atom::from("intro"), QuirksMode::NoQuirks).is_none());
+    assert_eq!(0, selector_map.class_hash.get(&Atom::from("intro"), QuirksMode::NoQuirks).unwrap()[0].source_order);
+    assert!(selector_map.class_hash.get(&Atom::from("foo"), QuirksMode::NoQuirks).is_none());
 }
 
 #[test]

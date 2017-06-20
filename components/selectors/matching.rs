@@ -419,7 +419,7 @@ where
     }
 
     let mut local_context = LocalMatchingContext::new(context, selector);
-    for component in selector.iter_raw_rev_from(from_offset - 1) {
+    for component in selector.iter_raw_parse_order_from(from_offset - 1) {
         if matches!(*component, Component::Combinator(..)) {
             return CompoundSelectorMatchingResult::Matched {
                 next_combinator_offset: from_offset - 1,
@@ -460,24 +460,27 @@ pub fn matches_complex_selector<E, F>(mut iter: SelectorIter<E::Impl>,
         }
     }
 
+    // If this is the special pseudo-element mode, consume the ::pseudo-element
+    // before proceeding, since the caller has already handled that part.
     if context.shared.matching_mode == MatchingMode::ForStatelessPseudoElement {
-        match *iter.next().unwrap() {
-            // Stateful pseudo, just don't match.
-            Component::NonTSPseudoClass(..) => return false,
-            Component::PseudoElement(..) => {
-                // Pseudo, just eat the whole sequence.
-                let next = iter.next();
-                debug_assert!(next.is_none(),
-                              "Someone messed up pseudo-element parsing?");
+        // Consume the pseudo.
+        let pseudo = iter.next().unwrap();
+        debug_assert!(matches!(*pseudo, Component::PseudoElement(..)),
+                      "Used MatchingMode::ForStatelessPseudoElement in a non-pseudo selector");
 
-                if iter.next_sequence().is_none() {
-                    return true;
-                }
-                // Inform the context that the we've advanced to the next compound selector.
-                context.note_next_sequence(&mut iter);
-            }
-            _ => panic!("Used MatchingMode::ForStatelessPseudoElement in a non-pseudo selector"),
+        // The only other parser-allowed Component in this sequence is a state
+        // class. We just don't match in that case.
+        if let Some(s) = iter.next() {
+            debug_assert!(matches!(*s, Component::NonTSPseudoClass(..)),
+                          "Someone messed up pseudo-element parsing");
+            return false;
         }
+
+        // Advance to the non-pseudo-element part of the selector, and inform the context.
+        if iter.next_sequence().is_none() {
+            return true;
+        }
+        context.note_next_sequence(&mut iter);
     }
 
     match matches_complex_selector_internal(iter,
