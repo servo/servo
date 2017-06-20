@@ -30,7 +30,7 @@ impl ToNsCssValue for FamilyName {
 
 impl ToNsCssValue for font_weight::T {
     fn convert(self, nscssvalue: &mut nsCSSValue) {
-        nscssvalue.set_integer(self as i32)
+        nscssvalue.set_integer(self.0 as i32)
     }
 }
 

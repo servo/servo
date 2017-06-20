@@ -327,7 +327,7 @@ font_face_descriptors! {
         "font-style" style / mStyle: font_style::T = font_style::T::normal,
 
         /// The weight of this font face
-        "font-weight" weight / mWeight: font_weight::T = font_weight::T::Weight400 /* normal */,
+        "font-weight" weight / mWeight: font_weight::T = font_weight::T::normal(),
 
         /// The stretch of this font face
         "font-stretch" stretch / mStretch: font_stretch::T = font_stretch::T::normal,
