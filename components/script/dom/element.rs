@@ -1543,6 +1543,10 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-setattributenode
     fn SetAttributeNode(&self, attr: &Attr) -> Fallible<Option<Root<Attr>>> {
+        // Workaround for https://github.com/servo/servo/issues/17366
+        // This ensures that if this is an "id" attr, its value is an Atom
+        attr.swap_value(&mut self.parse_plain_attribute(attr.local_name(), attr.Value()));
+
         // Step 1.
         if let Some(owner) = attr.GetOwnerElement() {
             if &*owner != self {
