@@ -20,7 +20,7 @@ use parser::{ParserContext, log_css_error, Parse};
 use selectors::parser::SelectorParseError;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt;
-use style_traits::{ToCss, OneOrMoreCommaSeparated, ParseError, StyleParseError};
+use style_traits::{ToCss, OneOrMoreSeparated, CommaSeparator, ParseError, StyleParseError};
 use values::specified::url::SpecifiedUrl;
 
 /// A source for a font-face rule.
@@ -34,7 +34,9 @@ pub enum Source {
     Local(FamilyName),
 }
 
-impl OneOrMoreCommaSeparated for Source {}
+impl OneOrMoreSeparated for Source {
+    type S = CommaSeparator;
+}
 
 /// A `UrlSource` represents a font-face source that has been specified with a
 /// `url()` function.

@@ -55,17 +55,59 @@ impl ToCss for String {
     }
 }
 
-/// Marker trait to automatically implement ToCss for Vec<T>.
-pub trait OneOrMoreCommaSeparated {}
+/// Type used as the associated type in the `OneOrMoreSeparated` trait on a
+/// type to indicate that a serialized list of elements of this type is
+/// separated by commas.
+pub struct CommaSeparator;
 
-impl OneOrMoreCommaSeparated for UnicodeRange {}
+/// Type used as the associated type in the `OneOrMoreSeparated` trait on a
+/// type to indicate that a serialized list of elements of this type is
+/// separated by spaces.
+pub struct SpaceSeparator;
 
-impl<T> ToCss for Vec<T> where T: ToCss + OneOrMoreCommaSeparated {
+/// A trait satisfied by the types corresponding to separators.
+pub trait Separator {
+    /// The separator string that the satisfying separator type corresponds to.
+    fn separator() -> &'static str;
+}
+
+impl Separator for CommaSeparator {
+    fn separator() -> &'static str {
+        ", "
+    }
+}
+
+impl Separator for SpaceSeparator {
+    fn separator() -> &'static str {
+        " "
+    }
+}
+
+/// Trait that indicates that satisfying separator types are comma separators.
+/// This seems kind of redundant, but we aren't able to express type equality
+/// constraints yet.
+/// https://github.com/rust-lang/rust/issues/20041
+pub trait IsCommaSeparator {}
+
+impl IsCommaSeparator for CommaSeparator {}
+
+/// Marker trait on T to automatically implement ToCss for Vec<T> when T's are
+/// separated by some delimiter `delim`.
+pub trait OneOrMoreSeparated {
+    /// Associated type indicating which separator is used.
+    type S: Separator;
+}
+
+impl OneOrMoreSeparated for UnicodeRange {
+    type S = CommaSeparator;
+}
+
+impl<T> ToCss for Vec<T> where T: ToCss + OneOrMoreSeparated {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         let mut iter = self.iter();
         iter.next().unwrap().to_css(dest)?;
         for item in iter {
-            dest.write_str(", ")?;
+            dest.write_str(<T as OneOrMoreSeparated>::S::separator())?;
             item.to_css(dest)?;
         }
         Ok(())

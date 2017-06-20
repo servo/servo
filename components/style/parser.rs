@@ -7,7 +7,7 @@
 use context::QuirksMode;
 use cssparser::{Parser, SourcePosition, UnicodeRange};
 use error_reporting::{ParseErrorReporter, ContextualParseError};
-use style_traits::{OneOrMoreCommaSeparated, ParseError, ParsingMode};
+use style_traits::{OneOrMoreSeparated, IsCommaSeparator, ParseError, ParsingMode};
 #[cfg(feature = "gecko")]
 use style_traits::{PARSING_MODE_DEFAULT, PARSING_MODE_ALLOW_UNITLESS_LENGTH, PARSING_MODE_ALLOW_ALL_NUMERIC_VALUES};
 use stylesheets::{CssRuleType, Origin, UrlExtraData, Namespaces};
@@ -161,7 +161,9 @@ pub trait Parse : Sized {
                      -> Result<Self, ParseError<'i>>;
 }
 
-impl<T> Parse for Vec<T> where T: Parse + OneOrMoreCommaSeparated {
+impl<T> Parse for Vec<T> where T: Parse + OneOrMoreSeparated,
+                               <T as OneOrMoreSeparated>::S: IsCommaSeparator
+{
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                      -> Result<Self, ParseError<'i>> {
         input.parse_comma_separated(|input| T::parse(context, input))
