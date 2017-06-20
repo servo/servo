@@ -210,7 +210,7 @@ impl PaintWorkletGlobalScope {
         let width = size.width.to_px().abs() as u32;
         let height = size.height.to_px().abs() as u32;
         let len = (width as usize) * (height as usize) * 4;
-        let pixel = [0xFF, 0x00, 0x00, 0xFF];
+        let pixel = [0x00, 0x80, 0x00, 0xFF];
         let bytes: Vec<u8> = pixel.iter().cloned().cycle().take(len).collect();
         let mut image = Image {
             width: width,
