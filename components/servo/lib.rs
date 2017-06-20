@@ -104,6 +104,7 @@ use webvr::{WebVRThread, WebVRCompositorHandler};
 pub use gleam::gl;
 pub use servo_config as config;
 pub use servo_url as url;
+pub use msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
 
 /// The in-process interface to Servo.
 ///
@@ -203,7 +204,6 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         // as the navigation context.
         let (constellation_chan, sw_senders) = create_constellation(opts.user_agent.clone(),
                                                                     opts.config_dir.clone(),
-                                                                    target_url,
                                                                     compositor_proxy.clone_compositor_proxy(),
                                                                     time_profiler_chan.clone(),
                                                                     mem_profiler_chan.clone(),
@@ -234,10 +234,16 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
             webrender_api_sender: webrender_api_sender,
         });
 
-        Browser {
+        Servo {
             compositor: compositor,
             constellation_chan: constellation_chan,
         }
+    }
+
+    pub fn create_browser(&self, url: ServoUrl) -> Result<BrowserId,()> {
+        let (sender, receiver) = ipc::channel().expect("ipc channel failure");
+        self.constellation_chan.send(ConstellationMsg::NewTopLevelBrowsingContext(url, sender)).unwrap();
+        receiver.recv().map_err(|_| ())
     }
 
     pub fn handle_events(&mut self, events: Vec<WindowEvent>) -> bool {
@@ -283,7 +289,6 @@ fn create_compositor_channel(event_loop_waker: Box<compositor_thread::EventLoopW
 
 fn create_constellation(user_agent: Cow<'static, str>,
                         config_dir: Option<PathBuf>,
-                        url: ServoUrl,
                         compositor_proxy: CompositorProxy,
                         time_profiler_chan: time::ProfilerChan,
                         mem_profiler_chan: mem::ProfilerChan,
@@ -332,8 +337,6 @@ fn create_constellation(user_agent: Cow<'static, str>,
         webrender.set_vr_compositor_handler(handler);
         constellation_chan.send(ConstellationMsg::SetWebVRThread(webvr_thread)).unwrap();
     }
-
-    constellation_chan.send(ConstellationMsg::InitLoadUrl(url)).unwrap();
 
     // channels to communicate with Service Worker Manager
     let sw_senders = SWManagerSenders {

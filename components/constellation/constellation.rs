@@ -949,10 +949,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     println!("sent response");
                 }
             }
-            // This should only be called once per constellation, and only by the browser
-            FromCompositorMsg::InitLoadUrl(url) => {
+            // Create a new top level browsing context. Will use response_chan to return
+            // the browsing context id.
+            FromCompositorMsg::NewTopLevelBrowsingContext(url, response_chan) => {
                 debug!("constellation got init load URL message");
-                self.handle_init_load(url);
+                self.handle_new_top_level_browsing_context(url, response_chan);
             }
             // Handle a forward or back request
             FromCompositorMsg::TraverseHistory(top_level_browsing_context_id, direction) => {
@@ -1485,14 +1486,19 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn handle_init_load(&mut self, url: ServoUrl) {
+    fn handle_new_top_level_browsing_context(&mut self, url: ServoUrl, response_chan: IpcSender<TopLevelBrowsingContextId>) {
         let window_size = self.window_size.initial_viewport;
         let pipeline_id = PipelineId::new();
         let top_level_browsing_context_id = TopLevelBrowsingContextId::new();
+        if let Err(e) = response_chan.send(top_level_browsing_context_id) {
+            warn!("Failed to send newly created top level browsing context ({}).", e);
+        }
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
         let load_data = LoadData::new(url.clone(), None, None, None);
         let sandbox = IFrameSandboxState::IFrameUnsandboxed;
-        self.focus_pipeline_id = Some(pipeline_id);
+        if self.focus_pipeline_id.is_none() {
+            self.focus_pipeline_id = Some(pipeline_id);
+        }
         self.new_pipeline(pipeline_id,
                           browsing_context_id,
                           top_level_browsing_context_id,
