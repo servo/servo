@@ -218,7 +218,7 @@ impl RuleTree {
         // followed by any transition rule.
         //
 
-        for source in important_author.into_iter() {
+        for source in important_author.drain() {
             current = current.ensure_child(self.root.downgrade(), source, AuthorImportant);
         }
 
@@ -226,11 +226,11 @@ impl RuleTree {
             current = current.ensure_child(self.root.downgrade(), source, StyleAttributeImportant);
         }
 
-        for source in important_user.into_iter() {
+        for source in important_user.drain() {
             current = current.ensure_child(self.root.downgrade(), source, UserImportant);
         }
 
-        for source in important_ua.into_iter() {
+        for source in important_ua.drain() {
             current = current.ensure_child(self.root.downgrade(), source, UAImportant);
         }
 
@@ -302,7 +302,7 @@ impl RuleTree {
         let mut current = path.clone();
 
         // First walk up until the first less-or-equally specific rule.
-        let mut children = vec![];
+        let mut children = SmallVec::<[_; 10]>::new();
         while current.get().level > level {
             children.push((current.get().source.clone(), current.get().level));
             current = current.parent().unwrap().clone();
@@ -369,7 +369,9 @@ impl RuleTree {
 
         // Now the rule is in the relevant place, push the children as
         // necessary.
-        Some(self.insert_ordered_rules_from(current, children.into_iter().rev()))
+        let rule =
+            self.insert_ordered_rules_from(current, children.drain().rev());
+        Some(rule)
     }
 
     /// Returns new rule nodes without Transitions level rule.
@@ -392,7 +394,7 @@ impl RuleTree {
         let iter = path.self_and_ancestors().take_while(
             |node| node.cascade_level() >= CascadeLevel::SMILOverride);
         let mut last = path;
-        let mut children = vec![];
+        let mut children = SmallVec::<[_; 10]>::new();
         for node in iter {
             if !node.cascade_level().is_animation() {
                 children.push((node.get().source.clone(), node.cascade_level()));
@@ -400,7 +402,8 @@ impl RuleTree {
             last = node;
         }
 
-        self.insert_ordered_rules_from(last.parent().unwrap().clone(), children.into_iter().rev())
+        let rule = self.insert_ordered_rules_from(last.parent().unwrap().clone(), children.drain().rev());
+        rule
     }
 }
 
