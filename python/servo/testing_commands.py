@@ -45,7 +45,8 @@ WEB_PLATFORM_TESTS_PATH = os.path.join("tests", "wpt", "web-platform-tests")
 SERVO_TESTS_PATH = os.path.join("tests", "wpt", "mozilla", "tests")
 
 TEST_SUITES = OrderedDict([
-    ("tidy", {"kwargs": {"all_files": False, "no_progress": False, "self_test": False},
+    ("tidy", {"kwargs": {"all_files": False, "no_progress": False, "self_test": False,
+                         "stylo": False},
               "include_arg": "include"}),
     ("wpt", {"kwargs": {"release": False},
              "paths": [path.abspath(WEB_PLATFORM_TESTS_PATH),
@@ -111,7 +112,8 @@ class MachCommands(CommandBase):
     def test(self, params, render_mode=DEFAULT_RENDER_MODE, release=False, tidy_all=False,
              no_progress=False, self_test=False, all_suites=False):
         suites = copy.deepcopy(TEST_SUITES)
-        suites["tidy"]["kwargs"] = {"all_files": tidy_all, "no_progress": no_progress, "self_test": self_test}
+        suites["tidy"]["kwargs"] = {"all_files": tidy_all, "no_progress": no_progress, "self_test": self_test,
+                                    "stylo": False}
         suites["wpt"]["kwargs"] = {"release": release}
         suites["css"]["kwargs"] = {"release": release}
         suites["unit"]["kwargs"] = {}
