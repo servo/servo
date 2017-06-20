@@ -371,6 +371,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                         height: image.image.height,
                                         slice: image.slice,
                                     },
+                                    fill: image.fill,
                                     outset: image.outset,
                                     repeat_horizontal: image.repeat_horizontal,
                                     repeat_vertical: image.repeat_vertical,
