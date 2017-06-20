@@ -33,6 +33,7 @@ pub use self::background::BackgroundSize;
 pub use self::border::{BorderCornerRadius, BorderImageSlice, BorderImageWidth};
 pub use self::border::{BorderImageSideWidth, BorderRadius, BorderSideWidth};
 pub use self::color::{Color, RGBAColor};
+pub use self::effects::FilterList;
 pub use self::flex::FlexBasis;
 #[cfg(feature = "gecko")]
 pub use self::gecko::ScrollSnapPoint;
@@ -56,6 +57,7 @@ pub mod basic_shape;
 pub mod border;
 pub mod calc;
 pub mod color;
+pub mod effects;
 pub mod flex;
 #[cfg(feature = "gecko")]
 pub mod gecko;

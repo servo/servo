@@ -704,7 +704,7 @@ impl<T: Parse> Either<Length, T> {
 /// This is not a regression, and that's a non-standard extension anyway, so I'm
 /// not implementing it for now.
 #[derive(Clone, Copy, Debug, Default, HasViewportPercentage, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
 pub struct Percentage(pub CSSFloat);
 
 impl ToCss for Percentage {

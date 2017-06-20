@@ -479,7 +479,7 @@ impl StackingContext {
                              &Rect::zero(),
                              &Rect::zero(),
                              0,
-                             filter::T::new(Vec::new()),
+                             filter::T::none(),
                              MixBlendMode::Normal,
                              None,
                              TransformStyle::Flat,

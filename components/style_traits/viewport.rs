@@ -41,7 +41,10 @@ macro_rules! no_viewport_percentage {
 
 no_viewport_percentage!(bool, f32);
 
-impl<T: HasViewportPercentage> HasViewportPercentage for Box<T> {
+impl<T> HasViewportPercentage for Box<T>
+where
+    T: ?Sized + HasViewportPercentage
+{
     #[inline]
     fn has_viewport_percentage(&self) -> bool {
         (**self).has_viewport_percentage()
@@ -63,6 +66,13 @@ impl<T: HasViewportPercentage, U> HasViewportPercentage for TypedSize2D<T, U> {
 }
 
 impl<T: HasViewportPercentage> HasViewportPercentage for Vec<T> {
+    #[inline]
+    fn has_viewport_percentage(&self) -> bool {
+        self.iter().any(T::has_viewport_percentage)
+    }
+}
+
+impl<T: HasViewportPercentage> HasViewportPercentage for [T] {
     #[inline]
     fn has_viewport_percentage(&self) -> bool {
         self.iter().any(T::has_viewport_percentage)

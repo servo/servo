@@ -8,6 +8,7 @@ use app_units::Au;
 use gecko::values::{convert_rgba_to_nscolor, convert_nscolor_to_rgba};
 use gecko_bindings::structs::nsCSSShadowItem;
 use values::computed::{Color, Shadow};
+use values::computed::effects::DropShadow;
 
 impl nsCSSShadowItem {
     /// Set this item to the given shadow value.
@@ -37,6 +38,38 @@ impl nsCSSShadowItem {
             spread_radius: Au(self.mSpread),
             inset: self.mInset,
             color: Color::rgba(convert_nscolor_to_rgba(self.mColor)),
+        }
+    }
+
+    /// Sets this item from the given drop shadow.
+    #[inline]
+    pub fn set_from_drop_shadow(&mut self, shadow: DropShadow) {
+        self.mXOffset = shadow.horizontal.0;
+        self.mYOffset = shadow.vertical.0;
+        self.mRadius = shadow.blur.0;
+        self.mSpread = 0;
+        self.mInset = false;
+        if shadow.color.is_currentcolor() {
+            // TODO handle currentColor
+            // https://bugzilla.mozilla.org/show_bug.cgi?id=760345
+            self.mHasColor = false;
+            self.mColor = 0;
+        } else {
+            self.mHasColor = true;
+            self.mColor = convert_rgba_to_nscolor(&shadow.color.color);
+        }
+    }
+
+    /// Returns this item as a drop shadow.
+    #[inline]
+    pub fn to_drop_shadow(&self) -> DropShadow {
+        debug_assert_eq!(self.mSpread, 0);
+        debug_assert_eq!(self.mInset, false);
+        DropShadow {
+            color: Color::rgba(convert_nscolor_to_rgba(self.mColor)),
+            horizontal: Au(self.mXOffset),
+            vertical: Au(self.mYOffset),
+            blur: Au(self.mRadius),
         }
     }
 }

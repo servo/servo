@@ -14,12 +14,9 @@ use euclid::{Point2D, Size2D};
 #[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSPropertyID;
 #[cfg(feature = "gecko")] use gecko_bindings::sugar::ownership::{HasFFI, HasSimpleFFI};
 #[cfg(feature = "gecko")] use gecko_string_cache::Atom;
-#[cfg(feature = "gecko")] use gecko::url::SpecifiedUrl;
 use properties::{CSSWideKeyword, PropertyDeclaration};
 use properties::longhands;
 use properties::longhands::background_size::computed_value::T as BackgroundSizeList;
-use properties::longhands::filter::computed_value::Filter;
-use properties::longhands::filter::computed_value::T as Filters;
 use properties::longhands::font_weight::computed_value::T as FontWeight;
 use properties::longhands::font_stretch::computed_value::T as FontStretch;
 use properties::longhands::text_shadow::computed_value::T as TextShadowList;
@@ -37,12 +34,14 @@ use std::cmp;
 use style_traits::ParseError;
 use super::ComputedValues;
 use values::{Auto, CSSFloat, CustomIdent, Either};
+use values::animated::effects::{Filter as AnimatedFilter, FilterList as AnimatedFilterList};
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{BorderCornerRadius, ClipRect};
 use values::computed::{CalcLengthOrPercentage, Color, Context, ComputedValueAsSpecified};
 use values::computed::{LengthOrPercentage, MaxLength, MozLength, Shadow, ToComputedValue};
 use values::generics::{SVGPaint, SVGPaintKind};
 use values::generics::border::BorderCornerRadius as GenericBorderCornerRadius;
+use values::generics::effects::Filter;
 use values::generics::position as generic_position;
 use values::specified::length::Percentage;
 
@@ -3196,135 +3195,61 @@ impl Animatable for IntermediateShadowList {
     }
 }
 
-/// Intermediate type for filter property.
-/// The difference from normal filter type is that this structure uses
-/// IntermediateColor into DropShadow's value.
-pub type IntermediateFilters = Vec<IntermediateFilter>;
-
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[allow(missing_docs)]
-pub enum IntermediateFilter {
-    Blur(Au),
-    Brightness(CSSFloat),
-    Contrast(CSSFloat),
-    Grayscale(CSSFloat),
-    HueRotate(Angle),
-    Invert(CSSFloat),
-    Opacity(CSSFloat),
-    Saturate(CSSFloat),
-    Sepia(CSSFloat),
-    % if product == "gecko":
-    DropShadow(IntermediateShadow),
-    Url(SpecifiedUrl),
-    % endif
-}
-
-impl From<Filters> for IntermediateFilters {
-    fn from(filters: Filters) -> IntermediateFilters {
-        filters.filters.into_iter().map(|f| f.into()).collect()
-    }
-}
-
-impl From<IntermediateFilters> for Filters {
-    fn from(filters: IntermediateFilters) -> Filters {
-        Filters::new(filters.into_iter().map(|f| f.into()).collect())
-    }
-}
-
 <%
     FILTER_FUNCTIONS = [ 'Blur', 'Brightness', 'Contrast', 'Grayscale',
                          'HueRotate', 'Invert', 'Opacity', 'Saturate',
                          'Sepia' ]
 %>
 
-impl From<Filter> for IntermediateFilter {
-    fn from(filter: Filter) -> IntermediateFilter {
-        use properties::longhands::filter::computed_value::Filter::*;
-        match filter {
-            % for func in FILTER_FUNCTIONS:
-                ${func}(val) => IntermediateFilter::${func}(val),
-            % endfor
-            % if product == "gecko":
-                DropShadow(shadow) => {
-                    IntermediateFilter::DropShadow(shadow.into())
-                },
-                Url(ref url) => {
-                    IntermediateFilter::Url(url.clone())
-                },
-            % endif
-        }
-    }
-}
-
-impl From<IntermediateFilter> for Filter {
-    fn from(filter: IntermediateFilter) -> Filter {
-        match filter {
-            % for func in FILTER_FUNCTIONS:
-                IntermediateFilter::${func}(val) => Filter::${func}(val),
-            % endfor
-            % if product == "gecko":
-                IntermediateFilter::DropShadow(shadow) => {
-                    Filter::DropShadow(shadow.into())
-                },
-                IntermediateFilter::Url(ref url) => {
-                    Filter::Url(url.clone())
-                },
-            % endif
-        }
-    }
-}
-
 /// https://drafts.fxtf.org/filters/#animation-of-filters
-fn add_weighted_filter_function_impl(from: &IntermediateFilter,
-                                     to: &IntermediateFilter,
+fn add_weighted_filter_function_impl(from: &AnimatedFilter,
+                                     to: &AnimatedFilter,
                                      self_portion: f64,
                                      other_portion: f64)
-                                     -> Result<IntermediateFilter, ()> {
+                                     -> Result<AnimatedFilter, ()> {
     match (from, to) {
         % for func in [ 'Blur', 'HueRotate' ]:
-            (&IntermediateFilter::${func}(from_value),
-             &IntermediateFilter::${func}(to_value)) => {
-                Ok(IntermediateFilter::${func}(
-                    try!(from_value.add_weighted(&to_value,
-                                                 self_portion,
-                                                 other_portion))))
+            (&Filter::${func}(from_value), &Filter::${func}(to_value)) => {
+                Ok(Filter::${func}(from_value.add_weighted(
+                    &to_value,
+                    self_portion,
+                    other_portion,
+                )?))
            },
         % endfor
         % for func in [ 'Grayscale', 'Invert', 'Sepia' ]:
-            (&IntermediateFilter::${func}(from_value),
-             &IntermediateFilter::${func}(to_value)) => {
-                Ok(IntermediateFilter::${func}(try!(
-                    add_weighted_with_initial_val(&from_value,
-                                                  &to_value,
-                                                  self_portion,
-                                                  other_portion,
-                                                  &0.0))))
+            (&Filter::${func}(from_value), &Filter::${func}(to_value)) => {
+                Ok(Filter::${func}(add_weighted_with_initial_val(
+                    &from_value,
+                    &to_value,
+                    self_portion,
+                    other_portion,
+                    &0.0,
+                )?))
             },
         % endfor
         % for func in [ 'Brightness', 'Contrast', 'Opacity', 'Saturate' ]:
-            (&IntermediateFilter::${func}(from_value),
-             &IntermediateFilter::${func}(to_value)) => {
-                Ok(IntermediateFilter::${func}(try!(
-                    add_weighted_with_initial_val(&from_value,
-                                                  &to_value,
-                                                  self_portion,
-                                                  other_portion,
-                                                  &1.0))))
+            (&Filter::${func}(from_value), &Filter::${func}(to_value)) => {
+                Ok(Filter::${func}(add_weighted_with_initial_val(
+                    &from_value,
+                    &to_value,
+                    self_portion,
+                    other_portion,
+                    &1.0,
+                )?))
                 },
         % endfor
         % if product == "gecko":
-            (&IntermediateFilter::DropShadow(from_value),
-             &IntermediateFilter::DropShadow(to_value)) => {
-                Ok(IntermediateFilter::DropShadow(try!(
-                    from_value.add_weighted(&to_value,
-                                            self_portion,
-                                            other_portion))))
-            },
-            (&IntermediateFilter::Url(_),
-             &IntermediateFilter::Url(_)) => {
-                Err(())
-            },
+        (&Filter::DropShadow(ref from_value), &Filter::DropShadow(ref to_value)) => {
+            Ok(Filter::DropShadow(from_value.add_weighted(
+                &to_value,
+                self_portion,
+                other_portion,
+            )?))
+        },
+        (&Filter::Url(_), &Filter::Url(_)) => {
+            Err(())
+        },
         % endif
         _ => {
             // If specified the different filter functions,
@@ -3335,10 +3260,10 @@ fn add_weighted_filter_function_impl(from: &IntermediateFilter,
 }
 
 /// https://drafts.fxtf.org/filters/#animation-of-filters
-fn add_weighted_filter_function(from: Option<<&IntermediateFilter>,
-                                to: Option<<&IntermediateFilter>,
+fn add_weighted_filter_function(from: Option<<&AnimatedFilter>,
+                                to: Option<<&AnimatedFilter>,
                                 self_portion: f64,
-                                other_portion: f64) -> Result<IntermediateFilter, ()> {
+                                other_portion: f64) -> Result<AnimatedFilter, ()> {
     match (from, to) {
         (Some(f), Some(t)) => {
             add_weighted_filter_function_impl(f, t, self_portion, other_portion)
@@ -3353,19 +3278,18 @@ fn add_weighted_filter_function(from: Option<<&IntermediateFilter>,
     }
 }
 
-fn compute_filter_square_distance(from: &IntermediateFilter,
-                                  to: &IntermediateFilter)
+fn compute_filter_square_distance(from: &AnimatedFilter,
+                                  to: &AnimatedFilter)
                                   -> Result<f64, ()> {
     match (from, to) {
         % for func in FILTER_FUNCTIONS :
-            (&IntermediateFilter::${func}(f),
-             &IntermediateFilter::${func}(t)) => {
+            (&Filter::${func}(f),
+             &Filter::${func}(t)) => {
                 Ok(try!(f.compute_squared_distance(&t)))
             },
         % endfor
         % if product == "gecko":
-            (&IntermediateFilter::DropShadow(f),
-             &IntermediateFilter::DropShadow(t)) => {
+            (&Filter::DropShadow(ref f), &Filter::DropShadow(ref t)) => {
                 Ok(try!(f.compute_squared_distance(&t)))
             },
         % endif
@@ -3375,38 +3299,34 @@ fn compute_filter_square_distance(from: &IntermediateFilter,
     }
 }
 
-impl Animatable for IntermediateFilters {
+impl Animatable for AnimatedFilterList {
     #[inline]
     fn add_weighted(&self, other: &Self,
                     self_portion: f64, other_portion: f64) -> Result<Self, ()> {
-        let mut filters: IntermediateFilters = Vec::new();
-        let mut from_iter = self.iter();
-        let mut to_iter = (&other).iter();
+        let mut filters = vec![];
+        let mut from_iter = self.0.iter();
+        let mut to_iter = other.0.iter();
 
         let mut from = from_iter.next();
         let mut to = to_iter.next();
-        while (from,to) != (None, None) {
+        while from.is_some() || to.is_some() {
             filters.push(try!(add_weighted_filter_function(from,
                                                            to,
                                                            self_portion,
                                                            other_portion)));
-            if from != None {
+            if from.is_some() {
                 from = from_iter.next();
             }
-            if to != None {
+            if to.is_some() {
                 to = to_iter.next();
             }
         }
 
-        Ok(filters)
+        Ok(filters.into())
     }
 
     fn add(&self, other: &Self) -> Result<Self, ()> {
-        let from_list = &self;
-        let to_list = &other;
-        let filters: IntermediateFilters =
-            vec![&from_list[..], &to_list[..]].concat();
-        Ok(filters)
+        Ok(self.0.iter().chain(other.0.iter()).cloned().collect::<Vec<_>>().into())
     }
 
     #[inline]
@@ -3417,20 +3337,20 @@ impl Animatable for IntermediateFilters {
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
         let mut square_distance: f64 = 0.0;
-        let mut from_iter = self.iter();
-        let mut to_iter = (&other).iter();
+        let mut from_iter = self.0.iter();
+        let mut to_iter = other.0.iter();
 
         let mut from = from_iter.next();
         let mut to = to_iter.next();
-        while (from,to) != (None, None) {
+        while from.is_some() || to.is_some() {
             let current_square_distance: f64 ;
-            if from == None {
+            if from.is_none() {
                 let none = try!(add_weighted_filter_function(to, to, 0.0, 0.0));
                 current_square_distance =
                     compute_filter_square_distance(&none, &(to.unwrap())).unwrap();
 
                 to = to_iter.next();
-            } else if to == None {
+            } else if to.is_none() {
                 let none = try!(add_weighted_filter_function(from, from, 0.0, 0.0));
                 current_square_distance =
                     compute_filter_square_distance(&none, &(from.unwrap())).unwrap();

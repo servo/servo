@@ -3444,7 +3444,7 @@ fn static_assert() {
      %>
 
     pub fn set_filter(&mut self, v: longhands::filter::computed_value::T) {
-        use properties::longhands::filter::computed_value::Filter::*;
+        use values::generics::effects::Filter::*;
         use gecko_bindings::structs::nsCSSShadowArray;
         use gecko_bindings::structs::nsStyleFilter;
         use gecko_bindings::structs::NS_STYLE_FILTER_BLUR;
@@ -3464,11 +3464,11 @@ fn static_assert() {
         }
 
         unsafe {
-            Gecko_ResetFilters(&mut self.gecko, v.filters.len());
+            Gecko_ResetFilters(&mut self.gecko, v.0.len());
         }
-        debug_assert!(v.filters.len() == self.gecko.mFilters.len());
+        debug_assert!(v.0.len() == self.gecko.mFilters.len());
 
-        for (servo, gecko_filter) in v.filters.into_iter().zip(self.gecko.mFilters.iter_mut()) {
+        for (servo, gecko_filter) in v.0.into_vec().into_iter().zip(self.gecko.mFilters.iter_mut()) {
             match servo {
                 % for func in FILTER_FUNCTIONS:
                 ${func}(factor) => fill_filter(NS_STYLE_FILTER_${func.upper()},
@@ -3497,7 +3497,7 @@ fn static_assert() {
                     }
 
                     let mut gecko_shadow = init_shadow(gecko_filter);
-                    gecko_shadow.mArray[0].set_from_shadow(shadow);
+                    gecko_shadow.mArray[0].set_from_drop_shadow(shadow);
                 },
                 Url(ref url) => {
                     unsafe {
@@ -3515,7 +3515,7 @@ fn static_assert() {
     }
 
     pub fn clone_filter(&self) -> longhands::filter::computed_value::T {
-        use properties::longhands::filter::computed_value::Filter::*;
+        use values::generics::effects::{Filter, FilterList};
         use values::specified::url::SpecifiedUrl;
         use gecko_bindings::structs::NS_STYLE_FILTER_BLUR;
         use gecko_bindings::structs::NS_STYLE_FILTER_BRIGHTNESS;
@@ -3534,35 +3534,36 @@ fn static_assert() {
             match filter.mType {
                 % for func in FILTER_FUNCTIONS:
                 NS_STYLE_FILTER_${func.upper()} => {
-                    filters.push(${func}(
+                    filters.push(Filter::${func}(
                         GeckoStyleCoordConvertible::from_gecko_style_coord(
                             &filter.mFilterParameter).unwrap()));
                 },
                 % endfor
                 NS_STYLE_FILTER_BLUR => {
-                    filters.push(Blur(Au::from_gecko_style_coord(
+                    filters.push(Filter::Blur(Au::from_gecko_style_coord(
                         &filter.mFilterParameter).unwrap()));
                 },
                 NS_STYLE_FILTER_HUE_ROTATE => {
-                    filters.push(HueRotate(
+                    filters.push(Filter::HueRotate(
                         GeckoStyleCoordConvertible::from_gecko_style_coord(
                             &filter.mFilterParameter).unwrap()));
                 },
                 NS_STYLE_FILTER_DROP_SHADOW => {
                     filters.push(unsafe {
-                        DropShadow((**filter.__bindgen_anon_1.mDropShadow.as_ref()).mArray[0].to_shadow())
+                        Filter::DropShadow((**filter.__bindgen_anon_1.mDropShadow.as_ref()).mArray[0].to_drop_shadow())
                     });
                 },
                 NS_STYLE_FILTER_URL => {
                     filters.push(unsafe {
-                        (Url(SpecifiedUrl::from_url_value_data(
-                            &(**filter.__bindgen_anon_1.mURL.as_ref())._base).unwrap()))
+                        Filter::Url(
+                            SpecifiedUrl::from_url_value_data(&(**filter.__bindgen_anon_1.mURL.as_ref())._base).unwrap()
+                        )
                     });
                 }
                 _ => {},
             }
         }
-        longhands::filter::computed_value::T::new(filters)
+        FilterList(filters.into_boxed_slice())
     }
 
 </%self:impl_trait>

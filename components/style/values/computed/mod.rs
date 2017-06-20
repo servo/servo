@@ -28,6 +28,7 @@ pub use self::background::BackgroundSize;
 pub use self::border::{BorderImageSlice, BorderImageWidth, BorderImageSideWidth};
 pub use self::border::{BorderRadius, BorderCornerRadius};
 pub use self::color::{Color, RGBAColor};
+pub use self::effects::FilterList;
 pub use self::flex::FlexBasis;
 pub use self::image::{Gradient, GradientItem, ImageLayer, LineDirection, Image, ImageRect};
 #[cfg(feature = "gecko")]
@@ -49,6 +50,7 @@ pub mod background;
 pub mod basic_shape;
 pub mod border;
 pub mod color;
+pub mod effects;
 pub mod flex;
 pub mod image;
 #[cfg(feature = "gecko")]
@@ -246,6 +248,22 @@ impl<T> ToComputedValue for Vec<T>
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         computed.iter().map(T::from_computed_value).collect()
+    }
+}
+
+impl<T> ToComputedValue for Box<[T]>
+    where T: ToComputedValue
+{
+    type ComputedValue = Box<[<T as ToComputedValue>::ComputedValue]>;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        self.iter().map(|item| item.to_computed_value(context)).collect::<Vec<_>>().into_boxed_slice()
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        computed.iter().map(T::from_computed_value).collect::<Vec<_>>().into_boxed_slice()
     }
 }
 
