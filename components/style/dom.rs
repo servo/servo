@@ -587,6 +587,14 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
         return data.restyle.hint.has_animation_hint()
     }
 
+    /// Returns the anonymous content for the current element's XBL binding,
+    /// given if any.
+    ///
+    /// This is used in Gecko for XBL and shadow DOM.
+    fn xbl_binding_anonymous_content(&self) -> Option<Self::ConcreteNode> {
+        None
+    }
+
     /// Gets declarations from XBL bindings from the element. Only gecko element could have this.
     fn get_declarations_from_xbl_bindings<V>(&self,
                                              _pseudo_element: Option<&PseudoElement>,

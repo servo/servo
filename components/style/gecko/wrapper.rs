@@ -36,7 +36,6 @@ use gecko_bindings::bindings::{Gecko_IsRootElement, Gecko_MatchesElement, Gecko_
 use gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_ElementHasAnimations;
-use gecko_bindings::bindings::Gecko_ElementHasBindingWithAnonymousContent;
 use gecko_bindings::bindings::Gecko_ElementHasCSSAnimations;
 use gecko_bindings::bindings::Gecko_ElementHasCSSTransitions;
 use gecko_bindings::bindings::Gecko_GetActiveLinkAttrDeclarationBlock;
@@ -275,7 +274,10 @@ impl<'ln> TNode for GeckoNode<'ln> {
     }
 
     fn children_and_traversal_children_might_differ(&self) -> bool {
-        self.as_element().map_or(false, |e| unsafe { Gecko_ElementHasBindingWithAnonymousContent(e.0) })
+        match self.as_element() {
+            Some(e) => e.xbl_binding_anonymous_content().is_some(),
+            None => false,
+        }
     }
 
     fn opaque(&self) -> OpaqueNode {
@@ -374,6 +376,10 @@ pub struct GeckoXBLBinding<'lb>(pub &'lb RawGeckoXBLBinding);
 impl<'lb> GeckoXBLBinding<'lb> {
     fn base_binding(&self) -> Option<GeckoXBLBinding> {
         unsafe { self.0.mNextBinding.mRawPtr.as_ref().map(GeckoXBLBinding) }
+    }
+
+    fn anon_content(&self) -> *const nsIContent {
+        unsafe { self.0.mContent.raw::<nsIContent>() }
     }
 
     fn inherits_style(&self) -> bool {
@@ -1039,6 +1045,19 @@ impl<'le> TElement for GeckoElement<'le> {
         current.is_some()
     }
 
+    fn xbl_binding_anonymous_content(&self) -> Option<GeckoNode<'le>> {
+        if self.flags() & (structs::NODE_MAY_BE_IN_BINDING_MNGR as u32) == 0 {
+            return None;
+        }
+
+        let anon_content = match self.get_xbl_binding() {
+            Some(binding) => binding.anon_content(),
+            None => return None,
+        };
+
+        unsafe { anon_content.as_ref().map(GeckoNode::from_content) }
+    }
+
     fn get_css_transitions_info(&self)
                                 -> HashMap<TransitionProperty, Arc<AnimationValue>> {
         use gecko_bindings::bindings::Gecko_ElementTransitions_EndValueAt;
@@ -1380,6 +1399,8 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     type Impl = SelectorImpl;
 
     fn parent_element(&self) -> Option<Self> {
+        // FIXME(emilio): This will need to jump across if the parent node is a
+        // shadow root to get the shadow host.
         let parent_node = self.as_node().parent_node();
         parent_node.and_then(|n| n.as_element())
     }
