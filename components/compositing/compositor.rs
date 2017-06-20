@@ -470,7 +470,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
              ShutdownState::NotShuttingDown) => {
                 self.set_frame_tree(&frame_tree, response_chan);
                 self.send_viewport_rects();
-                self.title_for_main_frame();
             }
 
             (Msg::ScrollFragmentPoint(scroll_root_id, point, _),
@@ -677,15 +676,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 warn!("Compositor layer has an unknown pipeline ({:?}).", pipeline_id);
                 None
             }
-        }
-    }
-
-    fn change_page_title(&mut self, pipeline_id: PipelineId, title: Option<String>) {
-        let set_title = self.root_pipeline.as_ref().map_or(false, |root_pipeline| {
-            root_pipeline.id == pipeline_id
-        });
-        if set_title {
-            self.window.set_page_title(title);
         }
     }
 
@@ -1673,17 +1663,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     pub fn pinch_zoom_level(&self) -> f32 {
         // TODO(gw): Access via WR.
         1.0
-    }
-
-    pub fn title_for_main_frame(&self) {
-        let root_pipeline_id = match self.root_pipeline {
-            None => return,
-            Some(ref root_pipeline) => root_pipeline.id,
-        };
-        let msg = ConstellationMsg::GetPipelineTitle(root_pipeline_id);
-        if let Err(e) = self.constellation_chan.send(msg) {
-            warn!("Failed to send pipeline title ({}).", e);
-        }
     }
 }
 
