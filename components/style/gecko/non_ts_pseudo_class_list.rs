@@ -111,6 +111,7 @@ macro_rules! apply_non_ts_list {
                 ("-moz-last-node", MozLastNode, lastNode, _, _),
                 ("-moz-only-whitespace", MozOnlyWhitespace, mozOnlyWhitespace, _, _),
                 ("-moz-native-anonymous", MozNativeAnonymous, mozNativeAnonymous, _, PSEUDO_CLASS_INTERNAL),
+                ("-moz-use-shadow-tree-root", MozUseShadowTreeRoot, mozUseShadowTreeRoot, _, PSEUDO_CLASS_INTERNAL),
                 ("-moz-is-html", MozIsHTML, mozIsHTML, _, _),
                 ("-moz-placeholder", MozPlaceholder, mozPlaceholder, _, _),
             ],

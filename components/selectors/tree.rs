@@ -85,4 +85,11 @@ pub trait Element: Sized + Debug {
     /// Note: this can be false even if `.parent_element()` is `None`
     /// if the parent node is a `DocumentFragment`.
     fn is_root(&self) -> bool;
+
+    /// Return true if we want to stop lookup ancestor of the current
+    /// element while matching complex selectors with descendant/child
+    /// combinator.
+    fn blocks_ancestor_combinators(&self) -> bool {
+        false
+    }
 }
