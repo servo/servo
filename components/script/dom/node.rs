@@ -2302,12 +2302,12 @@ impl NodeMethods for Node {
         fn is_equal_element_attrs(node: &Node, other: &Node) -> bool {
             let element = node.downcast::<Element>().unwrap();
             let other_element = other.downcast::<Element>().unwrap();
-            assert!(element.attrs().len() == other_element.attrs().len());
+            assert_eq!(element.attrs().len(), other_element.attrs().len());
             element.attrs().iter().all(|attr| {
                 other_element.attrs().iter().any(|other_attr| {
-                    (*attr.namespace() == *other_attr.namespace()) &&
-                    (attr.local_name() == other_attr.local_name()) &&
-                    (**attr.value() == **other_attr.value())
+                    *attr.namespace() == *other_attr.namespace() &&
+                    attr.local_name() == other_attr.local_name() &&
+                    attr.value().serialize() == other_attr.value().serialize()
                 })
             })
         }

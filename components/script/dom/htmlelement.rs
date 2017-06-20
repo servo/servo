@@ -440,7 +440,7 @@ impl HTMLElement {
         // FIXME(ajeffrey): Convert directly from DOMString to LocalName
         let local_name = LocalName::from(to_snake_case(local_name));
         self.upcast::<Element>().get_attribute(&ns!(), &local_name).map(|attr| {
-            DOMString::from(&**attr.value()) // FIXME(ajeffrey): Convert directly from AttrValue to DOMString
+            DOMString::from(attr.value().serialize()) // FIXME(ajeffrey): Convert directly from AttrValue to DOMString
         })
     }
 
@@ -557,7 +557,7 @@ impl VirtualMethods for HTMLElement {
                                                       source_line,
                                                       &name[2..],
                                                       // FIXME(ajeffrey): Convert directly from AttrValue to DOMString
-                                                      DOMString::from(&**attr.value()));
+                                                      DOMString::from(attr.value().serialize()));
             },
             _ => {}
         }

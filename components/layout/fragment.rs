@@ -628,8 +628,9 @@ impl TableColumnFragmentInfo {
     /// Create the information specific to an table column fragment.
     pub fn new<N: ThreadSafeLayoutNode>(node: &N) -> TableColumnFragmentInfo {
         let element = node.as_element().unwrap();
-        let span = element.get_attr(&ns!(), &local_name!("span"))
-                          .and_then(|string| string.parse().ok())
+        // FIXME(emilio): Parse this as AttrValue::UInt beforehand.
+        let span = element.get_attr_enum(&ns!(), &local_name!("span"))
+                          .and_then(|a| a.as_string().parse().ok())
                           .unwrap_or(0);
         TableColumnFragmentInfo {
             span: span,

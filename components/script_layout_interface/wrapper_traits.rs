@@ -334,9 +334,6 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
     unsafe fn unsafe_get(self) ->
         <<Self::ConcreteThreadSafeLayoutNode as ThreadSafeLayoutNode>::ConcreteNode as TNode>::ConcreteElement;
 
-    #[inline]
-    fn get_attr(&self, namespace: &Namespace, name: &LocalName) -> Option<&str>;
-
     fn get_attr_enum(&self, namespace: &Namespace, name: &LocalName) -> Option<&AttrValue>;
 
     fn style_data(&self) -> AtomicRef<ElementData>;
@@ -376,7 +373,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
     fn get_details_content_pseudo(&self) -> Option<Self> {
         if self.get_local_name() == &local_name!("details") &&
            self.get_namespace() == &ns!(html) {
-            let display = if self.get_attr(&ns!(), &local_name!("open")).is_some() {
+            let display = if self.get_attr_enum(&ns!(), &local_name!("open")).is_some() {
                 None // Specified by the stylesheet
             } else {
                 Some(display::T::none)

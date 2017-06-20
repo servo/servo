@@ -128,11 +128,11 @@ impl<'a> Serialize for &'a Node {
                     let attrs = elem.attrs().iter().map(|attr| {
                         let qname = QualName::new(None, attr.namespace().clone(),
                                                   attr.local_name().clone());
-                        let value = attr.value().clone();
+                        let value = attr.value().serialize().clone();
                         (qname, value)
                     }).collect::<Vec<_>>();
                     let attr_refs = attrs.iter().map(|&(ref qname, ref value)| {
-                        let ar: AttrRef = (&qname, &**value);
+                        let ar: AttrRef = (&qname, &*value);
                         ar
                     });
                     serializer.start_elem(name.clone(), attr_refs)?;

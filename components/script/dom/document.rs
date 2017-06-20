@@ -715,7 +715,7 @@ impl Document {
         let check_anchor = |node: &HTMLAnchorElement| {
             let elem = node.upcast::<Element>();
             elem.get_attribute(&ns!(), &local_name!("name"))
-                .map_or(false, |attr| &**attr.value() == name)
+                .map_or(false, |attr| &**attr.value().as_atom() == name)
         };
         let doc_node = self.upcast::<Node>();
         doc_node.traverse_preorder()
@@ -3204,7 +3204,7 @@ impl DocumentMethods for Document {
                 return false;
             }
             element.get_attribute(&ns!(), &local_name!("name"))
-                   .map_or(false, |attr| &**attr.value() == &*name)
+                   .map_or(false, |attr| &*attr.value().as_atom() == &*name)
         })
     }
 

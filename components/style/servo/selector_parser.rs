@@ -626,7 +626,7 @@ impl ElementSnapshot for ServoElementSnapshot {
     fn lang_attr(&self) -> Option<SelectorAttrValue> {
         self.get_attr(&ns!(xml), &local_name!("lang"))
             .or_else(|| self.get_attr(&ns!(), &local_name!("lang")))
-            .map(|v| String::from(v as &str))
+            .map(|v| v.serialize())
     }
 }
 

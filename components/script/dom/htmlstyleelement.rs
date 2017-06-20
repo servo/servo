@@ -79,9 +79,13 @@ impl HTMLStyleElement {
         let doc = document_from_node(self);
 
         let mq_attribute = element.get_attribute(&ns!(), &local_name!("media"));
+        let attr_value;
         let mq_str = match mq_attribute {
-            Some(a) => String::from(&**a.value()),
-            None => String::new(),
+            Some(ref a) => {
+                attr_value = a.value();
+                attr_value.as_string()
+            }
+            None => "",
         };
 
         let data = node.GetTextContent().expect("Element.textContent must be a string");
@@ -92,7 +96,7 @@ impl HTMLStyleElement {
                                                       PARSING_MODE_DEFAULT,
                                                       doc.quirks_mode());
         let shared_lock = node.owner_doc().style_shared_lock().clone();
-        let mut input = ParserInput::new(&mq_str);
+        let mut input = ParserInput::new(mq_str);
         let mq = Arc::new(shared_lock.wrap(
                     parse_media_query_list(&context, &mut CssParser::new(&mut input))));
         let loader = StylesheetLoader::for_element(self.upcast());

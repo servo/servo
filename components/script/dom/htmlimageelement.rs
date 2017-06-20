@@ -687,6 +687,7 @@ impl HTMLImageElement {
         };
 
         let value = usemap_attr.value();
+        let value = value.as_string();
 
         if value.len() == 0 || !value.is_char_boundary(1) {
             return None

@@ -174,7 +174,7 @@ impl VirtualMethods for HTMLBodyElement {
                           evtarget.set_event_handler_uncompiled(window.get_url(),
                                                                 source_line,
                                                                 &name[2..],
-                                                                DOMString::from((**attr.value()).to_owned()));
+                                                                DOMString::from(attr.value().serialize()));
                           false
                     }
                     _ => true, // HTMLElement::attribute_mutated will take care of this.

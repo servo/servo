@@ -330,7 +330,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                     let mut placeholder = self.placeholder.borrow_mut();
                     placeholder.clear();
                     if let AttributeMutation::Set(_) = mutation {
-                        placeholder.push_str(&attr.value());
+                        placeholder.push_str(attr.value().as_string());
                     }
                 }
                 self.update_placeholder_shown_state();

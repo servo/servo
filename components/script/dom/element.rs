@@ -294,8 +294,6 @@ impl Element {
 pub trait RawLayoutElementHelpers {
     unsafe fn get_attr_for_layout<'a>(&'a self, namespace: &Namespace, name: &LocalName)
                                       -> Option<&'a AttrValue>;
-    unsafe fn get_attr_val_for_layout<'a>(&'a self, namespace: &Namespace, name: &LocalName)
-                                      -> Option<&'a str>;
     unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &LocalName) -> Vec<&'a AttrValue>;
 }
 
@@ -319,14 +317,6 @@ impl RawLayoutElementHelpers for Element {
                                       -> Option<&'a AttrValue> {
         get_attr_for_layout(self, namespace, name).map(|attr| {
             attr.value_forever()
-        })
-    }
-
-    #[inline]
-    unsafe fn get_attr_val_for_layout<'a>(&'a self, namespace: &Namespace, name: &LocalName)
-                                          -> Option<&'a str> {
-        get_attr_for_layout(self, namespace, name).map(|attr| {
-            attr.value_ref_forever()
         })
     }
 
@@ -363,7 +353,7 @@ pub trait LayoutElementHelpers {
     fn style_attribute(&self) -> *const Option<Arc<Locked<PropertyDeclarationBlock>>>;
     fn local_name(&self) -> &LocalName;
     fn namespace(&self) -> &Namespace;
-    fn get_lang_for_layout(&self) -> String;
+    fn get_lang_for_layout(&self) -> Atom;
     fn get_checked_state_for_layout(&self) -> bool;
     fn get_indeterminate_state_for_layout(&self) -> bool;
     fn get_state_for_layout(&self) -> ElementState;
@@ -507,15 +497,31 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
 
         let size = if let Some(this) = self.downcast::<HTMLInputElement>() {
-            // FIXME(pcwalton): More use of atoms, please!
-            match (*self.unsafe_get()).get_attr_val_for_layout(&ns!(), &local_name!("type")) {
+            match (*self.unsafe_get()).get_attr_for_layout(&ns!(), &local_name!("type")).map(|a| a.as_atom()) {
                 // Not text entry widget
-                Some("hidden") | Some("date") | Some("month") | Some("week") |
-                Some("time") | Some("datetime-local") | Some("number") | Some("range") |
-                Some("color") | Some("checkbox") | Some("radio") | Some("file") |
-                Some("submit") | Some("image") | Some("reset") | Some("button") => {
+                Some(&atom!("hidden")) |
+                Some(&atom!("date")) |
+                Some(&atom!("month")) |
+                Some(&atom!("week")) |
+                Some(&atom!("time")) |
+                Some(&atom!("datetime-local")) |
+                Some(&atom!("number")) |
+                Some(&atom!("checkbox")) |
+                Some(&atom!("radio")) |
+                Some(&atom!("file")) |
+                Some(&atom!("submit")) |
+                Some(&atom!("image")) |
+                Some(&atom!("reset")) |
+                Some(&atom!("button")) => {
                     None
                 },
+                // FIXME(emilio): make "color" "range" a static atom.
+                Some(other) if *other == Atom::from("color") => {
+                    None
+                }
+                Some(other) if *other == Atom::from("range") => {
+                    None
+                }
                 // Others
                 _ => {
                     match this.size_for_layout() {
@@ -726,18 +732,18 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     }
 
     #[allow(unsafe_code)]
-    fn get_lang_for_layout(&self) -> String {
+    fn get_lang_for_layout(&self) -> Atom {
         unsafe {
             let mut current_node = Some(self.upcast::<Node>());
             while let Some(node) = current_node {
                 current_node = node.parent_node_ref();
                 match node.downcast::<Element>().map(|el| el.unsafe_get()) {
                     Some(elem) => {
-                        if let Some(attr) = (*elem).get_attr_val_for_layout(&ns!(xml), &local_name!("lang")) {
-                            return attr.to_owned();
+                        if let Some(attr) = (*elem).get_attr_for_layout(&ns!(xml), &local_name!("lang")) {
+                            return attr.as_atom().clone();
                         }
-                        if let Some(attr) = (*elem).get_attr_val_for_layout(&ns!(), &local_name!("lang")) {
-                            return attr.to_owned();
+                        if let Some(attr) = (*elem).get_attr_for_layout(&ns!(), &local_name!("lang")) {
+                            return attr.as_atom().clone();
                         }
                     }
                     None => continue
@@ -745,7 +751,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             }
             // TODO: Check meta tags for a pragma-set default language
             // TODO: Check HTTP Content-Language header
-            String::new()
+            atom!("")
         }
     }
 
@@ -861,7 +867,7 @@ impl Element {
             });
 
             if let Some(attr) = attr {
-                return (**attr.value()).into();
+                return attr.value().serialize().into();
             }
         }
 
@@ -942,7 +948,7 @@ impl Element {
                     // Step 2.
                     for attr in element.attrs.borrow().iter() {
                         if attr.prefix() == Some(&namespace_prefix!("xmlns")) &&
-                           **attr.value() == *namespace {
+                           attr.value().serialize() == *namespace {
                             return Some(attr.LocalName());
                         }
                     }
@@ -1012,7 +1018,7 @@ impl Element {
     pub fn push_attribute(&self, attr: &Attr) {
         let name = attr.local_name().clone();
         let namespace = attr.namespace().clone();
-        let old_value = DOMString::from(&**attr.value());
+        let old_value = DOMString::from(attr.value().serialize());
         let mutation = Mutation::Attribute { name, namespace, old_value };
         MutationObserver::queue_a_mutation_record(&self.node, mutation);
 
@@ -1146,7 +1152,7 @@ impl Element {
 
             let name = attr.local_name().clone();
             let namespace = attr.namespace().clone();
-            let old_value = DOMString::from(&**attr.value());
+            let old_value = DOMString::from(attr.value().serialize());
             let mutation = Mutation::Attribute { name, namespace, old_value, };
             MutationObserver::queue_a_mutation_record(&self.node, mutation);
 
@@ -2213,7 +2219,7 @@ impl VirtualMethods for Element {
                         } else {
                             let win = window_from_node(self);
                             Arc::new(doc.style_shared_lock().wrap(parse_style_attribute(
-                                &attr.value(),
+                                attr.value().as_string(),
                                 &doc.base_url(),
                                 win.css_error_reporter(),
                                 doc.quirks_mode())))
@@ -2461,7 +2467,12 @@ impl<'a> ::selectors::Element for Root<Element> {
 
             NonTSPseudoClass::ServoCaseSensitiveTypeAttr(ref expected_value) => {
                 self.get_attribute(&ns!(), &local_name!("type"))
-                    .map_or(false, |attr| attr.value().eq(expected_value))
+                    .map_or(false, |attr| {
+                        match *attr.value() {
+                            AttrValue::Atom(ref atom) => atom == expected_value,
+                            _ => false,
+                        }
+                    })
             }
 
             // FIXME(heycam): This is wrong, since extended_filtering accepts

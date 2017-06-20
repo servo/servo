@@ -2101,13 +2101,15 @@ impl ScriptThread {
                                                 .inclusive_ancestors()
                                                 .filter_map(Root::downcast::<HTMLAnchorElement>)
                                                 .next() {
-                        let status = anchor.upcast::<Element>()
-                                           .get_attribute(&ns!(), &local_name!("href"))
-                                           .and_then(|href| {
-                                               let value = href.value();
-                                               let url = document.url();
-                                               url.join(&value).map(|url| url.to_string()).ok()
-                                           });
+                        let status =
+                            anchor.upcast::<Element>()
+                                .get_attribute(&ns!(), &local_name!("href"))
+                                .and_then(|href| {
+                                    let value = href.value();
+                                    let url = document.url();
+                                    url.join(value.as_string())
+                                        .map(|url| url.to_string()).ok()
+                                });
 
                         let event = ConstellationMsg::NodeStatus(status);
                         self.constellation_chan.send(event).unwrap();

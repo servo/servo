@@ -57,7 +57,7 @@ impl HTMLHeadElement {
         for meta in candidates {
             if let Some(content) = meta.get_attribute(&ns!(), &local_name!("content")).r() {
                 let content = content.value();
-                let content_val = content.trim();
+                let content_val = content.as_string().trim();
                 if !content_val.is_empty() {
                     doc.set_referrer_policy(determine_policy_for_token(content_val));
                     return;

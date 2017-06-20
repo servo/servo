@@ -122,30 +122,28 @@ impl HTMLLinkElement {
     }
 
     pub fn is_alternate(&self) -> bool {
-        let rel = get_attr(self.upcast(), &local_name!("rel"));
+        let as_element: &Element = self.upcast();
+        let rel = as_element.get_attribute(&ns!(), &local_name!("rel"));
         match rel {
-            Some(ref value) => {
-                value.split(HTML_SPACE_CHARACTERS)
-                    .any(|s| s.eq_ignore_ascii_case("alternate"))
+            Some(value) => {
+                value
+                    .value()
+                    .as_tokens()
+                    .iter()
+                    .any(|s| s.eq_ignore_ascii_case(&atom!("alternate")))
             },
             None => false,
         }
     }
 }
 
-fn get_attr(element: &Element, local_name: &LocalName) -> Option<String> {
-    let elem = element.get_attribute(&ns!(), local_name);
-    elem.map(|e| {
-        let value = e.value();
-        (**value).to_owned()
-    })
-}
-
-fn string_is_stylesheet(value: &Option<String>) -> bool {
-    match *value {
-        Some(ref value) => {
-            value.split(HTML_SPACE_CHARACTERS)
-                .any(|s| s.eq_ignore_ascii_case("stylesheet"))
+fn is_stylesheet(attr: &Option<Root<Attr>>) -> bool {
+    match *attr {
+        Some(ref attr) => {
+            attr.value()
+                .as_tokens()
+                .iter()
+                .any(|s| s.eq_ignore_ascii_case(&atom!("stylesheet")))
         },
         None => false,
     }
@@ -154,11 +152,14 @@ fn string_is_stylesheet(value: &Option<String>) -> bool {
 /// Favicon spec usage in accordance with CEF implementation:
 /// only url of icon is required/used
 /// https://html.spec.whatwg.org/multipage/#rel-icon
-fn is_favicon(value: &Option<String>) -> bool {
-    match *value {
-        Some(ref value) => {
-            value.split(HTML_SPACE_CHARACTERS)
-                .any(|s| s.eq_ignore_ascii_case("icon") || s.eq_ignore_ascii_case("apple-touch-icon"))
+fn is_favicon(attr: &Option<Root<Attr>>) -> bool {
+    match *attr {
+        Some(ref attr) => {
+            attr.value()
+                .as_tokens()
+                .iter()
+                .any(|s| s.eq_ignore_ascii_case(&atom!("icon")) ||
+                        s.eq_ignore_ascii_case(&atom!("apple-touch-icon")))
         },
         None => false,
     }
@@ -174,28 +175,35 @@ impl VirtualMethods for HTMLLinkElement {
         if !self.upcast::<Node>().is_in_doc() || mutation.is_removal() {
             return;
         }
+        let as_element: &Element = self.upcast();
 
-        let rel = get_attr(self.upcast(), &local_name!("rel"));
+        let rel = as_element.get_attribute(&ns!(), &local_name!("rel"));
         match attr.local_name() {
             &local_name!("href") => {
-                if string_is_stylesheet(&rel) {
-                    self.handle_stylesheet_url(&attr.value());
+                if is_stylesheet(&rel) {
+                    self.handle_stylesheet_url(attr.value().as_string());
                 } else if is_favicon(&rel) {
-                    let sizes = get_attr(self.upcast(), &local_name!("sizes"));
-                    self.handle_favicon_url(rel.as_ref().unwrap(), &attr.value(), &sizes);
+                    let sizes = as_element.get_attribute(&ns!(), &local_name!("sizes"));
+                    self.handle_favicon_url(
+                        rel.as_ref().unwrap().value().as_string(),
+                        attr.value().as_string(),
+                        sizes.as_ref().map(|s| &**s));
                 }
             },
             &local_name!("sizes") => {
                 if is_favicon(&rel) {
-                    if let Some(ref href) = get_attr(self.upcast(), &local_name!("href")) {
-                        self.handle_favicon_url(rel.as_ref().unwrap(), href, &Some(attr.value().to_string()));
+                    if let Some(ref href) = as_element.get_attribute(&ns!(), &local_name!("href")) {
+                        self.handle_favicon_url(
+                            rel.as_ref().unwrap().value().as_string(),
+                            href.value().as_string(),
+                            Some(attr));
                     }
                 }
             },
             &local_name!("media") => {
-                if string_is_stylesheet(&rel) {
+                if is_stylesheet(&rel) {
                     if let Some(href) = self.upcast::<Element>().get_attribute(&ns!(), &local_name!("href")) {
-                        self.handle_stylesheet_url(&href.value());
+                        self.handle_stylesheet_url(href.value().as_string());
                     }
                 }
             },
@@ -216,18 +224,21 @@ impl VirtualMethods for HTMLLinkElement {
         }
 
         if tree_in_doc {
-            let element = self.upcast();
+            let as_element: &Element = self.upcast();
 
-            let rel = get_attr(element, &local_name!("rel"));
-            let href = get_attr(element, &local_name!("href"));
-            let sizes = get_attr(self.upcast(), &local_name!("sizes"));
+            let rel = as_element.get_attribute(&ns!(), &local_name!("rel"));
+            let href = as_element.get_attribute(&ns!(), &local_name!("href"));
+            let sizes = as_element.get_attribute(&ns!(), &local_name!("sizes"));
 
             match href {
-                Some(ref href) if string_is_stylesheet(&rel) => {
-                    self.handle_stylesheet_url(href);
+                Some(ref href) if is_stylesheet(&rel) => {
+                    self.handle_stylesheet_url(href.value().as_string());
                 }
                 Some(ref href) if is_favicon(&rel) => {
-                    self.handle_favicon_url(rel.as_ref().unwrap(), href, &sizes);
+                    self.handle_favicon_url(
+                        rel.as_ref().unwrap().value().as_string(),
+                        href.value().as_string(),
+                        sizes.as_ref().map(|s| &**s));
                 }
                 _ => {}
             }
@@ -275,7 +286,7 @@ impl HTMLLinkElement {
         let mq_attribute = element.get_attribute(&ns!(), &local_name!("media"));
         let value = mq_attribute.r().map(|a| a.value());
         let mq_str = match value {
-            Some(ref value) => &***value,
+            Some(ref value) => value.as_string(),
             None => "",
         };
 
@@ -291,7 +302,7 @@ impl HTMLLinkElement {
         let im_attribute = element.get_attribute(&ns!(), &local_name!("integrity"));
         let integrity_val = im_attribute.r().map(|a| a.value());
         let integrity_metadata = match integrity_val {
-            Some(ref value) => &***value,
+            Some(ref value) => value.as_string(),
             None => "",
         };
 
@@ -305,15 +316,17 @@ impl HTMLLinkElement {
         }, link_url, cors_setting, integrity_metadata.to_owned());
     }
 
-    fn handle_favicon_url(&self, rel: &str, href: &str, sizes: &Option<String>) {
+    fn handle_favicon_url(&self, rel: &str, href: &str, sizes: Option<&Attr>) {
         let document = document_from_node(self);
         match document.base_url().join(href) {
             Ok(url) => {
                 let event = ConstellationMsg::NewFavicon(url.clone());
                 document.window().upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
 
-                let mozbrowser_event = match *sizes {
-                    Some(ref sizes) => MozBrowserEvent::IconChange(rel.to_owned(), url.to_string(), sizes.to_owned()),
+                let mozbrowser_event = match sizes {
+                    Some(sizes) => MozBrowserEvent::IconChange(
+                        rel.to_owned(), url.to_string(), sizes.value().as_string().to_owned()
+                    ),
                     None => MozBrowserEvent::IconChange(rel.to_owned(), url.to_string(), "".to_owned())
                 };
                 document.trigger_mozbrowser_event(mozbrowser_event);

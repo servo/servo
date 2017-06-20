@@ -1689,8 +1689,8 @@ impl<N> ObjectElement for N  where N: ThreadSafeLayoutNode {
     fn has_object_data(&self) -> bool {
         let elem = self.as_element().unwrap();
         let type_and_data = (
-            elem.get_attr(&ns!(), &local_name!("type")),
-            elem.get_attr(&ns!(), &local_name!("data")),
+            elem.get_attr_enum(&ns!(), &local_name!("type")),
+            elem.get_attr_enum(&ns!(), &local_name!("data")).map(|a| a.as_string()),
         );
         match type_and_data {
             (None, Some(uri)) => is_image_data(uri),
@@ -1700,9 +1700,10 @@ impl<N> ObjectElement for N  where N: ThreadSafeLayoutNode {
 
     fn object_data(&self) -> Option<ServoUrl> {
         let elem = self.as_element().unwrap();
+
         let type_and_data = (
-            elem.get_attr(&ns!(), &local_name!("type")),
-            elem.get_attr(&ns!(), &local_name!("data")),
+            elem.get_attr_enum(&ns!(), &local_name!("type")),
+            elem.get_attr_enum(&ns!(), &local_name!("data")).map(|a| a.as_string()),
         );
         match type_and_data {
             (None, Some(uri)) if is_image_data(uri) => ServoUrl::parse(uri).ok(),

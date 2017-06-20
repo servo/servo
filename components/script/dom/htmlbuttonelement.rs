@@ -202,7 +202,8 @@ impl VirtualMethods for HTMLButtonElement {
             &local_name!("type") => {
                 match mutation {
                     AttributeMutation::Set(_) => {
-                        let value = match &**attr.value() {
+                        // FIXME(emilio): Match on Atoms instead.
+                        let value = match &**attr.value().as_atom() {
                             "reset" => ButtonType::Reset,
                             "button" => ButtonType::Button,
                             "menu" => ButtonType::Menu,

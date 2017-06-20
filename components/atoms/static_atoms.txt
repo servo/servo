@@ -70,3 +70,8 @@ gattserverdisconnected
 onchange
 
 reftest-wait
+
+icon
+apple-touch-icon
+stylesheet
+alternate

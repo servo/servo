@@ -427,12 +427,15 @@ impl VirtualMethods for HTMLTableElement {
             local_name!("border") => {
                 // According to HTML5 § 14.3.9, invalid values map to 1px.
                 self.border.set(mutation.new_value(attr).map(|value| {
-                    parse_unsigned_integer(value.chars()).unwrap_or(1)
+                    value.as_uint()
                 }));
             }
             local_name!("cellspacing") => {
                 self.cellspacing.set(mutation.new_value(attr).and_then(|value| {
-                    parse_unsigned_integer(value.chars()).ok()
+                    match *value {
+                        AttrValue::UInt(_, v) => Some(v),
+                        _ => None,
+                    }
                 }));
             },
             _ => {},
@@ -444,6 +447,13 @@ impl VirtualMethods for HTMLTableElement {
             local_name!("border") => AttrValue::from_u32(value.into(), 1),
             local_name!("width") => AttrValue::from_nonzero_dimension(value.into()),
             local_name!("bgcolor") => AttrValue::from_legacy_color(value.into()),
+            local_name!("cellspacing") => {
+                // FIXME(emilio): make AttrValue::from_u32 fallible instead.
+                match parse_unsigned_integer(value.chars()) {
+                    Ok(v) => AttrValue::UInt(value.into(), v),
+                    Err(..) => AttrValue::String(value.into()),
+                }
+            }
             _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
         }
     }

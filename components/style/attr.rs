@@ -283,6 +283,18 @@ impl AttrValue {
         }
     }
 
+    /// Assumes the `AttrValue` is a `String` and returns its value
+    ///
+    /// ## Panics
+    ///
+    /// Panics if the `AttrValue` is not a `String`
+    pub fn as_string(&self) -> &str {
+        match *self {
+            AttrValue::String(ref s) => &s,
+            _ => panic!("String not found"),
+        }
+    }
+
     /// Assumes the `AttrValue` is a `Length` and returns its value
     ///
     /// ## Panics
@@ -355,15 +367,13 @@ impl AttrValue {
         // FIXME(SimonSapin) this can be more efficient by matching on `(self, selector)` variants
         // and doing Atom comparisons instead of string comparisons where possible,
         // with SelectorImpl::AttrValue changed to Atom.
-        selector.eval_str(self)
+        let serialization = self.serialize();
+        selector.eval_str(&serialization)
     }
-}
 
-impl ::std::ops::Deref for AttrValue {
-    type Target = str;
-
-    fn deref(&self) -> &str {
-        match *self {
+    /// Serializes this attribute value into its string form.
+    pub fn serialize(&self) -> String {
+        let slice: &str = match *self {
             AttrValue::String(ref value) |
                 AttrValue::TokenList(ref value, _) |
                 AttrValue::UInt(ref value, _) |
@@ -375,16 +385,9 @@ impl ::std::ops::Deref for AttrValue {
                 AttrValue::Declaration(ref value, _) |
                 AttrValue::Dimension(ref value, _) => &value,
             AttrValue::Atom(ref value) => &value,
-        }
-    }
-}
+        };
 
-impl PartialEq<Atom> for AttrValue {
-    fn eq(&self, other: &Atom) -> bool {
-        match *self {
-            AttrValue::Atom(ref value) => value == other,
-            _ => other == &**self,
-        }
+        slice.into()
     }
 }
 

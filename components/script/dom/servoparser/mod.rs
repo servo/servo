@@ -899,8 +899,8 @@ impl TreeSink for Sink {
     fn is_mathml_annotation_xml_integration_point(&self, handle: &JS<Node>) -> bool {
         let elem = handle.downcast::<Element>().unwrap();
         elem.get_attribute(&ns!(), &local_name!("encoding")).map_or(false, |attr| {
-            attr.value().eq_ignore_ascii_case("text/html")
-                || attr.value().eq_ignore_ascii_case("application/xhtml+xml")
+            attr.value().as_string().eq_ignore_ascii_case("text/html")
+                || attr.value().as_string().eq_ignore_ascii_case("application/xhtml+xml")
         })
     }
 
