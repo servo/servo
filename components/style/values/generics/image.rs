@@ -35,7 +35,7 @@ pub enum Image<Gradient, ImageRect> {
 
 /// A CSS gradient.
 /// https://drafts.csswg.org/css-images/#gradients
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
+#[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Gradient<LineDirection, Length, LengthOrPercentage, Position, Color> {
     /// Gradients can be linear or radial.
@@ -59,7 +59,7 @@ pub enum CompatMode {
 }
 
 /// A gradient kind.
-#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum GradientKind<LineDirection, Length, LengthOrPercentage, Position> {
     /// A linear gradient.
