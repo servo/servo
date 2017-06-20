@@ -10,6 +10,7 @@ use gecko_bindings::structs::mozilla::css::ImageValue;
 use gecko_bindings::structs::mozilla::css::URLValue;
 use gecko_bindings::structs::mozilla::MallocSizeOf;
 use gecko_bindings::structs::mozilla::Side;
+use gecko_bindings::structs::nsIContent;
 use gecko_bindings::structs::RawGeckoAnimationPropertySegment;
 use gecko_bindings::structs::RawGeckoComputedTiming;
 use gecko_bindings::structs::RawGeckoCSSPropertyIDList;
@@ -507,54 +508,26 @@ extern "C" {
                                     whitespace_is_significant: bool) -> bool;
 }
 extern "C" {
-    pub fn Gecko_GetFlattenedTreeParentNode(node: RawGeckoNodeBorrowed)
-     -> RawGeckoNodeBorrowedOrNull;
-}
-extern "C" {
-    pub fn Gecko_GetFirstChild(node: RawGeckoNodeBorrowed)
-     -> RawGeckoNodeBorrowedOrNull;
-}
-extern "C" {
     pub fn Gecko_GetLastChild(node: RawGeckoNodeBorrowed)
      -> RawGeckoNodeBorrowedOrNull;
 }
 extern "C" {
-    pub fn Gecko_GetPrevSibling(node: RawGeckoNodeBorrowed)
+    pub fn Gecko_GetFlattenedTreeParentNode(node: RawGeckoNodeBorrowed)
      -> RawGeckoNodeBorrowedOrNull;
 }
 extern "C" {
-    pub fn Gecko_GetNextSibling(node: RawGeckoNodeBorrowed)
-     -> RawGeckoNodeBorrowedOrNull;
-}
-extern "C" {
-    pub fn Gecko_GetFirstChildElement(element: RawGeckoElementBorrowed)
+    pub fn Gecko_GetBeforeOrAfterPseudo(element: RawGeckoElementBorrowed,
+                                        is_before: bool)
      -> RawGeckoElementBorrowedOrNull;
 }
 extern "C" {
-    pub fn Gecko_GetLastChildElement(element: RawGeckoElementBorrowed)
-     -> RawGeckoElementBorrowedOrNull;
+    pub fn Gecko_GetAnonymousContentForElement(element:
+                                                   RawGeckoElementBorrowed)
+     -> *mut nsTArray<*mut nsIContent>;
 }
 extern "C" {
-    pub fn Gecko_GetPrevSiblingElement(element: RawGeckoElementBorrowed)
-     -> RawGeckoElementBorrowedOrNull;
-}
-extern "C" {
-    pub fn Gecko_GetNextSiblingElement(element: RawGeckoElementBorrowed)
-     -> RawGeckoElementBorrowedOrNull;
-}
-extern "C" {
-    pub fn Gecko_GetDocumentElement(document: RawGeckoDocumentBorrowed)
-     -> RawGeckoElementBorrowedOrNull;
-}
-extern "C" {
-    pub fn Gecko_LoadStyleSheet(loader: *mut Loader,
-                                parent: *mut ServoStyleSheet,
-                                reusable_sheets:
-                                    *mut LoaderReusableStyleSheets,
-                                child_sheet: RawServoStyleSheetBorrowed,
-                                base_url_data: *mut RawGeckoURLExtraData,
-                                url_bytes: *const u8, url_length: u32,
-                                media_list: RawServoMediaListStrong);
+    pub fn Gecko_DestroyAnonymousContentList(anon_content:
+                                                 *mut nsTArray<*mut nsIContent>);
 }
 extern "C" {
     pub fn Gecko_MaybeCreateStyleChildrenIterator(node: RawGeckoNodeBorrowed)
@@ -568,9 +541,14 @@ extern "C" {
      -> RawGeckoNodeBorrowedOrNull;
 }
 extern "C" {
-    pub fn Gecko_ElementHasBindingWithAnonymousContent(element:
-                                                           RawGeckoElementBorrowed)
-     -> bool;
+    pub fn Gecko_LoadStyleSheet(loader: *mut Loader,
+                                parent: *mut ServoStyleSheet,
+                                reusable_sheets:
+                                    *mut LoaderReusableStyleSheets,
+                                child_sheet: RawServoStyleSheetBorrowed,
+                                base_url_data: *mut RawGeckoURLExtraData,
+                                url_bytes: *const u8, url_length: u32,
+                                media_list: RawServoMediaListStrong);
 }
 extern "C" {
     pub fn Gecko_ElementState(element: RawGeckoElementBorrowed) -> u64;
@@ -1040,6 +1018,11 @@ extern "C" {
     pub fn Gecko_SetStyleGridTemplateArrayLengths(grid_template:
                                                       *mut nsStyleGridTemplate,
                                                   track_sizes: u32);
+}
+extern "C" {
+    pub fn Gecko_SetGridTemplateLineNamesLength(grid_template:
+                                                    *mut nsStyleGridTemplate,
+                                                track_sizes: u32);
 }
 extern "C" {
     pub fn Gecko_CopyStyleGridTemplateValues(grid_template:
@@ -1943,6 +1926,17 @@ extern "C" {
      -> ServoComputedValuesStrong;
 }
 extern "C" {
+    pub fn Servo_StyleSet_MightHaveAttributeDependency(set:
+                                                           RawServoStyleSetBorrowed,
+                                                       local_name:
+                                                           *mut nsIAtom)
+     -> bool;
+}
+extern "C" {
+    pub fn Servo_StyleSet_HasStateDependency(set: RawServoStyleSetBorrowed,
+                                             state: u64) -> bool;
+}
+extern "C" {
     pub fn Servo_CssRules_ListTypes(rules: ServoCssRulesBorrowed,
                                     result: nsTArrayBorrowed_uintptr_t);
 }
@@ -2682,6 +2676,9 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed);
+}
+extern "C" {
+    pub fn Servo_MaybeGCRuleTree(set: RawServoStyleSetBorrowed);
 }
 extern "C" {
     pub fn Servo_StyleSet_GetBaseComputedValuesForElement(set:
