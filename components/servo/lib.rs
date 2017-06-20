@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! FIXME: update this comment
 //! Servo, the mighty web browser engine from the future.
 //!
 //! This is a very simple library that wires all of Servo's components
@@ -117,13 +118,13 @@ pub use msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
 /// application Servo is embedded in. Clients then create an event
 /// loop to pump messages between the embedding application and
 /// various browser components.
-pub struct Browser<Window: WindowMethods + 'static> {
+pub struct Servo<Window: WindowMethods + 'static> {
     compositor: IOCompositor<Window>,
     constellation_chan: Sender<ConstellationMsg>,
 }
 
-impl<Window> Browser<Window> where Window: WindowMethods + 'static {
-    pub fn new(window: Rc<Window>, target_url: ServoUrl) -> Browser<Window> {
+impl<Window> Servo<Window> where Window: WindowMethods + 'static {
+    pub fn new(window: Rc<Window>) -> Servo<Window> {
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 
