@@ -5,16 +5,16 @@
 //! Servo, the mighty web browser engine from the future.
 //!
 //! This is a very simple library that wires all of Servo's components
-//! together as type `Browser`, along with a generic client
+//! together as type `Servo`, along with a generic client
 //! implementing the `WindowMethods` trait, to create a working web
 //! browser.
 //!
-//! The `Browser` type is responsible for configuring a
+//! The `Servo` type is responsible for configuring a
 //! `Constellation`, which does the heavy lifting of coordinating all
 //! of Servo's internal subsystems, including the `ScriptThread` and the
 //! `LayoutThread`, as well maintains the navigation context.
 //!
-//! The `Browser` is fed events from a generic type that implements the
+//! `Servo` is fed events from a generic type that implements the
 //! `WindowMethods` trait.
 
 extern crate env_logger;
@@ -111,18 +111,18 @@ pub use msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
 /// orchestrating the interaction between JavaScript, CSS layout,
 /// rendering, and the client window.
 ///
-/// Clients create a `Browser` for a given reference-counted type
+/// Clients create a `Servo` instance for a given reference-counted type
 /// implementing `WindowMethods`, which is the bridge to whatever
 /// application Servo is embedded in. Clients then create an event
 /// loop to pump messages between the embedding application and
 /// various browser components.
-pub struct Browser<Window: WindowMethods + 'static> {
+pub struct Servo<Window: WindowMethods + 'static> {
     compositor: IOCompositor<Window>,
     constellation_chan: Sender<ConstellationMsg>,
 }
 
-impl<Window> Browser<Window> where Window: WindowMethods + 'static {
-    pub fn new(window: Rc<Window>, target_url: ServoUrl) -> Browser<Window> {
+impl<Window> Servo<Window> where Window: WindowMethods + 'static {
+    pub fn new(window: Rc<Window>) -> Servo<Window> {
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 
@@ -234,7 +234,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
             webrender_api,
         });
 
-        Browser {
+        Servo {
             compositor: compositor,
             constellation_chan: constellation_chan,
         }
