@@ -13,7 +13,7 @@ path = "lib.rs"
 backtrace = "0.3"
 bluetooth_traits = { path = "../bluetooth_traits" }
 canvas = {path = "../canvas"}
-clipboard = "0.3"
+clipboard = "0.4"
 canvas_traits = {path = "../canvas_traits"}
 compositing = {path = "../compositing"}
 debugger = {path = "../debugger"}
