@@ -50,12 +50,14 @@ pub struct Gradient<LineDirection, Length, LengthOrPercentage, Position, Color> 
 
 #[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-/// Whether we used the modern notation or the compatibility `-webkit` prefix.
+/// Whether we used the modern notation or the compatibility `-webkit`, `-moz` prefixes.
 pub enum CompatMode {
     /// Modern syntax.
     Modern,
     /// `-webkit` prefix.
     WebKit,
+    /// `-moz` prefix
+    Moz,
 }
 
 /// A gradient kind.
@@ -216,9 +218,12 @@ impl<D, L, LoP, P, C> ToCss for Gradient<D, L, LoP, P, C>
     where D: LineDirection, L: ToCss, LoP: ToCss, P: ToCss, C: ToCss,
 {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        if self.compat_mode == CompatMode::WebKit {
-            dest.write_str("-webkit-")?;
+        match self.compat_mode {
+            CompatMode::WebKit => dest.write_str("-webkit-")?,
+            CompatMode::Moz => dest.write_str("-moz-")?,
+            _ => {},
         }
+
         if self.repeating {
             dest.write_str("repeating-")?;
         }

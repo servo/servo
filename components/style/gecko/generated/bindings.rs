@@ -952,8 +952,8 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_CreateGradient(shape: u8, size: u8, repeating: bool,
-                                legacy_syntax: bool, stops: u32)
-     -> *mut nsStyleGradient;
+                                legacy_syntax: bool, moz_legacy_syntax: bool,
+                                stops: u32) -> *mut nsStyleGradient;
 }
 extern "C" {
     pub fn Gecko_SetListStyleImageNone(style_struct: *mut nsStyleList);

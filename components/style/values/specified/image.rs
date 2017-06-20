@@ -68,6 +68,12 @@ pub enum LineDirection {
     Vertical(Y),
     /// A direction towards a corner of a box.
     Corner(X, Y),
+    /// A Position and an Angle for legacy `-moz-` prefixed gradient.
+    /// `-moz-` prefixed linear gradient can contain both a position and an angle but it
+    /// uses legacy syntax for position. That means we can't specify both keyword and
+    /// length for each horizontal/vertical components.
+    #[cfg(feature = "gecko")]
+    MozPosition(Option<Position>, Option<Angle>),
 }
 
 /// A specified ending shape.
@@ -160,11 +166,19 @@ impl Parse for Gradient {
             "-webkit-linear-gradient" => {
                 Some((Shape::Linear, false, CompatMode::WebKit))
             },
+            #[cfg(feature = "gecko")]
+            "-moz-linear-gradient" => {
+                Some((Shape::Linear, false, CompatMode::Moz))
+            },
             "repeating-linear-gradient" => {
                 Some((Shape::Linear, true, CompatMode::Modern))
             },
             "-webkit-repeating-linear-gradient" => {
                 Some((Shape::Linear, true, CompatMode::WebKit))
+            },
+            #[cfg(feature = "gecko")]
+            "-moz-repeating-linear-gradient" => {
+                Some((Shape::Linear, true, CompatMode::Moz))
             },
             "radial-gradient" => {
                 Some((Shape::Radial, false, CompatMode::Modern))
@@ -184,14 +198,14 @@ impl Parse for Gradient {
             _ => None,
         };
 
-        let (shape, repeating, compat_mode) = match result {
+        let (shape, repeating, mut compat_mode) = match result {
             Some(result) => result,
             None => return Err(StyleParseError::UnexpectedFunction(func).into()),
         };
 
         let (kind, items) = input.parse_nested_block(|i| {
             let shape = match shape {
-                Shape::Linear => GradientKind::parse_linear(context, i, compat_mode)?,
+                Shape::Linear => GradientKind::parse_linear(context, i, &mut compat_mode)?,
                 Shape::Radial => GradientKind::parse_radial(context, i, compat_mode)?,
             };
             let items = GradientItem::parse_comma_separated(context, i)?;
@@ -461,9 +475,11 @@ impl Gradient {
 }
 
 impl GradientKind {
+    /// Parses a linear gradient.
+    /// CompatMode can change during `-moz-` prefixed gradient parsing if it come across a `to` keyword.
     fn parse_linear<'i, 't>(context: &ParserContext,
                             input: &mut Parser<'i, 't>,
-                            compat_mode: CompatMode)
+                            compat_mode: &mut CompatMode)
                             -> Result<Self, ParseError<'i>> {
         let direction = if let Ok(d) = input.try(|i| LineDirection::parse(context, i, compat_mode)) {
             input.expect_comma()?;
@@ -543,7 +559,22 @@ impl GenericsLineDirection for LineDirection {
                 x.to_css(dest)?;
                 dest.write_str(" ")?;
                 y.to_css(dest)
-            }
+            },
+            #[cfg(feature = "gecko")]
+            LineDirection::MozPosition(ref position, ref angle) => {
+                let mut need_space = false;
+                if let Some(ref position) = *position {
+                    position.to_css(dest)?;
+                    need_space = true;
+                }
+                if let Some(ref angle) = *angle {
+                    if need_space {
+                        dest.write_str(" ")?;
+                    }
+                    angle.to_css(dest)?;
+                }
+                Ok(())
+            },
         }
     }
 }
@@ -551,15 +582,51 @@ impl GenericsLineDirection for LineDirection {
 impl LineDirection {
     fn parse<'i, 't>(context: &ParserContext,
                      input: &mut Parser<'i, 't>,
-                     compat_mode: CompatMode)
+                     compat_mode: &mut CompatMode)
                      -> Result<Self, ParseError<'i>> {
-        if let Ok(angle) = input.try(|i| Angle::parse_with_unitless(context, i)) {
-            return Ok(LineDirection::Angle(angle));
-        }
-        input.try(|i| {
-            if compat_mode == CompatMode::Modern {
-                i.expect_ident_matching("to")?;
+        let mut _angle = if *compat_mode == CompatMode::Moz {
+            input.try(|i| Angle::parse(context, i)).ok()
+        } else {
+            if let Ok(angle) = input.try(|i| Angle::parse_with_unitless(context, i)) {
+                return Ok(LineDirection::Angle(angle));
             }
+            None
+        };
+
+        input.try(|i| {
+            let to_ident = i.try(|i| i.expect_ident_matching("to"));
+            match *compat_mode {
+                /// `to` keyword is mandatory in modern syntax.
+                CompatMode::Modern => to_ident?,
+                // Fall back to Modern compatibility mode in case there is a `to` keyword.
+                // According to Gecko, `-moz-linear-gradient(to ...)` should serialize like
+                // `linear-gradient(to ...)`.
+                CompatMode::Moz if to_ident.is_ok() => *compat_mode = CompatMode::Modern,
+                /// There is no `to` keyword in webkit prefixed syntax. If it's consumed,
+                /// parsing should throw an error.
+                CompatMode::WebKit if to_ident.is_ok() => {
+                    return Err(SelectorParseError::UnexpectedIdent("to".into()).into())
+                },
+                _ => {},
+            }
+
+            
+            #[cfg(feature = "gecko")]
+            {
+                // `-moz-` prefixed linear gradient can be both Angle and Position.
+                if *compat_mode == CompatMode::Moz {
+                    let position = i.try(|i| Position::parse_legacy(context, i)).ok();
+                    if _angle.is_none() {
+                        _angle = i.try(|i| Angle::parse(context, i)).ok();
+                    };
+
+                    if _angle.is_none() && position.is_none() {
+                        return Err(StyleParseError::UnspecifiedError.into());
+                    }
+                    return Ok(LineDirection::MozPosition(position, _angle));
+                }
+            }
+
             if let Ok(x) = i.try(X::parse) {
                 if let Ok(y) = i.try(Y::parse) {
                     return Ok(LineDirection::Corner(x, y));

@@ -56,6 +56,9 @@ pub enum LineDirection {
     Angle(Angle),
     /// A corner.
     Corner(X, Y),
+    /// A Position and an Angle for legacy `-moz-` prefixed gradient.
+    #[cfg(feature = "gecko")]
+    MozPosition(Option<Position>, Option<Angle>),
 }
 
 /// A computed radial gradient ending shape.
@@ -75,6 +78,8 @@ impl GenericLineDirection for LineDirection {
         match *self {
             LineDirection::Angle(angle) => angle.radians() == PI,
             LineDirection::Corner(..) => false,
+            #[cfg(feature = "gecko")]
+            LineDirection::MozPosition(_, _) => false,
         }
     }
 
@@ -91,6 +96,21 @@ impl GenericLineDirection for LineDirection {
                 dest.write_str(" ")?;
                 y.to_css(dest)
             },
+            #[cfg(feature = "gecko")]
+            LineDirection::MozPosition(position, angle) => {
+                let mut need_space = false;
+                if let Some(position) = position {
+                    position.to_css(dest)?;
+                    need_space = true;
+                }
+                if let Some(angle) = angle {
+                    if need_space {
+                        dest.write_str(" ")?;
+                    }
+                    angle.to_css(dest)?;
+                }
+                Ok(())
+            }
         }
     }
 }
@@ -102,8 +122,8 @@ impl SpecifiedLineDirection {
         #[cfg(feature = "gecko")]
         {
             return match _compat_mode {
-                CompatMode::Modern => modern_angle,
-                CompatMode::WebKit => -modern_angle + 270.
+                CompatMode::WebKit => -modern_angle + 270.,
+                _ => modern_angle,
             }
         }
         #[cfg(feature = "servo")]
@@ -131,6 +151,11 @@ impl SpecifiedLineDirection {
             SpecifiedLineDirection::Corner(x, y) => {
                 LineDirection::Corner(x, y)
             },
+            #[cfg(feature = "gecko")]
+            SpecifiedLineDirection::MozPosition(ref position, ref angle) => {
+                LineDirection::MozPosition(position.to_computed_value(context),
+                                           angle.to_computed_value(context))
+            },
         }
     }
 
@@ -141,6 +166,11 @@ impl SpecifiedLineDirection {
             },
             LineDirection::Corner(x, y) => {
                 SpecifiedLineDirection::Corner(x, y)
+            },
+            #[cfg(feature = "gecko")]
+            LineDirection::MozPosition(ref position, ref angle) => {
+                SpecifiedLineDirection::MozPosition(ToComputedValue::from_computed_value(position),
+                                                    ToComputedValue::from_computed_value(angle))
             },
         }
     }
