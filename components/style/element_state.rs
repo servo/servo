@@ -120,18 +120,6 @@ bitflags! {
         const IN_LTR_STATE = 1 << 44,
         /// State that elements that match :dir(rtl) are in.
         const IN_RTL_STATE = 1 << 45,
-        /// State that HTML elements that have a "dir" attr are in.
-        const IN_HAS_DIR_ATTR_STATE = 1 << 46,
-        /// State that HTML elements with dir="ltr" (or something
-        /// case-insensitively equal to "ltr") are in.
-        const IN_HAS_DIR_ATTR_LTR_STATE = 1 << 47,
-        /// State that HTML elements with dir="rtl" (or something
-        /// case-insensitively equal to "rtl") are in.
-        const IN_HAS_DIR_ATTR_RTL_STATE = 1 << 48,
-        /// State that HTML <bdi> elements without a valid-valued "dir" attr or
-        /// any HTML elements (including <bdi>) with dir="auto" (or something
-        /// case-insensitively equal to "auto") are in.
-        const IN_HAS_DIR_ATTR_LIKE_AUTO_STATE = 1 << 49,
         /// Non-standard & undocumented.
         const IN_AUTOFILL_STATE = 1 << 50,
         /// Non-standard & undocumented.

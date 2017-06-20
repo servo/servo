@@ -72,10 +72,6 @@ macro_rules! apply_non_ts_list {
                 ("-moz-broken", MozBroken, mozBroken, IN_BROKEN_STATE, _),
                 ("-moz-loading", MozLoading, mozLoading, IN_LOADING_STATE, _),
                 ("-moz-suppressed", MozSuppressed, mozSuppressed, IN_SUPPRESSED_STATE, PSEUDO_CLASS_INTERNAL),
-                ("-moz-has-dir-attr", MozHasDirAttr, mozHasDirAttr, IN_HAS_DIR_ATTR_STATE, PSEUDO_CLASS_INTERNAL),
-                ("-moz-dir-attr-ltr", MozDirAttrLTR, mozDirAttrLTR, IN_HAS_DIR_ATTR_LTR_STATE, PSEUDO_CLASS_INTERNAL),
-                ("-moz-dir-attr-rtl", MozDirAttrRTL, mozDirAttrRTL, IN_HAS_DIR_ATTR_RTL_STATE, PSEUDO_CLASS_INTERNAL),
-                ("-moz-dir-attr-like-auto", MozDirAttrLikeAuto, mozDirAttrLikeAuto, IN_HAS_DIR_ATTR_LIKE_AUTO_STATE, PSEUDO_CLASS_INTERNAL),
                 ("-moz-autofill", MozAutofill, mozAutofill, IN_AUTOFILL_STATE, PSEUDO_CLASS_INTERNAL),
                 ("-moz-autofill-preview", MozAutofillPreview, mozAutofillPreview, IN_AUTOFILL_PREVIEW_STATE, PSEUDO_CLASS_INTERNAL),
 
