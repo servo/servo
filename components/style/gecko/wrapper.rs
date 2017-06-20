@@ -36,7 +36,6 @@ use gecko_bindings::bindings::{Gecko_IsRootElement, Gecko_MatchesElement, Gecko_
 use gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_ElementHasAnimations;
-use gecko_bindings::bindings::Gecko_ElementHasBindingWithAnonymousContent;
 use gecko_bindings::bindings::Gecko_ElementHasCSSAnimations;
 use gecko_bindings::bindings::Gecko_ElementHasCSSTransitions;
 use gecko_bindings::bindings::Gecko_GetActiveLinkAttrDeclarationBlock;
@@ -275,7 +274,10 @@ impl<'ln> TNode for GeckoNode<'ln> {
     }
 
     fn children_and_traversal_children_might_differ(&self) -> bool {
-        self.as_element().map_or(false, |e| unsafe { Gecko_ElementHasBindingWithAnonymousContent(e.0) })
+        match self.as_element() {
+            Some(e) => e.xbl_binding_anonymous_content().is_some(),
+            None => false,
+        }
     }
 
     fn opaque(&self) -> OpaqueNode {
@@ -374,6 +376,10 @@ pub struct GeckoXBLBinding<'lb>(pub &'lb RawGeckoXBLBinding);
 impl<'lb> GeckoXBLBinding<'lb> {
     fn base_binding(&self) -> Option<GeckoXBLBinding> {
         unsafe { self.0.mNextBinding.mRawPtr.as_ref().map(GeckoXBLBinding) }
+    }
+
+    fn anon_content(&self) -> *const nsIContent {
+        unsafe { self.0.mContent.raw::<nsIContent>() }
     }
 
     fn inherits_style(&self) -> bool {
@@ -558,6 +564,25 @@ impl<'le> GeckoElement<'le> {
     }
 
     #[inline]
+    fn has_properties(&self) -> bool {
+        use gecko_bindings::structs::NODE_HAS_PROPERTIES;
+
+        (self.flags() & NODE_HAS_PROPERTIES as u32) != 0
+    }
+
+    #[inline]
+    fn get_before_or_after_pseudo(&self, is_before: bool) -> Option<Self> {
+        if !self.has_properties() {
+            return None;
+        }
+
+        unsafe {
+            bindings::Gecko_GetBeforeOrAfterPseudo(self.0, is_before)
+                .map(GeckoElement)
+        }
+    }
+
+    #[inline]
     fn may_have_style_attribute(&self) -> bool {
         self.as_node().get_bool_flag(nsINode_BooleanFlag::ElementMayHaveStyle)
     }
@@ -687,6 +712,40 @@ impl<'le> TElement for GeckoElement<'le> {
         } else {
             self.as_node().flattened_tree_parent().and_then(|n| n.as_element())
         }
+    }
+
+    fn before_pseudo_element(&self) -> Option<Self> {
+        self.get_before_or_after_pseudo(/* is_before = */ true)
+    }
+
+    fn after_pseudo_element(&self) -> Option<Self> {
+        self.get_before_or_after_pseudo(/* is_before = */ false)
+    }
+
+    /// Execute `f` for each anonymous content child element (apart from
+    /// ::before and ::after) whose originating element is `self`.
+    fn each_anonymous_content_child<F>(&self, mut f: F)
+    where
+        F: FnMut(Self),
+    {
+        let array: *mut structs::nsTArray<*mut nsIContent> =
+            unsafe { bindings::Gecko_GetAnonymousContentForElement(self.0) };
+
+        if array.is_null() {
+            return;
+        }
+
+        for content in unsafe { &**array } {
+            let node = GeckoNode::from_content(unsafe { &**content });
+            let element = match node.as_element() {
+                Some(e) => e,
+                None => continue,
+            };
+
+            f(element);
+        }
+
+        unsafe { bindings::Gecko_DestroyAnonymousContentList(array) };
     }
 
     fn closest_non_native_anonymous_ancestor(&self) -> Option<Self> {
@@ -868,6 +927,10 @@ impl<'le> TElement for GeckoElement<'le> {
             return None;
         }
 
+        if !self.has_properties() {
+            return None;
+        }
+
         let pseudo_type =
             unsafe { bindings::Gecko_GetImplementedPseudo(self.0) };
         PseudoElement::from_pseudo_type(pseudo_type)
@@ -980,6 +1043,19 @@ impl<'le> TElement for GeckoElement<'le> {
         // If current has something, this means we cut off inheritance at some point in the
         // loop.
         current.is_some()
+    }
+
+    fn xbl_binding_anonymous_content(&self) -> Option<GeckoNode<'le>> {
+        if self.flags() & (structs::NODE_MAY_BE_IN_BINDING_MNGR as u32) == 0 {
+            return None;
+        }
+
+        let anon_content = match self.get_xbl_binding() {
+            Some(binding) => binding.anon_content(),
+            None => return None,
+        };
+
+        unsafe { anon_content.as_ref().map(GeckoNode::from_content) }
     }
 
     fn get_css_transitions_info(&self)
@@ -1323,6 +1399,8 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     type Impl = SelectorImpl;
 
     fn parent_element(&self) -> Option<Self> {
+        // FIXME(emilio): This will need to jump across if the parent node is a
+        // shadow root to get the shadow host.
         let parent_node = self.as_node().parent_node();
         parent_node.and_then(|n| n.as_element())
     }

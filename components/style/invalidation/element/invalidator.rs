@@ -270,6 +270,138 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
         any_invalidated
     }
 
+    fn invalidate_pseudo_element_or_nac(
+        &mut self,
+        child: E,
+        invalidations: &InvalidationVector
+    ) -> bool {
+        let mut sibling_invalidations = InvalidationVector::new();
+
+        let result = self.invalidate_child(
+            child,
+            invalidations,
+            &mut sibling_invalidations
+        );
+
+        // Roots of NAC subtrees can indeed generate sibling invalidations, but
+        // they can be just ignored, since they have no siblings.
+        debug_assert!(child.implemented_pseudo_element().is_none() ||
+                      sibling_invalidations.is_empty(),
+                      "pseudos can't generate sibling invalidations, since \
+                      using them in other position that isn't the \
+                      rightmost part of the selector is invalid \
+                      (for now at least)");
+
+        result
+    }
+
+    /// Invalidate a child and recurse down invalidating its descendants if
+    /// needed.
+    fn invalidate_child(
+        &mut self,
+        child: E,
+        invalidations: &InvalidationVector,
+        sibling_invalidations: &mut InvalidationVector,
+    ) -> bool {
+        let mut child_data = child.mutate_data();
+        let child_data = child_data.as_mut().map(|d| &mut **d);
+
+        let mut child_invalidator = TreeStyleInvalidator::new(
+            child,
+            child_data,
+            self.shared_context
+        );
+
+        let mut invalidations_for_descendants = InvalidationVector::new();
+        let mut invalidated_child = false;
+
+        invalidated_child |=
+            child_invalidator.process_sibling_invalidations(
+                &mut invalidations_for_descendants,
+                sibling_invalidations,
+            );
+
+        invalidated_child |=
+            child_invalidator.process_descendant_invalidations(
+                invalidations,
+                &mut invalidations_for_descendants,
+                sibling_invalidations,
+            );
+
+        // The child may not be a flattened tree child of the current element,
+        // but may be arbitrarily deep.
+        //
+        // Since we keep the traversal flags in terms of the flattened tree,
+        // we need to propagate it as appropriate.
+        if invalidated_child && child.parent_element() != Some(self.element) {
+            let mut current = child.traversal_parent();
+            while let Some(parent) = current.take() {
+                if parent == self.element {
+                    break;
+                }
+
+                unsafe { parent.set_dirty_descendants() };
+                current = parent.traversal_parent();
+            }
+        }
+
+        let invalidated_descendants = child_invalidator.invalidate_descendants(
+            &invalidations_for_descendants
+        );
+
+        invalidated_child || invalidated_descendants
+    }
+
+    fn invalidate_nac(
+        &mut self,
+        invalidations: &InvalidationVector,
+    ) -> bool {
+        let mut any_nac_root = false;
+
+        let element = self.element;
+        element.each_anonymous_content_child(|nac| {
+            any_nac_root |=
+                self.invalidate_pseudo_element_or_nac(nac, invalidations);
+        });
+
+        any_nac_root
+    }
+
+    // NB: It's important that this operates on DOM children, which is what
+    // selector-matching operates on.
+    fn invalidate_dom_descendants_of(
+        &mut self,
+        parent: E::ConcreteNode,
+        invalidations: &InvalidationVector,
+    ) -> bool {
+        let mut any_descendant = false;
+
+        let mut sibling_invalidations = InvalidationVector::new();
+        for child in parent.children() {
+            // TODO(emilio): We handle <xbl:children> fine, because they appear
+            // in selector-matching (note bug 1374247, though).
+            //
+            // This probably needs a shadow root check on `child` here, and
+            // recursing if that's the case.
+            //
+            // Also, what's the deal with HTML <content>? We don't need to
+            // support that for now, though we probably need to recurse into the
+            // distributed children too.
+            let child = match child.as_element() {
+                Some(e) => e,
+                None => continue,
+            };
+
+            any_descendant |= self.invalidate_child(
+                child,
+                invalidations,
+                &mut sibling_invalidations,
+            );
+        }
+
+        any_descendant
+    }
+
     /// Given a descendant invalidation list, go through the current element's
     /// descendants, and invalidate style on them.
     fn invalidate_descendants(
@@ -293,46 +425,36 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
             }
         }
 
-        let mut sibling_invalidations = InvalidationVector::new();
+        let mut any_descendant = false;
 
-        let mut any_children = false;
-        for child in self.element.as_node().traversal_children() {
-            let child = match child.as_element() {
-                Some(e) => e,
-                None => continue,
-            };
-
-            let mut child_data = child.mutate_data();
-            let child_data = child_data.as_mut().map(|d| &mut **d);
-
-            let mut child_invalidator = TreeStyleInvalidator::new(
-                child,
-                child_data,
-                self.shared_context
-            );
-
-            let mut invalidations_for_descendants = InvalidationVector::new();
-            any_children |= child_invalidator.process_sibling_invalidations(
-                &mut invalidations_for_descendants,
-                &mut sibling_invalidations,
-            );
-
-            any_children |= child_invalidator.process_descendant_invalidations(
-                invalidations,
-                &mut invalidations_for_descendants,
-                &mut sibling_invalidations,
-            );
-
-            any_children |= child_invalidator.invalidate_descendants(
-                &invalidations_for_descendants
-            );
+        if let Some(anon_content) = self.element.xbl_binding_anonymous_content() {
+            any_descendant |=
+                self.invalidate_dom_descendants_of(anon_content, invalidations);
         }
 
-        if any_children {
+        // TODO(emilio): Having a list of invalidations just for pseudo-elements
+        // may save some work here and there.
+        if let Some(before) = self.element.before_pseudo_element() {
+            any_descendant |=
+                self.invalidate_pseudo_element_or_nac(before, invalidations);
+        }
+
+        let node = self.element.as_node();
+        any_descendant |=
+            self.invalidate_dom_descendants_of(node, invalidations);
+
+        if let Some(after) = self.element.after_pseudo_element() {
+            any_descendant |=
+                self.invalidate_pseudo_element_or_nac(after, invalidations);
+        }
+
+        any_descendant |= self.invalidate_nac(invalidations);
+
+        if any_descendant {
             unsafe { self.element.set_dirty_descendants() };
         }
 
-        any_children
+        any_descendant
     }
 
     /// Process the given sibling invalidations coming from our previous

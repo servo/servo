@@ -332,6 +332,23 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
         self.parent_element()
     }
 
+    /// The ::before pseudo-element of this element, if it exists.
+    fn before_pseudo_element(&self) -> Option<Self> {
+        None
+    }
+
+    /// The ::after pseudo-element of this element, if it exists.
+    fn after_pseudo_element(&self) -> Option<Self> {
+        None
+    }
+
+    /// Execute `f` for each anonymous content child (apart from ::before and
+    /// ::after) whose originating element is `self`.
+    fn each_anonymous_content_child<F>(&self, _f: F)
+    where
+        F: FnMut(Self),
+    {}
+
     /// For a given NAC element, return the closest non-NAC ancestor, which is
     /// guaranteed to exist.
     fn closest_non_native_anonymous_ancestor(&self) -> Option<Self> {
@@ -568,6 +585,14 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
             None => return false,
         };
         return data.restyle.hint.has_animation_hint()
+    }
+
+    /// Returns the anonymous content for the current element's XBL binding,
+    /// given if any.
+    ///
+    /// This is used in Gecko for XBL and shadow DOM.
+    fn xbl_binding_anonymous_content(&self) -> Option<Self::ConcreteNode> {
+        None
     }
 
     /// Gets declarations from XBL bindings from the element. Only gecko element could have this.
