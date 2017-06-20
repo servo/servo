@@ -200,7 +200,7 @@ mod bindings {
 
     impl BuilderExt for Builder {
         fn get_initial_builder(build_type: BuildType) -> Builder {
-            let mut builder = Builder::default().no_unstable_rust();
+            let mut builder = Builder::default();
             for dir in SEARCH_PATHS.iter() {
                 builder = builder.clang_arg("-I").clang_arg(dir.to_str().unwrap());
             }
