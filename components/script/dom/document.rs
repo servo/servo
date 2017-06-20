@@ -1596,6 +1596,22 @@ impl Document {
                                            ReflowQueryType::NoQuery,
                                            ReflowReason::RequestAnimationFrame);
 
+        if spurious && !was_faking_animation_frames {
+            // If the rAF callbacks did not mutate the DOM, then the
+            // reflow call above means that layout will not be invoked,
+            // and therefore no new frame will be sent to the compositor.
+            // If this happens, the compositor will not tick the animation
+            // and the next rAF will never be called! When this happens
+            // for several frames, then the spurious rAF detection below
+            // will kick in and use a timer to tick the callbacks. However,
+            // for the interim frames where we are deciding whether this rAF
+            // is considered spurious, we need to ensure that the layout
+            // and compositor *do* tick the animation.
+            self.window.force_reflow(ReflowGoal::ForDisplay,
+                                     ReflowQueryType::NoQuery,
+                                     ReflowReason::RequestAnimationFrame);
+        }
+
         // Only send the animation change state message after running any callbacks.
         // This means that if the animation callback adds a new callback for
         // the next frame (which is the common case), we won't send a NoAnimationCallbacksPresent
