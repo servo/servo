@@ -19,7 +19,7 @@ use glutin::ScanCode;
 use glutin::TouchPhase;
 #[cfg(target_os = "macos")]
 use glutin::os::macos::{ActivationPolicy, WindowBuilderExt};
-use msg::constellation_msg::{self, Key};
+use msg::constellation_msg::{self, Key, TopLevelBrowsingContextId as BrowserId};
 use msg::constellation_msg::{ALT, CONTROL, KeyState, NONE, SHIFT, SUPER};
 use net_traits::net_error_list::NetError;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
@@ -986,7 +986,7 @@ impl WindowMethods for Window {
         }
     }
 
-    fn client_window(&self) -> (Size2D<u32>, Point2D<i32>) {
+    fn client_window(&self, _: BrowserId) -> (Size2D<u32>, Point2D<i32>) {
         match self.kind {
             WindowKind::Window(ref window) => {
                 // TODO(ajeffrey): can this fail?
@@ -1005,7 +1005,7 @@ impl WindowMethods for Window {
 
     }
 
-    fn set_inner_size(&self, size: Size2D<u32>) {
+    fn set_inner_size(&self, _: BrowserId, size: Size2D<u32>) {
         match self.kind {
             WindowKind::Window(ref window) => {
                 window.set_inner_size(size.width as u32, size.height as u32)
@@ -1014,7 +1014,7 @@ impl WindowMethods for Window {
         }
     }
 
-    fn set_position(&self, point: Point2D<i32>) {
+    fn set_position(&self, _: BrowserId, point: Point2D<i32>) {
         match self.kind {
             WindowKind::Window(ref window) => {
                 window.set_position(point.x, point.y)
@@ -1023,7 +1023,7 @@ impl WindowMethods for Window {
         }
     }
 
-    fn set_fullscreen_state(&self, _state: bool) {
+    fn set_fullscreen_state(&self, _: BrowserId, _state: bool) {
         match self.kind {
             WindowKind::Window(..) => {
                 warn!("Fullscreen is not implemented!")
@@ -1085,7 +1085,7 @@ impl WindowMethods for Window {
         ScaleFactor::new(ppi as f32 / 96.0)
     }
 
-    fn set_page_title(&self, title: Option<String>) {
+    fn set_page_title(&self, _: BrowserId, title: Option<String>) {
         match self.kind {
             WindowKind::Window(ref window) => {
                 let fallback_title: String = if let Some(ref current_url) = *self.current_url.borrow() {
@@ -1105,13 +1105,13 @@ impl WindowMethods for Window {
         }
     }
 
-    fn status(&self, _: Option<String>) {
+    fn status(&self, _: BrowserId, _: Option<String>) {
     }
 
-    fn load_start(&self) {
+    fn load_start(&self, _: BrowserId) {
     }
 
-    fn load_end(&self) {
+    fn load_end(&self, _: BrowserId) {
         if opts::get().no_native_titlebar {
             match self.kind {
                 WindowKind::Window(ref window) => {
@@ -1122,14 +1122,14 @@ impl WindowMethods for Window {
         }
     }
 
-    fn history_changed(&self, history: Vec<LoadData>, current: usize) {
+    fn history_changed(&self, _: BrowserId, history: Vec<LoadData>, current: usize) {
         *self.current_url.borrow_mut() = Some(history[current].url.clone());
     }
 
-    fn load_error(&self, _: NetError, _: String) {
+    fn load_error(&self, _: BrowserId, _: NetError, _: String) {
     }
 
-    fn head_parsed(&self) {
+    fn head_parsed(&self, _: BrowserId) {
     }
 
     /// Has no effect on Android.
@@ -1181,7 +1181,7 @@ impl WindowMethods for Window {
         }
     }
 
-    fn set_favicon(&self, _: ServoUrl) {
+    fn set_favicon(&self, _: BrowserId, _: ServoUrl) {
     }
 
     fn prepare_for_composite(&self, _width: usize, _height: usize) -> bool {
@@ -1189,7 +1189,7 @@ impl WindowMethods for Window {
     }
 
     /// Helper function to handle keyboard events.
-    fn handle_key(&self, ch: Option<char>, key: Key, mods: constellation_msg::KeyModifiers) {
+    fn handle_key(&self, _: Option<BrowserId>, ch: Option<char>, key: Key, mods: constellation_msg::KeyModifiers) {
         match (mods, ch, key) {
             (_, Some('+'), _) => {
                 if mods & !SHIFT == CMD_OR_CONTROL {
@@ -1286,7 +1286,7 @@ impl WindowMethods for Window {
         }
     }
 
-    fn allow_navigation(&self, _: ServoUrl) -> bool {
+    fn allow_navigation(&self, _: BrowserId, _: ServoUrl) -> bool {
         true
     }
 

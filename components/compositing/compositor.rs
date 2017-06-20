@@ -12,19 +12,18 @@ use gfx_traits::Epoch;
 use gleam::gl;
 use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
-use msg::constellation_msg::{Key, KeyModifiers, KeyState, CONTROL};
+use msg::constellation_msg::{Key, KeyState, CONTROL};
 use msg::constellation_msg::{PipelineId, PipelineIndex, PipelineNamespaceId, TraversalDirection};
 use net_traits::image::base::{Image, PixelFormat};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::{AnimationState, AnimationTickType, ConstellationControlMsg};
-use script_traits::{ConstellationMsg, DevicePixel, LayoutControlMsg, LoadData, MouseButton};
+use script_traits::{ConstellationMsg, DevicePixel, LayoutControlMsg, MouseButton};
 use script_traits::{MouseEventType, ScrollState};
 use script_traits::{TouchpadPressurePhase, TouchEventType, TouchId, WindowSizeData, WindowSizeType};
 use script_traits::CompositorEvent::{self, MouseMoveEvent, MouseButtonEvent, TouchEvent, TouchpadPressureEvent};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_geometry::DeviceIndependentPixel;
-use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::fs::File;
 use std::rc::Rc;
@@ -36,7 +35,7 @@ use time::{precise_time_ns, precise_time_s};
 use touch::{TouchHandler, TouchAction};
 use webrender;
 use webrender_traits::{self, ClipId, LayoutPoint, LayoutVector2D, ScrollEventPhase, ScrollLocation, ScrollClamping};
-use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
+use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods};
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -463,8 +462,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.change_running_animations_state(pipeline_id, animation_state);
             }
 
-            (Msg::ChangePageTitle(pipeline_id, title), ShutdownState::NotShuttingDown) => {
-                self.change_page_title(pipeline_id, title);
+            (Msg::ChangePageTitle(top_level_browsing_context, title), ShutdownState::NotShuttingDown) => {
+                self.window.set_page_title(top_level_browsing_context, title);
             }
 
             (Msg::SetFrameTree(frame_tree, response_chan),
@@ -479,46 +478,45 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.scroll_fragment_to_point(scroll_root_id, point);
             }
 
-            (Msg::MoveTo(point),
+            (Msg::MoveTo(top_level_browsing_context_id, point),
              ShutdownState::NotShuttingDown) => {
-                self.window.set_position(point);
+                self.window.set_position(top_level_browsing_context_id, point);
             }
 
-            (Msg::ResizeTo(size),
+            (Msg::ResizeTo(top_level_browsing_context_id, size),
              ShutdownState::NotShuttingDown) => {
-                self.window.set_inner_size(size);
+                self.window.set_inner_size(top_level_browsing_context_id, size);
             }
 
-            (Msg::GetClientWindow(send),
+            (Msg::GetClientWindow(top_level_browsing_context_id, send),
              ShutdownState::NotShuttingDown) => {
-                let rect = self.window.client_window();
+                let rect = self.window.client_window(top_level_browsing_context_id);
                 if let Err(e) = send.send(rect) {
                     warn!("Sending response to get client window failed ({}).", e);
                 }
             }
 
-            (Msg::Status(message), ShutdownState::NotShuttingDown) => {
-                self.window.status(message);
+            (Msg::Status(top_level_browsing_context_id, message),
+             ShutdownState::NotShuttingDown) => {
+                self.window.status(top_level_browsing_context_id, message);
             }
 
-            (Msg::LoadStart, ShutdownState::NotShuttingDown) => {
-                self.window.load_start();
+            (Msg::LoadStart(top_level_browsing_context_id), ShutdownState::NotShuttingDown) => {
+                self.window.load_start(top_level_browsing_context_id);
             }
 
-            (Msg::LoadComplete, ShutdownState::NotShuttingDown) => {
+            (Msg::LoadComplete(top_level_browsing_context_id), ShutdownState::NotShuttingDown) => {
                 // If we're painting in headless mode, schedule a recomposite.
                 if opts::get().output_file.is_some() || opts::get().exit_after_load {
                     self.composite_if_necessary(CompositingReason::Headless);
                 }
 
                 // Inform the embedder that the load has finished.
-                //
-                // TODO(pcwalton): Specify which frame's load completed.
-                self.window.load_end();
+                self.window.load_end(top_level_browsing_context_id);
             }
 
-            (Msg::AllowNavigation(url, response_chan), ShutdownState::NotShuttingDown) => {
-                let allow = self.window.allow_navigation(url);
+            (Msg::AllowNavigation(top_level_browsing_context_id, url, response_chan), ShutdownState::NotShuttingDown) => {
+                let allow = self.window.allow_navigation(top_level_browsing_context_id, url);
                 if let Err(e) = response_chan.send(allow) {
                     warn!("Failed to send allow_navigation result ({}).", e);
                 }
@@ -538,9 +536,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.composition_request = CompositionRequest::CompositeNow(reason)
             }
 
-            (Msg::KeyEvent(ch, key, state, modified), ShutdownState::NotShuttingDown) => {
+            (Msg::KeyEvent(top_level_browsing_context_id, ch, key, state, modified), ShutdownState::NotShuttingDown) => {
                 if state == KeyState::Pressed {
-                    self.window.handle_key(ch, key, modified);
+                    self.window.handle_key(top_level_browsing_context_id, ch, key, modified);
                 }
             }
 
@@ -584,16 +582,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.composite_if_necessary(CompositingReason::Headless);
             }
 
-            (Msg::NewFavicon(url), ShutdownState::NotShuttingDown) => {
-                self.window.set_favicon(url);
+            (Msg::NewFavicon(top_level_browsing_context_id, url), ShutdownState::NotShuttingDown) => {
+                self.window.set_favicon(top_level_browsing_context_id, url);
             }
 
-            (Msg::HeadParsed, ShutdownState::NotShuttingDown) => {
-                self.window.head_parsed();
+            (Msg::HeadParsed(top_level_browsing_context_id), ShutdownState::NotShuttingDown) => {
+                self.window.head_parsed(top_level_browsing_context_id);
             }
 
-            (Msg::HistoryChanged(entries, current), ShutdownState::NotShuttingDown) => {
-                self.window.history_changed(entries, current);
+            (Msg::HistoryChanged(top_level_browsing_context_id, entries, current), ShutdownState::NotShuttingDown) => {
+                self.window.history_changed(top_level_browsing_context_id, entries, current);
             }
 
             (Msg::PipelineVisibilityChanged(pipeline_id, visible), ShutdownState::NotShuttingDown) => {
@@ -623,8 +621,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 func();
             }
 
-            (Msg::SetFullscreenState(state), ShutdownState::NotShuttingDown) => {
-                self.window.set_fullscreen_state(state);
+            (Msg::SetFullscreenState(top_level_browsing_context_id, state), ShutdownState::NotShuttingDown) => {
+                self.window.set_fullscreen_state(top_level_browsing_context_id, state);
             }
 
             // When we are shutting_down, we need to avoid performing operations
@@ -786,8 +784,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.on_resize_window_event(size);
             }
 
-            WindowEvent::LoadUrl(url_string) => {
-                self.on_load_url_window_event(url_string);
+            WindowEvent::LoadUrl(top_level_browsing_context_id, url) => {
+                let msg = ConstellationMsg::LoadUrl(top_level_browsing_context_id, url);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending load url to constellation failed ({}).", e);
+                }
             }
 
             WindowEvent::MouseWindowEventClass(mouse_window_event) => {
@@ -831,8 +832,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.on_pinch_zoom_window_event(magnification);
             }
 
-            WindowEvent::Navigation(direction) => {
-                self.on_navigation_window_event(direction);
+            WindowEvent::Navigation(top_level_browsing_context_id, direction) => {
+                let direction = match direction {
+                    windowing::WindowNavigateMsg::Forward => TraversalDirection::Forward(1),
+                    windowing::WindowNavigateMsg::Back => TraversalDirection::Back(1),
+                };
+                let msg = ConstellationMsg::TraverseHistory(top_level_browsing_context_id, direction);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending navigation to constellation failed ({}).", e);
+                }
             }
 
             WindowEvent::TouchpadPressure(cursor, pressure, stage) => {
@@ -840,7 +848,23 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             WindowEvent::KeyEvent(ch, key, state, modifiers) => {
-                self.on_key_event(ch, key, state, modifiers);
+                // FIXME(paul): this should be a message sent from embedder
+                // Steal a few key events for webrender debug options.
+                if modifiers.contains(CONTROL) && state == KeyState::Pressed {
+                    match key {
+                        Key::F12 => {
+                            let profiler_enabled = self.webrender.get_profiler_enabled();
+                            self.webrender.set_profiler_enabled(!profiler_enabled);
+                            return;
+                        }
+                        _ => {}
+                    }
+                }
+
+                let msg = ConstellationMsg::KeyEvent(ch, key, state, modifiers);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending key event to constellation failed ({}).", e);
+                }
             }
 
             WindowEvent::Quit => {
@@ -850,12 +874,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 }
             }
 
-            WindowEvent::Reload => {
-                let top_level_browsing_context_id = match self.root_pipeline {
-                    Some(ref pipeline) => pipeline.top_level_browsing_context_id,
-                    None => return warn!("Window reload without root pipeline."),
-                };
-                let msg = ConstellationMsg::Reload(top_level_browsing_context_id);
+            WindowEvent::Reload(ctx) => {
+                let msg = ConstellationMsg::Reload(ctx);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!("Sending reload to constellation failed ({}).", e);
                 }
@@ -885,23 +905,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.window_rect = new_window_rect;
 
         self.send_window_size(WindowSizeType::Resize);
-    }
-
-    fn on_load_url_window_event(&mut self, url_string: String) {
-        debug!("osmain: loading URL `{}`", url_string);
-        match ServoUrl::parse(&url_string) {
-            Ok(url) => {
-                let msg = match self.root_pipeline {
-                    Some(ref pipeline) =>
-                        ConstellationMsg::LoadUrl(pipeline.id, LoadData::new(url, Some(pipeline.id), None, None)),
-                    None => ConstellationMsg::InitLoadUrl(url)
-                };
-                if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Sending load url to constellation failed ({}).", e);
-                }
-            },
-            Err(e) => warn!("Parsing URL {} failed ({}).", url_string, e),
-        }
     }
 
     fn on_mouse_window_event_class(&mut self, mouse_window_event: MouseWindowEvent) {
@@ -1321,44 +1324,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             phase: ScrollEventPhase::Move(true),
             event_count: 1,
         });
-    }
-
-    fn on_navigation_window_event(&self, direction: WindowNavigateMsg) {
-        let direction = match direction {
-            windowing::WindowNavigateMsg::Forward => TraversalDirection::Forward(1),
-            windowing::WindowNavigateMsg::Back => TraversalDirection::Back(1),
-        };
-        let top_level_browsing_context_id = match self.root_pipeline {
-            Some(ref pipeline) => pipeline.top_level_browsing_context_id,
-            None => return warn!("Sending navigation to constellation with no root pipeline."),
-        };
-        let msg = ConstellationMsg::TraverseHistory(top_level_browsing_context_id, direction);
-        if let Err(e) = self.constellation_chan.send(msg) {
-            warn!("Sending navigation to constellation failed ({}).", e);
-        }
-    }
-
-    fn on_key_event(&mut self,
-                    ch: Option<char>,
-                    key: Key,
-                    state: KeyState,
-                    modifiers: KeyModifiers) {
-        // Steal a few key events for webrender debug options.
-        if modifiers.contains(CONTROL) && state == KeyState::Pressed {
-            match key {
-                Key::F12 => {
-                    let profiler_enabled = self.webrender.get_profiler_enabled();
-                    self.webrender.set_profiler_enabled(!profiler_enabled);
-                    return;
-                }
-                _ => {}
-            }
-        }
-
-        let msg = ConstellationMsg::KeyEvent(ch, key, state, modifiers);
-        if let Err(e) = self.constellation_chan.send(msg) {
-            warn!("Sending key event to constellation failed ({}).", e);
-        }
     }
 
     fn send_viewport_rects(&self) {
