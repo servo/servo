@@ -239,7 +239,7 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
         let mut any_invalidated = false;
 
         while let Some(sibling) = current {
-            let mut sibling_data = sibling.get_data().map(|d| d.borrow_mut());
+            let mut sibling_data = sibling.mutate_data();
             let sibling_data = sibling_data.as_mut().map(|d| &mut **d);
 
             let mut sibling_invalidator = TreeStyleInvalidator::new(
@@ -302,7 +302,7 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
                 None => continue,
             };
 
-            let mut child_data = child.get_data().map(|d| d.borrow_mut());
+            let mut child_data = child.mutate_data();
             let child_data = child_data.as_mut().map(|d| &mut **d);
 
             let mut child_invalidator = TreeStyleInvalidator::new(

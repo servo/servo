@@ -326,14 +326,21 @@ pub trait DomTraversal<E: TElement> : Sync {
         // the element if the element has animation only dirty
         // descendants bit, animation-only restyle hint or recascade.
         if traversal_flags.for_animation_only() {
-            if el.has_animation_only_dirty_descendants() {
-                return true;
-            }
-
+            // Skip elements that have no style data since animation-only
+            // restyle is not necessary for the elements.
             let data = match el.borrow_data() {
                 Some(d) => d,
                 None => return false,
             };
+
+            if !data.has_styles() {
+                return false;
+            }
+
+            if el.has_animation_only_dirty_descendants() {
+                return true;
+            }
+
             return data.restyle.hint.has_animation_hint() ||
                    data.restyle.hint.has_recascade_self();
         }
@@ -455,7 +462,11 @@ pub trait DomTraversal<E: TElement> : Sync {
                     let el = kid.as_element();
                     if el.as_ref().and_then(|el| el.borrow_data())
                                   .map_or(false, |d| d.has_styles()) {
-                        unsafe { parent.set_dirty_descendants(); }
+                        if self.shared_context().traversal_flags.for_animation_only() {
+                            unsafe { parent.set_animation_only_dirty_descendants(); }
+                        } else {
+                            unsafe { parent.set_dirty_descendants(); }
+                        }
                     }
                 }
                 f(thread_local, kid);
@@ -855,13 +866,13 @@ where
             None => continue,
         };
 
-        let mut child_data =
-            unsafe { D::ensure_element_data(&child).borrow_mut() };
-
         // If the child is unstyled, we don't need to set up any restyling.
-        if !child_data.has_styles() {
+        if child.borrow_data().map_or(true, |d| !d.has_styles()) {
             continue;
         }
+
+        let mut child_data =
+            unsafe { D::ensure_element_data(&child).borrow_mut() };
 
         trace!(" > {:?} -> {:?} + {:?}, pseudo: {:?}",
                child,

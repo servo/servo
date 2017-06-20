@@ -300,7 +300,9 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
         return false;
     }
 
-    element.has_dirty_descendants() || element.borrow_data().unwrap().restyle.contains_restyle_data()
+    element.has_dirty_descendants() ||
+    element.has_animation_only_dirty_descendants() ||
+    element.borrow_data().unwrap().restyle.contains_restyle_data()
 }
 
 /// Checks whether the rule tree has crossed its threshold for unused nodes, and
@@ -2801,7 +2803,9 @@ pub extern "C" fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed) {
 
     let root = GeckoElement(root);
     fn assert_subtree_is_clean<'le>(el: GeckoElement<'le>) {
-        debug_assert!(!el.has_dirty_descendants() && !el.has_animation_only_dirty_descendants());
+        debug_assert!(!el.has_dirty_descendants() && !el.has_animation_only_dirty_descendants(),
+                      "{:?} has still dirty bit {:?} or animation-only dirty bit {:?}",
+                      el, el.has_dirty_descendants(), el.has_animation_only_dirty_descendants());
         for child in el.as_node().traversal_children() {
             if let Some(child) = child.as_element() {
                 assert_subtree_is_clean(child);
