@@ -2555,79 +2555,179 @@ pub mod root {
             impl FrameMetrics {
                 #[inline]
                 pub fn mIsRootContent(&self) -> bool {
-                    let mask = 1usize as u8;
-                    let unit_field_val: u8 =
-                        unsafe { ::std::mem::transmute(self._bitfield_1) };
+                    let mut unit_field_val: u8 =
+                        unsafe { ::std::mem::uninitialized() };
+                    unsafe {
+                        ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                            *const _ as
+                                                            *const u8,
+                                                        &mut unit_field_val as
+                                                            *mut u8 as
+                                                            *mut u8,
+                                                        ::std::mem::size_of::<u8>())
+                    };
+                    let mask = 1u64 as u8;
                     let val = (unit_field_val & mask) >> 0usize;
                     unsafe { ::std::mem::transmute(val as u8) }
                 }
                 #[inline]
                 pub fn set_mIsRootContent(&mut self, val: bool) {
-                    let mask = 1usize as u8;
+                    let mask = 1u64 as u8;
                     let val = val as u8 as u8;
                     let mut unit_field_val: u8 =
-                        unsafe { ::std::mem::transmute(self._bitfield_1) };
+                        unsafe { ::std::mem::uninitialized() };
+                    unsafe {
+                        ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                            *const _ as
+                                                            *const u8,
+                                                        &mut unit_field_val as
+                                                            *mut u8 as
+                                                            *mut u8,
+                                                        ::std::mem::size_of::<u8>())
+                    };
                     unit_field_val &= !mask;
                     unit_field_val |= (val << 0usize) & mask;
-                    self._bitfield_1 =
-                        unsafe { ::std::mem::transmute(unit_field_val) };
+                    unsafe {
+                        ::std::ptr::copy_nonoverlapping(&unit_field_val as
+                                                            *const _ as
+                                                            *const u8,
+                                                        &mut self._bitfield_1
+                                                            as *mut _ as
+                                                            *mut u8,
+                                                        ::std::mem::size_of::<u8>());
+                    }
                 }
                 #[inline]
                 pub fn mDoSmoothScroll(&self) -> bool {
-                    let mask = 2usize as u8;
-                    let unit_field_val: u8 =
-                        unsafe { ::std::mem::transmute(self._bitfield_1) };
+                    let mut unit_field_val: u8 =
+                        unsafe { ::std::mem::uninitialized() };
+                    unsafe {
+                        ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                            *const _ as
+                                                            *const u8,
+                                                        &mut unit_field_val as
+                                                            *mut u8 as
+                                                            *mut u8,
+                                                        ::std::mem::size_of::<u8>())
+                    };
+                    let mask = 2u64 as u8;
                     let val = (unit_field_val & mask) >> 1usize;
                     unsafe { ::std::mem::transmute(val as u8) }
                 }
                 #[inline]
                 pub fn set_mDoSmoothScroll(&mut self, val: bool) {
-                    let mask = 2usize as u8;
+                    let mask = 2u64 as u8;
                     let val = val as u8 as u8;
                     let mut unit_field_val: u8 =
-                        unsafe { ::std::mem::transmute(self._bitfield_1) };
+                        unsafe { ::std::mem::uninitialized() };
+                    unsafe {
+                        ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                            *const _ as
+                                                            *const u8,
+                                                        &mut unit_field_val as
+                                                            *mut u8 as
+                                                            *mut u8,
+                                                        ::std::mem::size_of::<u8>())
+                    };
                     unit_field_val &= !mask;
                     unit_field_val |= (val << 1usize) & mask;
-                    self._bitfield_1 =
-                        unsafe { ::std::mem::transmute(unit_field_val) };
+                    unsafe {
+                        ::std::ptr::copy_nonoverlapping(&unit_field_val as
+                                                            *const _ as
+                                                            *const u8,
+                                                        &mut self._bitfield_1
+                                                            as *mut _ as
+                                                            *mut u8,
+                                                        ::std::mem::size_of::<u8>());
+                    }
                 }
                 #[inline]
                 pub fn mUseDisplayPortMargins(&self) -> bool {
-                    let mask = 4usize as u8;
-                    let unit_field_val: u8 =
-                        unsafe { ::std::mem::transmute(self._bitfield_1) };
+                    let mut unit_field_val: u8 =
+                        unsafe { ::std::mem::uninitialized() };
+                    unsafe {
+                        ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                            *const _ as
+                                                            *const u8,
+                                                        &mut unit_field_val as
+                                                            *mut u8 as
+                                                            *mut u8,
+                                                        ::std::mem::size_of::<u8>())
+                    };
+                    let mask = 4u64 as u8;
                     let val = (unit_field_val & mask) >> 2usize;
                     unsafe { ::std::mem::transmute(val as u8) }
                 }
                 #[inline]
                 pub fn set_mUseDisplayPortMargins(&mut self, val: bool) {
-                    let mask = 4usize as u8;
+                    let mask = 4u64 as u8;
                     let val = val as u8 as u8;
                     let mut unit_field_val: u8 =
-                        unsafe { ::std::mem::transmute(self._bitfield_1) };
+                        unsafe { ::std::mem::uninitialized() };
+                    unsafe {
+                        ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                            *const _ as
+                                                            *const u8,
+                                                        &mut unit_field_val as
+                                                            *mut u8 as
+                                                            *mut u8,
+                                                        ::std::mem::size_of::<u8>())
+                    };
                     unit_field_val &= !mask;
                     unit_field_val |= (val << 2usize) & mask;
-                    self._bitfield_1 =
-                        unsafe { ::std::mem::transmute(unit_field_val) };
+                    unsafe {
+                        ::std::ptr::copy_nonoverlapping(&unit_field_val as
+                                                            *const _ as
+                                                            *const u8,
+                                                        &mut self._bitfield_1
+                                                            as *mut _ as
+                                                            *mut u8,
+                                                        ::std::mem::size_of::<u8>());
+                    }
                 }
                 #[inline]
                 pub fn mIsScrollInfoLayer(&self) -> bool {
-                    let mask = 8usize as u8;
-                    let unit_field_val: u8 =
-                        unsafe { ::std::mem::transmute(self._bitfield_1) };
+                    let mut unit_field_val: u8 =
+                        unsafe { ::std::mem::uninitialized() };
+                    unsafe {
+                        ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                            *const _ as
+                                                            *const u8,
+                                                        &mut unit_field_val as
+                                                            *mut u8 as
+                                                            *mut u8,
+                                                        ::std::mem::size_of::<u8>())
+                    };
+                    let mask = 8u64 as u8;
                     let val = (unit_field_val & mask) >> 3usize;
                     unsafe { ::std::mem::transmute(val as u8) }
                 }
                 #[inline]
                 pub fn set_mIsScrollInfoLayer(&mut self, val: bool) {
-                    let mask = 8usize as u8;
+                    let mask = 8u64 as u8;
                     let val = val as u8 as u8;
                     let mut unit_field_val: u8 =
-                        unsafe { ::std::mem::transmute(self._bitfield_1) };
+                        unsafe { ::std::mem::uninitialized() };
+                    unsafe {
+                        ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                            *const _ as
+                                                            *const u8,
+                                                        &mut unit_field_val as
+                                                            *mut u8 as
+                                                            *mut u8,
+                                                        ::std::mem::size_of::<u8>())
+                    };
                     unit_field_val &= !mask;
                     unit_field_val |= (val << 3usize) & mask;
-                    self._bitfield_1 =
-                        unsafe { ::std::mem::transmute(unit_field_val) };
+                    unsafe {
+                        ::std::ptr::copy_nonoverlapping(&unit_field_val as
+                                                            *const _ as
+                                                            *const u8,
+                                                        &mut self._bitfield_1
+                                                            as *mut _ as
+                                                            *mut u8,
+                                                        ::std::mem::size_of::<u8>());
+                    }
                 }
                 #[inline]
                 pub fn new_bitfield_1(mIsRootContent: bool,
@@ -2639,16 +2739,16 @@ pub mod root {
                               ({
                                    ({ 0 } |
                                         ((mIsRootContent as u8 as u8) <<
-                                             0usize) & (1usize as u8))
+                                             0usize) & (1u64 as u8))
                                } |
                                    ((mDoSmoothScroll as u8 as u8) << 1usize) &
-                                       (2usize as u8))
+                                       (2u64 as u8))
                           } |
                               ((mUseDisplayPortMargins as u8 as u8) << 2usize)
-                                  & (4usize as u8))
+                                  & (4u64 as u8))
                      } |
                          ((mIsScrollInfoLayer as u8 as u8) << 3usize) &
-                             (8usize as u8))
+                             (8u64 as u8))
                 }
             }
             #[repr(C)]
@@ -2840,99 +2940,224 @@ pub mod root {
             impl ScrollMetadata {
                 #[inline]
                 pub fn mHasScrollgrab(&self) -> bool {
-                    let mask = 1usize as u8;
-                    let unit_field_val: u8 =
-                        unsafe { ::std::mem::transmute(self._bitfield_1) };
+                    let mut unit_field_val: u8 =
+                        unsafe { ::std::mem::uninitialized() };
+                    unsafe {
+                        ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                            *const _ as
+                                                            *const u8,
+                                                        &mut unit_field_val as
+                                                            *mut u8 as
+                                                            *mut u8,
+                                                        ::std::mem::size_of::<u8>())
+                    };
+                    let mask = 1u64 as u8;
                     let val = (unit_field_val & mask) >> 0usize;
                     unsafe { ::std::mem::transmute(val as u8) }
                 }
                 #[inline]
                 pub fn set_mHasScrollgrab(&mut self, val: bool) {
-                    let mask = 1usize as u8;
+                    let mask = 1u64 as u8;
                     let val = val as u8 as u8;
                     let mut unit_field_val: u8 =
-                        unsafe { ::std::mem::transmute(self._bitfield_1) };
+                        unsafe { ::std::mem::uninitialized() };
+                    unsafe {
+                        ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                            *const _ as
+                                                            *const u8,
+                                                        &mut unit_field_val as
+                                                            *mut u8 as
+                                                            *mut u8,
+                                                        ::std::mem::size_of::<u8>())
+                    };
                     unit_field_val &= !mask;
                     unit_field_val |= (val << 0usize) & mask;
-                    self._bitfield_1 =
-                        unsafe { ::std::mem::transmute(unit_field_val) };
+                    unsafe {
+                        ::std::ptr::copy_nonoverlapping(&unit_field_val as
+                                                            *const _ as
+                                                            *const u8,
+                                                        &mut self._bitfield_1
+                                                            as *mut _ as
+                                                            *mut u8,
+                                                        ::std::mem::size_of::<u8>());
+                    }
                 }
                 #[inline]
                 pub fn mAllowVerticalScrollWithWheel(&self) -> bool {
-                    let mask = 2usize as u8;
-                    let unit_field_val: u8 =
-                        unsafe { ::std::mem::transmute(self._bitfield_1) };
+                    let mut unit_field_val: u8 =
+                        unsafe { ::std::mem::uninitialized() };
+                    unsafe {
+                        ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                            *const _ as
+                                                            *const u8,
+                                                        &mut unit_field_val as
+                                                            *mut u8 as
+                                                            *mut u8,
+                                                        ::std::mem::size_of::<u8>())
+                    };
+                    let mask = 2u64 as u8;
                     let val = (unit_field_val & mask) >> 1usize;
                     unsafe { ::std::mem::transmute(val as u8) }
                 }
                 #[inline]
                 pub fn set_mAllowVerticalScrollWithWheel(&mut self,
                                                          val: bool) {
-                    let mask = 2usize as u8;
+                    let mask = 2u64 as u8;
                     let val = val as u8 as u8;
                     let mut unit_field_val: u8 =
-                        unsafe { ::std::mem::transmute(self._bitfield_1) };
+                        unsafe { ::std::mem::uninitialized() };
+                    unsafe {
+                        ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                            *const _ as
+                                                            *const u8,
+                                                        &mut unit_field_val as
+                                                            *mut u8 as
+                                                            *mut u8,
+                                                        ::std::mem::size_of::<u8>())
+                    };
                     unit_field_val &= !mask;
                     unit_field_val |= (val << 1usize) & mask;
-                    self._bitfield_1 =
-                        unsafe { ::std::mem::transmute(unit_field_val) };
+                    unsafe {
+                        ::std::ptr::copy_nonoverlapping(&unit_field_val as
+                                                            *const _ as
+                                                            *const u8,
+                                                        &mut self._bitfield_1
+                                                            as *mut _ as
+                                                            *mut u8,
+                                                        ::std::mem::size_of::<u8>());
+                    }
                 }
                 #[inline]
                 pub fn mIsLayersIdRoot(&self) -> bool {
-                    let mask = 4usize as u8;
-                    let unit_field_val: u8 =
-                        unsafe { ::std::mem::transmute(self._bitfield_1) };
+                    let mut unit_field_val: u8 =
+                        unsafe { ::std::mem::uninitialized() };
+                    unsafe {
+                        ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                            *const _ as
+                                                            *const u8,
+                                                        &mut unit_field_val as
+                                                            *mut u8 as
+                                                            *mut u8,
+                                                        ::std::mem::size_of::<u8>())
+                    };
+                    let mask = 4u64 as u8;
                     let val = (unit_field_val & mask) >> 2usize;
                     unsafe { ::std::mem::transmute(val as u8) }
                 }
                 #[inline]
                 pub fn set_mIsLayersIdRoot(&mut self, val: bool) {
-                    let mask = 4usize as u8;
+                    let mask = 4u64 as u8;
                     let val = val as u8 as u8;
                     let mut unit_field_val: u8 =
-                        unsafe { ::std::mem::transmute(self._bitfield_1) };
+                        unsafe { ::std::mem::uninitialized() };
+                    unsafe {
+                        ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                            *const _ as
+                                                            *const u8,
+                                                        &mut unit_field_val as
+                                                            *mut u8 as
+                                                            *mut u8,
+                                                        ::std::mem::size_of::<u8>())
+                    };
                     unit_field_val &= !mask;
                     unit_field_val |= (val << 2usize) & mask;
-                    self._bitfield_1 =
-                        unsafe { ::std::mem::transmute(unit_field_val) };
+                    unsafe {
+                        ::std::ptr::copy_nonoverlapping(&unit_field_val as
+                                                            *const _ as
+                                                            *const u8,
+                                                        &mut self._bitfield_1
+                                                            as *mut _ as
+                                                            *mut u8,
+                                                        ::std::mem::size_of::<u8>());
+                    }
                 }
                 #[inline]
                 pub fn mUsesContainerScrolling(&self) -> bool {
-                    let mask = 8usize as u8;
-                    let unit_field_val: u8 =
-                        unsafe { ::std::mem::transmute(self._bitfield_1) };
+                    let mut unit_field_val: u8 =
+                        unsafe { ::std::mem::uninitialized() };
+                    unsafe {
+                        ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                            *const _ as
+                                                            *const u8,
+                                                        &mut unit_field_val as
+                                                            *mut u8 as
+                                                            *mut u8,
+                                                        ::std::mem::size_of::<u8>())
+                    };
+                    let mask = 8u64 as u8;
                     let val = (unit_field_val & mask) >> 3usize;
                     unsafe { ::std::mem::transmute(val as u8) }
                 }
                 #[inline]
                 pub fn set_mUsesContainerScrolling(&mut self, val: bool) {
-                    let mask = 8usize as u8;
+                    let mask = 8u64 as u8;
                     let val = val as u8 as u8;
                     let mut unit_field_val: u8 =
-                        unsafe { ::std::mem::transmute(self._bitfield_1) };
+                        unsafe { ::std::mem::uninitialized() };
+                    unsafe {
+                        ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                            *const _ as
+                                                            *const u8,
+                                                        &mut unit_field_val as
+                                                            *mut u8 as
+                                                            *mut u8,
+                                                        ::std::mem::size_of::<u8>())
+                    };
                     unit_field_val &= !mask;
                     unit_field_val |= (val << 3usize) & mask;
-                    self._bitfield_1 =
-                        unsafe { ::std::mem::transmute(unit_field_val) };
+                    unsafe {
+                        ::std::ptr::copy_nonoverlapping(&unit_field_val as
+                                                            *const _ as
+                                                            *const u8,
+                                                        &mut self._bitfield_1
+                                                            as *mut _ as
+                                                            *mut u8,
+                                                        ::std::mem::size_of::<u8>());
+                    }
                 }
                 #[inline]
                 pub fn mForceDisableApz(&self) -> bool {
-                    let mask = 16usize as u8;
-                    let unit_field_val: u8 =
-                        unsafe { ::std::mem::transmute(self._bitfield_1) };
+                    let mut unit_field_val: u8 =
+                        unsafe { ::std::mem::uninitialized() };
+                    unsafe {
+                        ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                            *const _ as
+                                                            *const u8,
+                                                        &mut unit_field_val as
+                                                            *mut u8 as
+                                                            *mut u8,
+                                                        ::std::mem::size_of::<u8>())
+                    };
+                    let mask = 16u64 as u8;
                     let val = (unit_field_val & mask) >> 4usize;
                     unsafe { ::std::mem::transmute(val as u8) }
                 }
                 #[inline]
                 pub fn set_mForceDisableApz(&mut self, val: bool) {
-                    let mask = 16usize as u8;
+                    let mask = 16u64 as u8;
                     let val = val as u8 as u8;
                     let mut unit_field_val: u8 =
-                        unsafe { ::std::mem::transmute(self._bitfield_1) };
+                        unsafe { ::std::mem::uninitialized() };
+                    unsafe {
+                        ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                            *const _ as
+                                                            *const u8,
+                                                        &mut unit_field_val as
+                                                            *mut u8 as
+                                                            *mut u8,
+                                                        ::std::mem::size_of::<u8>())
+                    };
                     unit_field_val &= !mask;
                     unit_field_val |= (val << 4usize) & mask;
-                    self._bitfield_1 =
-                        unsafe { ::std::mem::transmute(unit_field_val) };
+                    unsafe {
+                        ::std::ptr::copy_nonoverlapping(&unit_field_val as
+                                                            *const _ as
+                                                            *const u8,
+                                                        &mut self._bitfield_1
+                                                            as *mut _ as
+                                                            *mut u8,
+                                                        ::std::mem::size_of::<u8>());
+                    }
                 }
                 #[inline]
                 pub fn new_bitfield_1(mHasScrollgrab: bool,
@@ -2946,20 +3171,20 @@ pub mod root {
                                    ({
                                         ({ 0 } |
                                              ((mHasScrollgrab as u8 as u8) <<
-                                                  0usize) & (1usize as u8))
+                                                  0usize) & (1u64 as u8))
                                     } |
                                         ((mAllowVerticalScrollWithWheel as u8
                                               as u8) << 1usize) &
-                                            (2usize as u8))
+                                            (2u64 as u8))
                                } |
                                    ((mIsLayersIdRoot as u8 as u8) << 2usize) &
-                                       (4usize as u8))
+                                       (4u64 as u8))
                           } |
                               ((mUsesContainerScrolling as u8 as u8) <<
-                                   3usize) & (8usize as u8))
+                                   3usize) & (8u64 as u8))
                      } |
                          ((mForceDisableApz as u8 as u8) << 4usize) &
-                             (16usize as u8))
+                             (16u64 as u8))
                 }
             }
             #[repr(C)]
@@ -8906,155 +9131,307 @@ pub mod root {
         impl ServoElementSnapshot {
             #[inline]
             pub fn mIsHTMLElementInHTMLDocument(&self) -> bool {
-                let mask = 1usize as u8;
-                let unit_field_val: u8 =
-                    unsafe { ::std::mem::transmute(self._bitfield_1) };
+                let mut unit_field_val: u8 =
+                    unsafe { ::std::mem::uninitialized() };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                        *const _ as *const u8,
+                                                    &mut unit_field_val as
+                                                        *mut u8 as *mut u8,
+                                                    ::std::mem::size_of::<u8>())
+                };
+                let mask = 1u64 as u8;
                 let val = (unit_field_val & mask) >> 0usize;
                 unsafe { ::std::mem::transmute(val as u8) }
             }
             #[inline]
             pub fn set_mIsHTMLElementInHTMLDocument(&mut self, val: bool) {
-                let mask = 1usize as u8;
+                let mask = 1u64 as u8;
                 let val = val as u8 as u8;
                 let mut unit_field_val: u8 =
-                    unsafe { ::std::mem::transmute(self._bitfield_1) };
+                    unsafe { ::std::mem::uninitialized() };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                        *const _ as *const u8,
+                                                    &mut unit_field_val as
+                                                        *mut u8 as *mut u8,
+                                                    ::std::mem::size_of::<u8>())
+                };
                 unit_field_val &= !mask;
                 unit_field_val |= (val << 0usize) & mask;
-                self._bitfield_1 =
-                    unsafe { ::std::mem::transmute(unit_field_val) };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&unit_field_val as
+                                                        *const _ as *const u8,
+                                                    &mut self._bitfield_1 as
+                                                        *mut _ as *mut u8,
+                                                    ::std::mem::size_of::<u8>());
+                }
             }
             #[inline]
             pub fn mIsInChromeDocument(&self) -> bool {
-                let mask = 2usize as u8;
-                let unit_field_val: u8 =
-                    unsafe { ::std::mem::transmute(self._bitfield_1) };
+                let mut unit_field_val: u8 =
+                    unsafe { ::std::mem::uninitialized() };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                        *const _ as *const u8,
+                                                    &mut unit_field_val as
+                                                        *mut u8 as *mut u8,
+                                                    ::std::mem::size_of::<u8>())
+                };
+                let mask = 2u64 as u8;
                 let val = (unit_field_val & mask) >> 1usize;
                 unsafe { ::std::mem::transmute(val as u8) }
             }
             #[inline]
             pub fn set_mIsInChromeDocument(&mut self, val: bool) {
-                let mask = 2usize as u8;
+                let mask = 2u64 as u8;
                 let val = val as u8 as u8;
                 let mut unit_field_val: u8 =
-                    unsafe { ::std::mem::transmute(self._bitfield_1) };
+                    unsafe { ::std::mem::uninitialized() };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                        *const _ as *const u8,
+                                                    &mut unit_field_val as
+                                                        *mut u8 as *mut u8,
+                                                    ::std::mem::size_of::<u8>())
+                };
                 unit_field_val &= !mask;
                 unit_field_val |= (val << 1usize) & mask;
-                self._bitfield_1 =
-                    unsafe { ::std::mem::transmute(unit_field_val) };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&unit_field_val as
+                                                        *const _ as *const u8,
+                                                    &mut self._bitfield_1 as
+                                                        *mut _ as *mut u8,
+                                                    ::std::mem::size_of::<u8>());
+                }
             }
             #[inline]
             pub fn mSupportsLangAttr(&self) -> bool {
-                let mask = 4usize as u8;
-                let unit_field_val: u8 =
-                    unsafe { ::std::mem::transmute(self._bitfield_1) };
+                let mut unit_field_val: u8 =
+                    unsafe { ::std::mem::uninitialized() };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                        *const _ as *const u8,
+                                                    &mut unit_field_val as
+                                                        *mut u8 as *mut u8,
+                                                    ::std::mem::size_of::<u8>())
+                };
+                let mask = 4u64 as u8;
                 let val = (unit_field_val & mask) >> 2usize;
                 unsafe { ::std::mem::transmute(val as u8) }
             }
             #[inline]
             pub fn set_mSupportsLangAttr(&mut self, val: bool) {
-                let mask = 4usize as u8;
+                let mask = 4u64 as u8;
                 let val = val as u8 as u8;
                 let mut unit_field_val: u8 =
-                    unsafe { ::std::mem::transmute(self._bitfield_1) };
+                    unsafe { ::std::mem::uninitialized() };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                        *const _ as *const u8,
+                                                    &mut unit_field_val as
+                                                        *mut u8 as *mut u8,
+                                                    ::std::mem::size_of::<u8>())
+                };
                 unit_field_val &= !mask;
                 unit_field_val |= (val << 2usize) & mask;
-                self._bitfield_1 =
-                    unsafe { ::std::mem::transmute(unit_field_val) };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&unit_field_val as
+                                                        *const _ as *const u8,
+                                                    &mut self._bitfield_1 as
+                                                        *mut _ as *mut u8,
+                                                    ::std::mem::size_of::<u8>());
+                }
             }
             #[inline]
             pub fn mIsTableBorderNonzero(&self) -> bool {
-                let mask = 8usize as u8;
-                let unit_field_val: u8 =
-                    unsafe { ::std::mem::transmute(self._bitfield_1) };
+                let mut unit_field_val: u8 =
+                    unsafe { ::std::mem::uninitialized() };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                        *const _ as *const u8,
+                                                    &mut unit_field_val as
+                                                        *mut u8 as *mut u8,
+                                                    ::std::mem::size_of::<u8>())
+                };
+                let mask = 8u64 as u8;
                 let val = (unit_field_val & mask) >> 3usize;
                 unsafe { ::std::mem::transmute(val as u8) }
             }
             #[inline]
             pub fn set_mIsTableBorderNonzero(&mut self, val: bool) {
-                let mask = 8usize as u8;
+                let mask = 8u64 as u8;
                 let val = val as u8 as u8;
                 let mut unit_field_val: u8 =
-                    unsafe { ::std::mem::transmute(self._bitfield_1) };
+                    unsafe { ::std::mem::uninitialized() };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                        *const _ as *const u8,
+                                                    &mut unit_field_val as
+                                                        *mut u8 as *mut u8,
+                                                    ::std::mem::size_of::<u8>())
+                };
                 unit_field_val &= !mask;
                 unit_field_val |= (val << 3usize) & mask;
-                self._bitfield_1 =
-                    unsafe { ::std::mem::transmute(unit_field_val) };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&unit_field_val as
+                                                        *const _ as *const u8,
+                                                    &mut self._bitfield_1 as
+                                                        *mut _ as *mut u8,
+                                                    ::std::mem::size_of::<u8>());
+                }
             }
             #[inline]
             pub fn mIsMozBrowserFrame(&self) -> bool {
-                let mask = 16usize as u8;
-                let unit_field_val: u8 =
-                    unsafe { ::std::mem::transmute(self._bitfield_1) };
+                let mut unit_field_val: u8 =
+                    unsafe { ::std::mem::uninitialized() };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                        *const _ as *const u8,
+                                                    &mut unit_field_val as
+                                                        *mut u8 as *mut u8,
+                                                    ::std::mem::size_of::<u8>())
+                };
+                let mask = 16u64 as u8;
                 let val = (unit_field_val & mask) >> 4usize;
                 unsafe { ::std::mem::transmute(val as u8) }
             }
             #[inline]
             pub fn set_mIsMozBrowserFrame(&mut self, val: bool) {
-                let mask = 16usize as u8;
+                let mask = 16u64 as u8;
                 let val = val as u8 as u8;
                 let mut unit_field_val: u8 =
-                    unsafe { ::std::mem::transmute(self._bitfield_1) };
+                    unsafe { ::std::mem::uninitialized() };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                        *const _ as *const u8,
+                                                    &mut unit_field_val as
+                                                        *mut u8 as *mut u8,
+                                                    ::std::mem::size_of::<u8>())
+                };
                 unit_field_val &= !mask;
                 unit_field_val |= (val << 4usize) & mask;
-                self._bitfield_1 =
-                    unsafe { ::std::mem::transmute(unit_field_val) };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&unit_field_val as
+                                                        *const _ as *const u8,
+                                                    &mut self._bitfield_1 as
+                                                        *mut _ as *mut u8,
+                                                    ::std::mem::size_of::<u8>());
+                }
             }
             #[inline]
             pub fn mClassAttributeChanged(&self) -> bool {
-                let mask = 32usize as u8;
-                let unit_field_val: u8 =
-                    unsafe { ::std::mem::transmute(self._bitfield_1) };
+                let mut unit_field_val: u8 =
+                    unsafe { ::std::mem::uninitialized() };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                        *const _ as *const u8,
+                                                    &mut unit_field_val as
+                                                        *mut u8 as *mut u8,
+                                                    ::std::mem::size_of::<u8>())
+                };
+                let mask = 32u64 as u8;
                 let val = (unit_field_val & mask) >> 5usize;
                 unsafe { ::std::mem::transmute(val as u8) }
             }
             #[inline]
             pub fn set_mClassAttributeChanged(&mut self, val: bool) {
-                let mask = 32usize as u8;
+                let mask = 32u64 as u8;
                 let val = val as u8 as u8;
                 let mut unit_field_val: u8 =
-                    unsafe { ::std::mem::transmute(self._bitfield_1) };
+                    unsafe { ::std::mem::uninitialized() };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                        *const _ as *const u8,
+                                                    &mut unit_field_val as
+                                                        *mut u8 as *mut u8,
+                                                    ::std::mem::size_of::<u8>())
+                };
                 unit_field_val &= !mask;
                 unit_field_val |= (val << 5usize) & mask;
-                self._bitfield_1 =
-                    unsafe { ::std::mem::transmute(unit_field_val) };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&unit_field_val as
+                                                        *const _ as *const u8,
+                                                    &mut self._bitfield_1 as
+                                                        *mut _ as *mut u8,
+                                                    ::std::mem::size_of::<u8>());
+                }
             }
             #[inline]
             pub fn mIdAttributeChanged(&self) -> bool {
-                let mask = 64usize as u8;
-                let unit_field_val: u8 =
-                    unsafe { ::std::mem::transmute(self._bitfield_1) };
+                let mut unit_field_val: u8 =
+                    unsafe { ::std::mem::uninitialized() };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                        *const _ as *const u8,
+                                                    &mut unit_field_val as
+                                                        *mut u8 as *mut u8,
+                                                    ::std::mem::size_of::<u8>())
+                };
+                let mask = 64u64 as u8;
                 let val = (unit_field_val & mask) >> 6usize;
                 unsafe { ::std::mem::transmute(val as u8) }
             }
             #[inline]
             pub fn set_mIdAttributeChanged(&mut self, val: bool) {
-                let mask = 64usize as u8;
+                let mask = 64u64 as u8;
                 let val = val as u8 as u8;
                 let mut unit_field_val: u8 =
-                    unsafe { ::std::mem::transmute(self._bitfield_1) };
+                    unsafe { ::std::mem::uninitialized() };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                        *const _ as *const u8,
+                                                    &mut unit_field_val as
+                                                        *mut u8 as *mut u8,
+                                                    ::std::mem::size_of::<u8>())
+                };
                 unit_field_val &= !mask;
                 unit_field_val |= (val << 6usize) & mask;
-                self._bitfield_1 =
-                    unsafe { ::std::mem::transmute(unit_field_val) };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&unit_field_val as
+                                                        *const _ as *const u8,
+                                                    &mut self._bitfield_1 as
+                                                        *mut _ as *mut u8,
+                                                    ::std::mem::size_of::<u8>());
+                }
             }
             #[inline]
             pub fn mOtherAttributeChanged(&self) -> bool {
-                let mask = 128usize as u8;
-                let unit_field_val: u8 =
-                    unsafe { ::std::mem::transmute(self._bitfield_1) };
+                let mut unit_field_val: u8 =
+                    unsafe { ::std::mem::uninitialized() };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                        *const _ as *const u8,
+                                                    &mut unit_field_val as
+                                                        *mut u8 as *mut u8,
+                                                    ::std::mem::size_of::<u8>())
+                };
+                let mask = 128u64 as u8;
                 let val = (unit_field_val & mask) >> 7usize;
                 unsafe { ::std::mem::transmute(val as u8) }
             }
             #[inline]
             pub fn set_mOtherAttributeChanged(&mut self, val: bool) {
-                let mask = 128usize as u8;
+                let mask = 128u64 as u8;
                 let val = val as u8 as u8;
                 let mut unit_field_val: u8 =
-                    unsafe { ::std::mem::transmute(self._bitfield_1) };
+                    unsafe { ::std::mem::uninitialized() };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                        *const _ as *const u8,
+                                                    &mut unit_field_val as
+                                                        *mut u8 as *mut u8,
+                                                    ::std::mem::size_of::<u8>())
+                };
                 unit_field_val &= !mask;
                 unit_field_val |= (val << 7usize) & mask;
-                self._bitfield_1 =
-                    unsafe { ::std::mem::transmute(unit_field_val) };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&unit_field_val as
+                                                        *const _ as *const u8,
+                                                    &mut self._bitfield_1 as
+                                                        *mut _ as *mut u8,
+                                                    ::std::mem::size_of::<u8>());
+                }
             }
             #[inline]
             pub fn new_bitfield_1(mIsHTMLElementInHTMLDocument: bool,
@@ -9076,30 +9453,29 @@ pub mod root {
                                                         ((mIsHTMLElementInHTMLDocument
                                                               as u8 as u8) <<
                                                              0usize) &
-                                                            (1usize as u8))
+                                                            (1u64 as u8))
                                                } |
                                                    ((mIsInChromeDocument as u8
                                                          as u8) << 1usize) &
-                                                       (2usize as u8))
+                                                       (2u64 as u8))
                                           } |
                                               ((mSupportsLangAttr as u8 as u8)
-                                                   << 2usize) &
-                                                  (4usize as u8))
+                                                   << 2usize) & (4u64 as u8))
                                      } |
                                          ((mIsTableBorderNonzero as u8 as u8)
-                                              << 3usize) & (8usize as u8))
+                                              << 3usize) & (8u64 as u8))
                                 } |
                                     ((mIsMozBrowserFrame as u8 as u8) <<
-                                         4usize) & (16usize as u8))
+                                         4usize) & (16u64 as u8))
                            } |
                                ((mClassAttributeChanged as u8 as u8) <<
-                                    5usize) & (32usize as u8))
+                                    5usize) & (32u64 as u8))
                       } |
                           ((mIdAttributeChanged as u8 as u8) << 6usize) &
-                              (64usize as u8))
+                              (64u64 as u8))
                  } |
                      ((mOtherAttributeChanged as u8 as u8) << 7usize) &
-                         (128usize as u8))
+                         (128u64 as u8))
             }
         }
         #[repr(C)]
@@ -12488,41 +12864,79 @@ pub mod root {
         impl Value_layout__bindgen_ty_1 {
             #[inline]
             pub fn payload47(&self) -> u64 {
-                let mask = 140737488355327usize as u64;
-                let unit_field_val: u64 =
-                    unsafe { ::std::mem::transmute(self._bitfield_1) };
+                let mut unit_field_val: u64 =
+                    unsafe { ::std::mem::uninitialized() };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                        *const _ as *const u8,
+                                                    &mut unit_field_val as
+                                                        *mut u64 as *mut u8,
+                                                    ::std::mem::size_of::<u64>())
+                };
+                let mask = 140737488355327u64 as u64;
                 let val = (unit_field_val & mask) >> 0usize;
                 unsafe { ::std::mem::transmute(val as u64) }
             }
             #[inline]
             pub fn set_payload47(&mut self, val: u64) {
-                let mask = 140737488355327usize as u64;
+                let mask = 140737488355327u64 as u64;
                 let val = val as u64 as u64;
                 let mut unit_field_val: u64 =
-                    unsafe { ::std::mem::transmute(self._bitfield_1) };
+                    unsafe { ::std::mem::uninitialized() };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                        *const _ as *const u8,
+                                                    &mut unit_field_val as
+                                                        *mut u64 as *mut u8,
+                                                    ::std::mem::size_of::<u64>())
+                };
                 unit_field_val &= !mask;
                 unit_field_val |= (val << 0usize) & mask;
-                self._bitfield_1 =
-                    unsafe { ::std::mem::transmute(unit_field_val) };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&unit_field_val as
+                                                        *const _ as *const u8,
+                                                    &mut self._bitfield_1 as
+                                                        *mut _ as *mut u8,
+                                                    ::std::mem::size_of::<u64>());
+                }
             }
             #[inline]
             pub fn tag(&self) -> root::JSValueTag {
-                let mask = 18446603336221196288usize as u64;
-                let unit_field_val: u64 =
-                    unsafe { ::std::mem::transmute(self._bitfield_1) };
+                let mut unit_field_val: u64 =
+                    unsafe { ::std::mem::uninitialized() };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                        *const _ as *const u8,
+                                                    &mut unit_field_val as
+                                                        *mut u64 as *mut u8,
+                                                    ::std::mem::size_of::<u64>())
+                };
+                let mask = 18446603336221196288u64 as u64;
                 let val = (unit_field_val & mask) >> 47usize;
                 unsafe { ::std::mem::transmute(val as u32) }
             }
             #[inline]
             pub fn set_tag(&mut self, val: root::JSValueTag) {
-                let mask = 18446603336221196288usize as u64;
+                let mask = 18446603336221196288u64 as u64;
                 let val = val as u32 as u64;
                 let mut unit_field_val: u64 =
-                    unsafe { ::std::mem::transmute(self._bitfield_1) };
+                    unsafe { ::std::mem::uninitialized() };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as
+                                                        *const _ as *const u8,
+                                                    &mut unit_field_val as
+                                                        *mut u64 as *mut u8,
+                                                    ::std::mem::size_of::<u64>())
+                };
                 unit_field_val &= !mask;
                 unit_field_val |= (val << 47usize) & mask;
-                self._bitfield_1 =
-                    unsafe { ::std::mem::transmute(unit_field_val) };
+                unsafe {
+                    ::std::ptr::copy_nonoverlapping(&unit_field_val as
+                                                        *const _ as *const u8,
+                                                    &mut self._bitfield_1 as
+                                                        *mut _ as *mut u8,
+                                                    ::std::mem::size_of::<u64>());
+                }
             }
             #[inline]
             pub fn new_bitfield_1(payload47: u64, tag: root::JSValueTag)
@@ -12530,10 +12944,10 @@ pub mod root {
                 ({
                      ({ 0 } |
                           ((payload47 as u64 as u64) << 0usize) &
-                              (140737488355327usize as u64))
+                              (140737488355327u64 as u64))
                  } |
                      ((tag as u32 as u64) << 47usize) &
-                         (18446603336221196288usize as u64))
+                         (18446603336221196288u64 as u64))
             }
         }
         #[repr(C)]
@@ -13391,46 +13805,84 @@ pub mod root {
     impl JSErrorReport {
         #[inline]
         pub fn isMuted(&self) -> bool {
-            let mask = 1usize as u8;
-            let unit_field_val: u8 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u8 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as *mut u8
+                                                    as *mut u8,
+                                                ::std::mem::size_of::<u8>())
+            };
+            let mask = 1u64 as u8;
             let val = (unit_field_val & mask) >> 0usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_isMuted(&mut self, val: bool) {
-            let mask = 1usize as u8;
+            let mask = 1u64 as u8;
             let val = val as u8 as u8;
             let mut unit_field_val: u8 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as *mut u8
+                                                    as *mut u8,
+                                                ::std::mem::size_of::<u8>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 0usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u8>());
+            }
         }
         #[inline]
         pub fn ownsLinebuf_(&self) -> bool {
-            let mask = 2usize as u8;
-            let unit_field_val: u8 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u8 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as *mut u8
+                                                    as *mut u8,
+                                                ::std::mem::size_of::<u8>())
+            };
+            let mask = 2u64 as u8;
             let val = (unit_field_val & mask) >> 1usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_ownsLinebuf_(&mut self, val: bool) {
-            let mask = 2usize as u8;
+            let mask = 2u64 as u8;
             let val = val as u8 as u8;
             let mut unit_field_val: u8 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as *mut u8
+                                                    as *mut u8,
+                                                ::std::mem::size_of::<u8>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 1usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u8>());
+            }
         }
         #[inline]
         pub fn new_bitfield_1(isMuted: bool, ownsLinebuf_: bool) -> u8 {
-            ({ ({ 0 } | ((isMuted as u8 as u8) << 0usize) & (1usize as u8)) }
-                 | ((ownsLinebuf_ as u8 as u8) << 1usize) & (2usize as u8))
+            ({ ({ 0 } | ((isMuted as u8 as u8) << 0usize) & (1u64 as u8)) } |
+                 ((ownsLinebuf_ as u8 as u8) << 1usize) & (2u64 as u8))
         }
     }
     #[repr(C)]
@@ -14333,51 +14785,89 @@ pub mod root {
     impl nsTArrayHeader {
         #[inline]
         pub fn mCapacity(&self) -> u32 {
-            let mask = 2147483647usize as u32;
-            let unit_field_val: u32 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u32 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u32 as *mut u8,
+                                                ::std::mem::size_of::<u32>())
+            };
+            let mask = 2147483647u64 as u32;
             let val = (unit_field_val & mask) >> 0usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mCapacity(&mut self, val: u32) {
-            let mask = 2147483647usize as u32;
+            let mask = 2147483647u64 as u32;
             let val = val as u32 as u32;
             let mut unit_field_val: u32 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u32 as *mut u8,
+                                                ::std::mem::size_of::<u32>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 0usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u32>());
+            }
         }
         #[inline]
         pub fn mIsAutoArray(&self) -> u32 {
-            let mask = 2147483648usize as u32;
-            let unit_field_val: u32 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u32 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u32 as *mut u8,
+                                                ::std::mem::size_of::<u32>())
+            };
+            let mask = 2147483648u64 as u32;
             let val = (unit_field_val & mask) >> 31usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mIsAutoArray(&mut self, val: u32) {
-            let mask = 2147483648usize as u32;
+            let mask = 2147483648u64 as u32;
             let val = val as u32 as u32;
             let mut unit_field_val: u32 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u32 as *mut u8,
+                                                ::std::mem::size_of::<u32>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 31usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u32>());
+            }
         }
         #[inline]
         pub fn new_bitfield_1(mCapacity: u32, mIsAutoArray: u32) -> u32 {
             ({
                  ({ 0 } |
                       ((mCapacity as u32 as u32) << 0usize) &
-                          (2147483647usize as u32))
+                          (2147483647u64 as u32))
              } |
                  ((mIsAutoArray as u32 as u32) << 31usize) &
-                     (2147483648usize as u32))
+                     (2147483648u64 as u32))
         }
     }
     pub type nscoord = i32;
@@ -15401,51 +15891,89 @@ pub mod root {
     impl nsIAtom {
         #[inline]
         pub fn mLength(&self) -> u32 {
-            let mask = 2147483647usize as u32;
-            let unit_field_val: u32 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u32 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u32 as *mut u8,
+                                                ::std::mem::size_of::<u32>())
+            };
+            let mask = 2147483647u64 as u32;
             let val = (unit_field_val & mask) >> 0usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mLength(&mut self, val: u32) {
-            let mask = 2147483647usize as u32;
+            let mask = 2147483647u64 as u32;
             let val = val as u32 as u32;
             let mut unit_field_val: u32 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u32 as *mut u8,
+                                                ::std::mem::size_of::<u32>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 0usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u32>());
+            }
         }
         #[inline]
         pub fn mIsStatic(&self) -> u32 {
-            let mask = 2147483648usize as u32;
-            let unit_field_val: u32 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u32 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u32 as *mut u8,
+                                                ::std::mem::size_of::<u32>())
+            };
+            let mask = 2147483648u64 as u32;
             let val = (unit_field_val & mask) >> 31usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mIsStatic(&mut self, val: u32) {
-            let mask = 2147483648usize as u32;
+            let mask = 2147483648u64 as u32;
             let val = val as u32 as u32;
             let mut unit_field_val: u32 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u32 as *mut u8,
+                                                ::std::mem::size_of::<u32>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 31usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u32>());
+            }
         }
         #[inline]
         pub fn new_bitfield_1(mLength: u32, mIsStatic: u32) -> u32 {
             ({
                  ({ 0 } |
                       ((mLength as u32 as u32) << 0usize) &
-                          (2147483647usize as u32))
+                          (2147483647u64 as u32))
              } |
                  ((mIsStatic as u32 as u32) << 31usize) &
-                     (2147483648usize as u32))
+                     (2147483648u64 as u32))
         }
     }
     #[repr(C)]
@@ -16231,26 +16759,45 @@ pub mod root {
     impl JSErrorBase {
         #[inline]
         pub fn ownsMessage_(&self) -> bool {
-            let mask = 1usize as u8;
-            let unit_field_val: u8 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u8 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as *mut u8
+                                                    as *mut u8,
+                                                ::std::mem::size_of::<u8>())
+            };
+            let mask = 1u64 as u8;
             let val = (unit_field_val & mask) >> 0usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_ownsMessage_(&mut self, val: bool) {
-            let mask = 1usize as u8;
+            let mask = 1u64 as u8;
             let val = val as u8 as u8;
             let mut unit_field_val: u8 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as *mut u8
+                                                    as *mut u8,
+                                                ::std::mem::size_of::<u8>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 0usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u8>());
+            }
         }
         #[inline]
         pub fn new_bitfield_1(ownsMessage_: bool) -> u8 {
-            ({ 0 } | ((ownsMessage_ as u8 as u8) << 0usize) & (1usize as u8))
+            ({ 0 } | ((ownsMessage_ as u8 as u8) << 0usize) & (1u64 as u8))
         }
     }
     /**
@@ -17065,7 +17612,7 @@ pub mod root {
         pub mChildrenCollection: root::nsCOMPtr,
         pub mFontFaceSet: root::RefPtr<root::mozilla::dom::FontFaceSet>,
         pub mLastFocusTime: root::mozilla::TimeStamp,
-        pub _bitfield_1: [u8; 8usize],
+        pub _bitfield_1: [u8; 6usize],
         pub mCompatMode: root::nsCompatibility,
         pub mReadyState: root::nsIDocument_ReadyState,
         pub mStyleBackendType: root::mozilla::StyleBackendType,
@@ -17406,896 +17953,1789 @@ pub mod root {
     impl nsIDocument {
         #[inline]
         pub fn mBidiEnabled(&self) -> bool {
-            let mask = 1usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 1u64 as u64;
             let val = (unit_field_val & mask) >> 0usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mBidiEnabled(&mut self, val: bool) {
-            let mask = 1usize as u64;
+            let mask = 1u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 0usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mMathMLEnabled(&self) -> bool {
-            let mask = 2usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 2u64 as u64;
             let val = (unit_field_val & mask) >> 1usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mMathMLEnabled(&mut self, val: bool) {
-            let mask = 2usize as u64;
+            let mask = 2u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 1usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mIsInitialDocumentInWindow(&self) -> bool {
-            let mask = 4usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 4u64 as u64;
             let val = (unit_field_val & mask) >> 2usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mIsInitialDocumentInWindow(&mut self, val: bool) {
-            let mask = 4usize as u64;
+            let mask = 4u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 2usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mIgnoreDocGroupMismatches(&self) -> bool {
-            let mask = 8usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 8u64 as u64;
             let val = (unit_field_val & mask) >> 3usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mIgnoreDocGroupMismatches(&mut self, val: bool) {
-            let mask = 8usize as u64;
+            let mask = 8u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 3usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mLoadedAsData(&self) -> bool {
-            let mask = 16usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 16u64 as u64;
             let val = (unit_field_val & mask) >> 4usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mLoadedAsData(&mut self, val: bool) {
-            let mask = 16usize as u64;
+            let mask = 16u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 4usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mLoadedAsInteractiveData(&self) -> bool {
-            let mask = 32usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 32u64 as u64;
             let val = (unit_field_val & mask) >> 5usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mLoadedAsInteractiveData(&mut self, val: bool) {
-            let mask = 32usize as u64;
+            let mask = 32u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 5usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mMayStartLayout(&self) -> bool {
-            let mask = 64usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 64u64 as u64;
             let val = (unit_field_val & mask) >> 6usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mMayStartLayout(&mut self, val: bool) {
-            let mask = 64usize as u64;
+            let mask = 64u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 6usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mHaveFiredTitleChange(&self) -> bool {
-            let mask = 128usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 128u64 as u64;
             let val = (unit_field_val & mask) >> 7usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mHaveFiredTitleChange(&mut self, val: bool) {
-            let mask = 128usize as u64;
+            let mask = 128u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 7usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mIsShowing(&self) -> bool {
-            let mask = 256usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 256u64 as u64;
             let val = (unit_field_val & mask) >> 8usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mIsShowing(&mut self, val: bool) {
-            let mask = 256usize as u64;
+            let mask = 256u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 8usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mVisible(&self) -> bool {
-            let mask = 512usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 512u64 as u64;
             let val = (unit_field_val & mask) >> 9usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mVisible(&mut self, val: bool) {
-            let mask = 512usize as u64;
+            let mask = 512u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 9usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mHasReferrerPolicyCSP(&self) -> bool {
-            let mask = 1024usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 1024u64 as u64;
             let val = (unit_field_val & mask) >> 10usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mHasReferrerPolicyCSP(&mut self, val: bool) {
-            let mask = 1024usize as u64;
+            let mask = 1024u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 10usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mRemovedFromDocShell(&self) -> bool {
-            let mask = 2048usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 2048u64 as u64;
             let val = (unit_field_val & mask) >> 11usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mRemovedFromDocShell(&mut self, val: bool) {
-            let mask = 2048usize as u64;
+            let mask = 2048u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 11usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mAllowDNSPrefetch(&self) -> bool {
-            let mask = 4096usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 4096u64 as u64;
             let val = (unit_field_val & mask) >> 12usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mAllowDNSPrefetch(&mut self, val: bool) {
-            let mask = 4096usize as u64;
+            let mask = 4096u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 12usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mIsStaticDocument(&self) -> bool {
-            let mask = 8192usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 8192u64 as u64;
             let val = (unit_field_val & mask) >> 13usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mIsStaticDocument(&mut self, val: bool) {
-            let mask = 8192usize as u64;
+            let mask = 8192u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 13usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mCreatingStaticClone(&self) -> bool {
-            let mask = 16384usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 16384u64 as u64;
             let val = (unit_field_val & mask) >> 14usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mCreatingStaticClone(&mut self, val: bool) {
-            let mask = 16384usize as u64;
+            let mask = 16384u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 14usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mInUnlinkOrDeletion(&self) -> bool {
-            let mask = 32768usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 32768u64 as u64;
             let val = (unit_field_val & mask) >> 15usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mInUnlinkOrDeletion(&mut self, val: bool) {
-            let mask = 32768usize as u64;
+            let mask = 32768u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 15usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mHasHadScriptHandlingObject(&self) -> bool {
-            let mask = 65536usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 65536u64 as u64;
             let val = (unit_field_val & mask) >> 16usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mHasHadScriptHandlingObject(&mut self, val: bool) {
-            let mask = 65536usize as u64;
+            let mask = 65536u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 16usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mIsBeingUsedAsImage(&self) -> bool {
-            let mask = 131072usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 131072u64 as u64;
             let val = (unit_field_val & mask) >> 17usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mIsBeingUsedAsImage(&mut self, val: bool) {
-            let mask = 131072usize as u64;
+            let mask = 131072u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 17usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mIsSyntheticDocument(&self) -> bool {
-            let mask = 262144usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 262144u64 as u64;
             let val = (unit_field_val & mask) >> 18usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mIsSyntheticDocument(&mut self, val: bool) {
-            let mask = 262144usize as u64;
+            let mask = 262144u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 18usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mHasLinksToUpdate(&self) -> bool {
-            let mask = 524288usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 524288u64 as u64;
             let val = (unit_field_val & mask) >> 19usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mHasLinksToUpdate(&mut self, val: bool) {
-            let mask = 524288usize as u64;
+            let mask = 524288u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 19usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mHasLinksToUpdateRunnable(&self) -> bool {
-            let mask = 1048576usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 1048576u64 as u64;
             let val = (unit_field_val & mask) >> 20usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mHasLinksToUpdateRunnable(&mut self, val: bool) {
-            let mask = 1048576usize as u64;
+            let mask = 1048576u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 20usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mMayHaveDOMMutationObservers(&self) -> bool {
-            let mask = 2097152usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 2097152u64 as u64;
             let val = (unit_field_val & mask) >> 21usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mMayHaveDOMMutationObservers(&mut self, val: bool) {
-            let mask = 2097152usize as u64;
+            let mask = 2097152u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 21usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mMayHaveAnimationObservers(&self) -> bool {
-            let mask = 4194304usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 4194304u64 as u64;
             let val = (unit_field_val & mask) >> 22usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mMayHaveAnimationObservers(&mut self, val: bool) {
-            let mask = 4194304usize as u64;
+            let mask = 4194304u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 22usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mHasMixedActiveContentLoaded(&self) -> bool {
-            let mask = 8388608usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 8388608u64 as u64;
             let val = (unit_field_val & mask) >> 23usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mHasMixedActiveContentLoaded(&mut self, val: bool) {
-            let mask = 8388608usize as u64;
+            let mask = 8388608u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 23usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mHasMixedActiveContentBlocked(&self) -> bool {
-            let mask = 16777216usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 16777216u64 as u64;
             let val = (unit_field_val & mask) >> 24usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mHasMixedActiveContentBlocked(&mut self, val: bool) {
-            let mask = 16777216usize as u64;
+            let mask = 16777216u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 24usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mHasMixedDisplayContentLoaded(&self) -> bool {
-            let mask = 33554432usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 33554432u64 as u64;
             let val = (unit_field_val & mask) >> 25usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mHasMixedDisplayContentLoaded(&mut self, val: bool) {
-            let mask = 33554432usize as u64;
+            let mask = 33554432u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 25usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mHasMixedDisplayContentBlocked(&self) -> bool {
-            let mask = 67108864usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 67108864u64 as u64;
             let val = (unit_field_val & mask) >> 26usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mHasMixedDisplayContentBlocked(&mut self, val: bool) {
-            let mask = 67108864usize as u64;
+            let mask = 67108864u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 26usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mHasMixedContentObjectSubrequest(&self) -> bool {
-            let mask = 134217728usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 134217728u64 as u64;
             let val = (unit_field_val & mask) >> 27usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mHasMixedContentObjectSubrequest(&mut self, val: bool) {
-            let mask = 134217728usize as u64;
+            let mask = 134217728u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 27usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mHasCSP(&self) -> bool {
-            let mask = 268435456usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 268435456u64 as u64;
             let val = (unit_field_val & mask) >> 28usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mHasCSP(&mut self, val: bool) {
-            let mask = 268435456usize as u64;
+            let mask = 268435456u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 28usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mHasUnsafeEvalCSP(&self) -> bool {
-            let mask = 536870912usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 536870912u64 as u64;
             let val = (unit_field_val & mask) >> 29usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mHasUnsafeEvalCSP(&mut self, val: bool) {
-            let mask = 536870912usize as u64;
+            let mask = 536870912u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 29usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mHasUnsafeInlineCSP(&self) -> bool {
-            let mask = 1073741824usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 1073741824u64 as u64;
             let val = (unit_field_val & mask) >> 30usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mHasUnsafeInlineCSP(&mut self, val: bool) {
-            let mask = 1073741824usize as u64;
+            let mask = 1073741824u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 30usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mHasTrackingContentBlocked(&self) -> bool {
-            let mask = 2147483648usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 2147483648u64 as u64;
             let val = (unit_field_val & mask) >> 31usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mHasTrackingContentBlocked(&mut self, val: bool) {
-            let mask = 2147483648usize as u64;
+            let mask = 2147483648u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 31usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mHasTrackingContentLoaded(&self) -> bool {
-            let mask = 4294967296usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 4294967296u64 as u64;
             let val = (unit_field_val & mask) >> 32usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mHasTrackingContentLoaded(&mut self, val: bool) {
-            let mask = 4294967296usize as u64;
+            let mask = 4294967296u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 32usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mBFCacheDisallowed(&self) -> bool {
-            let mask = 8589934592usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 8589934592u64 as u64;
             let val = (unit_field_val & mask) >> 33usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mBFCacheDisallowed(&mut self, val: bool) {
-            let mask = 8589934592usize as u64;
+            let mask = 8589934592u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 33usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mHasHadDefaultView(&self) -> bool {
-            let mask = 17179869184usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 17179869184u64 as u64;
             let val = (unit_field_val & mask) >> 34usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mHasHadDefaultView(&mut self, val: bool) {
-            let mask = 17179869184usize as u64;
+            let mask = 17179869184u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 34usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mStyleSheetChangeEventsEnabled(&self) -> bool {
-            let mask = 34359738368usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 34359738368u64 as u64;
             let val = (unit_field_val & mask) >> 35usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mStyleSheetChangeEventsEnabled(&mut self, val: bool) {
-            let mask = 34359738368usize as u64;
+            let mask = 34359738368u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 35usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mIsSrcdocDocument(&self) -> bool {
-            let mask = 68719476736usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 68719476736u64 as u64;
             let val = (unit_field_val & mask) >> 36usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mIsSrcdocDocument(&mut self, val: bool) {
-            let mask = 68719476736usize as u64;
+            let mask = 68719476736u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 36usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mDidDocumentOpen(&self) -> bool {
-            let mask = 137438953472usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 137438953472u64 as u64;
             let val = (unit_field_val & mask) >> 37usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mDidDocumentOpen(&mut self, val: bool) {
-            let mask = 137438953472usize as u64;
+            let mask = 137438953472u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 37usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mHasDisplayDocument(&self) -> bool {
-            let mask = 274877906944usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 274877906944u64 as u64;
             let val = (unit_field_val & mask) >> 38usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mHasDisplayDocument(&mut self, val: bool) {
-            let mask = 274877906944usize as u64;
+            let mask = 274877906944u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 38usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mFontFaceSetDirty(&self) -> bool {
-            let mask = 549755813888usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 549755813888u64 as u64;
             let val = (unit_field_val & mask) >> 39usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mFontFaceSetDirty(&mut self, val: bool) {
-            let mask = 549755813888usize as u64;
+            let mask = 549755813888u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 39usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mGetUserFontSetCalled(&self) -> bool {
-            let mask = 1099511627776usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 1099511627776u64 as u64;
             let val = (unit_field_val & mask) >> 40usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mGetUserFontSetCalled(&mut self, val: bool) {
-            let mask = 1099511627776usize as u64;
+            let mask = 1099511627776u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 40usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mPostedFlushUserFontSet(&self) -> bool {
-            let mask = 2199023255552usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 2199023255552u64 as u64;
             let val = (unit_field_val & mask) >> 41usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mPostedFlushUserFontSet(&mut self, val: bool) {
-            let mask = 2199023255552usize as u64;
+            let mask = 2199023255552u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 41usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mDidFireDOMContentLoaded(&self) -> bool {
-            let mask = 4398046511104usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 4398046511104u64 as u64;
             let val = (unit_field_val & mask) >> 42usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mDidFireDOMContentLoaded(&mut self, val: bool) {
-            let mask = 4398046511104usize as u64;
+            let mask = 4398046511104u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 42usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mHasScrollLinkedEffect(&self) -> bool {
-            let mask = 8796093022208usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 8796093022208u64 as u64;
             let val = (unit_field_val & mask) >> 43usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mHasScrollLinkedEffect(&mut self, val: bool) {
-            let mask = 8796093022208usize as u64;
+            let mask = 8796093022208u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 43usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mFrameRequestCallbacksScheduled(&self) -> bool {
-            let mask = 17592186044416usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 17592186044416u64 as u64;
             let val = (unit_field_val & mask) >> 44usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mFrameRequestCallbacksScheduled(&mut self, val: bool) {
-            let mask = 17592186044416usize as u64;
+            let mask = 17592186044416u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 44usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mIsTopLevelContentDocument(&self) -> bool {
-            let mask = 35184372088832usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 35184372088832u64 as u64;
             let val = (unit_field_val & mask) >> 45usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mIsTopLevelContentDocument(&mut self, val: bool) {
-            let mask = 35184372088832usize as u64;
+            let mask = 35184372088832u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 45usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mIsContentDocument(&self) -> bool {
-            let mask = 70368744177664usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 70368744177664u64 as u64;
             let val = (unit_field_val & mask) >> 46usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mIsContentDocument(&mut self, val: bool) {
-            let mask = 70368744177664usize as u64;
+            let mask = 70368744177664u64 as u64;
             let val = val as u8 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 46usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn new_bitfield_1(mBidiEnabled: bool, mMathMLEnabled: bool,
@@ -18398,7 +19838,7 @@ pub mod root {
                                                                                                                                                                                                                                                             <<
                                                                                                                                                                                                                                                             0usize)
                                                                                                                                                                                                                                                            &
-                                                                                                                                                                                                                                                           (1usize
+                                                                                                                                                                                                                                                           (1u64
                                                                                                                                                                                                                                                                 as
                                                                                                                                                                                                                                                                 u64))
                                                                                                                                                                                                                                               }
@@ -18411,7 +19851,7 @@ pub mod root {
                                                                                                                                                                                                                                                        <<
                                                                                                                                                                                                                                                        1usize)
                                                                                                                                                                                                                                                       &
-                                                                                                                                                                                                                                                      (2usize
+                                                                                                                                                                                                                                                      (2u64
                                                                                                                                                                                                                                                            as
                                                                                                                                                                                                                                                            u64))
                                                                                                                                                                                                                                          }
@@ -18424,7 +19864,7 @@ pub mod root {
                                                                                                                                                                                                                                                   <<
                                                                                                                                                                                                                                                   2usize)
                                                                                                                                                                                                                                                  &
-                                                                                                                                                                                                                                                 (4usize
+                                                                                                                                                                                                                                                 (4u64
                                                                                                                                                                                                                                                       as
                                                                                                                                                                                                                                                       u64))
                                                                                                                                                                                                                                     }
@@ -18437,7 +19877,7 @@ pub mod root {
                                                                                                                                                                                                                                              <<
                                                                                                                                                                                                                                              3usize)
                                                                                                                                                                                                                                             &
-                                                                                                                                                                                                                                            (8usize
+                                                                                                                                                                                                                                            (8u64
                                                                                                                                                                                                                                                  as
                                                                                                                                                                                                                                                  u64))
                                                                                                                                                                                                                                }
@@ -18450,7 +19890,7 @@ pub mod root {
                                                                                                                                                                                                                                         <<
                                                                                                                                                                                                                                         4usize)
                                                                                                                                                                                                                                        &
-                                                                                                                                                                                                                                       (16usize
+                                                                                                                                                                                                                                       (16u64
                                                                                                                                                                                                                                             as
                                                                                                                                                                                                                                             u64))
                                                                                                                                                                                                                           }
@@ -18463,7 +19903,7 @@ pub mod root {
                                                                                                                                                                                                                                    <<
                                                                                                                                                                                                                                    5usize)
                                                                                                                                                                                                                                   &
-                                                                                                                                                                                                                                  (32usize
+                                                                                                                                                                                                                                  (32u64
                                                                                                                                                                                                                                        as
                                                                                                                                                                                                                                        u64))
                                                                                                                                                                                                                      }
@@ -18476,7 +19916,7 @@ pub mod root {
                                                                                                                                                                                                                               <<
                                                                                                                                                                                                                               6usize)
                                                                                                                                                                                                                              &
-                                                                                                                                                                                                                             (64usize
+                                                                                                                                                                                                                             (64u64
                                                                                                                                                                                                                                   as
                                                                                                                                                                                                                                   u64))
                                                                                                                                                                                                                 }
@@ -18489,7 +19929,7 @@ pub mod root {
                                                                                                                                                                                                                          <<
                                                                                                                                                                                                                          7usize)
                                                                                                                                                                                                                         &
-                                                                                                                                                                                                                        (128usize
+                                                                                                                                                                                                                        (128u64
                                                                                                                                                                                                                              as
                                                                                                                                                                                                                              u64))
                                                                                                                                                                                                            }
@@ -18502,7 +19942,7 @@ pub mod root {
                                                                                                                                                                                                                     <<
                                                                                                                                                                                                                     8usize)
                                                                                                                                                                                                                    &
-                                                                                                                                                                                                                   (256usize
+                                                                                                                                                                                                                   (256u64
                                                                                                                                                                                                                         as
                                                                                                                                                                                                                         u64))
                                                                                                                                                                                                       }
@@ -18515,7 +19955,7 @@ pub mod root {
                                                                                                                                                                                                                <<
                                                                                                                                                                                                                9usize)
                                                                                                                                                                                                               &
-                                                                                                                                                                                                              (512usize
+                                                                                                                                                                                                              (512u64
                                                                                                                                                                                                                    as
                                                                                                                                                                                                                    u64))
                                                                                                                                                                                                  }
@@ -18528,7 +19968,7 @@ pub mod root {
                                                                                                                                                                                                           <<
                                                                                                                                                                                                           10usize)
                                                                                                                                                                                                          &
-                                                                                                                                                                                                         (1024usize
+                                                                                                                                                                                                         (1024u64
                                                                                                                                                                                                               as
                                                                                                                                                                                                               u64))
                                                                                                                                                                                             }
@@ -18541,7 +19981,7 @@ pub mod root {
                                                                                                                                                                                                      <<
                                                                                                                                                                                                      11usize)
                                                                                                                                                                                                     &
-                                                                                                                                                                                                    (2048usize
+                                                                                                                                                                                                    (2048u64
                                                                                                                                                                                                          as
                                                                                                                                                                                                          u64))
                                                                                                                                                                                        }
@@ -18554,7 +19994,7 @@ pub mod root {
                                                                                                                                                                                                 <<
                                                                                                                                                                                                 12usize)
                                                                                                                                                                                                &
-                                                                                                                                                                                               (4096usize
+                                                                                                                                                                                               (4096u64
                                                                                                                                                                                                     as
                                                                                                                                                                                                     u64))
                                                                                                                                                                                   }
@@ -18567,7 +20007,7 @@ pub mod root {
                                                                                                                                                                                            <<
                                                                                                                                                                                            13usize)
                                                                                                                                                                                           &
-                                                                                                                                                                                          (8192usize
+                                                                                                                                                                                          (8192u64
                                                                                                                                                                                                as
                                                                                                                                                                                                u64))
                                                                                                                                                                              }
@@ -18580,7 +20020,7 @@ pub mod root {
                                                                                                                                                                                       <<
                                                                                                                                                                                       14usize)
                                                                                                                                                                                      &
-                                                                                                                                                                                     (16384usize
+                                                                                                                                                                                     (16384u64
                                                                                                                                                                                           as
                                                                                                                                                                                           u64))
                                                                                                                                                                         }
@@ -18593,7 +20033,7 @@ pub mod root {
                                                                                                                                                                                  <<
                                                                                                                                                                                  15usize)
                                                                                                                                                                                 &
-                                                                                                                                                                                (32768usize
+                                                                                                                                                                                (32768u64
                                                                                                                                                                                      as
                                                                                                                                                                                      u64))
                                                                                                                                                                    }
@@ -18606,7 +20046,7 @@ pub mod root {
                                                                                                                                                                             <<
                                                                                                                                                                             16usize)
                                                                                                                                                                            &
-                                                                                                                                                                           (65536usize
+                                                                                                                                                                           (65536u64
                                                                                                                                                                                 as
                                                                                                                                                                                 u64))
                                                                                                                                                               }
@@ -18619,7 +20059,7 @@ pub mod root {
                                                                                                                                                                        <<
                                                                                                                                                                        17usize)
                                                                                                                                                                       &
-                                                                                                                                                                      (131072usize
+                                                                                                                                                                      (131072u64
                                                                                                                                                                            as
                                                                                                                                                                            u64))
                                                                                                                                                          }
@@ -18632,7 +20072,7 @@ pub mod root {
                                                                                                                                                                   <<
                                                                                                                                                                   18usize)
                                                                                                                                                                  &
-                                                                                                                                                                 (262144usize
+                                                                                                                                                                 (262144u64
                                                                                                                                                                       as
                                                                                                                                                                       u64))
                                                                                                                                                     }
@@ -18645,7 +20085,7 @@ pub mod root {
                                                                                                                                                              <<
                                                                                                                                                              19usize)
                                                                                                                                                             &
-                                                                                                                                                            (524288usize
+                                                                                                                                                            (524288u64
                                                                                                                                                                  as
                                                                                                                                                                  u64))
                                                                                                                                                }
@@ -18658,7 +20098,7 @@ pub mod root {
                                                                                                                                                         <<
                                                                                                                                                         20usize)
                                                                                                                                                        &
-                                                                                                                                                       (1048576usize
+                                                                                                                                                       (1048576u64
                                                                                                                                                             as
                                                                                                                                                             u64))
                                                                                                                                           }
@@ -18671,7 +20111,7 @@ pub mod root {
                                                                                                                                                    <<
                                                                                                                                                    21usize)
                                                                                                                                                   &
-                                                                                                                                                  (2097152usize
+                                                                                                                                                  (2097152u64
                                                                                                                                                        as
                                                                                                                                                        u64))
                                                                                                                                      }
@@ -18684,7 +20124,7 @@ pub mod root {
                                                                                                                                               <<
                                                                                                                                               22usize)
                                                                                                                                              &
-                                                                                                                                             (4194304usize
+                                                                                                                                             (4194304u64
                                                                                                                                                   as
                                                                                                                                                   u64))
                                                                                                                                 }
@@ -18697,7 +20137,7 @@ pub mod root {
                                                                                                                                          <<
                                                                                                                                          23usize)
                                                                                                                                         &
-                                                                                                                                        (8388608usize
+                                                                                                                                        (8388608u64
                                                                                                                                              as
                                                                                                                                              u64))
                                                                                                                            }
@@ -18710,7 +20150,7 @@ pub mod root {
                                                                                                                                     <<
                                                                                                                                     24usize)
                                                                                                                                    &
-                                                                                                                                   (16777216usize
+                                                                                                                                   (16777216u64
                                                                                                                                         as
                                                                                                                                         u64))
                                                                                                                       }
@@ -18723,7 +20163,7 @@ pub mod root {
                                                                                                                                <<
                                                                                                                                25usize)
                                                                                                                               &
-                                                                                                                              (33554432usize
+                                                                                                                              (33554432u64
                                                                                                                                    as
                                                                                                                                    u64))
                                                                                                                  }
@@ -18736,7 +20176,7 @@ pub mod root {
                                                                                                                           <<
                                                                                                                           26usize)
                                                                                                                          &
-                                                                                                                         (67108864usize
+                                                                                                                         (67108864u64
                                                                                                                               as
                                                                                                                               u64))
                                                                                                             }
@@ -18749,7 +20189,7 @@ pub mod root {
                                                                                                                      <<
                                                                                                                      27usize)
                                                                                                                     &
-                                                                                                                    (134217728usize
+                                                                                                                    (134217728u64
                                                                                                                          as
                                                                                                                          u64))
                                                                                                        }
@@ -18762,7 +20202,7 @@ pub mod root {
                                                                                                                 <<
                                                                                                                 28usize)
                                                                                                                &
-                                                                                                               (268435456usize
+                                                                                                               (268435456u64
                                                                                                                     as
                                                                                                                     u64))
                                                                                                   }
@@ -18775,7 +20215,7 @@ pub mod root {
                                                                                                            <<
                                                                                                            29usize)
                                                                                                           &
-                                                                                                          (536870912usize
+                                                                                                          (536870912u64
                                                                                                                as
                                                                                                                u64))
                                                                                              }
@@ -18788,7 +20228,7 @@ pub mod root {
                                                                                                       <<
                                                                                                       30usize)
                                                                                                      &
-                                                                                                     (1073741824usize
+                                                                                                     (1073741824u64
                                                                                                           as
                                                                                                           u64))
                                                                                         }
@@ -18801,7 +20241,7 @@ pub mod root {
                                                                                                  <<
                                                                                                  31usize)
                                                                                                 &
-                                                                                                (2147483648usize
+                                                                                                (2147483648u64
                                                                                                      as
                                                                                                      u64))
                                                                                    }
@@ -18814,7 +20254,7 @@ pub mod root {
                                                                                             <<
                                                                                             32usize)
                                                                                            &
-                                                                                           (4294967296usize
+                                                                                           (4294967296u64
                                                                                                 as
                                                                                                 u64))
                                                                               }
@@ -18827,7 +20267,7 @@ pub mod root {
                                                                                        <<
                                                                                        33usize)
                                                                                       &
-                                                                                      (8589934592usize
+                                                                                      (8589934592u64
                                                                                            as
                                                                                            u64))
                                                                          } |
@@ -18839,7 +20279,7 @@ pub mod root {
                                                                                   <<
                                                                                   34usize)
                                                                                  &
-                                                                                 (17179869184usize
+                                                                                 (17179869184u64
                                                                                       as
                                                                                       u64))
                                                                     } |
@@ -18851,7 +20291,7 @@ pub mod root {
                                                                              <<
                                                                              35usize)
                                                                             &
-                                                                            (34359738368usize
+                                                                            (34359738368u64
                                                                                  as
                                                                                  u64))
                                                                } |
@@ -18862,7 +20302,7 @@ pub mod root {
                                                                         <<
                                                                         36usize)
                                                                        &
-                                                                       (68719476736usize
+                                                                       (68719476736u64
                                                                             as
                                                                             u64))
                                                           } |
@@ -18870,46 +20310,45 @@ pub mod root {
                                                                     as u8 as
                                                                     u64) <<
                                                                    37usize) &
-                                                                  (137438953472usize
+                                                                  (137438953472u64
                                                                        as
                                                                        u64))
                                                      } |
                                                          ((mHasDisplayDocument
                                                                as u8 as u64)
                                                               << 38usize) &
-                                                             (274877906944usize
+                                                             (274877906944u64
                                                                   as u64))
                                                 } |
                                                     ((mFontFaceSetDirty as u8
                                                           as u64) << 39usize)
                                                         &
-                                                        (549755813888usize as
+                                                        (549755813888u64 as
                                                              u64))
                                            } |
                                                ((mGetUserFontSetCalled as u8
                                                      as u64) << 40usize) &
-                                                   (1099511627776usize as
-                                                        u64))
+                                                   (1099511627776u64 as u64))
                                       } |
                                           ((mPostedFlushUserFontSet as u8 as
                                                 u64) << 41usize) &
-                                              (2199023255552usize as u64))
+                                              (2199023255552u64 as u64))
                                  } |
                                      ((mDidFireDOMContentLoaded as u8 as u64)
                                           << 42usize) &
-                                         (4398046511104usize as u64))
+                                         (4398046511104u64 as u64))
                             } |
                                 ((mHasScrollLinkedEffect as u8 as u64) <<
-                                     43usize) & (8796093022208usize as u64))
+                                     43usize) & (8796093022208u64 as u64))
                        } |
                            ((mFrameRequestCallbacksScheduled as u8 as u64) <<
-                                44usize) & (17592186044416usize as u64))
+                                44usize) & (17592186044416u64 as u64))
                   } |
                       ((mIsTopLevelContentDocument as u8 as u64) << 45usize) &
-                          (35184372088832usize as u64))
+                          (35184372088832u64 as u64))
              } |
                  ((mIsContentDocument as u8 as u64) << 46usize) &
-                     (70368744177664usize as u64))
+                     (70368744177664u64 as u64))
         }
     }
     #[repr(C)]
@@ -19137,8 +20576,8 @@ pub mod root {
         pub mTelemetryScrollLastY: root::nscoord,
         pub mTelemetryScrollMaxY: root::nscoord,
         pub mTelemetryScrollTotalY: root::nscoord,
-        pub _bitfield_1: [u8; 8usize],
-        pub __bindgen_padding_0: u32,
+        pub _bitfield_1: [u8; 6usize],
+        pub __bindgen_padding_0: [u16; 3usize],
     }
     pub type nsPresContext_LangGroupFontPrefs =
         root::mozilla::LangGroupFontPrefs;
@@ -19655,463 +21094,907 @@ pub mod root {
     impl nsPresContext {
         #[inline]
         pub fn mHasPendingInterrupt(&self) -> ::std::os::raw::c_uint {
-            let mask = 1usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 1u64 as u64;
             let val = (unit_field_val & mask) >> 0usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mHasPendingInterrupt(&mut self,
                                         val: ::std::os::raw::c_uint) {
-            let mask = 1usize as u64;
+            let mask = 1u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 0usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mPendingInterruptFromTest(&self) -> ::std::os::raw::c_uint {
-            let mask = 2usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 2u64 as u64;
             let val = (unit_field_val & mask) >> 1usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mPendingInterruptFromTest(&mut self,
                                              val: ::std::os::raw::c_uint) {
-            let mask = 2usize as u64;
+            let mask = 2u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 1usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mInterruptsEnabled(&self) -> ::std::os::raw::c_uint {
-            let mask = 4usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 4u64 as u64;
             let val = (unit_field_val & mask) >> 2usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mInterruptsEnabled(&mut self,
                                       val: ::std::os::raw::c_uint) {
-            let mask = 4usize as u64;
+            let mask = 4u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 2usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mUseDocumentFonts(&self) -> ::std::os::raw::c_uint {
-            let mask = 8usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 8u64 as u64;
             let val = (unit_field_val & mask) >> 3usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mUseDocumentFonts(&mut self, val: ::std::os::raw::c_uint) {
-            let mask = 8usize as u64;
+            let mask = 8u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 3usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mUseDocumentColors(&self) -> ::std::os::raw::c_uint {
-            let mask = 16usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 16u64 as u64;
             let val = (unit_field_val & mask) >> 4usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mUseDocumentColors(&mut self,
                                       val: ::std::os::raw::c_uint) {
-            let mask = 16usize as u64;
+            let mask = 16u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 4usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mUnderlineLinks(&self) -> ::std::os::raw::c_uint {
-            let mask = 32usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 32u64 as u64;
             let val = (unit_field_val & mask) >> 5usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mUnderlineLinks(&mut self, val: ::std::os::raw::c_uint) {
-            let mask = 32usize as u64;
+            let mask = 32u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 5usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mSendAfterPaintToContent(&self) -> ::std::os::raw::c_uint {
-            let mask = 64usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 64u64 as u64;
             let val = (unit_field_val & mask) >> 6usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mSendAfterPaintToContent(&mut self,
                                             val: ::std::os::raw::c_uint) {
-            let mask = 64usize as u64;
+            let mask = 64u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 6usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mUseFocusColors(&self) -> ::std::os::raw::c_uint {
-            let mask = 128usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 128u64 as u64;
             let val = (unit_field_val & mask) >> 7usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mUseFocusColors(&mut self, val: ::std::os::raw::c_uint) {
-            let mask = 128usize as u64;
+            let mask = 128u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 7usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mFocusRingOnAnything(&self) -> ::std::os::raw::c_uint {
-            let mask = 256usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 256u64 as u64;
             let val = (unit_field_val & mask) >> 8usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mFocusRingOnAnything(&mut self,
                                         val: ::std::os::raw::c_uint) {
-            let mask = 256usize as u64;
+            let mask = 256u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 8usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mFocusRingStyle(&self) -> ::std::os::raw::c_uint {
-            let mask = 512usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 512u64 as u64;
             let val = (unit_field_val & mask) >> 9usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mFocusRingStyle(&mut self, val: ::std::os::raw::c_uint) {
-            let mask = 512usize as u64;
+            let mask = 512u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 9usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mDrawImageBackground(&self) -> ::std::os::raw::c_uint {
-            let mask = 1024usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 1024u64 as u64;
             let val = (unit_field_val & mask) >> 10usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mDrawImageBackground(&mut self,
                                         val: ::std::os::raw::c_uint) {
-            let mask = 1024usize as u64;
+            let mask = 1024u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 10usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mDrawColorBackground(&self) -> ::std::os::raw::c_uint {
-            let mask = 2048usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 2048u64 as u64;
             let val = (unit_field_val & mask) >> 11usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mDrawColorBackground(&mut self,
                                         val: ::std::os::raw::c_uint) {
-            let mask = 2048usize as u64;
+            let mask = 2048u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 11usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mNeverAnimate(&self) -> ::std::os::raw::c_uint {
-            let mask = 4096usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 4096u64 as u64;
             let val = (unit_field_val & mask) >> 12usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mNeverAnimate(&mut self, val: ::std::os::raw::c_uint) {
-            let mask = 4096usize as u64;
+            let mask = 4096u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 12usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mIsRenderingOnlySelection(&self) -> ::std::os::raw::c_uint {
-            let mask = 8192usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 8192u64 as u64;
             let val = (unit_field_val & mask) >> 13usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mIsRenderingOnlySelection(&mut self,
                                              val: ::std::os::raw::c_uint) {
-            let mask = 8192usize as u64;
+            let mask = 8192u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 13usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mPaginated(&self) -> ::std::os::raw::c_uint {
-            let mask = 16384usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 16384u64 as u64;
             let val = (unit_field_val & mask) >> 14usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mPaginated(&mut self, val: ::std::os::raw::c_uint) {
-            let mask = 16384usize as u64;
+            let mask = 16384u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 14usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mCanPaginatedScroll(&self) -> ::std::os::raw::c_uint {
-            let mask = 32768usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 32768u64 as u64;
             let val = (unit_field_val & mask) >> 15usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mCanPaginatedScroll(&mut self,
                                        val: ::std::os::raw::c_uint) {
-            let mask = 32768usize as u64;
+            let mask = 32768u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 15usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mDoScaledTwips(&self) -> ::std::os::raw::c_uint {
-            let mask = 65536usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 65536u64 as u64;
             let val = (unit_field_val & mask) >> 16usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mDoScaledTwips(&mut self, val: ::std::os::raw::c_uint) {
-            let mask = 65536usize as u64;
+            let mask = 65536u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 16usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mIsRootPaginatedDocument(&self) -> ::std::os::raw::c_uint {
-            let mask = 131072usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 131072u64 as u64;
             let val = (unit_field_val & mask) >> 17usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mIsRootPaginatedDocument(&mut self,
                                             val: ::std::os::raw::c_uint) {
-            let mask = 131072usize as u64;
+            let mask = 131072u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 17usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mPrefBidiDirection(&self) -> ::std::os::raw::c_uint {
-            let mask = 262144usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 262144u64 as u64;
             let val = (unit_field_val & mask) >> 18usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mPrefBidiDirection(&mut self,
                                       val: ::std::os::raw::c_uint) {
-            let mask = 262144usize as u64;
+            let mask = 262144u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 18usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mPrefScrollbarSide(&self) -> ::std::os::raw::c_uint {
-            let mask = 1572864usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 1572864u64 as u64;
             let val = (unit_field_val & mask) >> 19usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mPrefScrollbarSide(&mut self,
                                       val: ::std::os::raw::c_uint) {
-            let mask = 1572864usize as u64;
+            let mask = 1572864u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 19usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mPendingSysColorChanged(&self) -> ::std::os::raw::c_uint {
-            let mask = 2097152usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 2097152u64 as u64;
             let val = (unit_field_val & mask) >> 21usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mPendingSysColorChanged(&mut self,
                                            val: ::std::os::raw::c_uint) {
-            let mask = 2097152usize as u64;
+            let mask = 2097152u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 21usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mPendingThemeChanged(&self) -> ::std::os::raw::c_uint {
-            let mask = 4194304usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 4194304u64 as u64;
             let val = (unit_field_val & mask) >> 22usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mPendingThemeChanged(&mut self,
                                         val: ::std::os::raw::c_uint) {
-            let mask = 4194304usize as u64;
+            let mask = 4194304u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 22usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mPendingUIResolutionChanged(&self) -> ::std::os::raw::c_uint {
-            let mask = 8388608usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 8388608u64 as u64;
             let val = (unit_field_val & mask) >> 23usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mPendingUIResolutionChanged(&mut self,
                                                val: ::std::os::raw::c_uint) {
-            let mask = 8388608usize as u64;
+            let mask = 8388608u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 23usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mPendingMediaFeatureValuesChanged(&self)
          -> ::std::os::raw::c_uint {
-            let mask = 16777216usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 16777216u64 as u64;
             let val = (unit_field_val & mask) >> 24usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
@@ -20119,21 +22002,40 @@ pub mod root {
         pub fn set_mPendingMediaFeatureValuesChanged(&mut self,
                                                      val:
                                                          ::std::os::raw::c_uint) {
-            let mask = 16777216usize as u64;
+            let mask = 16777216u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 24usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mPrefChangePendingNeedsReflow(&self)
          -> ::std::os::raw::c_uint {
-            let mask = 33554432usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 33554432u64 as u64;
             let val = (unit_field_val & mask) >> 25usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
@@ -20141,314 +22043,618 @@ pub mod root {
         pub fn set_mPrefChangePendingNeedsReflow(&mut self,
                                                  val:
                                                      ::std::os::raw::c_uint) {
-            let mask = 33554432usize as u64;
+            let mask = 33554432u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 25usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mIsEmulatingMedia(&self) -> ::std::os::raw::c_uint {
-            let mask = 67108864usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 67108864u64 as u64;
             let val = (unit_field_val & mask) >> 26usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mIsEmulatingMedia(&mut self, val: ::std::os::raw::c_uint) {
-            let mask = 67108864usize as u64;
+            let mask = 67108864u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 26usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mIsGlyph(&self) -> ::std::os::raw::c_uint {
-            let mask = 134217728usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 134217728u64 as u64;
             let val = (unit_field_val & mask) >> 27usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mIsGlyph(&mut self, val: ::std::os::raw::c_uint) {
-            let mask = 134217728usize as u64;
+            let mask = 134217728u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 27usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mUsesRootEMUnits(&self) -> ::std::os::raw::c_uint {
-            let mask = 268435456usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 268435456u64 as u64;
             let val = (unit_field_val & mask) >> 28usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mUsesRootEMUnits(&mut self, val: ::std::os::raw::c_uint) {
-            let mask = 268435456usize as u64;
+            let mask = 268435456u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 28usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mUsesExChUnits(&self) -> ::std::os::raw::c_uint {
-            let mask = 536870912usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 536870912u64 as u64;
             let val = (unit_field_val & mask) >> 29usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mUsesExChUnits(&mut self, val: ::std::os::raw::c_uint) {
-            let mask = 536870912usize as u64;
+            let mask = 536870912u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 29usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mUsesViewportUnits(&self) -> ::std::os::raw::c_uint {
-            let mask = 1073741824usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 1073741824u64 as u64;
             let val = (unit_field_val & mask) >> 30usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mUsesViewportUnits(&mut self,
                                       val: ::std::os::raw::c_uint) {
-            let mask = 1073741824usize as u64;
+            let mask = 1073741824u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 30usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mPendingViewportChange(&self) -> ::std::os::raw::c_uint {
-            let mask = 2147483648usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 2147483648u64 as u64;
             let val = (unit_field_val & mask) >> 31usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mPendingViewportChange(&mut self,
                                           val: ::std::os::raw::c_uint) {
-            let mask = 2147483648usize as u64;
+            let mask = 2147483648u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 31usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mCounterStylesDirty(&self) -> ::std::os::raw::c_uint {
-            let mask = 4294967296usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 4294967296u64 as u64;
             let val = (unit_field_val & mask) >> 32usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mCounterStylesDirty(&mut self,
                                        val: ::std::os::raw::c_uint) {
-            let mask = 4294967296usize as u64;
+            let mask = 4294967296u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 32usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mPostedFlushCounterStyles(&self) -> ::std::os::raw::c_uint {
-            let mask = 8589934592usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 8589934592u64 as u64;
             let val = (unit_field_val & mask) >> 33usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mPostedFlushCounterStyles(&mut self,
                                              val: ::std::os::raw::c_uint) {
-            let mask = 8589934592usize as u64;
+            let mask = 8589934592u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 33usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mSuppressResizeReflow(&self) -> ::std::os::raw::c_uint {
-            let mask = 17179869184usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 17179869184u64 as u64;
             let val = (unit_field_val & mask) >> 34usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mSuppressResizeReflow(&mut self,
                                          val: ::std::os::raw::c_uint) {
-            let mask = 17179869184usize as u64;
+            let mask = 17179869184u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 34usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mIsVisual(&self) -> ::std::os::raw::c_uint {
-            let mask = 34359738368usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 34359738368u64 as u64;
             let val = (unit_field_val & mask) >> 35usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mIsVisual(&mut self, val: ::std::os::raw::c_uint) {
-            let mask = 34359738368usize as u64;
+            let mask = 34359738368u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 35usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mFireAfterPaintEvents(&self) -> ::std::os::raw::c_uint {
-            let mask = 68719476736usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 68719476736u64 as u64;
             let val = (unit_field_val & mask) >> 36usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mFireAfterPaintEvents(&mut self,
                                          val: ::std::os::raw::c_uint) {
-            let mask = 68719476736usize as u64;
+            let mask = 68719476736u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 36usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mIsChrome(&self) -> ::std::os::raw::c_uint {
-            let mask = 137438953472usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 137438953472u64 as u64;
             let val = (unit_field_val & mask) >> 37usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mIsChrome(&mut self, val: ::std::os::raw::c_uint) {
-            let mask = 137438953472usize as u64;
+            let mask = 137438953472u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 37usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mIsChromeOriginImage(&self) -> ::std::os::raw::c_uint {
-            let mask = 274877906944usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 274877906944u64 as u64;
             let val = (unit_field_val & mask) >> 38usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mIsChromeOriginImage(&mut self,
                                         val: ::std::os::raw::c_uint) {
-            let mask = 274877906944usize as u64;
+            let mask = 274877906944u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 38usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mPaintFlashing(&self) -> ::std::os::raw::c_uint {
-            let mask = 549755813888usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 549755813888u64 as u64;
             let val = (unit_field_val & mask) >> 39usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mPaintFlashing(&mut self, val: ::std::os::raw::c_uint) {
-            let mask = 549755813888usize as u64;
+            let mask = 549755813888u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 39usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mPaintFlashingInitialized(&self) -> ::std::os::raw::c_uint {
-            let mask = 1099511627776usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 1099511627776u64 as u64;
             let val = (unit_field_val & mask) >> 40usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mPaintFlashingInitialized(&mut self,
                                              val: ::std::os::raw::c_uint) {
-            let mask = 1099511627776usize as u64;
+            let mask = 1099511627776u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 40usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mHasWarnedAboutPositionedTableParts(&self)
          -> ::std::os::raw::c_uint {
-            let mask = 2199023255552usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 2199023255552u64 as u64;
             let val = (unit_field_val & mask) >> 41usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
@@ -20456,21 +22662,40 @@ pub mod root {
         pub fn set_mHasWarnedAboutPositionedTableParts(&mut self,
                                                        val:
                                                            ::std::os::raw::c_uint) {
-            let mask = 2199023255552usize as u64;
+            let mask = 2199023255552u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 41usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mHasWarnedAboutTooLargeDashedOrDottedRadius(&self)
          -> ::std::os::raw::c_uint {
-            let mask = 4398046511104usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 4398046511104u64 as u64;
             let val = (unit_field_val & mask) >> 42usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
@@ -20478,71 +22703,140 @@ pub mod root {
         pub fn set_mHasWarnedAboutTooLargeDashedOrDottedRadius(&mut self,
                                                                val:
                                                                    ::std::os::raw::c_uint) {
-            let mask = 4398046511104usize as u64;
+            let mask = 4398046511104u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 42usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mQuirkSheetAdded(&self) -> ::std::os::raw::c_uint {
-            let mask = 8796093022208usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 8796093022208u64 as u64;
             let val = (unit_field_val & mask) >> 43usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mQuirkSheetAdded(&mut self, val: ::std::os::raw::c_uint) {
-            let mask = 8796093022208usize as u64;
+            let mask = 8796093022208u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 43usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mNeedsPrefUpdate(&self) -> ::std::os::raw::c_uint {
-            let mask = 17592186044416usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 17592186044416u64 as u64;
             let val = (unit_field_val & mask) >> 44usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mNeedsPrefUpdate(&mut self, val: ::std::os::raw::c_uint) {
-            let mask = 17592186044416usize as u64;
+            let mask = 17592186044416u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 44usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn mHadNonBlankPaint(&self) -> ::std::os::raw::c_uint {
-            let mask = 35184372088832usize as u64;
-            let unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u64 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
+            let mask = 35184372088832u64 as u64;
             let val = (unit_field_val & mask) >> 45usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mHadNonBlankPaint(&mut self, val: ::std::os::raw::c_uint) {
-            let mask = 35184372088832usize as u64;
+            let mask = 35184372088832u64 as u64;
             let val = val as u32 as u64;
             let mut unit_field_val: u64 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u64 as *mut u8,
+                                                ::std::mem::size_of::<u64>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 45usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u64>());
+            }
         }
         #[inline]
         pub fn new_bitfield_1(mHasPendingInterrupt: ::std::os::raw::c_uint,
@@ -20658,7 +22952,7 @@ pub mod root {
                                                                                                                                                                                                                                                   <<
                                                                                                                                                                                                                                                   0usize)
                                                                                                                                                                                                                                                  &
-                                                                                                                                                                                                                                                 (1usize
+                                                                                                                                                                                                                                                 (1u64
                                                                                                                                                                                                                                                       as
                                                                                                                                                                                                                                                       u64))
                                                                                                                                                                                                                                     }
@@ -20671,7 +22965,7 @@ pub mod root {
                                                                                                                                                                                                                                              <<
                                                                                                                                                                                                                                              1usize)
                                                                                                                                                                                                                                             &
-                                                                                                                                                                                                                                            (2usize
+                                                                                                                                                                                                                                            (2u64
                                                                                                                                                                                                                                                  as
                                                                                                                                                                                                                                                  u64))
                                                                                                                                                                                                                                }
@@ -20684,7 +22978,7 @@ pub mod root {
                                                                                                                                                                                                                                         <<
                                                                                                                                                                                                                                         2usize)
                                                                                                                                                                                                                                        &
-                                                                                                                                                                                                                                       (4usize
+                                                                                                                                                                                                                                       (4u64
                                                                                                                                                                                                                                             as
                                                                                                                                                                                                                                             u64))
                                                                                                                                                                                                                           }
@@ -20697,7 +22991,7 @@ pub mod root {
                                                                                                                                                                                                                                    <<
                                                                                                                                                                                                                                    3usize)
                                                                                                                                                                                                                                   &
-                                                                                                                                                                                                                                  (8usize
+                                                                                                                                                                                                                                  (8u64
                                                                                                                                                                                                                                        as
                                                                                                                                                                                                                                        u64))
                                                                                                                                                                                                                      }
@@ -20710,7 +23004,7 @@ pub mod root {
                                                                                                                                                                                                                               <<
                                                                                                                                                                                                                               4usize)
                                                                                                                                                                                                                              &
-                                                                                                                                                                                                                             (16usize
+                                                                                                                                                                                                                             (16u64
                                                                                                                                                                                                                                   as
                                                                                                                                                                                                                                   u64))
                                                                                                                                                                                                                 }
@@ -20723,7 +23017,7 @@ pub mod root {
                                                                                                                                                                                                                          <<
                                                                                                                                                                                                                          5usize)
                                                                                                                                                                                                                         &
-                                                                                                                                                                                                                        (32usize
+                                                                                                                                                                                                                        (32u64
                                                                                                                                                                                                                              as
                                                                                                                                                                                                                              u64))
                                                                                                                                                                                                            }
@@ -20736,7 +23030,7 @@ pub mod root {
                                                                                                                                                                                                                     <<
                                                                                                                                                                                                                     6usize)
                                                                                                                                                                                                                    &
-                                                                                                                                                                                                                   (64usize
+                                                                                                                                                                                                                   (64u64
                                                                                                                                                                                                                         as
                                                                                                                                                                                                                         u64))
                                                                                                                                                                                                       }
@@ -20749,7 +23043,7 @@ pub mod root {
                                                                                                                                                                                                                <<
                                                                                                                                                                                                                7usize)
                                                                                                                                                                                                               &
-                                                                                                                                                                                                              (128usize
+                                                                                                                                                                                                              (128u64
                                                                                                                                                                                                                    as
                                                                                                                                                                                                                    u64))
                                                                                                                                                                                                  }
@@ -20762,7 +23056,7 @@ pub mod root {
                                                                                                                                                                                                           <<
                                                                                                                                                                                                           8usize)
                                                                                                                                                                                                          &
-                                                                                                                                                                                                         (256usize
+                                                                                                                                                                                                         (256u64
                                                                                                                                                                                                               as
                                                                                                                                                                                                               u64))
                                                                                                                                                                                             }
@@ -20775,7 +23069,7 @@ pub mod root {
                                                                                                                                                                                                      <<
                                                                                                                                                                                                      9usize)
                                                                                                                                                                                                     &
-                                                                                                                                                                                                    (512usize
+                                                                                                                                                                                                    (512u64
                                                                                                                                                                                                          as
                                                                                                                                                                                                          u64))
                                                                                                                                                                                        }
@@ -20788,7 +23082,7 @@ pub mod root {
                                                                                                                                                                                                 <<
                                                                                                                                                                                                 10usize)
                                                                                                                                                                                                &
-                                                                                                                                                                                               (1024usize
+                                                                                                                                                                                               (1024u64
                                                                                                                                                                                                     as
                                                                                                                                                                                                     u64))
                                                                                                                                                                                   }
@@ -20801,7 +23095,7 @@ pub mod root {
                                                                                                                                                                                            <<
                                                                                                                                                                                            11usize)
                                                                                                                                                                                           &
-                                                                                                                                                                                          (2048usize
+                                                                                                                                                                                          (2048u64
                                                                                                                                                                                                as
                                                                                                                                                                                                u64))
                                                                                                                                                                              }
@@ -20814,7 +23108,7 @@ pub mod root {
                                                                                                                                                                                       <<
                                                                                                                                                                                       12usize)
                                                                                                                                                                                      &
-                                                                                                                                                                                     (4096usize
+                                                                                                                                                                                     (4096u64
                                                                                                                                                                                           as
                                                                                                                                                                                           u64))
                                                                                                                                                                         }
@@ -20827,7 +23121,7 @@ pub mod root {
                                                                                                                                                                                  <<
                                                                                                                                                                                  13usize)
                                                                                                                                                                                 &
-                                                                                                                                                                                (8192usize
+                                                                                                                                                                                (8192u64
                                                                                                                                                                                      as
                                                                                                                                                                                      u64))
                                                                                                                                                                    }
@@ -20840,7 +23134,7 @@ pub mod root {
                                                                                                                                                                             <<
                                                                                                                                                                             14usize)
                                                                                                                                                                            &
-                                                                                                                                                                           (16384usize
+                                                                                                                                                                           (16384u64
                                                                                                                                                                                 as
                                                                                                                                                                                 u64))
                                                                                                                                                               }
@@ -20853,7 +23147,7 @@ pub mod root {
                                                                                                                                                                        <<
                                                                                                                                                                        15usize)
                                                                                                                                                                       &
-                                                                                                                                                                      (32768usize
+                                                                                                                                                                      (32768u64
                                                                                                                                                                            as
                                                                                                                                                                            u64))
                                                                                                                                                          }
@@ -20866,7 +23160,7 @@ pub mod root {
                                                                                                                                                                   <<
                                                                                                                                                                   16usize)
                                                                                                                                                                  &
-                                                                                                                                                                 (65536usize
+                                                                                                                                                                 (65536u64
                                                                                                                                                                       as
                                                                                                                                                                       u64))
                                                                                                                                                     }
@@ -20879,7 +23173,7 @@ pub mod root {
                                                                                                                                                              <<
                                                                                                                                                              17usize)
                                                                                                                                                             &
-                                                                                                                                                            (131072usize
+                                                                                                                                                            (131072u64
                                                                                                                                                                  as
                                                                                                                                                                  u64))
                                                                                                                                                }
@@ -20892,7 +23186,7 @@ pub mod root {
                                                                                                                                                         <<
                                                                                                                                                         18usize)
                                                                                                                                                        &
-                                                                                                                                                       (262144usize
+                                                                                                                                                       (262144u64
                                                                                                                                                             as
                                                                                                                                                             u64))
                                                                                                                                           }
@@ -20905,7 +23199,7 @@ pub mod root {
                                                                                                                                                    <<
                                                                                                                                                    19usize)
                                                                                                                                                   &
-                                                                                                                                                  (1572864usize
+                                                                                                                                                  (1572864u64
                                                                                                                                                        as
                                                                                                                                                        u64))
                                                                                                                                      }
@@ -20918,7 +23212,7 @@ pub mod root {
                                                                                                                                               <<
                                                                                                                                               21usize)
                                                                                                                                              &
-                                                                                                                                             (2097152usize
+                                                                                                                                             (2097152u64
                                                                                                                                                   as
                                                                                                                                                   u64))
                                                                                                                                 }
@@ -20931,7 +23225,7 @@ pub mod root {
                                                                                                                                          <<
                                                                                                                                          22usize)
                                                                                                                                         &
-                                                                                                                                        (4194304usize
+                                                                                                                                        (4194304u64
                                                                                                                                              as
                                                                                                                                              u64))
                                                                                                                            }
@@ -20944,7 +23238,7 @@ pub mod root {
                                                                                                                                     <<
                                                                                                                                     23usize)
                                                                                                                                    &
-                                                                                                                                   (8388608usize
+                                                                                                                                   (8388608u64
                                                                                                                                         as
                                                                                                                                         u64))
                                                                                                                       }
@@ -20957,7 +23251,7 @@ pub mod root {
                                                                                                                                <<
                                                                                                                                24usize)
                                                                                                                               &
-                                                                                                                              (16777216usize
+                                                                                                                              (16777216u64
                                                                                                                                    as
                                                                                                                                    u64))
                                                                                                                  }
@@ -20970,7 +23264,7 @@ pub mod root {
                                                                                                                           <<
                                                                                                                           25usize)
                                                                                                                          &
-                                                                                                                         (33554432usize
+                                                                                                                         (33554432u64
                                                                                                                               as
                                                                                                                               u64))
                                                                                                             }
@@ -20983,7 +23277,7 @@ pub mod root {
                                                                                                                      <<
                                                                                                                      26usize)
                                                                                                                     &
-                                                                                                                    (67108864usize
+                                                                                                                    (67108864u64
                                                                                                                          as
                                                                                                                          u64))
                                                                                                        }
@@ -20996,7 +23290,7 @@ pub mod root {
                                                                                                                 <<
                                                                                                                 27usize)
                                                                                                                &
-                                                                                                               (134217728usize
+                                                                                                               (134217728u64
                                                                                                                     as
                                                                                                                     u64))
                                                                                                   }
@@ -21009,7 +23303,7 @@ pub mod root {
                                                                                                            <<
                                                                                                            28usize)
                                                                                                           &
-                                                                                                          (268435456usize
+                                                                                                          (268435456u64
                                                                                                                as
                                                                                                                u64))
                                                                                              }
@@ -21022,7 +23316,7 @@ pub mod root {
                                                                                                       <<
                                                                                                       29usize)
                                                                                                      &
-                                                                                                     (536870912usize
+                                                                                                     (536870912u64
                                                                                                           as
                                                                                                           u64))
                                                                                         }
@@ -21035,7 +23329,7 @@ pub mod root {
                                                                                                  <<
                                                                                                  30usize)
                                                                                                 &
-                                                                                                (1073741824usize
+                                                                                                (1073741824u64
                                                                                                      as
                                                                                                      u64))
                                                                                    }
@@ -21048,7 +23342,7 @@ pub mod root {
                                                                                             <<
                                                                                             31usize)
                                                                                            &
-                                                                                           (2147483648usize
+                                                                                           (2147483648u64
                                                                                                 as
                                                                                                 u64))
                                                                               }
@@ -21061,7 +23355,7 @@ pub mod root {
                                                                                        <<
                                                                                        32usize)
                                                                                       &
-                                                                                      (4294967296usize
+                                                                                      (4294967296u64
                                                                                            as
                                                                                            u64))
                                                                          } |
@@ -21073,7 +23367,7 @@ pub mod root {
                                                                                   <<
                                                                                   33usize)
                                                                                  &
-                                                                                 (8589934592usize
+                                                                                 (8589934592u64
                                                                                       as
                                                                                       u64))
                                                                     } |
@@ -21085,7 +23379,7 @@ pub mod root {
                                                                              <<
                                                                              34usize)
                                                                             &
-                                                                            (17179869184usize
+                                                                            (17179869184u64
                                                                                  as
                                                                                  u64))
                                                                } |
@@ -21097,7 +23391,7 @@ pub mod root {
                                                                         <<
                                                                         35usize)
                                                                        &
-                                                                       (34359738368usize
+                                                                       (34359738368u64
                                                                             as
                                                                             u64))
                                                           } |
@@ -21105,46 +23399,46 @@ pub mod root {
                                                                     as u32 as
                                                                     u64) <<
                                                                    36usize) &
-                                                                  (68719476736usize
+                                                                  (68719476736u64
                                                                        as
                                                                        u64))
                                                      } |
                                                          ((mIsChrome as u32 as
                                                                u64) <<
                                                               37usize) &
-                                                             (137438953472usize
+                                                             (137438953472u64
                                                                   as u64))
                                                 } |
                                                     ((mIsChromeOriginImage as
                                                           u32 as u64) <<
                                                          38usize) &
-                                                        (274877906944usize as
+                                                        (274877906944u64 as
                                                              u64))
                                            } |
                                                ((mPaintFlashing as u32 as u64)
                                                     << 39usize) &
-                                                   (549755813888usize as u64))
+                                                   (549755813888u64 as u64))
                                       } |
                                           ((mPaintFlashingInitialized as u32
                                                 as u64) << 40usize) &
-                                              (1099511627776usize as u64))
+                                              (1099511627776u64 as u64))
                                  } |
                                      ((mHasWarnedAboutPositionedTableParts as
                                            u32 as u64) << 41usize) &
-                                         (2199023255552usize as u64))
+                                         (2199023255552u64 as u64))
                             } |
                                 ((mHasWarnedAboutTooLargeDashedOrDottedRadius
                                       as u32 as u64) << 42usize) &
-                                    (4398046511104usize as u64))
+                                    (4398046511104u64 as u64))
                        } |
                            ((mQuirkSheetAdded as u32 as u64) << 43usize) &
-                               (8796093022208usize as u64))
+                               (8796093022208u64 as u64))
                   } |
                       ((mNeedsPrefUpdate as u32 as u64) << 44usize) &
-                          (17592186044416usize as u64))
+                          (17592186044416u64 as u64))
              } |
                  ((mHadNonBlankPaint as u32 as u64) << 45usize) &
-                     (35184372088832usize as u64))
+                     (35184372088832u64 as u64))
         }
     }
     #[repr(C)]
@@ -22390,289 +24684,574 @@ pub mod root {
     impl nsIPresShell {
         #[inline]
         pub fn mDidInitialize(&self) -> bool {
-            let mask = 1usize as u16;
-            let unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u16 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
+            let mask = 1u64 as u16;
             let val = (unit_field_val & mask) >> 0usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mDidInitialize(&mut self, val: bool) {
-            let mask = 1usize as u16;
+            let mask = 1u64 as u16;
             let val = val as u8 as u16;
             let mut unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 0usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u16>());
+            }
         }
         #[inline]
         pub fn mIsDestroying(&self) -> bool {
-            let mask = 2usize as u16;
-            let unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u16 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
+            let mask = 2u64 as u16;
             let val = (unit_field_val & mask) >> 1usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mIsDestroying(&mut self, val: bool) {
-            let mask = 2usize as u16;
+            let mask = 2u64 as u16;
             let val = val as u8 as u16;
             let mut unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 1usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u16>());
+            }
         }
         #[inline]
         pub fn mIsReflowing(&self) -> bool {
-            let mask = 4usize as u16;
-            let unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u16 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
+            let mask = 4u64 as u16;
             let val = (unit_field_val & mask) >> 2usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mIsReflowing(&mut self, val: bool) {
-            let mask = 4usize as u16;
+            let mask = 4u64 as u16;
             let val = val as u8 as u16;
             let mut unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 2usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u16>());
+            }
         }
         #[inline]
         pub fn mPaintingSuppressed(&self) -> bool {
-            let mask = 8usize as u16;
-            let unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u16 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
+            let mask = 8u64 as u16;
             let val = (unit_field_val & mask) >> 3usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mPaintingSuppressed(&mut self, val: bool) {
-            let mask = 8usize as u16;
+            let mask = 8u64 as u16;
             let val = val as u8 as u16;
             let mut unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 3usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u16>());
+            }
         }
         #[inline]
         pub fn mIsActive(&self) -> bool {
-            let mask = 16usize as u16;
-            let unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u16 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
+            let mask = 16u64 as u16;
             let val = (unit_field_val & mask) >> 4usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mIsActive(&mut self, val: bool) {
-            let mask = 16usize as u16;
+            let mask = 16u64 as u16;
             let val = val as u8 as u16;
             let mut unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 4usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u16>());
+            }
         }
         #[inline]
         pub fn mFrozen(&self) -> bool {
-            let mask = 32usize as u16;
-            let unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u16 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
+            let mask = 32u64 as u16;
             let val = (unit_field_val & mask) >> 5usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mFrozen(&mut self, val: bool) {
-            let mask = 32usize as u16;
+            let mask = 32u64 as u16;
             let val = val as u8 as u16;
             let mut unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 5usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u16>());
+            }
         }
         #[inline]
         pub fn mIsFirstPaint(&self) -> bool {
-            let mask = 64usize as u16;
-            let unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u16 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
+            let mask = 64u64 as u16;
             let val = (unit_field_val & mask) >> 6usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mIsFirstPaint(&mut self, val: bool) {
-            let mask = 64usize as u16;
+            let mask = 64u64 as u16;
             let val = val as u8 as u16;
             let mut unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 6usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u16>());
+            }
         }
         #[inline]
         pub fn mObservesMutationsForPrint(&self) -> bool {
-            let mask = 128usize as u16;
-            let unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u16 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
+            let mask = 128u64 as u16;
             let val = (unit_field_val & mask) >> 7usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mObservesMutationsForPrint(&mut self, val: bool) {
-            let mask = 128usize as u16;
+            let mask = 128u64 as u16;
             let val = val as u8 as u16;
             let mut unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 7usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u16>());
+            }
         }
         #[inline]
         pub fn mSuppressInterruptibleReflows(&self) -> bool {
-            let mask = 256usize as u16;
-            let unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u16 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
+            let mask = 256u64 as u16;
             let val = (unit_field_val & mask) >> 8usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mSuppressInterruptibleReflows(&mut self, val: bool) {
-            let mask = 256usize as u16;
+            let mask = 256u64 as u16;
             let val = val as u8 as u16;
             let mut unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 8usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u16>());
+            }
         }
         #[inline]
         pub fn mScrollPositionClampingScrollPortSizeSet(&self) -> bool {
-            let mask = 512usize as u16;
-            let unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u16 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
+            let mask = 512u64 as u16;
             let val = (unit_field_val & mask) >> 9usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mScrollPositionClampingScrollPortSizeSet(&mut self,
                                                             val: bool) {
-            let mask = 512usize as u16;
+            let mask = 512u64 as u16;
             let val = val as u8 as u16;
             let mut unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 9usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u16>());
+            }
         }
         #[inline]
         pub fn mNeedLayoutFlush(&self) -> bool {
-            let mask = 1024usize as u16;
-            let unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u16 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
+            let mask = 1024u64 as u16;
             let val = (unit_field_val & mask) >> 10usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mNeedLayoutFlush(&mut self, val: bool) {
-            let mask = 1024usize as u16;
+            let mask = 1024u64 as u16;
             let val = val as u8 as u16;
             let mut unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 10usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u16>());
+            }
         }
         #[inline]
         pub fn mNeedStyleFlush(&self) -> bool {
-            let mask = 2048usize as u16;
-            let unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u16 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
+            let mask = 2048u64 as u16;
             let val = (unit_field_val & mask) >> 11usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mNeedStyleFlush(&mut self, val: bool) {
-            let mask = 2048usize as u16;
+            let mask = 2048u64 as u16;
             let val = val as u8 as u16;
             let mut unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 11usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u16>());
+            }
         }
         #[inline]
         pub fn mObservingStyleFlushes(&self) -> bool {
-            let mask = 4096usize as u16;
-            let unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u16 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
+            let mask = 4096u64 as u16;
             let val = (unit_field_val & mask) >> 12usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mObservingStyleFlushes(&mut self, val: bool) {
-            let mask = 4096usize as u16;
+            let mask = 4096u64 as u16;
             let val = val as u8 as u16;
             let mut unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 12usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u16>());
+            }
         }
         #[inline]
         pub fn mObservingLayoutFlushes(&self) -> bool {
-            let mask = 8192usize as u16;
-            let unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u16 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
+            let mask = 8192u64 as u16;
             let val = (unit_field_val & mask) >> 13usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mObservingLayoutFlushes(&mut self, val: bool) {
-            let mask = 8192usize as u16;
+            let mask = 8192u64 as u16;
             let val = val as u8 as u16;
             let mut unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 13usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u16>());
+            }
         }
         #[inline]
         pub fn mNeedThrottledAnimationFlush(&self) -> bool {
-            let mask = 16384usize as u16;
-            let unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u16 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
+            let mask = 16384u64 as u16;
             let val = (unit_field_val & mask) >> 14usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mNeedThrottledAnimationFlush(&mut self, val: bool) {
-            let mask = 16384usize as u16;
+            let mask = 16384u64 as u16;
             let val = val as u8 as u16;
             let mut unit_field_val: u16 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u16 as *mut u8,
+                                                ::std::mem::size_of::<u16>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 14usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u16>());
+            }
         }
         #[inline]
         pub fn new_bitfield_1(mDidInitialize: bool, mIsDestroying: bool,
@@ -22712,7 +25291,7 @@ pub mod root {
                                                                                             <<
                                                                                             0usize)
                                                                                            &
-                                                                                           (1usize
+                                                                                           (1u64
                                                                                                 as
                                                                                                 u16))
                                                                               }
@@ -22725,7 +25304,7 @@ pub mod root {
                                                                                        <<
                                                                                        1usize)
                                                                                       &
-                                                                                      (2usize
+                                                                                      (2u64
                                                                                            as
                                                                                            u16))
                                                                          } |
@@ -22737,7 +25316,7 @@ pub mod root {
                                                                                   <<
                                                                                   2usize)
                                                                                  &
-                                                                                 (4usize
+                                                                                 (4u64
                                                                                       as
                                                                                       u16))
                                                                     } |
@@ -22749,7 +25328,7 @@ pub mod root {
                                                                              <<
                                                                              3usize)
                                                                             &
-                                                                            (8usize
+                                                                            (8u64
                                                                                  as
                                                                                  u16))
                                                                } |
@@ -22760,48 +25339,48 @@ pub mod root {
                                                                         <<
                                                                         4usize)
                                                                        &
-                                                                       (16usize
+                                                                       (16u64
                                                                             as
                                                                             u16))
                                                           } |
                                                               ((mFrozen as u8
                                                                     as u16) <<
                                                                    5usize) &
-                                                                  (32usize as
+                                                                  (32u64 as
                                                                        u16))
                                                      } |
                                                          ((mIsFirstPaint as u8
                                                                as u16) <<
                                                               6usize) &
-                                                             (64usize as u16))
+                                                             (64u64 as u16))
                                                 } |
                                                     ((mObservesMutationsForPrint
                                                           as u8 as u16) <<
                                                          7usize) &
-                                                        (128usize as u16))
+                                                        (128u64 as u16))
                                            } |
                                                ((mSuppressInterruptibleReflows
                                                      as u8 as u16) << 8usize)
-                                                   & (256usize as u16))
+                                                   & (256u64 as u16))
                                       } |
                                           ((mScrollPositionClampingScrollPortSizeSet
                                                 as u8 as u16) << 9usize) &
-                                              (512usize as u16))
+                                              (512u64 as u16))
                                  } |
                                      ((mNeedLayoutFlush as u8 as u16) <<
-                                          10usize) & (1024usize as u16))
+                                          10usize) & (1024u64 as u16))
                             } |
                                 ((mNeedStyleFlush as u8 as u16) << 11usize) &
-                                    (2048usize as u16))
+                                    (2048u64 as u16))
                        } |
                            ((mObservingStyleFlushes as u8 as u16) << 12usize)
-                               & (4096usize as u16))
+                               & (4096u64 as u16))
                   } |
                       ((mObservingLayoutFlushes as u8 as u16) << 13usize) &
-                          (8192usize as u16))
+                          (8192u64 as u16))
              } |
                  ((mNeedThrottledAnimationFlush as u8 as u16) << 14usize) &
-                     (16384usize as u16))
+                     (16384u64 as u16))
         }
     }
     /**
@@ -25005,41 +27584,79 @@ pub mod root {
     impl nsExpirationState {
         #[inline]
         pub fn mGeneration(&self) -> u32 {
-            let mask = 15usize as u32;
-            let unit_field_val: u32 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u32 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u32 as *mut u8,
+                                                ::std::mem::size_of::<u32>())
+            };
+            let mask = 15u64 as u32;
             let val = (unit_field_val & mask) >> 0usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mGeneration(&mut self, val: u32) {
-            let mask = 15usize as u32;
+            let mask = 15u64 as u32;
             let val = val as u32 as u32;
             let mut unit_field_val: u32 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u32 as *mut u8,
+                                                ::std::mem::size_of::<u32>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 0usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u32>());
+            }
         }
         #[inline]
         pub fn mIndexInGeneration(&self) -> u32 {
-            let mask = 4294967280usize as u32;
-            let unit_field_val: u32 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u32 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u32 as *mut u8,
+                                                ::std::mem::size_of::<u32>())
+            };
+            let mask = 4294967280u64 as u32;
             let val = (unit_field_val & mask) >> 4usize;
             unsafe { ::std::mem::transmute(val as u32) }
         }
         #[inline]
         pub fn set_mIndexInGeneration(&mut self, val: u32) {
-            let mask = 4294967280usize as u32;
+            let mask = 4294967280u64 as u32;
             let val = val as u32 as u32;
             let mut unit_field_val: u32 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as
+                                                    *mut u32 as *mut u8,
+                                                ::std::mem::size_of::<u32>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 4usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u32>());
+            }
         }
         #[inline]
         pub fn new_bitfield_1(mGeneration: u32, mIndexInGeneration: u32)
@@ -25047,10 +27664,10 @@ pub mod root {
             ({
                  ({ 0 } |
                       ((mGeneration as u32 as u32) << 0usize) &
-                          (15usize as u32))
+                          (15u64 as u32))
              } |
                  ((mIndexInGeneration as u32 as u32) << 4usize) &
-                     (4294967280usize as u32))
+                     (4294967280u64 as u32))
         }
     }
     #[repr(C)]
@@ -29376,117 +31993,231 @@ pub mod root {
     impl imgRequest {
         #[inline]
         pub fn mIsMultiPartChannel(&self) -> bool {
-            let mask = 1usize as u8;
-            let unit_field_val: u8 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u8 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as *mut u8
+                                                    as *mut u8,
+                                                ::std::mem::size_of::<u8>())
+            };
+            let mask = 1u64 as u8;
             let val = (unit_field_val & mask) >> 0usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mIsMultiPartChannel(&mut self, val: bool) {
-            let mask = 1usize as u8;
+            let mask = 1u64 as u8;
             let val = val as u8 as u8;
             let mut unit_field_val: u8 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as *mut u8
+                                                    as *mut u8,
+                                                ::std::mem::size_of::<u8>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 0usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u8>());
+            }
         }
         #[inline]
         pub fn mGotData(&self) -> bool {
-            let mask = 2usize as u8;
-            let unit_field_val: u8 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u8 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as *mut u8
+                                                    as *mut u8,
+                                                ::std::mem::size_of::<u8>())
+            };
+            let mask = 2u64 as u8;
             let val = (unit_field_val & mask) >> 1usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mGotData(&mut self, val: bool) {
-            let mask = 2usize as u8;
+            let mask = 2u64 as u8;
             let val = val as u8 as u8;
             let mut unit_field_val: u8 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as *mut u8
+                                                    as *mut u8,
+                                                ::std::mem::size_of::<u8>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 1usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u8>());
+            }
         }
         #[inline]
         pub fn mIsInCache(&self) -> bool {
-            let mask = 4usize as u8;
-            let unit_field_val: u8 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u8 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as *mut u8
+                                                    as *mut u8,
+                                                ::std::mem::size_of::<u8>())
+            };
+            let mask = 4u64 as u8;
             let val = (unit_field_val & mask) >> 2usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mIsInCache(&mut self, val: bool) {
-            let mask = 4usize as u8;
+            let mask = 4u64 as u8;
             let val = val as u8 as u8;
             let mut unit_field_val: u8 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as *mut u8
+                                                    as *mut u8,
+                                                ::std::mem::size_of::<u8>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 2usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u8>());
+            }
         }
         #[inline]
         pub fn mDecodeRequested(&self) -> bool {
-            let mask = 8usize as u8;
-            let unit_field_val: u8 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u8 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as *mut u8
+                                                    as *mut u8,
+                                                ::std::mem::size_of::<u8>())
+            };
+            let mask = 8u64 as u8;
             let val = (unit_field_val & mask) >> 3usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mDecodeRequested(&mut self, val: bool) {
-            let mask = 8usize as u8;
+            let mask = 8u64 as u8;
             let val = val as u8 as u8;
             let mut unit_field_val: u8 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as *mut u8
+                                                    as *mut u8,
+                                                ::std::mem::size_of::<u8>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 3usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u8>());
+            }
         }
         #[inline]
         pub fn mNewPartPending(&self) -> bool {
-            let mask = 16usize as u8;
-            let unit_field_val: u8 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u8 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as *mut u8
+                                                    as *mut u8,
+                                                ::std::mem::size_of::<u8>())
+            };
+            let mask = 16u64 as u8;
             let val = (unit_field_val & mask) >> 4usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mNewPartPending(&mut self, val: bool) {
-            let mask = 16usize as u8;
+            let mask = 16u64 as u8;
             let val = val as u8 as u8;
             let mut unit_field_val: u8 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as *mut u8
+                                                    as *mut u8,
+                                                ::std::mem::size_of::<u8>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 4usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u8>());
+            }
         }
         #[inline]
         pub fn mHadInsecureRedirect(&self) -> bool {
-            let mask = 32usize as u8;
-            let unit_field_val: u8 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u8 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as *mut u8
+                                                    as *mut u8,
+                                                ::std::mem::size_of::<u8>())
+            };
+            let mask = 32u64 as u8;
             let val = (unit_field_val & mask) >> 5usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mHadInsecureRedirect(&mut self, val: bool) {
-            let mask = 32usize as u8;
+            let mask = 32u64 as u8;
             let val = val as u8 as u8;
             let mut unit_field_val: u8 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as *mut u8
+                                                    as *mut u8,
+                                                ::std::mem::size_of::<u8>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 5usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u8>());
+            }
         }
         #[inline]
         pub fn new_bitfield_1(mIsMultiPartChannel: bool, mGotData: bool,
@@ -29500,22 +32231,22 @@ pub mod root {
                                 ({
                                      ({ 0 } |
                                           ((mIsMultiPartChannel as u8 as u8)
-                                               << 0usize) & (1usize as u8))
+                                               << 0usize) & (1u64 as u8))
                                  } |
                                      ((mGotData as u8 as u8) << 1usize) &
-                                         (2usize as u8))
+                                         (2u64 as u8))
                             } |
                                 ((mIsInCache as u8 as u8) << 2usize) &
-                                    (4usize as u8))
+                                    (4u64 as u8))
                        } |
                            ((mDecodeRequested as u8 as u8) << 3usize) &
-                               (8usize as u8))
+                               (8u64 as u8))
                   } |
                       ((mNewPartPending as u8 as u8) << 4usize) &
-                          (16usize as u8))
+                          (16u64 as u8))
              } |
                  ((mHadInsecureRedirect as u8 as u8) << 5usize) &
-                     (32usize as u8))
+                     (32u64 as u8))
         }
     }
     #[repr(C)]
@@ -30985,48 +33716,86 @@ pub mod root {
     impl nsStyleGridTemplate {
         #[inline]
         pub fn mIsAutoFill(&self) -> bool {
-            let mask = 1usize as u8;
-            let unit_field_val: u8 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u8 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as *mut u8
+                                                    as *mut u8,
+                                                ::std::mem::size_of::<u8>())
+            };
+            let mask = 1u64 as u8;
             let val = (unit_field_val & mask) >> 0usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mIsAutoFill(&mut self, val: bool) {
-            let mask = 1usize as u8;
+            let mask = 1u64 as u8;
             let val = val as u8 as u8;
             let mut unit_field_val: u8 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as *mut u8
+                                                    as *mut u8,
+                                                ::std::mem::size_of::<u8>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 0usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u8>());
+            }
         }
         #[inline]
         pub fn mIsSubgrid(&self) -> bool {
-            let mask = 2usize as u8;
-            let unit_field_val: u8 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u8 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as *mut u8
+                                                    as *mut u8,
+                                                ::std::mem::size_of::<u8>())
+            };
+            let mask = 2u64 as u8;
             let val = (unit_field_val & mask) >> 1usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mIsSubgrid(&mut self, val: bool) {
-            let mask = 2usize as u8;
+            let mask = 2u64 as u8;
             let val = val as u8 as u8;
             let mut unit_field_val: u8 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as *mut u8
+                                                    as *mut u8,
+                                                ::std::mem::size_of::<u8>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 1usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u8>());
+            }
         }
         #[inline]
         pub fn new_bitfield_1(mIsAutoFill: bool, mIsSubgrid: bool) -> u8 {
             ({
                  ({ 0 } |
-                      ((mIsAutoFill as u8 as u8) << 0usize) & (1usize as u8))
-             } | ((mIsSubgrid as u8 as u8) << 1usize) & (2usize as u8))
+                      ((mIsAutoFill as u8 as u8) << 0usize) & (1u64 as u8))
+             } | ((mIsSubgrid as u8 as u8) << 1usize) & (2u64 as u8))
         }
     }
     #[repr(C)]
@@ -31575,52 +34344,87 @@ pub mod root {
     impl nsStyleText {
         #[inline]
         pub fn mTextAlignTrue(&self) -> bool {
-            let mask = 1usize as u8;
-            let unit_field_val: u8 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u8 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as *mut u8
+                                                    as *mut u8,
+                                                ::std::mem::size_of::<u8>())
+            };
+            let mask = 1u64 as u8;
             let val = (unit_field_val & mask) >> 0usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mTextAlignTrue(&mut self, val: bool) {
-            let mask = 1usize as u8;
+            let mask = 1u64 as u8;
             let val = val as u8 as u8;
             let mut unit_field_val: u8 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as *mut u8
+                                                    as *mut u8,
+                                                ::std::mem::size_of::<u8>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 0usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u8>());
+            }
         }
         #[inline]
         pub fn mTextAlignLastTrue(&self) -> bool {
-            let mask = 2usize as u8;
-            let unit_field_val: u8 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+            let mut unit_field_val: u8 =
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as *mut u8
+                                                    as *mut u8,
+                                                ::std::mem::size_of::<u8>())
+            };
+            let mask = 2u64 as u8;
             let val = (unit_field_val & mask) >> 1usize;
             unsafe { ::std::mem::transmute(val as u8) }
         }
         #[inline]
         pub fn set_mTextAlignLastTrue(&mut self, val: bool) {
-            let mask = 2usize as u8;
+            let mask = 2u64 as u8;
             let val = val as u8 as u8;
             let mut unit_field_val: u8 =
-                unsafe { ::std::mem::transmute(self._bitfield_1) };
+                unsafe { ::std::mem::uninitialized() };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&self._bitfield_1 as *const _
+                                                    as *const u8,
+                                                &mut unit_field_val as *mut u8
+                                                    as *mut u8,
+                                                ::std::mem::size_of::<u8>())
+            };
             unit_field_val &= !mask;
             unit_field_val |= (val << 1usize) & mask;
-            self._bitfield_1 =
-                unsafe { ::std::mem::transmute(unit_field_val) };
+            unsafe {
+                ::std::ptr::copy_nonoverlapping(&unit_field_val as *const _ as
+                                                    *const u8,
+                                                &mut self._bitfield_1 as
+                                                    *mut _ as *mut u8,
+                                                ::std::mem::size_of::<u8>());
+            }
         }
         #[inline]
         pub fn new_bitfield_1(mTextAlignTrue: bool, mTextAlignLastTrue: bool)
          -> u8 {
             ({
                  ({ 0 } |
-                      ((mTextAlignTrue as u8 as u8) << 0usize) &
-                          (1usize as u8))
-             } |
-                 ((mTextAlignLastTrue as u8 as u8) << 1usize) &
-                     (2usize as u8))
+                      ((mTextAlignTrue as u8 as u8) << 0usize) & (1u64 as u8))
+             } | ((mTextAlignLastTrue as u8 as u8) << 1usize) & (2u64 as u8))
         }
     }
     #[repr(C)]
@@ -34641,7 +37445,7 @@ pub mod root {
                    root::nsCharTraits ) ));
     }
     #[test]
-    fn __bindgen_test_layout__bindgen_ty_id_186757_instantiation_92() {
+    fn __bindgen_test_layout__bindgen_ty_id_186759_instantiation_92() {
         assert_eq!(::std::mem::size_of::<u8>() , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u8 )
                    ));
@@ -34650,7 +37454,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout__bindgen_ty_id_186793_instantiation_93() {
+    fn __bindgen_test_layout__bindgen_ty_id_186795_instantiation_93() {
         assert_eq!(::std::mem::size_of::<u8>() , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u8 )
                    ));
