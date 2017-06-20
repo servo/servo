@@ -30,7 +30,7 @@ use properties::longhands::visibility::computed_value::T as Visibility;
 use selectors::parser::SelectorParseError;
 use smallvec::SmallVec;
 use std::cmp;
-#[cfg(feature = "gecko")] use std::collections::HashMap;
+#[cfg(feature = "gecko")] use fnv::FnvHashMap;
 use style_traits::ParseError;
 use super::ComputedValues;
 use values::{Auto, CSSFloat, CustomIdent, Either};
@@ -440,7 +440,7 @@ impl AnimatedProperty {
 /// This HashMap stores the values that are the last AnimationValue to be
 /// composed for each TransitionProperty.
 #[cfg(feature = "gecko")]
-pub type AnimationValueMap = HashMap<AnimatableLonghand, AnimationValue>;
+pub type AnimationValueMap = FnvHashMap<AnimatableLonghand, AnimationValue>;
 #[cfg(feature = "gecko")]
 unsafe impl HasFFI for AnimationValueMap {
     type FFIType = RawServoAnimationValueMap;
