@@ -137,6 +137,23 @@ impl StylesheetSet {
             guard)
     }
 
+    /// Update the sheet that matches the unique_id.
+    pub fn update_stylesheet(
+        &mut self,
+        sheet: &Arc<Stylesheet>,
+        unique_id: u64)
+    {
+        // Since this function doesn't set self.dirty, or call
+        // self.invalidations.collect_invalidations_for, it should
+        // only be called in the case where sheet is a clone of
+        // the sheet it is updating.
+        debug!("StylesheetSet::update_stylesheet");
+        if let Some(entry) = self.entries.iter_mut().find(
+            |e| e.unique_id == unique_id) {
+            entry.sheet = sheet.clone();
+        }
+    }
+
     /// Remove a given stylesheet from the set.
     pub fn remove_stylesheet(&mut self, unique_id: u64) {
         debug!("StylesheetSet::remove_stylesheet");
