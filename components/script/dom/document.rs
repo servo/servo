@@ -1538,28 +1538,29 @@ impl Document {
         self.animation_frame_ident.set(ident);
         self.animation_frame_list.borrow_mut().push((ident, Some(callback)));
 
-        // No need to send a `ChangeRunningAnimationsState` if we're running animation callbacks:
-        // we're guaranteed to already be in the "animation callbacks present" state.
-        //
-        // This reduces CPU usage by avoiding needless thread wakeups in the common case of
-        // repeated rAF.
-        //
         // TODO: Should tick animation only when document is visible
-        if !self.running_animation_callbacks.get() {
-            if !self.is_faking_animation_frames() {
-                let global_scope = self.window.upcast::<GlobalScope>();
-                let event = ConstellationMsg::ChangeRunningAnimationsState(
-                    global_scope.pipeline_id(),
-                    AnimationState::AnimationCallbacksPresent);
-                global_scope.constellation_chan().send(event).unwrap();
-            } else {
-                let callback = FakeRequestAnimationFrameCallback {
-                    document: Trusted::new(self),
-                };
-                self.global()
-                    .schedule_callback(OneshotTimerCallback::FakeRequestAnimationFrame(callback),
-                                       MsDuration::new(FAKE_REQUEST_ANIMATION_FRAME_DELAY));
-            }
+
+        // If we are running 'fake' animation frames, we unconditionally
+        // set up a one-shot timer for script to execute the rAF callbacks.
+        if self.is_faking_animation_frames() {
+            let callback = FakeRequestAnimationFrameCallback {
+                document: Trusted::new(self),
+            };
+            self.global()
+                .schedule_callback(OneshotTimerCallback::FakeRequestAnimationFrame(callback),
+                                   MsDuration::new(FAKE_REQUEST_ANIMATION_FRAME_DELAY));
+        } else if !self.running_animation_callbacks.get() {
+            // No need to send a `ChangeRunningAnimationsState` if we're running animation callbacks:
+            // we're guaranteed to already be in the "animation callbacks present" state.
+            //
+            // This reduces CPU usage by avoiding needless thread wakeups in the common case of
+            // repeated rAF.
+
+            let global_scope = self.window.upcast::<GlobalScope>();
+            let event = ConstellationMsg::ChangeRunningAnimationsState(
+                global_scope.pipeline_id(),
+                AnimationState::AnimationCallbacksPresent);
+            global_scope.constellation_chan().send(event).unwrap();
         }
 
         ident
