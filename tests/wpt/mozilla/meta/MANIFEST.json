@@ -13024,6 +13024,12 @@
      {}
     ]
    ],
+   "mozilla/element_setAttributeNode.html": [
+    [
+     "/_mozilla/mozilla/element_setAttributeNode.html",
+     {}
+    ]
+   ],
    "mozilla/empty_clientrect.html": [
     [
      "/_mozilla/mozilla/empty_clientrect.html",
@@ -25729,6 +25735,10 @@
   ],
   "mozilla/element_parentOffset.html": [
    "9ddf84332ca6efa6390315f20d59be2964a69dc7",
+   "testharness"
+  ],
+  "mozilla/element_setAttributeNode.html": [
+   "4159931c8fc73a2305fa3d3bfe988132f38b4975",
    "testharness"
   ],
   "mozilla/empty_clientrect.html": [
