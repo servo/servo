@@ -310,7 +310,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
                             Selector::parse(self, input)
                         })?;
                         // Selectors inside `:-moz-any` may not include combinators.
-                        if selectors.iter().flat_map(|x| x.iter_raw()).any(|s| s.is_combinator()) {
+                        if selectors.iter().flat_map(|x| x.iter_raw_match_order()).any(|s| s.is_combinator()) {
                             return Err(SelectorParseError::UnexpectedIdent("-moz-any".into()).into())
                         }
                         NonTSPseudoClass::MozAny(selectors.into_boxed_slice())

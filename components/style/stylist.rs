@@ -31,9 +31,9 @@ use selectors::matching::{ElementSelectorFlags, matches_selector, MatchingContex
 use selectors::matching::AFFECTED_BY_PRESENTATIONAL_HINTS;
 use selectors::parser::{AncestorHashes, Combinator, Component, Selector, SelectorAndHashes};
 use selectors::parser::{SelectorIter, SelectorMethods};
+use selectors::sink::Push;
 use selectors::visitor::SelectorVisitor;
 use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
-use sink::Push;
 use smallvec::VecLike;
 use std::fmt::Debug;
 #[cfg(feature = "servo")]

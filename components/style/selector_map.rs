@@ -369,15 +369,12 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
     }
 }
 
-/// Searches the selector from right to left, beginning to the left of the
-/// ::pseudo-element (if any), and ending at the first combinator.
+/// Searches a compound selector from left to right. If the compound selector
+/// is a pseudo-element, it's ignored.
 ///
 /// The first non-None value returned from |f| is returned.
-///
-/// Effectively, pseudo-elements are ignored, given only state pseudo-classes
-/// may appear before them.
 #[inline(always)]
-fn find_from_right<F, R>(mut iter: SelectorIter<SelectorImpl>,
+fn find_from_left<F, R>(mut iter: SelectorIter<SelectorImpl>,
                          mut f: F)
                          -> Option<R>
     where F: FnMut(&Component<SelectorImpl>) -> Option<R>,
@@ -388,6 +385,8 @@ fn find_from_right<F, R>(mut iter: SelectorIter<SelectorImpl>,
         }
     }
 
+    // Effectively, pseudo-elements are ignored, given only state pseudo-classes
+    // may appear before them.
     if iter.next_sequence() == Some(Combinator::PseudoElement) {
         for ss in &mut iter {
             if let Some(r) = f(ss) {
@@ -403,7 +402,7 @@ fn find_from_right<F, R>(mut iter: SelectorIter<SelectorImpl>,
 #[inline(always)]
 pub fn get_id_name(iter: SelectorIter<SelectorImpl>)
                    -> Option<Atom> {
-    find_from_right(iter, |ss| {
+    find_from_left(iter, |ss| {
         // TODO(pradeep): Implement case-sensitivity based on the
         // document type and quirks mode.
         if let Component::ID(ref id) = *ss {
@@ -417,7 +416,7 @@ pub fn get_id_name(iter: SelectorIter<SelectorImpl>)
 #[inline(always)]
 pub fn get_class_name(iter: SelectorIter<SelectorImpl>)
                       -> Option<Atom> {
-    find_from_right(iter, |ss| {
+    find_from_left(iter, |ss| {
         // TODO(pradeep): Implement case-sensitivity based on the
         // document type and quirks mode.
         if let Component::Class(ref class) = *ss {
@@ -431,7 +430,7 @@ pub fn get_class_name(iter: SelectorIter<SelectorImpl>)
 #[inline(always)]
 pub fn get_local_name(iter: SelectorIter<SelectorImpl>)
                       -> Option<LocalNameSelector<SelectorImpl>> {
-    find_from_right(iter, |ss| {
+    find_from_left(iter, |ss| {
         if let Component::LocalName(ref n) = *ss {
             return Some(LocalNameSelector {
                 name: n.name.clone(),

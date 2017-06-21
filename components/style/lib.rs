@@ -126,7 +126,6 @@ pub mod sharing;
 pub mod stylist;
 #[cfg(feature = "servo")] #[allow(unsafe_code)] pub mod servo;
 pub mod sequential;
-pub mod sink;
 pub mod str;
 pub mod style_adjuster;
 pub mod stylesheet_set;
