@@ -10,6 +10,7 @@ use dom::bindings::codegen::Bindings::PaintWorkletGlobalScopeBinding::PaintWorkl
 use dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::conversions::get_property;
+use dom::bindings::conversions::get_property_jsval;
 use dom::bindings::error::Error;
 use dom::bindings::error::Fallible;
 use dom::bindings::js::Root;
@@ -24,6 +25,7 @@ use euclid::Size2D;
 use ipc_channel::ipc::IpcSharedMemory;
 use js::jsapi::Call;
 use js::jsapi::Construct1;
+use js::jsapi::HandleValue;
 use js::jsapi::HandleValueArray;
 use js::jsapi::Heap;
 use js::jsapi::IsCallable;
@@ -121,8 +123,6 @@ impl PaintWorkletGlobalScope {
                 return;
             }
             Some(definition) => {
-                class_constructor.set(definition.class_constructor.get());
-                paint_function.set(definition.paint_function.get());
                 // Step 5.1
                 if !definition.constructor_valid_flag.get() {
                     debug!("Drawing invalid paint definition {}.", name);
@@ -130,6 +130,8 @@ impl PaintWorkletGlobalScope {
                     let _ = sender.send(Ok(image));
                     return;
                 }
+                class_constructor.set(definition.class_constructor.get());
+                paint_function.set(definition.paint_function.get());
             }
         };
 
@@ -219,7 +221,7 @@ impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
         let name = Atom::from(name);
         let cx = self.worklet_global.get_cx();
         rooted!(in(cx) let paint_obj = paint_ctor.callback_holder().get());
-        let paint_val = ObjectValue(paint_obj.get());
+        rooted!(in(cx) let paint_val = ObjectValue(paint_obj.get()));
 
         debug!("Registering paint image name {}.", name);
 
@@ -262,21 +264,16 @@ impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
         }
 
         // Steps 15-16
-        let prototype_value: JSVal =
-            unsafe { get_property(cx, paint_obj.handle(), "prototype", ()) }?
-            .ok_or(Error::Type(String::from("No prototype.")))?;
-
-        if !prototype_value.is_object() {
+        rooted!(in(cx) let mut prototype = UndefinedValue());
+        unsafe { get_property_jsval(cx, paint_obj.handle(), "prototype", prototype.handle_mut())?; }
+        if !prototype.is_object() {
             return Err(Error::Type(String::from("Prototype is not an object.")));
         }
-
-        rooted!(in(cx) let prototype = prototype_value.to_object());
+        rooted!(in(cx) let prototype = prototype.to_object());
 
         // Steps 17-18
-        let paint_function: JSVal =
-            unsafe { get_property(cx, prototype.handle(), "paint", ()) }?
-            .ok_or(Error::Type(String::from("No paint function.")))?;
-
+        rooted!(in(cx) let mut paint_function = UndefinedValue());
+        unsafe { get_property_jsval(cx, prototype.handle(), "paint", paint_function.handle_mut())?; }
         if !paint_function.is_object() || unsafe { !IsCallable(paint_function.to_object()) } {
             return Err(Error::Type(String::from("Paint function is not callable.")));
         }
@@ -285,7 +282,7 @@ impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
         debug!("Registering definition {}.", name);
         self.paint_definitions.borrow_mut()
             .insert(name,
-                    PaintDefinition::new(paint_val, paint_function, input_properties, alpha));
+                    PaintDefinition::new(paint_val.handle(), paint_function.handle(), input_properties, alpha));
 
         // TODO: Step 21.
 
@@ -313,8 +310,8 @@ struct PaintDefinition {
 }
 
 impl PaintDefinition {
-    fn new(class_constructor: JSVal,
-           paint_function: JSVal,
+    fn new(class_constructor: HandleValue,
+           paint_function: HandleValue,
            input_properties: Vec<DOMString>,
            alpha: bool)
            -> Box<PaintDefinition>
@@ -326,8 +323,8 @@ impl PaintDefinition {
             input_properties: input_properties,
             context_alpha_flag: alpha,
         });
-        result.class_constructor.set(class_constructor);
-        result.paint_function.set(paint_function);
+        result.class_constructor.set(class_constructor.get());
+        result.paint_function.set(paint_function.get());
         result
     }
 }

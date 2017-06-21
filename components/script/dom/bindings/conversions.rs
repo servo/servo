@@ -483,6 +483,25 @@ pub unsafe fn is_array_like(cx: *mut JSContext, value: HandleValue) -> bool {
     result
 }
 
+/// Get a property from a JS object.
+pub unsafe fn get_property_jsval(cx: *mut JSContext,
+                                 object: HandleObject,
+                                 name: &str,
+                                 rval: MutableHandleValue)
+                                 -> Fallible<()>
+{
+    rval.set(UndefinedValue());
+    let cname = match ffi::CString::new(name) {
+        Ok(cname) => cname,
+        Err(_) => return Ok(()),
+    };
+    JS_GetProperty(cx, object, cname.as_ptr(), rval);
+    if JS_IsExceptionPending(cx) {
+        return Err(Error::JSFailed);
+    }
+    Ok(())
+}
+
 /// Get a property from a JS object, and convert it to a Rust value.
 pub unsafe fn get_property<T>(cx: *mut JSContext,
                               object: HandleObject,
@@ -493,26 +512,15 @@ pub unsafe fn get_property<T>(cx: *mut JSContext,
 {
     debug!("Getting property {}.", name);
     rooted!(in(cx) let mut result = UndefinedValue());
-    let cname = match ffi::CString::new(name) {
-        Ok(cname) => cname,
-        Err(_) => return Ok(None),
-    };
-    if JS_GetProperty(cx, object, cname.as_ptr(), result.handle_mut()) {
-        if result.is_undefined() {
-            debug!("Property is undefined.");
-            return Ok(None);
-        }
-        debug!("Converting property {}.", name);
-        if let Ok(ConversionResult::Success(value)) = T::from_jsval(cx, result.handle(), option) {
-            debug!("Successfully converted property {}.", name);
-            return Ok(Some(value));
-        }
-    }
-    if JS_IsExceptionPending(cx) {
-        debug!("JS Exception pending.");
-        return Err(Error::JSFailed);
-    } else {
-        debug!("No JS Exception.");
+    get_property_jsval(cx, object, name, result.handle_mut())?;
+    if result.is_undefined() {
+        debug!("No property {}.", name);
         return Ok(None);
+    }
+    debug!("Converting property {}.", name);
+    match T::from_jsval(cx, result.handle(), option) {
+        Ok(ConversionResult::Success(value)) => Ok(Some(value)),
+        Ok(ConversionResult::Failure(_)) => Ok(None),
+        Err(()) => Err(Error::JSFailed),
     }
 }
