@@ -51,6 +51,15 @@ class Manifest(object):
             for test in type_tests.get(path, set()):
                 yield test
 
+    def iterdir(self, dir_name):
+        if not dir_name.endswith(os.path.sep):
+            dir_name = dir_name + os.path.sep
+        for type_tests in self._data.values():
+            for path, tests in type_tests.iteritems():
+                if path.startswith(dir_name):
+                    for test in tests:
+                        yield test
+
     @property
     def reftest_nodes_by_url(self):
         if self._reftest_nodes_by_url is None:
