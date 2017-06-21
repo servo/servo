@@ -16,7 +16,7 @@ test(function() {
   sel.add(optgroup, div);
   sel.add(opt, 5);
   sel.add(optgroup, 5);
-  assert_throws(null, function() { sel.add(div) });
+  assert_throws(new TypeError(), function() { sel.add(div) });
   sel.add(optgroup, function() {})
 });
 </script>
