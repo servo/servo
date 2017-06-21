@@ -131,7 +131,10 @@ fn create_html_element(name: QualName,
                 CustomElementCreationMode::Synchronous => {
                     let local_name = name.local.clone();
                     return match definition.create_element(document, prefix.clone()) {
-                        Ok(element) => element,
+                        Ok(element) => {
+                            element.set_custom_element_definition(definition.clone());
+                            element
+                        },
                         Err(error) => {
                             // Step 6. Recovering from exception.
                             let global = GlobalScope::current().unwrap_or_else(|| document.global());
