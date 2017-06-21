@@ -274,6 +274,7 @@ trait PrivateMatchMethods: TElement {
         if self.is_native_anonymous() || cascade_target == CascadeTarget::EagerPseudo {
             cascade_flags.insert(PROHIBIT_DISPLAY_CONTENTS);
         } else if self.is_root() {
+            debug_assert!(self.owner_doc_matches_for_testing(shared_context.stylist.device()));
             cascade_flags.insert(IS_ROOT_ELEMENT);
         }
 

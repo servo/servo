@@ -108,7 +108,7 @@
             fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
                 unsafe {
                     Gecko_GetLookAndFeelSystemColor(*self as i32,
-                                                    &*cx.device.pres_context)
+                                                    cx.device.pres_context())
                 }
             }
 

@@ -2783,13 +2783,14 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                     // which Gecko just does regular cascading with. Do the same.
                     // This can only happen in the case where the language changed but the family did not
                     if generic != structs::kGenericFont_NONE {
-                        let pres_context = context.device.pres_context;
-                        let gecko_font = context.mutate_style().mutate_font().gecko_mut();
+                        let gecko_font = context.style.mutate_font().gecko_mut();
                         gecko_font.mGenericID = generic;
                         unsafe {
-                            bindings::Gecko_nsStyleFont_PrefillDefaultForGeneric(gecko_font,
-                                                                                 &*pres_context,
-                                                                                 generic);
+                            bindings::Gecko_nsStyleFont_PrefillDefaultForGeneric(
+                                gecko_font,
+                                context.device.pres_context(),
+                                generic
+                            );
                         }
                     }
                 }

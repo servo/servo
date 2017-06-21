@@ -1597,8 +1597,8 @@ pub extern "C" fn Servo_StyleSet_Drop(data: RawServoStyleSetOwned) {
 pub extern "C" fn Servo_StyleSet_CompatModeChanged(raw_data: RawServoStyleSetBorrowed) {
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let quirks_mode = unsafe {
-        (*(*data.stylist.device().pres_context).mDocument
-                                               .raw::<nsIDocument>()).mCompatMode
+        (*data.stylist.device().pres_context().mDocument.raw::<nsIDocument>())
+            .mCompatMode
     };
 
     data.stylist.set_quirks_mode(quirks_mode.into());
