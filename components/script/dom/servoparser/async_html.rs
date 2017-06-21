@@ -138,8 +138,6 @@ pub struct ParseNode {
 
 #[derive(JSTraceable, HeapSizeOf)]
 struct ParseNodeData {
-    target: Option<String>,
-    data: Option<String>,
     contents: Option<ParseNode>,
     is_integration_point: bool,
 }
@@ -147,8 +145,6 @@ struct ParseNodeData {
 impl Default for ParseNodeData {
     fn default() -> ParseNodeData {
         ParseNodeData {
-            target: None,
-            data: None,
             contents: None,
             is_integration_point: false,
         }
@@ -169,7 +165,7 @@ enum ParseOperation {
     MarkScriptAlreadyStarted(ParseNodeID),
     ReparentChildren(ParseNodeID, ParseNodeID),
     AssociateWithForm(ParseNodeID, ParseNodeID),
-    CreatePI(ParseNodeID),
+    CreatePI(ParseNodeID, StrTendril, StrTendril),
     Pop(ParseNodeID),
 }
 
@@ -329,15 +325,11 @@ impl Sink {
             ParseOperation::Pop(node) => {
                 vtable_for(self.get_node(&node)).pop();
             }
-            ParseOperation::CreatePI(node) => {
-                let pi;
-                {
-                    let data = self.get_parse_node_data(&node);
-                    pi = ProcessingInstruction::new(
-                        DOMString::from(data.target.clone().unwrap()),
-                        DOMString::from(data.data.clone().unwrap()),
+            ParseOperation::CreatePI(node, target, data) => {
+                let pi = ProcessingInstruction::new(
+                        DOMString::from(String::from(target)),
+                        DOMString::from(String::from(data)),
                         document);
-                }
                 self.insert_node(node, JS::from_ref(pi.upcast()));
             }
         }
@@ -411,12 +403,7 @@ impl TreeSink for Sink {
 
     fn create_pi(&mut self, target: StrTendril, data: StrTendril) -> ParseNode {
         let node = self.new_parse_node();
-        {
-            let mut node_data = self.get_parse_node_data_mut(&node.id);
-            node_data.target = Some(String::from(target));
-            node_data.data = Some(String::from(data));
-        }
-        self.process_operation(ParseOperation::CreatePI(node.id));
+        self.process_operation(ParseOperation::CreatePI(node.id, target, data));
         node
     }
 
