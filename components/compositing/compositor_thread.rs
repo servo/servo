@@ -100,8 +100,6 @@ pub enum Msg {
     HistoryChanged(Vec<LoadData>, usize),
     /// Wether or not to follow a link
     AllowNavigation(ServoUrl, IpcSender<bool>),
-    /// We hit the delayed composition timeout. (See `delayed_composition.rs`.)
-    DelayedCompositionTimeout(u64),
     /// Composite.
     Recomposite(CompositingReason),
     /// Sends an unconsumed key event back to the compositor.
@@ -160,7 +158,6 @@ impl Debug for Msg {
             Msg::AllowNavigation(..) => write!(f, "AllowNavigation"),
             Msg::LoadStart => write!(f, "LoadStart"),
             Msg::HistoryChanged(..) => write!(f, "HistoryChanged"),
-            Msg::DelayedCompositionTimeout(..) => write!(f, "DelayedCompositionTimeout"),
             Msg::Recomposite(..) => write!(f, "Recomposite"),
             Msg::KeyEvent(..) => write!(f, "KeyEvent"),
             Msg::TouchEventProcessed(..) => write!(f, "TouchEventProcessed"),

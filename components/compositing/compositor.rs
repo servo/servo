@@ -6,7 +6,6 @@ use CompositionPipeline;
 use SendableFrameTree;
 use compositor_thread::{CompositorProxy, CompositorReceiver};
 use compositor_thread::{InitialCompositorState, Msg, RenderListener};
-use delayed_composition::DelayedCompositionTimerProxy;
 use euclid::{Point2D, TypedPoint2D, TypedVector2D, TypedRect, ScaleFactor, TypedSize2D};
 use gfx_traits::Epoch;
 use gleam::gl;
@@ -131,9 +130,6 @@ pub struct IOCompositor<Window: WindowMethods> {
 
     channel_to_self: CompositorProxy,
 
-    /// A handle to the delayed composition timer.
-    delayed_composition_timer: DelayedCompositionTimerProxy,
-
     /// The type of composition to perform
     composite_target: CompositeTarget,
 
@@ -207,7 +203,6 @@ struct ScrollZoomEvent {
 #[derive(PartialEq, Debug)]
 enum CompositionRequest {
     NoCompositingNecessary,
-    DelayedComposite(u64),
     CompositeNow(CompositingReason),
 }
 
@@ -363,7 +358,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             scale: ScaleFactor::new(1.0),
             scale_factor: scale_factor,
             channel_to_self: state.sender.clone_compositor_proxy(),
-            delayed_composition_timer: DelayedCompositionTimerProxy::new(state.sender),
             composition_request: CompositionRequest::NoCompositingNecessary,
             touch_handler: TouchHandler::new(),
             pending_scroll_zoom_events: Vec::new(),
@@ -436,8 +430,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             self.time_profiler_chan.send(time::ProfilerMsg::Exit(sender));
             let _ = receiver.recv();
         }
-
-        self.delayed_composition_timer.shutdown();
 
         self.shutdown_state = ShutdownState::FinishedShuttingDown;
     }
@@ -521,16 +513,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 let allow = self.window.allow_navigation(url);
                 if let Err(e) = response_chan.send(allow) {
                     warn!("Failed to send allow_navigation result ({}).", e);
-                }
-            }
-
-            (Msg::DelayedCompositionTimeout(timestamp), ShutdownState::NotShuttingDown) => {
-                if let CompositionRequest::DelayedComposite(this_timestamp) =
-                    self.composition_request {
-                    if timestamp == this_timestamp {
-                        self.composition_request = CompositionRequest::CompositeNow(
-                            CompositingReason::DelayedCompositeTimeout)
-                    }
                 }
             }
 
@@ -751,18 +733,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         if let Err(e) = self.constellation_chan.send(msg) {
             warn!("Sending window resize to constellation failed ({}).", e);
         }
-    }
-
-    fn schedule_delayed_composite_if_necessary(&mut self) {
-        match self.composition_request {
-            CompositionRequest::CompositeNow(_) => return,
-            CompositionRequest::DelayedComposite(_) |
-            CompositionRequest::NoCompositingNecessary => {}
-        }
-
-        let timestamp = precise_time_ns();
-        self.delayed_composition_timer.schedule_composite(timestamp);
-        self.composition_request = CompositionRequest::DelayedComposite(timestamp);
     }
 
     fn scroll_fragment_to_point(&mut self, id: ClipId, point: Point2D<f32>) {
@@ -1235,13 +1205,18 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                    pipeline_ids.push(*pipeline_id);
             }
         }
+        let animation_state = if pipeline_ids.is_empty() {
+            windowing::AnimationState::Idle
+        } else {
+            windowing::AnimationState::Animating
+        };
+        self.window.set_animation_state(animation_state);
         for pipeline_id in &pipeline_ids {
             self.tick_animations_for_pipeline(*pipeline_id)
         }
     }
 
     fn tick_animations_for_pipeline(&mut self, pipeline_id: PipelineId) {
-        self.schedule_delayed_composite_if_necessary();
         let animation_callbacks_running = self.pipeline_details(pipeline_id).animation_callbacks_running;
         if animation_callbacks_running {
             let msg = ConstellationMsg::TickAnimation(pipeline_id, AnimationTickType::Script);
@@ -1635,14 +1610,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 _ => compositor_messages.push(msg),
             }
         }
-        if found_recomposite_msg {
-            compositor_messages.retain(|msg| {
-                match *msg {
-                    Msg::DelayedCompositionTimeout(_) => false,
-                    _ => true,
-                }
-            })
-        }
         for msg in compositor_messages {
             if !self.handle_browser_message(msg) {
                 break
@@ -1664,8 +1631,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
 
         match self.composition_request {
-            CompositionRequest::NoCompositingNecessary |
-            CompositionRequest::DelayedComposite(_) => {}
+            CompositionRequest::NoCompositingNecessary => {}
             CompositionRequest::CompositeNow(_) => {
                 self.composite()
             }

@@ -6,7 +6,7 @@
 
 use NestedEventLoopListener;
 use compositing::compositor_thread::EventLoopWaker;
-use compositing::windowing::{MouseWindowEvent, WindowNavigateMsg};
+use compositing::windowing::{AnimationState, MouseWindowEvent, WindowNavigateMsg};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use euclid::{Point2D, Size2D, TypedPoint2D, TypedVector2D, TypedRect, ScaleFactor, TypedSize2D};
 #[cfg(target_os = "windows")]
@@ -196,6 +196,8 @@ pub struct Window {
     #[cfg(not(target_os = "windows"))]
     pressed_key_map: RefCell<Vec<(ScanCode, char)>>,
 
+    animation_state: Cell<AnimationState>,
+
     gl: Rc<gl::Gl>,
 }
 
@@ -316,6 +318,7 @@ impl Window {
             #[cfg(target_os = "windows")]
             last_pressed_key: Cell::new(None),
             gl: gl.clone(),
+            animation_state: Cell::new(AnimationState::Idle),
         };
 
         window.present();
@@ -655,10 +658,14 @@ impl Window {
         let mut events = mem::replace(&mut *self.event_queue.borrow_mut(), Vec::new());
         let mut close_event = false;
 
+        let poll = self.animation_state.get() == AnimationState::Animating ||
+                   opts::get().output_file.is_some() ||
+                   opts::get().exit_after_load ||
+                   opts::get().headless;
         // When writing to a file then exiting, use event
         // polling so that we don't block on a GUI event
         // such as mouse click.
-        if opts::get().output_file.is_some() || opts::get().exit_after_load || opts::get().headless {
+        if poll {
             match self.kind {
                 WindowKind::Window(ref window) => {
                     while let Some(event) = window.poll_events().next() {
@@ -1003,6 +1010,10 @@ impl WindowMethods for Window {
             }
         }
 
+    }
+
+    fn set_animation_state(&self, state: AnimationState) {
+        self.animation_state.set(state);
     }
 
     fn set_inner_size(&self, size: Size2D<u32>) {
