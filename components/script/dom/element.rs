@@ -30,6 +30,7 @@ use dom::bindings::xmlname::{namespace_from_domstring, validate_and_extract, xml
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
 use dom::characterdata::CharacterData;
 use dom::create::create_element;
+use dom::customelementregistry::{CallbackReaction, CustomElementDefinition, CustomElementReaction};
 use dom::document::{Document, LayoutDocumentHelpers};
 use dom::documentfragment::DocumentFragment;
 use dom::domrect::DOMRect;
@@ -84,7 +85,7 @@ use js::jsapi::{HandleValue, JSAutoCompartment};
 use net_traits::request::CorsSettings;
 use ref_filter_map::ref_filter_map;
 use script_layout_interface::message::ReflowQueryType;
-use script_thread::Runnable;
+use script_thread::{Runnable, ScriptThread};
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
 use selectors::matching::{ElementSelectorFlags, LocalMatchingContext, MatchingContext, MatchingMode};
 use selectors::matching::{HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
@@ -94,6 +95,7 @@ use servo_atoms::Atom;
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::cell::{Cell, Ref};
+use std::collections::VecDeque;
 use std::convert::TryFrom;
 use std::default::Default;
 use std::fmt;
@@ -141,6 +143,9 @@ pub struct Element {
     /// when it has exclusive access to the element.
     #[ignore_heap_size_of = "bitflags defined in rust-selectors"]
     selector_flags: Cell<ElementSelectorFlags>,
+    custom_element_reaction_queue: DOMRefCell<VecDeque<CustomElementReaction>>,
+    #[ignore_heap_size_of = "Rc"]
+    custom_element_definition: DOMRefCell<Option<Rc<CustomElementDefinition>>>,
 }
 
 impl fmt::Debug for Element {
@@ -244,6 +249,8 @@ impl Element {
             class_list: Default::default(),
             state: Cell::new(state),
             selector_flags: Cell::new(ElementSelectorFlags::empty()),
+            custom_element_reaction_queue: Default::default(),
+            custom_element_definition: DOMRefCell::new(None),
         }
     }
 
@@ -276,6 +283,25 @@ impl Element {
 
     pub fn get_is(&self) -> Option<LocalName> {
         self.is.borrow().clone()
+    }
+
+    pub fn set_custom_element_definition(&self, definition: Rc<CustomElementDefinition>) {
+        *self.custom_element_definition.borrow_mut() = Some(definition);
+    }
+
+    pub fn get_custom_element_definition(&self) -> Option<Rc<CustomElementDefinition>> {
+        (*self.custom_element_definition.borrow()).clone()
+    }
+
+    pub fn push_reaction(&self, reaction: CustomElementReaction) {
+        self.custom_element_reaction_queue.borrow_mut().push_back(reaction);
+    }
+
+    pub fn invoke_reactions(&self) {
+        let mut reaction_queue = self.custom_element_reaction_queue.borrow_mut();
+        while let Some(reaction) = reaction_queue.pop_front() {
+            reaction.invoke(Root::from_ref(self));
+        }
     }
 
     // https://drafts.csswg.org/cssom-view/#css-layout-box
@@ -1036,9 +1062,17 @@ impl Element {
     pub fn push_attribute(&self, attr: &Attr) {
         let name = attr.local_name().clone();
         let namespace = attr.namespace().clone();
-        let old_value = DOMString::from(&**attr.value());
-        let mutation = Mutation::Attribute { name, namespace, old_value };
+        let value = DOMString::from(&**attr.value());
+        let mutation = Mutation::Attribute {
+            name: name.clone(),
+            namespace: namespace.clone(),
+            old_value: value.clone(),
+        };
+
         MutationObserver::queue_a_mutation_record(&self.node, mutation);
+
+        let reaction = CallbackReaction::AttributeChanged(name, None, Some(value), namespace);
+        ScriptThread::enqueue_callback_reaction(Root::from_ref(self), reaction);
 
         assert!(attr.GetOwnerElement().r() == Some(self));
         self.will_mutate_attr(attr);
@@ -1171,8 +1205,16 @@ impl Element {
             let name = attr.local_name().clone();
             let namespace = attr.namespace().clone();
             let old_value = DOMString::from(&**attr.value());
-            let mutation = Mutation::Attribute { name, namespace, old_value, };
+            let mutation = Mutation::Attribute {
+                name: name.clone(),
+                namespace: namespace.clone(),
+                old_value: old_value.clone(),
+            };
+
             MutationObserver::queue_a_mutation_record(&self.node, mutation);
+
+            let reaction = CallbackReaction::AttributeChanged(name, Some(old_value), None, namespace);
+            ScriptThread::enqueue_callback_reaction(Root::from_ref(self), reaction);
 
             self.attrs.borrow_mut().remove(idx);
             attr.set_owner(None);

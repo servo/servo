@@ -40,6 +40,7 @@ use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::WRAP_CALLBACKS;
+use dom::customelementregistry::{CallbackReaction, CustomElementReactionStack};
 use dom::document::{Document, DocumentSource, FocusType, HasBrowsingContext, IsHTMLDocument, TouchEventResult};
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -511,6 +512,9 @@ pub struct ScriptThread {
     /// A list of nodes with in-progress CSS transitions, which roots them for the duration
     /// of the transition.
     transitioning_nodes: DOMRefCell<Vec<JS<Node>>>,
+
+    /// https://html.spec.whatwg.org/multipage/#custom-element-reactions-stack
+    custom_element_reaction_stack: CustomElementReactionStack,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -734,6 +738,15 @@ impl ScriptThread {
         })
     }
 
+    pub fn enqueue_callback_reaction(element: Root<Element>, reaction: CallbackReaction) {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            if let Some(script_thread) = root.get() {
+                let script_thread = unsafe { &*script_thread };
+                script_thread.custom_element_reaction_stack.enqueue_callback_reaction(element, reaction);
+            }
+        })
+    }
+
     /// Creates a new script thread.
     pub fn new(state: InitialScriptState,
                port: Receiver<MainThreadScriptMsg>,
@@ -819,6 +832,8 @@ impl ScriptThread {
             docs_with_no_blocking_loads: Default::default(),
 
             transitioning_nodes: Default::default(),
+
+            custom_element_reaction_stack: CustomElementReactionStack::new(),
         }
     }
 
