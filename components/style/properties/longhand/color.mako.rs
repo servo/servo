@@ -67,7 +67,8 @@
                                -moz-mac-menushadow -moz-mac-menutextdisable -moz-mac-menutextselect
                                -moz-mac-disabledtoolbartext -moz-mac-secondaryhighlight
                                -moz-menuhover -moz-menuhovertext -moz-menubartext -moz-menubarhovertext
-                               -moz-oddtreerow -moz-win-mediatext -moz-win-communicationstext
+                               -moz-oddtreerow -moz-win-accentcolor -moz-win-accentcolortext
+                               -moz-win-mediatext -moz-win-communicationstext
                                -moz-nativehyperlinktext -moz-comboboxtext -moz-combobox""".split()
 
             # These are not parsed but must be serialized
