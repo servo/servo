@@ -13,6 +13,7 @@ use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
@@ -30,6 +31,7 @@ use dom::bindings::xmlname::{namespace_from_domstring, validate_and_extract, xml
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
 use dom::characterdata::CharacterData;
 use dom::create::create_element;
+use dom::customelementregistry::{CallbackReaction, CustomElementDefinition, CustomElementReaction};
 use dom::document::{Document, LayoutDocumentHelpers};
 use dom::documentfragment::DocumentFragment;
 use dom::domrect::DOMRect;
@@ -80,11 +82,12 @@ use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
-use js::jsapi::{HandleValue, JSAutoCompartment};
+use js::jsapi::{HandleValue, Heap, JSAutoCompartment};
+use js::jsval::JSVal;
 use net_traits::request::CorsSettings;
 use ref_filter_map::ref_filter_map;
 use script_layout_interface::message::ReflowQueryType;
-use script_thread::Runnable;
+use script_thread::{Runnable, ScriptThread};
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
 use selectors::matching::{ElementSelectorFlags, LocalMatchingContext, MatchingContext, MatchingMode};
 use selectors::matching::{HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
@@ -141,6 +144,11 @@ pub struct Element {
     /// when it has exclusive access to the element.
     #[ignore_heap_size_of = "bitflags defined in rust-selectors"]
     selector_flags: Cell<ElementSelectorFlags>,
+    /// https://html.spec.whatwg.org/multipage/#custom-element-reaction-queue
+    custom_element_reaction_queue: DOMRefCell<Vec<CustomElementReaction>>,
+    /// https://dom.spec.whatwg.org/#concept-element-custom-element-definition
+    #[ignore_heap_size_of = "Rc"]
+    custom_element_definition: DOMRefCell<Option<Rc<CustomElementDefinition>>>,
 }
 
 impl fmt::Debug for Element {
@@ -244,6 +252,8 @@ impl Element {
             class_list: Default::default(),
             state: Cell::new(state),
             selector_flags: Cell::new(ElementSelectorFlags::empty()),
+            custom_element_reaction_queue: Default::default(),
+            custom_element_definition: Default::default(),
         }
     }
 
@@ -276,6 +286,26 @@ impl Element {
 
     pub fn get_is(&self) -> Option<LocalName> {
         self.is.borrow().clone()
+    }
+
+    pub fn set_custom_element_definition(&self, definition: Rc<CustomElementDefinition>) {
+        *self.custom_element_definition.borrow_mut() = Some(definition);
+    }
+
+    pub fn get_custom_element_definition(&self) -> Option<Rc<CustomElementDefinition>> {
+        (*self.custom_element_definition.borrow()).clone()
+    }
+
+    pub fn push_callback_reaction(&self, function: Rc<Function>, args: Box<[Heap<JSVal>]>) {
+        self.custom_element_reaction_queue.borrow_mut().push(CustomElementReaction::Callback(function, args));
+    }
+
+    pub fn invoke_reactions(&self) {
+        let mut reaction_queue = self.custom_element_reaction_queue.borrow_mut();
+        for reaction in reaction_queue.iter() {
+            reaction.invoke(self);
+        }
+        reaction_queue.clear();
     }
 
     // https://drafts.csswg.org/cssom-view/#css-layout-box
@@ -1036,9 +1066,19 @@ impl Element {
     pub fn push_attribute(&self, attr: &Attr) {
         let name = attr.local_name().clone();
         let namespace = attr.namespace().clone();
-        let old_value = DOMString::from(&**attr.value());
-        let mutation = Mutation::Attribute { name, namespace, old_value };
+        let value = DOMString::from(&**attr.value());
+        let mutation = Mutation::Attribute {
+            name: name.clone(),
+            namespace: namespace.clone(),
+            old_value: value.clone(),
+        };
+
         MutationObserver::queue_a_mutation_record(&self.node, mutation);
+
+        if self.get_custom_element_definition().is_some() {
+            let reaction = CallbackReaction::AttributeChanged(name, None, Some(value), namespace);
+            ScriptThread::enqueue_callback_reaction(self, reaction);
+        }
 
         assert!(attr.GetOwnerElement().r() == Some(self));
         self.will_mutate_attr(attr);
@@ -1171,8 +1211,16 @@ impl Element {
             let name = attr.local_name().clone();
             let namespace = attr.namespace().clone();
             let old_value = DOMString::from(&**attr.value());
-            let mutation = Mutation::Attribute { name, namespace, old_value, };
+            let mutation = Mutation::Attribute {
+                name: name.clone(),
+                namespace: namespace.clone(),
+                old_value: old_value.clone(),
+            };
+
             MutationObserver::queue_a_mutation_record(&self.node, mutation);
+
+            let reaction = CallbackReaction::AttributeChanged(name, Some(old_value), None, namespace);
+            ScriptThread::enqueue_callback_reaction(self, reaction);
 
             self.attrs.borrow_mut().remove(idx);
             attr.set_owner(None);

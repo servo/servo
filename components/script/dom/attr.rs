@@ -9,6 +9,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, MutNullableJS, Root, RootedReference};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
+use dom::customelementregistry::CallbackReaction;
 use dom::element::{AttributeMutation, Element};
 use dom::mutationobserver::{Mutation, MutationObserver};
 use dom::node::Node;
@@ -16,6 +17,7 @@ use dom::virtualmethods::vtable_for;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use html5ever::{Prefix, LocalName, Namespace};
+use script_thread::ScriptThread;
 use servo_atoms::Atom;
 use std::borrow::ToOwned;
 use std::cell::Ref;
@@ -175,8 +177,19 @@ impl Attr {
         let name = self.local_name().clone();
         let namespace = self.namespace().clone();
         let old_value = DOMString::from(&**self.value());
-        let mutation = Mutation::Attribute { name, namespace, old_value };
+        let new_value = DOMString::from(&*value);
+        let mutation = Mutation::Attribute {
+            name: name.clone(),
+            namespace: namespace.clone(),
+            old_value: old_value.clone(),
+        };
+
         MutationObserver::queue_a_mutation_record(owner.upcast::<Node>(), mutation);
+
+        if owner.get_custom_element_definition().is_some() {
+            let reaction = CallbackReaction::AttributeChanged(name, Some(old_value), Some(new_value), namespace);
+            ScriptThread::enqueue_callback_reaction(owner, reaction);
+        }
 
         assert!(Some(owner) == self.owner().r());
         owner.will_mutate_attr(self);
