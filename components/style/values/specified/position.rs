@@ -27,7 +27,7 @@ pub type VerticalPosition = PositionComponent<Y>;
 
 /// The specified value of a component of a CSS `<position>`.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, ToCss)]
 pub enum PositionComponent<S> {
     /// `center`
     Center,
@@ -194,27 +194,6 @@ impl<S> PositionComponent<S> {
     /// `0%`
     pub fn zero() -> Self {
         PositionComponent::Length(LengthOrPercentage::Percentage(Percentage(0.)))
-    }
-}
-
-impl<S: ToCss> ToCss for PositionComponent<S> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            PositionComponent::Center => {
-                dest.write_str("center")
-            },
-            PositionComponent::Length(ref lop) => {
-                lop.to_css(dest)
-            },
-            PositionComponent::Side(ref keyword, ref lop) => {
-                keyword.to_css(dest)?;
-                if let Some(ref lop) = *lop {
-                    dest.write_str(" ")?;
-                    lop.to_css(dest)?;
-                }
-                Ok(())
-            },
-        }
     }
 }
 

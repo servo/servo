@@ -17,24 +17,22 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
     let style = synstructure::BindStyle::Ref.into();
     let match_body = synstructure::each_variant(&input, &style, |bindings, variant| {
         let mut identifier = to_css_identifier(variant.ident.as_ref());
-        let mut expr = if let Some((first, rest)) = bindings.split_first() {
-            if has_free_params(&first.field.ty, &input.generics.ty_params) {
-                where_clause.predicates.push(where_predicate(first.field.ty.clone()));
-            }
-            let mut expr = quote! {
-                ::style_traits::ToCss::to_css(#first, dest)
-            };
-            for binding in rest {
+        let mut expr = if !bindings.is_empty() {
+            let mut expr = quote! {};
+            for binding in bindings {
                 if has_free_params(&binding.field.ty, &input.generics.ty_params) {
                     where_clause.predicates.push(where_predicate(binding.field.ty.clone()));
                 }
                 expr = quote! {
-                    #expr?;
-                    ::std::fmt::Write::write_str(dest, " ")?;
-                    ::style_traits::ToCss::to_css(#binding, dest)
+                    #expr
+                    writer.item(#binding)?;
                 };
             }
-            expr
+            quote! {{
+                let mut writer = ::style_traits::values::SequenceWriter::new(&mut *dest, " ");
+                #expr
+                Ok(())
+            }}
         } else {
             quote! {
                 ::std::fmt::Write::write_str(dest, #identifier)
@@ -80,7 +78,7 @@ pub fn derive(input: syn::DeriveInput) -> quote::Tokens {
 
     quote! {
         impl #impl_generics ::style_traits::ToCss for #name #ty_generics #where_clause {
-            #[allow(unused_variables, unused_imports)]
+            #[allow(unused_variables)]
             #[inline]
             fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
             where
