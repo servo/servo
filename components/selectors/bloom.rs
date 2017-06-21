@@ -108,6 +108,18 @@ impl BloomFilter {
         self.counters = [0; ARRAY_SIZE]
     }
 
+    // Slow linear accessor to make sure the bloom filter is zeroed. This should
+    // never be used in release builds.
+    #[cfg(debug_assertions)]
+    pub fn is_zeroed(&self) -> bool {
+        self.counters.iter().all(|x| *x == 0)
+    }
+
+    #[cfg(not(debug_assertions))]
+    pub fn is_zeroed(&self) -> bool {
+        unreachable!()
+    }
+
     #[inline]
     pub fn insert_hash(&mut self, hash: u32) {
         {

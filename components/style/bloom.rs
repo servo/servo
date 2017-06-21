@@ -54,6 +54,16 @@ pub struct StyleBloom<E: TElement> {
     pushed_hashes: SmallVec<[u32; 64]>,
 }
 
+/// The very rough benchmarks in the selectors crate show clear()
+/// costing about 25 times more than remove_hash(). We use this to implement
+/// clear() more efficiently when only a small number of hashes have been
+/// pushed.
+///
+/// One subtly to note is that remove_hash() will not touch the value
+/// if the filter overflowed. However, overflow can only occur if we
+/// get 255 collisions on the same hash value, and 25 < 255.
+const MEMSET_CLEAR_THRESHOLD: usize = 25;
+
 struct PushedElement<E: TElement> {
     /// The element that was pushed.
     element: SendElement<E>,
@@ -166,8 +176,17 @@ impl<E: TElement> StyleBloom<E> {
 
     /// Clears the bloom filter.
     pub fn clear(&mut self) {
-        self.filter.clear();
         self.elements.clear();
+
+        if self.pushed_hashes.len() > MEMSET_CLEAR_THRESHOLD {
+            self.filter.clear();
+            self.pushed_hashes.clear();
+        } else {
+            for hash in self.pushed_hashes.drain() {
+                self.filter.remove_hash(hash);
+            }
+            debug_assert!(self.filter.is_zeroed());
+        }
     }
 
     /// Rebuilds the bloom filter up to the parent of the given element.
