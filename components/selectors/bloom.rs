@@ -259,7 +259,7 @@ mod bench {
 
         let mut i = 0_usize;
 
-        b.bench_n(1000, |b| {
+        b.bench(|b| {
             b.iter(|| {
                 test::black_box(bf.might_contain(&i));
                 i += 1;
@@ -271,7 +271,7 @@ mod bench {
     fn insert(b: &mut test::Bencher) {
         let mut bf = BloomFilter::new();
 
-        b.bench_n(1000, |b| {
+        b.bench(|b| {
             let mut i = 0_usize;
 
             b.iter(|| {
@@ -288,7 +288,7 @@ mod bench {
             bf.insert(&i);
         }
 
-        b.bench_n(1000, |b| {
+        b.bench(|b| {
             let mut i = 0_usize;
 
             b.iter(|| {
