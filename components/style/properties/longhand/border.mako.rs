@@ -214,7 +214,6 @@ ${helpers.predefined_type("border-image-outset", "LengthOrNumberRect",
 
 <%helpers:longhand name="border-image-repeat" animation_value_type="discrete"
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-repeat">
-    use std::fmt;
     use style_traits::ToCss;
 
     no_viewport_percentage!(SpecifiedValue);
@@ -227,8 +226,8 @@ ${helpers.predefined_type("border-image-outset", "LengthOrNumberRect",
         pub struct T(pub RepeatKeyword, pub RepeatKeyword);
     }
 
-    #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[derive(Debug, Clone, PartialEq, ToCss)]
     pub struct SpecifiedValue(pub RepeatKeyword,
                               pub Option<RepeatKeyword>);
 
@@ -237,17 +236,6 @@ ${helpers.predefined_type("border-image-outset", "LengthOrNumberRect",
                              "repeat" => Repeat,
                              "round" => Round,
                              "space" => Space);
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            self.0.to_css(dest)?;
-            if let Some(second) = self.1 {
-                dest.write_str(" ")?;
-                second.to_css(dest)?;
-            }
-            Ok(())
-        }
-    }
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {

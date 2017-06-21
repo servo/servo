@@ -23,8 +23,6 @@ ${helpers.single_keyword("caption-side", "top bottom",
 <%helpers:longhand name="border-spacing" animation_value_type="ComputedValue" boxed="True"
                    spec="https://drafts.csswg.org/css-tables/#propdef-border-spacing">
     use app_units::Au;
-    use std::fmt;
-    use style_traits::ToCss;
     use values::specified::{AllowQuirks, Length};
 
     pub mod computed_value {
@@ -64,8 +62,8 @@ ${helpers.single_keyword("caption-side", "top bottom",
         }
     }
 
-    #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
     pub struct SpecifiedValue {
         pub horizontal: Length,
         pub vertical: Option<Length>,
@@ -76,19 +74,6 @@ ${helpers.single_keyword("caption-side", "top bottom",
         computed_value::T {
             horizontal: Au(0),
             vertical: Au(0),
-        }
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-            where W: fmt::Write,
-        {
-            self.horizontal.to_css(dest)?;
-            if let Some(vertical) = self.vertical.as_ref() {
-                dest.write_str(" ")?;
-                vertical.to_css(dest)?;
-            }
-            Ok(())
         }
     }
 
