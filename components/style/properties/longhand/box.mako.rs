@@ -19,9 +19,10 @@
         values = """inline block inline-block
             table inline-table table-row-group table-header-group table-footer-group
             table-row table-column-group table-column table-cell table-caption
-            list-item flex inline-flex
-            none
+            list-item none
         """.split()
+        webkit_prefixed_values = "flex inline-flex".split()
+        values += webkit_prefixed_values
         if product == "gecko":
             values += """grid inline-grid ruby ruby-base ruby-base-container
                 ruby-text ruby-text-container contents flow-root -webkit-box
@@ -118,6 +119,11 @@
         try_match_ident_ignore_ascii_case! { input.expect_ident()?,
             % for value in values:
                 "${value}" => {
+                    Ok(computed_value::T::${to_rust_ident(value)})
+                },
+            % endfor
+            % for value in webkit_prefixed_values:
+                "-webkit-${value}" => {
                     Ok(computed_value::T::${to_rust_ident(value)})
                 },
             % endfor
