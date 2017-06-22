@@ -167,15 +167,16 @@ impl VirtualMethods for HTMLBodyElement {
                     &local_name!("onoffline") | &local_name!("ononline") |
                     &local_name!("onpagehide") | &local_name!("onpageshow") |
                     &local_name!("onpopstate") | &local_name!("onstorage") |
-                    &local_name!("onresize") | &local_name!("onunload") | &local_name!("onerror")
-                      => {
-                          let evtarget = window.upcast::<EventTarget>(); // forwarded event
-                          let source_line = 1; //TODO(#9604) obtain current JS execution line
-                          evtarget.set_event_handler_uncompiled(window.get_url(),
-                                                                source_line,
-                                                                &name[2..],
-                                                                DOMString::from(attr.value().serialize()));
-                          false
+                    &local_name!("onresize") | &local_name!("onunload") | &local_name!("onerror") => {
+                        let evtarget = window.upcast::<EventTarget>(); // forwarded event
+                        let source_line = 1; //TODO(#9604) obtain current JS execution line
+                        evtarget.set_event_handler_uncompiled(
+                            window.get_url(),
+                            source_line,
+                            &name[2..],
+                            DOMString::from(attr.value().as_string())
+                        );
+                        false
                     }
                     _ => true, // HTMLElement::attribute_mutated will take care of this.
                 }

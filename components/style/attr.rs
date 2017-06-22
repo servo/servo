@@ -363,17 +363,21 @@ impl AttrValue {
         }
     }
 
-    pub fn eval_selector(&self, selector: &AttrSelectorOperation<&String>) -> bool {
+    pub fn eval_selector<F>(&self, selector: &AttrSelectorOperation<&String>,
+                            serialize_declaration_block: &mut F)
+                            -> bool
+                            where F: FnOnce(&Locked<PropertyDeclarationBlock>) -> String {
         // FIXME(SimonSapin) this can be more efficient by matching on `(self, selector)` variants
         // and doing Atom comparisons instead of string comparisons where possible,
         // with SelectorImpl::AttrValue changed to Atom.
-        let serialization = self.serialize();
+        let serialization = self.serialize(serialize_declaration_block);
         selector.eval_str(&serialization)
     }
 
     /// Serializes this attribute value into its string form.
-    pub fn serialize(&self) -> String {
-        let slice: &str = match *self {
+    pub fn serialize<F>(&self, _serialize_declaration_block: &mut F) -> String
+    where F: FnOnce(&Locked<PropertyDeclarationBlock>) -> String {
+        match *self {
             AttrValue::String(ref value) |
                 AttrValue::TokenList(ref value, _) |
                 AttrValue::UInt(ref value, _) |
@@ -383,11 +387,9 @@ impl AttrValue {
                 AttrValue::Int(ref value, _) |
                 AttrValue::Url(ref value, _) |
                 AttrValue::Declaration(ref value, _) |
-                AttrValue::Dimension(ref value, _) => &value,
-            AttrValue::Atom(ref value) => &value,
-        };
-
-        slice.into()
+                AttrValue::Dimension(ref value, _) => value.clone(),
+            AttrValue::Atom(ref value) => String::from(&**value),
+        }
     }
 }
 

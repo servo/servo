@@ -128,7 +128,7 @@ impl<'a> Serialize for &'a Node {
                     let attrs = elem.attrs().iter().map(|attr| {
                         let qname = QualName::new(None, attr.namespace().clone(),
                                                   attr.local_name().clone());
-                        let value = attr.value().serialize().clone();
+                        let value = elem.serialize_attr(attr);
                         (qname, value)
                     }).collect::<Vec<_>>();
                     let attr_refs = attrs.iter().map(|&(ref qname, ref value)| {

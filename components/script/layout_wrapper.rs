@@ -78,6 +78,7 @@ use style::selector_parser::{PseudoElement, SelectorImpl, extended_filtering};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
 use style::str::is_whitespace;
 use style::stylearc::Arc;
+use style_traits::ToCss;
 
 #[derive(Copy, Clone)]
 pub struct ServoLayoutNode<'a> {
@@ -668,16 +669,24 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
                     local_name: &LocalName,
                     operation: &AttrSelectorOperation<&String>)
                     -> bool {
+        let mut serialize = |block: &StyleLocked<PropertyDeclarationBlock>| {
+            let node = self.element.upcast::<Node>();
+            let doc = unsafe { node.owner_doc_for_layout() };
+            let lock = unsafe { doc.style_shared_lock() };
+            // This is porbably slow, but it only happens for silly selectors like [style*=color]
+            let guard = lock.read();
+            block.read_with(&guard).to_css_string()
+        };
         match *ns {
             NamespaceConstraint::Specific(ref ns) => {
                 self.get_attr_enum(ns, local_name)
-                    .map_or(false, |value| value.eval_selector(operation))
+                    .map_or(false, |value| value.eval_selector(operation, &mut serialize))
             }
             NamespaceConstraint::Any => {
                 let values = unsafe {
                     (*self.element.unsafe_get()).get_attr_vals_for_layout(local_name)
                 };
-                values.iter().any(|value| value.eval_selector(operation))
+                values.iter().any(|value| value.eval_selector(operation, &mut serialize))
             }
         }
     }
@@ -1215,18 +1224,7 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
                     local_name: &LocalName,
                     operation: &AttrSelectorOperation<&String>)
                     -> bool {
-        match *ns {
-            NamespaceConstraint::Specific(ref ns) => {
-                self.get_attr_enum(ns, local_name)
-                    .map_or(false, |value| value.eval_selector(operation))
-            }
-            NamespaceConstraint::Any => {
-                let values = unsafe {
-                    (*self.element.element.unsafe_get()).get_attr_vals_for_layout(local_name)
-                };
-                values.iter().any(|v| v.eval_selector(operation))
-            }
-        }
+        self.element.attr_matches(ns, local_name, operation)
     }
 
     fn match_non_ts_pseudo_class<F>(&self,

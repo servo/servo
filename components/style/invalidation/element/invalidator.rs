@@ -97,7 +97,7 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
         let shared_context = self.shared_context;
 
         let wrapper =
-            ElementWrapper::new(self.element, shared_context.snapshot_map);
+            ElementWrapper::new(self.element, shared_context);
         let state_changes = wrapper.state_changes();
         let snapshot = wrapper.snapshot().expect("has_snapshot lied");
 

@@ -2307,7 +2307,7 @@ impl NodeMethods for Node {
                 other_element.attrs().iter().any(|other_attr| {
                     *attr.namespace() == *other_attr.namespace() &&
                     attr.local_name() == other_attr.local_name() &&
-                    attr.value().serialize() == other_attr.value().serialize()
+                    element.serialize_attr(attr) == other_element.serialize_attr(other_attr)
                 })
             })
         }

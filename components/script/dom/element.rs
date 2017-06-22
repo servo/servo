@@ -114,6 +114,7 @@ use style::stylearc::Arc;
 use style::thread_state;
 use style::values::{CSSFloat, Either};
 use style::values::specified;
+use style_traits::ToCss;
 use stylesheet_loader::StylesheetOwner;
 
 // TODO: Update focus state when the top-level browsing context gains or loses system focus,
@@ -867,11 +868,19 @@ impl Element {
             });
 
             if let Some(attr) = attr {
-                return attr.value().serialize().into();
+                return self.serialize_attr(&attr).into();
             }
         }
 
         ns!()
+    }
+
+    pub fn serialize_attr(&self, attr: &Attr) -> String {
+        attr.value().serialize(&mut |block| {
+            let doc = document_from_node(self);
+            let guard = doc.style_shared_lock().read();
+            block.read_with(&guard).to_css_string()
+        })
     }
 
     pub fn style_attribute(&self) -> &DOMRefCell<Option<Arc<Locked<PropertyDeclarationBlock>>>> {
@@ -948,7 +957,7 @@ impl Element {
                     // Step 2.
                     for attr in element.attrs.borrow().iter() {
                         if attr.prefix() == Some(&namespace_prefix!("xmlns")) &&
-                           attr.value().serialize() == *namespace {
+                            self.serialize_attr(attr) == *namespace {
                             return Some(attr.LocalName());
                         }
                     }
@@ -1018,7 +1027,7 @@ impl Element {
     pub fn push_attribute(&self, attr: &Attr) {
         let name = attr.local_name().clone();
         let namespace = attr.namespace().clone();
-        let old_value = DOMString::from(attr.value().serialize());
+        let old_value = DOMString::from(self.serialize_attr(attr));
         let mutation = Mutation::Attribute { name, namespace, old_value };
         MutationObserver::queue_a_mutation_record(&self.node, mutation);
 
@@ -1152,7 +1161,7 @@ impl Element {
 
             let name = attr.local_name().clone();
             let namespace = attr.namespace().clone();
-            let old_value = DOMString::from(attr.value().serialize());
+            let old_value = DOMString::from(self.serialize_attr(&attr));
             let mutation = Mutation::Attribute { name, namespace, old_value, };
             MutationObserver::queue_a_mutation_record(&self.node, mutation);
 
@@ -2403,15 +2412,21 @@ impl<'a> ::selectors::Element for Root<Element> {
                     local_name: &LocalName,
                     operation: &AttrSelectorOperation<&String>)
                     -> bool {
+        let mut serialize = |block: &Locked<PropertyDeclarationBlock>| {
+            let doc = document_from_node(&**self);
+            // This is porbably slow, but it only happens for silly selectors like [style*=color]
+            let guard = doc.style_shared_lock().read();
+            block.read_with(&guard).to_css_string()
+        };
         match *ns {
             NamespaceConstraint::Specific(ref ns) => {
                 self.get_attribute(ns, local_name)
-                    .map_or(false, |attr| attr.value().eval_selector(operation))
+                    .map_or(false, |attr| attr.value().eval_selector(operation, &mut serialize))
             }
             NamespaceConstraint::Any => {
                 self.attrs.borrow().iter().any(|attr| {
                     attr.local_name() == local_name &&
-                    attr.value().eval_selector(operation)
+                    attr.value().eval_selector(operation, &mut serialize)
                 })
             }
         }

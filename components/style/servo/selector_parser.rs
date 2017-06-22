@@ -13,18 +13,20 @@ use dom::{OpaqueNode, TElement, TNode};
 use element_state::ElementState;
 use fnv::FnvHashMap;
 use invalidation::element::element_wrapper::ElementSnapshot;
+use properties::PropertyDeclarationBlock;
 use selector_parser::{AttrValue as SelectorAttrValue, ElementExt, PseudoElementCascadeType, SelectorParser};
 use selectors::Element;
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
 use selectors::parser::{SelectorMethods, SelectorParseError};
 use selectors::visitor::SelectorVisitor;
+use shared_lock::{Locked, SharedRwLockReadGuard};
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::fmt;
 use std::fmt::Debug;
 use std::mem;
 use std::ops::{Deref, DerefMut};
-use style_traits::{ParseError, StyleParseError};
+use style_traits::{ParseError, StyleParseError, ToCss as ServoToCss};
 
 /// A pseudo-element, both public and private.
 ///
@@ -626,7 +628,7 @@ impl ElementSnapshot for ServoElementSnapshot {
     fn lang_attr(&self) -> Option<SelectorAttrValue> {
         self.get_attr(&ns!(xml), &local_name!("lang"))
             .or_else(|| self.get_attr(&ns!(), &local_name!("lang")))
-            .map(|v| v.serialize())
+            .map(|v| v.as_string().to_owned())
     }
 }
 
@@ -635,15 +637,19 @@ impl ServoElementSnapshot {
     pub fn attr_matches(&self,
                         ns: &NamespaceConstraint<&Namespace>,
                         local_name: &LocalName,
-                        operation: &AttrSelectorOperation<&String>)
+                        operation: &AttrSelectorOperation<&String>,
+                        guard: &SharedRwLockReadGuard)
                         -> bool {
+        let mut serialize = |block: &Locked<PropertyDeclarationBlock>| {
+            block.read_with(guard).to_css_string()
+        };
         match *ns {
             NamespaceConstraint::Specific(ref ns) => {
                 self.get_attr(ns, local_name)
-                    .map_or(false, |value| value.eval_selector(operation))
+                    .map_or(false, |value| value.eval_selector(operation, &mut serialize))
             }
             NamespaceConstraint::Any => {
-                self.any_attr_ignore_ns(local_name, |value| value.eval_selector(operation))
+                self.any_attr_ignore_ns(local_name, |value| value.eval_selector(operation, &mut serialize))
             }
         }
     }

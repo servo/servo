@@ -11,7 +11,7 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::element::{AttributeMutation, Element};
 use dom::mutationobserver::{Mutation, MutationObserver};
-use dom::node::Node;
+use dom::node::{Node, document_from_node};
 use dom::virtualmethods::vtable_for;
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -21,6 +21,7 @@ use std::borrow::ToOwned;
 use std::cell::Ref;
 use std::mem;
 use style::attr::{AttrIdentifier, AttrValue};
+use style_traits::ToCss;
 
 // https://dom.spec.whatwg.org/#interface-attr
 #[dom_struct]
@@ -41,6 +42,9 @@ impl Attr {
                      prefix: Option<Prefix>,
                      owner: Option<&Element>)
                      -> Attr {
+        if let (&AttrValue::Declaration(..), None) = (&value, owner) {
+            panic!("AttrValue::Declaration without an owner element is not allowed.")
+        }
         Attr {
             reflector_: Reflector::new(),
             identifier: AttrIdentifier {
@@ -98,7 +102,12 @@ impl AttrMethods for Attr {
     // https://dom.spec.whatwg.org/#dom-attr-value
     fn Value(&self) -> DOMString {
         // FIXME(ajeffrey): convert directly from AttrValue to DOMString
-        DOMString::from(self.value().serialize())
+        DOMString::from(self.value().serialize(&mut |block| {
+            let owner = self.owner.get().expect("get AttrValue::Declaration without an owner element");
+            let doc = document_from_node(&*owner);
+            let guard = doc.style_shared_lock().read();
+            block.read_with(&guard).to_css_string()
+        }))
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-value
@@ -189,6 +198,9 @@ impl Attr {
 
     /// Used to swap the attribute's value without triggering mutation events
     pub fn swap_value(&self, value: &mut AttrValue) {
+        if let (&AttrValue::Declaration(..), None) = (&*value, self.owner.get()) {
+            panic!("AttrValue::Declaration without an owner element is not allowed.")
+        }
         mem::swap(&mut *self.value.borrow_mut(), value);
     }
 
