@@ -88,17 +88,18 @@ ${helpers.predefined_type("stroke-opacity", "Opacity", "1.0",
                           products="gecko", animation_value_type="ComputedValue",
                           spec="https://www.w3.org/TR/SVG11/painting.html#StrokeOpacityProperty")}
 
-${helpers.predefined_type("stroke-dasharray",
-                          "LengthOrPercentageOrNumber",
-                          "Either::First(0.0)",
-                          "parse_non_negative",
-                          vector="True",
-                          delegate_animate="True",
-                          allow_empty="True",
-                          products="gecko",
-                          animation_value_type="ComputedValue",
-                          space_separated_allowed="True",
-                          spec="https://www.w3.org/TR/SVG2/painting.html#StrokeDashing")}
+${helpers.predefined_type(
+    "stroke-dasharray",
+    "LengthOrPercentageOrNumber",
+    None,
+    "parse_non_negative",
+    vector=True,
+    delegate_animate=True,
+    products="gecko",
+    animation_value_type="ComputedValue",
+    space_separated_allowed="True",
+    spec="https://www.w3.org/TR/SVG2/painting.html#StrokeDashing",
+)}
 
 ${helpers.predefined_type(
     "stroke-dashoffset", "LengthOrPercentageOrNumber",

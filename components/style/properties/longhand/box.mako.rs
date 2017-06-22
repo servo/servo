@@ -429,17 +429,19 @@ ${helpers.predefined_type("transition-timing-function",
                           extra_prefixes="moz webkit",
                           spec="https://drafts.csswg.org/css-transitions/#propdef-transition-timing-function")}
 
-${helpers.predefined_type("transition-property",
-                          "TransitionProperty",
-                          "computed::TransitionProperty::All",
-                          initial_specified_value="specified::TransitionProperty::All",
-                          vector=True,
-                          allow_empty=True,
-                          need_index=True,
-                          needs_context=False,
-                          animation_value_type="none",
-                          extra_prefixes="moz webkit",
-                          spec="https://drafts.csswg.org/css-transitions/#propdef-transition-property")}
+${helpers.predefined_type(
+    "transition-property",
+    "TransitionProperty",
+    "computed::TransitionProperty::All",
+    initial_specified_value="specified::TransitionProperty::All",
+    vector=True,
+    allow_empty="NotInitial",
+    need_index=True,
+    needs_context=False,
+    animation_value_type="none",
+    extra_prefixes="moz webkit",
+    spec="https://drafts.csswg.org/css-transitions/#propdef-transition-property",
+)}
 
 ${helpers.predefined_type("transition-delay",
                           "Time",
@@ -668,16 +670,17 @@ ${helpers.predefined_type("scroll-snap-destination",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-destination)",
                           animation_value_type="ComputedValue")}
 
-${helpers.predefined_type("scroll-snap-coordinate",
-                          "Position",
-                          "computed::Position::zero()",
-                          vector=True,
-                          products="gecko",
-                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-destination)",
-                          animation_value_type="ComputedValue",
-                          allow_empty=True,
-                          delegate_animate=True)}
-
+${helpers.predefined_type(
+    "scroll-snap-coordinate",
+    "Position",
+    "computed::Position::zero()",
+    vector=True,
+    products="gecko",
+    spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-destination)",
+    animation_value_type="ComputedValue",
+    allow_empty="NotInitial",
+    delegate_animate=True,
+)}
 
 <%helpers:longhand name="transform" extra_prefixes="webkit"
                    animation_value_type="ComputedValue"
