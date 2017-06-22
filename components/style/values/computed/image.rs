@@ -18,7 +18,6 @@ use values::generics::image::{CompatMode, ColorStop as GenericColorStop, EndingS
 use values::generics::image::{Gradient as GenericGradient, GradientItem as GenericGradientItem};
 use values::generics::image::{Image as GenericImage, GradientKind as GenericGradientKind};
 use values::generics::image::{ImageRect as GenericImageRect, LineDirection as GenericLineDirection};
-use values::generics::position::Position as GenericPosition;
 use values::specified::image::{Gradient as SpecifiedGradient, LineDirection as SpecifiedLineDirection};
 use values::specified::image::{GradientKind as SpecifiedGradientKind};
 use values::specified::position::{X, Y};
@@ -38,6 +37,7 @@ pub type Gradient = GenericGradient<
     LengthOrPercentage,
     Position,
     RGBA,
+    Angle,
 >;
 
 /// A computed gradient kind.
@@ -46,6 +46,7 @@ pub type GradientKind = GenericGradientKind<
     Length,
     LengthOrPercentage,
     Position,
+    Angle,
 >;
 
 /// A computed gradient line direction.
@@ -205,9 +206,10 @@ impl SpecifiedGradientKind {
             &GenericGradientKind::Linear(ref line_direction) => {
                 GenericGradientKind::Linear(line_direction.to_computed_value(context, compat_mode))
             },
-            &GenericGradientKind::Radial(ref ending_shape, ref position) => {
+            &GenericGradientKind::Radial(ref ending_shape, ref position, ref angle) => {
                 GenericGradientKind::Radial(ending_shape.to_computed_value(context),
-                             position.to_computed_value(context))
+                                            position.to_computed_value(context),
+                                            angle.map(|angle| angle.to_computed_value(context)))
             }
         }
     }
@@ -218,9 +220,10 @@ impl SpecifiedGradientKind {
             GenericGradientKind::Linear(line_direction) => {
                 GenericGradientKind::Linear(SpecifiedLineDirection::from_computed_value(&line_direction))
             },
-            GenericGradientKind::Radial(ending_shape, position) => {
-                GenericGradientKind::Radial(GenericEndingShape::from_computed_value(&ending_shape),
-                                            GenericPosition::from_computed_value(&position))
+            GenericGradientKind::Radial(ending_shape, position, angle) => {
+                GenericGradientKind::Radial(ToComputedValue::from_computed_value(&ending_shape),
+                                            ToComputedValue::from_computed_value(&position),
+                                            angle.map(|angle| ToComputedValue::from_computed_value(&angle)))
             }
         }
     }

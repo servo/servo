@@ -256,7 +256,7 @@ impl nsStyleImage {
                 }
                 gecko_gradient
             },
-            GradientKind::Radial(shape, position) => {
+            GradientKind::Radial(shape, position, angle) => {
                 let keyword_to_gecko_size = |keyword| {
                     match keyword {
                         ShapeExtent::ClosestSide => NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE,
@@ -297,9 +297,14 @@ impl nsStyleImage {
                                          stop_count as u32)
                 };
 
-                // Clear mAngle and mBgPos fields
+                // Clear mBgPos field and set mAngle if angle is set. Otherwise clear it.
                 unsafe {
-                    (*gecko_gradient).mAngle.set_value(CoordDataValue::None);
+                    if let Some(angle) = angle {
+                        (*gecko_gradient).mAngle.set(angle);
+                    } else {
+                        (*gecko_gradient).mAngle.set_value(CoordDataValue::None);
+                    }
+
                     (*gecko_gradient).mBgPosX.set_value(CoordDataValue::None);
                     (*gecko_gradient).mBgPosY.set_value(CoordDataValue::None);
                 }

@@ -46,6 +46,7 @@ pub type Gradient = GenericGradient<
     LengthOrPercentage,
     Position,
     RGBAColor,
+    Angle,
 >;
 
 /// A specified gradient kind.
@@ -54,6 +55,7 @@ pub type GradientKind = GenericGradientKind<
     Length,
     LengthOrPercentage,
     Position,
+    Angle,
 >;
 
 /// A specified gradient line direction.
@@ -185,12 +187,20 @@ impl Parse for Gradient {
             },
             "-webkit-radial-gradient" => {
                 Some((Shape::Radial, false, CompatMode::WebKit))
+            }
+            #[cfg(feature = "gecko")]
+            "-moz-radial-gradient" => {
+                Some((Shape::Radial, false, CompatMode::Moz))
             },
             "repeating-radial-gradient" => {
                 Some((Shape::Radial, true, CompatMode::Modern))
             },
             "-webkit-repeating-radial-gradient" => {
                 Some((Shape::Radial, true, CompatMode::WebKit))
+            },
+            #[cfg(feature = "gecko")]
+            "-moz-repeating-radial-gradient" => {
+                Some((Shape::Radial, true, CompatMode::Moz))
             },
             "-webkit-gradient" => {
                 return input.parse_nested_block(|i| Self::parse_webkit_gradient_argument(context, i));
@@ -206,7 +216,7 @@ impl Parse for Gradient {
         let (kind, items) = input.parse_nested_block(|i| {
             let shape = match shape {
                 Shape::Linear => GradientKind::parse_linear(context, i, &mut compat_mode)?,
-                Shape::Radial => GradientKind::parse_radial(context, i, compat_mode)?,
+                Shape::Radial => GradientKind::parse_radial(context, i, &mut compat_mode)?,
             };
             let items = GradientItem::parse_comma_separated(context, i)?;
             Ok((shape, items))
@@ -386,7 +396,7 @@ impl Gradient {
 
                 let shape = GenericEndingShape::Circle(Circle::Radius(Length::from_px(radius.value)));
                 let position = point.into();
-                let kind = GenericGradientKind::Radial(shape, position);
+                let kind = GenericGradientKind::Radial(shape, position, None);
 
                 (kind, reverse_stops)
             },
@@ -492,27 +502,56 @@ impl GradientKind {
 
     fn parse_radial<'i, 't>(context: &ParserContext,
                             input: &mut Parser<'i, 't>,
-                            compat_mode: CompatMode)
+                            compat_mode: &mut CompatMode)
                             -> Result<Self, ParseError<'i>> {
-        let (shape, position) = if compat_mode == CompatMode::Modern {
-            let shape = input.try(|i| EndingShape::parse(context, i, compat_mode));
-            let position = input.try(|i| {
-                i.expect_ident_matching("at")?;
-                Position::parse(context, i)
-            });
-            (shape, position)
-        } else {
-            let position = input.try(|i| Position::parse(context, i));
-            let shape = input.try(|i| {
-                if position.is_ok() {
-                    i.expect_comma()?;
+        let (shape, position, angle) = match *compat_mode {
+            CompatMode::Modern => {
+                let shape = input.try(|i| EndingShape::parse(context, i, *compat_mode));
+                let position = input.try(|i| {
+                    i.expect_ident_matching("at")?;
+                    Position::parse(context, i)
+                });
+                (shape, position, None)
+            },
+            CompatMode::WebKit => {
+                let position = input.try(|i| Position::parse(context, i));
+                let shape = input.try(|i| {
+                    if position.is_ok() {
+                        i.expect_comma()?;
+                    }
+                    EndingShape::parse(context, i, *compat_mode)
+                });
+                (shape, position, None)
+            },
+            // The syntax of `-moz-` prefixed radial gradient is:
+            // -moz-radial-gradient(
+            //   [ [ <position> || <angle> ]?  [ ellipse | [ <length> | <percentage> ]{2} ] , |
+            //     [ <position> || <angle> ]?  [ [ circle | ellipse ] | <extent-keyword> ] , |
+            //   ]?
+            //   <color-stop> [ , <color-stop> ]+
+            // )
+            // where <extent-keyword> = closest-corner | closest-side | farthest-corner | farthest-side |
+            //                          cover | contain
+            // and <color-stop>     = <color> [ <percentage> | <length> ]?
+            CompatMode::Moz => {
+                let mut position = input.try(|i| Position::parse_legacy(context, i));
+                let angle = input.try(|i| Angle::parse(context, i)).ok();
+                if position.is_err() {
+                    position = input.try(|i| Position::parse_legacy(context, i));
                 }
-                EndingShape::parse(context, i, compat_mode)
-            });
-            (shape, position)
+
+                let shape = input.try(|i| {
+                    if position.is_ok() || angle.is_some() {
+                        i.expect_comma()?;
+                    }
+                    EndingShape::parse(context, i, *compat_mode)
+                });
+
+                (shape, position, angle)
+            }
         };
 
-        if shape.is_ok() || position.is_ok() {
+        if shape.is_ok() || position.is_ok() || angle.is_some() {
             input.expect_comma()?;
         }
 
@@ -520,7 +559,11 @@ impl GradientKind {
             GenericEndingShape::Ellipse(Ellipse::Extent(ShapeExtent::FarthestCorner))
         });
         let position = position.unwrap_or(Position::center());
-        Ok(GenericGradientKind::Radial(shape, position))
+        // If this form can be represented in Modern mode, then convert the compat_mode to Modern.
+        if *compat_mode == CompatMode::Moz && angle.is_none() {
+            *compat_mode = CompatMode::Modern;
+        }
+        Ok(GenericGradientKind::Radial(shape, position, angle))
     }
 }
 
@@ -681,24 +724,29 @@ impl EndingShape {
             }
             return Ok(GenericEndingShape::Ellipse(Ellipse::Extent(ShapeExtent::FarthestCorner)));
         }
-        if let Ok(length) = input.try(|i| Length::parse(context, i)) {
-            if let Ok(y) = input.try(|i| LengthOrPercentage::parse(context, i)) {
-                if compat_mode == CompatMode::Modern {
-                    let _ = input.try(|i| i.expect_ident_matching("ellipse"));
-                }
-                return Ok(GenericEndingShape::Ellipse(Ellipse::Radii(length.into(), y)));
-            }
-            if compat_mode == CompatMode::Modern {
-                let y = input.try(|i| {
-                    i.expect_ident_matching("ellipse")?;
-                    LengthOrPercentage::parse(context, i)
-                });
-                if let Ok(y) = y {
+        // -moz- prefixed radial gradient doesn't allow EndingShape's Length or LengthOrPercentage
+        // to come before shape keyword. Otherwise it conflicts with <position>.
+        if compat_mode != CompatMode::Moz {
+            if let Ok(length) = input.try(|i| Length::parse(context, i)) {
+                if let Ok(y) = input.try(|i| LengthOrPercentage::parse(context, i)) {
+                    if compat_mode == CompatMode::Modern {
+                        let _ = input.try(|i| i.expect_ident_matching("ellipse"));
+                    }
                     return Ok(GenericEndingShape::Ellipse(Ellipse::Radii(length.into(), y)));
                 }
-                let _ = input.try(|i| i.expect_ident_matching("circle"));
+                if compat_mode == CompatMode::Modern {
+                    let y = input.try(|i| {
+                        i.expect_ident_matching("ellipse")?;
+                        LengthOrPercentage::parse(context, i)
+                    });
+                    if let Ok(y) = y {
+                        return Ok(GenericEndingShape::Ellipse(Ellipse::Radii(length.into(), y)));
+                    }
+                    let _ = input.try(|i| i.expect_ident_matching("circle"));
+                }
+
+                return Ok(GenericEndingShape::Circle(Circle::Radius(length)));
             }
-            return Ok(GenericEndingShape::Circle(Circle::Radius(length)));
         }
         input.try(|i| {
             let x = Percentage::parse(context, i)?;
@@ -723,8 +771,11 @@ impl ShapeExtent {
                                       compat_mode: CompatMode)
                                       -> Result<Self, ParseError<'i>> {
         match Self::parse(input)? {
-            ShapeExtent::Contain | ShapeExtent::Cover if compat_mode == CompatMode::Modern =>
-                Err(StyleParseError::UnspecifiedError.into()),
+            ShapeExtent::Contain | ShapeExtent::Cover if compat_mode == CompatMode::Modern => {
+                Err(StyleParseError::UnspecifiedError.into())
+            },
+            ShapeExtent::Contain => Ok(ShapeExtent::ClosestSide),
+            ShapeExtent::Cover => Ok(ShapeExtent::FarthestCorner),
             keyword => Ok(keyword),
         }
     }

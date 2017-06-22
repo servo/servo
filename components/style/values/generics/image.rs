@@ -37,9 +37,9 @@ pub enum Image<Gradient, ImageRect> {
 /// https://drafts.csswg.org/css-images/#gradients
 #[derive(Clone, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct Gradient<LineDirection, Length, LengthOrPercentage, Position, Color> {
+pub struct Gradient<LineDirection, Length, LengthOrPercentage, Position, Color, Angle> {
     /// Gradients can be linear or radial.
-    pub kind: GradientKind<LineDirection, Length, LengthOrPercentage, Position>,
+    pub kind: GradientKind<LineDirection, Length, LengthOrPercentage, Position, Angle>,
     /// The color stops and interpolation hints.
     pub items: Vec<GradientItem<Color, LengthOrPercentage>>,
     /// True if this is a repeating gradient.
@@ -63,11 +63,11 @@ pub enum CompatMode {
 /// A gradient kind.
 #[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum GradientKind<LineDirection, Length, LengthOrPercentage, Position> {
+pub enum GradientKind<LineDirection, Length, LengthOrPercentage, Position, Angle> {
     /// A linear gradient.
     Linear(LineDirection),
     /// A radial gradient.
-    Radial(EndingShape<Length, LengthOrPercentage>, Position),
+    Radial(EndingShape<Length, LengthOrPercentage>, Position, Option<Angle>),
 }
 
 /// A radial gradient's ending shape.
@@ -214,8 +214,8 @@ impl<G, R> HasViewportPercentage for Image<G, R>
     }
 }
 
-impl<D, L, LoP, P, C> ToCss for Gradient<D, L, LoP, P, C>
-    where D: LineDirection, L: ToCss, LoP: ToCss, P: ToCss, C: ToCss,
+impl<D, L, LoP, P, C, A> ToCss for Gradient<D, L, LoP, P, C, A>
+    where D: LineDirection, L: ToCss, LoP: ToCss, P: ToCss, C: ToCss, A: ToCss
 {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match self.compat_mode {
@@ -235,7 +235,7 @@ impl<D, L, LoP, P, C> ToCss for Gradient<D, L, LoP, P, C>
                 direction.to_css(dest, self.compat_mode)?;
                 false
             },
-            GradientKind::Radial(ref shape, ref position) => {
+            GradientKind::Radial(ref shape, ref position, ref angle) => {
                 let omit_shape = match *shape {
                     EndingShape::Ellipse(Ellipse::Extent(ShapeExtent::Cover)) |
                     EndingShape::Ellipse(Ellipse::Extent(ShapeExtent::FarthestCorner)) => {
@@ -252,6 +252,10 @@ impl<D, L, LoP, P, C> ToCss for Gradient<D, L, LoP, P, C>
                     position.to_css(dest)?;
                 } else {
                     position.to_css(dest)?;
+                    if let Some(ref a) = *angle {
+                        dest.write_str(" ")?;
+                        a.to_css(dest)?;
+                    }
                     if !omit_shape {
                         dest.write_str(", ")?;
                         shape.to_css(dest)?;
@@ -271,7 +275,7 @@ impl<D, L, LoP, P, C> ToCss for Gradient<D, L, LoP, P, C>
     }
 }
 
-impl<D, L, LoP, P> GradientKind<D, L, LoP, P> {
+impl<D, L, LoP, P, A> GradientKind<D, L, LoP, P, A> {
     fn label(&self) -> &str {
         match *self {
             GradientKind::Linear(..) => "linear",
