@@ -172,7 +172,7 @@ dependencies = [
 
 [[package]]
 name = "bindgen"
-version = "0.26.1"
+version = "0.26.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "aster 0.41.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1169,14 +1169,6 @@ dependencies = [
 
 [[package]]
 name = "heapsize"
-version = "0.3.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "heapsize"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
@@ -1373,12 +1365,12 @@ dependencies = [
 [[package]]
 name = "js"
 version = "0.1.4"
-source = "git+https://github.com/fitzgen/mozjs?branch=smup#0b89c247d9f5def866284bea8485a5c0eec54f61"
+source = "git+https://github.com/fitzgen/mozjs?branch=smup#2efe3c3ba2efdcfcc4301e531968a105ed384377"
 dependencies = [
- "bindgen 0.25.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bindgen 0.26.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "cmake 0.1.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "glob 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "heapsize 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1716,7 +1708,7 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.0.0"
-source = "git+https://github.com/fitzgen/mozjs?branch=smup#0b89c247d9f5def866284bea8485a5c0eec54f61"
+source = "git+https://github.com/fitzgen/mozjs?branch=smup#2efe3c3ba2efdcfcc4301e531968a105ed384377"
 dependencies = [
  "libc 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "libz-sys 1.0.13 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2903,7 +2895,7 @@ dependencies = [
  "arraydeque 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "arrayvec 0.3.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "atomic_refcell 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "bindgen 0.26.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bindgen 0.26.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "bit-vec 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3541,7 +3533,7 @@ dependencies = [
 "checksum base64 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)" = "30e93c03064e7590d0466209155251b90c22e37fab1daf2771582598b5827557"
 "checksum binary-space-partition 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "88ceb0d16c4fd0e42876e298d7d3ce3780dd9ebdcbe4199816a32c77e08597ff"
 "checksum bincode 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e103c8b299b28a9c6990458b7013dc4a8356a9b854c51b9883241f5866fac36e"
-"checksum bindgen 0.26.1 (registry+https://github.com/rust-lang/crates.io-index)" = "04488a91af8f15eec4d88eb59e2c4e982c03ff31582acf2f5623e2e6d8ae9e0b"
+"checksum bindgen 0.26.2 (registry+https://github.com/rust-lang/crates.io-index)" = "ac098a1ae2e8d2ba24f61d8a771c53c5135965709c46b76ccf06cf42b95313e6"
 "checksum bit-set 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "d9bf6104718e80d7b26a68fdbacff3481cfc05df670821affc7e9cbc1884400c"
 "checksum bit-vec 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)" = "5b97c2c8e8bbb4251754f559df8af22fb264853c7d009084a576cdf12565089d"
 "checksum bitflags 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4f67931368edf3a9a51d29886d245f1c3db2f1ef0dcc9e35ff70341b78c10d23"
@@ -3623,7 +3615,6 @@ dependencies = [
 "checksum glx 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "b280007fa9c7442cfd1e0b1addb8d1a59240267110e8705f8f7e2c7bfb7e2f72"
 "checksum half 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "63d68db75012a85555434ee079e7e6337931f87a087ab2988becbadf64673a7f"
 "checksum harfbuzz-sys 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)" = "3072efe30deebdda55fcbe7c74c6d42f546fd8533488e43a692ea940ecface11"
-"checksum heapsize 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)" = "556cd479866cf85c3f671209c85e8a6990211c916d1002c2fcb2e9b7cf60bc36"
 "checksum heapsize 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4c7593b1522161003928c959c20a2ca421c68e940d63d75573316a009e48a6d4"
 "checksum heapsize_derive 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "46f96d52fb1564059fc97b85ef6165728cc30198ab60073bf114c66c4c89bb5d"
 "checksum heartbeats-simple 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "9ad003ce233955e9d95f2c69cde84e68302ba9ba4a673d351c9bff93c738aadc"
