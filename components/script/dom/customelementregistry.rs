@@ -19,6 +19,7 @@ use dom::promise::Promise;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use html5ever::LocalName;
+use js;
 use js::conversions::ToJSValConvertible;
 use js::jsapi;
 use js::jsval::UndefinedValue;
@@ -65,7 +66,9 @@ impl CustomElementRegistry {
         self.when_defined.borrow_mut().clear()
     }
 
-    pub fn lookup_definition_by_constructor(&self, constructor: HandleObject) -> Option<Rc<CustomElementDefinition>> {
+    pub fn lookup_definition_by_constructor(&self,
+                                            constructor: jsapi::JS::HandleObject)
+                                            -> Option<Rc<CustomElementDefinition>> {
         self.definitions.borrow().values().find(|definition| {
             definition.constructor.callback() == constructor.get()
         }).cloned()
@@ -103,7 +106,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         rooted!(in(global_scope.get_cx()) let constructor = constructor_.callback());
 
         // Step 1
-        if unsafe { !IsConstructor(constructor.get()) } {
+        if unsafe { !jsapi::JS::IsConstructor(constructor.get()) } {
             return Err(Error::Type("Second argument of CustomElementRegistry.define is not a constructor".to_owned()));
         }
 
@@ -153,7 +156,9 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
 
         // Steps 10.1 - 10.2
         let result = {
-            let _ac = js::ac::AutoCompartment::with_obj(global_scope.get_cx(), constructor.get());
+            let _ac = unsafe {
+                js::ac::AutoCompartment::with_obj(global_scope.get_cx(), constructor.get())
+            };
             self.check_prototype(constructor.handle())
         };
 

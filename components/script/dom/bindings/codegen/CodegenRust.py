@@ -5366,7 +5366,7 @@ rooted!(in(cx) let mut prototype = ptr::null_mut());
         // whose target is not same-compartment with the proxy, or bound functions, etc).
         // https://bugzilla.mozilla.org/show_bug.cgi?id=1317658
 
-        rooted!(in(cx) let global_object = CurrentGlobalOrNull(cx));
+        rooted!(in(cx) let global_object = jsapi::JS::CurrentGlobalOrNull(cx));
         GetProtoObject(cx, global_object.handle(), prototype.handle_mut());
     } else {
         // Step 6
