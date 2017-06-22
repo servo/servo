@@ -254,7 +254,7 @@ impl ToComputedValue for Color {
             #[cfg(feature = "gecko")]
             Color::Special(special) => {
                 use self::gecko::SpecialColorKeyword as Keyword;
-                let pres_context = unsafe { &*_context.device.pres_context };
+                let pres_context = _context.device.pres_context();
                 convert_nscolor_to_computedcolor(match special {
                     Keyword::MozDefaultColor => pres_context.mDefaultColor,
                     Keyword::MozDefaultBackgroundColor => pres_context.mBackgroundColor,
@@ -268,7 +268,7 @@ impl ToComputedValue for Color {
                 use dom::TElement;
                 use gecko::wrapper::GeckoElement;
                 use gecko_bindings::bindings::Gecko_GetBody;
-                let pres_context = unsafe { &*_context.device.pres_context };
+                let pres_context = _context.device.pres_context();
                 let body = unsafe {
                     Gecko_GetBody(pres_context)
                 };

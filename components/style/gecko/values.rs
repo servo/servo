@@ -401,7 +401,7 @@ impl CounterStyleOrNone {
     pub fn to_gecko_value(self, gecko_value: &mut CounterStylePtr, device: &Device) {
         use gecko_bindings::bindings::Gecko_SetCounterStyleToName as set_name;
         use gecko_bindings::bindings::Gecko_SetCounterStyleToSymbols as set_symbols;
-        let pres_context = unsafe { &*device.pres_context };
+        let pres_context = device.pres_context();
         match self {
             CounterStyleOrNone::None => unsafe {
                 set_name(gecko_value, atom!("none").into_addrefed(), pres_context);

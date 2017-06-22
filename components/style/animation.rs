@@ -502,7 +502,6 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
             // as existing browsers don't appear to animate visited styles.
             let computed =
                 properties::apply_declarations(context.stylist.device(),
-                                               /* is_root = */ false,
                                                iter,
                                                previous_style,
                                                previous_style,

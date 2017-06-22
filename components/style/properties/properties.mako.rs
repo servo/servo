@@ -2472,20 +2472,24 @@ bitflags! {
         /// Whether to inherit all styles from the parent. If this flag is not
         /// present, non-inherited styles are reset to their initial values.
         const INHERIT_ALL = 0x01,
+
         /// Whether to skip any root element and flex/grid item display style
         /// fixup.
         const SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP = 0x02,
+
         /// Whether to only cascade properties that are visited dependent.
         const VISITED_DEPENDENT_ONLY = 0x04,
-        /// Should we modify the device's root font size
-        /// when computing the root?
+
+        /// Whether the given element we're styling is the document element,
+        /// that is, matches :root.
         ///
-        /// Not set for native anonymous content since some NAC
-        /// form their own root, but share the device.
+        /// Not set for native anonymous content since some NAC form their own
+        /// root, but share the device.
         ///
-        /// ::backdrop and all NAC will resolve rem units against
-        /// the toplevel root element now.
-        const ALLOW_SET_ROOT_FONT_SIZE = 0x08,
+        /// This affects some style adjustments, like blockification, and means
+        /// that it may affect global state, like the Device's root font-size.
+        const IS_ROOT_ELEMENT = 0x08,
+
         /// Whether to convert display:contents into display:inline.  This
         /// is used by Gecko to prevent display:contents on generated
         /// content.
@@ -2520,15 +2524,13 @@ pub fn cascade(device: &Device,
                quirks_mode: QuirksMode)
                -> ComputedValues {
     debug_assert_eq!(parent_style.is_some(), layout_parent_style.is_some());
-    let (is_root_element, inherited_style, layout_parent_style) = match parent_style {
+    let (inherited_style, layout_parent_style) = match parent_style {
         Some(parent_style) => {
-            (false,
-             parent_style,
+            (parent_style,
              layout_parent_style.unwrap())
         },
         None => {
-            (true,
-             device.default_computed_values(),
+            (device.default_computed_values(),
              device.default_computed_values())
         }
     };
@@ -2558,7 +2560,6 @@ pub fn cascade(device: &Device,
         })
     };
     apply_declarations(device,
-                       is_root_element,
                        iter_declarations,
                        inherited_style,
                        layout_parent_style,
@@ -2574,7 +2575,6 @@ pub fn cascade(device: &Device,
 /// first.
 #[allow(unused_mut)] // conditionally compiled code for "position"
 pub fn apply_declarations<'a, F, I>(device: &Device,
-                                    is_root_element: bool,
                                     iter_declarations: F,
                                     inherited_style: &ComputedValues,
                                     layout_parent_style: &ComputedValues,
@@ -2629,7 +2629,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
     };
 
     let mut context = computed::Context {
-        is_root_element: is_root_element,
+        is_root_element: flags.contains(IS_ROOT_ELEMENT),
         device: device,
         inherited_style: inherited_style,
         layout_parent_style: layout_parent_style,
@@ -2783,13 +2783,14 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                     // which Gecko just does regular cascading with. Do the same.
                     // This can only happen in the case where the language changed but the family did not
                     if generic != structs::kGenericFont_NONE {
-                        let pres_context = context.device.pres_context;
-                        let gecko_font = context.mutate_style().mutate_font().gecko_mut();
+                        let gecko_font = context.style.mutate_font().gecko_mut();
                         gecko_font.mGenericID = generic;
                         unsafe {
-                            bindings::Gecko_nsStyleFont_PrefillDefaultForGeneric(gecko_font,
-                                                                                 &*pres_context,
-                                                                                 generic);
+                            bindings::Gecko_nsStyleFont_PrefillDefaultForGeneric(
+                                gecko_font,
+                                context.device.pres_context(),
+                                generic
+                            );
                         }
                     }
                 }
@@ -2853,7 +2854,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
             % endif
             }
 
-            if is_root_element && flags.contains(ALLOW_SET_ROOT_FONT_SIZE) {
+            if context.is_root_element {
                 let s = context.style.get_font().clone_font_size();
                 context.device.set_root_font_size(s);
             }
@@ -2863,7 +2864,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
     let mut style = context.style;
 
     {
-        StyleAdjuster::new(&mut style, is_root_element)
+        StyleAdjuster::new(&mut style)
             .adjust(context.layout_parent_style, flags);
     }
 

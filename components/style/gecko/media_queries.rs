@@ -14,7 +14,7 @@ use gecko_bindings::bindings;
 use gecko_bindings::structs::{nsCSSKeyword, nsCSSProps_KTableEntry, nsCSSValue, nsCSSUnit, nsStringBuffer};
 use gecko_bindings::structs::{nsMediaExpression_Range, nsMediaFeature};
 use gecko_bindings::structs::{nsMediaFeature_ValueType, nsMediaFeature_RangeType, nsMediaFeature_RequirementFlags};
-use gecko_bindings::structs::RawGeckoPresContextOwned;
+use gecko_bindings::structs::{nsPresContext, RawGeckoPresContextOwned};
 use media_queries::MediaType;
 use parser::ParserContext;
 use properties::{ComputedValues, StyleBuilder};
@@ -36,7 +36,7 @@ pub struct Device {
     /// NB: The pres context lifetime is tied to the styleset, who owns the
     /// stylist, and thus the `Device`, so having a raw pres context pointer
     /// here is fine.
-    pub pres_context: RawGeckoPresContextOwned,
+    pres_context: RawGeckoPresContextOwned,
     default_values: Arc<ComputedValues>,
     viewport_override: Option<ViewportConstraints>,
     /// The font size of the root element
@@ -105,11 +105,16 @@ impl Device {
         self.root_font_size.store(size.0 as isize, Ordering::Relaxed)
     }
 
+    /// Gets the pres context associated with this document.
+    pub fn pres_context(&self) -> &nsPresContext {
+        unsafe { &*self.pres_context }
+    }
+
     /// Recreates the default computed values.
     pub fn reset_computed_values(&mut self) {
         // NB: A following stylesheet flush will populate this if appropriate.
         self.viewport_override = None;
-        self.default_values = ComputedValues::default_values(unsafe { &*self.pres_context });
+        self.default_values = ComputedValues::default_values(self.pres_context());
         self.used_root_font_size.store(false, Ordering::Relaxed);
     }
 
@@ -134,10 +139,10 @@ impl Device {
             // FIXME(emilio): Gecko allows emulating random media with
             // mIsEmulatingMedia / mMediaEmulated . Refactor both sides so that
             // is supported (probably just making MediaType an Atom).
-            if (*self.pres_context).mMedium == atom!("screen").as_ptr() {
+            if self.pres_context().mMedium == atom!("screen").as_ptr() {
                 MediaType::Screen
             } else {
-                debug_assert!((*self.pres_context).mMedium == atom!("print").as_ptr());
+                debug_assert!(self.pres_context().mMedium == atom!("print").as_ptr());
                 MediaType::Print
             }
         }
@@ -150,19 +155,19 @@ impl Device {
                         Au::from_f32_px(v.size.height))
         }).unwrap_or_else(|| unsafe {
             // TODO(emilio): Need to take into account scrollbars.
-            Size2D::new(Au((*self.pres_context).mVisibleArea.width),
-                        Au((*self.pres_context).mVisibleArea.height))
+            let area = &self.pres_context().mVisibleArea;
+            Size2D::new(Au(area.width), Au(area.height))
         })
     }
 
     /// Returns whether document colors are enabled.
     pub fn use_document_colors(&self) -> bool {
-        unsafe { (*self.pres_context).mUseDocumentColors() != 0 }
+        self.pres_context().mUseDocumentColors() != 0
     }
 
     /// Returns the default background color.
     pub fn default_background_color(&self) -> RGBA {
-        convert_nscolor_to_rgba(unsafe { (*self.pres_context).mBackgroundColor })
+        convert_nscolor_to_rgba(self.pres_context().mBackgroundColor)
     }
 }
 

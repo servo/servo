@@ -1551,7 +1551,7 @@ fn static_assert() {
 
     pub fn fixup_none_generic(&mut self, device: &Device) {
         unsafe {
-            bindings::Gecko_nsStyleFont_FixupNoneGeneric(&mut self.gecko, &*device.pres_context)
+            bindings::Gecko_nsStyleFont_FixupNoneGeneric(&mut self.gecko, device.pres_context())
         }
     }
 
@@ -1621,7 +1621,7 @@ fn static_assert() {
     }
 
     pub fn fixup_font_min_size(&mut self, device: &Device) {
-        unsafe { bindings::Gecko_nsStyleFont_FixupMinFontSize(&mut self.gecko, &*device.pres_context) }
+        unsafe { bindings::Gecko_nsStyleFont_FixupMinFontSize(&mut self.gecko, device.pres_context()) }
     }
 
     pub fn apply_unconstrained_font_size(&mut self, v: Au) {

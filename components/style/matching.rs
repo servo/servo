@@ -17,8 +17,8 @@ use invalidation::element::restyle_hints::{RESTYLE_CSS_ANIMATIONS, RESTYLE_CSS_T
 use invalidation::element::restyle_hints::{RESTYLE_SMIL, RESTYLE_STYLE_ATTRIBUTE};
 use invalidation::element::restyle_hints::RestyleHint;
 use log::LogLevel::Trace;
-use properties::{ALLOW_SET_ROOT_FONT_SIZE, PROHIBIT_DISPLAY_CONTENTS, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP};
 use properties::{AnimationRules, CascadeFlags, ComputedValues};
+use properties::{IS_ROOT_ELEMENT, PROHIBIT_DISPLAY_CONTENTS, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP};
 use properties::{VISITED_DEPENDENT_ONLY, cascade};
 use properties::longhands::display::computed_value as display;
 use rule_tree::{CascadeLevel, StrongRuleNode};
@@ -33,7 +33,7 @@ use stylist::RuleInclusion;
 ///
 /// Controls where we inherit styles from, and whether display:contents is
 /// prohibited.
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 enum CascadeTarget {
     /// Inherit from the parent element, as normal CSS dictates, _or_ from the
     /// closest non-Native Anonymous element in case this is Native Anonymous
@@ -273,8 +273,9 @@ trait PrivateMatchMethods: TElement {
         }
         if self.is_native_anonymous() || cascade_target == CascadeTarget::EagerPseudo {
             cascade_flags.insert(PROHIBIT_DISPLAY_CONTENTS);
-        } else {
-            cascade_flags.insert(ALLOW_SET_ROOT_FONT_SIZE);
+        } else if self.is_root() {
+            debug_assert!(self.owner_doc_matches_for_testing(shared_context.stylist.device()));
+            cascade_flags.insert(IS_ROOT_ELEMENT);
         }
 
         // Grab the inherited values.

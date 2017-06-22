@@ -14,6 +14,7 @@ use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use data::ElementData;
 use element_state::ElementState;
 use font_metrics::FontMetricsProvider;
+use media_queries::Device;
 use properties::{ComputedValues, PropertyDeclarationBlock};
 #[cfg(feature = "gecko")] use properties::animated_properties::AnimationValue;
 #[cfg(feature = "gecko")] use properties::animated_properties::TransitionProperty;
@@ -303,6 +304,13 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
 
     /// Get this element as a node.
     fn as_node(&self) -> Self::ConcreteNode;
+
+    /// A debug-only check that the device's owner doc matches the actual doc
+    /// we're the root of.
+    ///
+    /// Otherwise we may set document-level state incorrectly, like the root
+    /// font-size used for rem units.
+    fn owner_doc_matches_for_testing(&self, _: &Device) -> bool { true }
 
     /// Returns the depth of this element in the DOM.
     fn depth(&self) -> usize {

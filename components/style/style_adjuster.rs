@@ -7,7 +7,7 @@
 
 use app_units::Au;
 use properties::{self, CascadeFlags, ComputedValues};
-use properties::{SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, StyleBuilder};
+use properties::{IS_ROOT_ELEMENT, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, StyleBuilder};
 use properties::longhands::display::computed_value::T as display;
 use properties::longhands::float::computed_value::T as float;
 use properties::longhands::overflow_x::computed_value::T as overflow;
@@ -17,15 +17,13 @@ use properties::longhands::position::computed_value::T as position;
 /// An unsized struct that implements all the adjustment methods.
 pub struct StyleAdjuster<'a, 'b: 'a> {
     style: &'a mut StyleBuilder<'b>,
-    is_root_element: bool,
 }
 
 impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// Trivially constructs a new StyleAdjuster.
-    pub fn new(style: &'a mut StyleBuilder<'b>, is_root_element: bool) -> Self {
+    pub fn new(style: &'a mut StyleBuilder<'b>) -> Self {
         StyleAdjuster {
             style: style,
-            is_root_element: is_root_element,
         }
     }
 
@@ -66,7 +64,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
 
         if !flags.contains(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP) {
-            blockify_if!(self.is_root_element);
+            blockify_if!(flags.contains(IS_ROOT_ELEMENT));
             blockify_if!(layout_parent_style.get_box().clone_display().is_item_container());
         }
 
@@ -81,7 +79,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
         let display = self.style.get_box().clone_display();
         let blockified_display =
-            display.equivalent_block_display(self.is_root_element);
+            display.equivalent_block_display(flags.contains(IS_ROOT_ELEMENT));
         if display != blockified_display {
             self.style.mutate_box().set_adjusted_display(blockified_display,
                                                          is_item_or_root);

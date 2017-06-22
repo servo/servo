@@ -2388,9 +2388,12 @@ ${helpers.single_keyword("-moz-math-variant",
 
                 let mut system: nsFont = unsafe { mem::uninitialized() };
                 unsafe {
-                    bindings::Gecko_nsFont_InitSystem(&mut system, id as i32,
-                                            cx.style.get_font().gecko(),
-                                            &*cx.device.pres_context)
+                    bindings::Gecko_nsFont_InitSystem(
+                        &mut system,
+                        id as i32,
+                        cx.style.get_font().gecko(),
+                        cx.device.pres_context()
+                    )
                 }
                 let family = system.fontlist.mFontlist.iter().map(|font| {
                     use properties::longhands::font_family::computed_value::*;

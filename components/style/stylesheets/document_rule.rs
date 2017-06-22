@@ -141,7 +141,7 @@ impl UrlMatchingFunction {
             UrlMatchingFunction::RegExp(ref pat) => pat,
         });
         unsafe {
-            Gecko_DocumentRule_UseForPresentation(&*device.pres_context, &*pattern, func)
+            Gecko_DocumentRule_UseForPresentation(device.pres_context(), &*pattern, func)
         }
     }
 

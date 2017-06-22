@@ -1546,7 +1546,7 @@ pub extern "C" fn Servo_ComputedValues_Inherit(
             StyleBuilder::for_inheritance(reference,
                                           &data.default_computed_values());
         if for_text {
-            StyleAdjuster::new(&mut style, /* is_root = */ false)
+            StyleAdjuster::new(&mut style)
                 .adjust_for_text();
         }
 
@@ -1608,8 +1608,8 @@ pub extern "C" fn Servo_StyleSet_Drop(data: RawServoStyleSetOwned) {
 pub extern "C" fn Servo_StyleSet_CompatModeChanged(raw_data: RawServoStyleSetBorrowed) {
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let quirks_mode = unsafe {
-        (*(*data.stylist.device().pres_context).mDocument
-                                               .raw::<nsIDocument>()).mCompatMode
+        (*data.stylist.device().pres_context().mDocument.raw::<nsIDocument>())
+            .mCompatMode
     };
 
     data.stylist.set_quirks_mode(quirks_mode.into());

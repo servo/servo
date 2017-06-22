@@ -351,8 +351,7 @@ impl PhysicalLength {
         const MM_PER_INCH: f32 = 25.4;
 
         let physical_inch = unsafe {
-            let pres_context = &*context.device.pres_context;
-            bindings::Gecko_GetAppUnitsPerPhysicalInch(&pres_context)
+            bindings::Gecko_GetAppUnitsPerPhysicalInch(context.device.pres_context())
         };
 
         let inch = self.0 / MM_PER_INCH;
