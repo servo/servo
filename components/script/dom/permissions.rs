@@ -241,7 +241,7 @@ impl PermissionAlgorithm for Permissions {
                 let state =
                     prompt_user(&format!("{} {} ?", REQUEST_DIALOG_MESSAGE, perm_name.clone()));
 
-                let globalscope = GlobalScope::current();
+                let globalscope = GlobalScope::current().expect("No current global object");
                 globalscope.as_window()
                            .permission_state_invocation_results()
                            .borrow_mut()
@@ -266,7 +266,7 @@ pub fn get_descriptor_permission_state(permission_name: PermissionName,
     // Step 1.
     let settings = match env_settings_obj {
         Some(env_settings_obj) => Root::from_ref(env_settings_obj),
-        None => GlobalScope::current(),
+        None => GlobalScope::current().expect("No current global object"),
     };
 
     // Step 2.
