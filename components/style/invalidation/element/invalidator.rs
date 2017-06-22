@@ -492,7 +492,7 @@ impl<'a, 'b: 'a, E> TreeStyleInvalidator<'a, 'b, E>
             }
         }
 
-        sibling_invalidations.extend(new_sibling_invalidations.into_iter());
+        sibling_invalidations.extend(new_sibling_invalidations.drain());
         invalidated_self
     }
 
