@@ -1440,8 +1440,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
 
         match self.composition_request {
-            CompositionRequest::NoCompositingNecessary |
-            CompositionRequest::DelayedComposite(_) => {}
+            CompositionRequest::NoCompositingNecessary => {}
             CompositionRequest::CompositeNow(_) => {
                 self.composite()
             }
@@ -1470,22 +1469,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         for msg in compositor_messages {
             if !self.handle_browser_message(msg) {
                 return false
-            }
-        }
-
-        if self.shutdown_state == ShutdownState::FinishedShuttingDown {
-            return false;
-        }
-
-        // If a pinch-zoom happened recently, ask for tiles at the new resolution
-        if self.zoom_action && precise_time_s() - self.zoom_time > 0.3 {
-            self.zoom_action = false;
-        }
-
-        match self.composition_request {
-            CompositionRequest::NoCompositingNecessary => {}
-            CompositionRequest::CompositeNow(_) => {
-                self.composite()
             }
         }
         true
