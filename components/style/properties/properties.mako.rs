@@ -373,13 +373,13 @@ impl PropertyDeclarationIdSet {
                 value: &DeclaredValue<longhands::${property.ident}::SpecifiedValue>,
             % endif
             custom_properties: &Option<Arc<::custom_properties::ComputedValuesMap>>,
-            f: F,
+            f: &mut F,
             error_reporter: &ParseErrorReporter,
             quirks_mode: QuirksMode)
             % if property.boxed:
-                where F: FnOnce(&DeclaredValue<Box<longhands::${property.ident}::SpecifiedValue>>)
+                where F: FnMut(&DeclaredValue<Box<longhands::${property.ident}::SpecifiedValue>>)
             % else:
-                where F: FnOnce(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>)
+                where F: FnMut(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>)
             % endif
         {
             if let DeclaredValue::WithVariables(ref with_variables) = *value {
@@ -404,13 +404,13 @@ impl PropertyDeclarationIdSet {
                 url_data: &UrlExtraData,
                 from_shorthand: Option<ShorthandId>,
                 custom_properties: &Option<Arc<::custom_properties::ComputedValuesMap>>,
-                f: F,
+                f: &mut F,
                 error_reporter: &ParseErrorReporter,
                 quirks_mode: QuirksMode)
                 % if property.boxed:
-                    where F: FnOnce(&DeclaredValue<Box<longhands::${property.ident}::SpecifiedValue>>)
+                    where F: FnMut(&DeclaredValue<Box<longhands::${property.ident}::SpecifiedValue>>)
                 % else:
-                    where F: FnOnce(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>)
+                    where F: FnMut(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>)
                 % endif
         {
             f(&
