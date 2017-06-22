@@ -123,7 +123,7 @@ pub enum GradientItem<Color, LengthOrPercentage> {
 
 /// A color stop.
 /// https://drafts.csswg.org/css-images/#typedef-color-stop-list
-#[derive(Clone, Copy, HasViewportPercentage, PartialEq, ToComputedValue)]
+#[derive(Clone, Copy, HasViewportPercentage, PartialEq, ToComputedValue, ToCss)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct ColorStop<Color, LengthOrPercentage> {
     /// The color of this stop.
@@ -316,19 +316,6 @@ impl<C, L> fmt::Debug for ColorStop<C, L>
         write!(f, "{:?}", self.color)?;
         if let Some(ref pos) = self.position {
             write!(f, " {:?}", pos)?;
-        }
-        Ok(())
-    }
-}
-
-impl<C, L> ToCss for ColorStop<C, L>
-    where C: ToCss, L: ToCss,
-{
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        self.color.to_css(dest)?;
-        if let Some(ref position) = self.position {
-            dest.write_str(" ")?;
-            position.to_css(dest)?;
         }
         Ok(())
     }
