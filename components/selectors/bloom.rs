@@ -108,6 +108,18 @@ impl BloomFilter {
         self.counters = [0; ARRAY_SIZE]
     }
 
+    // Slow linear accessor to make sure the bloom filter is zeroed. This should
+    // never be used in release builds.
+    #[cfg(debug_assertions)]
+    pub fn is_zeroed(&self) -> bool {
+        self.counters.iter().all(|x| *x == 0)
+    }
+
+    #[cfg(not(debug_assertions))]
+    pub fn is_zeroed(&self) -> bool {
+        unreachable!()
+    }
+
     #[inline]
     pub fn insert_hash(&mut self, hash: u32) {
         {
@@ -229,85 +241,75 @@ fn create_and_insert_some_stuff() {
 #[cfg(test)]
 mod bench {
     extern crate test;
-
-    use std::hash::{Hash, Hasher, SipHasher};
     use super::BloomFilter;
+
+    #[derive(Default)]
+    struct HashGenerator(u32);
+
+    impl HashGenerator {
+        fn next(&mut self) -> u32 {
+            // Each hash is split into two twelve-bit segments, which are used
+            // as an index into an array. We increment each by 64 so that we
+            // hit the next cache line, and then another 1 so that our wrapping
+            // behavior leads us to different entries each time.
+            //
+            // Trying to simulate cold caches is rather difficult with the cargo
+            // benchmarking setup, so it may all be moot depending on the number
+            // of iterations that end up being run. But we might as well.
+            self.0 += (65) + (65 << super::KEY_SIZE);
+            self.0
+        }
+    }
 
     #[bench]
     fn create_insert_1000_remove_100_lookup_100(b: &mut test::Bencher) {
         b.iter(|| {
+            let mut gen1 = HashGenerator::default();
+            let mut gen2 = HashGenerator::default();
             let mut bf = BloomFilter::new();
-            for i in 0_usize .. 1000 {
-                bf.insert(&i);
+            for _ in 0_usize .. 1000 {
+                bf.insert_hash(gen1.next());
             }
-            for i in 0_usize .. 100 {
-                bf.remove(&i);
+            for _ in 0_usize .. 100 {
+                bf.remove_hash(gen2.next());
             }
-            for i in 100_usize .. 200 {
-                test::black_box(bf.might_contain(&i));
+            for _ in 100_usize .. 200 {
+                test::black_box(bf.might_contain_hash(gen2.next()));
             }
         });
     }
 
     #[bench]
-    fn might_contain(b: &mut test::Bencher) {
-        let mut bf = BloomFilter::new();
-
-        for i in 0_usize .. 1000 {
-            bf.insert(&i);
-        }
-
-        let mut i = 0_usize;
-
-        b.bench_n(1000, |b| {
-            b.iter(|| {
-                test::black_box(bf.might_contain(&i));
-                i += 1;
-            });
+    fn might_contain_10(b: &mut test::Bencher) {
+        let bf = BloomFilter::new();
+        let mut gen = HashGenerator::default();
+        b.iter(|| for _ in 0..10 {
+            test::black_box(bf.might_contain_hash(gen.next()));
         });
     }
 
     #[bench]
-    fn insert(b: &mut test::Bencher) {
+    fn clear(b: &mut test::Bencher) {
+        let mut bf = Box::new(BloomFilter::new());
+        b.iter(|| test::black_box(&mut bf).clear());
+    }
+
+    #[bench]
+    fn insert_10(b: &mut test::Bencher) {
         let mut bf = BloomFilter::new();
-
-        b.bench_n(1000, |b| {
-            let mut i = 0_usize;
-
-            b.iter(|| {
-                test::black_box(bf.insert(&i));
-                i += 1;
-            });
+        let mut gen = HashGenerator::default();
+        b.iter(|| for _ in 0..10 {
+            test::black_box(bf.insert_hash(gen.next()));
         });
     }
 
     #[bench]
-    fn remove(b: &mut test::Bencher) {
+    fn remove_10(b: &mut test::Bencher) {
         let mut bf = BloomFilter::new();
-        for i in 0_usize .. 1000 {
-            bf.insert(&i);
-        }
-
-        b.bench_n(1000, |b| {
-            let mut i = 0_usize;
-
-            b.iter(|| {
-                bf.remove(&i);
-                i += 1;
-            });
+        let mut gen = HashGenerator::default();
+        // Note: this will underflow, and that's ok.
+        b.iter(|| for _ in 0..10 {
+            bf.remove_hash(gen.next())
         });
-
-        test::black_box(bf.might_contain(&0_usize));
-    }
-
-    #[bench]
-    fn hash_a_uint(b: &mut test::Bencher) {
-        let mut i = 0_usize;
-        b.iter(|| {
-            let mut hasher = SipHasher::default();
-            i.hash(&mut hasher);
-            test::black_box(hasher.finish());
-            i += 1;
-        })
     }
 }
