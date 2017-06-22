@@ -52,7 +52,7 @@ If you've already partially compiled servo but forgot to do this step, run `./ma
 #### On Debian-based Linuxes
 
 ``` sh
-sudo apt install git curl freeglut3-dev autoconf \
+sudo apt install git curl freeglut3-dev autoconf libx11-dev \
     libfreetype6-dev libgl1-mesa-dri libglib2.0-dev xorg-dev \
     gperf g++ build-essential cmake virtualenv python-pip \
     libssl1.0-dev libbz2-dev libosmesa6-dev libxmu6 libxmu-dev \
