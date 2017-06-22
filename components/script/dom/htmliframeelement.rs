@@ -590,7 +590,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
             Some(document) => document,
         };
         // Step 4.
-        let current = GlobalScope::current().as_window().Document();
+        let current = GlobalScope::current().expect("No current global object").as_window().Document();
         if !current.origin().same_origin_domain(document.origin()) {
             return None;
         }
