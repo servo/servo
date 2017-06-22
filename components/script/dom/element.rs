@@ -2205,36 +2205,16 @@ impl VirtualMethods for Element {
                 // Modifying the `style` attribute might change style.
                 *self.style_attribute.borrow_mut() = match mutation {
                     AttributeMutation::Set(..) => {
-                        // This is the fast path we use from
-                        // CSSStyleDeclaration.
-                        //
-                        // Juggle a bit to keep the borrow checker happy
-                        // while avoiding the extra clone.
-                        let is_declaration = match *attr.value() {
-                            AttrValue::Declaration(..) => true,
-                            _ => false,
-                        };
-
-                        let block = if is_declaration {
-                            let mut value = AttrValue::String(String::new());
-                            attr.swap_value(&mut value);
-                            let (serialization, block) = match value {
-                                AttrValue::Declaration(s, b) => (s, b),
-                                _ => unreachable!(),
-                            };
-                            let mut value = AttrValue::String(serialization);
-                            attr.swap_value(&mut value);
-                            block
+                        if let AttrValue::Declaration(ref block) = *attr.value() {
+                            Some(block.clone())
                         } else {
                             let win = window_from_node(self);
-                            Arc::new(doc.style_shared_lock().wrap(parse_style_attribute(
+                            Some(Arc::new(doc.style_shared_lock().wrap(parse_style_attribute(
                                 attr.value().as_string(),
                                 &doc.base_url(),
                                 win.css_error_reporter(),
-                                doc.quirks_mode())))
-                        };
-
-                        Some(block)
+                                doc.quirks_mode()))))
+                        }
                     }
                     AttributeMutation::Removed => {
                         None

@@ -57,12 +57,10 @@ impl CSSStyleOwner {
                 let document = document_from_node(&**el);
                 let shared_lock = document.style_shared_lock();
                 let mut attr = el.style_attribute().borrow_mut().take();
-                let result = if attr.is_some() {
-                    let lock = attr.as_ref().unwrap();
+                let result = if let Some(ref lock) = attr {
                     let mut guard = shared_lock.write();
                     let mut pdb = lock.write_with(&mut guard);
-                    let result = f(&mut pdb, &mut changed);
-                    result
+                    f(&mut pdb, &mut changed)
                 } else {
                     let mut pdb = PropertyDeclarationBlock::new();
                     let result = f(&mut pdb, &mut changed);
@@ -85,11 +83,7 @@ impl CSSStyleOwner {
                     //
                     // [1]: https://github.com/whatwg/html/issues/2306
                     if let Some(pdb) = attr {
-                        let guard = shared_lock.read();
-                        let serialization = pdb.read_with(&guard).to_css_string();
-                        el.set_attribute(&local_name!("style"),
-                                         AttrValue::Declaration(serialization,
-                                                                pdb));
+                        el.set_attribute(&local_name!("style"), AttrValue::Declaration(pdb));
                     }
                 } else {
                     // Remember to put it back.
