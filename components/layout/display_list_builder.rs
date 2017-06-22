@@ -1154,10 +1154,14 @@ impl FragmentDisplayListBuilding for Fragment {
                                                        paint_worklet: &PaintWorklet,
                                                        index: usize)
     {
-        // TODO: check that this is the servo equivalent of "concrete object size".
+        // This should be the "concrete object size" of the fragment.
         // https://drafts.css-houdini.org/css-paint-api/#draw-a-paint-image
         // https://drafts.csswg.org/css-images-3/#concrete-object-size
-        let size = self.content_box().size.to_physical(style.writing_mode);
+        // Experimentally, chrome is using the size in px of the box,
+        // including padding, but not border or margin, so we follow suit.
+        // https://github.com/w3c/css-houdini-drafts/issues/417
+        let unbordered_box = self.border_box - style.logical_border_width();
+        let size = unbordered_box.size.to_physical(style.writing_mode);
         let name = paint_worklet.name.clone();
 
         // If the script thread has not added any paint worklet modules, there is nothing to do!
