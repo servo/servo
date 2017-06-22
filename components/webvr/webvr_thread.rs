@@ -294,7 +294,8 @@ impl WebVRThread {
 /// by flooding the WebVRThread with messages while the main JavaScript tab is presenting to the headset.
 /// Multithreading won't be a problem because:
 ///    * Thanks to the security rules implemented in the WebVRThread, when a VRDisplay is in a presenting loop
-///      no other jsapi::JSContext is granted access to the VRDisplay. So really there aren’t multithreading race conditions.
+///      no other jsapi::JSContext is granted access to the VRDisplay. So really there aren’t multithreading
+///      race conditions.
 ///    * VRDisplay implementations are designed to allow calling compositor functions
 ///      in another thread by using the Send + Sync traits.
 /// VRDisplays pointers are guaranteed to be valid memory:

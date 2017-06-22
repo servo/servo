@@ -93,7 +93,10 @@ impl WebGLExtensions {
                                 .collect()
     }
 
-    pub fn get_or_init_extension(&self, name: &str, ctx: &WebGLRenderingContext) -> Option<NonZero<*mut jsapi::JSObject>> {
+    pub fn get_or_init_extension(&self,
+                                 name: &str,
+                                 ctx: &WebGLRenderingContext)
+                                 -> Option<NonZero<*mut jsapi::JSObject>> {
         let name = name.to_uppercase();
         self.extensions.borrow().get(&name).and_then(|extension| {
             if extension.is_supported(self) {

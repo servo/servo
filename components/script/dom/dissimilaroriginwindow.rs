@@ -130,7 +130,11 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-window-postmessage
-    unsafe fn PostMessage(&self, cx: *mut jsapi::JSContext, message: jsapi::JS::HandleValue, origin: DOMString) -> ErrorResult {
+    unsafe fn PostMessage(&self,
+                          cx: *mut jsapi::JSContext,
+                          message: jsapi::JS::HandleValue,
+                          origin: DOMString)
+                          -> ErrorResult {
         // Step 3-5.
         let origin = match &origin[..] {
             "*" => None,

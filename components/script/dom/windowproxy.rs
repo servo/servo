@@ -20,8 +20,8 @@ use js::glue::{CreateWrapperProxyHandler, ProxyTraps, NewWindowProxy};
 use js::glue::{GetProxyPrivate, SetProxyReservedSlot, GetProxyReservedSlot};
 use js::jsapi;
 use msg::constellation_msg::BrowsingContextId;
-use msg::constellation_msg::TopLevelBrowsingContextId;
 use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::TopLevelBrowsingContextId;
 use std::cell::Cell;
 use std::ptr;
 

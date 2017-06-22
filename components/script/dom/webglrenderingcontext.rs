@@ -1083,7 +1083,9 @@ unsafe fn typed_array_or_sequence_to_vec<T>(cx: *mut jsapi::JSContext,
 }
 
 #[allow(unsafe_code)]
-unsafe fn fallible_array_buffer_view_to_vec(cx: *mut jsapi::JSContext, abv: *mut jsapi::JSObject) -> Result<Vec<u8>, Error>
+unsafe fn fallible_array_buffer_view_to_vec(cx: *mut jsapi::JSContext,
+                                            abv: *mut jsapi::JSObject)
+                                            -> Result<Vec<u8>, Error>
 {
     assert!(!abv.is_null());
     typedarray!(in(cx) let array_buffer_view: ArrayBufferView = abv);
@@ -1490,7 +1492,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    unsafe fn BufferData(&self, cx: *mut jsapi::JSContext, target: u32, data: *mut jsapi::JSObject, usage: u32) -> Fallible<()> {
+    unsafe fn BufferData(&self,
+                         cx: *mut jsapi::JSContext,
+                         target: u32,
+                         data: *mut jsapi::JSObject,
+                         usage: u32)
+                         -> Fallible<()> {
         if data.is_null() {
             return Ok(self.webgl_error(InvalidValue));
         }
@@ -1558,7 +1565,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    unsafe fn BufferSubData(&self, cx: *mut jsapi::JSContext, target: u32, offset: i64, data: *mut jsapi::JSObject) -> Fallible<()> {
+    unsafe fn BufferSubData(&self,
+                            cx: *mut jsapi::JSContext,
+                            target: u32,
+                            offset: i64,
+                            data: *mut jsapi::JSObject)
+                            -> Fallible<()> {
         if data.is_null() {
             return Ok(self.webgl_error(InvalidValue));
         }
@@ -2179,7 +2191,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    unsafe fn GetProgramParameter(&self, _: *mut jsapi::JSContext, program: Option<&WebGLProgram>, param_id: u32) -> jsapi::JS::Value {
+    unsafe fn GetProgramParameter(&self,
+                                  _: *mut jsapi::JSContext,
+                                  program: Option<&WebGLProgram>,
+                                  param_id: u32)
+                                  -> jsapi::JS::Value {
         if let Some(program) = program {
             match handle_potential_webgl_error!(self, program.parameter(param_id), WebGLParameter::Invalid) {
                 WebGLParameter::Int(val) => Int32Value(val),
@@ -2203,9 +2219,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    unsafe fn GetShaderParameter(&self, _: *mut jsapi::JSContext, shader: Option<&WebGLShader>, param_id: u32) -> jsapi::JS::Value {
+    unsafe fn GetShaderParameter(&self,
+                                 _: *mut jsapi::JSContext,
+                                 shader: Option<&WebGLShader>,
+                                 param_id: u32)
+                                 -> jsapi::JS::Value {
         if let Some(shader) = shader {
-            match handle_potential_webgl_error!(self, shader.parameter(param_id), WebGLParameter::Invalid) {
+            match handle_potential_webgl_error!(self,
+                                                shader.parameter(param_id),
+                                                WebGLParameter::Invalid) {
                 WebGLParameter::Int(val) => Int32Value(val),
                 WebGLParameter::Bool(val) => BooleanValue(val),
                 WebGLParameter::String(_) => panic!("Shader parameter should not be string"),

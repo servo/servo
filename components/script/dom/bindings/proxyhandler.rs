@@ -161,11 +161,16 @@ pub unsafe fn get_expando_object(obj: jsapi::JS::HandleObject, expando: jsapi::J
 
 /// Get the expando object, or create it if it doesn't exist yet.
 /// Fails on JSAPI failure.
-pub unsafe fn ensure_expando_object(cx: *mut jsapi::JSContext, obj: jsapi::JS::HandleObject, expando: jsapi::JS::MutableHandleObject) {
+pub unsafe fn ensure_expando_object(cx: *mut jsapi::JSContext,
+                                    obj: jsapi::JS::HandleObject,
+                                    expando: jsapi::JS::MutableHandleObject) {
     assert!(is_dom_proxy(obj.get()));
     get_expando_object(obj, expando);
     if expando.is_null() {
-        expando.set(jsapi::JS_NewObjectWithGivenProto(cx, ptr::null_mut(), jsapi::JS::HandleObject::null()));
+        expando.set(jsapi::JS_NewObjectWithGivenProto(
+            cx,
+            ptr::null_mut(),
+            jsapi::JS::HandleObject::null()));
         assert!(!expando.is_null());
 
         SetProxyPrivate(obj.get(), &ObjectValue(expando.get()));

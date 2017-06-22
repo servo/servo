@@ -221,7 +221,10 @@ impl TestBindingMethods for TestBinding {
         self.url.set(url);
     }
     #[allow(unsafe_code)]
-    unsafe fn GetObjectAttributeNullable(&self, _: *mut jsapi::JSContext) -> Option<NonZero<*mut jsapi::JSObject>> { None }
+    unsafe fn GetObjectAttributeNullable(&self, _: *mut jsapi::JSContext)
+                                         -> Option<NonZero<*mut jsapi::JSObject>> {
+        None
+    }
     #[allow(unsafe_code)]
     unsafe fn SetObjectAttributeNullable(&self, _: *mut jsapi::JSContext, _: *mut jsapi::JSObject) {}
     fn GetUnionAttributeNullable(&self) -> Option<HTMLElementOrLong> {
@@ -675,13 +678,19 @@ impl TestBindingMethods for TestBinding {
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn ReturnResolvedPromise(&self, cx: *mut jsapi::JSContext, v: jsapi::JS::HandleValue) -> Fallible<Rc<Promise>> {
+    unsafe fn ReturnResolvedPromise(&self,
+                                    cx: *mut jsapi::JSContext,
+                                    v: jsapi::JS::HandleValue)
+                                    -> Fallible<Rc<Promise>> {
         Promise::Resolve(&self.global(), cx, v)
     }
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn ReturnRejectedPromise(&self, cx: *mut jsapi::JSContext, v: jsapi::JS::HandleValue) -> Fallible<Rc<Promise>> {
+    unsafe fn ReturnRejectedPromise(&self,
+                                    cx: *mut jsapi::JSContext,
+                                    v: jsapi::JS::HandleValue)
+                                    -> Fallible<Rc<Promise>> {
         Promise::Reject(&self.global(), cx, v)
     }
 

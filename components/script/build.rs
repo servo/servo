@@ -54,7 +54,11 @@ fn main() {
     }
     let phf = PathBuf::from(env::var("OUT_DIR").unwrap()).join("InterfaceObjectMapPhf.rs");
     let mut phf = File::create(&phf).unwrap();
-    write!(&mut phf, "pub static MAP: phf::Map<&'static [u8], unsafe fn(*mut jsapi::JSContext, jsapi::JS::HandleObject)> = ").unwrap();
+    write!(&mut phf,
+           "pub static MAP: phf::Map<\
+                &'static [u8],\
+                unsafe fn(*mut jsapi::JSContext, jsapi::JS::HandleObject)\
+            > = ").unwrap();
     map.build(&mut phf).unwrap();
     write!(&mut phf, ";\n").unwrap();
 }

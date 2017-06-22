@@ -1726,7 +1726,9 @@ class AttrDefiner(PropertyDefiner):
                     accessor = "generic_lenient_getter"
                 else:
                     accessor = "generic_getter"
-                jitinfo = "&*%s_getterinfo as *const jsapi::JSJitInfo" % self.descriptor.internalNameFor(attr.identifier.name)
+                jitinfo = "&*%s_getterinfo as *const jsapi::JSJitInfo" % (
+                    self.descriptor.internalNameFor(attr.identifier.name)
+                )
 
             return ("jsapi::JSNativeWrapper { op: Some(%(native)s), info: %(info)s }"
                     % {"info": jitinfo,
@@ -1745,7 +1747,9 @@ class AttrDefiner(PropertyDefiner):
                     accessor = "generic_lenient_setter"
                 else:
                     accessor = "generic_setter"
-                jitinfo = "&*%s_setterinfo as *const jsapi::JSJitInfo" % self.descriptor.internalNameFor(attr.identifier.name)
+                jitinfo = "&*%s_setterinfo as *const jsapi::JSJitInfo" % (
+                    self.descriptor.internalNameFor(attr.identifier.name)
+                )
 
             return ("jsapi::JSNativeWrapper { op: Some(%(native)s), info: %(info)s }"
                     % {"info": jitinfo,
@@ -2867,16 +2871,19 @@ assert!(!interface.is_null());""" % properties))
                 code.append(CGGeneric("""\
 assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
 (*cache)[PrototypeList::Constructor::%(id)s as usize] = interface.get();
-<*mut jsapi::JSObject>::post_barrier((*cache).as_mut_ptr().offset(PrototypeList::Constructor::%(id)s as isize),
-                              ptr::null_mut(),
-                              interface.get());
+<*mut jsapi::JSObject>::post_barrier(
+    (*cache).as_mut_ptr().offset(PrototypeList::Constructor::%(id)s as isize),
+    ptr::null_mut(),
+    interface.get());
 """ % properties))
 
         aliasedMembers = [m for m in self.descriptor.interface.members if m.isMethod() and m.aliases]
         if aliasedMembers:
             def defineAlias(alias):
                 if alias == "@@iterator":
-                    symbolJSID = "RUST_SYMBOL_TO_JSID(jsapi::JS::GetWellKnownSymbol(cx, jsapi::JS::SymbolCode::iterator))"
+                    symbolJSID = ("RUST_SYMBOL_TO_JSID(jsapi::JS::GetWellKnownSymbol(\n"
+                                  "    cx,\n"
+                                  "    jsapi::JS::SymbolCode::iterator))\n")
                     getSymbolJSID = CGGeneric(fill("rooted!(in(cx) let iteratorId = ${symbolJSID});",
                                                    symbolJSID=symbolJSID))
                     defineFn = "jsapi::JS_DefinePropertyById2"
@@ -4317,8 +4324,11 @@ class CGUnionConversionStruct(CGThing):
         return CGWrapper(
             CGIndenter(jsConversion, 4),
             # TryConvertToObject is unused, but not generating it while generating others is tricky.
-            pre="#[allow(dead_code)] unsafe fn TryConvertTo%s(cx: *mut jsapi::JSContext, value: jsapi::JS::HandleValue) -> %s {\n"
-                % (t.name, returnType),
+            pre=("#[allow(dead_code)]\n"
+                 "unsafe fn TryConvertTo%s(cx: *mut jsapi::JSContext,\n"
+                 "                         value: jsapi::JS::HandleValue)\n"
+                 "                         -> %s {\n"
+                 % (t.name, returnType)),
             post="\n}")
 
     def define(self):
@@ -5022,7 +5032,11 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
             rooted!(in(cx) let mut expando = ptr::null_mut());
             get_expando_object(proxy, expando.handle_mut());
             if !expando.is_null() {
-                jsapi::js::GetPropertyKeys(cx, expando.handle(), jsapi::JSITER_OWNONLY | jsapi::JSITER_HIDDEN | jsapi::JSITER_SYMBOLS, props);
+                jsapi::js::GetPropertyKeys(
+                    cx,
+                    expando.handle(),
+                    jsapi::JSITER_OWNONLY | jsapi::JSITER_HIDDEN | jsapi::JSITER_SYMBOLS,
+                    props);
             }
 
             return true;
@@ -5065,7 +5079,11 @@ class CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(CGAbstractExternMethod):
             rooted!(in(cx) let mut expando = ptr::null_mut());
             get_expando_object(proxy, expando.handle_mut());
             if !expando.is_null() {
-                jsapi::js::GetPropertyKeys(cx, expando.handle(), jsapi::JSITER_OWNONLY | jsapi::JSITER_HIDDEN | jsapi::JSITER_SYMBOLS, props);
+                jsapi::js::GetPropertyKeys(
+                    cx,
+                    expando.handle(),
+                    jsapi::JSITER_OWNONLY | jsapi::JSITER_HIDDEN | jsapi::JSITER_SYMBOLS,
+                    props);
             }
 
             return true;
@@ -5306,7 +5324,9 @@ class CGClassConstructHook(CGAbstractExternMethod):
     JS-visible constructor for our objects
     """
     def __init__(self, descriptor, constructor=None):
-        args = [Argument('*mut jsapi::JSContext', 'cx'), Argument('u32', 'argc'), Argument('*mut jsapi::JS::Value', 'vp')]
+        args = [Argument('*mut jsapi::JSContext', 'cx'),
+                Argument('u32', 'argc'),
+                Argument('*mut jsapi::JS::Value', 'vp')]
         name = CONSTRUCT_HOOK_NAME
         if constructor:
             name += "_" + constructor.identifier.name
@@ -5323,7 +5343,9 @@ let args = jsapi::JS::CallArgs::from_vp(vp, argc);
 let global = GlobalScope::from_object(args.callee());
 """
         if len(self.exposureSet) == 1:
-            preamble += "let global = Root::downcast::<dom::types::%s>(global).unwrap();\n" % list(self.exposureSet)[0]
+            preamble += "let global = Root::downcast::<dom::types::%s>(global).unwrap();\n" % (
+                list(self.exposureSet)[0]
+            )
         preamble += """let args = jsapi::JS::CallArgs::from_vp(vp, argc);\n"""
         preamble = CGGeneric(preamble)
         if self.constructor.isHTMLConstructor():
@@ -5337,7 +5359,9 @@ let global = GlobalScope::from_object(args.callee());
 // so we can do the spec's object-identity checks.
 rooted!(in(cx) let new_target = UnwrapObject(args.new_target().to_object(), 1));
 if new_target.is_null() {
-    throw_dom_exception(cx, global.upcast::<GlobalScope>(), Error::Type("new.target is null".to_owned()));
+    throw_dom_exception(cx,
+                        global.upcast::<GlobalScope>(),
+                         Error::Type("new.target is null".to_owned()));
     return false;
 }
 
@@ -5352,7 +5376,11 @@ rooted!(in(cx) let mut prototype = ptr::null_mut());
 {
     rooted!(in(cx) let mut proto_val = UndefinedValue());
     let _ac = js::ac::AutoCompartment::with_obj(cx, new_target.get());
-    if !jsapi::JS_GetProperty(cx, new_target.handle(), b"prototype\\0".as_ptr() as *const _, proto_val.handle_mut()) {
+    if !jsapi::JS_GetProperty(
+            cx,
+            new_target.handle(),
+            b"prototype\\0".as_ptr() as *const _,
+            proto_val.handle_mut()) {
         return false;
     }
 
@@ -5847,7 +5875,8 @@ class CGDescriptor(CGThing):
 
         if reexports:
             reexports = ', '.join(map(lambda name: reexportedName(name), reexports))
-            cgThings = CGList([CGGeneric('pub use self::%s::{%s};' % (toBindingNamespace(descriptor.name), reexports)),
+            cgThings = CGList([CGGeneric('pub use self::%s::{%s};' % (toBindingNamespace(descriptor.name),
+                                                                      reexports)),
                                cgThings], '\n')
 
         self.cgRoot = cgThings

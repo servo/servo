@@ -98,7 +98,9 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    unsafe fn create_js_promise(cx: *mut jsapi::JSContext, proto: jsapi::JS::HandleObject, obj: jsapi::JS::MutableHandleObject) {
+    unsafe fn create_js_promise(cx: *mut jsapi::JSContext,
+                                proto: jsapi::JS::HandleObject,
+                                obj: jsapi::JS::MutableHandleObject) {
         let do_nothing_func = jsapi::JS_NewFunction(cx, Some(do_nothing_promise_executor), /* nargs = */ 2,
                                              /* flags = */ 0, ptr::null());
         assert!(!do_nothing_func.is_null());
@@ -296,4 +298,3 @@ fn create_native_handler_function(cx: *mut jsapi::JSContext,
         obj.get()
     }
 }
-

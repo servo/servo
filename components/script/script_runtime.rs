@@ -249,62 +249,100 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
     }
     if let Some(val) = PREFS.get("js.mem.gc.incremental.slice_ms").as_i64() {
         if val >= 0 && val < 100000 {
-            jsapi::JS_SetGCParameter(runtime.cx(), jsapi::JSGCParamKey::JSGC_SLICE_TIME_BUDGET, val as u32);
+            jsapi::JS_SetGCParameter(
+                runtime.cx(),
+                jsapi::JSGCParamKey::JSGC_SLICE_TIME_BUDGET,
+                val as u32);
         }
     }
     if let Some(val) = PREFS.get("js.mem.gc.compacting.enabled").as_boolean() {
-        jsapi::JS_SetGCParameter(runtime.cx(), jsapi::JSGCParamKey::JSGC_COMPACTING_ENABLED, val as u32);
+        jsapi::JS_SetGCParameter(
+            runtime.cx(),
+            jsapi::JSGCParamKey::JSGC_COMPACTING_ENABLED,
+            val as u32);
     }
     if let Some(val) = PREFS.get("js.mem.gc.high_frequency_time_limit_ms").as_i64() {
         if val >= 0 && val < 10000 {
-            jsapi::JS_SetGCParameter(runtime.cx(), jsapi::JSGCParamKey::JSGC_HIGH_FREQUENCY_TIME_LIMIT, val as u32);
+            jsapi::JS_SetGCParameter(
+                runtime.cx(),
+                jsapi::JSGCParamKey::JSGC_HIGH_FREQUENCY_TIME_LIMIT,
+                val as u32);
         }
     }
     if let Some(val) = PREFS.get("js.mem.gc.dynamic_mark_slice.enabled").as_boolean() {
-        jsapi::JS_SetGCParameter(runtime.cx(), jsapi::JSGCParamKey::JSGC_DYNAMIC_MARK_SLICE, val as u32);
+        jsapi::JS_SetGCParameter(
+            runtime.cx(),
+            jsapi::JSGCParamKey::JSGC_DYNAMIC_MARK_SLICE,
+            val as u32);
     }
     // TODO: handle js.mem.gc.refresh_frame_slices.enabled
     if let Some(val) = PREFS.get("js.mem.gc.dynamic_heap_growth.enabled").as_boolean() {
-        jsapi::JS_SetGCParameter(runtime.cx(), jsapi::JSGCParamKey::JSGC_DYNAMIC_HEAP_GROWTH, val as u32);
+        jsapi::JS_SetGCParameter(
+            runtime.cx(),
+            jsapi::JSGCParamKey::JSGC_DYNAMIC_HEAP_GROWTH,
+            val as u32);
     }
     if let Some(val) = PREFS.get("js.mem.gc.low_frequency_heap_growth").as_i64() {
         if val >= 0 && val < 10000 {
-            jsapi::JS_SetGCParameter(runtime.cx(), jsapi::JSGCParamKey::JSGC_LOW_FREQUENCY_HEAP_GROWTH, val as u32);
+            jsapi::JS_SetGCParameter(
+                runtime.cx(),
+                jsapi::JSGCParamKey::JSGC_LOW_FREQUENCY_HEAP_GROWTH,
+                val as u32);
         }
     }
     if let Some(val) = PREFS.get("js.mem.gc.high_frequency_heap_growth_min").as_i64() {
         if val >= 0 && val < 10000 {
-            jsapi::JS_SetGCParameter(runtime.cx(), jsapi::JSGCParamKey::JSGC_HIGH_FREQUENCY_HEAP_GROWTH_MIN, val as u32);
+            jsapi::JS_SetGCParameter(
+                runtime.cx(),
+                jsapi::JSGCParamKey::JSGC_HIGH_FREQUENCY_HEAP_GROWTH_MIN, val as u32);
         }
     }
     if let Some(val) = PREFS.get("js.mem.gc.high_frequency_heap_growth_max").as_i64() {
         if val >= 0 && val < 10000 {
-            jsapi::JS_SetGCParameter(runtime.cx(), jsapi::JSGCParamKey::JSGC_HIGH_FREQUENCY_HEAP_GROWTH_MAX, val as u32);
+            jsapi::JS_SetGCParameter(
+                runtime.cx(),
+                jsapi::JSGCParamKey::JSGC_HIGH_FREQUENCY_HEAP_GROWTH_MAX,
+                val as u32);
         }
     }
     if let Some(val) = PREFS.get("js.mem.gc.high_frequency_low_limit_mb").as_i64() {
         if val >= 0 && val < 10000 {
-            jsapi::JS_SetGCParameter(runtime.cx(), jsapi::JSGCParamKey::JSGC_HIGH_FREQUENCY_LOW_LIMIT, val as u32);
+            jsapi::JS_SetGCParameter(
+                runtime.cx(),
+                jsapi::JSGCParamKey::JSGC_HIGH_FREQUENCY_LOW_LIMIT,
+                val as u32);
         }
     }
     if let Some(val) = PREFS.get("js.mem.gc.high_frequency_high_limit_mb").as_i64() {
         if val >= 0 && val < 10000 {
-            jsapi::JS_SetGCParameter(runtime.cx(), jsapi::JSGCParamKey::JSGC_HIGH_FREQUENCY_HIGH_LIMIT, val as u32);
+            jsapi::JS_SetGCParameter(
+                runtime.cx(),
+                jsapi::JSGCParamKey::JSGC_HIGH_FREQUENCY_HIGH_LIMIT,
+                val as u32);
         }
     }
     if let Some(val) = PREFS.get("js.mem.gc.allocation_threshold_mb").as_i64() {
         if val >= 0 && val < 10000 {
-            jsapi::JS_SetGCParameter(runtime.cx(), jsapi::JSGCParamKey::JSGC_ALLOCATION_THRESHOLD, val as u32);
+            jsapi::JS_SetGCParameter(
+                runtime.cx(),
+                jsapi::JSGCParamKey::JSGC_ALLOCATION_THRESHOLD,
+                val as u32);
         }
     }
     if let Some(val) = PREFS.get("js.mem.gc.empty_chunk_count_min").as_i64() {
         if val >= 0 && val < 10000 {
-            jsapi::JS_SetGCParameter(runtime.cx(), jsapi::JSGCParamKey::JSGC_MIN_EMPTY_CHUNK_COUNT, val as u32);
+            jsapi::JS_SetGCParameter(
+                runtime.cx(),
+                jsapi::JSGCParamKey::JSGC_MIN_EMPTY_CHUNK_COUNT,
+                val as u32);
         }
     }
     if let Some(val) = PREFS.get("js.mem.gc.empty_chunk_count_max").as_i64() {
         if val >= 0 && val < 10000 {
-            jsapi::JS_SetGCParameter(runtime.cx(), jsapi::JSGCParamKey::JSGC_MAX_EMPTY_CHUNK_COUNT, val as u32);
+            jsapi::JS_SetGCParameter(
+                runtime.cx(),
+                jsapi::JSGCParamKey::JSGC_MAX_EMPTY_CHUNK_COUNT,
+                val as u32);
         }
     }
 
@@ -409,7 +447,9 @@ unsafe extern "C" fn gc_slice_callback(_cx: *mut jsapi::JSContext,
 }
 
 #[allow(unsafe_code)]
-unsafe extern "C" fn debug_gc_callback(_rt: *mut jsapi::JSContext, status: jsapi::JSGCStatus, _data: *mut os::raw::c_void) {
+unsafe extern "C" fn debug_gc_callback(_rt: *mut jsapi::JSContext,
+                                       status: jsapi::JSGCStatus,
+                                       _data: *mut os::raw::c_void) {
     match status {
         jsapi::JSGCStatus::JSGC_BEGIN => thread_state::enter(thread_state::IN_GC),
         jsapi::JSGCStatus::JSGC_END   => thread_state::exit(thread_state::IN_GC),
@@ -429,7 +469,6 @@ unsafe extern fn trace_rust_roots(tr: *mut jsapi::JSTracer, _data: *mut os::raw:
 #[allow(unsafe_code)]
 #[cfg(feature = "debugmozjs")]
 unsafe fn set_gc_zeal_options(rt: *mut jsapi::JSRuntime) {
-
     let level = match PREFS.get("js.mem.gc.zeal.level").as_i64() {
         Some(level @ 0...14) => level as u8,
         _ => return,
