@@ -616,7 +616,7 @@ fn get_animation_rule(element: &GeckoElement,
                       -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
     use gecko_bindings::sugar::ownership::HasSimpleFFI;
     // Also, we should try to reuse the PDB, to avoid creating extra rule nodes.
-    let mut animation_values = AnimationValueMap::new();
+    let mut animation_values = AnimationValueMap::default();
     if unsafe { Gecko_GetAnimationRule(element.0,
                                        cascade_level,
                                        AnimationValueMap::as_ffi_mut(&mut animation_values)) } {
