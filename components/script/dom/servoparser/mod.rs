@@ -648,13 +648,14 @@ impl FetchResponseListener for ParserContext {
                     parser.parse_sync();
                 }
             },
-            Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => {}, // Handle text/xml
+            // Handle xml (text/xml, application/xml, application/xhtml+xml)
+            Some(ContentType(Mime(ref toplevel @ _, ref sublevel @ _, _)))
+            if (
+                ((toplevel == &TopLevel::Application) && (sublevel.as_str() == "xhtml+xml")) |
+                ((toplevel == &TopLevel::Application) && (sublevel == &SubLevel::Xml)) |
+                ((toplevel == &TopLevel::Text) && (sublevel == &SubLevel::Xml))
+            ) => {},
             Some(ContentType(Mime(toplevel, sublevel, _))) => {
-                if toplevel.as_str() == "application" && sublevel.as_str() == "xhtml+xml" {
-                    // Handle xhtml (application/xhtml+xml).
-                    return;
-                }
-
                 // Show warning page for unknown mime types.
                 let page = format!("<html><body><p>Unknown content type ({}/{}).</p></body></html>",
                                    toplevel.as_str(),
