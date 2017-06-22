@@ -189,12 +189,13 @@ def set_osmesa_env(bin_path, env):
         env["LD_LIBRARY_PATH"] = osmesa_path
         env["GALLIUM_DRIVER"] = "softpipe"
     elif is_macosx():
-        osmesa_path = path.join(find_dep_path_newest('osmesa-src', bin_path),
-                                "out", "src", "gallium", "targets", "osmesa", ".libs")
-        glapi_path = path.join(find_dep_path_newest('osmesa-src', bin_path),
-                               "out", "src", "mapi", "shared-glapi", ".libs")
-        if not (osmesa_path and glapi_path):
+        osmesa_dep_path = find_dep_path_newest('osmesa-src', bin_path)
+        if not osmesa_dep_path:
             return None
+        osmesa_path = path.join(osmesa_dep_path,
+                                "out", "src", "gallium", "targets", "osmesa", ".libs")
+        glapi_path = path.join(osmesa_dep_path,
+                               "out", "src", "mapi", "shared-glapi", ".libs")
         env["DYLD_LIBRARY_PATH"] = osmesa_path + ":" + glapi_path
         env["GALLIUM_DRIVER"] = "softpipe"
     return env
