@@ -7,7 +7,7 @@
 use fnv::FnvHasher;
 use std::hash::{Hash, Hasher};
 
-// The top 12 bits of the 32-bit hash value are not used by the bloom filter.
+// The top 8 bits of the 32-bit hash value are not used by the bloom filter.
 // Consumers may rely on this to pack hashes more efficiently.
 pub const BLOOM_HASH_MASK: u32 = 0x00ffffff;
 const KEY_SIZE: usize = 12;
