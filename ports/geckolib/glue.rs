@@ -3091,3 +3091,21 @@ pub extern "C" fn Servo_StyleSet_HasStateDependency(raw_data: RawServoStyleSetBo
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     data.stylist.might_have_state_dependency(ElementState::from_bits_truncate(state))
 }
+
+#[no_mangle]
+pub extern "C" fn Servo_GetCustomProperty(computed_values: ServoComputedValuesBorrowed,
+                                          name: *const nsAString, value: *mut nsAString) -> bool {
+    let custom_properties = match ComputedValues::as_arc(&computed_values).custom_properties() {
+        Some(p) => p,
+        None => return false,
+    };
+
+    let name = unsafe { Atom::from((&*name)) };
+    let computed_value = match custom_properties.get(&name) {
+        Some(v) => v,
+        None => return false,
+    };
+
+    computed_value.to_css(unsafe { value.as_mut().unwrap() }).unwrap();
+    true
+}
