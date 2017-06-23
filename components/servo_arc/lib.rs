@@ -39,6 +39,7 @@ use std::hash::{Hash, Hasher};
 use std::iter::{ExactSizeIterator, Iterator};
 use std::mem;
 use std::ops::{Deref, DerefMut};
+use std::process;
 use std::ptr;
 use std::slice;
 use std::sync::atomic;
@@ -247,13 +248,7 @@ impl<T: ?Sized> Clone for Arc<T> {
         // We abort because such a program is incredibly degenerate, and we
         // don't care to support it.
         if old_size > MAX_REFCOUNT {
-            // Note: std::process::abort is stable in 1.17, which we don't yet
-            // require for Gecko. Panic is good enough in practice here (it will
-            // trigger an abort at least in Gecko, and this case is degenerate
-            // enough that Servo shouldn't have code that triggers it).
-            //
-            // We should fix this when we require 1.17.
-            panic!();
+            process::abort();
         }
 
         Arc { p: NonZeroPtrMut::new(self.ptr()) }
