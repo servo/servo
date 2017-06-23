@@ -61,6 +61,17 @@
       assert: [ "styleElement.sheet exists", "styleElement.sheet is a CSSStyleSheet",
                 "linkElement.sheet exists", "linkElement.sheet is a CSSStyleSheet"] });
 
+    test(function () {
+      var style = document.createElement("style");
+      document.querySelector("head").appendChild(style);
+      var sheet1 = style.sheet;
+      assert_equals(sheet1.cssRules.length, 0);
+      style.appendChild(document.createTextNode("a { color: green; }"));
+      assert_equals(style.sheet.cssRules.length, 1);
+    }, "sheet_property_updates",
+    { help: "https://www.w3.org/TR/cssom-1/#the-linkstyle-interface",
+      assert: "The sheet property on LinkStyle should always return the current associated style sheet." });
+
     test(function() {
         assert_own_property(styleSheet, "ownerRule");
         assert_own_property(styleSheet, "cssRules");
