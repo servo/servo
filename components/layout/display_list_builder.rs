@@ -1170,7 +1170,10 @@ impl FragmentDisplayListBuilding for Fragment {
         // including padding, but not border or margin, so we follow suit.
         // https://github.com/w3c/css-houdini-drafts/issues/417
         let unbordered_box = self.border_box - style.logical_border_width();
-        let size = unbordered_box.size.to_physical(style.writing_mode);
+        let device_pixel_ratio = state.layout_context.style_context.device_pixel_ratio();
+        let size_in_au = unbordered_box.size.to_physical(style.writing_mode);
+        let size_in_px = TypedSize2D::new(size_in_au.width.to_f32_px(), size_in_au.height.to_f32_px());
+        let size_in_dpx = size_in_px * device_pixel_ratio;
         let name = paint_worklet.name.clone();
 
         // Get the painter, and the computed values for its properties.
@@ -1188,17 +1191,17 @@ impl FragmentDisplayListBuilding for Fragment {
 
         // TODO: add a one-place cache to avoid drawing the paint image every time.
         // https://github.com/servo/servo/issues/17369
-        debug!("Drawing a paint image {}({},{}).", name, size.width.to_px(), size.height.to_px());
+        debug!("Drawing a paint image {}({},{}).", name, size_in_px.width, size_in_px.height);
         let (sender, receiver) = ipc::channel().unwrap();
-        painter.draw_a_paint_image(size, properties, sender);
+        painter.draw_a_paint_image(size_in_px, device_pixel_ratio, properties, sender);
 
         // TODO: timeout
         let webrender_image = match receiver.recv() {
             Ok(CanvasData::Image(canvas_data)) => {
                 WebRenderImageInfo {
                     // TODO: it would be nice to get this data back from the canvas
-                    width: size.width.to_px().abs() as u32,
-                    height: size.height.to_px().abs() as u32,
+                    width: size_in_dpx.width as u32,
+                    height: size_in_dpx.height as u32,
                     format: PixelFormat::BGRA8,
                     key: Some(canvas_data.image_key),
                 }

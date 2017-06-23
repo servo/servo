@@ -43,7 +43,7 @@ use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::utils::WindowProxyHandler;
 use dom::document::PendingRestyle;
 use encoding::types::EncodingRef;
-use euclid::{Transform2D, Transform3D, Point2D, Vector2D, Rect, Size2D};
+use euclid::{Transform2D, Transform3D, Point2D, Vector2D, Rect, Size2D, ScaleFactor};
 use euclid::Length as EuclidLength;
 use html5ever::{Prefix, LocalName, Namespace, QualName};
 use html5ever::buffer_queue::BufferQueue;
@@ -478,6 +478,13 @@ unsafe impl JSTraceable for Transform3D<f64> {
 }
 
 unsafe impl JSTraceable for Point2D<f32> {
+    #[inline]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl<T, U> JSTraceable for ScaleFactor<f32, T, U> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing

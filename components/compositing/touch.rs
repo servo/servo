@@ -4,8 +4,9 @@
 
 use euclid::{TypedPoint2D, TypedVector2D};
 use euclid::ScaleFactor;
-use script_traits::{DevicePixel, EventResult, TouchId};
+use script_traits::{EventResult, TouchId};
 use self::TouchState::*;
+use style_traits::DevicePixel;
 
 /// Minimum number of `DeviceIndependentPixel` to begin touch scrolling.
 const TOUCH_PAN_MIN_SCREEN_PX: f32 = 20.0;

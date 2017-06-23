@@ -25,7 +25,6 @@ use net_traits::net_error_list::NetError;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use osmesa_sys;
 use script_traits::{DevicePixel, LoadData, TouchEventType, TouchpadPressurePhase};
-use servo::ipc_channel::ipc::IpcSender;
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_config::resource_files;
@@ -39,6 +38,7 @@ use std::mem;
 use std::os::raw::c_void;
 use std::ptr;
 use std::rc::Rc;
+use style_traits::DevicePixel;
 use style_traits::cursor::Cursor;
 #[cfg(target_os = "windows")]
 use user32;

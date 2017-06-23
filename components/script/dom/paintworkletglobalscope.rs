@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
 use canvas_traits::CanvasData;
 use canvas_traits::CanvasImageData;
 use dom::bindings::callback::CallbackContainer;
@@ -27,7 +26,8 @@ use dom::workletglobalscope::WorkletGlobalScope;
 use dom::workletglobalscope::WorkletGlobalScopeInit;
 use dom::workletglobalscope::WorkletTask;
 use dom_struct::dom_struct;
-use euclid::Size2D;
+use euclid::ScaleFactor;
+use euclid::TypedSize2D;
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::ipc::IpcSharedMemory;
 use js::jsapi::Call;
@@ -59,6 +59,8 @@ use std::ptr::null_mut;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::Mutex;
+use style_traits::CSSPixel;
+use style_traits::DevicePixel;
 
 /// https://drafts.css-houdini.org/css-paint-api/#paintworkletglobalscope
 #[dom_struct]
@@ -94,9 +96,9 @@ impl PaintWorkletGlobalScope {
 
     pub fn perform_a_worklet_task(&self, task: PaintWorkletTask) {
         match task {
-            PaintWorkletTask::DrawAPaintImage(name, size, properties, sender) => {
+            PaintWorkletTask::DrawAPaintImage(name, size, device_pixel_ratio, properties, sender) => {
                 let properties = StylePropertyMapReadOnly::from_iter(self.upcast(), properties);
-                self.draw_a_paint_image(name, size, &*properties, sender);
+                self.draw_a_paint_image(name, size, device_pixel_ratio, &*properties, sender);
             }
         }
     }
@@ -104,25 +106,28 @@ impl PaintWorkletGlobalScope {
     /// https://drafts.css-houdini.org/css-paint-api/#draw-a-paint-image
     fn draw_a_paint_image(&self,
                           name: Atom,
-                          size: Size2D<Au>,
+                          size_in_px: TypedSize2D<f32, CSSPixel>,
+                          device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
                           properties: &StylePropertyMapReadOnly,
                           sender: IpcSender<CanvasData>)
     {
         // TODO: document paint definitions.
-        self.invoke_a_paint_callback(name, size, properties, sender);
+        self.invoke_a_paint_callback(name, size_in_px, device_pixel_ratio, properties, sender);
     }
 
     /// https://drafts.css-houdini.org/css-paint-api/#invoke-a-paint-callback
     #[allow(unsafe_code)]
     fn invoke_a_paint_callback(&self,
                                name: Atom,
-                               size: Size2D<Au>,
+                               size_in_px: TypedSize2D<f32, CSSPixel>,
+                               device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
                                properties: &StylePropertyMapReadOnly,
                                sender: IpcSender<CanvasData>)
     {
-        let width = size.width.to_px().abs() as u32;
-        let height = size.height.to_px().abs() as u32;
-        debug!("Invoking a paint callback {}({},{}).", name, width, height);
+        let size_in_dpx = size_in_px * device_pixel_ratio;
+        let size_in_dpx = TypedSize2D::new(size_in_dpx.width.abs() as u32, size_in_dpx.height.abs() as u32);
+        debug!("Invoking a paint callback {}({},{}) at {}.",
+               name, size_in_px.width, size_in_px.height, device_pixel_ratio);
 
         let cx = self.worklet_global.get_cx();
         let _ac = JSAutoCompartment::new(cx, self.worklet_global.reflector().get_jsobject().get());
@@ -135,13 +140,13 @@ impl PaintWorkletGlobalScope {
             None => {
                 // Step 2.2.
                 warn!("Drawing un-registered paint definition {}.", name);
-                return self.send_invalid_image(size, sender);
+                return self.send_invalid_image(size_in_dpx, sender);
             }
             Some(definition) => {
                 // Step 5.1
                 if !definition.constructor_valid_flag.get() {
                     debug!("Drawing invalid paint definition {}.", name);
-                    return self.send_invalid_image(size, sender);
+                    return self.send_invalid_image(size_in_dpx, sender);
                 }
                 class_constructor.set(definition.class_constructor.get());
                 paint_function.set(definition.paint_function.get());
@@ -169,7 +174,7 @@ impl PaintWorkletGlobalScope {
                     self.paint_definitions.borrow_mut().get_mut(&name)
                         .expect("Vanishing paint definition.")
                         .constructor_valid_flag.set(false);
-                    return self.send_invalid_image(size, sender);
+                    return self.send_invalid_image(size_in_dpx, sender);
                 }
                 // Step 5.4
                 entry.insert(Box::new(Heap::default())).set(paint_instance.get());
@@ -180,10 +185,10 @@ impl PaintWorkletGlobalScope {
         // Step 8
         // TODO: the spec requires creating a new paint rendering context each time,
         // this code recycles the same one.
-        rendering_context.set_bitmap_dimensions(size);
+        rendering_context.set_bitmap_dimensions(size_in_px, device_pixel_ratio);
 
         // Step 9
-        let paint_size = PaintSize::new(self, size);
+        let paint_size = PaintSize::new(self, size_in_px);
 
         // TODO: Step 10
         // Steps 11-12
@@ -202,17 +207,19 @@ impl PaintWorkletGlobalScope {
         if unsafe { JS_IsExceptionPending(cx) } {
             debug!("Paint function threw an exception {}.", name);
             unsafe { JS_ClearPendingException(cx); }
-            return self.send_invalid_image(size, sender);
+            return self.send_invalid_image(size_in_dpx, sender);
         }
 
         rendering_context.send_data(sender);
     }
 
-    // https://drafts.csswg.org/css-images-4/#invalid-image
-    fn send_invalid_image(&self, size: Size2D<Au>, sender: IpcSender<CanvasData>) {
+    fn send_invalid_image(&self,
+                          size: TypedSize2D<u32, DevicePixel>,
+                          sender: IpcSender<CanvasData>)
+    {
         debug!("Sending an invalid image.");
-        let width = size.width.to_px().abs() as u32;
-        let height = size.height.to_px().abs() as u32;
+        let width = size.width as u32;
+        let height = size.height as u32;
         let len = (width as usize) * (height as usize) * 4;
         let pixel = [0x00, 0x00, 0x00, 0x00];
         let bytes: Vec<u8> = pixel.iter().cloned().cycle().take(len).collect();
@@ -235,12 +242,13 @@ impl PaintWorkletGlobalScope {
         struct WorkletPainter(Atom, Mutex<WorkletExecutor>);
         impl Painter for WorkletPainter {
             fn draw_a_paint_image(&self,
-                                  size: Size2D<Au>,
+                                  size: TypedSize2D<f32, CSSPixel>,
+                                  device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
                                   properties: Vec<(Atom, String)>,
                                   sender: IpcSender<CanvasData>)
             {
                 let name = self.0.clone();
-                let task = PaintWorkletTask::DrawAPaintImage(name, size, properties, sender);
+                let task = PaintWorkletTask::DrawAPaintImage(name, size, device_pixel_ratio, properties, sender);
                 self.1.lock().expect("Locking a painter.")
                     .schedule_a_worklet_task(WorkletTask::Paint(task));
             }
@@ -334,7 +342,11 @@ impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
 
 /// Tasks which can be peformed by a paint worklet
 pub enum PaintWorkletTask {
-    DrawAPaintImage(Atom, Size2D<Au>, Vec<(Atom, String)>, IpcSender<CanvasData>)
+    DrawAPaintImage(Atom,
+                    TypedSize2D<f32, CSSPixel>,
+                    ScaleFactor<f32, CSSPixel, DevicePixel>,
+                    Vec<(Atom, String)>,
+                    IpcSender<CanvasData>)
 }
 
 /// A paint definition

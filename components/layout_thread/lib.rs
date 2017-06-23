@@ -454,9 +454,12 @@ impl LayoutThread {
            webrender_api_sender: webrender_api::RenderApiSender,
            layout_threads: usize)
            -> LayoutThread {
+        // The device pixel ratio is incorrect (it does not have the hidpi value),
+        // but it will be set correctly when the initial reflow takes place.
         let device = Device::new(
             MediaType::Screen,
-            opts::get().initial_window_size.to_f32() * ScaleFactor::new(1.0));
+            opts::get().initial_window_size.to_f32() * ScaleFactor::new(1.0),
+            ScaleFactor::new(opts::get().device_pixels_per_px.unwrap_or(1.0)));
 
         let configuration =
             rayon::Configuration::new().num_threads(layout_threads);
@@ -1106,6 +1109,7 @@ impl LayoutThread {
         trace!("{:?}", ShowSubtree(element.as_node()));
 
         let initial_viewport = data.window_size.initial_viewport;
+        let device_pixel_ratio = data.window_size.device_pixel_ratio;
         let old_viewport_size = self.viewport_size;
         let current_screen_size = Size2D::new(Au::from_f32_px(initial_viewport.width),
                                               Au::from_f32_px(initial_viewport.height));
@@ -1115,7 +1119,7 @@ impl LayoutThread {
         let document_shared_lock = document.style_shared_lock();
         self.document_shared_lock = Some(document_shared_lock.clone());
         let author_guard = document_shared_lock.read();
-        let device = Device::new(MediaType::Screen, initial_viewport);
+        let device = Device::new(MediaType::Screen, initial_viewport, device_pixel_ratio);
         self.stylist.set_device(device, &author_guard, &data.document_stylesheets);
 
         self.viewport_size =
