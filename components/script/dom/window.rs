@@ -13,7 +13,6 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::OnBeforeUnloadEventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
@@ -1126,8 +1125,11 @@ impl Window {
         //let document = self.Document();
         // Step 12
         let global_scope = self.upcast::<GlobalScope>();
-        self.perform_a_scroll(x.to_f32().unwrap_or(0.0f32),
-                              y.to_f32().unwrap_or(0.0f32),
+        let x = x.to_f32().unwrap_or(0.0f32);
+        let y = y.to_f32().unwrap_or(0.0f32);
+        self.update_viewport_for_scroll(x, y);
+        self.perform_a_scroll(x,
+                              y,
                               global_scope.pipeline_id().root_scroll_node(),
                               behavior,
                               None);
@@ -1157,9 +1159,6 @@ impl Window {
             scroll_root_id: scroll_root_id,
             scroll_offset: Vector2D::new(-x, -y),
         })).unwrap();
-
-        // TODO (farodin91): Raise an event to stop the current_viewport
-        self.update_viewport_for_scroll(x, y);
 
         let global_scope = self.upcast::<GlobalScope>();
         let message = ConstellationMsg::ScrollFragmentPoint(scroll_root_id, point, smooth);
@@ -1450,33 +1449,32 @@ impl Window {
     }
 
     pub fn scroll_offset_query(&self, node: &Node) -> Vector2D<f32> {
-        let mut node = Root::from_ref(node);
-        loop {
-            if let Some(scroll_offset) = self.scroll_offsets
-                                             .borrow()
-                                             .get(&node.to_untrusted_node_address()) {
-                return *scroll_offset
-            }
-            node = match node.GetParentNode() {
-                Some(node) => node,
-                None => break,
-            }
+        if let Some(scroll_offset) = self.scroll_offsets
+                                         .borrow()
+                                         .get(&node.to_untrusted_node_address()) {
+            return *scroll_offset
         }
-        let vp_origin = self.current_viewport.get().origin;
-        Vector2D::new(vp_origin.x.to_f32_px(), vp_origin.y.to_f32_px())
+        Vector2D::new(0.0, 0.0)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scroll
     pub fn scroll_node(&self,
-                       node: TrustedNodeAddress,
+                       node: &Node,
                        x_: f64,
                        y_: f64,
                        behavior: ScrollBehavior) {
         if !self.reflow(ReflowGoal::ForScriptQuery,
-                        ReflowQueryType::NodeScrollRootIdQuery(node),
+                        ReflowQueryType::NodeScrollRootIdQuery(node.to_trusted_node_address()),
                         ReflowReason::Query) {
             return;
         }
+
+        // The scroll offsets are immediatly updated since later calls
+        // to topScroll and others may access the properties before
+        // webrender has a chance to update the offsets.
+        self.scroll_offsets.borrow_mut().insert(node.to_untrusted_node_address(),
+                                                Vector2D::new(x_ as f32, y_ as f32));
+
         let NodeScrollRootIdResponse(scroll_root_id) = self.layout_rpc.node_scroll_root_id();
 
         // Step 12
