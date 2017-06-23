@@ -10,6 +10,8 @@ use atomic_refcell::{AtomicRefCell, AtomicRef, AtomicRefMut};
 use parking_lot::RwLock;
 use std::cell::UnsafeCell;
 use std::fmt;
+#[cfg(feature = "gecko")]
+use std::ptr;
 use stylearc::Arc;
 
 /// A shared read/write lock that can protect multiple objects.
@@ -154,7 +156,7 @@ impl<T> Locked<T> {
 
     #[cfg(feature = "gecko")]
     fn same_lock_as(&self, derefed_guard: &SomethingZeroSizedButTyped) -> bool {
-        ::ptr_eq(self.shared_lock.cell.as_ptr(), derefed_guard)
+        ptr::eq(self.shared_lock.cell.as_ptr(), derefed_guard)
     }
 
     /// Access the data for reading.

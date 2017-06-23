@@ -401,7 +401,7 @@ impl LineBreaker {
                     result.border_padding.inline_end == Au(0) &&
                     candidate.border_padding.inline_start == Au(0) &&
                     result_info.selected() == candidate_info.selected() &&
-                    ::arc_ptr_eq(&result_info.run, &candidate_info.run) &&
+                    Arc::ptr_eq(&result_info.run, &candidate_info.run) &&
                         inline_contexts_are_equal(&result.inline_context,
                                                   &candidate.inline_context)
                 }
