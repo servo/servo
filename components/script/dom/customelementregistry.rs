@@ -24,7 +24,7 @@ use dom::node::Node;
 use dom::promise::Promise;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use html5ever::LocalName;
+use html5ever::{LocalName, Prefix};
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{Construct1, IsConstructor, HandleValueArray, HandleObject};
 use js::jsapi::{JS_GetProperty, JSAutoCompartment, JSContext};
@@ -281,7 +281,7 @@ impl CustomElementDefinition {
 
     /// https://dom.spec.whatwg.org/#concept-create-element Step 6.1
     #[allow(unsafe_code)]
-    pub fn create_element(&self, document: &Document) -> Fallible<Root<Element>> {
+    pub fn create_element(&self, document: &Document, prefix: Option<Prefix>) -> Fallible<Root<Element>> {
         let window = document.window();
         let cx = window.get_cx();
         // Step 2
@@ -319,6 +319,9 @@ impl CustomElementDefinition {
         {
             return Err(Error::NotSupported);
         }
+
+        // Step 10
+        element.set_prefix(prefix);
 
         // Step 11
         // Element's `is` is None by default
