@@ -333,7 +333,7 @@
                     let quirks_mode = context.quirks_mode;
                     ::properties::substitute_variables_${property.ident}(
                         &declared_value, &custom_props,
-                    |value| {
+                    &mut |value| {
                         if let Some(ref mut cascade_info) = *cascade_info {
                             cascade_info.on_cascade_property(&declaration,
                                                              &value);
