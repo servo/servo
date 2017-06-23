@@ -9,6 +9,7 @@ extern crate deny_public_fields;
 
 #[derive(DenyPublicFields)]
 //~^ ERROR proc-macro derive panicked
+//~| HELP Field `v1` should not be public
 struct Foo {
     pub v1: i32,
     v2: i32

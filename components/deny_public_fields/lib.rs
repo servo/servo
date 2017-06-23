@@ -17,7 +17,11 @@ fn expand_string(input: &str) -> String {
     let style = synstructure::BindStyle::Ref.into();
     synstructure::each_field(&type_, &style, |binding| {
         if binding.field.vis != syn::Visibility::Inherited {
-            panic!("Field {} should not be public", binding.ident);
+            panic!("Field `{}` should not be public",
+                   match binding.field.ident.clone() {
+                       Some(fi) => fi,
+                       None => binding.ident,
+                   });
         }
         "".to_owned()
     });
