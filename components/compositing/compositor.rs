@@ -10,7 +10,7 @@ use euclid::{Point2D, TypedPoint2D, TypedVector2D, TypedRect, ScaleFactor, Typed
 use gfx_traits::Epoch;
 use gleam::gl;
 use image::{DynamicImage, ImageFormat, RgbImage};
-use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::{self, IpcSharedMemory};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, CONTROL};
 use msg::constellation_msg::{PipelineId, PipelineIndex, PipelineNamespaceId, TraversalDirection};
 use net_traits::image::base::{Image, PixelFormat};
@@ -459,9 +459,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.change_page_title(pipeline_id, title);
             }
 
-            (Msg::SetFrameTree(frame_tree, response_chan),
+            (Msg::SetFrameTree(frame_tree),
              ShutdownState::NotShuttingDown) => {
-                self.set_frame_tree(&frame_tree, response_chan);
+                self.set_frame_tree(&frame_tree);
                 self.send_viewport_rects();
                 self.title_for_main_frame();
             }
@@ -673,13 +673,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn set_frame_tree(&mut self,
-                      frame_tree: &SendableFrameTree,
-                      response_chan: IpcSender<()>) {
+    fn set_frame_tree(&mut self, frame_tree: &SendableFrameTree) {
         debug!("Setting the frame tree for pipeline {}", frame_tree.pipeline.id);
-        if let Err(e) = response_chan.send(()) {
-            warn!("Sending reponse to set frame tree failed ({}).", e);
-        }
 
         self.root_pipeline = Some(frame_tree.pipeline.clone());
 
