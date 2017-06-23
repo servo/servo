@@ -34,7 +34,7 @@ use msg::constellation_msg::PipelineId;
 use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
 use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode};
-use net_traits::request::{ResponseTainting, Type};
+use net_traits::request::{ResponseTainting, ServiceWorkersMode, Type};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use resource_thread::AuthCache;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -521,15 +521,29 @@ pub fn http_fetch(request: &mut Request,
     // nothing to do, since actual_response is a function on response
 
     // Step 3
-    if !request.skip_service_worker && !request.is_service_worker_global_scope {
+    if request.service_workers_mode != ServiceWorkersMode::None {
         // Substep 1
-        // TODO (handle fetch unimplemented)
+        if request.service_workers_mode == ServiceWorkersMode::All {
+            // TODO (handle fetch unimplemented)
+        }
 
+        // Substep 2
+        if response.is_none() && request.is_subresource_request() && match request.origin {
+            Origin::Origin(ref origin) if *origin == request.url().origin() => true,
+            _ => false,
+        } {
+            // TODO (handle foreign fetch unimplemented)
+        }
+
+        // Substep 3
         if let Some(ref res) = response {
-            // Substep 2
+            // Subsubstep 1
+            // TODO: transmit body for request
+
+            // Subsubstep 2
             // nothing to do, since actual_response is a function on response
 
-            // Substep 3
+            // Subsubstep 3
             if (res.response_type == ResponseType::Opaque &&
                 request.mode != RequestMode::NoCors) ||
                (res.response_type == ResponseType::OpaqueRedirect &&
@@ -539,7 +553,7 @@ pub fn http_fetch(request: &mut Request,
                 return Response::network_error(NetworkError::Internal("Request failed".into()));
             }
 
-            // Substep 4
+            // Subsubstep 4
             // TODO: set response's CSP list on actual_response
         }
     }
@@ -576,7 +590,9 @@ pub fn http_fetch(request: &mut Request,
         }
 
         // Substep 2
-        request.skip_service_worker = true;
+        if request.redirect_mode == RedirectMode::Follow {
+            request.service_workers_mode = ServiceWorkersMode::Foreign;
+        }
 
         // Substep 3
         let mut fetch_result = http_network_or_cache_fetch(
@@ -1238,8 +1254,7 @@ fn cors_preflight_fetch(request: &Request,
                         context: &FetchContext)
                         -> Response {
     // Step 1
-    let mut preflight = Request::new(request.current_url(), Some(request.origin.clone()),
-                                     request.is_service_worker_global_scope, request.pipeline_id);
+    let mut preflight = Request::new(request.current_url(), Some(request.origin.clone()), request.pipeline_id);
     preflight.method = Method::Options;
     preflight.initiator = request.initiator.clone();
     preflight.type_ = request.type_.clone();
