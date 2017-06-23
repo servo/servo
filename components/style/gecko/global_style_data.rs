@@ -16,17 +16,20 @@ use std::ffi::CString;
 
 /// Global style data
 pub struct GlobalStyleData {
-    /// How many threads parallel styling can use.
-    pub num_threads: usize,
-
-    /// The parallel styling thread pool.
-    pub style_thread_pool: Option<rayon::ThreadPool>,
-
     /// Shared RWLock for CSSOM objects
     pub shared_lock: SharedRwLock,
 
     /// Global style system options determined by env vars.
     pub options: StyleSystemOptions,
+}
+
+/// Global thread pool
+pub struct StyleThreadPool {
+    /// How many threads parallel styling can use.
+    pub num_threads: usize,
+
+    /// The parallel styling thread pool.
+    pub style_thread_pool: Option<rayon::ThreadPool>,
 }
 
 fn thread_name(index: usize) -> String {
@@ -53,8 +56,8 @@ fn thread_shutdown(_: usize) {
 }
 
 lazy_static! {
-    /// Global style data
-    pub static ref GLOBAL_STYLE_DATA: GlobalStyleData = {
+    /// Global thread pool
+    pub static ref STYLE_THREAD_POOL: StyleThreadPool = {
         let stylo_threads = env::var("STYLO_THREADS")
             .map(|s| s.parse::<usize>().expect("invalid STYLO_THREADS value"));
         let mut num_threads = match stylo_threads {
@@ -93,11 +96,14 @@ lazy_static! {
             pool
         };
 
-        GlobalStyleData {
+        StyleThreadPool {
             num_threads: num_threads,
             style_thread_pool: pool,
-            shared_lock: SharedRwLock::new(),
-            options: StyleSystemOptions::default(),
         }
+    };
+    /// Global style data
+    pub static ref GLOBAL_STYLE_DATA: GlobalStyleData = GlobalStyleData {
+        shared_lock: SharedRwLock::new(),
+        options: StyleSystemOptions::default(),
     };
 }

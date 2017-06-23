@@ -19,7 +19,7 @@ use style::element_state::ElementState;
 use style::error_reporting::RustLogReporter;
 use style::font_metrics::{FontMetricsProvider, get_metrics_provider_for_product};
 use style::gecko::data::{PerDocumentStyleData, PerDocumentStyleDataImpl};
-use style::gecko::global_style_data::{GLOBAL_STYLE_DATA, GlobalStyleData};
+use style::gecko::global_style_data::{GLOBAL_STYLE_DATA, GlobalStyleData, STYLE_THREAD_POOL};
 use style::gecko::restyle_damage::GeckoRestyleDamage;
 use style::gecko::selector_parser::PseudoElement;
 use style::gecko::traversal::RecalcStyleOnly;
@@ -227,7 +227,8 @@ fn traverse_subtree(element: GeckoElement,
     debug!("Traversing subtree:");
     debug!("{:?}", ShowSubtreeData(element.as_node()));
 
-    let traversal_driver = if global_style_data.style_thread_pool.is_none() || !element.is_root() {
+    let style_thread_pool = &*STYLE_THREAD_POOL;
+    let traversal_driver = if style_thread_pool.style_thread_pool.is_none() || !element.is_root() {
         TraversalDriver::Sequential
     } else {
         TraversalDriver::Parallel
@@ -236,7 +237,7 @@ fn traverse_subtree(element: GeckoElement,
     let traversal = RecalcStyleOnly::new(shared_style_context, traversal_driver);
     if traversal_driver.is_parallel() {
         parallel::traverse_dom(&traversal, element, token,
-                               global_style_data.style_thread_pool.as_ref().unwrap());
+                               style_thread_pool.style_thread_pool.as_ref().unwrap());
     } else {
         sequential::traverse_dom(&traversal, element, token);
     }
@@ -729,7 +730,7 @@ pub extern "C" fn Servo_Property_IsDiscreteAnimatable(property: nsCSSPropertyID)
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleWorkerThreadCount() -> u32 {
-    GLOBAL_STYLE_DATA.num_threads as u32
+    STYLE_THREAD_POOL.num_threads as u32
 }
 
 #[no_mangle]
