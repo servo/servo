@@ -25,7 +25,9 @@ function assert_worker_construction_fails(test_desc, mime_type, worker_code) {
     w.onmessage = t.step_func_done(function(e) {
       assert_unreached('Should not receive any message back.');
     });
-    w.onerror = t.step_func_done(function() {
+    w.onerror = t.step_func_done(function(e) {
+      // Stop the error from being propagated to the WPT test harness
+      e.preventDefault();
     });
   }, test_desc);
 }

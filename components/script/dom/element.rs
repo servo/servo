@@ -1356,7 +1356,7 @@ impl Element {
         // Step 10 (TODO)
 
         // Step 11
-        win.scroll_node(node.to_trusted_node_address(), x, y, behavior);
+        win.scroll_node(node, x, y, behavior);
     }
 
     // https://w3c.github.io/DOM-Parsing/#parsing
@@ -1798,7 +1798,7 @@ impl ElementMethods for Element {
         // Step 10 (TODO)
 
         // Step 11
-        win.scroll_node(node.to_trusted_node_address(), self.ScrollLeft(), y, behavior);
+        win.scroll_node(node, self.ScrollLeft(), y, behavior);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
@@ -1891,7 +1891,7 @@ impl ElementMethods for Element {
         // Step 10 (TODO)
 
         // Step 11
-        win.scroll_node(node.to_trusted_node_address(), x, self.ScrollTop(), behavior);
+        win.scroll_node(node, x, self.ScrollTop(), behavior);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth

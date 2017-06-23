@@ -582,7 +582,7 @@ impl AnimationValue {
                             &variables.url_data,
                             variables.from_shorthand,
                             &custom_props,
-                            |v| {
+                            &mut |v| {
                                 let declaration = match *v {
                                     DeclaredValue::Value(value) => {
                                         PropertyDeclaration::${prop.camel_case}(value.clone())
