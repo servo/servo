@@ -1823,7 +1823,7 @@ impl Node {
             NodeTypeId::Element(..) => {
                 let element = node.downcast::<Element>().unwrap();
                 let name = QualName {
-                    prefix: element.prefix().map(|p| Prefix::from(&**p)),
+                    prefix: element.prefix().as_ref().map(|p| Prefix::from(&**p)),
                     ns: element.namespace().clone(),
                     local: element.local_name().clone()
                 };
@@ -2292,7 +2292,7 @@ impl NodeMethods for Node {
             let element = node.downcast::<Element>().unwrap();
             let other_element = other.downcast::<Element>().unwrap();
             (*element.namespace() == *other_element.namespace()) &&
-            (element.prefix() == other_element.prefix()) &&
+            (*element.prefix() == *other_element.prefix()) &&
             (*element.local_name() == *other_element.local_name()) &&
             (element.attrs().len() == other_element.attrs().len())
         }
