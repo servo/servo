@@ -8,13 +8,12 @@ use cssparser::{BasicParseError, Parser, Token};
 use parser::{Parse, ParserContext};
 use style_traits::ParseError;
 #[cfg(not(feature = "gecko"))]
-use style_traits::StyleParseError;
+use values::Impossible;
 use values::computed::{Context, Number as ComputedNumber, ToComputedValue};
 use values::computed::effects::SimpleShadow as ComputedSimpleShadow;
 use values::generics::effects::Filter as GenericFilter;
 use values::generics::effects::FilterList as GenericFilterList;
 use values::specified::{Angle, Percentage};
-#[cfg(feature = "gecko")]
 use values::specified::color::Color;
 use values::specified::length::Length;
 #[cfg(feature = "gecko")]
@@ -24,12 +23,17 @@ use values::specified::url::SpecifiedUrl;
 pub type FilterList = GenericFilterList<Filter>;
 
 /// A specified value for a single `filter`.
+#[cfg(feature = "gecko")]
 pub type Filter = GenericFilter<Angle, Factor, Length, SimpleShadow>;
+
+/// A specified value for a single `filter`.
+#[cfg(not(feature = "gecko"))]
+pub type Filter = GenericFilter<Angle, Factor, Length, Impossible>;
 
 /// A value for the `<factor>` parts in `Filter`.
 ///
 /// FIXME: Should be `NumberOrPercentage`, but Gecko doesn't support that yet.
-#[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
 pub enum Factor {
     /// Literal number.
@@ -40,17 +44,9 @@ pub enum Factor {
 
 /// A specified value for the `drop-shadow()` filter.
 ///
-/// Currently unsupported outside of Gecko.
-#[cfg(not(feature = "gecko"))]
-#[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
-pub enum SimpleShadow {}
-
-/// A specified value for the `drop-shadow()` filter.
-///
 /// Contrary to the canonical order from the spec, the color is serialised
 /// first, like in Gecko's computed values and in all Webkit's values.
-#[cfg(feature = "gecko")]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
 pub struct SimpleShadow {
     /// Color.
@@ -104,7 +100,7 @@ impl Parse for Filter {
                 "opacity" => Ok(GenericFilter::Opacity(Factor::parse(context, i)?)),
                 "saturate" => Ok(GenericFilter::Saturate(Factor::parse(context, i)?)),
                 "sepia" => Ok(GenericFilter::Sepia(Factor::parse(context, i)?)),
-                "drop-shadow" => Ok(GenericFilter::DropShadow(SimpleShadow::parse(context, i)?)),
+                "drop-shadow" => Ok(GenericFilter::DropShadow(Parse::parse(context, i)?)),
             }
         })
     }
@@ -148,16 +144,6 @@ impl ToComputedValue for Factor {
 }
 
 impl Parse for SimpleShadow {
-    #[cfg(not(feature = "gecko"))]
-    #[inline]
-    fn parse<'i, 't>(
-        _context: &ParserContext,
-        _input: &mut Parser<'i, 't>
-    ) -> Result<Self, ParseError<'i>> {
-        Err(StyleParseError::UnspecifiedError.into())
-    }
-
-    #[cfg(feature = "gecko")]
     #[inline]
     fn parse<'i, 't>(
         context: &ParserContext,
@@ -180,13 +166,6 @@ impl Parse for SimpleShadow {
 impl ToComputedValue for SimpleShadow {
     type ComputedValue = ComputedSimpleShadow;
 
-    #[cfg(not(feature = "gecko"))]
-    #[inline]
-    fn to_computed_value(&self, _context: &Context) -> Self::ComputedValue {
-        match *self {}
-    }
-
-    #[cfg(feature = "gecko")]
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         ComputedSimpleShadow {
@@ -199,13 +178,6 @@ impl ToComputedValue for SimpleShadow {
         }
     }
 
-    #[cfg(not(feature = "gecko"))]
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        match *computed {}
-    }
-
-    #[cfg(feature = "gecko")]
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         SimpleShadow {
