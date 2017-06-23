@@ -12,6 +12,7 @@ use cache::LRUCache;
 use data::ElementData;
 use dom::{OpaqueNode, TNode, TElement, SendElement};
 use error_reporting::ParseErrorReporter;
+use euclid::ScaleFactor;
 use euclid::Size2D;
 use fnv::FnvHashMap;
 use font_metrics::FontMetricsProvider;
@@ -26,6 +27,8 @@ use std::fmt;
 use std::ops::Add;
 #[cfg(feature = "servo")] use std::sync::Mutex;
 #[cfg(feature = "servo")] use std::sync::mpsc::Sender;
+use style_traits::CSSPixel;
+use style_traits::DevicePixel;
 use stylearc::Arc;
 use stylist::Stylist;
 use thread_state;
@@ -138,6 +141,11 @@ impl<'a> SharedStyleContext<'a> {
     /// Return a suitable viewport size in order to be used for viewport units.
     pub fn viewport_size(&self) -> Size2D<Au> {
         self.stylist.device().au_viewport_size()
+    }
+
+    /// The device pixel ratio
+    pub fn device_pixel_ratio(&self) -> ScaleFactor<f32, CSSPixel, DevicePixel> {
+        self.stylist.device().device_pixel_ratio()
     }
 }
 
