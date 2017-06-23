@@ -10,7 +10,7 @@ use style_traits::ParseError;
 #[cfg(not(feature = "gecko"))]
 use style_traits::StyleParseError;
 use values::computed::{Context, Number as ComputedNumber, ToComputedValue};
-use values::computed::effects::DropShadow as ComputedDropShadow;
+use values::computed::effects::SimpleShadow as ComputedSimpleShadow;
 use values::generics::effects::Filter as GenericFilter;
 use values::generics::effects::FilterList as GenericFilterList;
 use values::specified::{Angle, Percentage};
@@ -24,7 +24,7 @@ use values::specified::url::SpecifiedUrl;
 pub type FilterList = GenericFilterList<Filter>;
 
 /// A specified value for a single `filter`.
-pub type Filter = GenericFilter<Angle, Factor, Length, DropShadow>;
+pub type Filter = GenericFilter<Angle, Factor, Length, SimpleShadow>;
 
 /// A value for the `<factor>` parts in `Filter`.
 ///
@@ -44,7 +44,7 @@ pub enum Factor {
 #[cfg(not(feature = "gecko"))]
 #[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
 #[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
-pub enum DropShadow {}
+pub enum SimpleShadow {}
 
 /// A specified value for the `drop-shadow()` filter.
 ///
@@ -52,7 +52,7 @@ pub enum DropShadow {}
 /// first, like in Gecko's computed values and in all Webkit's values.
 #[cfg(feature = "gecko")]
 #[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
-pub struct DropShadow {
+pub struct SimpleShadow {
     /// Color.
     pub color: Option<Color>,
     /// Horizontal radius.
@@ -104,7 +104,7 @@ impl Parse for Filter {
                 "opacity" => Ok(GenericFilter::Opacity(Factor::parse(context, i)?)),
                 "saturate" => Ok(GenericFilter::Saturate(Factor::parse(context, i)?)),
                 "sepia" => Ok(GenericFilter::Sepia(Factor::parse(context, i)?)),
-                "drop-shadow" => Ok(GenericFilter::DropShadow(DropShadow::parse(context, i)?)),
+                "drop-shadow" => Ok(GenericFilter::DropShadow(SimpleShadow::parse(context, i)?)),
             }
         })
     }
@@ -147,7 +147,7 @@ impl ToComputedValue for Factor {
     }
 }
 
-impl Parse for DropShadow {
+impl Parse for SimpleShadow {
     #[cfg(not(feature = "gecko"))]
     #[inline]
     fn parse<'i, 't>(
@@ -168,7 +168,7 @@ impl Parse for DropShadow {
         let vertical = Length::parse(context, input)?;
         let blur = input.try(|i| Length::parse_non_negative(context, i)).ok();
         let color = color.or_else(|| input.try(|i| Color::parse(context, i)).ok());
-        Ok(DropShadow {
+        Ok(SimpleShadow {
             color: color,
             horizontal: horizontal,
             vertical: vertical,
@@ -177,8 +177,8 @@ impl Parse for DropShadow {
     }
 }
 
-impl ToComputedValue for DropShadow {
-    type ComputedValue = ComputedDropShadow;
+impl ToComputedValue for SimpleShadow {
+    type ComputedValue = ComputedSimpleShadow;
 
     #[cfg(not(feature = "gecko"))]
     #[inline]
@@ -189,7 +189,7 @@ impl ToComputedValue for DropShadow {
     #[cfg(feature = "gecko")]
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        ComputedDropShadow {
+        ComputedSimpleShadow {
             color:
                 self.color.as_ref().unwrap_or(&Color::CurrentColor).to_computed_value(context),
             horizontal: self.horizontal.to_computed_value(context),
@@ -208,7 +208,7 @@ impl ToComputedValue for DropShadow {
     #[cfg(feature = "gecko")]
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        DropShadow {
+        SimpleShadow {
             color: Some(ToComputedValue::from_computed_value(&computed.color)),
             horizontal: ToComputedValue::from_computed_value(&computed.horizontal),
             vertical: ToComputedValue::from_computed_value(&computed.vertical),

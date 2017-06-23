@@ -20,7 +20,7 @@ pub type Filter = GenericFilter<
     // FIXME: Should be `NumberOrPercentage`.
     Number,
     Length,
-    DropShadow,
+    SimpleShadow,
 >;
 
 /// A computed value for the `drop-shadow()` filter.
@@ -29,7 +29,7 @@ pub type Filter = GenericFilter<
 #[cfg(not(feature = "gecko"))]
 #[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
 #[derive(Clone, Debug, PartialEq, ToCss)]
-pub enum DropShadow {}
+pub enum SimpleShadow {}
 
 /// A computed value for the `drop-shadow()` filter.
 ///
@@ -37,7 +37,7 @@ pub enum DropShadow {}
 /// first, like in Gecko and Webkit.
 #[cfg(feature = "gecko")]
 #[derive(Clone, Debug, PartialEq, ToCss)]
-pub struct DropShadow {
+pub struct SimpleShadow {
     /// Color.
     pub color: Color,
     /// Horizontal radius.

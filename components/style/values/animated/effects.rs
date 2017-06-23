@@ -8,9 +8,9 @@ use properties::animated_properties::Animatable;
 #[cfg(feature = "gecko")]
 use properties::animated_properties::IntermediateColor;
 use values::computed::{Angle, Number};
-use values::computed::effects::DropShadow as ComputedDropShadow;
 use values::computed::effects::Filter as ComputedFilter;
 use values::computed::effects::FilterList as ComputedFilterList;
+use values::computed::effects::SimpleShadow as ComputedSimpleShadow;
 use values::computed::length::Length;
 use values::generics::effects::Filter as GenericFilter;
 use values::generics::effects::FilterList as GenericFilterList;
@@ -24,7 +24,7 @@ pub type Filter = GenericFilter<
     // FIXME: Should be `NumberOrPercentage`.
     Number,
     Length,
-    DropShadow
+    SimpleShadow,
 >;
 
 /// An animated value for the `drop-shadow()` filter.
@@ -33,7 +33,7 @@ pub type Filter = GenericFilter<
 #[cfg(not(feature = "gecko"))]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug, PartialEq)]
-pub enum DropShadow {}
+pub enum SimpleShadow {}
 
 /// An animated value for the `drop-shadow()` filter.
 ///
@@ -41,7 +41,7 @@ pub enum DropShadow {}
 /// first, like in Gecko and Webkit.
 #[cfg(feature = "gecko")]
 #[derive(Clone, Debug, PartialEq)]
-pub struct DropShadow {
+pub struct SimpleShadow {
     /// Color.
     pub color: IntermediateColor,
     /// Horizontal radius.
@@ -110,17 +110,17 @@ impl From<Filter> for ComputedFilter {
     }
 }
 
-impl From<ComputedDropShadow> for DropShadow {
+impl From<ComputedSimpleShadow> for SimpleShadow {
     #[cfg(not(feature = "gecko"))]
     #[inline]
-    fn from(shadow: ComputedDropShadow) -> Self {
+    fn from(shadow: ComputedSimpleShadow) -> Self {
         match shadow {}
     }
 
     #[cfg(feature = "gecko")]
     #[inline]
-    fn from(shadow: ComputedDropShadow) -> Self {
-        DropShadow {
+    fn from(shadow: ComputedSimpleShadow) -> Self {
+        SimpleShadow {
             color: shadow.color.into(),
             horizontal: shadow.horizontal,
             vertical: shadow.vertical,
@@ -129,17 +129,17 @@ impl From<ComputedDropShadow> for DropShadow {
     }
 }
 
-impl From<DropShadow> for ComputedDropShadow {
+impl From<SimpleShadow> for ComputedSimpleShadow {
     #[cfg(not(feature = "gecko"))]
     #[inline]
-    fn from(shadow: DropShadow) -> Self {
+    fn from(shadow: SimpleShadow) -> Self {
         match shadow {}
     }
 
     #[cfg(feature = "gecko")]
     #[inline]
-    fn from(shadow: DropShadow) -> Self {
-        ComputedDropShadow {
+    fn from(shadow: SimpleShadow) -> Self {
+        ComputedSimpleShadow {
             color: shadow.color.into(),
             horizontal: shadow.horizontal,
             vertical: shadow.vertical,
@@ -148,7 +148,7 @@ impl From<DropShadow> for ComputedDropShadow {
     }
 }
 
-impl Animatable for DropShadow {
+impl Animatable for SimpleShadow {
     #[cfg(not(feature = "gecko"))]
     #[inline]
     fn add_weighted(&self, _other: &Self, _self_portion: f64, _other_portion: f64) -> Result<Self, ()> {
@@ -163,7 +163,7 @@ impl Animatable for DropShadow {
         let vertical = self.vertical.add_weighted(&other.vertical, self_portion, other_portion)?;
         let blur = self.blur.add_weighted(&other.blur, self_portion, other_portion)?;
 
-        Ok(DropShadow {
+        Ok(SimpleShadow {
             color: color,
             horizontal: horizontal,
             vertical: vertical,

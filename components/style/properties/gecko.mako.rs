@@ -3508,7 +3508,7 @@ fn static_assert() {
                     }
 
                     let mut gecko_shadow = init_shadow(gecko_filter);
-                    gecko_shadow.mArray[0].set_from_drop_shadow(shadow);
+                    gecko_shadow.mArray[0].set_from_simple_shadow(shadow);
                 },
                 Url(ref url) => {
                     unsafe {
@@ -3561,7 +3561,9 @@ fn static_assert() {
                 },
                 NS_STYLE_FILTER_DROP_SHADOW => {
                     filters.push(unsafe {
-                        Filter::DropShadow((**filter.__bindgen_anon_1.mDropShadow.as_ref()).mArray[0].to_drop_shadow())
+                        Filter::DropShadow(
+                            (**filter.__bindgen_anon_1.mDropShadow.as_ref()).mArray[0].to_simple_shadow(),
+                        )
                     });
                 },
                 NS_STYLE_FILTER_URL => {
