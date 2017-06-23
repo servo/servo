@@ -218,8 +218,7 @@ fn fmt_with_data_and_primary_values<N: TNode>(f: &mut fmt::Formatter, n: N) -> f
     if let Some(el) = n.as_element() {
         let dd = el.has_dirty_descendants();
         let data = el.borrow_data();
-        let styles = data.as_ref().and_then(|d| d.get_styles());
-        let values = styles.map(|s| s.primary.values());
+        let values = data.as_ref().and_then(|d| d.styles.get_primary());
         write!(f, "{:?} dd={} data={:?} values={:?}", el, dd, &data, values)
     } else {
         write!(f, "{:?}", n)
@@ -601,6 +600,21 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// This is used in Gecko for XBL and shadow DOM.
     fn xbl_binding_anonymous_content(&self) -> Option<Self::ConcreteNode> {
         None
+    }
+
+    /// Returns the rule hash target given an element.
+    fn rule_hash_target(&self) -> Self {
+        let is_implemented_pseudo =
+            self.implemented_pseudo_element().is_some();
+
+        // NB: This causes use to rule has pseudo selectors based on the
+        // properties of the originating element (which is fine, given the
+        // find_first_from_right usage).
+        if is_implemented_pseudo {
+            self.closest_non_native_anonymous_ancestor().unwrap()
+        } else {
+            *self
+        }
     }
 
     /// Gets declarations from XBL bindings from the element. Only gecko element could have this.

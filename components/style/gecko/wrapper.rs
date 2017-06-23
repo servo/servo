@@ -515,7 +515,7 @@ impl<'le> GeckoElement<'le> {
             Some(x) => x,
             None => {
                 debug!("Creating ElementData for {:?}", self);
-                let ptr = Box::into_raw(Box::new(AtomicRefCell::new(ElementData::new(None))));
+                let ptr = Box::into_raw(Box::new(AtomicRefCell::new(ElementData::default())));
                 self.0.mServoData.set(ptr);
                 unsafe { &* ptr }
             },
@@ -532,7 +532,7 @@ impl<'le> GeckoElement<'le> {
                 Some(mem::replace(old.borrow_mut().deref_mut(), replace_data))
             }
             (Some(old), None) => {
-                let old_data = mem::replace(old.borrow_mut().deref_mut(), ElementData::new(None));
+                let old_data = mem::replace(old.borrow_mut().deref_mut(), ElementData::default());
                 self.0.mServoData.set(ptr::null_mut());
                 Some(old_data)
             }
@@ -985,7 +985,7 @@ impl<'le> TElement for GeckoElement<'le> {
         // should destroy all CSS animations in display:none subtree.
         let computed_data = self.borrow_data();
         let computed_values =
-            computed_data.as_ref().map(|d| d.styles().primary.values());
+            computed_data.as_ref().map(|d| d.styles.primary());
         let computed_values_opt =
             computed_values.map(|v| *HasArcFFI::arc_as_borrowed(v));
         let before_change_values =
@@ -1019,7 +1019,9 @@ impl<'le> TElement for GeckoElement<'le> {
         where V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock> {
         // Walk the binding scope chain, starting with the binding attached to our content, up
         // till we run out of scopes or we get cut off.
-        let mut current = Some(*self);
+
+        // If we are NAC, we want to get rules from our rule_hash_target.
+        let mut current = Some(self.rule_hash_target());
 
         while let Some(element) = current {
             if let Some(binding) = element.get_xbl_binding() {

@@ -346,7 +346,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
 
     #[inline]
     fn get_before_pseudo(&self) -> Option<Self> {
-        if self.style_data().styles().pseudos.has(&PseudoElement::Before) {
+        if self.style_data().styles.pseudos.has(&PseudoElement::Before) {
             Some(self.with_pseudo(PseudoElementType::Before(None)))
         } else {
             None
@@ -355,7 +355,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
 
     #[inline]
     fn get_after_pseudo(&self) -> Option<Self> {
-        if self.style_data().styles().pseudos.has(&PseudoElement::After) {
+        if self.style_data().styles.pseudos.has(&PseudoElement::After) {
             Some(self.with_pseudo(PseudoElementType::After(None)))
         } else {
             None
@@ -396,7 +396,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
         let data = self.style_data();
         match self.get_pseudo_element_type() {
             PseudoElementType::Normal => {
-                data.styles().primary.values().clone()
+                data.styles.primary().clone()
             },
             other => {
                 // Precompute non-eagerly-cascaded pseudo-element styles if not
@@ -406,17 +406,17 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
                     // Already computed during the cascade.
                     PseudoElementCascadeType::Eager => {
                         self.style_data()
-                            .styles().pseudos.get(&style_pseudo)
-                            .unwrap().values().clone()
+                            .styles.pseudos.get(&style_pseudo)
+                            .unwrap().clone()
                     },
                     PseudoElementCascadeType::Precomputed => {
                         context.stylist.precomputed_values_for_pseudo(
                             &context.guards,
                             &style_pseudo,
-                            Some(data.styles().primary.values()),
+                            Some(data.styles.primary()),
                             CascadeFlags::empty(),
                             &ServoMetricsProvider)
-                            .values().clone()
+                            .clone()
                     }
                     PseudoElementCascadeType::Lazy => {
                         context.stylist
@@ -425,10 +425,10 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
                                    unsafe { &self.unsafe_get() },
                                    &style_pseudo,
                                    RuleInclusion::All,
-                                   data.styles().primary.values(),
+                                   data.styles.primary(),
                                    &ServoMetricsProvider)
                                .unwrap()
-                               .values().clone()
+                               .clone()
                     }
                 }
             }
@@ -438,10 +438,10 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
     #[inline]
     fn selected_style(&self) -> Arc<ServoComputedValues> {
         let data = self.style_data();
-        data.styles().pseudos
+        data.styles.pseudos
             .get(&PseudoElement::Selection).map(|s| s)
-            .unwrap_or(&data.styles().primary)
-            .values().clone()
+            .unwrap_or(data.styles.primary())
+            .clone()
     }
 
     /// Returns the already resolved style of the node.
@@ -456,10 +456,10 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
         let data = self.style_data();
         match self.get_pseudo_element_type() {
             PseudoElementType::Normal
-                => data.styles().primary.values().clone(),
+                => data.styles.primary().clone(),
             other
-                => data.styles().pseudos
-                       .get(&other.style_pseudo_element()).unwrap().values().clone(),
+                => data.styles.pseudos
+                       .get(&other.style_pseudo_element()).unwrap().clone(),
         }
     }
 }

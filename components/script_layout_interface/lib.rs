@@ -65,7 +65,7 @@ pub struct StyleData {
 impl StyleData {
     pub fn new() -> Self {
         Self {
-            element_data: AtomicRefCell::new(ElementData::new(None)),
+            element_data: AtomicRefCell::new(ElementData::default()),
             parallel: DomParallelInfo::new(),
         }
     }

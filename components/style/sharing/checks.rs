@@ -28,8 +28,8 @@ pub fn same_computed_values<E>(first: Option<E>, second: Option<E>) -> bool
         _ => return false,
     };
 
-    let eq = Arc::ptr_eq(a.borrow_data().unwrap().styles().primary.values(),
-                         b.borrow_data().unwrap().styles().primary.values());
+    let eq = Arc::ptr_eq(a.borrow_data().unwrap().styles.primary(),
+                         b.borrow_data().unwrap().styles.primary());
     eq
 }
 

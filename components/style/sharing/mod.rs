@@ -362,7 +362,7 @@ impl<E: TElement> StyleSharingTarget<E> {
 
     fn accumulate_damage_when_sharing(&self,
                                       shared_context: &SharedStyleContext,
-                                      shared_style: &ElementStyles,
+                                      shared_styles: &ElementStyles,
                                       data: &mut ElementData) -> ChildCascadeRequirement {
         // Accumulate restyle damage for the case when our sharing
         // target managed to share style.  This can come from several
@@ -379,7 +379,7 @@ impl<E: TElement> StyleSharingTarget<E> {
             // pseudos being restyled.
             let (styles, mut restyle_data) = data.styles_and_restyle_mut();
             let old_pseudos = &styles.pseudos;
-            let new_pseudos = &shared_style.pseudos;
+            let new_pseudos = &shared_styles.pseudos;
 
             if !old_pseudos.has_same_pseudos_as(new_pseudos) {
                 restyle_data.damage |= RestyleDamage::reconstruct();
@@ -389,9 +389,9 @@ impl<E: TElement> StyleSharingTarget<E> {
                 // here....
                 for pseudo in old_pseudos.keys() {
                     let old_values =
-                        old_pseudos.get(&pseudo).unwrap().values.as_ref().map(|v| &**v);
+                        old_pseudos.get(&pseudo).map(|v| &**v);
                     let new_values =
-                        new_pseudos.get(&pseudo).unwrap().values();
+                        new_pseudos.get(&pseudo).unwrap();
                     self.element.accumulate_damage(
                         &shared_context,
                         restyle_data,
@@ -403,14 +403,12 @@ impl<E: TElement> StyleSharingTarget<E> {
             }
         }
 
-        let old_values =
-            data.get_styles_mut().and_then(|s| s.primary.values.take());
-
+        let old_values = data.styles.primary.take();
         self.element.accumulate_damage(
             &shared_context,
             &mut data.restyle,
             old_values.as_ref().map(|v| &**v),
-            shared_style.primary.values(),
+            shared_styles.primary(),
             None
         )
     }
@@ -595,13 +593,13 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
                 );
 
             match sharing_result {
-                Ok(shared_style) => {
+                Ok(shared_styles) => {
                     // Yay, cache hit. Share the style.
                     let child_cascade_requirement =
                         target.accumulate_damage_when_sharing(shared_context,
-                                                              &shared_style,
+                                                              &shared_styles,
                                                               data);
-                    data.set_styles(shared_style);
+                    data.styles = shared_styles;
 
                     return StyleSharingResult::StyleWasShared(i, child_cascade_requirement)
                 }
@@ -708,6 +706,6 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
 
         debug!("Sharing style between {:?} and {:?}",
                target.element, candidate.element);
-        Ok(data.styles().clone())
+        Ok(data.styles.clone())
     }
 }
