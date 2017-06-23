@@ -103,11 +103,9 @@ impl NodeList {
         }
     }
 
-    pub fn iter(&self) -> NodeListIterator {
-        NodeListIterator {
-            nodes: self,
-            offset: 0,
-        }
+    pub fn iter<'a>(&'a self) -> impl Iterator<Item=Root<Node>> + 'a {
+        let len = self.Length();
+        (0..len).flat_map(move |i| self.Item(i))
     }
 }
 
@@ -287,20 +285,5 @@ impl ChildrenList {
     fn reset(&self) {
         self.last_visited.set(self.node.GetFirstChild().r());
         self.last_index.set(0u32);
-    }
-}
-
-pub struct NodeListIterator<'a> {
-    nodes: &'a NodeList,
-    offset: u32,
-}
-
-impl<'a> Iterator for NodeListIterator<'a> {
-    type Item = Root<Node>;
-
-    fn next(&mut self) -> Option<Root<Node>> {
-        let result = self.nodes.Item(self.offset);
-        self.offset = self.offset + 1;
-        result
     }
 }
