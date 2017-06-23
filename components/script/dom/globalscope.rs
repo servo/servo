@@ -543,12 +543,16 @@ impl GlobalScope {
     ///
     /// ["current"]: https://html.spec.whatwg.org/multipage/#current
     #[allow(unsafe_code)]
-    pub fn current() -> Root<Self> {
+    pub fn current() -> Option<Root<Self>> {
         unsafe {
             let cx = Runtime::get();
             assert!(!cx.is_null());
             let global = CurrentGlobalOrNull(cx);
-            global_scope_from_global(global)
+            if global.is_null() {
+                None
+            } else {
+                Some(global_scope_from_global(global))
+            }
         }
     }
 

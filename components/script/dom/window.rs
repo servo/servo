@@ -586,7 +586,7 @@ impl WindowMethods for Window {
         };
         // Step 6.
         let container_doc = document_from_node(container);
-        let current_doc = GlobalScope::current().as_window().Document();
+        let current_doc = GlobalScope::current().expect("No current global object").as_window().Document();
         if !current_doc.origin().same_origin_domain(container_doc.origin()) {
             return None;
         }
