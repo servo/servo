@@ -58,6 +58,7 @@ use properties::longhands;
 use properties:: FontComputationData;
 use properties::{Importance, LonghandId};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock, PropertyDeclarationId};
+use rule_tree::StrongRuleNode;
 use std::fmt::{self, Debug};
 use std::mem::{forget, transmute, zeroed};
 use std::ptr;
@@ -75,7 +76,7 @@ pub mod style_structs {
 }
 
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct ComputedValues {
     % for style_struct in data.style_structs:
     ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
@@ -85,6 +86,10 @@ pub struct ComputedValues {
     pub writing_mode: WritingMode,
     pub font_computation_data: FontComputationData,
 
+    /// The rule node representing the ordered list of rules matched for this
+    /// node.  Can be None for default values and text nodes.  This is
+    /// essentially an optimization to avoid referencing the root rule node.
+    pub rules: Option<StrongRuleNode>,
     /// The element's computed values if visited, only computed if there's a
     /// relevant link for this element. A element's "relevant link" is the
     /// element being matched if it is a link or the nearest ancestor link.
@@ -95,6 +100,7 @@ impl ComputedValues {
     pub fn new(custom_properties: Option<Arc<ComputedValuesMap>>,
                writing_mode: WritingMode,
                font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+               rules: Option<StrongRuleNode>,
                visited_style: Option<Arc<ComputedValues>>,
                % for style_struct in data.style_structs:
                ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
@@ -104,6 +110,7 @@ impl ComputedValues {
             custom_properties: custom_properties,
             writing_mode: writing_mode,
             font_computation_data: FontComputationData::new(font_size_keyword),
+            rules: rules,
             visited_style: visited_style,
             % for style_struct in data.style_structs:
             ${style_struct.ident}: ${style_struct.ident},
@@ -116,13 +123,13 @@ impl ComputedValues {
             custom_properties: None,
             writing_mode: WritingMode::empty(), // FIXME(bz): This seems dubious
             font_computation_data: FontComputationData::default_values(),
+            rules: None,
             visited_style: None,
             % for style_struct in data.style_structs:
                 ${style_struct.ident}: style_structs::${style_struct.name}::default(pres_context),
             % endfor
         })
     }
-
 
     #[inline]
     pub fn is_display_contents(&self) -> bool {
@@ -156,19 +163,23 @@ impl ComputedValues {
     }
     % endfor
 
-    /// Gets a reference to the visited computed values, if any.
+    /// Gets a reference to the rule node. Panic if no rule node exists.
+    pub fn rules(&self) -> &StrongRuleNode {
+        self.rules.as_ref().unwrap()
+    }
+
+    /// Gets a reference to the visited style, if any.
     pub fn get_visited_style(&self) -> Option<<&Arc<ComputedValues>> {
         self.visited_style.as_ref()
     }
 
-    /// Gets a reference to the visited computed values. Panic if the element
-    /// does not have visited computed values.
+    /// Gets a reference to the visited style. Panic if no visited style exists.
     pub fn visited_style(&self) -> &Arc<ComputedValues> {
         self.get_visited_style().unwrap()
     }
 
-    /// Clone the visited computed values Arc.  Used for inheriting parent styles
-    /// in StyleBuilder::for_inheritance.
+    /// Clone the visited style.  Used for inheriting parent styles in
+    /// StyleBuilder::for_inheritance.
     pub fn clone_visited_style(&self) -> Option<Arc<ComputedValues>> {
         self.visited_style.clone()
     }
