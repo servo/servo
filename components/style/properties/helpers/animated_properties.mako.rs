@@ -1621,19 +1621,18 @@ fn build_identity_transform_list(list: &[TransformOperation]) -> Vec<TransformOp
                 result.push(TransformOperation::Rotate(0.0, 0.0, 1.0, Angle::zero()));
             }
             TransformOperation::Perspective(..) |
-            TransformOperation::AccumulateMatrix { .. } => {
+            TransformOperation::AccumulateMatrix { .. } |
+            TransformOperation::InterpolateMatrix { .. } => {
                 // Perspective: We convert a perspective function into an equivalent
                 //     ComputedMatrix, and then decompose/interpolate/recompose these matrices.
-                // AccumulateMatrix: We do interpolation on AccumulateMatrix by reading it as a
-                //     ComputedMatrix (with layout information), and then do matrix interpolation.
+                // AccumulateMatrix/InterpolateMatrix: We do interpolation on
+                //     AccumulateMatrix/InterpolateMatrix by reading it as a ComputedMatrix
+                //     (with layout information), and then do matrix interpolation.
                 //
                 // Therefore, we use an identity matrix to represent the identity transform list.
                 // http://dev.w3.org/csswg/css-transforms/#identity-transform-function
                 let identity = ComputedMatrix::identity();
                 result.push(TransformOperation::Matrix(identity));
-            }
-            TransformOperation::InterpolateMatrix { .. } => {
-                panic!("Building the identity matrix for InterpolateMatrix is not supported");
             }
         }
     }
