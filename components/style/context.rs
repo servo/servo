@@ -332,7 +332,7 @@ impl Clone for EagerPseudoCascadeInputs {
 impl EagerPseudoCascadeInputs {
     /// Construct inputs from previous cascade results, if any.
     fn new_from_style(styles: &EagerPseudoStyles) -> Self {
-        EagerPseudoCascadeInputs(styles.0.as_ref().map(|styles| {
+        EagerPseudoCascadeInputs(styles.as_array().map(|styles| {
             let mut inputs: [Option<CascadeInputs>; EAGER_PSEUDO_COUNT] = Default::default();
             for i in 0..EAGER_PSEUDO_COUNT {
                 inputs[i] = styles[i].as_ref().map(|s| CascadeInputs::new_from_style(s));
