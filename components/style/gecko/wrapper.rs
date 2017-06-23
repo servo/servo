@@ -1019,7 +1019,9 @@ impl<'le> TElement for GeckoElement<'le> {
         where V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock> {
         // Walk the binding scope chain, starting with the binding attached to our content, up
         // till we run out of scopes or we get cut off.
-        let mut current = Some(*self);
+
+        // If we are NAC, we want to get rules from our rule_hash_target.
+        let mut current = Some(self.rule_hash_target());
 
         while let Some(element) = current {
             if let Some(binding) = element.get_xbl_binding() {

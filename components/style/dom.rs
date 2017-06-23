@@ -602,6 +602,21 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
         None
     }
 
+    /// Returns the rule hash target given an element.
+    fn rule_hash_target(&self) -> Self {
+        let is_implemented_pseudo =
+            self.implemented_pseudo_element().is_some();
+
+        // NB: This causes use to rule has pseudo selectors based on the
+        // properties of the originating element (which is fine, given the
+        // find_first_from_right usage).
+        if is_implemented_pseudo {
+            self.closest_non_native_anonymous_ancestor().unwrap()
+        } else {
+            *self
+        }
+    }
+
     /// Gets declarations from XBL bindings from the element. Only gecko element could have this.
     fn get_declarations_from_xbl_bindings<V>(&self,
                                              _pseudo_element: Option<&PseudoElement>,

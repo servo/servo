@@ -957,22 +957,6 @@ impl Stylist {
         }
     }
 
-    /// Returns the rule hash target given an element.
-    fn rule_hash_target<E>(&self, element: E) -> E
-        where E: TElement
-    {
-        let is_implemented_pseudo =
-            element.implemented_pseudo_element().is_some();
-
-        // NB: This causes use to rule has pseudo selectors based on the
-        // properties of the originating element (which is fine, given the
-        // find_first_from_right usage).
-        if is_implemented_pseudo {
-            element.closest_non_native_anonymous_ancestor().unwrap()
-        } else {
-            element
-        }
-    }
 
     /// Returns the applicable CSS declarations for the given element by
     /// treating us as an XBL stylesheet-only stylist.
@@ -991,7 +975,7 @@ impl Stylist {
             Some(map) => map,
             None => return,
         };
-        let rule_hash_target = self.rule_hash_target(*element);
+        let rule_hash_target = element.rule_hash_target();
 
         // nsXBLPrototypeResources::ComputeServoStyleSet() added XBL stylesheets under author
         // (doc) level.
@@ -1037,7 +1021,7 @@ impl Stylist {
             Some(map) => map,
             None => return,
         };
-        let rule_hash_target = self.rule_hash_target(*element);
+        let rule_hash_target = element.rule_hash_target();
 
         debug!("Determining if style is shareable: pseudo: {}",
                pseudo_element.is_some());
@@ -1099,8 +1083,8 @@ impl Stylist {
 
         // Step 3b: XBL rules.
         let cut_off_inheritance =
-            rule_hash_target.get_declarations_from_xbl_bindings(pseudo_element,
-                                                                applicable_declarations);
+            element.get_declarations_from_xbl_bindings(pseudo_element,
+                                                       applicable_declarations);
         debug!("XBL: {:?}", context.relations);
 
         if rule_hash_target.matches_user_and_author_rules() && !only_default_rules {
