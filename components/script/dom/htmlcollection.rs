@@ -224,11 +224,9 @@ impl HTMLCollection {
 
     pub fn elements_iter_after<'a>(&'a self, after: &'a Node) -> impl Iterator<Item=Root<Element>> + 'a {
         // Iterate forwards from a node.
-        HTMLCollectionElementsIter {
-            node_iter: after.following_nodes(&self.root),
-            root: Root::from_ref(&self.root),
-            filter: &self.filter,
-        }
+        after.following_nodes(&self.root)
+            .filter_map(Root::downcast)
+            .filter(move |element| self.filter.filter(&element, &self.root))
     }
 
     pub fn elements_iter<'a>(&'a self) -> impl Iterator<Item=Root<Element>> + 'a {
@@ -238,35 +236,13 @@ impl HTMLCollection {
 
     pub fn elements_iter_before<'a>(&'a self, before: &'a Node) -> impl Iterator<Item=Root<Element>> + 'a {
         // Iterate backwards from a node.
-        HTMLCollectionElementsIter {
-            node_iter: before.preceding_nodes(&self.root),
-            root: Root::from_ref(&self.root),
-            filter: &self.filter,
-        }
+        before.preceding_nodes(&self.root)
+            .filter_map(Root::downcast)
+            .filter(move |element| self.filter.filter(&element, &self.root))
     }
 
     pub fn root_node(&self) -> Root<Node> {
         Root::from_ref(&self.root)
-    }
-}
-
-// TODO: Make this generic, and avoid code duplication
-struct HTMLCollectionElementsIter<'a, I> {
-    node_iter: I,
-    root: Root<Node>,
-    filter: &'a Box<CollectionFilter>,
-}
-
-impl<'a, I: Iterator<Item=Root<Node>>> Iterator for HTMLCollectionElementsIter<'a, I> {
-    type Item = Root<Element>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let filter = &self.filter;
-        let root = &self.root;
-        self.node_iter.by_ref()
-                      .filter_map(Root::downcast)
-                      .filter(|element| filter.filter(&element, root))
-                      .next()
     }
 }
 
