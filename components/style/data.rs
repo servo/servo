@@ -99,10 +99,14 @@ impl RestyleData {
     }
 }
 
-/// A list of styles for eagerly-cascaded pseudo-elements.
-/// Lazily-allocated.
+/// A lazily-allocated list of styles for eagerly-cascaded pseudo-elements.
+///
+/// We use an Arc so that sharing these styles via the style sharing cache does
+/// not require duplicate allocations. We leverage the copy-on-write semantics of
+/// Arc::make_mut(), which is free (i.e. does not require atomic RMU operations)
+/// in servo_arc.
 #[derive(Clone, Debug)]
-pub struct EagerPseudoStyles(Option<Box<EagerPseudoArray>>);
+pub struct EagerPseudoStyles(Option<Arc<EagerPseudoArray>>);
 
 #[derive(Debug, Default)]
 struct EagerPseudoArray(EagerPseudoArrayInner);
@@ -156,7 +160,10 @@ impl EagerPseudoStyles {
     /// Returns a mutable reference to the style for a given eager pseudo, if it exists.
     pub fn get_mut(&mut self, pseudo: &PseudoElement) -> Option<&mut Arc<ComputedValues>> {
         debug_assert!(pseudo.is_eager());
-        self.0.as_mut().and_then(|p| p[pseudo.eager_index()].as_mut())
+        match self.0 {
+            None => return None,
+            Some(ref mut arc) => Arc::make_mut(arc)[pseudo.eager_index()].as_mut(),
+        }
     }
 
     /// Returns true if the EagerPseudoStyles has the style for |pseudo|.
@@ -167,9 +174,10 @@ impl EagerPseudoStyles {
     /// Sets the style for the eager pseudo.
     pub fn set(&mut self, pseudo: &PseudoElement, value: Arc<ComputedValues>) {
         if self.0.is_none() {
-            self.0 = Some(Box::new(Default::default()));
+            self.0 = Some(Arc::new(Default::default()));
         }
-        self.0.as_mut().unwrap()[pseudo.eager_index()] = Some(value);
+        let arr = Arc::make_mut(self.0.as_mut().unwrap());
+        arr[pseudo.eager_index()] = Some(value);
     }
 
     /// Inserts a pseudo-element. The pseudo-element must not already exist.
@@ -180,9 +188,9 @@ impl EagerPseudoStyles {
 
     /// Removes a pseudo-element style if it exists, and returns it.
     pub fn take(&mut self, pseudo: &PseudoElement) -> Option<Arc<ComputedValues>> {
-        let result = match self.0.as_mut() {
+        let result = match self.0 {
             None => return None,
-            Some(arr) => arr[pseudo.eager_index()].take(),
+            Some(ref mut arc) => Arc::make_mut(arc)[pseudo.eager_index()].take(),
         };
         let empty = self.0.as_ref().unwrap().iter().all(|x| x.is_none());
         if empty {
