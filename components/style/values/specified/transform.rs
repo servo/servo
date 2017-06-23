@@ -124,6 +124,13 @@ impl<S> ToComputedValue for OriginComponent<S>
     }
 }
 
+impl<S> OriginComponent<S> {
+    /// `0%`
+    pub fn zero() -> Self {
+        OriginComponent::Length(LengthOrPercentage::Percentage(Percentage(0.)))
+    }
+}
+
 impl Parse for TimingFunction {
     fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         if let Ok(keyword) = input.try(TimingKeyword::parse) {

@@ -193,7 +193,7 @@
                     spec="https://drafts.csswg.org/css-backgrounds-4/#the-background-position">
     use properties::longhands::{background_position_x, background_position_y};
     use values::specified::AllowQuirks;
-    use values::specified::position::{Position, PositionSyntax};
+    use values::specified::position::Position;
 
     pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                -> Result<Longhands, ParseError<'i>> {
@@ -202,7 +202,7 @@
         let mut any = false;
 
         input.parse_comma_separated(|input| {
-            let value = Position::parse_quirky(context, input, AllowQuirks::Yes, PositionSyntax::Modern)?;
+            let value = Position::parse_quirky(context, input, AllowQuirks::Yes)?;
             position_x.0.push(value.horizontal);
             position_y.0.push(value.vertical);
             any = true;

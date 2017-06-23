@@ -19,6 +19,8 @@ use std::f32::consts::PI;
 use std::fmt;
 use style_traits::{ToCss, ParseError, StyleParseError};
 use values::{Either, None_};
+#[cfg(feature = "gecko")]
+use values::computed::{Context, Position as ComputedPosition, ToComputedValue};
 use values::generics::image::{Circle, CompatMode, Ellipse, ColorStop as GenericColorStop};
 use values::generics::image::{EndingShape as GenericEndingShape, Gradient as GenericGradient};
 use values::generics::image::{GradientItem as GenericGradientItem, GradientKind as GenericGradientKind};
@@ -28,7 +30,7 @@ use values::generics::image::PaintWorklet;
 use values::generics::position::Position as GenericPosition;
 use values::specified::{Angle, Color, Length, LengthOrPercentage};
 use values::specified::{Number, NumberOrPercentage, Percentage, RGBAColor};
-use values::specified::position::{Position, PositionComponent, Side, X, Y};
+use values::specified::position::{LegacyPosition, Position, PositionComponent, Side, X, Y};
 use values::specified::url::SpecifiedUrl;
 
 /// A specified image layer.
@@ -40,6 +42,7 @@ pub type Image = GenericImage<Gradient, ImageRect>;
 
 /// Specified values for a CSS gradient.
 /// https://drafts.csswg.org/css-images/#gradients
+#[cfg(not(feature = "gecko"))]
 pub type Gradient = GenericGradient<
     LineDirection,
     Length,
@@ -49,12 +52,35 @@ pub type Gradient = GenericGradient<
     Angle,
 >;
 
+/// Specified values for a CSS gradient.
+/// https://drafts.csswg.org/css-images/#gradients
+#[cfg(feature = "gecko")]
+pub type Gradient = GenericGradient<
+    LineDirection,
+    Length,
+    LengthOrPercentage,
+    GradientPosition,
+    RGBAColor,
+    Angle,
+>;
+
 /// A specified gradient kind.
+#[cfg(not(feature = "gecko"))]
 pub type GradientKind = GenericGradientKind<
     LineDirection,
     Length,
     LengthOrPercentage,
     Position,
+    Angle,
+>;
+
+/// A specified gradient kind.
+#[cfg(feature = "gecko")]
+pub type GradientKind = GenericGradientKind<
+    LineDirection,
+    Length,
+    LengthOrPercentage,
+    GradientPosition,
     Angle,
 >;
 
@@ -75,7 +101,17 @@ pub enum LineDirection {
     /// uses legacy syntax for position. That means we can't specify both keyword and
     /// length for each horizontal/vertical components.
     #[cfg(feature = "gecko")]
-    MozPosition(Option<Position>, Option<Angle>),
+    MozPosition(Option<LegacyPosition>, Option<Angle>),
+}
+
+/// A binary enum to hold either Position or LegacyPosition.
+#[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
+#[cfg(feature = "gecko")]
+pub enum GradientPosition {
+    /// 1, 2, 3, 4-valued <position>.
+    Modern(Position),
+    /// 1, 2-valued <position>.
+    Legacy(LegacyPosition),
 }
 
 /// A specified ending shape.
@@ -395,10 +431,19 @@ impl Gradient {
                 };
 
                 let shape = GenericEndingShape::Circle(Circle::Radius(Length::from_px(radius.value)));
-                let position = point.into();
-                let kind = GenericGradientKind::Radial(shape, position, None);
+                let position: Position = point.into();
 
-                (kind, reverse_stops)
+                #[cfg(feature = "gecko")]
+                {
+                    let kind = GenericGradientKind::Radial(shape, GradientPosition::Modern(position), None);
+                    (kind, reverse_stops)
+                }
+
+                #[cfg(not(feature = "gecko"))]
+                {
+                    let kind = GenericGradientKind::Radial(shape, position, None);
+                    (kind, reverse_stops)
+                }
             },
             _ => return Err(SelectorParseError::UnexpectedIdent(ident.clone()).into()),
         };
@@ -504,14 +549,14 @@ impl GradientKind {
                             input: &mut Parser<'i, 't>,
                             compat_mode: &mut CompatMode)
                             -> Result<Self, ParseError<'i>> {
-        let (shape, position, angle) = match *compat_mode {
+        let (shape, position, angle, moz_position) = match *compat_mode {
             CompatMode::Modern => {
                 let shape = input.try(|i| EndingShape::parse(context, i, *compat_mode));
                 let position = input.try(|i| {
                     i.expect_ident_matching("at")?;
                     Position::parse(context, i)
                 });
-                (shape, position, None)
+                (shape, position.ok(), None, None)
             },
             CompatMode::WebKit => {
                 let position = input.try(|i| Position::parse(context, i));
@@ -521,7 +566,7 @@ impl GradientKind {
                     }
                     EndingShape::parse(context, i, *compat_mode)
                 });
-                (shape, position, None)
+                (shape, position.ok(), None, None)
             },
             // The syntax of `-moz-` prefixed radial gradient is:
             // -moz-radial-gradient(
@@ -534,10 +579,10 @@ impl GradientKind {
             //                          cover | contain
             // and <color-stop>     = <color> [ <percentage> | <length> ]?
             CompatMode::Moz => {
-                let mut position = input.try(|i| Position::parse_legacy(context, i));
+                let mut position = input.try(|i| LegacyPosition::parse(context, i));
                 let angle = input.try(|i| Angle::parse(context, i)).ok();
                 if position.is_err() {
-                    position = input.try(|i| Position::parse_legacy(context, i));
+                    position = input.try(|i| LegacyPosition::parse(context, i));
                 }
 
                 let shape = input.try(|i| {
@@ -547,23 +592,39 @@ impl GradientKind {
                     EndingShape::parse(context, i, *compat_mode)
                 });
 
-                (shape, position, angle)
+                (shape, None, angle, position.ok())
             }
         };
 
-        if shape.is_ok() || position.is_ok() || angle.is_some() {
+        if shape.is_ok() || position.is_some() || angle.is_some() || moz_position.is_some() {
             input.expect_comma()?;
         }
 
         let shape = shape.unwrap_or({
             GenericEndingShape::Ellipse(Ellipse::Extent(ShapeExtent::FarthestCorner))
         });
-        let position = position.unwrap_or(Position::center());
-        // If this form can be represented in Modern mode, then convert the compat_mode to Modern.
-        if *compat_mode == CompatMode::Moz && angle.is_none() {
-            *compat_mode = CompatMode::Modern;
+
+        #[cfg(feature = "gecko")]
+        {
+            if *compat_mode == CompatMode::Moz {
+                // If this form can be represented in Modern mode, then convert the compat_mode to Modern.
+                if angle.is_none() {
+                    *compat_mode = CompatMode::Modern;
+                }
+                let position = moz_position.unwrap_or(LegacyPosition::center());
+                return Ok(GenericGradientKind::Radial(shape, GradientPosition::Legacy(position), angle));
+            }
         }
-        Ok(GenericGradientKind::Radial(shape, position, angle))
+
+        let position = position.unwrap_or(Position::center());
+        #[cfg(feature = "gecko")]
+        {
+            return Ok(GenericGradientKind::Radial(shape, GradientPosition::Modern(position), angle));
+        }
+        #[cfg(not(feature = "gecko"))]
+        {
+            return Ok(GenericGradientKind::Radial(shape, position, angle));
+        }
     }
 }
 
@@ -653,12 +714,11 @@ impl LineDirection {
                 _ => {},
             }
 
-            
             #[cfg(feature = "gecko")]
             {
                 // `-moz-` prefixed linear gradient can be both Angle and Position.
                 if *compat_mode == CompatMode::Moz {
-                    let position = i.try(|i| Position::parse_legacy(context, i)).ok();
+                    let position = i.try(|i| LegacyPosition::parse(context, i)).ok();
                     if _angle.is_none() {
                         _angle = i.try(|i| Angle::parse(context, i)).ok();
                     };
@@ -682,6 +742,22 @@ impl LineDirection {
             }
             Ok(LineDirection::Vertical(y))
         })
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl ToComputedValue for GradientPosition {
+    type ComputedValue = ComputedPosition;
+
+    fn to_computed_value(&self, context: &Context) -> ComputedPosition {
+        match *self {
+            GradientPosition::Modern(ref pos) => pos.to_computed_value(context),
+            GradientPosition::Legacy(ref pos) => pos.to_computed_value(context),
+        }
+    }
+
+    fn from_computed_value(computed: &ComputedPosition) -> Self {
+        GradientPosition::Modern(ToComputedValue::from_computed_value(computed))
     }
 }
 
