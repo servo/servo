@@ -1765,7 +1765,9 @@ pub mod style_structs {
             /// Returns whether there are any transitions specified.
             #[cfg(feature = "servo")]
             pub fn specifies_transitions(&self) -> bool {
-                self.transition_property_count() > 0
+                self.transition_duration_iter()
+                    .take(self.transition_property_count())
+                    .any(|t| t.seconds() > 0.)
             }
         % endif
     }
