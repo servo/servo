@@ -7,7 +7,7 @@
 use app_units::Au;
 use context::QuirksMode;
 use cssparser::{Parser, RGBA};
-use euclid::{Size2D, TypedSize2D};
+use euclid::{ScaleFactor, Size2D, TypedSize2D};
 use font_metrics::ServoMetricsProvider;
 use media_queries::MediaType;
 use parser::ParserContext;
@@ -16,7 +16,7 @@ use properties::longhands::font_size;
 use selectors::parser::SelectorParseError;
 use std::fmt;
 use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
-use style_traits::{CSSPixel, ToCss, ParseError};
+use style_traits::{CSSPixel, DevicePixel, ToCss, ParseError};
 use style_traits::viewport::ViewportConstraints;
 use values::computed::{self, ToComputedValue};
 use values::specified;
@@ -31,6 +31,8 @@ pub struct Device {
     media_type: MediaType,
     /// The current viewport size, in CSS pixels.
     viewport_size: TypedSize2D<f32, CSSPixel>,
+    /// The current device pixel ratio, from CSS pixels to device pixels.
+    device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
 
     /// The font size of the root element
     /// This is set when computing the style of the root
@@ -51,11 +53,13 @@ pub struct Device {
 impl Device {
     /// Trivially construct a new `Device`.
     pub fn new(media_type: MediaType,
-               viewport_size: TypedSize2D<f32, CSSPixel>)
+               viewport_size: TypedSize2D<f32, CSSPixel>,
+               device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>)
                -> Device {
         Device {
             media_type: media_type,
             viewport_size: viewport_size,
+            device_pixel_ratio: device_pixel_ratio,
             root_font_size: AtomicIsize::new(font_size::get_initial_value().0 as isize), // FIXME(bz): Seems dubious?
             used_root_font_size: AtomicBool::new(false),
         }
@@ -97,6 +101,11 @@ impl Device {
     #[inline]
     pub fn px_viewport_size(&self) -> TypedSize2D<f32, CSSPixel> {
         self.viewport_size
+    }
+
+    /// Returns the device pixel ratio.
+    pub fn device_pixel_ratio(&self) -> ScaleFactor<f32, CSSPixel, DevicePixel> {
+        self.device_pixel_ratio
     }
 
     /// Take into account a viewport rule taken from the stylesheets.

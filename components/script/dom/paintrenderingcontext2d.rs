@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
 use canvas_traits::CanvasData;
 use canvas_traits::CanvasMsg;
 use canvas_traits::FromLayoutMsg;
@@ -26,12 +25,18 @@ use dom::canvaspattern::CanvasPattern;
 use dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use dom_struct::dom_struct;
+use euclid::ScaleFactor;
 use euclid::Size2D;
+use euclid::TypedSize2D;
 use ipc_channel::ipc::IpcSender;
+use std::cell::Cell;
+use style_traits::CSSPixel;
+use style_traits::DevicePixel;
 
 #[dom_struct]
 pub struct PaintRenderingContext2D {
     context: CanvasRenderingContext2D,
+    device_pixel_ratio: Cell<ScaleFactor<f32, CSSPixel, DevicePixel>>,
 }
 
 impl PaintRenderingContext2D {
@@ -39,6 +44,7 @@ impl PaintRenderingContext2D {
         let size = Size2D::zero();
         PaintRenderingContext2D {
             context: CanvasRenderingContext2D::new_inherited(global.upcast(), None, size),
+            device_pixel_ratio: Cell::new(ScaleFactor::new(1.0)),
         }
     }
 
@@ -53,9 +59,21 @@ impl PaintRenderingContext2D {
         let _ = self.context.ipc_renderer().send(msg);
     }
 
-    pub fn set_bitmap_dimensions(&self, size: Size2D<Au>) {
-        let size = Size2D::new(size.width.to_px(), size.height.to_px());
-        self.context.set_bitmap_dimensions(size);
+    pub fn set_bitmap_dimensions(&self,
+                                 size: TypedSize2D<f32, CSSPixel>,
+                                 device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>)
+    {
+        let size = size * device_pixel_ratio;
+        self.device_pixel_ratio.set(device_pixel_ratio);
+        self.context.set_bitmap_dimensions(size.to_untyped().to_i32());
+        self.scale_by_device_pixel_ratio();
+    }
+
+    fn scale_by_device_pixel_ratio(&self) {
+        let device_pixel_ratio = self.device_pixel_ratio.get().get() as f64;
+        if device_pixel_ratio != 1.0 {
+            self.Scale(device_pixel_ratio, device_pixel_ratio);
+        }
     }
 }
 
@@ -92,12 +110,14 @@ impl PaintRenderingContext2DMethods for PaintRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform
     fn SetTransform(&self, a: f64, b: f64, c: f64, d: f64, e: f64, f: f64) {
-        self.context.SetTransform(a, b, c, d, e, f)
+        self.context.SetTransform(a, b, c, d, e, f);
+        self.scale_by_device_pixel_ratio();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-resettransform
     fn ResetTransform(&self) {
-        self.context.ResetTransform()
+        self.context.ResetTransform();
+        self.scale_by_device_pixel_ratio();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalalpha

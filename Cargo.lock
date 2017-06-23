@@ -2558,7 +2558,6 @@ dependencies = [
 name = "script_traits"
 version = "0.0.1"
 dependencies = [
- "app_units 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bluetooth_traits 0.0.1",
  "canvas_traits 0.0.1",
  "cookie 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",

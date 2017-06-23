@@ -76,7 +76,8 @@ impl MediaQueryList {
     pub fn evaluate(&self) -> bool {
         if let Some(window_size) = self.document.window().window_size() {
             let viewport_size = window_size.initial_viewport;
-            let device = Device::new(MediaType::Screen, viewport_size);
+            let device_pixel_ratio = window_size.device_pixel_ratio;
+            let device = Device::new(MediaType::Screen, viewport_size, device_pixel_ratio);
             self.media_query_list.evaluate(&device, self.document.quirks_mode())
         } else {
             false

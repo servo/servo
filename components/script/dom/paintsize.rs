@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
 use dom::bindings::codegen::Bindings::PaintSizeBinding;
 use dom::bindings::codegen::Bindings::PaintSizeBinding::PaintSizeMethods;
 use dom::bindings::js::Root;
@@ -11,7 +10,8 @@ use dom::bindings::reflector::Reflector;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use dom_struct::dom_struct;
-use euclid::Size2D;
+use euclid::TypedSize2D;
+use style_traits::CSSPixel;
 
 #[dom_struct]
 pub struct PaintSize {
@@ -21,15 +21,15 @@ pub struct PaintSize {
 }
 
 impl PaintSize {
-    fn new_inherited(size: Size2D<Au>) -> PaintSize {
+    fn new_inherited(size: TypedSize2D<f32, CSSPixel>) -> PaintSize {
         PaintSize {
             reflector: Reflector::new(),
-            width: Finite::wrap(size.width.to_px().abs() as f64),
-            height: Finite::wrap(size.height.to_px().abs() as f64),
+            width: Finite::wrap(size.width as f64),
+            height: Finite::wrap(size.height as f64),
         }
     }
 
-    pub fn new(global: &PaintWorkletGlobalScope, size: Size2D<Au>) -> Root<PaintSize> {
+    pub fn new(global: &PaintWorkletGlobalScope, size: TypedSize2D<f32, CSSPixel>) -> Root<PaintSize> {
         reflect_dom_object(box PaintSize::new_inherited(size), global, PaintSizeBinding::Wrap)
     }
 }

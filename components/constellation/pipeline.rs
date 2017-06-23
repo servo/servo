@@ -21,7 +21,7 @@ use net_traits::{IpcSend, ResourceThreads};
 use net_traits::image_cache::ImageCache;
 use profile_traits::mem as profile_mem;
 use profile_traits::time;
-use script_traits::{ConstellationControlMsg, DevicePixel, DiscardBrowsingContext};
+use script_traits::{ConstellationControlMsg, DiscardBrowsingContext};
 use script_traits::{DocumentActivity, InitialScriptState};
 use script_traits::{LayoutControlMsg, LayoutMsg, LoadData, MozBrowserEvent};
 use script_traits::{NewLayoutInfo, SWManagerMsg, SWManagerSenders, ScriptMsg};
@@ -38,6 +38,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
 use style_traits::CSSPixel;
+use style_traits::DevicePixel;
 use webrender_api;
 use webvr_traits::WebVRMsg;
 

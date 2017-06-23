@@ -9,7 +9,6 @@
 #![deny(missing_docs)]
 #![deny(unsafe_code)]
 
-extern crate app_units;
 extern crate bluetooth_traits;
 extern crate canvas_traits;
 extern crate cookie as cookie_rs;
@@ -39,7 +38,6 @@ extern crate webvr_traits;
 mod script_msg;
 pub mod webdriver_msg;
 
-use app_units::Au;
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::CanvasData;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
@@ -68,6 +66,7 @@ use std::fmt;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, RecvTimeoutError};
 use style_traits::CSSPixel;
+use style_traits::DevicePixel;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 use webrender_api::ClipId;
 use webvr_traits::{WebVREvent, WebVRMsg};
@@ -687,12 +686,6 @@ pub struct ScrollState {
     pub scroll_offset: Vector2D<f32>,
 }
 
-/// One hardware pixel.
-///
-/// This unit corresponds to the smallest addressable element of the display hardware.
-#[derive(Copy, Clone, Debug)]
-pub enum DevicePixel {}
-
 /// Data about the window size.
 #[derive(Copy, Clone, Deserialize, Serialize, HeapSizeOf)]
 pub struct WindowSizeData {
@@ -828,7 +821,8 @@ impl From<RecvTimeoutError> for PaintWorkletError {
 pub trait Painter: Sync + Send {
     /// https://drafts.css-houdini.org/css-paint-api/#draw-a-paint-image
     fn draw_a_paint_image(&self,
-                          concrete_object_size: Size2D<Au>,
+                          size: TypedSize2D<f32, CSSPixel>,
+                          zoom: ScaleFactor<f32, CSSPixel, DevicePixel>,
                           properties: Vec<(Atom, String)>,
                           sender: IpcSender<CanvasData>);
 }

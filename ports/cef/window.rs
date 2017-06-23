@@ -23,7 +23,7 @@ use euclid::{Point2D, TypedPoint2D, TypedRect, Size2D, TypedSize2D, ScaleFactor}
 use gleam::gl;
 use msg::constellation_msg::{Key, KeyModifiers};
 use net_traits::net_error_list::NetError;
-use script_traits::{DevicePixel, LoadData};
+use script_traits::LoadData;
 use servo::ipc_channel::ipc::IpcSender;
 use servo_geometry::DeviceIndependentPixel;
 use std::cell::RefCell;
@@ -34,6 +34,7 @@ use std::rc::Rc;
 use std::sync::mpsc::{Sender, channel};
 use servo_url::ServoUrl;
 use style_traits::cursor::Cursor;
+use style_traits::DevicePixel;
 #[cfg(target_os="linux")]
 extern crate x11;
 #[cfg(target_os="linux")]
