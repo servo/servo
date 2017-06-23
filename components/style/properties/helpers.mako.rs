@@ -9,7 +9,7 @@
 
 <%def name="predefined_type(name, type, initial_value, parse_method='parse',
             needs_context=True, vector=False, computed_type=None, initial_specified_value=None,
-            allow_quirks=False, **kwargs)">
+            allow_quirks=False, allow_empty=False, **kwargs)">
     <%def name="predefined_type_inner(name, type, initial_value, parse_method)">
         #[allow(unused_imports)]
         use app_units::Au;
@@ -27,7 +27,9 @@
             pub use values::computed::${type} as T;
             % endif
         }
+        % if initial_value:
         #[inline] pub fn get_initial_value() -> computed_value::T { ${initial_value} }
+        % endif
         % if initial_specified_value:
         #[inline] pub fn get_initial_specified_value() -> SpecifiedValue { ${initial_specified_value} }
         % endif
@@ -46,7 +48,9 @@
         }
     </%def>
     % if vector:
-        <%call expr="vector_longhand(name, predefined_type=type, **kwargs)">
+        <%call
+            expr="vector_longhand(name, predefined_type=type, allow_empty=allow_empty or not initial_value, **kwargs)"
+        >
             ${predefined_type_inner(name, type, initial_value, parse_method)}
             % if caller:
             ${caller.body()}
@@ -202,7 +206,7 @@
             }
 
             pub fn get_initial_value() -> computed_value::T {
-                % if allow_empty:
+                % if allow_empty and allow_empty != "NotInitial":
                     computed_value::T(SmallVec::new())
                 % else:
                     let mut v = SmallVec::new();
