@@ -4,9 +4,11 @@
 
 //! Gecko's media-query device and expression representation.
 
+use app_units::AU_PER_PX;
 use app_units::Au;
 use context::QuirksMode;
 use cssparser::{CssStringWriter, Parser, RGBA, Token, BasicParseError};
+use euclid::ScaleFactor;
 use euclid::Size2D;
 use font_metrics::get_metrics_provider_for_product;
 use gecko::values::convert_nscolor_to_rgba;
@@ -25,6 +27,7 @@ use std::fmt::{self, Write};
 use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
 use str::starts_with_ignore_ascii_case;
 use string_cache::Atom;
+use style_traits::{CSSPixel, DevicePixel};
 use style_traits::{ToCss, ParseError, StyleParseError};
 use style_traits::viewport::ViewportConstraints;
 use values::{CSSFloat, specified};
@@ -151,6 +154,15 @@ impl Device {
             let area = &self.pres_context().mVisibleArea;
             Size2D::new(Au(area.width), Au(area.height))
         })
+    }
+
+    /// Returns the device pixel ratio.
+    pub fn device_pixel_ratio(&self) -> ScaleFactor<f32, CSSPixel, DevicePixel> {
+        let override_dppx = self.pres_context().mOverrideDPPX;
+        if override_dppx > 0.0 { return ScaleFactor::new(override_dppx); }
+        let au_per_dpx = self.pres_context().mCurAppUnitsPerDevPixel as f32;
+        let au_per_px = AU_PER_PX as f32;
+        ScaleFactor::new(au_per_px / au_per_dpx)
     }
 
     /// Returns whether document colors are enabled.
