@@ -352,7 +352,7 @@ fn main_fetch(url: ServoUrl,
         // doesn't need to be filtered at all.
 
         // Step 12.2.
-        basic_fetch(&url, origin, &mut headers, http_state)
+        scheme_fetch(&url, origin, &mut headers, http_state)
     });
 
     // Step 13.
@@ -386,8 +386,8 @@ fn main_fetch(url: ServoUrl,
     response
 }
 
-// https://fetch.spec.whatwg.org/#concept-basic-fetch
-fn basic_fetch(url: &ServoUrl,
+// https://fetch.spec.whatwg.org/#concept-scheme-fetch
+fn scheme_fetch(url: &ServoUrl,
                origin: String,
                headers: &mut Headers,
                http_state: &HttpState)

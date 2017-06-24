@@ -184,7 +184,7 @@ pub fn main_fetch(request: &mut Request,
             request.response_tainting = ResponseTainting::Basic;
 
             // Substep 2.
-            basic_fetch(request, cache, target, done_chan, context)
+            scheme_fetch(request, cache, target, done_chan, context)
 
         } else if request.mode == RequestMode::SameOrigin {
             Response::network_error(NetworkError::Internal("Cross-origin response".into()))
@@ -194,7 +194,7 @@ pub fn main_fetch(request: &mut Request,
             request.response_tainting = ResponseTainting::Opaque;
 
             // Substep 2.
-            basic_fetch(request, cache, target, done_chan, context)
+            scheme_fetch(request, cache, target, done_chan, context)
 
         } else if !matches!(current_url.scheme(), "http" | "https") {
             Response::network_error(NetworkError::Internal("Non-http scheme".into()))
@@ -396,7 +396,7 @@ fn wait_for_response(response: &Response, target: Target, done_chan: &mut DoneCh
         let body = response.body.lock().unwrap();
         if let ResponseBody::Done(ref vec) = *body {
             // in case there was no channel to wait for, the body was
-            // obtained synchronously via basic_fetch for data/file/about/etc
+            // obtained synchronously via scheme_fetch for data/file/about/etc
             // We should still send the body across as a chunk
             target.process_response_chunk(vec.clone());
         } else {
@@ -405,8 +405,8 @@ fn wait_for_response(response: &Response, target: Target, done_chan: &mut DoneCh
     }
 }
 
-/// [Basic fetch](https://fetch.spec.whatwg.org#basic-fetch)
-fn basic_fetch(request: &mut Request,
+/// [Scheme fetch](https://fetch.spec.whatwg.org#scheme-fetch)
+fn scheme_fetch(request: &mut Request,
                cache: &mut CorsCache,
                target: Target,
                done_chan: &mut DoneChannel,
