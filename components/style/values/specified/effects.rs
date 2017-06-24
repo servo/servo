@@ -13,6 +13,7 @@ use values::computed::{Context, Number as ComputedNumber, ToComputedValue};
 use values::computed::effects::SimpleShadow as ComputedSimpleShadow;
 use values::generics::effects::Filter as GenericFilter;
 use values::generics::effects::FilterList as GenericFilterList;
+use values::generics::effects::SimpleShadow as GenericSimpleShadow;
 use values::specified::{Angle, Percentage};
 use values::specified::color::Color;
 use values::specified::length::Length;
@@ -43,21 +44,7 @@ pub enum Factor {
 }
 
 /// A specified value for the `drop-shadow()` filter.
-///
-/// Contrary to the canonical order from the spec, the color is serialised
-/// first, like in Gecko's computed values and in all Webkit's values.
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
-pub struct SimpleShadow {
-    /// Color.
-    pub color: Option<Color>,
-    /// Horizontal radius.
-    pub horizontal: Length,
-    /// Vertical radius.
-    pub vertical: Length,
-    /// Blur radius.
-    pub blur: Option<Length>,
-}
+pub type SimpleShadow = GenericSimpleShadow<Option<Color>, Length, Option<Length>>;
 
 impl Parse for FilterList {
     #[inline]

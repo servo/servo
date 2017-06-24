@@ -16,6 +16,7 @@ use values::computed::effects::SimpleShadow as ComputedSimpleShadow;
 use values::computed::length::Length;
 use values::generics::effects::Filter as GenericFilter;
 use values::generics::effects::FilterList as GenericFilterList;
+use values::generics::effects::SimpleShadow as GenericSimpleShadow;
 
 /// An animated value for the `filter` property.
 pub type FilterList = GenericFilterList<Filter>;
@@ -29,21 +30,7 @@ pub type Filter = GenericFilter<Angle, Number, Length, SimpleShadow>;
 pub type Filter = GenericFilter<Angle, Number, Length, Impossible>;
 
 /// An animated value for the `drop-shadow()` filter.
-///
-/// Contrary to the canonical order from the spec, the color is serialised
-/// first, like in Gecko and Webkit.
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, PartialEq)]
-pub struct SimpleShadow {
-    /// Color.
-    pub color: IntermediateColor,
-    /// Horizontal radius.
-    pub horizontal: Length,
-    /// Vertical radius.
-    pub vertical: Length,
-    /// Blur radius.
-    pub blur: Length,
-}
+pub type SimpleShadow = GenericSimpleShadow<IntermediateColor, Length, Length>;
 
 #[cfg(feature = "gecko")]
 impl From<ComputedFilterList> for FilterList {
