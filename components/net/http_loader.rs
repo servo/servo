@@ -9,7 +9,8 @@ use cookie_storage::CookieStorage;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest};
 use devtools_traits::{HttpResponse as DevtoolsHttpResponse, NetworkEvent};
 use fetch::cors_cache::CorsCache;
-use fetch::methods::{Data, DoneChannel, FetchContext, Target, is_simple_header, is_simple_method, main_fetch};
+use fetch::methods::{Data, DoneChannel, FetchContext, Target};
+use fetch::methods::{is_cors_safelisted_request_header, is_cors_safelisted_method, main_fetch};
 use flate2::read::{DeflateDecoder, GzDecoder};
 use hsts::HstsList;
 use hyper::Error as HttpError;
@@ -573,10 +574,10 @@ pub fn http_fetch(request: &mut Request,
             let method_cache_match = cache.match_method(&*request,
                                                         request.method.clone());
 
-            let method_mismatch = !method_cache_match && (!is_simple_method(&request.method) ||
+            let method_mismatch = !method_cache_match && (!is_cors_safelisted_method(&request.method) ||
                                                           request.use_cors_preflight);
             let header_mismatch = request.headers.iter().any(|view|
-                !cache.match_header(&*request, view.name()) && !is_simple_header(&view)
+                !cache.match_header(&*request, view.name()) && !is_cors_safelisted_request_header(&view)
             );
 
             // Sub-substep 1
@@ -1269,7 +1270,7 @@ fn cors_preflight_fetch(request: &Request,
     // Step 3, 4
     let mut value = request.headers
         .iter()
-        .filter(|view| !is_simple_header(view))
+        .filter(|view| !is_cors_safelisted_request_header(view))
         .map(|view| UniCase(view.name().to_owned()))
         .collect::<Vec<UniCase<String>>>();
     value.sort();
@@ -1315,14 +1316,15 @@ fn cors_preflight_fetch(request: &Request,
         debug!("CORS check: Allowed methods: {:?}, current method: {:?}",
                 methods, request.method);
         if methods.iter().all(|method| *method != request.method) &&
-            !is_simple_method(&request.method) {
+            !is_cors_safelisted_method(&request.method) {
             return Response::network_error(NetworkError::Internal("CORS method check failed".into()));
         }
 
         // Substep 6
         debug!("CORS check: Allowed headers: {:?}, current headers: {:?}", header_names, request.headers);
         let set: HashSet<&UniCase<String>> = HashSet::from_iter(header_names.iter());
-        if request.headers.iter().any(|ref hv| !set.contains(&UniCase(hv.name().to_owned())) && !is_simple_header(hv)) {
+        if request.headers.iter().any(
+            |ref hv| !set.contains(&UniCase(hv.name().to_owned())) && !is_cors_safelisted_request_header(hv)) {
             return Response::network_error(NetworkError::Internal("CORS headers check failed".into()));
         }
 

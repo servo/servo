@@ -102,12 +102,14 @@ pub struct Response {
     pub cache_state: CacheState,
     pub https_state: HttpsState,
     pub referrer: Option<ServoUrl>,
+    pub referrer_policy: Option<ReferrerPolicy>,
+    /// [CORS-exposed header-name list](https://fetch.spec.whatwg.org/#concept-response-cors-exposed-header-name-list)
+    pub cors_exposed_header_name_list: Vec<String>,
     /// [Internal response](https://fetch.spec.whatwg.org/#concept-internal-response), only used if the Response
     /// is a filtered response
     pub internal_response: Option<Box<Response>>,
     /// whether or not to try to return the internal_response when asked for actual_response
     pub return_internal: bool,
-    pub referrer_policy: Option<ReferrerPolicy>,
 }
 
 impl Response {
@@ -125,6 +127,7 @@ impl Response {
             https_state: HttpsState::None,
             referrer: None,
             referrer_policy: None,
+            cors_exposed_header_name_list: vec![],
             internal_response: None,
             return_internal: true,
         }
@@ -151,6 +154,7 @@ impl Response {
             https_state: HttpsState::None,
             referrer: None,
             referrer_policy: None,
+            cors_exposed_header_name_list: vec![],
             internal_response: None,
             return_internal: true,
         }

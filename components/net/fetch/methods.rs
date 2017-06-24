@@ -10,14 +10,14 @@ use filemanager_thread::FileManager;
 use http_loader::{HttpState, determine_request_referrer, http_fetch};
 use http_loader::{set_default_accept, set_default_accept_language};
 use hyper::{Error, Result as HyperResult};
-use hyper::header::{Accept, AcceptLanguage, ContentLanguage, ContentType};
+use hyper::header::{Accept, AcceptLanguage, AccessControlExposeHeaders, ContentLanguage, ContentType};
 use hyper::header::{Header, HeaderFormat, HeaderView, Headers, Referer as RefererHeader};
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
 use mime_guess::guess_mime_type;
 use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy};
-use net_traits::request::{Referrer, Request, RequestMode, ResponseTainting};
+use net_traits::request::{CredentialsMode, Referrer, Request, RequestMode, ResponseTainting};
 use net_traits::request::{Type, Origin, Window};
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use servo_url::ServoUrl;
@@ -106,9 +106,8 @@ pub fn main_fetch(request: &mut Request,
 
     // Step 2.
     if request.local_urls_only {
-        match request.current_url().scheme() {
-            "about" | "blob" | "data" | "filesystem" => (), // Ok, the URL is local.
-            _ => response = Some(Response::network_error(NetworkError::Internal("Non-local scheme".into())))
+        if !matches!(request.current_url().scheme(), "about" | "blob" | "data" | "filesystem") {
+            response = Some(Response::network_error(NetworkError::Internal("Non-local scheme".into())));
         }
     }
 
@@ -129,8 +128,7 @@ pub fn main_fetch(request: &mut Request,
     // TODO: handle request's client's referrer policy.
 
     // Step 7.
-    let referrer_policy = request.referrer_policy.unwrap_or(ReferrerPolicy::NoReferrerWhenDowngrade);
-    request.referrer_policy = Some(referrer_policy);
+    request.referrer_policy = request.referrer_policy.or(Some(ReferrerPolicy::NoReferrerWhenDowngrade));
 
     // Step 8.
     {
@@ -146,7 +144,7 @@ pub fn main_fetch(request: &mut Request,
                 request.headers.remove::<RefererHeader>();
                 let current_url = request.current_url().clone();
                 determine_request_referrer(&mut request.headers,
-                                           referrer_policy,
+                                           request.referrer_policy.unwrap(),
                                            url,
                                            current_url)
             }
@@ -167,7 +165,7 @@ pub fn main_fetch(request: &mut Request,
     // Not applicable: see fetch_async.
 
     // Step 12.
-    let response = response.unwrap_or_else(|| {
+    let mut response = response.unwrap_or_else(|| {
         let current_url = request.current_url();
         let same_origin = if let Origin::Origin(ref origin) = request.origin {
             *origin == current_url.origin()
@@ -177,16 +175,25 @@ pub fn main_fetch(request: &mut Request,
 
         if (same_origin && !cors_flag ) ||
             current_url.scheme() == "data" ||
-            current_url.scheme() == "file" ||
+            current_url.scheme() == "file" || // FIXME: Fetch spec has already dropped filtering against file:
+                                              //        and about: schemes, but CSS tests will break on loading Ahem
+                                              //        since we load them through a file: URL.
             current_url.scheme() == "about" ||
             request.mode == RequestMode::Navigate {
+            // Substep 1.
+            request.response_tainting = ResponseTainting::Basic;
+
+            // Substep 2.
             basic_fetch(request, cache, target, done_chan, context)
 
         } else if request.mode == RequestMode::SameOrigin {
             Response::network_error(NetworkError::Internal("Cross-origin response".into()))
 
         } else if request.mode == RequestMode::NoCors {
+            // Substep 1.
             request.response_tainting = ResponseTainting::Opaque;
+
+            // Substep 2.
             basic_fetch(request, cache, target, done_chan, context)
 
         } else if !matches!(current_url.scheme(), "http" | "https") {
@@ -194,18 +201,24 @@ pub fn main_fetch(request: &mut Request,
 
         } else if request.use_cors_preflight ||
             (request.unsafe_request &&
-                (!is_simple_method(&request.method) ||
-                request.headers.iter().any(|h| !is_simple_header(&h)))) {
+                (!is_cors_safelisted_method(&request.method) ||
+                request.headers.iter().any(|h| !is_cors_safelisted_request_header(&h)))) {
+            // Substep 1.
             request.response_tainting = ResponseTainting::CorsTainting;
+            // Substep 2.
             let response = http_fetch(request, cache, true, true, false,
                                         target, done_chan, context);
+            // Substep 3.
             if response.is_network_error() {
                 // TODO clear cache entries using request
             }
+            // Substep 4.
             response
 
         } else {
+            // Substep 1.
             request.response_tainting = ResponseTainting::CorsTainting;
+            // Substep 2.
             http_fetch(request, cache, true, false, false, target, done_chan, context)
         }
     });
@@ -216,9 +229,28 @@ pub fn main_fetch(request: &mut Request,
     }
 
     // Step 14.
-    // We don't need to check whether response is a network error,
-    // given its type would not be `Default` in this case.
-    let mut response = if response.response_type == ResponseType::Default {
+    let mut response = if !response.is_network_error() && response.internal_response.is_none() {
+        // Substep 1.
+        if request.response_tainting == ResponseTainting::CorsTainting {
+            // Subsubstep 1.
+            let header_names = response.headers.get::<AccessControlExposeHeaders>();
+            match header_names {
+                // Subsubstep 2.
+                Some(list) if request.credentials_mode != CredentialsMode::Include => {
+                    if list.iter().any(|s| **s == "*".to_owned()) {
+                        response.cors_exposed_header_name_list =
+                            response.headers.iter().map(|h| h.name().to_owned()).collect();
+                    }
+                },
+                // Subsubstep 3.
+                Some(list) => {
+                    response.cors_exposed_header_name_list = list.iter().map(|h| (**h).clone()).collect();
+                },
+                _ => (),
+            }
+        }
+
+        // Substep 2.
         let response_type = match request.response_tainting {
             ResponseTainting::Basic => ResponseType::Basic,
             ResponseTainting::CorsTainting => ResponseType::Cors,
@@ -462,7 +494,7 @@ fn basic_fetch(request: &mut Request,
 }
 
 /// https://fetch.spec.whatwg.org/#cors-safelisted-request-header
-pub fn is_simple_header(h: &HeaderView) -> bool {
+pub fn is_cors_safelisted_request_header(h: &HeaderView) -> bool {
     if h.is::<ContentType>() {
         match h.value() {
             Some(&ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) |
@@ -476,7 +508,8 @@ pub fn is_simple_header(h: &HeaderView) -> bool {
     }
 }
 
-pub fn is_simple_method(m: &Method) -> bool {
+// https://fetch.spec.whatwg.org/#cors-safelisted-method
+pub fn is_cors_safelisted_method(m: &Method) -> bool {
     match *m {
         Method::Get | Method::Head | Method::Post => true,
         _ => false
