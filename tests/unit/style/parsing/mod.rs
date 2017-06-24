@@ -5,6 +5,7 @@
 //! Tests for parsing and serialization of values/properties
 
 use cssparser::{Parser, ParserInput};
+use euclid::ScaleFactor;
 use euclid::TypedSize2D;
 use media_queries::CSSErrorReporterTest;
 use style::context::QuirksMode;
@@ -50,7 +51,7 @@ fn assert_computed_serialization<C, F, T>(f: F, input: &'static str, output: &st
 {
     let viewport_size = TypedSize2D::new(0., 0.);
     let initial_style = ComputedValues::initial_values();
-    let device = Device::new(MediaType::Screen, viewport_size);
+    let device = Device::new(MediaType::Screen, viewport_size, ScaleFactor::new(1.0));
 
     let context = Context {
         is_root_element: true,
