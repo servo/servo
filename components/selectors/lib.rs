@@ -7,9 +7,11 @@
 
 #[macro_use] extern crate bitflags;
 #[macro_use] extern crate cssparser;
+#[cfg(feature = "servo")] #[macro_use] extern crate heapsize_derive;
 #[macro_use] extern crate log;
 #[macro_use] extern crate matches;
 extern crate fnv;
+#[cfg(feature = "servo")] extern crate heapsize;
 extern crate phf;
 extern crate precomputed_hash;
 #[cfg(test)] #[macro_use] extern crate size_of_test;

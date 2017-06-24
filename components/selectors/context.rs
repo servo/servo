@@ -49,6 +49,7 @@ pub enum VisitedHandlingMode {
 ///
 /// See: https://quirks.spec.whatwg.org/
 #[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum QuirksMode {
     /// Quirks mode.
     Quirks,
