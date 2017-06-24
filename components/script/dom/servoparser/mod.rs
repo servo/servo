@@ -18,7 +18,7 @@ use dom::characterdata::CharacterData;
 use dom::comment::Comment;
 use dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use dom::documenttype::DocumentType;
-use dom::element::{Element, ElementCreator};
+use dom::element::{Element, ElementCreator, CustomElementCreationMode};
 use dom::globalscope::GlobalScope;
 use dom::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
 use dom::htmlimageelement::HTMLImageElement;
@@ -29,7 +29,7 @@ use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
 use dom::virtualmethods::vtable_for;
 use dom_struct::dom_struct;
-use html5ever::{Attribute, QualName, ExpandedName};
+use html5ever::{Attribute, ExpandedName, LocalName, QualName};
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tendril::{StrTendril, ByteTendril, IncompleteUtf8};
 use html5ever::tree_builder::{NodeOrText, TreeSink, NextParserState, QuirksMode, ElementFlags};
@@ -782,8 +782,15 @@ impl TreeSink for Sink {
 
     fn create_element(&mut self, name: QualName, attrs: Vec<Attribute>, _flags: ElementFlags)
             -> JS<Node> {
-        let elem = Element::create(name, &*self.document,
-                                   ElementCreator::ParserCreated(self.current_line));
+        let is = attrs.iter()
+                      .find(|attr| attr.name.local.eq_str_ignore_ascii_case("is"))
+                      .map(|attr| LocalName::from(&*attr.value));
+
+        let elem = Element::create(name,
+                                   is,
+                                   &*self.document,
+                                   ElementCreator::ParserCreated(self.current_line),
+                                   CustomElementCreationMode::Synchronous);
 
         for attr in attrs {
             elem.set_attribute_from_parser(attr.name, DOMString::from(String::from(attr.value)), None);

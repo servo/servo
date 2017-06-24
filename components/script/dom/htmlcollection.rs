@@ -152,7 +152,7 @@ impl HTMLCollection {
     }
 
     fn match_element(elem: &Element, qualified_name: &LocalName) -> bool {
-        match elem.prefix() {
+        match elem.prefix().as_ref() {
             None => elem.local_name() == qualified_name,
             Some(prefix) => qualified_name.starts_with(&**prefix) &&
                 qualified_name.find(":") == Some(prefix.len()) &&

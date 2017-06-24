@@ -33,7 +33,7 @@ use dom::cssstylesheet::CSSStyleSheet;
 use dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
-use dom::element::{Element, ElementCreator};
+use dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::htmlbodyelement::HTMLBodyElement;
@@ -426,6 +426,11 @@ impl Node {
     // https://dom.spec.whatwg.org/#concept-tree-index
     pub fn index(&self) -> u32 {
         self.preceding_siblings().count() as u32
+    }
+
+    /// Returns true if this node has a parent.
+    pub fn has_parent(&self) -> bool {
+        self.parent_node.get().is_some()
     }
 
     pub fn children_count(&self) -> u32 {
@@ -1818,12 +1823,15 @@ impl Node {
             NodeTypeId::Element(..) => {
                 let element = node.downcast::<Element>().unwrap();
                 let name = QualName {
-                    prefix: element.prefix().map(|p| Prefix::from(&**p)),
+                    prefix: element.prefix().as_ref().map(|p| Prefix::from(&**p)),
                     ns: element.namespace().clone(),
                     local: element.local_name().clone()
                 };
                 let element = Element::create(name,
-                    &document, ElementCreator::ScriptCreated);
+                                              element.get_is(),
+                                              &document,
+                                              ElementCreator::ScriptCreated,
+                                              CustomElementCreationMode::Asynchronous);
                 Root::upcast::<Node>(element)
             },
         };
@@ -2284,7 +2292,7 @@ impl NodeMethods for Node {
             let element = node.downcast::<Element>().unwrap();
             let other_element = other.downcast::<Element>().unwrap();
             (*element.namespace() == *other_element.namespace()) &&
-            (element.prefix() == other_element.prefix()) &&
+            (*element.prefix() == *other_element.prefix()) &&
             (*element.local_name() == *other_element.local_name()) &&
             (element.attrs().len() == other_element.attrs().len())
         }
