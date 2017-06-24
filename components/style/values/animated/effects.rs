@@ -4,13 +4,15 @@
 
 //! Animated types for CSS values related to effects.
 
-use properties::animated_properties::Animatable;
-#[cfg(feature = "gecko")]
-use properties::animated_properties::IntermediateColor;
+use properties::animated_properties::{Animatable, IntermediateColor};
+#[cfg(not(feature = "gecko"))]
+use values::Impossible;
 use values::computed::{Angle, Number};
-use values::computed::effects::DropShadow as ComputedDropShadow;
+#[cfg(feature = "gecko")]
 use values::computed::effects::Filter as ComputedFilter;
+#[cfg(feature = "gecko")]
 use values::computed::effects::FilterList as ComputedFilterList;
+use values::computed::effects::SimpleShadow as ComputedSimpleShadow;
 use values::computed::length::Length;
 use values::generics::effects::Filter as GenericFilter;
 use values::generics::effects::FilterList as GenericFilterList;
@@ -19,29 +21,20 @@ use values::generics::effects::FilterList as GenericFilterList;
 pub type FilterList = GenericFilterList<Filter>;
 
 /// An animated value for a single `filter`.
-pub type Filter = GenericFilter<
-    Angle,
-    // FIXME: Should be `NumberOrPercentage`.
-    Number,
-    Length,
-    DropShadow
->;
+#[cfg(feature = "gecko")]
+pub type Filter = GenericFilter<Angle, Number, Length, SimpleShadow>;
 
-/// An animated value for the `drop-shadow()` filter.
-///
-/// Currently unsupported outside of Gecko.
+/// An animated value for a single `filter`.
 #[cfg(not(feature = "gecko"))]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, PartialEq)]
-pub enum DropShadow {}
+pub type Filter = GenericFilter<Angle, Number, Length, Impossible>;
 
 /// An animated value for the `drop-shadow()` filter.
 ///
 /// Contrary to the canonical order from the spec, the color is serialised
 /// first, like in Gecko and Webkit.
-#[cfg(feature = "gecko")]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug, PartialEq)]
-pub struct DropShadow {
+pub struct SimpleShadow {
     /// Color.
     pub color: IntermediateColor,
     /// Horizontal radius.
@@ -52,6 +45,7 @@ pub struct DropShadow {
     pub blur: Length,
 }
 
+#[cfg(feature = "gecko")]
 impl From<ComputedFilterList> for FilterList {
     #[inline]
     fn from(filters: ComputedFilterList) -> Self {
@@ -59,6 +53,7 @@ impl From<ComputedFilterList> for FilterList {
     }
 }
 
+#[cfg(feature = "gecko")]
 impl From<FilterList> for ComputedFilterList {
     #[inline]
     fn from(filters: FilterList) -> Self {
@@ -66,6 +61,7 @@ impl From<FilterList> for ComputedFilterList {
     }
 }
 
+#[cfg(feature = "gecko")]
 impl From<ComputedFilter> for Filter {
     #[inline]
     fn from(filter: ComputedFilter) -> Self {
@@ -88,6 +84,7 @@ impl From<ComputedFilter> for Filter {
     }
 }
 
+#[cfg(feature = "gecko")]
 impl From<Filter> for ComputedFilter {
     #[inline]
     fn from(filter: Filter) -> Self {
@@ -110,17 +107,10 @@ impl From<Filter> for ComputedFilter {
     }
 }
 
-impl From<ComputedDropShadow> for DropShadow {
-    #[cfg(not(feature = "gecko"))]
+impl From<ComputedSimpleShadow> for SimpleShadow {
     #[inline]
-    fn from(shadow: ComputedDropShadow) -> Self {
-        match shadow {}
-    }
-
-    #[cfg(feature = "gecko")]
-    #[inline]
-    fn from(shadow: ComputedDropShadow) -> Self {
-        DropShadow {
+    fn from(shadow: ComputedSimpleShadow) -> Self {
+        SimpleShadow {
             color: shadow.color.into(),
             horizontal: shadow.horizontal,
             vertical: shadow.vertical,
@@ -129,17 +119,10 @@ impl From<ComputedDropShadow> for DropShadow {
     }
 }
 
-impl From<DropShadow> for ComputedDropShadow {
-    #[cfg(not(feature = "gecko"))]
+impl From<SimpleShadow> for ComputedSimpleShadow {
     #[inline]
-    fn from(shadow: DropShadow) -> Self {
-        match shadow {}
-    }
-
-    #[cfg(feature = "gecko")]
-    #[inline]
-    fn from(shadow: DropShadow) -> Self {
-        ComputedDropShadow {
+    fn from(shadow: SimpleShadow) -> Self {
+        ComputedSimpleShadow {
             color: shadow.color.into(),
             horizontal: shadow.horizontal,
             vertical: shadow.vertical,
@@ -148,14 +131,7 @@ impl From<DropShadow> for ComputedDropShadow {
     }
 }
 
-impl Animatable for DropShadow {
-    #[cfg(not(feature = "gecko"))]
-    #[inline]
-    fn add_weighted(&self, _other: &Self, _self_portion: f64, _other_portion: f64) -> Result<Self, ()> {
-        match *self {}
-    }
-
-    #[cfg(feature = "gecko")]
+impl Animatable for SimpleShadow {
     #[inline]
     fn add_weighted(&self, other: &Self, self_portion: f64, other_portion: f64) -> Result<Self, ()> {
         let color = self.color.add_weighted(&other.color, self_portion, other_portion)?;
@@ -163,7 +139,7 @@ impl Animatable for DropShadow {
         let vertical = self.vertical.add_weighted(&other.vertical, self_portion, other_portion)?;
         let blur = self.blur.add_weighted(&other.blur, self_portion, other_portion)?;
 
-        Ok(DropShadow {
+        Ok(SimpleShadow {
             color: color,
             horizontal: horizontal,
             vertical: vertical,
@@ -171,25 +147,11 @@ impl Animatable for DropShadow {
         })
     }
 
-    #[cfg(not(feature = "gecko"))]
-    #[inline]
-    fn compute_distance(&self, _other: &Self) -> Result<f64, ()> {
-        match *self {}
-    }
-
-    #[cfg(feature = "gecko")]
     #[inline]
     fn compute_distance(&self, other: &Self) -> Result<f64, ()> {
         self.compute_squared_distance(other).map(|sd| sd.sqrt())
     }
 
-    #[cfg(not(feature = "gecko"))]
-    #[inline]
-    fn compute_squared_distance(&self, _other: &Self) -> Result<f64, ()> {
-        match *self {}
-    }
-
-    #[cfg(feature = "gecko")]
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<f64, ()> {
         Ok(

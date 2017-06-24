@@ -36,6 +36,20 @@ define_keyword_type!(None_, "none");
 define_keyword_type!(Auto, "auto");
 define_keyword_type!(Normal, "normal");
 
+/// Convenience void type to disable some properties and values through types.
+#[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
+#[derive(Clone, Copy, Debug, HasViewportPercentage, PartialEq, ToComputedValue, ToCss)]
+pub enum Impossible {}
+
+impl Parse for Impossible {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        _input: &mut Parser<'i, 't>)
+    -> Result<Self, ParseError<'i>> {
+        Err(StyleParseError::UnspecifiedError.into())
+    }
+}
+
 /// A struct representing one of two kinds of values.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Copy, HasViewportPercentage, PartialEq, ToCss)]

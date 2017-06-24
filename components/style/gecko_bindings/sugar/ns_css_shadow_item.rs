@@ -8,7 +8,7 @@ use app_units::Au;
 use gecko::values::{convert_rgba_to_nscolor, convert_nscolor_to_rgba};
 use gecko_bindings::structs::nsCSSShadowItem;
 use values::computed::{Color, Shadow};
-use values::computed::effects::DropShadow;
+use values::computed::effects::SimpleShadow;
 
 impl nsCSSShadowItem {
     /// Set this item to the given shadow value.
@@ -41,9 +41,9 @@ impl nsCSSShadowItem {
         }
     }
 
-    /// Sets this item from the given drop shadow.
+    /// Sets this item from the given simple shadow.
     #[inline]
-    pub fn set_from_drop_shadow(&mut self, shadow: DropShadow) {
+    pub fn set_from_simple_shadow(&mut self, shadow: SimpleShadow) {
         self.mXOffset = shadow.horizontal.0;
         self.mYOffset = shadow.vertical.0;
         self.mRadius = shadow.blur.0;
@@ -60,12 +60,12 @@ impl nsCSSShadowItem {
         }
     }
 
-    /// Returns this item as a drop shadow.
+    /// Returns this item as a simple shadow.
     #[inline]
-    pub fn to_drop_shadow(&self) -> DropShadow {
+    pub fn to_simple_shadow(&self) -> SimpleShadow {
         debug_assert_eq!(self.mSpread, 0);
         debug_assert_eq!(self.mInset, false);
-        DropShadow {
+        SimpleShadow {
             color: Color::rgba(convert_nscolor_to_rgba(self.mColor)),
             horizontal: Au(self.mXOffset),
             vertical: Au(self.mYOffset),

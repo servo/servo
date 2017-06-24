@@ -4,8 +4,9 @@
 
 //! Computed types for CSS values related to effects.
 
+#[cfg(not(feature = "gecko"))]
+use values::Impossible;
 use values::computed::{Angle, Number};
-#[cfg(feature = "gecko")]
 use values::computed::color::Color;
 use values::computed::length::Length;
 use values::generics::effects::Filter as GenericFilter;
@@ -15,29 +16,20 @@ use values::generics::effects::FilterList as GenericFilterList;
 pub type FilterList = GenericFilterList<Filter>;
 
 /// A computed value for a single `filter`.
-pub type Filter = GenericFilter<
-    Angle,
-    // FIXME: Should be `NumberOrPercentage`.
-    Number,
-    Length,
-    DropShadow,
->;
+#[cfg(feature = "gecko")]
+pub type Filter = GenericFilter<Angle, Number, Length, SimpleShadow>;
 
-/// A computed value for the `drop-shadow()` filter.
-///
-/// Currently unsupported outside of Gecko.
+/// A computed value for a single `filter`.
 #[cfg(not(feature = "gecko"))]
-#[cfg_attr(feature = "servo", derive(Deserialize, HeapSizeOf, Serialize))]
-#[derive(Clone, Debug, PartialEq, ToCss)]
-pub enum DropShadow {}
+pub type Filter = GenericFilter<Angle, Number, Length, Impossible>;
 
 /// A computed value for the `drop-shadow()` filter.
 ///
 /// Contrary to the canonical order from the spec, the color is serialised
 /// first, like in Gecko and Webkit.
-#[cfg(feature = "gecko")]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Clone, Debug, PartialEq, ToCss)]
-pub struct DropShadow {
+pub struct SimpleShadow {
     /// Color.
     pub color: Color,
     /// Horizontal radius.
