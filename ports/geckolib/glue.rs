@@ -1452,10 +1452,10 @@ pub extern "C" fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
 {
     let element = GeckoElement(element);
     let data = unsafe { element.ensure_data() }.borrow_mut();
-    let doc_data = PerDocumentStyleData::from_ffi(raw_data);
+    let doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
 
-    debug!("Servo_ResolvePseudoStyle: {:?} {:?}", element,
-           PseudoElement::from_pseudo_type(pseudo_type));
+    debug!("Servo_ResolvePseudoStyle: {:?} {:?}, is_probe: {}",
+           element, PseudoElement::from_pseudo_type(pseudo_type), is_probe);
 
     // FIXME(bholley): Assert against this.
     if !data.has_styles() {
@@ -1463,7 +1463,7 @@ pub extern "C" fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
         return if is_probe {
             Strong::null()
         } else {
-            doc_data.borrow().default_computed_values().clone().into_strong()
+            doc_data.default_computed_values().clone().into_strong()
         };
     }
 
@@ -1472,13 +1472,22 @@ pub extern "C" fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
 
     let global_style_data = &*GLOBAL_STYLE_DATA;
     let guard = global_style_data.shared_lock.read();
-    match get_pseudo_style(&guard, element, &pseudo, RuleInclusion::All,
-                           &data.styles, &*doc_data.borrow()) {
-        Some(values) => values.into_strong(),
-        // FIXME(emilio): This looks pretty wrong! Shouldn't it be at least an
-        // empty style inheriting from the element?
-        None if !is_probe => data.styles.primary().clone().into_strong(),
-        None => Strong::null(),
+    let style = get_pseudo_style(
+        &guard,
+        element,
+        &pseudo,
+        RuleInclusion::All,
+        &data.styles,
+        &*doc_data,
+        is_probe
+    );
+
+    match style {
+        Some(s) => s.into_strong(),
+        None => {
+            debug_assert!(is_probe);
+            Strong::null()
+        }
     }
 }
 
@@ -1502,15 +1511,16 @@ pub extern "C" fn Servo_HasAuthorSpecifiedRules(element: RawGeckoElementBorrowed
                                                      author_colors_allowed)
 }
 
-fn get_pseudo_style(guard: &SharedRwLockReadGuard,
-                    element: GeckoElement,
-                    pseudo: &PseudoElement,
-                    rule_inclusion: RuleInclusion,
-                    styles: &ElementStyles,
-                    doc_data: &PerDocumentStyleDataImpl)
-                    -> Option<Arc<ComputedValues>>
-{
-    match pseudo.cascade_type() {
+fn get_pseudo_style(
+    guard: &SharedRwLockReadGuard,
+    element: GeckoElement,
+    pseudo: &PseudoElement,
+    rule_inclusion: RuleInclusion,
+    styles: &ElementStyles,
+    doc_data: &PerDocumentStyleDataImpl,
+    is_probe: bool,
+) -> Option<Arc<ComputedValues>> {
+    let style = match pseudo.cascade_type() {
         PseudoElementCascadeType::Eager => styles.pseudos.get(&pseudo).map(|s| s.clone()),
         PseudoElementCascadeType::Precomputed => unreachable!("No anonymous boxes"),
         PseudoElementCascadeType::Lazy => {
@@ -1531,7 +1541,18 @@ fn get_pseudo_style(guard: &SharedRwLockReadGuard,
                     &metrics)
                 .map(|s| s.clone())
         },
+    };
+
+    if is_probe {
+        return style;
     }
+
+    Some(style.unwrap_or_else(|| {
+        Arc::new(StyleBuilder::for_inheritance(
+            styles.primary(),
+            doc_data.default_computed_values(),
+        ).build())
+    }))
 }
 
 #[no_mangle]
@@ -2604,9 +2625,21 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
     let data = doc_data.borrow();
     let rule_inclusion = RuleInclusion::from(rule_inclusion);
     let finish = |styles: &ElementStyles| -> Arc<ComputedValues> {
-        PseudoElement::from_pseudo_type(pseudo_type).and_then(|ref pseudo| {
-            get_pseudo_style(&guard, element, pseudo, rule_inclusion, styles, &*data)
-        }).unwrap_or_else(|| styles.primary().clone())
+        match PseudoElement::from_pseudo_type(pseudo_type) {
+            Some(ref pseudo) => {
+                get_pseudo_style(
+                    &guard,
+                    element,
+                    pseudo,
+                    rule_inclusion,
+                    styles,
+                    &*data,
+                    /* is_probe = */ false,
+                ).expect("We're not probing, so we should always get a style \
+                         back")
+            }
+            None => styles.primary().clone(),
+        }
     };
 
     // In the common case we already have the style. Check that before setting
