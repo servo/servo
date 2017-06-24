@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::SourceLocation;
+use euclid::ScaleFactor;
 use euclid::TypedSize2D;
 use html5ever::LocalName;
 use selectors::parser::{AncestorHashes, Selector};
@@ -235,7 +236,7 @@ fn test_get_universal_rules() {
 }
 
 fn mock_stylist() -> Stylist {
-    let device = Device::new(MediaType::Screen, TypedSize2D::new(0f32, 0f32));
+    let device = Device::new(MediaType::Screen, TypedSize2D::new(0f32, 0f32), ScaleFactor::new(1.0));
     Stylist::new(device, QuirksMode::NoQuirks)
 }
 
