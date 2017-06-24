@@ -11,6 +11,7 @@ use values::computed::color::Color;
 use values::computed::length::Length;
 use values::generics::effects::Filter as GenericFilter;
 use values::generics::effects::FilterList as GenericFilterList;
+use values::generics::effects::SimpleShadow as GenericSimpleShadow;
 
 /// A computed value for the `filter` property.
 pub type FilterList = GenericFilterList<Filter>;
@@ -24,21 +25,7 @@ pub type Filter = GenericFilter<Angle, Number, Length, SimpleShadow>;
 pub type Filter = GenericFilter<Angle, Number, Length, Impossible>;
 
 /// A computed value for the `drop-shadow()` filter.
-///
-/// Contrary to the canonical order from the spec, the color is serialised
-/// first, like in Gecko and Webkit.
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Debug, PartialEq, ToCss)]
-pub struct SimpleShadow {
-    /// Color.
-    pub color: Color,
-    /// Horizontal radius.
-    pub horizontal: Length,
-    /// Vertical radius.
-    pub vertical: Length,
-    /// Blur radius.
-    pub blur: Length,
-}
+pub type SimpleShadow = GenericSimpleShadow<Color, Length, Length>;
 
 impl FilterList {
     /// Returns the resulting opacity of this filter pipeline.

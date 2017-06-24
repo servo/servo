@@ -55,6 +55,23 @@ pub enum Filter<Angle, Factor, Length, DropShadow> {
     Url(SpecifiedUrl),
 }
 
+/// A generic value for the `drop-shadow()` filter and the `text-shadow` property.
+///
+/// Contrary to the canonical order from the spec, the color is serialised
+/// first, like in Gecko and Webkit.
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, Debug, HasViewportPercentage, PartialEq, ToCss)]
+pub struct SimpleShadow<Color, SizeLength, ShapeLength> {
+    /// Color.
+    pub color: Color,
+    /// Horizontal radius.
+    pub horizontal: SizeLength,
+    /// Vertical radius.
+    pub vertical: SizeLength,
+    /// Blur radius.
+    pub blur: ShapeLength,
+}
+
 impl<F> FilterList<F> {
     /// Returns `none`.
     #[inline]
