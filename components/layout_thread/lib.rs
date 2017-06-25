@@ -1253,7 +1253,7 @@ impl LayoutThread {
                 (self.layout_threads as u64);
             time::send_profile_data(time::ProfilerCategory::LayoutTextShaping,
                                     self.profiler_metadata(),
-                                    self.time_profiler_chan.clone(),
+                                    &self.time_profiler_chan,
                                     0,
                                     text_shaping_time,
                                     0,
