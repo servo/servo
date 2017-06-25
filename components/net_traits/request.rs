@@ -220,7 +220,7 @@ pub struct Request {
     // TODO: target browsing context
     /// https://fetch.spec.whatwg.org/#request-keepalive-flag
     pub keep_alive: bool,
-    // https://fetch.spec.whatwg.org/#request-service-workers-mode
+    /// https://fetch.spec.whatwg.org/#request-service-workers-mode
     pub service_workers_mode: ServiceWorkersMode,
     /// https://fetch.spec.whatwg.org/#concept-request-initiator
     pub initiator: Initiator,
