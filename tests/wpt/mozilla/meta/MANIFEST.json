@@ -13737,6 +13737,12 @@
      {}
     ]
    ],
+   "mozilla/deep_serialization_succeeds.html": [
+    [
+     "/_mozilla/mozilla/deep_serialization_succeeds.html",
+     {}
+    ]
+   ],
    "mozilla/deterministic-raf.html": [
     [
      "/_mozilla/mozilla/deterministic-raf.html",
@@ -26885,6 +26891,10 @@
   "mozilla/css-paint-api/valid-image-before-load.html": [
    "67d8cdd3e3a1656ba315fcbf6dae7236680bac16",
    "reftest"
+  ],
+  "mozilla/deep_serialization_succeeds.html": [
+   "cb3d201d577c17d19babf1f6c04ba882fa42048e",
+   "testharness"
   ],
   "mozilla/details_ui_closed.html": [
    "2acbe3afbec267bad4dd986803e636740a707507",
