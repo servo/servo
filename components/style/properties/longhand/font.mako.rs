@@ -2012,7 +2012,7 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
         // OpenType "language system" tag, so we should be able to compute
         // it and store it as a 32-bit integer
         // (see http://www.microsoft.com/typography/otspec/languagetags.htm).
-        #[derive(PartialEq, Clone, Copy, Debug)]
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub u32);
     }
@@ -2079,6 +2079,14 @@ https://drafts.csswg.org/css-fonts-4/#low-level-font-variation-settings-control-
             input.expect_string().map(|cow| {
                 SpecifiedValue::Override(cow.into_owned())
             }).map_err(|e| e.into())
+        }
+    }
+
+    /// Used in @font-face.
+    impl Parse for SpecifiedValue {
+        fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
+                         -> Result<Self, ParseError<'i>> {
+            parse(context, input)
         }
     }
 
