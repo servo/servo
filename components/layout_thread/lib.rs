@@ -659,7 +659,7 @@ impl LayoutThread {
                 let mut data = ScriptReflowResult::new(data);
                 profile(time::ProfilerCategory::LayoutPerform,
                         self.profiler_metadata(),
-                        self.time_profiler_chan.clone(),
+                        &self.time_profiler_chan.clone(),
                         || self.handle_reflow(&mut data, possibly_locked_rw_data));
             },
             Msg::TickAnimations => self.tick_all_animations(possibly_locked_rw_data),
@@ -907,7 +907,7 @@ impl LayoutThread {
         let (metadata, sender) = (self.profiler_metadata(), self.time_profiler_chan.clone());
         profile(time::ProfilerCategory::LayoutDispListBuild,
                 metadata.clone(),
-                sender.clone(),
+                &sender.clone(),
                 || {
             flow::mut_base(layout_root).stacking_relative_position =
                 LogicalPoint::zero(writing_mode).to_physical(writing_mode,
@@ -1233,7 +1233,7 @@ impl LayoutThread {
             // Recalculate CSS styles and rebuild flows and fragments.
             profile(time::ProfilerCategory::LayoutStyleRecalc,
                     self.profiler_metadata(),
-                    self.time_profiler_chan.clone(),
+                    &self.time_profiler_chan.clone(),
                     || {
                 // Perform CSS selector matching and flow construction.
                 if traversal_driver.is_parallel() {
@@ -1464,7 +1464,7 @@ impl LayoutThread {
                 let animations = self.running_animations.read();
                 profile(time::ProfilerCategory::LayoutStyleRecalc,
                         self.profiler_metadata(),
-                        self.time_profiler_chan.clone(),
+                        &self.time_profiler_chan.clone(),
                         || {
                             animation::recalc_style_for_animations(
                                 &layout_context, FlowRef::deref_mut(&mut root_flow), &animations)
@@ -1509,7 +1509,7 @@ impl LayoutThread {
 
         profile(time::ProfilerCategory::LayoutRestyleDamagePropagation,
                 self.profiler_metadata(),
-                self.time_profiler_chan.clone(),
+                &self.time_profiler_chan.clone(),
                 || {
             // Call `compute_layout_damage` even in non-incremental mode, because it sets flags
             // that are needed in both incremental and non-incremental traversals.
@@ -1527,13 +1527,13 @@ impl LayoutThread {
         // Resolve generated content.
         profile(time::ProfilerCategory::LayoutGeneratedContent,
                 self.profiler_metadata(),
-                self.time_profiler_chan.clone(),
+                &self.time_profiler_chan.clone(),
                 || sequential::resolve_generated_content(FlowRef::deref_mut(root_flow), &context));
 
         // Guess float placement.
         profile(time::ProfilerCategory::LayoutFloatPlacementSpeculation,
                 self.profiler_metadata(),
-                self.time_profiler_chan.clone(),
+                &self.time_profiler_chan.clone(),
                 || sequential::guess_float_placement(FlowRef::deref_mut(root_flow)));
 
         // Perform the primary layout passes over the flow tree to compute the locations of all
@@ -1541,7 +1541,7 @@ impl LayoutThread {
         if flow::base(&**root_flow).restyle_damage.intersects(REFLOW | REFLOW_OUT_OF_FLOW) {
             profile(time::ProfilerCategory::LayoutMain,
                     self.profiler_metadata(),
-                    self.time_profiler_chan.clone(),
+                    &self.time_profiler_chan.clone(),
                     || {
                 let profiler_metadata = self.profiler_metadata();
 
@@ -1561,7 +1561,7 @@ impl LayoutThread {
 
         profile(time::ProfilerCategory::LayoutStoreOverflow,
                 self.profiler_metadata(),
-                self.time_profiler_chan.clone(),
+                &self.time_profiler_chan.clone(),
                 || {
             sequential::store_overflow(context,
                                        FlowRef::deref_mut(root_flow) as &mut Flow);

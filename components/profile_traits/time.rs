@@ -107,7 +107,7 @@ pub enum TimerMetadataReflowType {
 
 pub fn profile<T, F>(category: ProfilerCategory,
                      meta: Option<TimerMetadata>,
-                     profiler_chan: ProfilerChan,
+                     profiler_chan: &ProfilerChan,
                      callback: F)
                   -> T
     where F: FnOnce() -> T

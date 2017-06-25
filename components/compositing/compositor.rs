@@ -1483,7 +1483,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             _ => initialize_png(&*self.gl, width, height)
         };
 
-        profile(ProfilerCategory::Compositing, None, self.time_profiler_chan.clone(), || {
+        profile(ProfilerCategory::Compositing, None, &self.time_profiler_chan.clone(), || {
             debug!("compositor: compositing");
 
             // Paint the scene.
@@ -1506,7 +1506,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 })
             }
             CompositeTarget::PngFile => {
-                profile(ProfilerCategory::ImageSaving, None, self.time_profiler_chan.clone(), || {
+                profile(ProfilerCategory::ImageSaving, None, &self.time_profiler_chan.clone(), || {
                     match opts::get().output_file.as_ref() {
                         Some(path) => match File::create(path) {
                             Ok(mut file) => {

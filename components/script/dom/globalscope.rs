@@ -378,7 +378,7 @@ impl GlobalScope {
         time::profile(
             time::ProfilerCategory::ScriptEvaluate,
             Some(metadata),
-            self.time_profiler_chan().clone(),
+            &self.time_profiler_chan().clone(),
             || {
                 let cx = self.get_cx();
                 let globalhandle = self.reflector().get_jsobject();

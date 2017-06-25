@@ -377,7 +377,7 @@ impl ServoParser {
         let profiler_category = self.tokenizer.borrow().profiler_category();
         profile(profiler_category,
                 Some(metadata),
-                self.document.window().upcast::<GlobalScope>().time_profiler_chan().clone(),
+                &self.document.window().upcast::<GlobalScope>().time_profiler_chan().clone(),
                 || self.do_parse_sync())
     }
 

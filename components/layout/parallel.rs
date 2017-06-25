@@ -208,7 +208,7 @@ pub fn traverse_flow_tree_preorder(
     queue.install(move || {
         rayon::scope(move |scope| {
             profile(time::ProfilerCategory::LayoutParallelWarmup,
-                    profiler_metadata, time_profiler_chan, move || {
+                    profiler_metadata, &time_profiler_chan, move || {
                         top_down_flow(&nodes, scope, assign_isize_traversal, assign_bsize_traversal);
             });
         });

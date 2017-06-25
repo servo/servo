@@ -1101,7 +1101,7 @@ impl ScriptThread {
                 ScriptThreadEventCategory::EnterFullscreen => ProfilerCategory::ScriptEnterFullscreen,
                 ScriptThreadEventCategory::ExitFullscreen => ProfilerCategory::ScriptExitFullscreen,
             };
-            profile(profiler_cat, None, self.time_profiler_chan.clone(), f)
+            profile(profiler_cat, None, &self.time_profiler_chan.clone(), f)
         } else {
             f()
         }
