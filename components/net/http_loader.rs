@@ -530,7 +530,7 @@ pub fn http_fetch(request: &mut Request,
 
         // Substep 2
         if response.is_none() && request.is_subresource_request() && match request.origin {
-            Origin::Origin(ref origin) if *origin == request.url().origin() => true,
+            Origin::Origin(ref origin) => *origin == request.url().origin(),
             _ => false,
         } {
             // TODO (handle foreign fetch unimplemented)
@@ -560,14 +560,6 @@ pub fn http_fetch(request: &mut Request,
     }
 
     // Step 4
-    let credentials = match request.credentials_mode {
-        CredentialsMode::Include => true,
-        CredentialsMode::CredentialsSameOrigin if request.response_tainting == ResponseTainting::Basic
-            => true,
-        _ => false
-    };
-
-    // Step 5
     if response.is_none() {
         // Substep 1
         if cors_preflight_flag {
@@ -612,81 +604,37 @@ pub fn http_fetch(request: &mut Request,
     let mut response = response.unwrap();
 
     // Step 5
-    match response.actual_response().status {
-        // Code 301, 302, 303, 307, 308
-        status if status.map_or(false, is_redirect_status) => {
-            response = match request.redirect_mode {
-                RedirectMode::Error => Response::network_error(NetworkError::Internal("Redirect mode error".into())),
-                RedirectMode::Manual => {
-                    response.to_filtered(ResponseType::OpaqueRedirect)
-                },
-                RedirectMode::Follow => {
-                    // set back to default
-                    response.return_internal = true;
-                    http_redirect_fetch(request, cache, response,
-                                        cors_flag, target, done_chan, context)
-                }
-            }
-        },
-
-        // Code 401
-        Some(StatusCode::Unauthorized) => {
-            // Step 1
-            // FIXME: Figure out what to do with request window objects
-            if cors_flag || !credentials {
-                return response;
-            }
-
-            // Step 2
-            // TODO: Spec says requires testing on multiple WWW-Authenticate headers
-
-            // Step 3
-            if !request.use_url_credentials || authentication_fetch_flag {
-                // TODO: Prompt the user for username and password from the window
-                // Wrong, but will have to do until we are able to prompt the user
-                // otherwise this creates an infinite loop
-                // We basically pretend that the user declined to enter credentials
-                return response;
-            }
-
-            // Step 4
-            return http_fetch(request, cache, cors_flag, cors_preflight_flag,
-                              true, target, done_chan, context);
+    if response.actual_response().status.map_or(false, is_redirect_status) {
+        // Substep 1.
+        if response.actual_response().status.map_or(true, |s| s != StatusCode::SeeOther) {
+            // TODO: send RST_STREAM frame
         }
 
-        // Code 407
-        Some(StatusCode::ProxyAuthenticationRequired) => {
-            // Step 1
-            // TODO: Figure out what to do with request window objects
+        // Substep 2-3.
+        let location = response.actual_response().headers.get::<Location>().map(
+            |l| ServoUrl::parse_with_base(response.actual_response().url(), l)
+                .map_err(|err| err.description().into()));
 
-            // Step 2
-            // TODO: Spec says requires testing on Proxy-Authenticate headers
+        // Substep 4.
+        response.actual_response_mut().location_url = location;
 
-            // Step 3
-            // TODO: Prompt the user for proxy authentication credentials
-            // Wrong, but will have to do until we are able to prompt the user
-            // otherwise this creates an infinite loop
-            // We basically pretend that the user declined to enter credentials
-            return response;
-
-            // Step 4
-            // return http_fetch(request, cache,
-            //                   cors_flag, cors_preflight_flag,
-            //                   authentication_fetch_flag, target,
-            //                   done_chan, context);
-        }
-
-        _ => { }
+        // Substep 5.
+        response = match request.redirect_mode {
+            RedirectMode::Error => Response::network_error(NetworkError::Internal("Redirect mode error".into())),
+            RedirectMode::Manual => {
+                response.to_filtered(ResponseType::OpaqueRedirect)
+            },
+            RedirectMode::Follow => {
+                // set back to default
+                response.return_internal = true;
+                http_redirect_fetch(request, cache, response,
+                                    cors_flag, target, done_chan, context)
+            }
+        };
     }
-
-    // Step 6
-    if authentication_fetch_flag {
-        // TODO: Create authentication entry for this request
-    }
-
     // set back to default
     response.return_internal = true;
-    // Step 7
+    // Step 6
     response
 }
 
