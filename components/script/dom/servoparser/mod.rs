@@ -24,7 +24,7 @@ use dom::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use dom::htmltemplateelement::HTMLTemplateElement;
-use dom::node::{Node, NodeSiblingIterator};
+use dom::node::Node;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
 use dom::virtualmethods::vtable_for;
@@ -119,7 +119,7 @@ impl ServoParser {
     }
 
     // https://html.spec.whatwg.org/multipage/#parsing-html-fragments
-    pub fn parse_html_fragment(context: &Element, input: DOMString) -> FragmentParsingResult {
+    pub fn parse_html_fragment(context: &Element, input: DOMString) -> impl Iterator<Item=Root<Node>> {
         let context_node = context.upcast::<Node>();
         let context_document = context_node.owner_doc();
         let window = context_document.window();
@@ -468,11 +468,15 @@ impl ServoParser {
     }
 }
 
-pub struct FragmentParsingResult {
-    inner: NodeSiblingIterator,
+struct FragmentParsingResult<I>
+    where I: Iterator<Item=Root<Node>>
+{
+    inner: I,
 }
 
-impl Iterator for FragmentParsingResult {
+impl<I> Iterator for FragmentParsingResult<I>
+    where I: Iterator<Item=Root<Node>>
+{
     type Item = Root<Node>;
 
     fn next(&mut self) -> Option<Root<Node>> {
