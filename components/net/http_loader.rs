@@ -650,28 +650,19 @@ pub fn http_redirect_fetch(request: &mut Request,
     // Step 1
     assert!(response.return_internal);
 
-    // Step 2
-    if !response.actual_response().headers.has::<Location>() {
-        return response;
-    }
-
-    // Step 3
-    let location = match response.actual_response().headers.get::<Location>() {
-        Some(&Location(ref location)) => location.clone(),
-        _ => return Response::network_error(NetworkError::Internal("Location header parsing failure".into()))
-    };
-    let response_url = response.actual_response().url().unwrap();
-    let location_url = response_url.join(&*location);
+    let location_url = response.actual_response().location_url.clone();
     let location_url = match location_url {
-        Ok(url) => url,
-        _ => return Response::network_error(NetworkError::Internal("Location URL parsing failure".into()))
+        // Step 2
+        None => return response,
+        // Step 3
+        Some(Err(err)) =>
+            return Response::network_error(
+                NetworkError::Internal("Location URL parse failure: ".to_owned() + &err)),
+        // Step 4
+        Some(Ok(ref url)) if !matches!(url.scheme(), "http" | "https") =>
+            return Response::network_error(NetworkError::Internal("Location URL not an HTTP(S) scheme".into())),
+        Some(Ok(url)) => url,
     };
-
-    // Step 4
-    match location_url.scheme() {
-        "http" | "https" => { },
-        _ => return Response::network_error(NetworkError::Internal("Not an HTTP(S) Scheme".into()))
-    }
 
     // Step 5
     if request.redirect_count >= 20 {
@@ -682,7 +673,8 @@ pub fn http_redirect_fetch(request: &mut Request,
     request.redirect_count += 1;
 
     // Step 7
-    let same_origin = location_url.origin()== request.current_url().origin();
+    // FIXME: Correctly use request's origin
+    let same_origin = location_url.origin() == request.current_url().origin();
     let has_credentials = has_credentials(&location_url);
 
     if request.mode == RequestMode::CorsMode && !same_origin && has_credentials {
@@ -695,28 +687,38 @@ pub fn http_redirect_fetch(request: &mut Request,
     }
 
     // Step 9
+    if response.actual_response().status.map_or(true, |s| s != StatusCode::SeeOther) &&
+       request.body.as_ref().map_or(false, |b| b.is_empty()) {
+        return Response::network_error(NetworkError::Internal("Request body is not done".into()));
+    }
+
+    // Step 10
     if cors_flag && !same_origin {
         request.origin = Origin::Origin(ImmutableOrigin::new_opaque());
     }
 
-    // Step 10
-    let status_code = response.actual_response().status.unwrap();
-    if ((status_code == StatusCode::MovedPermanently || status_code == StatusCode::Found) &&
-        request.method == Method::Post) ||
-        status_code == StatusCode::SeeOther {
+    // Step 11
+    if response.actual_response().status.map_or(false, |code|
+        ((code == StatusCode::MovedPermanently || code == StatusCode::Found) && request.method == Method::Post) ||
+        code == StatusCode::SeeOther) {
         request.method = Method::Get;
         request.body = None;
     }
 
-    // Step 11
-    request.url_list.push(location_url);
-
     // Step 12
-    // TODO implement referrer policy
-
-    let recursive_flag = request.redirect_mode != RedirectMode::Manual;
+    if let Some(_) = request.body {
+        // TODO: extract request's body's source
+    }
 
     // Step 13
+    request.url_list.push(location_url);
+
+    // Step 14
+    // TODO implement referrer policy
+
+    // Step 15
+    let recursive_flag = request.redirect_mode != RedirectMode::Manual;
+
     main_fetch(request, cache, cors_flag, recursive_flag, target, done_chan, context)
 }
 
