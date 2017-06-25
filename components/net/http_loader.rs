@@ -1021,8 +1021,6 @@ fn http_network_fetch(request: &Request,
                       done_chan: &mut DoneChannel,
                       context: &FetchContext)
                       -> Response {
-    // TODO: Implement HTTP network fetch spec
-
     // Step 1
     // nothing to do here, since credentials_flag is already a boolean
 
@@ -1033,6 +1031,9 @@ fn http_network_fetch(request: &Request,
     // TODO be able to tell if the connection is a failure
 
     // Step 4
+    // TODO: check whether the connection is HTTP/2
+
+    // Step 5
     let url = request.current_url();
 
     let request_id = context.devtools_chan.as_ref().map(|_| {
@@ -1147,10 +1148,10 @@ fn http_network_fetch(request: &Request,
 
     // TODO Read request
 
-    // Step 5-9
+    // Step 6-11
     // (needs stream bodies)
 
-    // Step 10
+    // Step 12
     // TODO when https://bugzilla.mozilla.org/show_bug.cgi?id=1030660
     // is resolved, this step will become uneccesary
     // TODO this step
@@ -1162,24 +1163,22 @@ fn http_network_fetch(request: &Request,
         }
     };
 
-    // Step 11
+    // Step 13
     // TODO this step isn't possible yet (CSP)
 
-    // Step 12
-    if response.is_network_error() && request.cache_mode == CacheMode::NoStore {
+    // Step 14
+    if !response.is_network_error() && request.cache_mode != CacheMode::NoStore {
         // TODO update response in the HTTP cache for request
     }
 
     // TODO this step isn't possible yet
-    // Step 13
-
-    // Step 14.
+    // Step 15
     if credentials_flag {
         set_cookies_from_headers(&url, &response.headers, &context.state.cookie_jar);
     }
 
     // TODO these steps
-    // Step 15
+    // Step 16
         // Substep 1
         // Substep 2
             // Sub-substep 1
