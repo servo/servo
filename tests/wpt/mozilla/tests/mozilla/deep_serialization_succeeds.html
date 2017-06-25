@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Deep Serialization Test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+
+// The test here is that Servo doesn't crash.
+
+test(function() {
+  var first = document.createElement('div');
+  var last = first;
+  for (var i = 0; i < 3000; i++) {
+    var e = document.createElement('div');
+    last.appendChild(e);
+    last = e;
+  }
+  last.textContent = "abcdef";
+  var elem = first;
+  assert_regexp_match(elem.outerHTML, /abcdef/);
+}, "Test that deep trees can serialize without crashing.");
+</script>
+</body>
+</html>

@@ -12854,6 +12854,12 @@
      {}
     ]
    ],
+   "mozilla/deep_serialization_succeeds.html": [
+    [
+     "/_mozilla/mozilla/deep_serialization_succeeds.html",
+     {}
+    ]
+   ],
    "mozilla/deterministic-raf.html": [
     [
      "/_mozilla/mozilla/deterministic-raf.html",
@@ -25613,6 +25619,10 @@
   ],
   "mozilla/cross-origin-objects/cross-origin-postMessage.html": [
    "0163758c92997c6723c9d21be49ef7f51d8b3daf",
+   "testharness"
+  ],
+  "mozilla/deep_serialization_succeeds.html": [
+   "cb3d201d577c17d19babf1f6c04ba882fa42048e",
    "testharness"
   ],
   "mozilla/details_ui_closed.html": [
