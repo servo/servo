@@ -777,9 +777,11 @@ fn http_network_or_cache_fetch(request: &mut Request,
     // Step 8
     if let Some(content_length_value) = content_length_value {
         http_request.headers.set(ContentLength(content_length_value));
+        if http_request.keep_alive {
+            // Step 9 TODO: needs request's client object
+        }
     }
 
-    // Step 9 TODO: needs request's client object
 
     // Step 10
     match http_request.referrer {
@@ -891,7 +893,7 @@ fn http_network_or_cache_fetch(request: &mut Request,
     let mut response: Option<Response> = None;
 
     // Step 20
-    let mut revalidation_needed = false;
+    let mut revalidating_flag = false;
 
     // Step 21
     // TODO have a HTTP cache to check for a completed response
@@ -903,7 +905,7 @@ fn http_network_or_cache_fetch(request: &mut Request,
 
         // Substep 3
         if let Some(ref response) = response {
-            revalidation_needed = response_needs_revalidation(&response);
+            revalidating_flag = response_needs_revalidation(&response);
         };
 
         // Substep 4
@@ -913,7 +915,7 @@ fn http_network_or_cache_fetch(request: &mut Request,
             // response = http_request
         }
 
-        if revalidation_needed {
+        if revalidating_flag {
             // Substep 5
             // TODO set If-None-Match and If-Modified-Since according to cached
             //      response headers.
@@ -935,82 +937,73 @@ fn http_network_or_cache_fetch(request: &mut Request,
         // Substep 2
         let forward_response = http_network_fetch(http_request, credentials_flag,
                                                   done_chan, context);
-        match forward_response.raw_status {
-            // Substep 3
-            Some((200...303, _)) |
-            Some((305...399, _)) => {
-                if !http_request.method.safe() {
-                    // TODO Invalidate HTTP cache response
-                }
-            },
-            // Substep 4
-            Some((304, _)) => {
-                if revalidation_needed {
-                    // TODO update forward_response headers with cached response
-                    //      headers
-                }
-            },
-            _ => {}
+        // Substep 3
+        if let Some((200...399, _)) = forward_response.raw_status {
+            if !http_request.method.safe() {
+                // TODO Invalidate HTTP cache response
+            }
+        }
+        // Substep 4
+        if revalidating_flag && forward_response.status.map_or(false, |s| s == StatusCode::NotModified) {
+            // TODO update forward_response headers with cached response headers
         }
 
         // Substep 5
         if response.is_none() {
+            // Subsubstep 1
             response = Some(forward_response);
+            // Subsubstep 2
+            // TODO: store http_request and forward_response in cache
         }
     }
 
-    let response = response.unwrap();
+    let mut response = response.unwrap();
 
-    match response.status {
-        Some(StatusCode::Unauthorized) => {
-            // Step 23
-            // FIXME: Figure out what to do with request window objects
-            if cors_flag && !credentials_flag {
-                return response;
-            }
+    // Step 23
+    // FIXME: Figure out what to do with request window objects
+    if let (Some(StatusCode::Unauthorized), false, true) = (response.status, cors_flag, credentials_flag) {
+        // Substep 1
+        // TODO: Spec says requires testing on multiple WWW-Authenticate headers
 
-            // Substep 1
-            // TODO: Spec says requires testing on multiple WWW-Authenticate headers
+        // Substep 2
+        if http_request.body.is_some() {
+            // TODO Implement body source
+        }
 
-            // Substep 2
-            if http_request.body.is_some() {
-                // TODO Implement body source
-            }
-
-            // Substep 3
-            if !http_request.use_url_credentials || authentication_fetch_flag {
-                // TODO: Prompt the user for username and password from the window
-                // Wrong, but will have to do until we are able to prompt the user
-                // otherwise this creates an infinite loop
-                // We basically pretend that the user declined to enter credentials
-                return response;
-            }
-
-            // Substep 4
-            return http_network_or_cache_fetch(http_request,
-                                               true /* authentication flag */,
-                                               cors_flag, done_chan, context);
-        },
-        Some(StatusCode::ProxyAuthenticationRequired) => {
-            // Step 24
-            // Step 1
-            // TODO: Figure out what to do with request window objects
-
-            // Step 2
-            // TODO: Spec says requires testing on Proxy-Authenticate headers
-
-            // Step 3
-            // TODO: Prompt the user for proxy authentication credentials
+        // Substep 3
+        if !http_request.use_url_credentials || authentication_fetch_flag {
+            // TODO: Prompt the user for username and password from the window
             // Wrong, but will have to do until we are able to prompt the user
             // otherwise this creates an infinite loop
             // We basically pretend that the user declined to enter credentials
             return response;
+        }
 
-            // Step 4
-            // return http_network_or_cache_fetch(request, authentication_fetch_flag,
-            //                                    cors_flag, done_chan, context);
-        },
-        _ => {}
+        // Substep 4
+        response = http_network_or_cache_fetch(http_request,
+                                               true /* authentication flag */,
+                                               cors_flag, done_chan, context);
+    }
+
+    // Step 24
+    if let Some(StatusCode::ProxyAuthenticationRequired) = response.status {
+        // Step 1
+        if request_has_no_window {
+            return Response::network_error(NetworkError::Internal("Can't find Window object".into()));
+        }
+
+        // Step 2
+        // TODO: Spec says requires testing on Proxy-Authenticate headers
+
+        // Step 3
+        // TODO: Prompt the user for proxy authentication credentials
+        // Wrong, but will have to do until we are able to prompt the user
+        // otherwise this creates an infinite loop
+        // We basically pretend that the user declined to enter credentials
+
+        // Step 4
+        // return http_network_or_cache_fetch(request, authentication_fetch_flag,
+        //                                    cors_flag, done_chan, context);
     }
 
     // Step 25
