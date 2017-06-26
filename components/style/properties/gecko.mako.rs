@@ -54,9 +54,8 @@ use gecko::values::round_border_to_device_pixels;
 use logical_geometry::WritingMode;
 use media_queries::Device;
 use properties::animated_properties::TransitionProperty;
-use properties::longhands;
-use properties:: FontComputationData;
-use properties::{Importance, LonghandId};
+use properties::computed_value_flags::ComputedValueFlags;
+use properties::{longhands, FontComputationData, Importance, LonghandId};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock, PropertyDeclarationId};
 use rule_tree::StrongRuleNode;
 use std::fmt::{self, Debug};
@@ -75,16 +74,16 @@ pub mod style_structs {
     % endfor
 }
 
-
+// FIXME(emilio): Unify both definitions, since they're equal now.
 #[derive(Clone)]
 pub struct ComputedValues {
     % for style_struct in data.style_structs:
     ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
     % endfor
-
     custom_properties: Option<Arc<ComputedValuesMap>>,
     pub writing_mode: WritingMode,
     pub font_computation_data: FontComputationData,
+    pub flags: ComputedValueFlags,
 
     /// The rule node representing the ordered list of rules matched for this
     /// node.  Can be None for default values and text nodes.  This is
@@ -100,6 +99,7 @@ impl ComputedValues {
     pub fn new(custom_properties: Option<Arc<ComputedValuesMap>>,
                writing_mode: WritingMode,
                font_size_keyword: Option<(longhands::font_size::KeywordSize, f32)>,
+               flags: ComputedValueFlags,
                rules: Option<StrongRuleNode>,
                visited_style: Option<Arc<ComputedValues>>,
                % for style_struct in data.style_structs:
@@ -107,13 +107,14 @@ impl ComputedValues {
                % endfor
     ) -> Self {
         ComputedValues {
-            custom_properties: custom_properties,
-            writing_mode: writing_mode,
+            custom_properties,
+            writing_mode,
             font_computation_data: FontComputationData::new(font_size_keyword),
-            rules: rules,
+            flags,
+            rules,
             visited_style: visited_style,
             % for style_struct in data.style_structs:
-            ${style_struct.ident}: ${style_struct.ident},
+            ${style_struct.ident},
             % endfor
         }
     }
