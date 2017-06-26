@@ -4011,33 +4011,36 @@ pub enum %s {
 
         pairs = ",\n    ".join(['("%s", super::%s::%s)' % (val, ident, getEnumValueName(val)) for val in enum.values()])
 
-        inner = """\
+        inner = string.Template("""\
 use dom::bindings::conversions::ToJSValConvertible;
 use js::jsapi::{JSContext, MutableHandleValue};
 use js::jsval::JSVal;
 
-pub const pairs: &'static [(&'static str, super::%s)] = &[
-    %s,
+pub const pairs: &'static [(&'static str, super::${ident})] = &[
+    ${pairs},
 ];
 
-impl super::%s {
+impl super::${ident} {
     pub fn as_str(&self) -> &'static str {
         pairs[*self as usize].0
     }
 }
 
-impl Default for super::%s {
-  fn default() -> super::%s {
-    pairs[0].1
-  }
+impl Default for super::${ident} {
+    fn default() -> super::${ident} {
+        pairs[0].1
+    }
 }
 
-impl ToJSValConvertible for super::%s {
+impl ToJSValConvertible for super::${ident} {
     unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         pairs[*self as usize].0.to_jsval(cx, rval);
     }
 }
-    """ % (ident, pairs, ident, ident, ident, ident)
+    """).substitute({
+            'ident': ident,
+            'pairs': pairs
+        })
         self.cgRoot = CGList([
             CGGeneric(decl),
             CGNamespace.build([ident + "Values"],
