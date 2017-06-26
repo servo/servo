@@ -509,10 +509,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             (Msg::AllowNavigation(url, response_chan), ShutdownState::NotShuttingDown) => {
-                let allow = self.window.allow_navigation(url);
-                if let Err(e) = response_chan.send(allow) {
-                    warn!("Failed to send allow_navigation result ({}).", e);
-                }
+                self.window.allow_navigation(url, response_chan);
             }
 
             (Msg::Recomposite(reason), ShutdownState::NotShuttingDown) => {
