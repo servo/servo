@@ -52,7 +52,7 @@ impl Parse for Impossible {
 
 /// A struct representing one of two kinds of values.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Clone, Copy, HasViewportPercentage, PartialEq, ToCss)]
+#[derive(Clone, Copy, HasViewportPercentage, PartialEq, ToComputedValue, ToCss)]
 pub enum Either<A, B> {
     /// The first value.
     First(A),
@@ -76,27 +76,6 @@ impl<A: Parse, B: Parse> Parse for Either<A, B> {
             Ok(Either::First(v))
         } else {
             B::parse(context, input).map(Either::Second)
-        }
-    }
-}
-
-use self::computed::{Context, ToComputedValue};
-
-impl<A: ToComputedValue, B: ToComputedValue> ToComputedValue for Either<A, B> {
-    type ComputedValue = Either<A::ComputedValue, B::ComputedValue>;
-
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        match *self {
-            Either::First(ref a) => Either::First(a.to_computed_value(context)),
-            Either::Second(ref a) => Either::Second(a.to_computed_value(context)),
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        match *computed {
-            Either::First(ref a) => Either::First(ToComputedValue::from_computed_value(a)),
-            Either::Second(ref a) => Either::Second(ToComputedValue::from_computed_value(a)),
         }
     }
 }
