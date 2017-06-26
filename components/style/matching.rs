@@ -653,9 +653,14 @@ trait PrivateMatchMethods: TElement {
             let old_display_style = old_box_style.clone_display();
             let new_display_style = new_box_style.clone_display();
 
-            // If the traverse is triggered by CSS rule changes,
-            // we need to try to update all CSS animations.
-            context.shared.traversal_flags.for_css_rule_changes() ||
+            // If the traverse is triggered by CSS rule changes, we need to
+            // try to update all CSS animations on the element if the element
+            // has CSS animation style regardless of whether the animation is
+            // running or not.
+            // TODO: We should check which @keyframes changed/added/deleted
+            // and update only animations corresponding to those @keyframes.
+            (context.shared.traversal_flags.for_css_rule_changes() &&
+             has_new_animation_style) ||
             !old_box_style.animations_equals(&new_box_style) ||
              (old_display_style == display::T::none &&
               new_display_style != display::T::none &&
