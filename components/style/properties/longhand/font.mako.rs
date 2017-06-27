@@ -16,7 +16,7 @@
 </%def>
 
 #[cfg(feature = "gecko")]
-macro_rules! impl_gecko_keyword_from_trait {
+macro_rules! impl_gecko_keyword_conversions {
     ($name: ident, $utype: ty) => {
         impl From<$utype> for $name {
             fn from(bits: $utype) -> $name {
@@ -1554,7 +1554,7 @@ macro_rules! exclusive_value {
     }
 
     #[cfg(feature = "gecko")]
-    impl_gecko_keyword_from_trait!(VariantEastAsian, u16);
+    impl_gecko_keyword_conversions!(VariantEastAsian, u16);
 </%helpers:longhand>
 
 <%helpers:longhand name="font-variant-ligatures" products="gecko" animation_value_type="discrete"
@@ -1713,7 +1713,7 @@ macro_rules! exclusive_value {
     }
 
     #[cfg(feature = "gecko")]
-    impl_gecko_keyword_from_trait!(VariantLigatures, u16);
+    impl_gecko_keyword_conversions!(VariantLigatures, u16);
 </%helpers:longhand>
 
 <%helpers:longhand name="font-variant-numeric" products="gecko" animation_value_type="discrete"
@@ -1861,7 +1861,7 @@ macro_rules! exclusive_value {
     }
 
     #[cfg(feature = "gecko")]
-    impl_gecko_keyword_from_trait!(VariantNumeric, u8);
+    impl_gecko_keyword_conversions!(VariantNumeric, u8);
 </%helpers:longhand>
 
 ${helpers.single_keyword_system("font-variant-position",
