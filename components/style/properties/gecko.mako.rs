@@ -1390,6 +1390,22 @@ fn static_assert() {
         }
     }
 
+    pub fn clone_font_feature_settings(&self) -> longhands::font_feature_settings::computed_value::T {
+        use values::generics::{FontSettings, FontSettingTag, FontSettingTagInt} ;
+
+        match self.gecko.mFont.fontFeatureSettings.len() {
+            0 => FontSettings::Normal,
+            _ => FontSettings::Tag(
+                     self.gecko.mFont.fontFeatureSettings.iter().map(|gecko_font_feature_setting| {
+                         FontSettingTag {
+                             tag: gecko_font_feature_setting.mTag,
+                             value: FontSettingTagInt(gecko_font_feature_setting.mValue),
+                         }
+                     }).collect()
+                 )
+        }
+    }
+
     pub fn set_font_variation_settings(&mut self, v: longhands::font_variation_settings::computed_value::T) {
         use values::generics::FontSettings;
 
@@ -1465,6 +1481,34 @@ fn static_assert() {
     pub fn copy_font_family_from(&mut self, other: &Self) {
         unsafe { Gecko_CopyFontFamilyFrom(&mut self.gecko.mFont, &other.gecko.mFont); }
         self.gecko.mGenericID = other.gecko.mGenericID;
+    }
+
+    pub fn clone_font_family(&self) -> longhands::font_family::computed_value::T {
+        use properties::longhands::font_family::computed_value::{FontFamily, FamilyName};
+        use gecko_bindings::structs::FontFamilyType;
+        use gecko_string_cache::Atom;
+
+        ::properties::longhands::font_family::computed_value::T(
+            self.gecko.mFont.fontlist.mFontlist.iter().map(|gecko_font_family_name| {
+                match gecko_font_family_name.mType {
+                    FontFamilyType::eFamily_serif => FontFamily::Generic(atom!("serif")),
+                    FontFamilyType::eFamily_sans_serif => FontFamily::Generic(atom!("sans-serif")),
+                    FontFamilyType::eFamily_monospace => FontFamily::Generic(atom!("monospace")),
+                    FontFamilyType::eFamily_cursive => FontFamily::Generic(atom!("cursive")),
+                    FontFamilyType::eFamily_fantasy => FontFamily::Generic(atom!("fantasy")),
+                    FontFamilyType::eFamily_moz_fixed => FontFamily::Generic(Atom::from("-moz-fixed")),
+                    FontFamilyType::eFamily_named => FontFamily::FamilyName(FamilyName {
+                        name: (&*gecko_font_family_name.mName).into(),
+                        quoted: false
+                    }),
+                    FontFamilyType::eFamily_named_quoted => FontFamily::FamilyName(FamilyName {
+                        name: (&*gecko_font_family_name.mName).into(),
+                        quoted: true
+                    }),
+                    x => panic!("Found unexpected font FontFamilyType: {:?}", x),
+                }
+            }).collect()
+        )
     }
 
     // FIXME(bholley): Gecko has two different sizes, one of which (mSize) is the
