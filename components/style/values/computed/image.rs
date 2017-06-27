@@ -18,7 +18,9 @@ use values::generics::image::{CompatMode, ColorStop as GenericColorStop, EndingS
 use values::generics::image::{Gradient as GenericGradient, GradientItem as GenericGradientItem};
 use values::generics::image::{Image as GenericImage, GradientKind as GenericGradientKind};
 use values::generics::image::{ImageRect as GenericImageRect, LineDirection as GenericLineDirection};
-use values::specified::image::LineDirection as SpecifiedLineDirection;
+use values::generics::position::Position as GenericPosition;
+use values::specified::image::{Gradient as SpecifiedGradient, LineDirection as SpecifiedLineDirection};
+use values::specified::image::{GradientKind as SpecifiedGradientKind};
 use values::specified::position::{X, Y};
 
 /// A computed image layer.
@@ -93,25 +95,38 @@ impl GenericLineDirection for LineDirection {
     }
 }
 
-impl ToComputedValue for SpecifiedLineDirection {
-    type ComputedValue = LineDirection;
+impl SpecifiedLineDirection {
+    /// Takes a modern linear gradient angle and convert it to Gecko's old coordinate for
+    /// webkit-prefixed version
+    fn to_gecko_coordinate(modern_angle: f32, _compat_mode: CompatMode) -> f32 {
+        #[cfg(feature = "gecko")]
+        {
+            return match _compat_mode {
+                CompatMode::Modern => modern_angle,
+                CompatMode::WebKit => -modern_angle + 270.
+            }
+        }
+        #[cfg(feature = "servo")]
+        modern_angle
+    }
 
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+    /// Manually derived to_computed_value
+    fn to_computed_value(&self, context: &Context, compat_mode: CompatMode) -> LineDirection {
         match *self {
             SpecifiedLineDirection::Angle(ref angle) => {
                 LineDirection::Angle(angle.to_computed_value(context))
             },
             SpecifiedLineDirection::Horizontal(X::Left) => {
-                LineDirection::Angle(Angle::Degree(270.))
+                LineDirection::Angle(Angle::Degree(SpecifiedLineDirection::to_gecko_coordinate(270., compat_mode)))
             },
             SpecifiedLineDirection::Horizontal(X::Right) => {
-                LineDirection::Angle(Angle::Degree(90.))
+                LineDirection::Angle(Angle::Degree(SpecifiedLineDirection::to_gecko_coordinate(90., compat_mode)))
             },
             SpecifiedLineDirection::Vertical(Y::Top) => {
-                LineDirection::Angle(Angle::Degree(0.))
+                LineDirection::Angle(Angle::Degree(SpecifiedLineDirection::to_gecko_coordinate(0., compat_mode)))
             },
             SpecifiedLineDirection::Vertical(Y::Bottom) => {
-                LineDirection::Angle(Angle::Degree(180.))
+                LineDirection::Angle(Angle::Degree(SpecifiedLineDirection::to_gecko_coordinate(180., compat_mode)))
             },
             SpecifiedLineDirection::Corner(x, y) => {
                 LineDirection::Corner(x, y)
@@ -119,7 +134,7 @@ impl ToComputedValue for SpecifiedLineDirection {
         }
     }
 
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+    fn from_computed_value(computed: &LineDirection) -> Self {
         match *computed {
             LineDirection::Angle(ref angle) => {
                 SpecifiedLineDirection::Angle(ToComputedValue::from_computed_value(angle))
@@ -127,6 +142,56 @@ impl ToComputedValue for SpecifiedLineDirection {
             LineDirection::Corner(x, y) => {
                 SpecifiedLineDirection::Corner(x, y)
             },
+        }
+    }
+}
+
+impl ToComputedValue for SpecifiedGradient {
+    type ComputedValue = Gradient;
+
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        Self::ComputedValue {
+            kind: self.kind.to_computed_value(context, self.compat_mode),
+            items: self.items.to_computed_value(context),
+            repeating: self.repeating,
+            compat_mode: self.compat_mode
+        }
+    }
+
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        Self {
+            kind: SpecifiedGradientKind::from_computed_value(&computed.kind),
+            items: ToComputedValue::from_computed_value(&computed.items),
+            repeating: computed.repeating,
+            compat_mode: computed.compat_mode
+        }
+    }
+}
+
+impl SpecifiedGradientKind {
+    /// Manually derived to_computed_value
+    pub fn to_computed_value(&self, context: &Context, compat_mode: CompatMode) -> GradientKind {
+        match self {
+            &GenericGradientKind::Linear(ref line_direction) => {
+                GenericGradientKind::Linear(line_direction.to_computed_value(context, compat_mode))
+            },
+            &GenericGradientKind::Radial(ref ending_shape, ref position) => {
+                GenericGradientKind::Radial(ending_shape.to_computed_value(context),
+                             position.to_computed_value(context))
+            }
+        }
+    }
+
+    /// Manually derived from_computed_value
+    pub fn from_computed_value(computed: &GradientKind) -> SpecifiedGradientKind {
+        match *computed {
+            GenericGradientKind::Linear(line_direction) => {
+                GenericGradientKind::Linear(SpecifiedLineDirection::from_computed_value(&line_direction))
+            },
+            GenericGradientKind::Radial(ending_shape, position) => {
+                GenericGradientKind::Radial(GenericEndingShape::from_computed_value(&ending_shape),
+                                            GenericPosition::from_computed_value(&position))
+            }
         }
     }
 }
