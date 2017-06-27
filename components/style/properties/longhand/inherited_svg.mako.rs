@@ -97,7 +97,7 @@ ${helpers.predefined_type(
     delegate_animate=True,
     products="gecko",
     animation_value_type="ComputedValue",
-    space_separated_allowed="True",
+    separator="CommaWithSpace",
     spec="https://www.w3.org/TR/SVG2/painting.html#StrokeDashing",
 )}
 
