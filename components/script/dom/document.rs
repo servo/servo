@@ -406,7 +406,7 @@ impl Document {
     #[inline]
     pub fn browsing_context(&self) -> Option<Root<WindowProxy>> {
         if self.has_browsing_context {
-            self.window.maybe_window_proxy()
+            self.window.undiscarded_window_proxy()
         } else {
             None
         }
