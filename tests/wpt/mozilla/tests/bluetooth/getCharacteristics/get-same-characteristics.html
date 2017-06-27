@@ -1,0 +1,19 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(() => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.heart_rate);
+    return window.navigator.bluetooth.requestDevice({
+        filters: [{services: [heart_rate.name]}]
+    })
+    .then(device => device.gatt.connect())
+    .then(gattServer => gattServer.getPrimaryService(heart_rate.name))
+    .then(service => Promise.all([
+        service.getCharacteristics(body_sensor_location.name),
+        service.getCharacteristics(body_sensor_location.name)]))
+    .then(characteristics => assert_array_equals(characteristics[0], characteristics[1]));
+}, 'Calls to get the same characteristics should return the same objects.');
+</script>
