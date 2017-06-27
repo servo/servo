@@ -80,7 +80,7 @@
     `initial_value` need not be defined for these.
 </%doc>
 <%def name="vector_longhand(name, gecko_only=False, allow_empty=False,
-            delegate_animate=False, space_separated_allowed=False, **kwargs)">
+            delegate_animate=False, separator='Comma', **kwargs)">
     <%call expr="longhand(name, vector=True, **kwargs)">
         % if not gecko_only:
             use smallvec::SmallVec;
@@ -218,12 +218,6 @@
             pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                                  -> Result<SpecifiedValue, ParseError<'i>> {
                 use style_traits::Separator;
-                #[allow(unused_imports)]
-                use style_traits::{Comma, CommaWithSpace};
-
-                <%
-                    separator = "CommaWithSpace" if space_separated_allowed else "Comma"
-                %>
 
                 % if allow_empty:
                     if input.try(|input| input.expect_ident_matching("none")).is_ok() {
@@ -231,7 +225,7 @@
                     }
                 % endif
 
-                ${separator}::parse(input, |parser| {
+                ::style_traits::${separator}::parse(input, |parser| {
                     single_value::parse(context, parser)
                 }).map(SpecifiedValue)
             }
