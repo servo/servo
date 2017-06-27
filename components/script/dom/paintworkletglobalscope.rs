@@ -19,6 +19,7 @@ use dom::bindings::js::JS;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
+use dom::cssstylevalue::CSSStyleValue;
 use dom::paintrenderingcontext2d::PaintRenderingContext2D;
 use dom::paintsize::PaintSize;
 use dom::stylepropertymapreadonly::StylePropertyMapReadOnly;
@@ -40,6 +41,7 @@ use js::jsapi::IsConstructor;
 use js::jsapi::JSAutoCompartment;
 use js::jsapi::JS_ClearPendingException;
 use js::jsapi::JS_IsExceptionPending;
+use js::jsapi::JS_NewArrayObject;
 use js::jsval::JSVal;
 use js::jsval::ObjectValue;
 use js::jsval::UndefinedValue;
@@ -94,9 +96,9 @@ impl PaintWorkletGlobalScope {
 
     pub fn perform_a_worklet_task(&self, task: PaintWorkletTask) {
         match task {
-            PaintWorkletTask::DrawAPaintImage(name, size, properties, sender) => {
+            PaintWorkletTask::DrawAPaintImage(name, size, properties, arguments, sender) => {
                 let properties = StylePropertyMapReadOnly::from_iter(self.upcast(), properties);
-                self.draw_a_paint_image(name, size, &*properties, sender);
+                self.draw_a_paint_image(name, size, &*properties, arguments, sender);
             }
         }
     }
@@ -106,10 +108,33 @@ impl PaintWorkletGlobalScope {
                           name: Atom,
                           size: Size2D<Au>,
                           properties: &StylePropertyMapReadOnly,
+                          arguments: Vec<String>,
                           sender: IpcSender<CanvasData>)
     {
+        // TODO: Steps 1-5.
+        
         // TODO: document paint definitions.
-        self.invoke_a_paint_callback(name, size, properties, sender);
+        let input_arguments_len = match self.paint_definitions.borrow().get(&name) {
+            None => {
+                // Step 6.
+                warn!("Drawing un-registered paint definition {}.", name);
+                return self.send_invalid_image(size, sender);
+            },
+            Some(definition) => {
+                // Steps 7-9.
+                definition.input_arguments_len
+            },
+        };
+
+        // Steps 10-11.
+        // TODO: check syntax, not just length
+        if arguments.len() != input_arguments_len {
+            debug!("Incorrect paint arguments length.");
+            return self.send_invalid_image(size, sender);
+        }
+
+        // Steps 12-13.
+        self.invoke_a_paint_callback(name, size, properties, arguments, sender);
     }
 
     /// https://drafts.css-houdini.org/css-paint-api/#invoke-a-paint-callback
@@ -119,6 +144,7 @@ impl PaintWorkletGlobalScope {
                                name: Atom,
                                size: Size2D<Au>,
                                properties: &StylePropertyMapReadOnly,
+                               mut arguments: Vec<String>,
                                sender: IpcSender<CanvasData>)
     {
         let width = size.width.to_px().abs() as u32;
@@ -189,12 +215,22 @@ impl PaintWorkletGlobalScope {
         // TODO: Step 10
         // Steps 11-12
         debug!("Invoking paint function {}.", name);
+        rooted_vec!(let arguments_values <- arguments.drain(..)
+                    .map(|argument| CSSStyleValue::new(self.upcast(), argument)));
+        let arguments_value_vec: Vec<JSVal> = arguments_values.iter()
+            .map(|argument| ObjectValue(argument.reflector().get_jsobject().get()))
+            .collect();
+        let arguments_value_array = unsafe { HandleValueArray::from_rooted_slice(&*arguments_value_vec) };
+        rooted!(in(cx) let argument_object = unsafe { JS_NewArrayObject(cx, &arguments_value_array) });
+
         let args_slice = [
             ObjectValue(rendering_context.reflector().get_jsobject().get()),
             ObjectValue(paint_size.reflector().get_jsobject().get()),
             ObjectValue(properties.reflector().get_jsobject().get()),
+            ObjectValue(argument_object.get()),
         ];
         let args = unsafe { HandleValueArray::from_rooted_slice(&args_slice) };
+
         rooted!(in(cx) let mut result = UndefinedValue());
         unsafe { Call(cx, paint_instance.handle(), paint_function.handle(), &args, result.handle_mut()); }
 
@@ -236,10 +272,11 @@ impl PaintWorkletGlobalScope {
             fn draw_a_paint_image(&self,
                                   size: Size2D<Au>,
                                   properties: Vec<(Atom, String)>,
+                                  arguments: Vec<String>,
                                   sender: IpcSender<CanvasData>)
             {
                 let name = self.0.clone();
-                let task = PaintWorkletTask::DrawAPaintImage(name, size, properties, sender);
+                let task = PaintWorkletTask::DrawAPaintImage(name, size, properties, arguments, sender);
                 self.1.lock().expect("Locking a painter.")
                     .schedule_a_worklet_task(WorkletTask::Paint(task));
             }
@@ -277,7 +314,7 @@ impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
         let properties = property_names.drain(..).map(Atom::from).collect();
 
         // Step 7-9.
-        let _argument_names: Vec<String> =
+        let input_arguments: Vec<String> =
             unsafe { get_property(cx, paint_obj.handle(), "inputArguments", ()) }?
             .unwrap_or_default();
 
@@ -310,7 +347,11 @@ impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
 
         // Step 19.
         let context = PaintRenderingContext2D::new(self);
-        let definition = PaintDefinition::new(paint_val.handle(), paint_function.handle(), alpha, &*context);
+        let definition = PaintDefinition::new(paint_val.handle(),
+                                              paint_function.handle(),
+                                              alpha,
+                                              input_arguments.len(),
+                                              &*context);
 
         // Step 20.
         debug!("Registering definition {}.", name);
@@ -330,7 +371,7 @@ impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
 
 /// Tasks which can be peformed by a paint worklet
 pub enum PaintWorkletTask {
-    DrawAPaintImage(Atom, Size2D<Au>, Vec<(Atom, String)>, IpcSender<CanvasData>)
+    DrawAPaintImage(Atom, Size2D<Au>, Vec<(Atom, String)>, Vec<String>, IpcSender<CanvasData>)
 }
 
 /// A paint definition
@@ -344,6 +385,8 @@ struct PaintDefinition {
     paint_function: Heap<JSVal>,
     constructor_valid_flag: Cell<bool>,
     context_alpha_flag: bool,
+    // TODO: this should be a list of CSS syntaxes.
+    input_arguments_len: usize,
     // TODO: the spec calls for fresh rendering contexts each time a paint image is drawn,
     // but to avoid having the primary worklet thread create a new renering context,
     // we recycle them.
@@ -354,6 +397,7 @@ impl PaintDefinition {
     fn new(class_constructor: HandleValue,
            paint_function: HandleValue,
            alpha: bool,
+           input_arguments_len: usize,
            context: &PaintRenderingContext2D)
            -> Box<PaintDefinition>
     {
@@ -362,6 +406,7 @@ impl PaintDefinition {
             paint_function: Heap::default(),
             constructor_valid_flag: Cell::new(true),
             context_alpha_flag: alpha,
+            input_arguments_len: input_arguments_len,
             context: JS::from_ref(context),
         });
         result.class_constructor.set(class_constructor.get());

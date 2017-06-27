@@ -69,6 +69,7 @@ use style::values::generics::image::PaintWorklet;
 use style::values::specified::length::Percentage;
 use style::values::specified::position::{X, Y};
 use style_traits::CSSPixel;
+use style_traits::ToCss;
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
 use webrender_helpers::{ToMixBlendMode, ToTransformStyle};
@@ -1163,9 +1164,15 @@ impl FragmentDisplayListBuilding for Fragment {
         // https://github.com/w3c/css-houdini-drafts/issues/417
         let unbordered_box = self.border_box - style.logical_border_width();
         let size = unbordered_box.size.to_physical(style.writing_mode);
+
+        // TODO: less copying.
         let name = paint_worklet.name.clone();
+        let arguments = paint_worklet.arguments.iter()
+            .map(|argument| argument.to_css_string())
+            .collect();
 
         // Get the painter, and the computed values for its properties.
+        // TODO: less copying.
         let (properties, painter) = match state.layout_context.registered_painters.read().get(&name) {
             Some(registered_painter) => (
                 registered_painter.properties
@@ -1182,11 +1189,12 @@ impl FragmentDisplayListBuilding for Fragment {
         // https://github.com/servo/servo/issues/17369
         debug!("Drawing a paint image {}({},{}).", name, size.width.to_px(), size.height.to_px());
         let (sender, receiver) = ipc::channel().unwrap();
-        painter.draw_a_paint_image(size, properties, sender);
+        painter.draw_a_paint_image(size, properties, arguments, sender);
 
         // TODO: timeout
         let webrender_image = match receiver.recv() {
             Ok(CanvasData::Image(canvas_data)) => {
+                debug!("Got image {:?}.", canvas_data.image_key);
                 WebRenderImageInfo {
                     // TODO: it would be nice to get this data back from the canvas
                     width: size.width.to_px().abs() as u32,

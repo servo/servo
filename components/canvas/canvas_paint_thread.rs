@@ -543,9 +543,15 @@ impl<'a> CanvasPaintThread<'a> {
     }
 
     fn recreate(&mut self, size: Size2D<i32>) {
+        // TODO: clear the thread state. https://github.com/servo/servo/issues/17533
         self.drawtarget = CanvasPaintThread::create(size);
         // Webrender doesn't let images change size, so we clear the webrender image key.
+        // TODO: there is an annying race condition here: the display list builder
+        // might still be using the old image key. Really, we should be scheduling the image
+        // for later deletion, not deleting it immediately.
+        // https://github.com/servo/servo/issues/17534
         if let Some(image_key) = self.image_key.take() {
+            debug!("No longer using image {:?}.", image_key);
             self.webrender_api.delete_image(image_key);
         }
     }
@@ -572,6 +578,7 @@ impl<'a> CanvasPaintThread<'a> {
 
             match self.image_key {
                 Some(image_key) => {
+                    debug!("Updating image {:?}.", image_key);
                     self.webrender_api.update_image(image_key,
                                                     descriptor,
                                                     data,
@@ -579,6 +586,7 @@ impl<'a> CanvasPaintThread<'a> {
                 }
                 None => {
                     self.image_key = Some(self.webrender_api.generate_image_key());
+                    debug!("New image {:?}.", self.image_key);
                     self.webrender_api.add_image(self.image_key.unwrap(),
                                                  descriptor,
                                                  data,
@@ -744,6 +752,7 @@ impl<'a> CanvasPaintThread<'a> {
 impl<'a> Drop for CanvasPaintThread<'a> {
     fn drop(&mut self) {
         if let Some(image_key) = self.image_key {
+            debug!("Deleting image key {:?}.", image_key);
             self.webrender_api.delete_image(image_key);
         }
     }

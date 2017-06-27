@@ -833,6 +833,7 @@ pub trait Painter: Sync + Send {
     fn draw_a_paint_image(&self,
                           concrete_object_size: Size2D<Au>,
                           properties: Vec<(Atom, String)>,
+                          arguments: Vec<String>,
                           sender: IpcSender<CanvasData>);
 }
 
