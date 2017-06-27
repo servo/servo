@@ -12,7 +12,7 @@
                                              Method("has_overline", "bool"),
                                              Method("has_line_through", "bool")]) %>
 
-<%helpers:longhand name="text-overflow" animation_value_type="none" boxed="True"
+<%helpers:longhand name="text-overflow" animation_value_type="discrete" boxed="True"
                    spec="https://drafts.csswg.org/css-ui/#propdef-text-overflow">
     use std::fmt;
     use style_traits::ToCss;

@@ -3706,6 +3706,26 @@ fn static_assert() {
         self.gecko.mTextOverflow.mLogicalDirections = other.gecko.mTextOverflow.mLogicalDirections;
     }
 
+    pub fn clone_text_overflow(&self) -> longhands::text_overflow::computed_value::T {
+        use gecko_bindings::structs::nsStyleTextOverflowSide;
+        use properties::longhands::text_overflow::Side;
+
+        fn to_servo(side: &nsStyleTextOverflowSide) -> Side {
+            match side.mType as u32 {
+                structs::NS_STYLE_TEXT_OVERFLOW_CLIP => Side::Clip,
+                structs::NS_STYLE_TEXT_OVERFLOW_ELLIPSIS => Side::Ellipsis,
+                structs::NS_STYLE_TEXT_OVERFLOW_STRING => Side::String(side.mString.to_string().into_boxed_str()),
+                x => panic!("Found unexpected value in style struct for text_overflow property: {:?}", x),
+            }
+        }
+
+        longhands::text_overflow::computed_value::T {
+            first: to_servo(&self.gecko.mTextOverflow.mLeft),
+            second: to_servo(&self.gecko.mTextOverflow.mRight),
+            sides_are_logical: self.gecko.mTextOverflow.mLogicalDirections
+        }
+    }
+
     pub fn set_initial_letter(&mut self, v: longhands::initial_letter::computed_value::T) {
         use values::generics::text::InitialLetter;
         match v {
