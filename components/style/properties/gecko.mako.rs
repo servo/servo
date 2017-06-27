@@ -3086,6 +3086,17 @@ fn static_assert() {
         unsafe { self.gecko.mQuotes.set(&other.gecko.mQuotes); }
     }
 
+    pub fn clone_quotes(&self) -> longhands::quotes::computed_value::T {
+        unsafe {
+            let ref gecko_quote_values = *self.gecko.mQuotes.mRawPtr;
+            longhands::quotes::computed_value::T(
+                gecko_quote_values.mQuotePairs.iter().map(|gecko_pair| {
+                    (gecko_pair.first.to_string(), gecko_pair.second.to_string())
+                }).collect()
+            )
+        }
+    }
+
     #[allow(non_snake_case)]
     pub fn set__moz_image_region(&mut self, v: longhands::_moz_image_region::computed_value::T) {
         use values::Either;
