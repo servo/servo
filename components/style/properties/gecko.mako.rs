@@ -4290,6 +4290,17 @@ clip-path
                 bindings::Gecko_CopyCounter${counter_property}sFrom(&mut self.gecko, &other.gecko)
             }
         }
+
+        pub fn clone_counter_${counter_property.lower()}(&self) -> longhands::counter_increment::computed_value::T {
+            use values::CustomIdent;
+            use gecko_string_cache::Atom;
+
+            longhands::counter_increment::computed_value::T(
+                self.gecko.m${counter_property}s.iter().map(|ref gecko_counter| {
+                    (CustomIdent(Atom::from(gecko_counter.mCounter.to_string())), gecko_counter.mValue)
+                }).collect()
+            )
+        }
     % endfor
 </%self:impl_trait>
 
