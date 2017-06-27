@@ -43,8 +43,10 @@ ${helpers.predefined_type("clip",
 
 ${helpers.predefined_type(
     "filter",
-    "FilterList",
-    "computed::FilterList::none()",
+    "Filter",
+    None,
+    vector=True,
+    separator="Space",
     animation_value_type="AnimatedFilterList",
     extra_prefixes="webkit",
     flags="CREATES_STACKING_CONTEXT FIXPOS_CB",

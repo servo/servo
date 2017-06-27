@@ -65,7 +65,7 @@ use std::ptr;
 use stylearc::Arc;
 use std::cmp;
 use values::{Auto, CustomIdent, Either, KeyframesName};
-use values::computed::{Shadow, ToComputedValue};
+use values::computed::{Filter, Shadow, ToComputedValue};
 use values::specified::length::Percentage;
 use computed_values::border_style;
 
@@ -3454,7 +3454,11 @@ fn static_assert() {
                          'Opacity', 'Saturate', 'Sepia' ]
      %>
 
-    pub fn set_filter(&mut self, v: longhands::filter::computed_value::T) {
+    pub fn set_filter<I>(&mut self, v: I)
+    where
+        I: IntoIterator<Item = Filter>,
+        I::IntoIter: ExactSizeIterator,
+    {
         use values::generics::effects::Filter::*;
         use gecko_bindings::structs::nsCSSShadowArray;
         use gecko_bindings::structs::nsStyleFilter;
@@ -3474,12 +3478,13 @@ fn static_assert() {
             gecko_filter.mFilterParameter.set_value(value);
         }
 
+        let v = v.into_iter();
         unsafe {
-            Gecko_ResetFilters(&mut self.gecko, v.0.len());
+            Gecko_ResetFilters(&mut self.gecko, v.len());
         }
-        debug_assert!(v.0.len() == self.gecko.mFilters.len());
+        debug_assert!(v.len() == self.gecko.mFilters.len());
 
-        for (servo, gecko_filter) in v.0.into_vec().into_iter().zip(self.gecko.mFilters.iter_mut()) {
+        for (servo, gecko_filter) in v.zip(self.gecko.mFilters.iter_mut()) {
             match servo {
                 % for func in FILTER_FUNCTIONS:
                 ${func}(factor) => fill_filter(NS_STYLE_FILTER_${func.upper()},
@@ -3526,7 +3531,7 @@ fn static_assert() {
     }
 
     pub fn clone_filter(&self) -> longhands::filter::computed_value::T {
-        use values::generics::effects::{Filter, FilterList};
+        use values::generics::effects::Filter;
         use values::specified::url::SpecifiedUrl;
         use gecko_bindings::structs::NS_STYLE_FILTER_BLUR;
         use gecko_bindings::structs::NS_STYLE_FILTER_BRIGHTNESS;
@@ -3576,7 +3581,7 @@ fn static_assert() {
                 _ => {},
             }
         }
-        FilterList(filters.into_boxed_slice())
+        longhands::filter::computed_value::T(filters)
     }
 
 </%self:impl_trait>
@@ -4096,10 +4101,9 @@ clip-path
     }
 
     pub fn clone_stroke_dasharray(&self) -> longhands::stroke_dasharray::computed_value::T {
-        use smallvec::SmallVec;
         use values::computed::LengthOrPercentage;
 
-        let mut vec = SmallVec::new();
+        let mut vec = vec![];
         for gecko in self.gecko.mStrokeDasharray.iter() {
             match gecko.as_value() {
                 CoordDataValue::Factor(number) => vec.push(Either::First(number)),

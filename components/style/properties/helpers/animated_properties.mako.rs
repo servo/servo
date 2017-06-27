@@ -3340,11 +3340,13 @@ impl Animatable for AnimatedFilterList {
             }
         }
 
-        Ok(filters.into())
+        Ok(AnimatedFilterList(filters))
     }
 
     fn add(&self, other: &Self) -> Result<Self, ()> {
-        Ok(self.0.iter().chain(other.0.iter()).cloned().collect::<Vec<_>>().into())
+        Ok(AnimatedFilterList(
+            self.0.iter().chain(other.0.iter()).cloned().collect::<Vec<_>>(),
+        ))
     }
 
     #[inline]
