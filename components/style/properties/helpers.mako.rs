@@ -83,6 +83,7 @@
             delegate_animate=False, separator='Comma', **kwargs)">
     <%call expr="longhand(name, vector=True, **kwargs)">
         % if not gecko_only:
+            #[allow(unused_imports)]
             use smallvec::SmallVec;
             use std::fmt;
             #[allow(unused_imports)]
@@ -113,13 +114,23 @@
             pub mod computed_value {
                 pub use super::single_value::computed_value as single_value;
                 pub use self::single_value::T as SingleComputedValue;
+                % if allow_empty and allow_empty != "NotInitial":
+                use std::vec::IntoIter;
+                % else:
                 use smallvec::{IntoIter, SmallVec};
+                % endif
                 use values::computed::ComputedVecIter;
 
                 /// The computed value, effectively a list of single values.
                 #[derive(Debug, Clone, PartialEq)]
                 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-                pub struct T(pub SmallVec<[single_value::T; 1]>);
+                pub struct T(
+                    % if allow_empty and allow_empty != "NotInitial":
+                    pub Vec<single_value::T>,
+                    % else:
+                    pub SmallVec<[single_value::T; 1]>,
+                    % endif
+                );
 
                 % if delegate_animate:
                     use properties::animated_properties::Animatable;
@@ -149,7 +160,11 @@
 
                 impl IntoIterator for T {
                     type Item = single_value::T;
+                    % if allow_empty and allow_empty != "NotInitial":
+                    type IntoIter = IntoIter<single_value::T>;
+                    % else:
                     type IntoIter = IntoIter<[single_value::T; 1]>;
+                    % endif
                     fn into_iter(self) -> Self::IntoIter {
                         self.0.into_iter()
                     }
@@ -207,7 +222,7 @@
 
             pub fn get_initial_value() -> computed_value::T {
                 % if allow_empty and allow_empty != "NotInitial":
-                    computed_value::T(SmallVec::new())
+                    computed_value::T(vec![])
                 % else:
                     let mut v = SmallVec::new();
                     v.push(single_value::get_initial_value());
