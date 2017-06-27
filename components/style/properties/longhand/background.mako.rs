@@ -31,7 +31,7 @@ ${helpers.predefined_type("background-image", "ImageLayer",
                               animation_value_type="ComputedValue", vector=True, delegate_animate=True)}
 % endfor
 
-<%helpers:vector_longhand name="background-repeat" animation_value_type="none"
+<%helpers:vector_longhand name="background-repeat" animation_value_type="discrete"
                           spec="https://drafts.csswg.org/css-backgrounds/#the-background-repeat">
     use std::fmt;
     use style_traits::ToCss;
