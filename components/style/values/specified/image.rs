@@ -9,6 +9,7 @@
 
 use Atom;
 use cssparser::{Parser, Token, BasicParseError};
+use custom_properties::SpecifiedValue;
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseError;
 #[cfg(feature = "servo")]
@@ -874,12 +875,17 @@ impl Parse for ColorStop {
 }
 
 impl Parse for PaintWorklet {
-    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
         input.expect_function_matching("paint")?;
-        input.parse_nested_block(|i| {
-            let name = i.expect_ident()?;
+        input.parse_nested_block(|input| {
+            let name = Atom::from(&**input.expect_ident()?);
+            let arguments = input.try(|input| {
+                input.expect_comma()?;
+                input.parse_comma_separated(|input| Ok(*SpecifiedValue::parse(context, input)?))
+            }).unwrap_or(vec![]);
             Ok(PaintWorklet {
-                name: Atom::from(name.as_ref()),
+                name: name,
+                arguments: arguments,
             })
         })
     }
