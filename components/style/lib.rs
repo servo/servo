@@ -89,6 +89,7 @@ extern crate unicode_segmentation;
 
 #[macro_use]
 mod macros;
+#[cfg(feature = "gecko")] #[macro_use] mod gecko_macros;
 
 pub mod animation;
 pub mod applicable_declarations;
