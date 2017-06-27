@@ -928,6 +928,15 @@ fn static_assert() {
         }
     }
 
+    pub fn clone_border_image_source(&self) -> longhands::border_image_source::computed_value::T {
+        use values::None_;
+
+        match unsafe { self.gecko.mBorderImageSource.into_image() } {
+            Some(image) => Either::Second(image),
+            None => Either::First(None_),
+        }
+    }
+
     <% impl_style_sides("border_image_outset") %>
 
     <%
@@ -3099,6 +3108,21 @@ fn static_assert() {
                 geckoimage.mImage.set(image, cacheable)
             }
         }
+    }
+
+    pub fn clone_${shorthand}_image(&self) -> longhands::${shorthand}_image::computed_value::T {
+        use values::None_;
+
+        longhands::${shorthand}_image::computed_value::T(
+            self.gecko.${image_layers_field}.mLayers.iter()
+                .take(self.gecko.${image_layers_field}.mImageCount as usize)
+                .map(|ref layer| {
+                    match unsafe { layer.mImage.into_image() } {
+                        Some(image) => Either::Second(image),
+                        None => Either::First(None_),
+                    }
+            }).collect()
+        )
     }
 
     <%

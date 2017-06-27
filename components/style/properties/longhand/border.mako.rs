@@ -200,7 +200,7 @@ ${helpers.predefined_type("border-image-source", "ImageLayer",
     initial_specified_value="Either::First(None_)",
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-image",
     vector=False,
-    animation_value_type="none",
+    animation_value_type="discrete",
     has_uncacheable_values=False,
     boxed="True")}
 
