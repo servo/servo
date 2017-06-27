@@ -1,0 +1,15 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(() => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.glucose_heart_rate);
+    return window.navigator.bluetooth.requestDevice({
+        filters: [{services: [battery_service.name]},
+                  {services: [heart_rate.name]}]
+    })
+    .then(glucose_device => assert_equals(glucose_device.name, mock_device_name.heart_rate));
+}, 'An extra filter doesn\'t prevent matching.');
+</script>

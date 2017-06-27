@@ -6806,6 +6806,11 @@
      {}
     ]
    ],
+   "bluetooth/bluetooth-helpers.js": [
+    [
+     {}
+    ]
+   ],
    "css/100x100_green.png": [
     [
      {}
@@ -9601,11 +9606,6 @@
      {}
     ]
    ],
-   "mozilla/bluetooth/bluetooth-helpers.js": [
-    [
-     {}
-    ]
-   ],
    "mozilla/canvas/set_dimensions_ref.html": [
     [
      {}
@@ -11298,6 +11298,1284 @@
    ]
   },
   "testharness": {
+   "bluetooth/advertisingEvent/watchAdvertisements-succeeds.html": [
+    [
+     "/_mozilla/bluetooth/advertisingEvent/watchAdvertisements-succeeds.html",
+     {}
+    ]
+   ],
+   "bluetooth/connect/connection-succeeds.html": [
+    [
+     "/_mozilla/bluetooth/connect/connection-succeeds.html",
+     {}
+    ]
+   ],
+   "bluetooth/connect/device-goes-out-of-range.html": [
+    [
+     "/_mozilla/bluetooth/connect/device-goes-out-of-range.html",
+     {}
+    ]
+   ],
+   "bluetooth/connect/get-same-gatt-server.html": [
+    [
+     "/_mozilla/bluetooth/connect/get-same-gatt-server.html",
+     {}
+    ]
+   ],
+   "bluetooth/disconnect/connect-disconnect-twice.html": [
+    [
+     "/_mozilla/bluetooth/disconnect/connect-disconnect-twice.html",
+     {}
+    ]
+   ],
+   "bluetooth/disconnect/disconnect-once.html": [
+    [
+     "/_mozilla/bluetooth/disconnect/disconnect-once.html",
+     {}
+    ]
+   ],
+   "bluetooth/disconnect/disconnect-twice-in-a-row.html": [
+    [
+     "/_mozilla/bluetooth/disconnect/disconnect-twice-in-a-row.html",
+     {}
+    ]
+   ],
+   "bluetooth/disconnect/event-is-fired.html": [
+    [
+     "/_mozilla/bluetooth/disconnect/event-is-fired.html",
+     {}
+    ]
+   ],
+   "bluetooth/getAvailability/adapter-not-present.html": [
+    [
+     "/_mozilla/bluetooth/getAvailability/adapter-not-present.html",
+     {}
+    ]
+   ],
+   "bluetooth/getAvailability/adapter-off.html": [
+    [
+     "/_mozilla/bluetooth/getAvailability/adapter-off.html",
+     {}
+    ]
+   ],
+   "bluetooth/getAvailability/adapter-on.html": [
+    [
+     "/_mozilla/bluetooth/getAvailability/adapter-on.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristic/blocklisted-characteristic.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristic/blocklisted-characteristic.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristic/characteristic-found.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristic/characteristic-found.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristic/characteristic-not-found.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristic/characteristic-not-found.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristic/device-goes-out-of-range.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristic/device-goes-out-of-range.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristic/disconnect-called-before.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristic/disconnect-called-before.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristic/disconnect-called-during.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristic/disconnect-called-during.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristic/disconnect-invalidates-object.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristic/disconnect-invalidates-object.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristic/get-different-characteristic-after-reconnection.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristic/get-different-characteristic-after-reconnection.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristic/get-same-characteristic.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristic/get-same-characteristic.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristic/invalid-characteristic-name.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristic/invalid-characteristic-name.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristic/reconnect-during.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristic/reconnect-during.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristic/service-is-removed.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristic/service-is-removed.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristics/blocklisted-characteristics-with-uuid.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristics/blocklisted-characteristics-with-uuid.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristics/blocklisted-characteristics.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristics/blocklisted-characteristics.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristics/characteristics-found-with-uuid.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristics/characteristics-found-with-uuid.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristics/characteristics-found.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristics/characteristics-found.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristics/characteristics-not-found-with-uuid.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristics/characteristics-not-found-with-uuid.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristics/characteristics-not-found.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristics/characteristics-not-found.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristics/correct-characteristics.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristics/correct-characteristics.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristics/device-goes-out-of-range-with-uuid.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristics/device-goes-out-of-range-with-uuid.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristics/device-goes-out-of-range.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristics/device-goes-out-of-range.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristics/disconnect-called-before-with-uuid.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristics/disconnect-called-before-with-uuid.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristics/disconnect-called-before.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristics/disconnect-called-before.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristics/disconnect-called-during-with-uuid.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristics/disconnect-called-during-with-uuid.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristics/disconnect-called-during.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristics/disconnect-called-during.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristics/disconnect-invalidates-objects.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristics/disconnect-invalidates-objects.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristics/get-different-characteristics-after-reconnection.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristics/get-different-characteristics-after-reconnection.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristics/get-same-characteristics.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristics/get-same-characteristics.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristics/invalid-characteristic-name.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristics/invalid-characteristic-name.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristics/service-is-removed-with-uuid.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristics/service-is-removed-with-uuid.html",
+     {}
+    ]
+   ],
+   "bluetooth/getCharacteristics/service-is-removed.html": [
+    [
+     "/_mozilla/bluetooth/getCharacteristics/service-is-removed.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptor/blocklisted-descriptor.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptor/blocklisted-descriptor.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptor/characteristic-is-removed.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptor/characteristic-is-removed.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptor/descriptor-found.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptor/descriptor-found.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptor/descriptor-not-found.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptor/descriptor-not-found.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptor/device-goes-out-of-range.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptor/device-goes-out-of-range.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptor/disconnect-called-before.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptor/disconnect-called-before.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptor/disconnect-called-during.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptor/disconnect-called-during.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptor/disconnect-invalidates-object.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptor/disconnect-invalidates-object.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptor/get-different-descriptor-after-reconnection.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptor/get-different-descriptor-after-reconnection.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptor/get-same-descriptor.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptor/get-same-descriptor.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptor/invalid-descriptor-name.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptor/invalid-descriptor-name.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptors/blocklisted-descriptors-with-uuid.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptors/blocklisted-descriptors-with-uuid.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptors/blocklisted-descriptors.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptors/blocklisted-descriptors.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptors/characteristic-is-removed-with-uuid.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptors/characteristic-is-removed-with-uuid.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptors/characteristic-is-removed.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptors/characteristic-is-removed.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptors/correct-descriptors.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptors/correct-descriptors.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptors/descriptors-found-with-uuid.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptors/descriptors-found-with-uuid.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptors/descriptors-found.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptors/descriptors-found.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptors/descriptors-not-found-with-uuid.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptors/descriptors-not-found-with-uuid.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptors/descriptors-not-found.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptors/descriptors-not-found.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptors/device-goes-out-of-range-with-uuid.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptors/device-goes-out-of-range-with-uuid.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptors/device-goes-out-of-range.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptors/device-goes-out-of-range.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptors/disconnect-called-before-with-uuid.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptors/disconnect-called-before-with-uuid.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptors/disconnect-called-before.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptors/disconnect-called-before.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptors/disconnect-called-during-with-uuid.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptors/disconnect-called-during-with-uuid.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptors/disconnect-called-during.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptors/disconnect-called-during.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptors/disconnect-invalidates-objects.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptors/disconnect-invalidates-objects.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptors/get-different-descriptors-after-reconnection.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptors/get-different-descriptors-after-reconnection.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptors/get-same-descriptors.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptors/get-same-descriptors.html",
+     {}
+    ]
+   ],
+   "bluetooth/getDescriptors/invalid-descriptor-name.html": [
+    [
+     "/_mozilla/bluetooth/getDescriptors/invalid-descriptor-name.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryService/device-goes-out-of-range.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryService/device-goes-out-of-range.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryService/disconnect-called-before.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryService/disconnect-called-before.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryService/disconnect-called-during.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryService/disconnect-called-during.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryService/disconnect-invalidates-object.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryService/disconnect-invalidates-object.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryService/disconnected-device.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryService/disconnected-device.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryService/get-different-service-after-reconnection.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryService/get-different-service-after-reconnection.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryService/get-same-service.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryService/get-same-service.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryService/invalid-service-name.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryService/invalid-service-name.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryService/no-permission-absent-service.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryService/no-permission-absent-service.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryService/no-permission-present-service.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryService/no-permission-present-service.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryService/service-found.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryService/service-found.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryService/service-not-found.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryService/service-not-found.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryServices/blocklisted-services-with-uuid.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryServices/blocklisted-services-with-uuid.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryServices/blocklisted-services.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryServices/blocklisted-services.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryServices/correct-services.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryServices/correct-services.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryServices/device-goes-out-of-range-with-uuid.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryServices/device-goes-out-of-range-with-uuid.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryServices/device-goes-out-of-range.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryServices/device-goes-out-of-range.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryServices/disconnect-called-before-with-uuid.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryServices/disconnect-called-before-with-uuid.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryServices/disconnect-called-before.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryServices/disconnect-called-before.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryServices/disconnect-called-during-with-uuid.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryServices/disconnect-called-during-with-uuid.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryServices/disconnect-called-during.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryServices/disconnect-called-during.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryServices/disconnect-invalidates-objects.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryServices/disconnect-invalidates-objects.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryServices/disconnected-device-with-uuid.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryServices/disconnected-device-with-uuid.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryServices/disconnected-device.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryServices/disconnected-device.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryServices/get-different-services-after-reconnection.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryServices/get-different-services-after-reconnection.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryServices/get-same-service-with-uuid.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryServices/get-same-service-with-uuid.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryServices/get-same-service.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryServices/get-same-service.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryServices/invalid-service-name.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryServices/invalid-service-name.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryServices/no-permission-absent-service-with-uuid.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryServices/no-permission-absent-service-with-uuid.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryServices/no-permission-present-service-with-uuid.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryServices/no-permission-present-service-with-uuid.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryServices/no-permission-present-service.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryServices/no-permission-present-service.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryServices/services-found-with-uuid.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryServices/services-found-with-uuid.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryServices/services-found.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryServices/services-found.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryServices/services-not-found-with-uuid.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryServices/services-not-found-with-uuid.html",
+     {}
+    ]
+   ],
+   "bluetooth/getPrimaryServices/services-not-found.html": [
+    [
+     "/_mozilla/bluetooth/getPrimaryServices/services-not-found.html",
+     {}
+    ]
+   ],
+   "bluetooth/idl-BluetoothUUID.html": [
+    [
+     "/_mozilla/bluetooth/idl-BluetoothUUID.html",
+     {}
+    ]
+   ],
+   "bluetooth/interfaces.html": [
+    [
+     "/_mozilla/bluetooth/interfaces.html",
+     {}
+    ]
+   ],
+   "bluetooth/readValue/characteristic/blocklisted-characteristic.html": [
+    [
+     "/_mozilla/bluetooth/readValue/characteristic/blocklisted-characteristic.html",
+     {}
+    ]
+   ],
+   "bluetooth/readValue/characteristic/characteristic-is-removed.html": [
+    [
+     "/_mozilla/bluetooth/readValue/characteristic/characteristic-is-removed.html",
+     {}
+    ]
+   ],
+   "bluetooth/readValue/characteristic/device-goes-out-of-range.html": [
+    [
+     "/_mozilla/bluetooth/readValue/characteristic/device-goes-out-of-range.html",
+     {}
+    ]
+   ],
+   "bluetooth/readValue/characteristic/disconnect-called-before.html": [
+    [
+     "/_mozilla/bluetooth/readValue/characteristic/disconnect-called-before.html",
+     {}
+    ]
+   ],
+   "bluetooth/readValue/characteristic/disconnect-called-during.html": [
+    [
+     "/_mozilla/bluetooth/readValue/characteristic/disconnect-called-during.html",
+     {}
+    ]
+   ],
+   "bluetooth/readValue/characteristic/event-is-fired.html": [
+    [
+     "/_mozilla/bluetooth/readValue/characteristic/event-is-fired.html",
+     {}
+    ]
+   ],
+   "bluetooth/readValue/characteristic/read-succeeds.html": [
+    [
+     "/_mozilla/bluetooth/readValue/characteristic/read-succeeds.html",
+     {}
+    ]
+   ],
+   "bluetooth/readValue/characteristic/read-updates-value.html": [
+    [
+     "/_mozilla/bluetooth/readValue/characteristic/read-updates-value.html",
+     {}
+    ]
+   ],
+   "bluetooth/readValue/characteristic/service-is-removed.html": [
+    [
+     "/_mozilla/bluetooth/readValue/characteristic/service-is-removed.html",
+     {}
+    ]
+   ],
+   "bluetooth/readValue/descriptor/blocklisted-descriptor.html": [
+    [
+     "/_mozilla/bluetooth/readValue/descriptor/blocklisted-descriptor.html",
+     {}
+    ]
+   ],
+   "bluetooth/readValue/descriptor/characteristic-is-removed.html": [
+    [
+     "/_mozilla/bluetooth/readValue/descriptor/characteristic-is-removed.html",
+     {}
+    ]
+   ],
+   "bluetooth/readValue/descriptor/descriptor-is-removed.html": [
+    [
+     "/_mozilla/bluetooth/readValue/descriptor/descriptor-is-removed.html",
+     {}
+    ]
+   ],
+   "bluetooth/readValue/descriptor/device-goes-out-of-range.html": [
+    [
+     "/_mozilla/bluetooth/readValue/descriptor/device-goes-out-of-range.html",
+     {}
+    ]
+   ],
+   "bluetooth/readValue/descriptor/disconnect-called-before.html": [
+    [
+     "/_mozilla/bluetooth/readValue/descriptor/disconnect-called-before.html",
+     {}
+    ]
+   ],
+   "bluetooth/readValue/descriptor/read-succeeds.html": [
+    [
+     "/_mozilla/bluetooth/readValue/descriptor/read-succeeds.html",
+     {}
+    ]
+   ],
+   "bluetooth/readValue/descriptor/read-updates-value.html": [
+    [
+     "/_mozilla/bluetooth/readValue/descriptor/read-updates-value.html",
+     {}
+    ]
+   ],
+   "bluetooth/readValue/descriptor/service-is-removed.html": [
+    [
+     "/_mozilla/bluetooth/readValue/descriptor/service-is-removed.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/acceptAllDevices/accept-all-devices-with-filter.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/acceptAllDevices/accept-all-devices-with-filter.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/acceptAllDevices/accept-all-devices.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/acceptAllDevices/accept-all-devices.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/acceptAllDevices/device-with-empty-name.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/acceptAllDevices/device-with-empty-name.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/acceptAllDevices/device-with-name.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/acceptAllDevices/device-with-name.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/acceptAllDevices/device-with-no-name.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/acceptAllDevices/device-with-no-name.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/acceptAllDevices/optional-services-missing.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/acceptAllDevices/optional-services-missing.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/acceptAllDevices/optional-services-present.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/acceptAllDevices/optional-services-present.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/adapter-not-present.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/adapter-not-present.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/adapter-off.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/adapter-off.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/blocklisted-service-in-filter.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/blocklisted-service-in-filter.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/blocklisted-service-in-optionalServices.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/blocklisted-service-in-optionalServices.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/canonicalizeFilter/blocklisted-service-data-key.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/canonicalizeFilter/blocklisted-service-data-key.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/canonicalizeFilter/empty-filter.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/canonicalizeFilter/empty-filter.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/canonicalizeFilter/empty-filters-member.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/canonicalizeFilter/empty-filters-member.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/canonicalizeFilter/empty-namePrefix.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/canonicalizeFilter/empty-namePrefix.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/canonicalizeFilter/empty-services-member.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/canonicalizeFilter/empty-services-member.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/canonicalizeFilter/filters-xor-acceptAllDevices.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/canonicalizeFilter/filters-xor-acceptAllDevices.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/canonicalizeFilter/max-length-for-device-name-name.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/canonicalizeFilter/max-length-for-device-name-name.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/canonicalizeFilter/max-length-for-device-name-namePrefix.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/canonicalizeFilter/max-length-for-device-name-namePrefix.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/canonicalizeFilter/no-arguments.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/canonicalizeFilter/no-arguments.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/canonicalizeFilter/no-filters-member.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/canonicalizeFilter/no-filters-member.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/canonicalizeFilter/unicode-max-length-for-device-name-name.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/canonicalizeFilter/unicode-max-length-for-device-name-name.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/canonicalizeFilter/unicode-max-length-for-device-name-namePrefix.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/canonicalizeFilter/unicode-max-length-for-device-name-namePrefix.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/canonicalizeFilter/unicode-valid-length-name-name.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/canonicalizeFilter/unicode-valid-length-name-name.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/canonicalizeFilter/unicode-valid-length-name-namePrefix.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/canonicalizeFilter/unicode-valid-length-name-namePrefix.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/canonicalizeFilter/wrong-manufacturer-data-key.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-manufacturer-data-key.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/canonicalizeFilter/wrong-mask-length.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-mask-length.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/canonicalizeFilter/wrong-service-data-key.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-service-data-key.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/canonicalizeFilter/wrong-service-in-optionalServices-member.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-service-in-optionalServices-member.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/canonicalizeFilter/wrong-service-in-services-member.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-service-in-services-member.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/device-found-using-mask.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/device-found-using-mask.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/device-found-with-key-and-value.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/device-found-with-key-and-value.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/device-found-with-key-only.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/device-found-with-key-only.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/device-found-with-service-and-manufacturer-data.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/device-found-with-service-and-manufacturer-data.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/device-not-found-with-extra-data.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/device-not-found-with-extra-data.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/device-not-found-with-service-and-manufacturer-data.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/device-not-found-with-service-and-manufacturer-data.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/discovery-succeeds.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/discovery-succeeds.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/filter-does-not-match.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/filter-does-not-match.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/filter-matches.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/filter-matches.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/name-empty-device-from-name-empty-filter.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/name-empty-device-from-name-empty-filter.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/name-empty-device-from-name-prefix-filter.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/name-empty-device-from-name-prefix-filter.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/name-empty-device-from-name-wrong-filter.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/name-empty-device-from-name-wrong-filter.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/name-empty-device-from-service-filter.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/name-empty-device-from-service-filter.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/name-empty-filter.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/name-empty-filter.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/name-missing-device-from-name-empty-filter.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/name-missing-device-from-name-empty-filter.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/name-missing-device-from-name-prefix-filter.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/name-missing-device-from-name-prefix-filter.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/name-missing-device-from-name-wrong-filter.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/name-missing-device-from-name-wrong-filter.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/name-missing-device-from-service-filter.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/name-missing-device-from-service-filter.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/no-devices.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/no-devices.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/not-accept-all-devices-without-filter.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/not-accept-all-devices-without-filter.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/same-device.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/same-device.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/single-filter-single-service.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/single-filter-single-service.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/single-filter-two-services-fails.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/single-filter-two-services-fails.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/single-filter-two-services-succeeds.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/single-filter-two-services-succeeds.html",
+     {}
+    ]
+   ],
+   "bluetooth/requestDevice/two-filters.html": [
+    [
+     "/_mozilla/bluetooth/requestDevice/two-filters.html",
+     {}
+    ]
+   ],
+   "bluetooth/startNotifications/blocklisted-characteristic.html": [
+    [
+     "/_mozilla/bluetooth/startNotifications/blocklisted-characteristic.html",
+     {}
+    ]
+   ],
+   "bluetooth/startNotifications/characteristic-does-not-support-notifications.html": [
+    [
+     "/_mozilla/bluetooth/startNotifications/characteristic-does-not-support-notifications.html",
+     {}
+    ]
+   ],
+   "bluetooth/startNotifications/characteristic-is-removed.html": [
+    [
+     "/_mozilla/bluetooth/startNotifications/characteristic-is-removed.html",
+     {}
+    ]
+   ],
+   "bluetooth/startNotifications/device-goes-out-of-range.html": [
+    [
+     "/_mozilla/bluetooth/startNotifications/device-goes-out-of-range.html",
+     {}
+    ]
+   ],
+   "bluetooth/startNotifications/disconnect-called-before.html": [
+    [
+     "/_mozilla/bluetooth/startNotifications/disconnect-called-before.html",
+     {}
+    ]
+   ],
+   "bluetooth/startNotifications/disconnect-called-during.html": [
+    [
+     "/_mozilla/bluetooth/startNotifications/disconnect-called-during.html",
+     {}
+    ]
+   ],
+   "bluetooth/startNotifications/notify-failure.html": [
+    [
+     "/_mozilla/bluetooth/startNotifications/notify-failure.html",
+     {}
+    ]
+   ],
+   "bluetooth/startNotifications/notify-succeeds.html": [
+    [
+     "/_mozilla/bluetooth/startNotifications/notify-succeeds.html",
+     {}
+    ]
+   ],
+   "bluetooth/startNotifications/service-is-removed.html": [
+    [
+     "/_mozilla/bluetooth/startNotifications/service-is-removed.html",
+     {}
+    ]
+   ],
+   "bluetooth/stopNotifications/characteristic-is-removed.html": [
+    [
+     "/_mozilla/bluetooth/stopNotifications/characteristic-is-removed.html",
+     {}
+    ]
+   ],
+   "bluetooth/stopNotifications/disconnect-called-before.html": [
+    [
+     "/_mozilla/bluetooth/stopNotifications/disconnect-called-before.html",
+     {}
+    ]
+   ],
+   "bluetooth/stopNotifications/disconnect-called-during.html": [
+    [
+     "/_mozilla/bluetooth/stopNotifications/disconnect-called-during.html",
+     {}
+    ]
+   ],
+   "bluetooth/stopNotifications/notify-succeeds.html": [
+    [
+     "/_mozilla/bluetooth/stopNotifications/notify-succeeds.html",
+     {}
+    ]
+   ],
+   "bluetooth/stopNotifications/stop-after-start-succeeds.html": [
+    [
+     "/_mozilla/bluetooth/stopNotifications/stop-after-start-succeeds.html",
+     {}
+    ]
+   ],
+   "bluetooth/stopNotifications/stop-twice.html": [
+    [
+     "/_mozilla/bluetooth/stopNotifications/stop-twice.html",
+     {}
+    ]
+   ],
+   "bluetooth/stopNotifications/stop-without-starting.html": [
+    [
+     "/_mozilla/bluetooth/stopNotifications/stop-without-starting.html",
+     {}
+    ]
+   ],
+   "bluetooth/writeValue/characteristic/blocklisted-characteristic.html": [
+    [
+     "/_mozilla/bluetooth/writeValue/characteristic/blocklisted-characteristic.html",
+     {}
+    ]
+   ],
+   "bluetooth/writeValue/characteristic/characteristic-is-removed.html": [
+    [
+     "/_mozilla/bluetooth/writeValue/characteristic/characteristic-is-removed.html",
+     {}
+    ]
+   ],
+   "bluetooth/writeValue/characteristic/device-goes-out-of-range.html": [
+    [
+     "/_mozilla/bluetooth/writeValue/characteristic/device-goes-out-of-range.html",
+     {}
+    ]
+   ],
+   "bluetooth/writeValue/characteristic/disconnect-called-before.html": [
+    [
+     "/_mozilla/bluetooth/writeValue/characteristic/disconnect-called-before.html",
+     {}
+    ]
+   ],
+   "bluetooth/writeValue/characteristic/service-is-removed.html": [
+    [
+     "/_mozilla/bluetooth/writeValue/characteristic/service-is-removed.html",
+     {}
+    ]
+   ],
+   "bluetooth/writeValue/characteristic/value-too-long.html": [
+    [
+     "/_mozilla/bluetooth/writeValue/characteristic/value-too-long.html",
+     {}
+    ]
+   ],
+   "bluetooth/writeValue/characteristic/write-succeeds.html": [
+    [
+     "/_mozilla/bluetooth/writeValue/characteristic/write-succeeds.html",
+     {}
+    ]
+   ],
+   "bluetooth/writeValue/characteristic/write-updates-value.html": [
+    [
+     "/_mozilla/bluetooth/writeValue/characteristic/write-updates-value.html",
+     {}
+    ]
+   ],
+   "bluetooth/writeValue/descriptor/blocklisted-descriptor.html": [
+    [
+     "/_mozilla/bluetooth/writeValue/descriptor/blocklisted-descriptor.html",
+     {}
+    ]
+   ],
+   "bluetooth/writeValue/descriptor/characteristic-is-removed.html": [
+    [
+     "/_mozilla/bluetooth/writeValue/descriptor/characteristic-is-removed.html",
+     {}
+    ]
+   ],
+   "bluetooth/writeValue/descriptor/descriptor-is-removed.html": [
+    [
+     "/_mozilla/bluetooth/writeValue/descriptor/descriptor-is-removed.html",
+     {}
+    ]
+   ],
+   "bluetooth/writeValue/descriptor/device-goes-out-of-range.html": [
+    [
+     "/_mozilla/bluetooth/writeValue/descriptor/device-goes-out-of-range.html",
+     {}
+    ]
+   ],
+   "bluetooth/writeValue/descriptor/disconnect-called-before.html": [
+    [
+     "/_mozilla/bluetooth/writeValue/descriptor/disconnect-called-before.html",
+     {}
+    ]
+   ],
+   "bluetooth/writeValue/descriptor/service-is-removed.html": [
+    [
+     "/_mozilla/bluetooth/writeValue/descriptor/service-is-removed.html",
+     {}
+    ]
+   ],
+   "bluetooth/writeValue/descriptor/write-succeeds.html": [
+    [
+     "/_mozilla/bluetooth/writeValue/descriptor/write-succeeds.html",
+     {}
+    ]
+   ],
+   "bluetooth/writeValue/descriptor/write-updates-value.html": [
+    [
+     "/_mozilla/bluetooth/writeValue/descriptor/write-updates-value.html",
+     {}
+    ]
+   ],
    "css/animations/basic-linear-width.html": [
     [
      "/_mozilla/css/animations/basic-linear-width.html",
@@ -11505,1284 +12783,6 @@
    "mozilla/binding_keyword.html": [
     [
      "/_mozilla/mozilla/binding_keyword.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/advertisingEvent/watchAdvertisements-succeeds.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/advertisingEvent/watchAdvertisements-succeeds.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/connect/connection-succeeds.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/connect/connection-succeeds.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/connect/device-goes-out-of-range.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/connect/device-goes-out-of-range.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/connect/get-same-gatt-server.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/connect/get-same-gatt-server.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/disconnect/connect-disconnect-twice.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/disconnect/connect-disconnect-twice.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/disconnect/disconnect-once.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/disconnect/disconnect-once.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/disconnect/disconnect-twice-in-a-row.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/disconnect/disconnect-twice-in-a-row.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/disconnect/event-is-fired.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/disconnect/event-is-fired.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getAvailability/adapter-not-present.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getAvailability/adapter-not-present.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getAvailability/adapter-off.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getAvailability/adapter-off.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getAvailability/adapter-on.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getAvailability/adapter-on.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristic/blocklisted-characteristic.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristic/blocklisted-characteristic.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristic/characteristic-found.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristic/characteristic-found.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristic/characteristic-not-found.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristic/characteristic-not-found.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristic/device-goes-out-of-range.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristic/device-goes-out-of-range.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristic/disconnect-called-before.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristic/disconnect-called-before.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristic/disconnect-called-during.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristic/disconnect-called-during.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristic/disconnect-invalidates-object.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristic/disconnect-invalidates-object.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristic/get-different-characteristic-after-reconnection.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristic/get-different-characteristic-after-reconnection.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristic/get-same-characteristic.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristic/get-same-characteristic.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristic/invalid-characteristic-name.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristic/invalid-characteristic-name.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristic/reconnect-during.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristic/reconnect-during.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristic/service-is-removed.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristic/service-is-removed.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristics/blocklisted-characteristics-with-uuid.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristics/blocklisted-characteristics-with-uuid.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristics/blocklisted-characteristics.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristics/blocklisted-characteristics.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristics/characteristics-found-with-uuid.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristics/characteristics-found-with-uuid.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristics/characteristics-found.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristics/characteristics-found.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristics/characteristics-not-found-with-uuid.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristics/characteristics-not-found-with-uuid.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristics/characteristics-not-found.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristics/characteristics-not-found.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristics/correct-characteristics.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristics/correct-characteristics.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristics/device-goes-out-of-range-with-uuid.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristics/device-goes-out-of-range-with-uuid.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristics/device-goes-out-of-range.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristics/device-goes-out-of-range.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristics/disconnect-called-before-with-uuid.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristics/disconnect-called-before-with-uuid.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristics/disconnect-called-before.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristics/disconnect-called-before.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristics/disconnect-called-during-with-uuid.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristics/disconnect-called-during-with-uuid.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristics/disconnect-called-during.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristics/disconnect-called-during.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristics/disconnect-invalidates-objects.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristics/disconnect-invalidates-objects.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristics/get-different-characteristics-after-reconnection.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristics/get-different-characteristics-after-reconnection.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristics/get-same-characteristics.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristics/get-same-characteristics.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristics/invalid-characteristic-name.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristics/invalid-characteristic-name.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristics/service-is-removed-with-uuid.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristics/service-is-removed-with-uuid.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getCharacteristics/service-is-removed.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getCharacteristics/service-is-removed.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptor/blocklisted-descriptor.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptor/blocklisted-descriptor.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptor/characteristic-is-removed.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptor/characteristic-is-removed.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptor/descriptor-found.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptor/descriptor-found.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptor/descriptor-not-found.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptor/descriptor-not-found.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptor/device-goes-out-of-range.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptor/device-goes-out-of-range.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptor/disconnect-called-before.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptor/disconnect-called-before.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptor/disconnect-called-during.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptor/disconnect-called-during.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptor/disconnect-invalidates-object.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptor/disconnect-invalidates-object.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptor/get-different-descriptor-after-reconnection.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptor/get-different-descriptor-after-reconnection.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptor/get-same-descriptor.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptor/get-same-descriptor.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptor/invalid-descriptor-name.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptor/invalid-descriptor-name.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptors/blocklisted-descriptors-with-uuid.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptors/blocklisted-descriptors-with-uuid.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptors/blocklisted-descriptors.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptors/blocklisted-descriptors.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptors/characteristic-is-removed-with-uuid.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptors/characteristic-is-removed-with-uuid.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptors/characteristic-is-removed.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptors/characteristic-is-removed.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptors/correct-descriptors.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptors/correct-descriptors.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptors/descriptors-found-with-uuid.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptors/descriptors-found-with-uuid.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptors/descriptors-found.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptors/descriptors-found.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptors/descriptors-not-found-with-uuid.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptors/descriptors-not-found-with-uuid.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptors/descriptors-not-found.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptors/descriptors-not-found.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptors/device-goes-out-of-range-with-uuid.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptors/device-goes-out-of-range-with-uuid.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptors/device-goes-out-of-range.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptors/device-goes-out-of-range.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptors/disconnect-called-before-with-uuid.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptors/disconnect-called-before-with-uuid.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptors/disconnect-called-before.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptors/disconnect-called-before.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptors/disconnect-called-during-with-uuid.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptors/disconnect-called-during-with-uuid.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptors/disconnect-called-during.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptors/disconnect-called-during.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptors/disconnect-invalidates-objects.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptors/disconnect-invalidates-objects.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptors/get-different-descriptors-after-reconnection.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptors/get-different-descriptors-after-reconnection.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptors/get-same-descriptors.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptors/get-same-descriptors.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getDescriptors/invalid-descriptor-name.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getDescriptors/invalid-descriptor-name.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryService/device-goes-out-of-range.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryService/device-goes-out-of-range.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryService/disconnect-called-before.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryService/disconnect-called-before.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryService/disconnect-called-during.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryService/disconnect-called-during.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryService/disconnect-invalidates-object.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryService/disconnect-invalidates-object.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryService/disconnected-device.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryService/disconnected-device.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryService/get-different-service-after-reconnection.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryService/get-different-service-after-reconnection.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryService/get-same-service.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryService/get-same-service.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryService/invalid-service-name.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryService/invalid-service-name.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryService/no-permission-absent-service.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryService/no-permission-absent-service.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryService/no-permission-present-service.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryService/no-permission-present-service.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryService/service-found.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryService/service-found.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryService/service-not-found.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryService/service-not-found.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryServices/blocklisted-services-with-uuid.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryServices/blocklisted-services-with-uuid.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryServices/blocklisted-services.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryServices/blocklisted-services.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryServices/correct-services.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryServices/correct-services.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryServices/device-goes-out-of-range-with-uuid.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryServices/device-goes-out-of-range-with-uuid.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryServices/device-goes-out-of-range.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryServices/device-goes-out-of-range.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryServices/disconnect-called-before-with-uuid.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryServices/disconnect-called-before-with-uuid.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryServices/disconnect-called-before.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryServices/disconnect-called-before.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryServices/disconnect-called-during-with-uuid.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryServices/disconnect-called-during-with-uuid.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryServices/disconnect-called-during.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryServices/disconnect-called-during.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryServices/disconnect-invalidates-objects.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryServices/disconnect-invalidates-objects.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryServices/disconnected-device-with-uuid.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryServices/disconnected-device-with-uuid.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryServices/disconnected-device.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryServices/disconnected-device.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryServices/get-different-services-after-reconnection.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryServices/get-different-services-after-reconnection.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryServices/get-same-service-with-uuid.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryServices/get-same-service-with-uuid.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryServices/get-same-service.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryServices/get-same-service.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryServices/invalid-service-name.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryServices/invalid-service-name.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryServices/no-permission-absent-service-with-uuid.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryServices/no-permission-absent-service-with-uuid.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryServices/no-permission-present-service-with-uuid.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryServices/no-permission-present-service-with-uuid.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryServices/no-permission-present-service.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryServices/no-permission-present-service.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryServices/services-found-with-uuid.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryServices/services-found-with-uuid.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryServices/services-found.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryServices/services-found.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryServices/services-not-found-with-uuid.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryServices/services-not-found-with-uuid.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/getPrimaryServices/services-not-found.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/getPrimaryServices/services-not-found.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/idl-BluetoothUUID.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/idl-BluetoothUUID.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/interfaces.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/interfaces.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/readValue/characteristic/blocklisted-characteristic.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/readValue/characteristic/blocklisted-characteristic.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/readValue/characteristic/characteristic-is-removed.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/readValue/characteristic/characteristic-is-removed.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/readValue/characteristic/device-goes-out-of-range.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/readValue/characteristic/device-goes-out-of-range.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/readValue/characteristic/disconnect-called-before.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/readValue/characteristic/disconnect-called-before.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/readValue/characteristic/disconnect-called-during.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/readValue/characteristic/disconnect-called-during.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/readValue/characteristic/event-is-fired.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/readValue/characteristic/event-is-fired.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/readValue/characteristic/read-succeeds.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/readValue/characteristic/read-succeeds.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/readValue/characteristic/read-updates-value.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/readValue/characteristic/read-updates-value.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/readValue/characteristic/service-is-removed.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/readValue/characteristic/service-is-removed.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/readValue/descriptor/blocklisted-descriptor.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/readValue/descriptor/blocklisted-descriptor.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/readValue/descriptor/characteristic-is-removed.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/readValue/descriptor/characteristic-is-removed.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/readValue/descriptor/descriptor-is-removed.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/readValue/descriptor/descriptor-is-removed.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/readValue/descriptor/device-goes-out-of-range.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/readValue/descriptor/device-goes-out-of-range.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/readValue/descriptor/disconnect-called-before.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/readValue/descriptor/disconnect-called-before.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/readValue/descriptor/read-succeeds.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/readValue/descriptor/read-succeeds.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/readValue/descriptor/read-updates-value.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/readValue/descriptor/read-updates-value.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/readValue/descriptor/service-is-removed.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/readValue/descriptor/service-is-removed.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/acceptAllDevices/accept-all-devices-with-filter.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/acceptAllDevices/accept-all-devices-with-filter.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/acceptAllDevices/accept-all-devices.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/acceptAllDevices/accept-all-devices.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/acceptAllDevices/device-with-empty-name.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/acceptAllDevices/device-with-empty-name.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/acceptAllDevices/device-with-name.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/acceptAllDevices/device-with-name.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/acceptAllDevices/device-with-no-name.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/acceptAllDevices/device-with-no-name.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/acceptAllDevices/optional-services-missing.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/acceptAllDevices/optional-services-missing.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/acceptAllDevices/optional-services-present.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/acceptAllDevices/optional-services-present.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/adapter-not-present.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/adapter-not-present.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/adapter-off.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/adapter-off.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/blocklisted-service-in-filter.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/blocklisted-service-in-filter.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/blocklisted-service-in-optionalServices.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/blocklisted-service-in-optionalServices.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/canonicalizeFilter/blocklisted-service-data-key.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/blocklisted-service-data-key.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/canonicalizeFilter/empty-filter.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/empty-filter.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/canonicalizeFilter/empty-filters-member.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/empty-filters-member.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/canonicalizeFilter/empty-namePrefix.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/empty-namePrefix.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/canonicalizeFilter/empty-services-member.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/empty-services-member.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/canonicalizeFilter/filters-xor-acceptAllDevices.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/filters-xor-acceptAllDevices.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/canonicalizeFilter/max-length-for-device-name-name.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/max-length-for-device-name-name.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/canonicalizeFilter/max-length-for-device-name-namePrefix.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/max-length-for-device-name-namePrefix.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/canonicalizeFilter/no-arguments.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/no-arguments.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/canonicalizeFilter/no-filters-member.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/no-filters-member.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/canonicalizeFilter/unicode-max-length-for-device-name-name.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/unicode-max-length-for-device-name-name.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/canonicalizeFilter/unicode-max-length-for-device-name-namePrefix.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/unicode-max-length-for-device-name-namePrefix.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/canonicalizeFilter/unicode-valid-length-name-name.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/unicode-valid-length-name-name.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/canonicalizeFilter/unicode-valid-length-name-namePrefix.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/unicode-valid-length-name-namePrefix.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-manufacturer-data-key.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-manufacturer-data-key.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-mask-length.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-mask-length.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-service-data-key.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-service-data-key.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-service-in-optionalServices-member.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-service-in-optionalServices-member.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-service-in-services-member.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-service-in-services-member.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/device-found-using-mask.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/device-found-using-mask.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/device-found-with-key-and-value.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/device-found-with-key-and-value.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/device-found-with-key-only.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/device-found-with-key-only.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/device-found-with-service-and-manufacturer-data.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/device-found-with-service-and-manufacturer-data.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/device-not-found-with-extra-data.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/device-not-found-with-extra-data.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/device-not-found-with-service-and-manufacturer-data.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/device-not-found-with-service-and-manufacturer-data.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/discovery-succeeds.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/discovery-succeeds.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/filter-does-not-match.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/filter-does-not-match.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/filter-matches.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/filter-matches.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/name-empty-device-from-name-empty-filter.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/name-empty-device-from-name-empty-filter.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/name-empty-device-from-name-prefix-filter.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/name-empty-device-from-name-prefix-filter.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/name-empty-device-from-name-wrong-filter.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/name-empty-device-from-name-wrong-filter.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/name-empty-device-from-service-filter.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/name-empty-device-from-service-filter.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/name-empty-filter.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/name-empty-filter.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/name-missing-device-from-name-empty-filter.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/name-missing-device-from-name-empty-filter.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/name-missing-device-from-name-prefix-filter.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/name-missing-device-from-name-prefix-filter.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/name-missing-device-from-name-wrong-filter.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/name-missing-device-from-name-wrong-filter.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/name-missing-device-from-service-filter.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/name-missing-device-from-service-filter.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/no-devices.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/no-devices.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/not-accept-all-devices-without-filter.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/not-accept-all-devices-without-filter.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/same-device.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/same-device.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/single-filter-single-service.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/single-filter-single-service.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/single-filter-two-services-fails.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/single-filter-two-services-fails.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/single-filter-two-services-succeeds.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/single-filter-two-services-succeeds.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/requestDevice/two-filters.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/requestDevice/two-filters.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/startNotifications/blocklisted-characteristic.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/startNotifications/blocklisted-characteristic.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/startNotifications/characteristic-does-not-support-notifications.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/startNotifications/characteristic-does-not-support-notifications.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/startNotifications/characteristic-is-removed.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/startNotifications/characteristic-is-removed.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/startNotifications/device-goes-out-of-range.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/startNotifications/device-goes-out-of-range.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/startNotifications/disconnect-called-before.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/startNotifications/disconnect-called-before.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/startNotifications/disconnect-called-during.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/startNotifications/disconnect-called-during.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/startNotifications/notify-failure.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/startNotifications/notify-failure.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/startNotifications/notify-succeeds.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/startNotifications/notify-succeeds.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/startNotifications/service-is-removed.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/startNotifications/service-is-removed.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/stopNotifications/characteristic-is-removed.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/stopNotifications/characteristic-is-removed.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/stopNotifications/disconnect-called-before.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/stopNotifications/disconnect-called-before.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/stopNotifications/disconnect-called-during.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/stopNotifications/disconnect-called-during.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/stopNotifications/notify-succeeds.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/stopNotifications/notify-succeeds.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/stopNotifications/stop-after-start-succeeds.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/stopNotifications/stop-after-start-succeeds.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/stopNotifications/stop-twice.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/stopNotifications/stop-twice.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/stopNotifications/stop-without-starting.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/stopNotifications/stop-without-starting.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/writeValue/characteristic/blocklisted-characteristic.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/writeValue/characteristic/blocklisted-characteristic.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/writeValue/characteristic/characteristic-is-removed.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/writeValue/characteristic/characteristic-is-removed.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/writeValue/characteristic/device-goes-out-of-range.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/writeValue/characteristic/device-goes-out-of-range.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/writeValue/characteristic/disconnect-called-before.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/writeValue/characteristic/disconnect-called-before.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/writeValue/characteristic/service-is-removed.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/writeValue/characteristic/service-is-removed.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/writeValue/characteristic/value-too-long.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/writeValue/characteristic/value-too-long.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/writeValue/characteristic/write-succeeds.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/writeValue/characteristic/write-succeeds.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/writeValue/characteristic/write-updates-value.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/writeValue/characteristic/write-updates-value.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/writeValue/descriptor/blocklisted-descriptor.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/writeValue/descriptor/blocklisted-descriptor.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/writeValue/descriptor/characteristic-is-removed.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/writeValue/descriptor/characteristic-is-removed.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/writeValue/descriptor/descriptor-is-removed.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/writeValue/descriptor/descriptor-is-removed.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/writeValue/descriptor/device-goes-out-of-range.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/writeValue/descriptor/device-goes-out-of-range.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/writeValue/descriptor/disconnect-called-before.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/writeValue/descriptor/disconnect-called-before.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/writeValue/descriptor/service-is-removed.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/writeValue/descriptor/service-is-removed.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/writeValue/descriptor/write-succeeds.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/writeValue/descriptor/write-succeeds.html",
-     {}
-    ]
-   ],
-   "mozilla/bluetooth/writeValue/descriptor/write-updates-value.html": [
-    [
-     "/_mozilla/mozilla/bluetooth/writeValue/descriptor/write-updates-value.html",
      {}
     ]
    ],
@@ -20175,6 +20175,862 @@
    "05d60cf6c75b15a18cbd0b0526ea9edea7d933f9",
    "support"
   ],
+  "bluetooth/advertisingEvent/watchAdvertisements-succeeds.html": [
+   "11f6cfbde16c62ce361cd849db425f9a2727ad67",
+   "testharness"
+  ],
+  "bluetooth/bluetooth-helpers.js": [
+   "fc91f55252023661f0354800d77366bf635d0272",
+   "support"
+  ],
+  "bluetooth/connect/connection-succeeds.html": [
+   "771cb3cdc278c4e68b92754f32493e85b88d6417",
+   "testharness"
+  ],
+  "bluetooth/connect/device-goes-out-of-range.html": [
+   "2c1264e897a4e5c58608042f97d6bca987a316a2",
+   "testharness"
+  ],
+  "bluetooth/connect/get-same-gatt-server.html": [
+   "b67c06f51cae1afcbd0f3aebda78cb2f4f2cd95a",
+   "testharness"
+  ],
+  "bluetooth/disconnect/connect-disconnect-twice.html": [
+   "796139b6a69b175d4866bf02ba0ba9fbc34c224b",
+   "testharness"
+  ],
+  "bluetooth/disconnect/disconnect-once.html": [
+   "a340328a18fcc329f24b29db55a34449d2249930",
+   "testharness"
+  ],
+  "bluetooth/disconnect/disconnect-twice-in-a-row.html": [
+   "ffcd115d79c5859506c6f4b7c63f1f6b9db508a9",
+   "testharness"
+  ],
+  "bluetooth/disconnect/event-is-fired.html": [
+   "65ff1fb633aa220fb194ef5c0809550b78da5fd5",
+   "testharness"
+  ],
+  "bluetooth/getAvailability/adapter-not-present.html": [
+   "92881b75d564b2b648fd3df952dbc6d085099625",
+   "testharness"
+  ],
+  "bluetooth/getAvailability/adapter-off.html": [
+   "b1591d547519e0730e2df00876461719a9685d2a",
+   "testharness"
+  ],
+  "bluetooth/getAvailability/adapter-on.html": [
+   "0b818295858ff2bafbf620f6d88fd74daf83bbde",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristic/blocklisted-characteristic.html": [
+   "cf1aa27c5fe645a20f64e6ff20811f030e5fa2fe",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristic/characteristic-found.html": [
+   "5dd03a8eb96f3cd2f97960c73258f964cc412f74",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristic/characteristic-not-found.html": [
+   "5ecd99787c8b26cd71d7e84d2c4416ee923fae60",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristic/device-goes-out-of-range.html": [
+   "0e63406c5b2b728f2ecf46e22269b30a2312d560",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristic/disconnect-called-before.html": [
+   "e06e477a96f34c2e638f947515b28abd2d85e920",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristic/disconnect-called-during.html": [
+   "82b36906ec6cf91b636b675e443d797f0ffccd15",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristic/disconnect-invalidates-object.html": [
+   "2610dafb958bd5341a57c12dfd43ff3ccd766c41",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristic/get-different-characteristic-after-reconnection.html": [
+   "bf9db2b79837a2bfef9ef01e04372ff995c854f0",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristic/get-same-characteristic.html": [
+   "31500c13064a475fc6510f29566a2b15645d0108",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristic/invalid-characteristic-name.html": [
+   "c926c6d550d746ca1f536651837e0b96b8c88a3b",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristic/reconnect-during.html": [
+   "27715ccd0c519ed0987e659f69a7d7aa0a2f630c",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristic/service-is-removed.html": [
+   "e8a052234685dc77b37f9e0ed10174dcc6d4e9ab",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristics/blocklisted-characteristics-with-uuid.html": [
+   "2313d0a9279a7e753fabf5b7d05ee88221640c50",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristics/blocklisted-characteristics.html": [
+   "a49a14135067e22ca95556045d8e666bad1641d3",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristics/characteristics-found-with-uuid.html": [
+   "be5a53b64b6476f7603c4828ad5c884b9df567e6",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristics/characteristics-found.html": [
+   "dac7f6bfdccf784492de58a6cb6cd125029c2ebc",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristics/characteristics-not-found-with-uuid.html": [
+   "bd7aca1d5388759b0d671b995d07463c76c32f24",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristics/characteristics-not-found.html": [
+   "2d5237a1868845ff8f54b1a813f61edda9190860",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristics/correct-characteristics.html": [
+   "7f4fd61426eaf3061eab9cea969f35876d15fdee",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristics/device-goes-out-of-range-with-uuid.html": [
+   "bdd7dca6ebf9b956169cfbfa22d28b08542df19f",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristics/device-goes-out-of-range.html": [
+   "e0385eb2b66e5a039e58aff3d321f4769324a596",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristics/disconnect-called-before-with-uuid.html": [
+   "9607513f6687fc5e7a8485a8ce57b1b8d8f6fe42",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristics/disconnect-called-before.html": [
+   "d9611c61e2e1592f6f625a5f89a5440bc28ea16f",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristics/disconnect-called-during-with-uuid.html": [
+   "321cbdfce29cc3dee6858b713d228fedc0a8d1d2",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristics/disconnect-called-during.html": [
+   "56f49a77698323543d937643aa9bdd854b945b05",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristics/disconnect-invalidates-objects.html": [
+   "51d3b75bb1d60951feed01fd3c7f6b9312aa3ff4",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristics/get-different-characteristics-after-reconnection.html": [
+   "da0a426f64f26c58b461d7a5fbcc824b67edd9e6",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristics/get-same-characteristics.html": [
+   "6e8e90f69bf4ec4fc788bf7421dd6a8bec799881",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristics/invalid-characteristic-name.html": [
+   "2b33f44760ed1fdb50984a8549cdd55c55651049",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristics/service-is-removed-with-uuid.html": [
+   "12a05f901afddd89d41cbf6055a68e115ba7e020",
+   "testharness"
+  ],
+  "bluetooth/getCharacteristics/service-is-removed.html": [
+   "527f10285a17fd0a5eaf47ff08a35a97882f0acf",
+   "testharness"
+  ],
+  "bluetooth/getDescriptor/blocklisted-descriptor.html": [
+   "643d53b7fdf2d4228f6670380ce54f319d4b044a",
+   "testharness"
+  ],
+  "bluetooth/getDescriptor/characteristic-is-removed.html": [
+   "6d9e0e061635aa228a71987b51dbc493c5da3e7f",
+   "testharness"
+  ],
+  "bluetooth/getDescriptor/descriptor-found.html": [
+   "4880c8a1c3bc7dc57979a21f7aad6a6f37df4287",
+   "testharness"
+  ],
+  "bluetooth/getDescriptor/descriptor-not-found.html": [
+   "8a101e64d0e5c100da62ca11a087311db9c32e46",
+   "testharness"
+  ],
+  "bluetooth/getDescriptor/device-goes-out-of-range.html": [
+   "10724935ee3453f1b0001cd4e363ccdcb90c97e5",
+   "testharness"
+  ],
+  "bluetooth/getDescriptor/disconnect-called-before.html": [
+   "6b1c28cc7024f9451c8f70640f4992ddfc9b8e8a",
+   "testharness"
+  ],
+  "bluetooth/getDescriptor/disconnect-called-during.html": [
+   "12186eeb131f17ac24fbf5abeae099efa2f60c9c",
+   "testharness"
+  ],
+  "bluetooth/getDescriptor/disconnect-invalidates-object.html": [
+   "e2dbb05ea02f1600d0f468a35b7cd0f6caef7137",
+   "testharness"
+  ],
+  "bluetooth/getDescriptor/get-different-descriptor-after-reconnection.html": [
+   "d37d815865f925d96a9f1188e22cff8e6b9cefc5",
+   "testharness"
+  ],
+  "bluetooth/getDescriptor/get-same-descriptor.html": [
+   "a4aab50ec71d8f388fe5b8ff2e41d3d1f3165994",
+   "testharness"
+  ],
+  "bluetooth/getDescriptor/invalid-descriptor-name.html": [
+   "9b3d2d7b0ae79adbd66b8dd7db2aa72c0a9e543f",
+   "testharness"
+  ],
+  "bluetooth/getDescriptors/blocklisted-descriptors-with-uuid.html": [
+   "f2d5e105e5d21e039218d27ec83cf8cfe4ba9e73",
+   "testharness"
+  ],
+  "bluetooth/getDescriptors/blocklisted-descriptors.html": [
+   "d0a55f9a371bd1cfada1711faed702ff263b6117",
+   "testharness"
+  ],
+  "bluetooth/getDescriptors/characteristic-is-removed-with-uuid.html": [
+   "423b3f2eba3a2dc6a56f337d04314f21e8eaf2d0",
+   "testharness"
+  ],
+  "bluetooth/getDescriptors/characteristic-is-removed.html": [
+   "5a329abd4974a34cb16a5f03e1849c9dd84778fb",
+   "testharness"
+  ],
+  "bluetooth/getDescriptors/correct-descriptors.html": [
+   "bfb2e6032804ab8d49e2459901f38bf6738e2cfb",
+   "testharness"
+  ],
+  "bluetooth/getDescriptors/descriptors-found-with-uuid.html": [
+   "2bc81c8b3543be4292a929f43c9d60ada7ef58b5",
+   "testharness"
+  ],
+  "bluetooth/getDescriptors/descriptors-found.html": [
+   "428033aa61c8c4733f275f497481d066df703016",
+   "testharness"
+  ],
+  "bluetooth/getDescriptors/descriptors-not-found-with-uuid.html": [
+   "8853cc0e66fab833d3897fac819994bd96d0d1d3",
+   "testharness"
+  ],
+  "bluetooth/getDescriptors/descriptors-not-found.html": [
+   "8409dbd50f43d4e7fdaa86ffc0b190fff3657a7f",
+   "testharness"
+  ],
+  "bluetooth/getDescriptors/device-goes-out-of-range-with-uuid.html": [
+   "7ed98d68c2c81969c717dbcb4348408ffcdb9903",
+   "testharness"
+  ],
+  "bluetooth/getDescriptors/device-goes-out-of-range.html": [
+   "7d9810d3c5931346775b639b3db026a3bf119599",
+   "testharness"
+  ],
+  "bluetooth/getDescriptors/disconnect-called-before-with-uuid.html": [
+   "4c4f7414a7968d7d0fb95371c18fa1b2fb9df1f8",
+   "testharness"
+  ],
+  "bluetooth/getDescriptors/disconnect-called-before.html": [
+   "9c26a97efce8571c2786412a449eeb0e671b4e82",
+   "testharness"
+  ],
+  "bluetooth/getDescriptors/disconnect-called-during-with-uuid.html": [
+   "65b4201a9ca83ee6ee2aecca3a83ff0fba7f8ba8",
+   "testharness"
+  ],
+  "bluetooth/getDescriptors/disconnect-called-during.html": [
+   "e0fdbb1016d9cf83716e0292648d668b36d9df75",
+   "testharness"
+  ],
+  "bluetooth/getDescriptors/disconnect-invalidates-objects.html": [
+   "89d7844b1462b950de31b60fd3d9648b8041804d",
+   "testharness"
+  ],
+  "bluetooth/getDescriptors/get-different-descriptors-after-reconnection.html": [
+   "2ac1cb1f77acf0bdeb3efccfc3fca38bf35fb780",
+   "testharness"
+  ],
+  "bluetooth/getDescriptors/get-same-descriptors.html": [
+   "ead73f7baf4bb59526ce1ff8f29699738c9e7f54",
+   "testharness"
+  ],
+  "bluetooth/getDescriptors/invalid-descriptor-name.html": [
+   "2655c092212dce76a95bcc20e2041dce258aa2e1",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryService/device-goes-out-of-range.html": [
+   "7fb4f35ad928471694c20dc9cb6d0291ce0953ba",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryService/disconnect-called-before.html": [
+   "c6122ae791b15943a31d72a8defa64e45aa13ad7",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryService/disconnect-called-during.html": [
+   "864798e947f3467770941c347def9e34276128ec",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryService/disconnect-invalidates-object.html": [
+   "749c4c91df4fbff5d04dde411deba53d16dbf550",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryService/disconnected-device.html": [
+   "f3734be3edb52cc9a284969254fe383476f8da1f",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryService/get-different-service-after-reconnection.html": [
+   "3c06dd96caecf9bab30fa7be5dfe24454c4028be",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryService/get-same-service.html": [
+   "09acb6ae8eea01e92fcc7ba052afb3a956f79405",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryService/invalid-service-name.html": [
+   "f152c4a1720684ef89d2d483c87911ef6ba6ee4a",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryService/no-permission-absent-service.html": [
+   "e565d0a53c1b059fd503a7f18374e1caba8902f2",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryService/no-permission-present-service.html": [
+   "946c89567b7b7ac1f36b321479b588301f0b6b48",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryService/service-found.html": [
+   "19db58991299b32b997a4ff78bb2382051787dd5",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryService/service-not-found.html": [
+   "29ca44ae93fa5e730285fab22c3747754fd6fb56",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryServices/blocklisted-services-with-uuid.html": [
+   "65dcceca44937474d445523b36d181dc83f8fa98",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryServices/blocklisted-services.html": [
+   "463d88b8d893f6f45d87706a266396bac8360360",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryServices/correct-services.html": [
+   "bea75742c790a9ed6752220ac6c46e5a39a24f4a",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryServices/device-goes-out-of-range-with-uuid.html": [
+   "9b9c3de7a4020e55cc36d754fd18df0f57ee7a76",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryServices/device-goes-out-of-range.html": [
+   "979697156589fda840846d50eb6bb7888fbdf6c7",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryServices/disconnect-called-before-with-uuid.html": [
+   "913bdf1fa06db9d0e6b679d40ac55fb2e03869ea",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryServices/disconnect-called-before.html": [
+   "31a5201e09c51c51b429449d10f479d34f8ab668",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryServices/disconnect-called-during-with-uuid.html": [
+   "c22f80d0ce56cd6777ff47b74d795d2e56b2e5a2",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryServices/disconnect-called-during.html": [
+   "b6c35c210ddd1a2657cf35ca2788379220c81820",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryServices/disconnect-invalidates-objects.html": [
+   "8490e15e29c227c2d9730ff4a11a9aaa0ffa040a",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryServices/disconnected-device-with-uuid.html": [
+   "1372c25d7f0e56592f79f2a1d3e4b23a1629b0d5",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryServices/disconnected-device.html": [
+   "3a2425da2f9424b68ea2314623b50c7aa1bacd51",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryServices/get-different-services-after-reconnection.html": [
+   "7b05a69aa327fe5c695884d3bf2b4a0850e64d60",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryServices/get-same-service-with-uuid.html": [
+   "b15bbd16140a5bc6757e9e55b7e8fbbf17ff6d8d",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryServices/get-same-service.html": [
+   "a53025e91aef7dc7b23dd3960b4956516bd8a5ec",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryServices/invalid-service-name.html": [
+   "ceb407c34aa057631aac5b7424bcaaa59cbf301d",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryServices/no-permission-absent-service-with-uuid.html": [
+   "b84f2518146cabd83abb4c92bb3147c62d0699db",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryServices/no-permission-present-service-with-uuid.html": [
+   "2cb7a09a4a58d6dd8d3f909d86232454849a8eff",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryServices/no-permission-present-service.html": [
+   "56aa3d7f28e19424119b5941b2f169525e3ccfef",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryServices/services-found-with-uuid.html": [
+   "24779d759695258bddff089d11119afabaca1a5f",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryServices/services-found.html": [
+   "69ba3f669495d431403618f3cd77cf67fa71bb83",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryServices/services-not-found-with-uuid.html": [
+   "bb2ec962e797d45fa15f6bef6cde69f937b2792a",
+   "testharness"
+  ],
+  "bluetooth/getPrimaryServices/services-not-found.html": [
+   "4390c19debfe3b330dba60f2f20e657f121e56f0",
+   "testharness"
+  ],
+  "bluetooth/idl-BluetoothUUID.html": [
+   "c4c5785f7652b0c998024b1045eb7b956b5dd8f8",
+   "testharness"
+  ],
+  "bluetooth/interfaces.html": [
+   "4d97da8dc427bd500dafd684e08da59a9a0d35c4",
+   "testharness"
+  ],
+  "bluetooth/readValue/characteristic/blocklisted-characteristic.html": [
+   "f7a74be98d84f23bc0f05e182348b39209e057e1",
+   "testharness"
+  ],
+  "bluetooth/readValue/characteristic/characteristic-is-removed.html": [
+   "37524e65eca1c7f80e3a79dd57d0bd447cc2db9c",
+   "testharness"
+  ],
+  "bluetooth/readValue/characteristic/device-goes-out-of-range.html": [
+   "b4bd1d6e95e493d045991d3f19324e6e897536f7",
+   "testharness"
+  ],
+  "bluetooth/readValue/characteristic/disconnect-called-before.html": [
+   "84079451485c6d795d0b0380284190954b9dd11a",
+   "testharness"
+  ],
+  "bluetooth/readValue/characteristic/disconnect-called-during.html": [
+   "8f2810db986237d61486ac733970c71f2688707a",
+   "testharness"
+  ],
+  "bluetooth/readValue/characteristic/event-is-fired.html": [
+   "ba1f40d2998b62d5ac74e284f2f4c30799041516",
+   "testharness"
+  ],
+  "bluetooth/readValue/characteristic/read-succeeds.html": [
+   "d2a2af241c5349e3d9443acec6bf159b992def4f",
+   "testharness"
+  ],
+  "bluetooth/readValue/characteristic/read-updates-value.html": [
+   "f64cf3dd7135b36f7f03faa36784d596a95d632c",
+   "testharness"
+  ],
+  "bluetooth/readValue/characteristic/service-is-removed.html": [
+   "1121229c973a1d87ebe02731268c6a8d5b647d11",
+   "testharness"
+  ],
+  "bluetooth/readValue/descriptor/blocklisted-descriptor.html": [
+   "8b1a30704df80995d00f325f6f5bb6597d275e82",
+   "testharness"
+  ],
+  "bluetooth/readValue/descriptor/characteristic-is-removed.html": [
+   "737c22a834d2bb4fa16406e9e53e183c70fca21f",
+   "testharness"
+  ],
+  "bluetooth/readValue/descriptor/descriptor-is-removed.html": [
+   "f9c10a87010d1ae7827243b1628c53766fa04e24",
+   "testharness"
+  ],
+  "bluetooth/readValue/descriptor/device-goes-out-of-range.html": [
+   "86167d3b2e126f8b22651c1b381a407d3e2d3df4",
+   "testharness"
+  ],
+  "bluetooth/readValue/descriptor/disconnect-called-before.html": [
+   "ed8ee99e7cee2493a36b0033578eaa4effe33156",
+   "testharness"
+  ],
+  "bluetooth/readValue/descriptor/read-succeeds.html": [
+   "556cb5f37f6528511ad86d69626a7cb63576f5b3",
+   "testharness"
+  ],
+  "bluetooth/readValue/descriptor/read-updates-value.html": [
+   "54a55bd297194af70183fa8b5fc53b3ec672829e",
+   "testharness"
+  ],
+  "bluetooth/readValue/descriptor/service-is-removed.html": [
+   "9d785180b89a7a451214ddd39a97d3c06da031c6",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/acceptAllDevices/accept-all-devices-with-filter.html": [
+   "fca48f61abca9726703a1aa3fe9d7b493516e7fe",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/acceptAllDevices/accept-all-devices.html": [
+   "b78a580f34d2362ddfb503d620aa73d05436a18e",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/acceptAllDevices/device-with-empty-name.html": [
+   "53ee9ba9d5d45775cc1a6b13ea7a342a44ccd214",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/acceptAllDevices/device-with-name.html": [
+   "e224b35cfe4e3bb7911b725cef56661b49150b1e",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/acceptAllDevices/device-with-no-name.html": [
+   "ce32316ff2897458a015e657bf243642fee25ccb",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/acceptAllDevices/optional-services-missing.html": [
+   "5ca02d91a57fef907e081e4868f8d6cede994feb",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/acceptAllDevices/optional-services-present.html": [
+   "d6291c642f3cbfc7fcfd7430bb48aae1157ace93",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/adapter-not-present.html": [
+   "af030cb63b7598ced84ad572d7f55bd6d26f2be1",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/adapter-off.html": [
+   "b492eb1b1fe1c626692e370dacf876784b650c38",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/blocklisted-service-in-filter.html": [
+   "36131fbc9df53f740094d8454fd417dbc6101326",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/blocklisted-service-in-optionalServices.html": [
+   "ccf32cd16c2ae6a9351a38f4ab09639fffb3de5d",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/canonicalizeFilter/blocklisted-service-data-key.html": [
+   "d60d8f63e94df34d0fa0f6e4c96688a8eecbf99f",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/canonicalizeFilter/empty-filter.html": [
+   "6d2dee7ce1bb401f2368c97d15a31c2ef57555d9",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/canonicalizeFilter/empty-filters-member.html": [
+   "866c7e2d871fbf2d794e4c6fa7e11bd20832b78b",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/canonicalizeFilter/empty-namePrefix.html": [
+   "ebd7fab5e4b598cf78798ad7c219f3afc915153a",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/canonicalizeFilter/empty-services-member.html": [
+   "843bdea3c8f3ea5e1b607892c0b1cf0cabef0005",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/canonicalizeFilter/filters-xor-acceptAllDevices.html": [
+   "a9e0766a052ceb7d9af3c12acbf466766f2d1bae",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/canonicalizeFilter/max-length-for-device-name-name.html": [
+   "e8316b6402f70817b39b958f711f6eca04498177",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/canonicalizeFilter/max-length-for-device-name-namePrefix.html": [
+   "62642df81ae04b7c837844011dc1f5da342080b5",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/canonicalizeFilter/no-arguments.html": [
+   "d932ac9f1c580d8fac1027a7720044f56c8a3cbb",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/canonicalizeFilter/no-filters-member.html": [
+   "9ca419cd4e59d569b9d0a855b6a9a44a5b338228",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/canonicalizeFilter/unicode-max-length-for-device-name-name.html": [
+   "8f7784f010b5e0760307a2aed51ded16b3216bac",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/canonicalizeFilter/unicode-max-length-for-device-name-namePrefix.html": [
+   "9fbb3655e55a9262b5ed7693183113b9b081523a",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/canonicalizeFilter/unicode-valid-length-name-name.html": [
+   "7fa7432a0684e123b40fc42f9efacbaac3076be7",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/canonicalizeFilter/unicode-valid-length-name-namePrefix.html": [
+   "d93d33777e8dfb183d0dbbe6c5107f7d2187e76c",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/canonicalizeFilter/wrong-manufacturer-data-key.html": [
+   "da7128574c45b9120500851983c2a81dc3171d10",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/canonicalizeFilter/wrong-mask-length.html": [
+   "f6e90604c61523e4458c158d5418ace2d4acac06",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/canonicalizeFilter/wrong-service-data-key.html": [
+   "0cf1862920d9ac91686c4be8615507162ae84f7f",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/canonicalizeFilter/wrong-service-in-optionalServices-member.html": [
+   "0603bb77d2c13c9cabe06eef839114ba1e2d6fc5",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/canonicalizeFilter/wrong-service-in-services-member.html": [
+   "8cf9fe5001231658aafa52ebbffe54bd124e11d8",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/device-found-using-mask.html": [
+   "51abd2777588454f72a023722d2bc10a04f3c83c",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/device-found-with-key-and-value.html": [
+   "a1f68966c10668a6ff137b1391278a7200eddd02",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/device-found-with-key-only.html": [
+   "73ccdbed3d928b952029d098cbe7ce0eca930917",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/device-found-with-service-and-manufacturer-data.html": [
+   "fd4055558d16de1860c38e8a1d03431846bc0f38",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/device-not-found-with-extra-data.html": [
+   "a0f1bab923962f767f406816e084de2ef12b937a",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/device-not-found-with-service-and-manufacturer-data.html": [
+   "970fc7affa86f95330af99f1d00936dd1041754b",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/discovery-succeeds.html": [
+   "b61121fc2818b9b350d8952746a449430b422710",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/filter-does-not-match.html": [
+   "eccfc9ebdb708c207c2758c20271fcc9c901bd0d",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/filter-matches.html": [
+   "fa450887cbb233dc2a67d018e6413c2a4d4e33a7",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/name-empty-device-from-name-empty-filter.html": [
+   "38a59ca27e4c62837629fadd2f88464363f7eb1b",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/name-empty-device-from-name-prefix-filter.html": [
+   "ee268ea1970f8b9b03ece52c0c8dbdca3029d4e6",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/name-empty-device-from-name-wrong-filter.html": [
+   "17210e5d52f0a80a55064eb5900818097791609f",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/name-empty-device-from-service-filter.html": [
+   "b96febac271995f456bcf753550f4d1d442e7cd5",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/name-empty-filter.html": [
+   "579bf81c5a8b766ee3c9a546115cda77e070f5d3",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/name-missing-device-from-name-empty-filter.html": [
+   "fb88f299d53be94a671135755f5d4947303d1ebe",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/name-missing-device-from-name-prefix-filter.html": [
+   "cea53f9016b86c2f5bf677bc92c6c7bf7f08fff0",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/name-missing-device-from-name-wrong-filter.html": [
+   "965d9192d111a53db37cafcb2bbda34191dfe49b",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/name-missing-device-from-service-filter.html": [
+   "0665750acab1a0859e9800bfd9b8677084c81bf6",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/no-devices.html": [
+   "5801a8c77a6f5f64561fc5708dc111c62929b938",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/not-accept-all-devices-without-filter.html": [
+   "4f6395f78d512f3e894b0516c4944fbd49a0e5a9",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/same-device.html": [
+   "18084aa67981b62292237eb50b34b160666c2915",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/single-filter-single-service.html": [
+   "4c45c45bf8137b54ac663e04ca28cc0ea336d014",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/single-filter-two-services-fails.html": [
+   "8054152df135025f4dbb4428d56452d29d9ec05d",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/single-filter-two-services-succeeds.html": [
+   "18e719b6615fe5051b1306648d4ae2a6a893c767",
+   "testharness"
+  ],
+  "bluetooth/requestDevice/two-filters.html": [
+   "a5a01f5cedf65a465ec888bd6cb44e5b2dc7e00c",
+   "testharness"
+  ],
+  "bluetooth/startNotifications/blocklisted-characteristic.html": [
+   "c45f08ac37b3ebd36e58e570b1076d886adef080",
+   "testharness"
+  ],
+  "bluetooth/startNotifications/characteristic-does-not-support-notifications.html": [
+   "bcd84dc1adfee40e0f9cf1e1c59706e84ad499c8",
+   "testharness"
+  ],
+  "bluetooth/startNotifications/characteristic-is-removed.html": [
+   "7cede370878c10a72be212c021a34d676350cc48",
+   "testharness"
+  ],
+  "bluetooth/startNotifications/device-goes-out-of-range.html": [
+   "3daad881227381b1deb6ed2e6ce8107d90b58224",
+   "testharness"
+  ],
+  "bluetooth/startNotifications/disconnect-called-before.html": [
+   "c4c3b53d088fccca6481377bd4481c769f6166b5",
+   "testharness"
+  ],
+  "bluetooth/startNotifications/disconnect-called-during.html": [
+   "35795418501864d01995f5d55e089a58cb96b996",
+   "testharness"
+  ],
+  "bluetooth/startNotifications/notify-failure.html": [
+   "c86a40ba8abd7297a025107405c827584c3b8fbb",
+   "testharness"
+  ],
+  "bluetooth/startNotifications/notify-succeeds.html": [
+   "8d6f4b3c3c3e86ac47aef7cdbac4560e2548c86d",
+   "testharness"
+  ],
+  "bluetooth/startNotifications/service-is-removed.html": [
+   "dc2faaf6f8f9840a226af7de11e475cfb7e635d1",
+   "testharness"
+  ],
+  "bluetooth/stopNotifications/characteristic-is-removed.html": [
+   "9b6f13d16632ce0d08689b8e43a2e313d0420ee1",
+   "testharness"
+  ],
+  "bluetooth/stopNotifications/disconnect-called-before.html": [
+   "e19aa71a48311c84ac2fc7cb7899c5ae7f411bf2",
+   "testharness"
+  ],
+  "bluetooth/stopNotifications/disconnect-called-during.html": [
+   "3099aba332cc4e7916ad76dd714c78170092c13b",
+   "testharness"
+  ],
+  "bluetooth/stopNotifications/notify-succeeds.html": [
+   "9b04a15d43b90fec3f3c3d6be09f9d7f3f2487e3",
+   "testharness"
+  ],
+  "bluetooth/stopNotifications/stop-after-start-succeeds.html": [
+   "52017cbcb258529327ea65a5990988c7ca635e7b",
+   "testharness"
+  ],
+  "bluetooth/stopNotifications/stop-twice.html": [
+   "8fa1a93942b6ee061d4071572de64266f2162f0d",
+   "testharness"
+  ],
+  "bluetooth/stopNotifications/stop-without-starting.html": [
+   "0f1eeb4470e328c815bf12c45cf682dc55f80656",
+   "testharness"
+  ],
+  "bluetooth/writeValue/characteristic/blocklisted-characteristic.html": [
+   "a24256508fc6c9c4b08148323cf1cc565751d11c",
+   "testharness"
+  ],
+  "bluetooth/writeValue/characteristic/characteristic-is-removed.html": [
+   "96d400bbf4889641e787c6e69501cbaf1f82276c",
+   "testharness"
+  ],
+  "bluetooth/writeValue/characteristic/device-goes-out-of-range.html": [
+   "b41d78ea273a1f1d8bc37b0e3893f06d72e64327",
+   "testharness"
+  ],
+  "bluetooth/writeValue/characteristic/disconnect-called-before.html": [
+   "629bcb6f5a90f10f19cc28ce9df6dca2c37113ad",
+   "testharness"
+  ],
+  "bluetooth/writeValue/characteristic/service-is-removed.html": [
+   "2b2e4369624e8c815ba1be4b13823a77af1ad809",
+   "testharness"
+  ],
+  "bluetooth/writeValue/characteristic/value-too-long.html": [
+   "722a36e6e74b76bf037ed579c0213e15d72ae650",
+   "testharness"
+  ],
+  "bluetooth/writeValue/characteristic/write-succeeds.html": [
+   "c82e9fbfba90d60197d160f362abb0d81175937c",
+   "testharness"
+  ],
+  "bluetooth/writeValue/characteristic/write-updates-value.html": [
+   "7f7366bc66c31db8716ae84613d876b4b7f62626",
+   "testharness"
+  ],
+  "bluetooth/writeValue/descriptor/blocklisted-descriptor.html": [
+   "adacfddb9efc4ac9d99ee4a3cc933154a2e60289",
+   "testharness"
+  ],
+  "bluetooth/writeValue/descriptor/characteristic-is-removed.html": [
+   "144c42e30ebabc75ea0330f530fd0577f363d228",
+   "testharness"
+  ],
+  "bluetooth/writeValue/descriptor/descriptor-is-removed.html": [
+   "ef99e73986f68d654f1178b2c34931ea3d7a20db",
+   "testharness"
+  ],
+  "bluetooth/writeValue/descriptor/device-goes-out-of-range.html": [
+   "2602013c86bed0f7fff46e1aaa54e231aec2be96",
+   "testharness"
+  ],
+  "bluetooth/writeValue/descriptor/disconnect-called-before.html": [
+   "9ddaa65dfd8f15cf5385caa3b897d54897ad89e1",
+   "testharness"
+  ],
+  "bluetooth/writeValue/descriptor/service-is-removed.html": [
+   "513863eb75634098aa4f6ef79329b892a24d2fa3",
+   "testharness"
+  ],
+  "bluetooth/writeValue/descriptor/write-succeeds.html": [
+   "d0813db2a5d4cd4297477cbd7fccf1afd06e2739",
+   "testharness"
+  ],
+  "bluetooth/writeValue/descriptor/write-updates-value.html": [
+   "d92db44be1e1f4720337cb38acc7eea3f34abadd",
+   "testharness"
+  ],
   "css/100x100_green.png": [
    "649d71ab351b521ba6b42764be79960136eb596b",
    "support"
@@ -24694,862 +25550,6 @@
   "mozilla/blank.html": [
    "92a0f1008d008fd8f90adb3b2f209dfeacf322b5",
    "support"
-  ],
-  "mozilla/bluetooth/advertisingEvent/watchAdvertisements-succeeds.html": [
-   "002dd42a6f814e43d8e3c7c3a51cc25dc8bf5722",
-   "testharness"
-  ],
-  "mozilla/bluetooth/bluetooth-helpers.js": [
-   "fc91f55252023661f0354800d77366bf635d0272",
-   "support"
-  ],
-  "mozilla/bluetooth/connect/connection-succeeds.html": [
-   "23d2cdb69e2011cd1ab0b796b6226fd0e6662e2f",
-   "testharness"
-  ],
-  "mozilla/bluetooth/connect/device-goes-out-of-range.html": [
-   "3ade30929f621b7c8c93b87e5392309729d68e42",
-   "testharness"
-  ],
-  "mozilla/bluetooth/connect/get-same-gatt-server.html": [
-   "9a64e29363ca809981c6f9ad24f4ecc73bbbf964",
-   "testharness"
-  ],
-  "mozilla/bluetooth/disconnect/connect-disconnect-twice.html": [
-   "0c1069b8d23d5eff3fd2f49666f66cdcc2b11ced",
-   "testharness"
-  ],
-  "mozilla/bluetooth/disconnect/disconnect-once.html": [
-   "578f2425678faa7ed42057451a790b989fb6934d",
-   "testharness"
-  ],
-  "mozilla/bluetooth/disconnect/disconnect-twice-in-a-row.html": [
-   "297d7bcb609d6a22d9569b34cc073ac30fd5590c",
-   "testharness"
-  ],
-  "mozilla/bluetooth/disconnect/event-is-fired.html": [
-   "6bba458074ce7d8067b6420d4326cbb133e35304",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getAvailability/adapter-not-present.html": [
-   "e4d5e516bee397ecefee1ef679f48f11b5dabe78",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getAvailability/adapter-off.html": [
-   "0e3d7824d57ba676ae52c775fa21d8e6ec6d7073",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getAvailability/adapter-on.html": [
-   "7e37c1b939712f5920b607e27a82f34573ca40fd",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristic/blocklisted-characteristic.html": [
-   "c75429728dedbc5059aa7c3cc72554bb6a9bbbcb",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristic/characteristic-found.html": [
-   "32d61f498df18a59115654e1269d247e71edc16a",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristic/characteristic-not-found.html": [
-   "3c3f386a782f46af3c96cfa5b5f5552951ac4dba",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristic/device-goes-out-of-range.html": [
-   "3efaa9817ae625054313e259b068d7c61ae2096f",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristic/disconnect-called-before.html": [
-   "d6875d091e78f6ffe3983e3e1d53832377932b46",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristic/disconnect-called-during.html": [
-   "26f6cbda4f2fe8b0c5dad9eea8da933eb3fd181b",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristic/disconnect-invalidates-object.html": [
-   "6a5697f13aa1017af8ac7aeebd19a7e045e1a7e4",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristic/get-different-characteristic-after-reconnection.html": [
-   "29f1f6930a6b91e16293566af25aae9869377b87",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristic/get-same-characteristic.html": [
-   "a859d55ae58e4d70c91ab82fac04411b54330607",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristic/invalid-characteristic-name.html": [
-   "3f4d91d9f11d23e2904438c6ef1e0259d3fc9558",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristic/reconnect-during.html": [
-   "d81693bae88f4dd7c1603147f081d1afb124c3ac",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristic/service-is-removed.html": [
-   "fd980cbcd1f34e79d6385b3b065390d12de907b5",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristics/blocklisted-characteristics-with-uuid.html": [
-   "40f9134844839d06a8b2c9e5a5fe2ab9907c6def",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristics/blocklisted-characteristics.html": [
-   "8b96fa159e045c79d41cd67f0d015b520f5c6ef4",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristics/characteristics-found-with-uuid.html": [
-   "99570f27e69560e8a99c85ab15c121e98c85cb85",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristics/characteristics-found.html": [
-   "c4382bc50b720e2a3dd33a9f07dbb4876e3c75ff",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristics/characteristics-not-found-with-uuid.html": [
-   "053cbbc203fcf8cac51226fe91c1616b0716e971",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristics/characteristics-not-found.html": [
-   "b5bd0c87af804dfc4508fc3459a02a4ecdccc72f",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristics/correct-characteristics.html": [
-   "4c87effd679c8eb30a43e5035201da65fa5b16ed",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristics/device-goes-out-of-range-with-uuid.html": [
-   "bc611a67a84bcf70e40559d5a4e5393ae38ec4da",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristics/device-goes-out-of-range.html": [
-   "9a9868a73d3fb260befd84fbaa4aee4dba481af0",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristics/disconnect-called-before-with-uuid.html": [
-   "809c9a275e388c3d6994fe85aa6f372871fc9a48",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristics/disconnect-called-before.html": [
-   "830e7a5ab3a38d8e4addafaea336130aa42a79ab",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristics/disconnect-called-during-with-uuid.html": [
-   "cd1247ce0b75bacdba16096ce23ea00d5e4763fd",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristics/disconnect-called-during.html": [
-   "b4ffe4690b7e65719134c4802153f7798d15fe74",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristics/disconnect-invalidates-objects.html": [
-   "8e97c5ecddd309fb7d8047f93816b5d3a55f7c53",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristics/get-different-characteristics-after-reconnection.html": [
-   "3be939f6fb22a38284ced2de46320b44d0e82950",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristics/get-same-characteristics.html": [
-   "e173307a306384116cfb231da212164f1f7ce447",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristics/invalid-characteristic-name.html": [
-   "2177496279bbdc156a54203049de66004a87a78a",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristics/service-is-removed-with-uuid.html": [
-   "244f794f74b5658d231155ff90b862f709e83688",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getCharacteristics/service-is-removed.html": [
-   "25206cddf1ae00aeeaf97c9691174e6b2f3abc54",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptor/blocklisted-descriptor.html": [
-   "20b960394e617b479e7f286d5dbfd2c0e7adfeae",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptor/characteristic-is-removed.html": [
-   "6888c64f8b3b4f4b8549764054b52bf0753ef578",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptor/descriptor-found.html": [
-   "348d7c13f883e5aa731884d6e1feb661e67cdd22",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptor/descriptor-not-found.html": [
-   "e0d35544eeed171b39aaeae89a89fad679c779b6",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptor/device-goes-out-of-range.html": [
-   "07b6ab9e6b73abaf612e625483f68e94b368ce20",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptor/disconnect-called-before.html": [
-   "c2f1d227bfeb36d1605933ae2069cc0cf6e15e86",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptor/disconnect-called-during.html": [
-   "331f6c4065a682632fd8898e610fb6836218ff10",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptor/disconnect-invalidates-object.html": [
-   "139cf47982348b7632783108d78059fadd0692bd",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptor/get-different-descriptor-after-reconnection.html": [
-   "98fc3c582a684ddca37052e00d330af395c69684",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptor/get-same-descriptor.html": [
-   "b769fd5799306fb57d1771f28dff4bbf19c7559a",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptor/invalid-descriptor-name.html": [
-   "328cc1de09d4ae62c0249ffef555c05c77d03990",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptors/blocklisted-descriptors-with-uuid.html": [
-   "0bbd64a6a28bdf32b8aaf839f4ae91fcb7ae0ab0",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptors/blocklisted-descriptors.html": [
-   "414d1c923ca241b41483cbdcfc4eb572a8c08f20",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptors/characteristic-is-removed-with-uuid.html": [
-   "d0040882009dea81197fc2dac25b852c9857745c",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptors/characteristic-is-removed.html": [
-   "6a4dca7ce8df7af3b52d9a01870af4473b39f311",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptors/correct-descriptors.html": [
-   "350a5b60eb2e217ad53103208a58a40041743ae7",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptors/descriptors-found-with-uuid.html": [
-   "ff9603bbde6e804422eb8d016c1dda6bb94c7c2b",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptors/descriptors-found.html": [
-   "793972cb184c2f879c3db2c766ad90851085a6cb",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptors/descriptors-not-found-with-uuid.html": [
-   "c535a05a35397222ed05b96609f1a55e6620de10",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptors/descriptors-not-found.html": [
-   "a5e7ef503d2f0bde3115d0f181019b5036bf865f",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptors/device-goes-out-of-range-with-uuid.html": [
-   "2f7395352ac275f40b605899ef6fc098f4825964",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptors/device-goes-out-of-range.html": [
-   "8bdc175cf9f945eaf953d1db2c0e92be766283d6",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptors/disconnect-called-before-with-uuid.html": [
-   "347ddb5bc707f3abe9d20d213c79d1e108f388c9",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptors/disconnect-called-before.html": [
-   "3353595aa59137fe4c6c19c876be544f746575ef",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptors/disconnect-called-during-with-uuid.html": [
-   "3bdf3bcfbe7ba6327544d2665a0044787443a719",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptors/disconnect-called-during.html": [
-   "621be1f5d4ee57faab8cfb58d1a2d46e317aac5b",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptors/disconnect-invalidates-objects.html": [
-   "eee7a876379f3d665e42bb625491f078266a3f54",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptors/get-different-descriptors-after-reconnection.html": [
-   "6efbc14a009dd0f471b0124e9962b0cc6950d033",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptors/get-same-descriptors.html": [
-   "f1922ba60085c9334d0ff3896ae949a9b58cebbb",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getDescriptors/invalid-descriptor-name.html": [
-   "20afd0883778fca5670b5f3672cc2d5f19df5348",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryService/device-goes-out-of-range.html": [
-   "08f7d4ea04806e990b57bd6044d73f4c8bcda1ca",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryService/disconnect-called-before.html": [
-   "9dea98eadf0a3c1d344816c9b3adda8bb63916fa",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryService/disconnect-called-during.html": [
-   "b0dc6dc5c22cc13ff643c520b3c183b1dc2a7a69",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryService/disconnect-invalidates-object.html": [
-   "9eea98d4f4ac33a56a28d8b11bec1851ea8873d4",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryService/disconnected-device.html": [
-   "83f614346b7adcfdadcf524a25f09223822a7529",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryService/get-different-service-after-reconnection.html": [
-   "96aed6d293b1e2b43f30b05cd77d9a288de39cff",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryService/get-same-service.html": [
-   "6b2c72a2a537f202cfd554e37b042de77043d2cc",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryService/invalid-service-name.html": [
-   "2d3aab9667874fb3ef23256367f6d39e22ed324a",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryService/no-permission-absent-service.html": [
-   "d6d7deb894f619f13a908683fee3482c02785b0e",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryService/no-permission-present-service.html": [
-   "989eca69162c939d6840e42d31365d0cd58808bf",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryService/service-found.html": [
-   "2f1d1e20a4acb15f194e903cc6fe2d225ed478e0",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryService/service-not-found.html": [
-   "8df4d329f9d44d08d7c55b0c0efe67aac0b62e14",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryServices/blocklisted-services-with-uuid.html": [
-   "d4fcd4e0e38f4b5a5a4d498cf60aaf23d5880e84",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryServices/blocklisted-services.html": [
-   "69876542295d08fee47a2d317e04edac7277a00e",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryServices/correct-services.html": [
-   "37fa84bc77339a96dbe77988dd45165e15d2cfb8",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryServices/device-goes-out-of-range-with-uuid.html": [
-   "5708899b956023756f4c5c3ce12fff64c47778ed",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryServices/device-goes-out-of-range.html": [
-   "080fcf425673795164d582b9747c484b8b3a6b52",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryServices/disconnect-called-before-with-uuid.html": [
-   "7d45aafd80ee209e32acc21ae468ef718656e4d9",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryServices/disconnect-called-before.html": [
-   "b8be726e1ab9e348e5b4d6d155dd4ca6c093314c",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryServices/disconnect-called-during-with-uuid.html": [
-   "4ebcdda796836e55d227f081cc7604c5f1a9df35",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryServices/disconnect-called-during.html": [
-   "517fd409c96e7568f10fd794a53eff50eb08465e",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryServices/disconnect-invalidates-objects.html": [
-   "b24eb10e4eb16de82a777100f77a25b0cd22f5c9",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryServices/disconnected-device-with-uuid.html": [
-   "440631b4bf973e7846caa4740ef35a07350b5f05",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryServices/disconnected-device.html": [
-   "495ba50c31240faeb3be98925f289a108b0bc4f4",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryServices/get-different-services-after-reconnection.html": [
-   "5a7b35d3f8f9c8ece02228d8c5ecc04cb7cc4c2f",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryServices/get-same-service-with-uuid.html": [
-   "f0d32435df3c5d04b90c8215cdee2e3fce8ad1ec",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryServices/get-same-service.html": [
-   "77ff895d0eccd0447092ae2f3b2e10674cdcd769",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryServices/invalid-service-name.html": [
-   "55e111a37c430a7f7dbeedfeb65a32ef258540fe",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryServices/no-permission-absent-service-with-uuid.html": [
-   "059fcd95f9bda093e1561176b0062454876bca11",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryServices/no-permission-present-service-with-uuid.html": [
-   "c520a7b6c163ae384fb0018f7d12788aaee2db7f",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryServices/no-permission-present-service.html": [
-   "938460ed5e3e3238505df0b8921c366e01ee9af7",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryServices/services-found-with-uuid.html": [
-   "6400928aaf53abdb079ebfe5e342c17a0379e29d",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryServices/services-found.html": [
-   "7c0fde234722b48c8ea78d0bd259fd14dd286093",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryServices/services-not-found-with-uuid.html": [
-   "f203543c2d973399399cb7af09d12e84ca6cf0d3",
-   "testharness"
-  ],
-  "mozilla/bluetooth/getPrimaryServices/services-not-found.html": [
-   "a15fda448b23b548292f5affd1d8925285e510d9",
-   "testharness"
-  ],
-  "mozilla/bluetooth/idl-BluetoothUUID.html": [
-   "c4c5785f7652b0c998024b1045eb7b956b5dd8f8",
-   "testharness"
-  ],
-  "mozilla/bluetooth/interfaces.html": [
-   "a35b8d13b6392d659fab976df84e849c5abf94cd",
-   "testharness"
-  ],
-  "mozilla/bluetooth/readValue/characteristic/blocklisted-characteristic.html": [
-   "7c9b3778df7b22dee6200e36ca94fee295061542",
-   "testharness"
-  ],
-  "mozilla/bluetooth/readValue/characteristic/characteristic-is-removed.html": [
-   "7ed12a702a83f5fb6f320691b3cccf30ba89238c",
-   "testharness"
-  ],
-  "mozilla/bluetooth/readValue/characteristic/device-goes-out-of-range.html": [
-   "be1da80bc5182cf38e3dd3147c506bb169243aa7",
-   "testharness"
-  ],
-  "mozilla/bluetooth/readValue/characteristic/disconnect-called-before.html": [
-   "b5e9db9bf0cde1fbe419b0d7d7f19da713befa95",
-   "testharness"
-  ],
-  "mozilla/bluetooth/readValue/characteristic/disconnect-called-during.html": [
-   "1725e273cbcae6ae58d172b9481d281502f7d909",
-   "testharness"
-  ],
-  "mozilla/bluetooth/readValue/characteristic/event-is-fired.html": [
-   "7c3945bc230319df948138bd563000581bef31e4",
-   "testharness"
-  ],
-  "mozilla/bluetooth/readValue/characteristic/read-succeeds.html": [
-   "e7c9fdd4f648d257ae77520f881952dac658b2cd",
-   "testharness"
-  ],
-  "mozilla/bluetooth/readValue/characteristic/read-updates-value.html": [
-   "c31b0def72024b8e94e632e525308693e191026a",
-   "testharness"
-  ],
-  "mozilla/bluetooth/readValue/characteristic/service-is-removed.html": [
-   "25f2dbd325ad319b4285f6a655f57bf326329220",
-   "testharness"
-  ],
-  "mozilla/bluetooth/readValue/descriptor/blocklisted-descriptor.html": [
-   "0dc381c1df3b6da3df4c689ee7bae54fa292d291",
-   "testharness"
-  ],
-  "mozilla/bluetooth/readValue/descriptor/characteristic-is-removed.html": [
-   "ab31324e6dd6994249d4544a6170657e04e10bee",
-   "testharness"
-  ],
-  "mozilla/bluetooth/readValue/descriptor/descriptor-is-removed.html": [
-   "a71a74c7ad2e6269a6c5c374e644a12a5cd61db2",
-   "testharness"
-  ],
-  "mozilla/bluetooth/readValue/descriptor/device-goes-out-of-range.html": [
-   "79718b8d8aaab4bfbfb430822b19e8608f51f756",
-   "testharness"
-  ],
-  "mozilla/bluetooth/readValue/descriptor/disconnect-called-before.html": [
-   "127353d5e252016a9645b2e0862070d164989af6",
-   "testharness"
-  ],
-  "mozilla/bluetooth/readValue/descriptor/read-succeeds.html": [
-   "8f216bc07fa6789b41415daf80f3d6faeb8a4bef",
-   "testharness"
-  ],
-  "mozilla/bluetooth/readValue/descriptor/read-updates-value.html": [
-   "4f2e24f9c5cfc7fbd20701c65d41508ca13aab4f",
-   "testharness"
-  ],
-  "mozilla/bluetooth/readValue/descriptor/service-is-removed.html": [
-   "52559b9b6ebf74528219e7783fa54c95b58441da",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/acceptAllDevices/accept-all-devices-with-filter.html": [
-   "ce0de4491bb080f91e4ad07373e9eedd793f2bad",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/acceptAllDevices/accept-all-devices.html": [
-   "f761f9d377e04c0a27d3ea04033b17cdf3d42182",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/acceptAllDevices/device-with-empty-name.html": [
-   "f5a959bab88f9a393ae723691e3f26d9b8067ba8",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/acceptAllDevices/device-with-name.html": [
-   "35f71768cd9c86ab76839c417aa1d6e42b1b313c",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/acceptAllDevices/device-with-no-name.html": [
-   "cf95658527e42b9d91cc7709022cfdae16c3d9f7",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/acceptAllDevices/optional-services-missing.html": [
-   "e1e15bbdfd860cb66c5c9acced147bd7ceab1195",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/acceptAllDevices/optional-services-present.html": [
-   "0fde8bd94fd3cf5d103866d919b2523f9d76f5dc",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/adapter-not-present.html": [
-   "32d28c3b73450bd99a609a78164c88d30a1d462d",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/adapter-off.html": [
-   "6364bb953b71264a1f97ec03184865a01c5e7587",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/blocklisted-service-in-filter.html": [
-   "89d0defdf2ec824e7ea366c190ad771ad9c321f9",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/blocklisted-service-in-optionalServices.html": [
-   "c0884cb7c1e242de976104400626588663ec5e2c",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/canonicalizeFilter/blocklisted-service-data-key.html": [
-   "9d1bf31c47d5a0bd4ea579d50655d2433cd6c99c",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/canonicalizeFilter/empty-filter.html": [
-   "eff12ac6a11694b76679a756947fc9c55266d02a",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/canonicalizeFilter/empty-filters-member.html": [
-   "2b10103bdcd40b0a2b9df823e80d95655d16b1a2",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/canonicalizeFilter/empty-namePrefix.html": [
-   "351e92a339a38b7bbf25e2477936adf61a31a0ab",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/canonicalizeFilter/empty-services-member.html": [
-   "6b5c7f4204391db244c6226400da464439a97caa",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/canonicalizeFilter/filters-xor-acceptAllDevices.html": [
-   "75099650455c4e19b340c4af9af1e8e1708cc593",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/canonicalizeFilter/max-length-for-device-name-name.html": [
-   "28f96233299ed157234703992d2a2af82f5e099f",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/canonicalizeFilter/max-length-for-device-name-namePrefix.html": [
-   "4b078b143bc4b4787f4448314969e703f9d69fc9",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/canonicalizeFilter/no-arguments.html": [
-   "8fe54bffb612fde1f9bc987bc2a62cecd7b1a526",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/canonicalizeFilter/no-filters-member.html": [
-   "e44b787b809d5afb4aa25d83579e7b2b26dbd800",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/canonicalizeFilter/unicode-max-length-for-device-name-name.html": [
-   "4a2aae11a29cda954b1bf382c4357d9fd609e8bd",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/canonicalizeFilter/unicode-max-length-for-device-name-namePrefix.html": [
-   "799aa62168d0c68006da4370227b55218f137285",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/canonicalizeFilter/unicode-valid-length-name-name.html": [
-   "0361a1020349a31f03614fde945d502e2ff08ec8",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/canonicalizeFilter/unicode-valid-length-name-namePrefix.html": [
-   "faeff5103b72d8606762b6f3e448b6044d394c95",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-manufacturer-data-key.html": [
-   "d7d89fd863fcddde08e3b75b5021c0d56e43e6c4",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-mask-length.html": [
-   "0579a4c0d54d16b5f4859ba1c0c98869cbc94d90",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-service-data-key.html": [
-   "e1d634823891fedde1dc668c1d2535129fb21573",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-service-in-optionalServices-member.html": [
-   "03d2f94b46eda413150b70c0052742d45c75884f",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-service-in-services-member.html": [
-   "5f896ee1c978df1edf14b843ffcce5a0d53806b7",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/device-found-using-mask.html": [
-   "bab42acc524c8dfeb703c4f5a004e3f31a87f7d4",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/device-found-with-key-and-value.html": [
-   "ba3c483eacd9ae745055353377c6673df5a90d0c",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/device-found-with-key-only.html": [
-   "d4658cf65a57cff33ef0d9918e29435ea9f46bb1",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/device-found-with-service-and-manufacturer-data.html": [
-   "3dd43003657632e3ccdf6c8939f52b18643bb030",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/device-not-found-with-extra-data.html": [
-   "2a1ed86dbfee09a697e59a78c60b2a6f1a66463c",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/device-not-found-with-service-and-manufacturer-data.html": [
-   "ccdb2fe371c6f4ace6d9f7749e943bb29b3707a7",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/discovery-succeeds.html": [
-   "f3281a3fff1c1226ad8a892565e05e90b37d9b82",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/filter-does-not-match.html": [
-   "d869d22d76a4d59f5c7b6a17f0680fd05b2d9898",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/filter-matches.html": [
-   "e4f75ca5d1c34bedc871a80524490800fd24a58e",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/name-empty-device-from-name-empty-filter.html": [
-   "0fda30c403a9dc9e6825dc346a5ba8927db7d9e9",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/name-empty-device-from-name-prefix-filter.html": [
-   "9411aa131b3890eee4639f45e713728c73321cc2",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/name-empty-device-from-name-wrong-filter.html": [
-   "40f922bf252acbefea71203bbc6218644c80ae31",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/name-empty-device-from-service-filter.html": [
-   "d5fbfd8ea6e5e727e4b322e7d62d8833daca4af2",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/name-empty-filter.html": [
-   "33fc8584ee072cf90282115d10abc8d47dd8aaca",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/name-missing-device-from-name-empty-filter.html": [
-   "55bd679fbc972f95c9ee7bb97785bd5cbcde9013",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/name-missing-device-from-name-prefix-filter.html": [
-   "92ab2d0123bb679132ccc04a6b9c9e0b620df32e",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/name-missing-device-from-name-wrong-filter.html": [
-   "fc4d550ef4ee2fc48c0db4351be4dd45abc4fd55",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/name-missing-device-from-service-filter.html": [
-   "e86fdc4d1c68644b724287271e41cbe1a1ec697f",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/no-devices.html": [
-   "45f69111068e35336ba52399d355fb7b124fb9fb",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/not-accept-all-devices-without-filter.html": [
-   "43bbb6246023445cac8ec6f3a196a3744d2c890d",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/same-device.html": [
-   "15b687975900857705c9d99bb279d684d2a85bb9",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/single-filter-single-service.html": [
-   "7d25e0411b63455739bbfd377845545a6ff956c3",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/single-filter-two-services-fails.html": [
-   "10c6ea03b5fb11b7314a288f8b6e49a1fe3260fd",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/single-filter-two-services-succeeds.html": [
-   "b41d7dc002e92eb37adac7bc508ad90f1f37d453",
-   "testharness"
-  ],
-  "mozilla/bluetooth/requestDevice/two-filters.html": [
-   "a202ba36dda8f91e449ec581b9d2731264694e99",
-   "testharness"
-  ],
-  "mozilla/bluetooth/startNotifications/blocklisted-characteristic.html": [
-   "5c4c93c740c6e3c7ab624f2b2402d40947735cca",
-   "testharness"
-  ],
-  "mozilla/bluetooth/startNotifications/characteristic-does-not-support-notifications.html": [
-   "abfb780b682facfcb4f2b8cb1f976852d0e14c20",
-   "testharness"
-  ],
-  "mozilla/bluetooth/startNotifications/characteristic-is-removed.html": [
-   "2e573ba8cbd38b4169d92e2b45d3c0d9547cde23",
-   "testharness"
-  ],
-  "mozilla/bluetooth/startNotifications/device-goes-out-of-range.html": [
-   "fefe042a9b09088558f72e4a9097438318558e9d",
-   "testharness"
-  ],
-  "mozilla/bluetooth/startNotifications/disconnect-called-before.html": [
-   "eb5f4bac1e5ebccee58a0bba9194e89c4469aab5",
-   "testharness"
-  ],
-  "mozilla/bluetooth/startNotifications/disconnect-called-during.html": [
-   "1638360d2f122467890b874c9d10ae6defa5154f",
-   "testharness"
-  ],
-  "mozilla/bluetooth/startNotifications/notify-failure.html": [
-   "d41bf075951e2e460dbbe7e8f3b5692284bd391c",
-   "testharness"
-  ],
-  "mozilla/bluetooth/startNotifications/notify-succeeds.html": [
-   "e883fcb5b844d377991304ef1a5a6bb014993605",
-   "testharness"
-  ],
-  "mozilla/bluetooth/startNotifications/service-is-removed.html": [
-   "fd683a9aefb2d69ef241ad103c0cbb4aa8a113a4",
-   "testharness"
-  ],
-  "mozilla/bluetooth/stopNotifications/characteristic-is-removed.html": [
-   "71c589666d25d03695c5d96353e2442fb51729a6",
-   "testharness"
-  ],
-  "mozilla/bluetooth/stopNotifications/disconnect-called-before.html": [
-   "4d785c9b1e303ffd864a97a8ae662a60c9821dd5",
-   "testharness"
-  ],
-  "mozilla/bluetooth/stopNotifications/disconnect-called-during.html": [
-   "76eea07bc2daa5017289e145a01e0e95b03221a6",
-   "testharness"
-  ],
-  "mozilla/bluetooth/stopNotifications/notify-succeeds.html": [
-   "fed7a05eb567380079a333c6d7fc8c662f672e7c",
-   "testharness"
-  ],
-  "mozilla/bluetooth/stopNotifications/stop-after-start-succeeds.html": [
-   "7f68794278998a4195eaab27ead11da7b069b078",
-   "testharness"
-  ],
-  "mozilla/bluetooth/stopNotifications/stop-twice.html": [
-   "f6d328a26a63f94c23b9f41f4e5cfa65d971ff4e",
-   "testharness"
-  ],
-  "mozilla/bluetooth/stopNotifications/stop-without-starting.html": [
-   "eb52edcff765eb5c86c543e8e0c1507e9369a431",
-   "testharness"
-  ],
-  "mozilla/bluetooth/writeValue/characteristic/blocklisted-characteristic.html": [
-   "991584abd7a1818bb9b8f21ca68290137429b4b3",
-   "testharness"
-  ],
-  "mozilla/bluetooth/writeValue/characteristic/characteristic-is-removed.html": [
-   "e0f59b31f63fa59bf02daf8cae7fd55f5ce87f85",
-   "testharness"
-  ],
-  "mozilla/bluetooth/writeValue/characteristic/device-goes-out-of-range.html": [
-   "ef750e238675eee09c0254aefec0b22fa3d024fe",
-   "testharness"
-  ],
-  "mozilla/bluetooth/writeValue/characteristic/disconnect-called-before.html": [
-   "18d9a7e863294fb1e3cbf0314609aee72df3ae63",
-   "testharness"
-  ],
-  "mozilla/bluetooth/writeValue/characteristic/service-is-removed.html": [
-   "34b6d72eb519e3d68b14f38b666bc52a798ff1f3",
-   "testharness"
-  ],
-  "mozilla/bluetooth/writeValue/characteristic/value-too-long.html": [
-   "b7c667b0312c1cf239a7f74ab9b332c597642210",
-   "testharness"
-  ],
-  "mozilla/bluetooth/writeValue/characteristic/write-succeeds.html": [
-   "a96574271737f6aafd3010a9992400b4177e9d82",
-   "testharness"
-  ],
-  "mozilla/bluetooth/writeValue/characteristic/write-updates-value.html": [
-   "2608f4fb19062935d3e938887d7b05203c331fe8",
-   "testharness"
-  ],
-  "mozilla/bluetooth/writeValue/descriptor/blocklisted-descriptor.html": [
-   "716601eee8b5ff60dd633268c82cc9b3e76cc2fd",
-   "testharness"
-  ],
-  "mozilla/bluetooth/writeValue/descriptor/characteristic-is-removed.html": [
-   "eb106985a0308955ffab93ac03a0f71c8a9e809e",
-   "testharness"
-  ],
-  "mozilla/bluetooth/writeValue/descriptor/descriptor-is-removed.html": [
-   "bcf5c917f8e6a56fd41532a2f3514886ba650603",
-   "testharness"
-  ],
-  "mozilla/bluetooth/writeValue/descriptor/device-goes-out-of-range.html": [
-   "50999f212abb682a243006be7d4450207aae32bf",
-   "testharness"
-  ],
-  "mozilla/bluetooth/writeValue/descriptor/disconnect-called-before.html": [
-   "b83c887843034632221af1fd2ed8536dca445ca2",
-   "testharness"
-  ],
-  "mozilla/bluetooth/writeValue/descriptor/service-is-removed.html": [
-   "4b5bc3562263d8eb6f4fe1d0d2c61391fc2d0ccf",
-   "testharness"
-  ],
-  "mozilla/bluetooth/writeValue/descriptor/write-succeeds.html": [
-   "73cc92be2823bbc0b7008ecc3973ec6eddf73b5f",
-   "testharness"
-  ],
-  "mozilla/bluetooth/writeValue/descriptor/write-updates-value.html": [
-   "59dacb7968a7b75161f90fdb94a1acfef372f206",
-   "testharness"
   ],
   "mozilla/body_listener.html": [
    "753856799ff160fd8d805d3f0afc6c544128af7e",

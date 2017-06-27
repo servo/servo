@@ -1,0 +1,33 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(() => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.heart_rate);
+    return window.navigator.bluetooth.requestDevice({
+        filters: [{services: [heart_rate.name]}],
+        optionalServices: [generic_access.name]
+    })
+    .then(device => device.gatt.connect())
+    .then(gattServer => gattServer.getPrimaryService(generic_access.name))
+    .then(service => service.getCharacteristic(device_name.name))
+    .then(characteristic => {
+        return Promise.all([
+            characteristic.getDescriptor(number_of_digitals.alias),
+            characteristic.getDescriptor(number_of_digitals.name),
+            characteristic.getDescriptor(number_of_digitals.uuid)])
+        .then(descriptors => {
+            descriptors.forEach(descriptor => {
+                assert_equals(
+                    descriptor.uuid, number_of_digitals.uuid,
+                    'Descriptor UUID should be the same as requested UUID.');
+                assert_equals(
+                    descriptor.characteristic, characteristic,
+                    'Descriptor characteristic should be the same as characteristic.');
+            });
+        });
+    });
+}, 'Request for descriptor. Should return right descriptor');
+</script>
