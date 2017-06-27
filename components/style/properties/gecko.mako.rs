@@ -511,7 +511,21 @@ def set_gecko_property(ffi_name, expr):
         }
     }
     % if need_clone:
-        <% raise Exception("Do not know how to handle clone ") %>
+        pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+            use values::specified::url::SpecifiedUrl;
+            use values::None_;
+
+            match self.gecko.${gecko_ffi_name}.mRawPtr.is_null() {
+                true => Either::Second(None_),
+                false => {
+                    unsafe {
+                        let ref gecko_url_value = *self.gecko.${gecko_ffi_name}.mRawPtr;
+                        Either::First(SpecifiedUrl::from_url_value_data(&gecko_url_value._base)
+                                      .expect("${gecko_ffi_name} has valid URL value"))
+                    }
+                },
+            }
+        }
     % endif
 </%def>
 
