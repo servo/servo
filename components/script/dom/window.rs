@@ -347,6 +347,11 @@ impl Window {
 
     pub fn maybe_window_proxy(&self) -> Option<Root<WindowProxy>> {
         self.window_proxy.get()
+            .and_then(|window_proxy| if window_proxy.is_browsing_context_discarded() {
+                None
+            } else {
+                Some(window_proxy)
+            })
     }
 
     pub fn bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
@@ -674,9 +679,6 @@ impl WindowMethods for Window {
             Some(window_proxy) => window_proxy,
             None => return None,
         };
-        if window_proxy.is_browsing_context_discarded() {
-            return None;
-        }
         // Step 4.
         if let Some(parent) = window_proxy.parent() {
             return Some(Root::from_ref(parent));
@@ -692,9 +694,6 @@ impl WindowMethods for Window {
             Some(window_proxy) => window_proxy,
             None => return None,
         };
-        if window_proxy.is_browsing_context_discarded() {
-            return None;
-        }
         // Steps 4-5.
         Some(Root::from_ref(window_proxy.top()))
     }
