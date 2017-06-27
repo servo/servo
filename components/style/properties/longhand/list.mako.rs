@@ -100,7 +100,7 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
     </%helpers:longhand>
 % endif
 
-<%helpers:longhand name="list-style-image" animation_value_type="none"
+<%helpers:longhand name="list-style-image" animation_value_type="discrete"
                    boxed="${product == 'gecko'}"
                    spec="https://drafts.csswg.org/css-lists/#propdef-list-style-image">
     use values::computed::ComputedValueAsSpecified;
