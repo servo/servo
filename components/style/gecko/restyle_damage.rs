@@ -47,9 +47,10 @@ impl GeckoRestyleDamage {
     /// them, but Gecko has an interesting optimization when they mark accessed
     /// structs, so they effectively only diff structs that have ever been
     /// accessed from layout.
-    pub fn compute_style_difference(source: &nsStyleContext,
-                                    new_style: &Arc<ComputedValues>)
-                                    -> StyleDifference {
+    pub fn compute_style_difference(
+        source: &nsStyleContext,
+        new_style: &Arc<ComputedValues>
+    ) -> StyleDifference {
         // TODO(emilio): Const-ify this?
         let context = source as *const nsStyleContext as *mut nsStyleContext;
         let mut any_style_changed: bool = false;

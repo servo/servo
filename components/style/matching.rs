@@ -98,15 +98,6 @@ pub enum ChildCascadeRequirement {
     MustCascadeDescendants,
 }
 
-impl From<StyleChange> for ChildCascadeRequirement {
-    fn from(change: StyleChange) -> ChildCascadeRequirement {
-        match change {
-            StyleChange::Unchanged => ChildCascadeRequirement::CanSkipCascade,
-            StyleChange::Changed => ChildCascadeRequirement::MustCascadeChildren,
-        }
-    }
-}
-
 bitflags! {
     /// Flags that represent the result of replace_rules.
     pub flags RulesChanged: u8 {
@@ -783,6 +774,8 @@ trait PrivateMatchMethods: TElement {
                              new_values: &Arc<ComputedValues>,
                              pseudo: Option<&PseudoElement>)
                              -> ChildCascadeRequirement {
+        use properties::computed_value_flags::*;
+
         // Don't accumulate damage if we're in a restyle for reconstruction.
         if shared_context.traversal_flags.for_reconstruct() {
             return ChildCascadeRequirement::MustCascadeChildren;
@@ -798,13 +791,26 @@ trait PrivateMatchMethods: TElement {
         let skip_applying_damage =
             restyle.reconstructed_self_or_ancestor();
 
-        let difference = self.compute_style_difference(&old_values,
-                                                       &new_values,
-                                                       pseudo);
+        let difference =
+            self.compute_style_difference(&old_values, &new_values, pseudo);
+
         if !skip_applying_damage {
             restyle.damage |= difference.damage;
         }
-        difference.change.into()
+
+        match difference.change {
+            StyleChange::Unchanged => {
+                // We need to cascade the children in order to ensure the
+                // correct propagation of text-decoration-line, which is a reset
+                // property.
+                if old_values.flags.contains(HAS_TEXT_DECORATION_LINE) !=
+                    new_values.flags.contains(HAS_TEXT_DECORATION_LINE) {
+                    return ChildCascadeRequirement::MustCascadeChildren;
+                }
+                ChildCascadeRequirement::CanSkipCascade
+            },
+            StyleChange::Changed => ChildCascadeRequirement::MustCascadeChildren,
+        }
     }
 
     /// Computes and applies restyle damage unless we've already maxed it out.
@@ -818,7 +824,10 @@ trait PrivateMatchMethods: TElement {
                              -> ChildCascadeRequirement {
         let difference = self.compute_style_difference(&old_values, &new_values, pseudo);
         restyle.damage |= difference.damage;
-        difference.change.into()
+        match difference.change {
+            StyleChange::Changed => ChildCascadeRequirement::MustCascadeChildren,
+            StyleChange::Unchanged => ChildCascadeRequirement::CanSkipCascade,
+        }
     }
 
     #[cfg(feature = "servo")]
