@@ -685,10 +685,28 @@ impl Stylist {
         where E: TElement,
     {
         let rule_node =
-            match self.lazy_pseudo_rules(guards, element, pseudo, rule_inclusion) {
-                Some(rule_node) => rule_node,
-                None => return None
-            };
+            self.lazy_pseudo_rules(guards, element, pseudo, rule_inclusion);
+        self.compute_pseudo_element_style_with_rulenode(rule_node.as_ref(),
+                                                        guards,
+                                                        parent_style,
+                                                        font_metrics)
+    }
+
+    /// Computes a pseudo-element style lazily using the given rulenode.  This
+    /// can be used for truly lazy pseudo-elements or to avoid redoing selector
+    /// matching for eager pseudo-elements when we need to recompute their style
+    /// with a new parent style.
+    pub fn compute_pseudo_element_style_with_rulenode(&self,
+                                                      rule_node: Option<&StrongRuleNode>,
+                                                      guards: &StylesheetGuards,
+                                                      parent_style: &ComputedValues,
+                                                      font_metrics: &FontMetricsProvider)
+                                                      -> Option<Arc<ComputedValues>>
+    {
+        let rule_node = match rule_node {
+            Some(rule_node) => rule_node,
+            None => return None
+        };
 
         // Read the comment on `precomputed_values_for_pseudo` to see why it's
         // difficult to assert that display: contents nodes never arrive here
@@ -697,7 +715,7 @@ impl Stylist {
         // Bug 1364242: We need to add visited support for lazy pseudos
         let computed =
             properties::cascade(&self.device,
-                                &rule_node,
+                                rule_node,
                                 guards,
                                 Some(parent_style),
                                 Some(parent_style),

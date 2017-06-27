@@ -1447,6 +1447,7 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
 pub extern "C" fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
                                            pseudo_type: CSSPseudoElementType,
                                            is_probe: bool,
+                                           inherited_style: ServoComputedValuesBorrowedOrNull,
                                            raw_data: RawServoStyleSetBorrowed)
      -> ServoComputedValuesStrong
 {
@@ -1478,6 +1479,7 @@ pub extern "C" fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
         &pseudo,
         RuleInclusion::All,
         &data.styles,
+        ComputedValues::arc_from_borrowed(&inherited_style).map(|v| v.as_ref()),
         &*doc_data,
         is_probe
     );
@@ -1517,13 +1519,47 @@ fn get_pseudo_style(
     pseudo: &PseudoElement,
     rule_inclusion: RuleInclusion,
     styles: &ElementStyles,
+    inherited_styles: Option<&ComputedValues>,
     doc_data: &PerDocumentStyleDataImpl,
     is_probe: bool,
 ) -> Option<Arc<ComputedValues>> {
     let style = match pseudo.cascade_type() {
-        PseudoElementCascadeType::Eager => styles.pseudos.get(&pseudo).map(|s| s.clone()),
+        PseudoElementCascadeType::Eager => {
+            match *pseudo {
+                PseudoElement::FirstLetter => {
+                    // inherited_styles can be None when doing lazy resolution
+                    // (e.g. for computed style) or when probing.  In that case
+                    // we just inherit from our element, which is what Gecko
+                    // does in that situation.  What should actually happen in
+                    // the computed style case is a bit unclear.
+                    let inherited_styles =
+                        inherited_styles.unwrap_or(styles.primary());
+                    let guards = StylesheetGuards::same(guard);
+                    let metrics = get_metrics_provider_for_product();
+                    let rule_node = match styles.pseudos.get(&pseudo) {
+                        Some(styles) => styles.rules.as_ref(),
+                        None => None,
+                    };
+                    doc_data.stylist
+                        .compute_pseudo_element_style_with_rulenode(
+                            rule_node,
+                            &guards,
+                            inherited_styles,
+                            &metrics)
+                },
+                _ => {
+                    debug_assert!(inherited_styles.is_none() ||
+                                  ptr::eq(inherited_styles.unwrap(),
+                                          &**styles.primary()));
+                    styles.pseudos.get(&pseudo).cloned()
+                },
+            }
+        }
         PseudoElementCascadeType::Precomputed => unreachable!("No anonymous boxes"),
         PseudoElementCascadeType::Lazy => {
+            debug_assert!(inherited_styles.is_none() ||
+                          ptr::eq(inherited_styles.unwrap(),
+                                  &**styles.primary()));
             let base = if pseudo.inherits_from_default_values() {
                 doc_data.default_computed_values()
             } else {
@@ -1539,7 +1575,6 @@ fn get_pseudo_style(
                     rule_inclusion,
                     base,
                     &metrics)
-                .map(|s| s.clone())
         },
     };
 
@@ -2633,6 +2668,7 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
                     pseudo,
                     rule_inclusion,
                     styles,
+                    /* inherited_styles = */ None,
                     &*data,
                     /* is_probe = */ false,
                 ).expect("We're not probing, so we should always get a style \

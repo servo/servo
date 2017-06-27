@@ -2654,6 +2654,8 @@ extern "C" {
     pub fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
                                     pseudo_type: CSSPseudoElementType,
                                     is_probe: bool,
+                                    inherited_style:
+                                        ServoComputedValuesBorrowedOrNull,
                                     set: RawServoStyleSetBorrowed)
      -> ServoComputedValuesStrong;
 }
