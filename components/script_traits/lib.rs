@@ -822,7 +822,8 @@ pub trait Painter: Sync + Send {
     fn draw_a_paint_image(&self,
                           size: TypedSize2D<f32, CSSPixel>,
                           zoom: ScaleFactor<f32, CSSPixel, DevicePixel>,
-                          properties: Vec<(Atom, String)>)
+                          properties: Vec<(Atom, String)>,
+                          arguments: Vec<String>)
                           -> DrawAPaintImageResult;
 }
 

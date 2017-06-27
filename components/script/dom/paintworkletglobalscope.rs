@@ -17,6 +17,7 @@ use dom::bindings::js::JS;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
+use dom::cssstylevalue::CSSStyleValue;
 use dom::paintrenderingcontext2d::PaintRenderingContext2D;
 use dom::paintsize::PaintSize;
 use dom::stylepropertymapreadonly::StylePropertyMapReadOnly;
@@ -38,6 +39,7 @@ use js::jsapi::IsConstructor;
 use js::jsapi::JSAutoCompartment;
 use js::jsapi::JS_ClearPendingException;
 use js::jsapi::JS_IsExceptionPending;
+use js::jsapi::JS_NewArrayObject;
 use js::jsval::JSVal;
 use js::jsval::ObjectValue;
 use js::jsval::UndefinedValue;
@@ -100,9 +102,9 @@ impl PaintWorkletGlobalScope {
 
     pub fn perform_a_worklet_task(&self, task: PaintWorkletTask) {
         match task {
-            PaintWorkletTask::DrawAPaintImage(name, size_in_px, device_pixel_ratio, properties, sender) => {
+            PaintWorkletTask::DrawAPaintImage(name, size_in_px, device_pixel_ratio, properties, arguments, sender) => {
                 let properties = StylePropertyMapReadOnly::from_iter(self.upcast(), properties);
-                let result = self.draw_a_paint_image(name, size_in_px, device_pixel_ratio, &*properties);
+                let result = self.draw_a_paint_image(name, size_in_px, device_pixel_ratio, &*properties, arguments);
                 let _ = sender.send(result);
             }
         }
@@ -113,11 +115,17 @@ impl PaintWorkletGlobalScope {
                           name: Atom,
                           size_in_px: TypedSize2D<f32, CSSPixel>,
                           device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
-                          properties: &StylePropertyMapReadOnly)
+                          properties: &StylePropertyMapReadOnly,
+                          arguments: Vec<String>)
                           -> DrawAPaintImageResult
     {
+        let size_in_dpx = size_in_px * device_pixel_ratio;
+        let size_in_dpx = TypedSize2D::new(size_in_dpx.width.abs() as u32, size_in_dpx.height.abs() as u32);
+
+        // TODO: Steps 1-5.
+
         // TODO: document paint definitions.
-        self.invoke_a_paint_callback(name, size_in_px, device_pixel_ratio, properties)
+        self.invoke_a_paint_callback(name, size_in_px, size_in_dpx, device_pixel_ratio, properties, arguments)
     }
 
     /// https://drafts.css-houdini.org/css-paint-api/#invoke-a-paint-callback
@@ -125,12 +133,12 @@ impl PaintWorkletGlobalScope {
     fn invoke_a_paint_callback(&self,
                                name: Atom,
                                size_in_px: TypedSize2D<f32, CSSPixel>,
+                               size_in_dpx: TypedSize2D<u32, DevicePixel>,
                                device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
-                               properties: &StylePropertyMapReadOnly)
+                               properties: &StylePropertyMapReadOnly,
+                               mut arguments: Vec<String>)
                                -> DrawAPaintImageResult
     {
-        let size_in_dpx = size_in_px * device_pixel_ratio;
-        let size_in_dpx = TypedSize2D::new(size_in_dpx.width.abs() as u32, size_in_dpx.height.abs() as u32);
         debug!("Invoking a paint callback {}({},{}) at {}.",
                name, size_in_px.width, size_in_px.height, device_pixel_ratio);
 
@@ -198,10 +206,19 @@ impl PaintWorkletGlobalScope {
         // TODO: Step 10
         // Steps 11-12
         debug!("Invoking paint function {}.", name);
+        rooted_vec!(let arguments_values <- arguments.drain(..)
+                    .map(|argument| CSSStyleValue::new(self.upcast(), argument)));
+        let arguments_value_vec: Vec<JSVal> = arguments_values.iter()
+            .map(|argument| ObjectValue(argument.reflector().get_jsobject().get()))
+            .collect();
+        let arguments_value_array = unsafe { HandleValueArray::from_rooted_slice(&*arguments_value_vec) };
+        rooted!(in(cx) let argument_object = unsafe { JS_NewArrayObject(cx, &arguments_value_array) });
+
         let args_slice = [
             ObjectValue(rendering_context.reflector().get_jsobject().get()),
             ObjectValue(paint_size.reflector().get_jsobject().get()),
             ObjectValue(properties.reflector().get_jsobject().get()),
+            ObjectValue(argument_object.get()),
         ];
         let args = unsafe { HandleValueArray::from_rooted_slice(&args_slice) };
 
@@ -252,12 +269,17 @@ impl PaintWorkletGlobalScope {
             fn draw_a_paint_image(&self,
                                   size: TypedSize2D<f32, CSSPixel>,
                                   device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
-                                  properties: Vec<(Atom, String)>)
-                                  -> DrawAPaintImageResult
-            {
+                                  properties: Vec<(Atom, String)>,
+                                  arguments: Vec<String>)
+                                  -> DrawAPaintImageResult {
                 let name = self.0.clone();
                 let (sender, receiver) = mpsc::channel();
-                let task = PaintWorkletTask::DrawAPaintImage(name, size, device_pixel_ratio, properties, sender);
+                let task = PaintWorkletTask::DrawAPaintImage(name,
+                                                             size,
+                                                             device_pixel_ratio,
+                                                             properties,
+                                                             arguments,
+                                                             sender);
                 self.1.lock().expect("Locking a painter.")
                     .schedule_a_worklet_task(WorkletTask::Paint(task));
                 receiver.recv().expect("Worklet thread died?")
@@ -296,7 +318,7 @@ impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
         let properties = property_names.drain(..).map(Atom::from).collect();
 
         // Step 7-9.
-        let _argument_names: Vec<String> =
+        let input_arguments: Vec<String> =
             unsafe { get_property(cx, paint_obj.handle(), "inputArguments", ()) }?
             .unwrap_or_default();
 
@@ -332,6 +354,7 @@ impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
         let definition = PaintDefinition::new(paint_val.handle(),
                                               paint_function.handle(),
                                               alpha,
+                                              input_arguments.len(),
                                               &*context);
 
         // Step 20.
@@ -356,6 +379,7 @@ pub enum PaintWorkletTask {
                     TypedSize2D<f32, CSSPixel>,
                     ScaleFactor<f32, CSSPixel, DevicePixel>,
                     Vec<(Atom, String)>,
+                    Vec<String>,
                     Sender<DrawAPaintImageResult>)
 }
 
@@ -370,6 +394,8 @@ struct PaintDefinition {
     paint_function: Heap<JSVal>,
     constructor_valid_flag: Cell<bool>,
     context_alpha_flag: bool,
+    // TODO: this should be a list of CSS syntaxes.
+    input_arguments_len: usize,
     // TODO: the spec calls for fresh rendering contexts each time a paint image is drawn,
     // but to avoid having the primary worklet thread create a new renering context,
     // we recycle them.
@@ -380,6 +406,7 @@ impl PaintDefinition {
     fn new(class_constructor: HandleValue,
            paint_function: HandleValue,
            alpha: bool,
+           input_arguments_len: usize,
            context: &PaintRenderingContext2D)
            -> Box<PaintDefinition>
     {
@@ -388,6 +415,7 @@ impl PaintDefinition {
             paint_function: Heap::default(),
             constructor_valid_flag: Cell::new(true),
             context_alpha_flag: alpha,
+            input_arguments_len: input_arguments_len,
             context: JS::from_ref(context),
         });
         result.class_constructor.set(class_constructor.get());
