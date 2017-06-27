@@ -77,6 +77,12 @@ impl PseudoElement {
         matches!(*self, PseudoElement::Before | PseudoElement::After)
     }
 
+    /// Whether this pseudo-element is ::first-letter.
+    #[inline]
+    pub fn is_first_letter(&self) -> bool {
+        *self == PseudoElement::FirstLetter
+    }
+
     /// Whether this pseudo-element is lazily-cascaded.
     #[inline]
     pub fn is_lazy(&self) -> bool {

@@ -426,9 +426,19 @@ pub trait TElement : Eq + PartialEq + Debug + Hash + Sized + Copy + Clone +
     /// TODO(emilio, bz): actually implement the logic for it.
     fn may_generate_pseudo(
         &self,
-        _pseudo: &PseudoElement,
+        pseudo: &PseudoElement,
         _primary_style: &ComputedValues,
     ) -> bool {
+        // ::before/::after are always supported for now, though we could try to
+        // optimize out leaf elements.
+
+        // ::first-letter and ::first-line are only supported for block-inside
+        // things, and only in Gecko, not Servo.  Unfortunately, Gecko has
+        // block-inside things that might have any computed display value due to
+        // things like fieldsets, legends, etc.  Need to figure out how this
+        // should work.
+        debug_assert!(pseudo.is_eager(),
+                      "Someone called may_generate_pseudo with a non-eager pseudo.");
         true
     }
 
