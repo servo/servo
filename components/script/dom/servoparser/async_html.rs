@@ -128,11 +128,11 @@ unsafe impl JSTraceable for HtmlTokenizer<TreeBuilder<ParseNode, Sink>> {
     }
 }
 
-type ParseNodeID = usize;
+type ParseNodeId = usize;
 
 #[derive(JSTraceable, Clone, HeapSizeOf)]
 pub struct ParseNode {
-    id: ParseNodeID,
+    id: ParseNodeId,
     qual_name: Option<QualName>,
 }
 
@@ -152,21 +152,21 @@ impl Default for ParseNodeData {
 }
 
 enum ParseOperation {
-    GetTemplateContents(ParseNodeID, ParseNodeID),
-    CreateElement(ParseNodeID, QualName, Vec<Attribute>),
-    CreateComment(StrTendril, ParseNodeID),
+    GetTemplateContents(ParseNodeId, ParseNodeId),
+    CreateElement(ParseNodeId, QualName, Vec<Attribute>),
+    CreateComment(StrTendril, ParseNodeId),
     // sibling, node to be inserted
-    AppendBeforeSibling(ParseNodeID, NodeOrText<ParseNode>),
+    AppendBeforeSibling(ParseNodeId, NodeOrText<ParseNode>),
     // parent, node to be inserted
-    Append(ParseNodeID, NodeOrText<ParseNode>),
+    Append(ParseNodeId, NodeOrText<ParseNode>),
     AppendDoctypeToDocument(StrTendril, StrTendril, StrTendril),
-    AddAttrsIfMissing(ParseNodeID, Vec<Attribute>),
-    RemoveFromParent(ParseNodeID),
-    MarkScriptAlreadyStarted(ParseNodeID),
-    ReparentChildren(ParseNodeID, ParseNodeID),
-    AssociateWithForm(ParseNodeID, ParseNodeID),
-    CreatePI(ParseNodeID, StrTendril, StrTendril),
-    Pop(ParseNodeID),
+    AddAttrsIfMissing(ParseNodeId, Vec<Attribute>),
+    RemoveFromParent(ParseNodeId),
+    MarkScriptAlreadyStarted(ParseNodeId),
+    ReparentChildren(ParseNodeId, ParseNodeId),
+    AssociateWithForm(ParseNodeId, ParseNodeId),
+    CreatePI(ParseNodeId, StrTendril, StrTendril),
+    Pop(ParseNodeId),
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -176,9 +176,9 @@ pub struct Sink {
     document: JS<Document>,
     current_line: u64,
     script: MutNullableJS<HTMLScriptElement>,
-    parse_node_data: HashMap<ParseNodeID, ParseNodeData>,
-    next_parse_node_id: Cell<ParseNodeID>,
-    nodes: HashMap<ParseNodeID, JS<Node>>,
+    parse_node_data: HashMap<ParseNodeId, ParseNodeData>,
+    next_parse_node_id: Cell<ParseNodeId>,
+    nodes: HashMap<ParseNodeId, JS<Node>>,
     document_node: ParseNode,
 }
 
@@ -214,23 +214,23 @@ impl Sink {
         }
     }
 
-    fn insert_node(&mut self, id: ParseNodeID, node: JS<Node>) {
+    fn insert_node(&mut self, id: ParseNodeId, node: JS<Node>) {
         assert!(self.nodes.insert(id, node).is_none());
     }
 
-    fn get_node<'a>(&'a self, id: &ParseNodeID) -> &'a JS<Node> {
+    fn get_node<'a>(&'a self, id: &ParseNodeId) -> &'a JS<Node> {
         self.nodes.get(id).expect("Node not found!")
     }
 
-    fn insert_parse_node_data(&mut self, id: ParseNodeID, data: ParseNodeData) {
+    fn insert_parse_node_data(&mut self, id: ParseNodeId, data: ParseNodeData) {
         assert!(self.parse_node_data.insert(id, data).is_none());
     }
 
-    fn get_parse_node_data<'a>(&'a self, id: &'a ParseNodeID) -> &'a ParseNodeData {
+    fn get_parse_node_data<'a>(&'a self, id: &'a ParseNodeId) -> &'a ParseNodeData {
         self.parse_node_data.get(id).expect("Parse Node data not found!")
     }
 
-    fn get_parse_node_data_mut<'a>(&'a mut self, id: &'a ParseNodeID) -> &'a mut ParseNodeData {
+    fn get_parse_node_data_mut<'a>(&'a mut self, id: &'a ParseNodeId) -> &'a mut ParseNodeData {
         self.parse_node_data.get_mut(id).expect("Parse Node data not found!")
     }
 
