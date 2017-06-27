@@ -60,7 +60,7 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
 /// -moz-border-*-colors: color, string, enum, none, inherit/initial
 /// These non-spec properties are just for Gecko (Stylo) internal use.
 % for side in PHYSICAL_SIDES:
-    <%helpers:longhand name="-moz-border-${side}-colors" animation_value_type="none"
+    <%helpers:longhand name="-moz-border-${side}-colors" animation_value_type="discrete"
                        spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-border-*-colors)"
                        products="gecko"
                        ignored_when_colors_disabled="True">
