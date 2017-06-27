@@ -1062,30 +1062,38 @@ fn static_assert() {
         self.gecko.${value.gecko}.mInteger = other.gecko.${value.gecko}.mInteger;
         self.gecko.${value.gecko}.mLineName.assign(&*other.gecko.${value.gecko}.mLineName);
     }
+
+    pub fn clone_${value.name}(&self) -> longhands::${value.name}::computed_value::T {
+        use gecko_bindings::structs::{nsStyleGridLine_kMinLine, nsStyleGridLine_kMaxLine};
+        use string_cache::Atom;
+        use values::specified::Integer;
+
+        longhands::${value.name}::computed_value::T {
+            is_span: self.gecko.${value.gecko}.mHasSpan,
+            ident: {
+                let name = self.gecko.${value.gecko}.mLineName.to_string();
+                if name.len() == 0 {
+                    None
+                } else {
+                    Some(CustomIdent(Atom::from(name)))
+                }
+            },
+            line_num:
+                if self.gecko.${value.gecko}.mInteger == 0 {
+                    None
+                } else {
+                    debug_assert!(nsStyleGridLine_kMinLine <= self.gecko.${value.gecko}.mInteger &&
+                                  self.gecko.${value.gecko}.mInteger <= nsStyleGridLine_kMaxLine);
+                    Some(Integer::new(self.gecko.${value.gecko}.mInteger))
+                },
+        }
+    }
     % endfor
 
     % for kind in ["rows", "columns"]:
     pub fn set_grid_auto_${kind}(&mut self, v: longhands::grid_auto_${kind}::computed_value::T) {
-        use values::generics::grid::TrackSize;
-
-        match v {
-            TrackSize::FitContent(lop) => {
-                // Gecko sets min value to None and max value to the actual value in fit-content
-                // https://dxr.mozilla.org/mozilla-central/rev/0eef1d5/layout/style/nsRuleNode.cpp#8221
-                self.gecko.mGridAuto${kind.title()}Min.set_value(CoordDataValue::None);
-                lop.to_gecko_style_coord(&mut self.gecko.mGridAuto${kind.title()}Max);
-            },
-            TrackSize::Breadth(breadth) => {
-                // Set the value to both fields if there's one breadth value
-                // https://dxr.mozilla.org/mozilla-central/rev/0eef1d5/layout/style/nsRuleNode.cpp#8230
-                breadth.to_gecko_style_coord(&mut self.gecko.mGridAuto${kind.title()}Min);
-                breadth.to_gecko_style_coord(&mut self.gecko.mGridAuto${kind.title()}Max);
-            },
-            TrackSize::MinMax(min, max) => {
-                min.to_gecko_style_coord(&mut self.gecko.mGridAuto${kind.title()}Min);
-                max.to_gecko_style_coord(&mut self.gecko.mGridAuto${kind.title()}Max);
-            },
-        }
+        v.to_gecko_style_coords(&mut self.gecko.mGridAuto${kind.title()}Min,
+                                &mut self.gecko.mGridAuto${kind.title()}Max)
     }
 
     pub fn copy_grid_auto_${kind}_from(&mut self, other: &Self) {
@@ -1094,37 +1102,17 @@ fn static_assert() {
     }
 
     pub fn clone_grid_auto_${kind}(&self) -> longhands::grid_auto_${kind}::computed_value::T {
-        use gecko_bindings::structs::root::nsStyleUnit::eStyleUnit_None;
-        use values::computed::length::LengthOrPercentage;
-        use values::generics::grid::{TrackSize, TrackBreadth};
-
-        let ref min_gecko = self.gecko.mGridAuto${kind.title()}Min;
-        let ref max_gecko = self.gecko.mGridAuto${kind.title()}Max;
-        if min_gecko.unit() == eStyleUnit_None {
-            debug_assert!(max_gecko.unit() != eStyleUnit_None);
-            return TrackSize::FitContent(LengthOrPercentage::from_gecko_style_coord(max_gecko)
-                       .expect("mGridAuto${kind.title()}Max contains style coord"));
-        }
-
-        let min = TrackBreadth::from_gecko_style_coord(min_gecko)
-                      .expect("mGridAuto${kind.title()}Min contains style coord");
-        let max = TrackBreadth::from_gecko_style_coord(max_gecko)
-                      .expect("mGridAuto${kind.title()}Max contains style coord");
-        if min == max {
-            TrackSize::Breadth(max)
-        } else {
-            TrackSize::MinMax(min, max)
-        }
+        ::values::generics::grid::TrackSize::from_gecko_style_coords(&self.gecko.mGridAuto${kind.title()}Min,
+                                                                     &self.gecko.mGridAuto${kind.title()}Max)
     }
 
     pub fn set_grid_template_${kind}(&mut self, v: longhands::grid_template_${kind}::computed_value::T) {
         <% self_grid = "self.gecko.mGridTemplate%s" % kind.title() %>
-        use gecko::values::GeckoStyleCoordConvertible;
         use gecko_bindings::structs::{nsTArray, nsStyleGridLine_kMaxLine};
         use nsstring::{nsCString, nsStringRepr};
         use std::usize;
         use values::generics::grid::TrackListType::Auto;
-        use values::generics::grid::{RepeatCount, TrackSize};
+        use values::generics::grid::RepeatCount;
 
         #[inline]
         fn set_bitfield(bitfield: &mut u8, pos: u8, val: bool) {
@@ -1141,25 +1129,6 @@ fn static_assert() {
 
             for (servo_name, gecko_name) in servo_names.iter().zip(gecko_names.iter_mut()) {
                 gecko_name.assign_utf8(&nsCString::from(&*servo_name));
-            }
-        }
-
-        fn set_track_size<G, T>(value: TrackSize<T>, gecko_min: &mut G, gecko_max: &mut G)
-            where G: CoordDataMut, T: GeckoStyleCoordConvertible
-        {
-            match value {
-                TrackSize::FitContent(lop) => {
-                    gecko_min.set_value(CoordDataValue::None);
-                    lop.to_gecko_style_coord(gecko_max);
-                },
-                TrackSize::Breadth(breadth) => {
-                    breadth.to_gecko_style_coord(gecko_min);
-                    breadth.to_gecko_style_coord(gecko_max);
-                },
-                TrackSize::MinMax(min, max) => {
-                    min.to_gecko_style_coord(gecko_min);
-                    max.to_gecko_style_coord(gecko_max);
-                },
             }
         }
 
@@ -1216,13 +1185,13 @@ fn static_assert() {
                     let name_list = line_names.next().expect("expected line-names");
                     set_line_names(&name_list, &mut ${self_grid}.mLineNameLists[i]);
                     if i == auto_idx {
-                        set_track_size(auto_track_size.take().expect("expected <track-size> for <auto-track-repeat>"),
-                                       gecko_min, gecko_max);
+                        let track_size = auto_track_size.take().expect("expected <track-size> for <auto-track-repeat>");
+                        track_size.to_gecko_style_coords(gecko_min, gecko_max);
                         continue
                     }
 
                     let track_size = values_iter.next().expect("expected <track-size> value");
-                    set_track_size(track_size, gecko_min, gecko_max);
+                    track_size.to_gecko_style_coords(gecko_min, gecko_max);
                 }
 
                 let final_names = line_names.next().unwrap();
