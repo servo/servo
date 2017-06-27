@@ -1202,14 +1202,6 @@ pub trait MatchMethods : TElement {
         // Compute rule nodes for eagerly-cascaded pseudo-elements.
         let mut matches_different_pseudos = false;
         SelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
-            let bloom_filter = context.thread_local.bloom_filter.filter();
-
-            let mut matching_context =
-                MatchingContext::new_for_visited(MatchingMode::ForStatelessPseudoElement,
-                                                 Some(bloom_filter),
-                                                 visited_handling,
-                                                 context.shared.quirks_mode);
-
             // For pseudo-elements, we only try to match visited rules if there
             // are also unvisited rules.  (This matches Gecko's behavior.)
             if visited_handling == VisitedHandlingMode::RelevantLinkVisited &&
@@ -1217,11 +1209,15 @@ pub trait MatchMethods : TElement {
                 return
             }
 
-            if !self.may_generate_pseudo(&pseudo, data.styles.primary()) {
-                return;
-            }
+            if self.may_generate_pseudo(&pseudo, data.styles.primary()) {
+                let bloom_filter = context.thread_local.bloom_filter.filter();
 
-            {
+                let mut matching_context =
+                    MatchingContext::new_for_visited(MatchingMode::ForStatelessPseudoElement,
+                                                     Some(bloom_filter),
+                                                     visited_handling,
+                                                     context.shared.quirks_mode);
+
                 let map = &mut context.thread_local.selector_flags;
                 let mut set_selector_flags = |element: &Self, flags: ElementSelectorFlags| {
                     self.apply_selector_flags(map, element, flags);
