@@ -1507,7 +1507,23 @@ pub trait MatchMethods : TElement {
                 // triggering any change.
                 return StyleDifference::new(RestyleDamage::empty(), StyleChange::Unchanged)
             }
+            // FIXME(bz): This will keep reframing replaced elements.  Do we
+            // need this at all?  Seems like if we add/remove ::before or
+            // ::after styles we would get reframed over in match_pseudos and if
+            // that part didn't change and we had no frame for the
+            // ::before/::after then we don't care.  Need to double-check that
+            // we handle the "content" and "display" properties changing
+            // correctly, though.
+            // https://bugzilla.mozilla.org/show_bug.cgi?id=1376352
             return StyleDifference::new(RestyleDamage::reconstruct(), StyleChange::Changed)
+        }
+
+        if pseudo.map_or(false, |p| p.is_first_letter()) {
+            // No one cares about this pseudo, and we've checked above that
+            // we're not switching from a "cares" to a "doesn't care" state
+            // or vice versa.
+            return StyleDifference::new(RestyleDamage::empty(),
+                                        StyleChange::Unchanged)
         }
 
         // Something else. Be conservative for now.

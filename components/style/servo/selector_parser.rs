@@ -38,6 +38,7 @@ pub enum PseudoElement {
     After = 0,
     Before,
     Selection,
+    // If/when :first-letter is added, update is_first_letter accordingly.
     // Non-eager pseudos.
     DetailsSummary,
     DetailsContent,
@@ -108,6 +109,12 @@ impl PseudoElement {
     #[inline]
     pub fn is_before_or_after(&self) -> bool {
         matches!(*self, PseudoElement::After | PseudoElement::Before)
+    }
+
+    /// Whether the current pseudo element is :first-letter
+    #[inline]
+    pub fn is_first_letter(&self) -> bool {
+        false
     }
 
     /// Whether this pseudo-element is eagerly-cascaded.
